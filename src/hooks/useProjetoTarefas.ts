@@ -277,6 +277,49 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     },
   });
 
+  // Add/remove colaboradores
+  const addColaborador = useMutation({
+    mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("projeto_tarefa_colaboradores")
+        .insert({ tarefa_id: tarefaId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const removeColaborador = useMutation({
+    mutationFn: async ({ tarefaId, userId }: { tarefaId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("projeto_tarefa_colaboradores")
+        .delete()
+        .eq("tarefa_id", tarefaId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  // Team members for pickers
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["team-members"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, nome, avatar_url")
+        .order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; avatar_url: string | null }[];
+    },
+    enabled: !!user,
+  });
+
   return {
     secoes,
     tarefas,
@@ -289,5 +332,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     toggleTarefaCompleta,
     moveTarefaToSecao,
     createSecao,
+    addColaborador,
+    removeColaborador,
+    teamMembers,
   };
 }

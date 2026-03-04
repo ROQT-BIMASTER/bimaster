@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
-import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
+import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { GRID_COLS } from "./ProjetoListView";
 import { format } from "date-fns";
@@ -27,9 +27,16 @@ interface ProjetoSecaoProps {
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
   onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
+  teamMembers?: TeamMember[];
+  onAddColaborador?: (tarefaId: string, userId: string) => void;
+  onRemoveColaborador?: (tarefaId: string, userId: string) => void;
 }
 
-export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts = [], onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa }: ProjetoSecaoProps) {
+export function ProjetoSecao({
+  nome, tarefas, secaoId, selectedTarefaId, ghosts = [],
+  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa,
+  teamMembers, onAddColaborador, onRemoveColaborador,
+}: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
@@ -37,7 +44,6 @@ export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts 
   }, 0);
   const totalCount = tarefas.reduce((acc, t) => acc + 1 + (t.subtarefas?.length || 0), 0);
 
-  // Deduplicate ghosts per tarefa (keep latest move only)
   const uniqueGhosts = ghosts.reduce((acc, g) => {
     if (!acc.has(g.tarefa_id)) acc.set(g.tarefa_id, g);
     return acc;
@@ -71,17 +77,19 @@ export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts 
               onToggle={onToggleTarefa}
               onSelect={onSelectTarefa}
               onUpdate={onUpdateTarefa}
+              teamMembers={teamMembers}
+              onAddColaborador={onAddColaborador}
+              onRemoveColaborador={onRemoveColaborador}
             />
           ))}
 
-          {/* Ghost trails — tasks that were moved away from this section */}
           {ghostList.map(ghost => (
             <div
               key={`ghost-${ghost.tarefa_id}`}
               className={`group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/20 min-h-[36px] opacity-40 italic`}
             >
-              <div /> {/* expand */}
-              <div /> {/* checkbox */}
+              <div />
+              <div />
               <div className="flex items-center gap-2 min-w-0 pr-2">
                 {ghost.tarefa.codigo && (
                   <span className="text-[10px] text-muted-foreground font-mono">{ghost.tarefa.codigo}</span>
@@ -94,15 +102,15 @@ export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts 
                   {ghost.destSecaoNome}
                 </span>
               </div>
-              <div /> {/* responsavel */}
+              <div />
               <div className="text-[10px] text-muted-foreground">
                 {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
               </div>
-              <div /> {/* colab */}
-              <div /> {/* criador */}
-              <div /> {/* data mod */}
-              <div /> {/* status */}
-              <div /> {/* estagio */}
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
             </div>
           ))}
 
