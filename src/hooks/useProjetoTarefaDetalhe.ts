@@ -41,6 +41,8 @@ export interface ProdutoAcabado {
   nome: string;
   marca: string | null;
   linha: string | null;
+  tipo: string | null;
+  filhos?: ProdutoAcabado[];
 }
 
 export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
@@ -251,14 +253,42 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined) {
   const searchProdutos = async (query?: string): Promise<ProdutoAcabado[]> => {
     let q = supabase
       .from("fabrica_produtos" as any)
-      .select("id, codigo, nome, marca, linha")
+      .select("id, codigo, nome, marca, linha, tipo")
+      .eq("ativo", true)
       .order("nome")
       .limit(20);
     if (query && query.length >= 1) {
       q = q.or(`nome.ilike.%${query}%,codigo.ilike.%${query}%`);
     }
     const { data } = await q;
-    return (data || []) as unknown as ProdutoAcabado[];
+    const produtos = (data || []) as unknown as ProdutoAcabado[];
+
+    // Para produtos DISPLAY, buscar filhos da grade
+    const displayIds = produtos.filter(p => p.tipo === "DISPLAY").map(p => p.id);
+    if (displayIds.length > 0) {
+      const { data: gradeItens } = await supabase
+        .from("fabrica_produto_grade_itens" as any)
+        .select("produto_pai_id, produto_filho_id, quantidade, produto_filho:fabrica_produtos!produto_filho_id(id, codigo, nome, marca, linha, tipo)")
+        .in("produto_pai_id", displayIds);
+
+      if (gradeItens) {
+        const filhosPorPai: Record<string, ProdutoAcabado[]> = {};
+        for (const item of gradeItens as any[]) {
+          const paiId = item.produto_pai_id;
+          if (!filhosPorPai[paiId]) filhosPorPai[paiId] = [];
+          if (item.produto_filho) {
+            filhosPorPai[paiId].push(item.produto_filho as ProdutoAcabado);
+          }
+        }
+        for (const p of produtos) {
+          if (p.tipo === "DISPLAY" && filhosPorPai[p.id]) {
+            p.filhos = filhosPorPai[p.id];
+          }
+        }
+      }
+    }
+
+    return produtos;
   };
 
   // ===== Team members for @mention =====
