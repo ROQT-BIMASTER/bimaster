@@ -6,6 +6,7 @@ import { format, isPast, isToday, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -90,8 +91,11 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           {isCompleted ? <CheckCircle2 className="h-[18px] w-[18px]" /> : <Circle className="h-[18px] w-[18px]" />}
         </button>
 
-        {/* Title + code + subtask count */}
+        {/* Title + code + product photo + subtask count */}
         <div className="flex items-center gap-2 min-w-0 pr-2">
+          {tarefa.produto_foto_url && (
+            <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="sm" className="flex-shrink-0" />
+          )}
           {tarefa.codigo && (
             <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">{tarefa.codigo}</span>
           )}
