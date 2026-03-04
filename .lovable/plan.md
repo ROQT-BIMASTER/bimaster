@@ -1,32 +1,56 @@
 
 
-## Plano: Corrigir chat financeiro — colunas incorretas e acesso
+## Plano: Endurecimento de Segurança para Auditoria
 
-### Problema identificado
+### Análise de Vulnerabilidades Encontradas
 
-Dois problemas distintos:
+Após investigação detalhada do banco de dados, identifiquei **2 vulnerabilidades reais** que precisam de correção:
 
-1. **Colunas inexistentes nos hooks**: Os hooks `useAvailablePaymentQueues` e `useAllPaymentConversations` referenciam colunas que **não existem** na tabela `financial_payment_queue`:
-   - `fornecedor` → deveria ser `supplier_name`
-   - `descricao` → deveria ser `description`  
-   - `valor` → deveria ser `amount`
-   - `vencimento` → deveria ser `due_date`
+---
 
-   Isso causa erro silencioso na query (retorna dados vazios ou falha).
+### Vulnerabilidade 1: Acesso excessivamente amplo a dados financeiros
 
-2. **Tabela vazia**: A `financial_payment_queue` tem 0 registros. As despesas dos departamentos só entram na fila quando são enviadas ao financeiro (via `useDepartmentExpenses`). Se nenhuma despesa foi enviada ainda, o chat não tem itens para exibir.
+**Gravidade: ALTA**
 
-3. **Acesso RLS**: O usuário atual (vendedor, departamento Comercial) pode não ter acesso à `financial_payment_queue` — a policy `fpq_select_policy` exige admin, `can_access_payment_queue` (departamento Financeiro/Tesouraria/Controladoria), ou `requested_by = auth.uid()`. Um vendedor do Comercial só vê itens que ele mesmo solicitou.
+As tabelas `contas_receber` e `contas_pagar` usam a função `check_user_access(uid, 'financeiro')` nas políticas RLS. O problema: essa função concede acesso automático a **todos os supervisores e gerentes**, independentemente do departamento. Um supervisor do Comercial, por exemplo, consegue ler todos os títulos financeiros.
 
-### Alterações
+**Correção**: Criar uma função dedicada `can_access_financeiro_strict(user_id)` que verifica **somente**:
+- Admin (via `has_role`)
+- Permissão explícita ao módulo "financeiro" (via `usuario_permissoes_modulos`, `departamento_permissoes_modulos` ou `role_permissoes_modulos`)
 
-**`src/hooks/usePaymentMessages.ts`**:
-- Corrigir `useAvailablePaymentQueues`: usar `supplier_name`, `description`, `amount`, `due_date` em vez de `fornecedor`, `descricao`, `valor`, `vencimento`
-- Corrigir `useAllPaymentConversations`: mesma correção no select e mapeamento dos dados de `financial_payment_queue`
+Sem o bypass automático de supervisor/gerente.
 
-**Sem migração necessária** — o schema está correto, o código é que usa nomes errados.
+Depois, atualizar as 4 políticas RLS de `contas_receber` e `contas_pagar` para usar essa nova função.
 
-### Resultado esperado
+---
 
-Após a correção, o botão "Nova Conversa" exibirá as despesas disponíveis na fila (quando houverem), e as conversas existentes serão exibidas corretamente com nome do fornecedor e descrição.
+### Vulnerabilidade 2: Profiles — gerentes veem todos os perfis
+
+**Gravidade: MÉDIA**
+
+A função `can_view_profile()` permite que **gerentes vejam TODOS os perfis** (mesma regra do admin). Isso expõe dados pessoais (email, departamento, vínculos) de usuários que não são subordinados do gerente.
+
+**Correção**: Alterar `can_view_profile()` para que gerentes vejam apenas seus subordinados diretos (via `gerente_id`), da mesma forma que supervisores veem apenas via `supervisor_id`. Admins continuam vendo tudo.
+
+---
+
+### Alterações (somente migração SQL)
+
+**1 migração** contendo:
+
+1. **`can_access_financeiro_strict(uuid)`** — nova função `SECURITY DEFINER`, `SET search_path = ''`, que verifica admin ou módulo financeiro explícito (sem bypass supervisor/gerente)
+
+2. **Políticas de `contas_receber`** — recriar `cr_select_strict`, `cr_update_strict` usando `can_access_financeiro_strict`
+
+3. **Políticas de `contas_pagar`** — recriar `cp_select`, `cp_update` usando `can_access_financeiro_strict`
+
+4. **`can_view_profile(uuid, uuid)`** — recriar com gerentes restritos aos subordinados diretos (WHERE `gerente_id = viewer_id`)
+
+**Nenhum arquivo de código precisa mudar** — as correções são todas no banco de dados.
+
+### Impacto
+
+- Supervisores/gerentes que **não têm** permissão explícita ao módulo financeiro perderão acesso a contas a receber/pagar (comportamento correto)
+- Gerentes verão apenas perfis de seus subordinados diretos em vez de todos os perfis
+- Admins e usuários do financeiro não são afetados
 
