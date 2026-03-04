@@ -164,6 +164,42 @@ export function usePaymentMessageCounts(paymentQueueIds: string[]) {
   });
 }
 
+export interface PaymentQueueItem {
+  id: string;
+  fornecedor: string;
+  descricao: string;
+  valor: number;
+  vencimento: string;
+  source_type: string;
+  financial_status: string;
+}
+
+export function useAvailablePaymentQueues(existingQueueIds: string[]) {
+  return useQuery({
+    queryKey: ["available-payment-queues", existingQueueIds.sort().join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financial_payment_queue")
+        .select("id, fornecedor, descricao, valor, vencimento, source_type, financial_status")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || [])
+        .filter((item: any) => !existingQueueIds.includes(item.id))
+        .map((item: any) => ({
+          id: item.id,
+          fornecedor: item.fornecedor || "—",
+          descricao: item.descricao || "",
+          valor: item.valor || 0,
+          vencimento: item.vencimento || "",
+          source_type: item.source_type || "",
+          financial_status: item.financial_status || "",
+        })) as PaymentQueueItem[];
+    },
+  });
+}
+
 export interface PaymentConversation {
   paymentQueueId: string;
   fornecedor: string;
