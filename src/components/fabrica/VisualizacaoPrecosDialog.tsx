@@ -44,7 +44,8 @@ import { EditarPrecosProdutoDialog } from "./EditarPrecosProdutoDialog";
 import { ExportarTabelaPDF } from "./ExportarTabelaPDF";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
 import { ComposicaoCustoTooltip } from "./ComposicaoCustoTooltip";
-
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
+import { useUserRole } from "@/hooks/useUserRole";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,7 +63,9 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
   const [showExportPDF, setShowExportPDF] = useState(false);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [produtoHistorico, setProdutoHistorico] = useState<{id: string, nome: string} | null>(null);
-
+  const { isProductBlocked } = useVisibilityBlocks();
+  const { isAdmin, isSupervisor } = useUserRole();
+  const isPrivilegedUser = isAdmin || isSupervisor;
   const { data: precos, isLoading, refetch } = useQuery({
     queryKey: ["visualizacao-precos", tabela?.id],
     queryFn: async () => {
@@ -201,6 +204,9 @@ export function VisualizacaoPrecosDialog({ open, onOpenChange, tabela }: Props) 
   };
 
   const precosFiltrados = precos?.filter((preco) => {
+    // Filtrar produtos bloqueados por visibilidade (apenas para não-admin/supervisor)
+    if (!isPrivilegedUser && preco.produto && isProductBlocked(preco.produto.linha || null, preco.produto.id)) return false;
+
     // Filtro por busca textual
     if (busca) {
       const buscaLower = busca.toLowerCase();

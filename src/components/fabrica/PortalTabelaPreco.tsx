@@ -17,6 +17,7 @@ import { Download, Search, DollarSign, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatarMoeda } from "@/lib/fabrica/pricing-calculator";
 import { toast } from "sonner";
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 
 interface Props {
   cnpj?: string;
@@ -28,6 +29,7 @@ export function PortalTabelaPreco({ cnpj }: Props) {
   const [filtroCategoria, setFiltroCategoria] = useState<string>("__all__");
   const [filtroMarca, setFiltroMarca] = useState<string>("__all__");
   const [filtroLinha, setFiltroLinha] = useState<string>("__all__");
+  const { isProductBlocked } = useVisibilityBlocks();
   const [filtroDisplay, setFiltroDisplay] = useState<string>("__all__");
 
   // Buscar CNPJs do usuário
@@ -114,6 +116,9 @@ export function PortalTabelaPreco({ cnpj }: Props) {
   };
 
   const precosFiltrados = precos?.filter((p) => {
+    // Filtrar produtos bloqueados por visibilidade
+    if (p.produto && isProductBlocked(p.produto.linha || null, p.produto.id)) return false;
+    
     if (busca) {
       const buscaLower = busca.toLowerCase();
       const matchBusca =

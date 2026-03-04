@@ -73,6 +73,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
+import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Keys para localStorage
 const STORAGE_KEY_COLUMN_ORDER = "fabrica-matriz-column-order";
@@ -247,6 +249,11 @@ export function MatrizPrecosComparativa() {
   
   // Hook de permissões de tabelas
   const { filterTablesByAccess, canViewTable, hasTableRestrictions, loading: accessLoading } = useUserPriceTableAccess();
+  
+  // Hook de bloqueios de visibilidade
+  const { isProductBlocked, isLineBlocked, isLoading: blocksLoading } = useVisibilityBlocks();
+  const { isAdmin, isSupervisor } = useUserRole();
+  const isPrivilegedUser = isAdmin || isSupervisor;
   
   // Estado do histórico
   const [historicoOpen, setHistoricoOpen] = useState(false);
@@ -464,6 +471,11 @@ export function MatrizPrecosComparativa() {
 
     let resultado = Array.from(produtosMap.values());
 
+    // Filtrar produtos bloqueados (apenas para usuários não-admin/supervisor)
+    if (!isPrivilegedUser) {
+      resultado = resultado.filter(row => !isProductBlocked(row.produto.linha, row.produto.id));
+    }
+
     // Filtrar por busca
     if (busca) {
       const termoBusca = busca.toLowerCase();
@@ -507,7 +519,7 @@ export function MatrizPrecosComparativa() {
     });
 
     return resultado;
-  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, baseMargemCalculo, precosOrigem]);
+  }, [precosData, tabelas, busca, ordenarPor, ordenarAsc, filtroMarca, filtroLinha, filtroTabela, baseMargemCalculo, precosOrigem, isPrivilegedUser, isProductBlocked]);
 
   // Agrupar dados se habilitado
   const dadosAgrupados = useMemo(() => {
