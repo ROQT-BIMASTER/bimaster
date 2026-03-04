@@ -2627,6 +2627,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attachments: Json | null
+          boleto_barcode: string | null
           category: string
           comprovante_url: string | null
           contas_pagar_id: string | null
@@ -2644,6 +2645,9 @@ export type Database = {
           financial_approved_at: string | null
           financial_approved_by: string | null
           id: string
+          installment_group_id: string | null
+          installment_number: number | null
+          installment_total: number | null
           paid_at: string | null
           payment_notes: string | null
           portador: string | null
@@ -2659,6 +2663,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json | null
+          boleto_barcode?: string | null
           category?: string
           comprovante_url?: string | null
           contas_pagar_id?: string | null
@@ -2676,6 +2681,9 @@ export type Database = {
           financial_approved_at?: string | null
           financial_approved_by?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
           portador?: string | null
@@ -2691,6 +2699,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json | null
+          boleto_barcode?: string | null
           category?: string
           comprovante_url?: string | null
           contas_pagar_id?: string | null
@@ -2708,6 +2717,9 @@ export type Database = {
           financial_approved_at?: string | null
           financial_approved_by?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
           portador?: string | null
@@ -3155,6 +3167,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attachments: Json
+          boleto_barcode: string | null
           budget_id: string | null
           category: string
           code: string
@@ -3171,6 +3184,9 @@ export type Database = {
           financial_approved_at: string | null
           financial_approved_by: string | null
           id: string
+          installment_group_id: string | null
+          installment_number: number | null
+          installment_total: number | null
           paid_at: string | null
           payment_notes: string | null
           portador: string | null
@@ -3186,6 +3202,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json
+          boleto_barcode?: string | null
           budget_id?: string | null
           category: string
           code?: string
@@ -3202,6 +3219,9 @@ export type Database = {
           financial_approved_at?: string | null
           financial_approved_by?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
           portador?: string | null
@@ -3217,6 +3237,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attachments?: Json
+          boleto_barcode?: string | null
           budget_id?: string | null
           category?: string
           code?: string
@@ -3233,6 +3254,9 @@ export type Database = {
           financial_approved_at?: string | null
           financial_approved_by?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
           portador?: string | null

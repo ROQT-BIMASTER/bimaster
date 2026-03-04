@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -30,8 +31,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEventExpenses, DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, SplitSquareVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
@@ -60,6 +62,7 @@ export function EnviarFinanceiroDialog({
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{ number: number; total: number; barcode: string | null } | null>(null);
 
   const [formData, setFormData] = useState({
     supplier_name: "",
@@ -71,7 +74,7 @@ export function EnviarFinanceiroDialog({
     payment_notes: "",
   });
 
-  // Fetch suppliers when dialog opens
+  // Fetch suppliers + installment info when dialog opens
   useEffect(() => {
     if (open) {
       supabase
@@ -80,13 +83,30 @@ export function EnviarFinanceiroDialog({
         .eq("ativo", true)
         .order("razao_social")
         .then(({ data }) => setFornecedores(data || []));
+
+      // Check installment info
+      supabase
+        .from("corporate_event_expenses")
+        .select("installment_number, installment_total, boleto_barcode")
+        .eq("id", expenseId)
+        .single()
+        .then(({ data }) => {
+          if (data?.installment_number && data?.installment_total) {
+            setInstallmentInfo({
+              number: data.installment_number,
+              total: data.installment_total,
+              barcode: data.boleto_barcode,
+            });
+          }
+        });
     }
-  }, [open]);
+  }, [open, expenseId]);
 
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
       setFornecedorId("");
+      setInstallmentInfo(null);
       setFormData({
         supplier_name: "",
         supplier_document: "",
@@ -113,7 +133,6 @@ export function EnviarFinanceiroDialog({
   };
 
   const handleFornecedorCriado = (novo: { id: string; nome: string }) => {
-    // Fetch the complete data including CNPJ
     supabase
       .from("fabrica_fornecedores")
       .select("id, razao_social, cnpj")
@@ -139,6 +158,15 @@ export function EnviarFinanceiroDialog({
       return;
     }
 
+    // Include barcode in notes if available
+    let notes = formData.payment_notes || "";
+    if (installmentInfo?.barcode) {
+      notes = `${notes}\nLinha Digitável: ${installmentInfo.barcode}`.trim();
+    }
+    if (installmentInfo) {
+      notes = `Parcela ${installmentInfo.number}/${installmentInfo.total}\n${notes}`.trim();
+    }
+
     await sendToFinancial.mutateAsync({
       id: expenseId,
       supplier_name: formData.supplier_name,
@@ -147,7 +175,7 @@ export function EnviarFinanceiroDialog({
       document_number: formData.document_number,
       due_date: formData.due_date,
       portador: formData.portador,
-      payment_notes: formData.payment_notes || undefined,
+      payment_notes: notes || undefined,
     });
 
     onOpenChange(false);
@@ -167,6 +195,22 @@ export function EnviarFinanceiroDialog({
             Preencha os dados do fornecedor e documento para enviar ao financeiro
           </DialogDescription>
         </DialogHeader>
+
+        {/* Installment context alert */}
+        {installmentInfo && (
+          <Alert>
+            <SplitSquareVertical className="h-4 w-4" />
+            <AlertDescription>
+              Esta é a <strong>parcela {installmentInfo.number} de {installmentInfo.total}</strong>.
+              {installmentInfo.barcode && (
+                <span className="block mt-1 font-mono text-xs break-all">
+                  Linha digitável: {installmentInfo.barcode}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Sugestões IA */}
           <FinancialFieldsSuggestion

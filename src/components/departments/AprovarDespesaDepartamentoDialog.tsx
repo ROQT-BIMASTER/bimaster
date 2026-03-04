@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDepartmentExpenses, DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
-import { Loader2, CheckCircle, XCircle, FileText, DollarSign, Calendar, User, AlertTriangle, ExternalLink, Paperclip, Building2 } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, FileText, DollarSign, Calendar, User, AlertTriangle, ExternalLink, Paperclip, Building2, SplitSquareVertical } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,17 +26,20 @@ interface AprovarDespesaDepartamentoDialogProps {
   expense: DepartmentExpense;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  allExpenses?: DepartmentExpense[];
 }
 
 export function AprovarDespesaDepartamentoDialog({ 
   expense, 
   open, 
-  onOpenChange 
+  onOpenChange,
+  allExpenses = [],
 }: AprovarDespesaDepartamentoDialogProps) {
   const { approveExpense, rejectExpense } = useDepartmentExpenses(expense.department_id);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [attachmentsAcknowledged, setAttachmentsAcknowledged] = useState(false);
+  const [approvingAll, setApprovingAll] = useState(false);
 
   const getCategoryLabel = (value: string) => {
     const cat = DEPARTMENT_EXPENSE_CATEGORIES.find(c => c.value === value);
@@ -45,8 +49,20 @@ export function AprovarDespesaDepartamentoDialog({
   const hasAttachments = expense.attachments && expense.attachments.length > 0;
   const requiresAcknowledgement = hasAttachments && !attachmentsAcknowledged;
 
+  // Installment group siblings
+  const installmentGroupId = (expense as any).installment_group_id;
+  const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
+  
+  const siblingExpenses = useMemo(() => {
+    if (!installmentGroupId || !allExpenses.length) return [];
+    return allExpenses
+      .filter((e: any) => e.installment_group_id === installmentGroupId && e.id !== expense.id)
+      .sort((a: any, b: any) => (a.installment_number || 0) - (b.installment_number || 0));
+  }, [installmentGroupId, allExpenses, expense.id]);
+
+  const pendingSiblings = siblingExpenses.filter(s => s.status === "pending");
+
   const handleApprove = async () => {
-    // Log audit entry
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("expense_approval_audit").insert({
@@ -64,10 +80,39 @@ export function AprovarDespesaDepartamentoDialog({
     onOpenChange(false);
   };
 
+  const handleApproveAll = async () => {
+    setApprovingAll(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const idsToApprove = [expense.id, ...pendingSiblings.map(s => s.id)];
+      
+      for (const id of idsToApprove) {
+        if (user) {
+          await supabase.from("expense_approval_audit").insert({
+            expense_id: id,
+            expense_type: "department_expense",
+            action: "approved",
+            performed_by: user.id,
+            old_status: "pending",
+            new_status: "approved",
+          });
+        }
+        await approveExpense.mutateAsync(id);
+      }
+      
+      toast.success(`${idsToApprove.length} parcelas aprovadas!`);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error approving all:", error);
+      toast.error("Erro ao aprovar parcelas");
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+
   const handleReject = async () => {
     if (!rejectReason.trim()) return;
 
-    // Log audit entry
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("expense_approval_audit").insert({
@@ -88,7 +133,7 @@ export function AprovarDespesaDepartamentoDialog({
     onOpenChange(false);
   };
 
-  const isProcessing = approveExpense.isPending || rejectExpense.isPending;
+  const isProcessing = approveExpense.isPending || rejectExpense.isPending || approvingAll;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,6 +150,32 @@ export function AprovarDespesaDepartamentoDialog({
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
+            {/* Installment context */}
+            {isInstallment && (
+              <Alert>
+                <SplitSquareVertical className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Parcela {(expense as any).installment_number} de {(expense as any).installment_total}</strong>
+                  {siblingExpenses.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <span className="text-xs text-muted-foreground">Outras parcelas do grupo:</span>
+                      {siblingExpenses.map((s: any) => (
+                        <div key={s.id} className="flex items-center gap-2 text-xs">
+                          <Badge variant={s.status === "approved" ? "default" : s.status === "rejected" ? "destructive" : "secondary"} className="text-xs">
+                            {s.installment_number}/{s.installment_total}
+                          </Badge>
+                          <span>R$ {(s.valor_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          <span className="text-muted-foreground">
+                            {s.status === "approved" ? "✓ Aprovada" : s.status === "rejected" ? "✗ Rejeitada" : "◌ Pendente"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Expense Details */}
             <Card>
               <CardContent className="pt-4 space-y-3">
@@ -211,7 +282,6 @@ export function AprovarDespesaDepartamentoDialog({
                     ))}
                   </div>
 
-                  {/* Acknowledgement Checkbox */}
                   <div className="flex items-start space-x-2 pt-2 border-t">
                     <Checkbox
                       id="attachments-ack"
@@ -234,7 +304,6 @@ export function AprovarDespesaDepartamentoDialog({
               </Card>
             )}
 
-            {/* Warning if no attachments */}
             {!hasAttachments && (
               <Card className="border-warning/50 bg-warning/5">
                 <CardContent className="py-3">
@@ -286,7 +355,7 @@ export function AprovarDespesaDepartamentoDialog({
             </div>
           </div>
         ) : (
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex flex-wrap justify-end gap-2 pt-4 border-t">
             <Button 
               variant="outline" 
               onClick={() => onOpenChange(false)}
@@ -301,6 +370,18 @@ export function AprovarDespesaDepartamentoDialog({
               <XCircle className="mr-2 h-4 w-4" />
               Rejeitar
             </Button>
+            {isInstallment && pendingSiblings.length > 0 && (
+              <Button
+                variant="secondary"
+                onClick={handleApproveAll}
+                disabled={isProcessing || requiresAcknowledgement}
+                title={requiresAcknowledgement ? "Confirme que leu os anexos antes de aprovar" : undefined}
+              >
+                {approvingAll && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Aprovar Todas ({pendingSiblings.length + 1})
+              </Button>
+            )}
             <Button 
               onClick={handleApprove}
               disabled={isProcessing || requiresAcknowledgement}

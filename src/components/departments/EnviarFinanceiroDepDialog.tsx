@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/command";
 import { useDepartmentExpenses, DOCUMENT_TYPES, DepartmentExpense } from "@/hooks/useDepartmentExpenses";
 import { usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, SplitSquareVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { cn } from "@/lib/utils";
@@ -73,6 +73,8 @@ export function EnviarFinanceiroDepDialog({
   });
 
   const hasAttachments = expense.attachments && expense.attachments.length > 0;
+  const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
+  const boletoBarcode = (expense as any).boleto_barcode;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
@@ -145,6 +147,15 @@ export function EnviarFinanceiroDepDialog({
       return;
     }
 
+    // Include barcode and installment info in notes
+    let notes = formData.payment_notes || "";
+    if (boletoBarcode) {
+      notes = `${notes}\nLinha Digitável: ${boletoBarcode}`.trim();
+    }
+    if (isInstallment) {
+      notes = `Parcela ${(expense as any).installment_number}/${(expense as any).installment_total}\n${notes}`.trim();
+    }
+
     await sendToFinancial.mutateAsync({
       id: expense.id,
       supplier_name: formData.supplier_name,
@@ -153,7 +164,7 @@ export function EnviarFinanceiroDepDialog({
       document_number: formData.document_number,
       due_date: formData.due_date,
       portador: formData.portador,
-      payment_notes: formData.payment_notes || undefined,
+      payment_notes: notes || undefined,
     });
 
     onOpenChange(false);
@@ -173,6 +184,21 @@ export function EnviarFinanceiroDepDialog({
             Despesa: {expense.code} - {expense.description || expense.category}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Installment context alert */}
+        {isInstallment && (
+          <Alert>
+            <SplitSquareVertical className="h-4 w-4" />
+            <AlertDescription>
+              Esta é a <strong>parcela {(expense as any).installment_number} de {(expense as any).installment_total}</strong>.
+              {boletoBarcode && (
+                <span className="block mt-1 font-mono text-xs break-all">
+                  Linha digitável: {boletoBarcode}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {!hasAttachments && (
           <Alert variant="destructive">

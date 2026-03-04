@@ -18,13 +18,18 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DepartmentExpense, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { EnviarFinanceiroDepDialog } from "@/components/departments/EnviarFinanceiroDepDialog";
 import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
 import { DepartmentExpenseAttachments } from "@/components/departments/DepartmentExpenseAttachments";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { 
   Search, 
   MoreHorizontal, 
@@ -35,8 +40,10 @@ import {
   Send,
   DollarSign,
   Paperclip,
-  Eye,
-  Building
+  Building,
+  Barcode,
+  Copy,
+  AlertTriangle,
 } from "lucide-react";
 
 interface DepartmentExpensesTableProps {
@@ -90,6 +97,11 @@ export function DepartmentExpensesTable({
     return cat?.label || value;
   };
 
+  const copyBarcode = (barcode: string) => {
+    navigator.clipboard.writeText(barcode);
+    toast.success("Linha digitável copiada!");
+  };
+
   const handleEnviarFinanceiro = (expense: DepartmentExpense) => {
     setSelectedExpense(expense);
     setEnviarFinanceiroOpen(true);
@@ -120,7 +132,7 @@ export function DepartmentExpensesTable({
   }
 
   return (
-    <>
+    <TooltipProvider>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -152,21 +164,38 @@ export function DepartmentExpensesTable({
                   <TableHead>Código</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Parcela</TableHead>
                   <TableHead>Filial</TableHead>
                   <TableHead>Valor Previsto</TableHead>
                   <TableHead>Valor Realizado</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Boleto</TableHead>
                   <TableHead>Anexos</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExpenses.map((expense) => (
+                {filteredExpenses.map((expense: any) => (
                   <TableRow key={expense.id}>
                     <TableCell className="font-mono text-sm">{expense.code}</TableCell>
-                    <TableCell>{getCategoryLabel(expense.category)}</TableCell>
+                    <TableCell>
+                      {getCategoryLabel(expense.category)}
+                      {expense.document_type === "orcamento" && expense.status !== "rejected" && (
+                        <Badge variant="outline" className="ml-2 text-xs border-amber-500 text-amber-600">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Pendente NF
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       {expense.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {expense.installment_number && expense.installment_total ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {expense.installment_number}/{expense.installment_total}
+                        </Badge>
+                      ) : "-"}
                     </TableCell>
                     <TableCell>
                       {expense.empresa_nome || expense.empresa?.nome ? (
@@ -185,6 +214,26 @@ export function DepartmentExpensesTable({
                       R$ {(expense.valor_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>{getStatusBadge(expense.status)}</TableCell>
+                    <TableCell>
+                      {expense.boleto_barcode ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => copyBarcode(expense.boleto_barcode)}
+                            >
+                              <Barcode className="h-4 w-4 text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="font-mono text-xs break-all">{expense.boleto_barcode}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Clique para copiar</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : "-"}
+                    </TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 
@@ -208,6 +257,13 @@ export function DepartmentExpensesTable({
                             <Paperclip className="mr-2 h-4 w-4" />
                             Ver Anexos
                           </DropdownMenuItem>
+
+                          {expense.boleto_barcode && (
+                            <DropdownMenuItem onClick={() => copyBarcode(expense.boleto_barcode)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copiar Linha Digitável
+                            </DropdownMenuItem>
+                          )}
                           
                           {isManager && expense.status === "pending" && (
                             <>
@@ -252,6 +308,7 @@ export function DepartmentExpensesTable({
             expense={selectedExpense}
             open={aprovarOpen}
             onOpenChange={setAprovarOpen}
+            allExpenses={expenses}
           />
           
           <DepartmentExpenseAttachments
@@ -262,6 +319,6 @@ export function DepartmentExpensesTable({
           />
         </>
       )}
-    </>
+    </TooltipProvider>
   );
 }
