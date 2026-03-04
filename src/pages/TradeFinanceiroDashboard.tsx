@@ -48,6 +48,7 @@ export default function TradeFinanceiroDashboard() {
     campanhaMetrics,
     fluxoCaixa,
     despesasPorCampanha,
+    entriesByBudget,
     lancamentos,
     isLoading,
     error,
@@ -190,6 +191,7 @@ export default function TradeFinanceiroDashboard() {
               <TradeVerbaCard 
                 metrics={verbaMetrics} 
                 verbas={verbas as any[]} 
+                entriesByBudget={entriesByBudget}
               />
               <TradeCampanhasAPagarCard 
                 metrics={campanhaMetrics} 
