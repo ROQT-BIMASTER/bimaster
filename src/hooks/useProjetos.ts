@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { TEMPLATES, type TemplateKey } from "@/components/projetos/NovoProjetoDialog";
 
 export interface Projeto {
   id: string;
@@ -34,27 +35,22 @@ export function useProjetos() {
   });
 
   const createProjeto = useMutation({
-    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string }) => {
+    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey }) => {
       if (!user) throw new Error("Não autenticado");
       
+      const { template, ...projetoData } = projeto;
       const { data, error } = await supabase
         .from("projetos")
-        .insert({ ...projeto, criador_id: user.id })
+        .insert({ ...projetoData, criador_id: user.id })
         .select()
         .single();
       if (error) throw error;
 
-      // Create default sections
-      const defaultSections = [
-        "Atribuídas recentemente",
-        "A fazer hoje",
-        "A fazer na próxima semana",
-        "A fazer mais tarde",
-      ];
+      const sections = TEMPLATES[template || "generico"].secoes;
       
       const { error: secError } = await supabase
         .from("projeto_secoes")
-        .insert(defaultSections.map((nome, i) => ({
+        .insert(sections.map((nome, i) => ({
           projeto_id: data.id,
           nome,
           ordem: i,

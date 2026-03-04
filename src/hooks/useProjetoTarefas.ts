@@ -19,6 +19,7 @@ export interface ProjetoTarefa {
   titulo: string;
   descricao: string | null;
   responsavel_id: string | null;
+  criador_id: string | null;
   status: string;
   prioridade: string;
   data_prazo: string | null;
@@ -31,6 +32,7 @@ export interface ProjetoTarefa {
   updated_at: string;
   subtarefas?: ProjetoTarefa[];
   responsavel?: { id: string; nome: string; avatar_url: string | null } | null;
+  criador?: { id: string; nome: string; avatar_url: string | null } | null;
   colaboradores?: { user_id: string; nome: string; avatar_url: string | null }[];
 }
 
@@ -62,15 +64,19 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .order("ordem", { ascending: true });
       if (error) throw error;
       
-      // Fetch responsaveis
-      const responsavelIds = [...new Set((data as ProjetoTarefa[]).filter(t => t.responsavel_id).map(t => t.responsavel_id!))];
-      let profiles: Record<string, { id: string; nome: string; avatar_url: string | null }> = {};
+      // Collect all user IDs (responsavel + criador)
+      const allUserIds = new Set<string>();
+      for (const t of data as ProjetoTarefa[]) {
+        if (t.responsavel_id) allUserIds.add(t.responsavel_id);
+        if (t.criador_id) allUserIds.add(t.criador_id);
+      }
       
-      if (responsavelIds.length > 0) {
+      let profiles: Record<string, { id: string; nome: string; avatar_url: string | null }> = {};
+      if (allUserIds.size > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
           .select("id, nome, avatar_url")
-          .in("id", responsavelIds);
+          .in("id", [...allUserIds]);
         if (profilesData) {
           profiles = Object.fromEntries(profilesData.map(p => [p.id, p]));
         }
@@ -88,16 +94,21 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         
         if (colabs && colabs.length > 0) {
           const colabUserIds = [...new Set(colabs.map(c => c.user_id))];
-          const { data: colabProfiles } = await supabase
-            .from("profiles")
-            .select("id, nome, avatar_url")
-            .in("id", colabUserIds);
-          
-          const colabProfileMap = Object.fromEntries((colabProfiles || []).map(p => [p.id, p]));
+          // Add to profiles if not already there
+          const missingIds = colabUserIds.filter(id => !profiles[id]);
+          if (missingIds.length > 0) {
+            const { data: colabProfiles } = await supabase
+              .from("profiles")
+              .select("id, nome, avatar_url")
+              .in("id", missingIds);
+            if (colabProfiles) {
+              for (const p of colabProfiles) profiles[p.id] = p;
+            }
+          }
           
           for (const c of colabs) {
             if (!colabMap[c.tarefa_id]) colabMap[c.tarefa_id] = [];
-            const profile = colabProfileMap[c.user_id];
+            const profile = profiles[c.user_id];
             if (profile) {
               colabMap[c.tarefa_id].push({ user_id: c.user_id, nome: profile.nome, avatar_url: profile.avatar_url });
             }
@@ -108,13 +119,13 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       return (data as ProjetoTarefa[]).map(t => ({
         ...t,
         responsavel: t.responsavel_id ? profiles[t.responsavel_id] || null : null,
+        criador: t.criador_id ? profiles[t.criador_id] || null : null,
         colaboradores: colabMap[t.id] || [],
       }));
     },
     enabled: !!projetoId && !!user,
   });
 
-  // Organize: parent tasks per section, subtasks nested
   const tarefasPorSecao = (secaoId: string) => {
     const parentTasks = tarefas.filter(t => t.secao_id === secaoId && !t.parent_tarefa_id);
     return parentTasks.map(t => ({
@@ -132,6 +143,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
           ...tarefa,
           projeto_id: projetoId!,
           ordem: maxOrdem,
+          criador_id: user?.id || null,
         })
         .select()
         .single();

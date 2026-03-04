@@ -13581,6 +13581,7 @@ export type Database = {
         Row: {
           codigo: string | null
           created_at: string | null
+          criador_id: string | null
           data_conclusao: string | null
           data_prazo: string | null
           descricao: string | null
@@ -13600,6 +13601,7 @@ export type Database = {
         Insert: {
           codigo?: string | null
           created_at?: string | null
+          criador_id?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
           descricao?: string | null
@@ -13619,6 +13621,7 @@ export type Database = {
         Update: {
           codigo?: string | null
           created_at?: string | null
+          criador_id?: string | null
           data_conclusao?: string | null
           data_prazo?: string | null
           descricao?: string | null
