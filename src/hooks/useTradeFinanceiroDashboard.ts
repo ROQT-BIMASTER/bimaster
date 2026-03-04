@@ -348,26 +348,71 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
     .slice(0, 50);
 
-  // Lista de despesas por campanha para o card (inclui financial entries)
-  const despesasPorCampanha = (despesasQuery.data as any[])?.reduce((acc: Record<string, { pendente: number; pago: number }>, d: any) => {
+  // Build entries by budget for verba card expansion
+  const entriesByBudget: Record<string, Array<{ id: string; description?: string; supplier_name?: string; amount: number; status: string; entry_date: string; entry_type?: string; budget_id?: string; campaign_name?: string; store_name?: string }>> = {};
+  
+  financialEntries.forEach((e: any) => {
+    if (e.budget_id) {
+      if (!entriesByBudget[e.budget_id]) entriesByBudget[e.budget_id] = [];
+      entriesByBudget[e.budget_id].push({
+        id: e.id,
+        description: e.description,
+        supplier_name: e.supplier_name,
+        amount: parseFloat(String(e.amount)) || 0,
+        status: e.status || e.approval_status || 'pending',
+        entry_date: e.entry_date || '',
+        entry_type: e.entry_type,
+        budget_id: e.budget_id,
+        campaign_name: (e.campaign as any)?.name,
+        store_name: (e.store as any)?.name,
+      });
+    }
+  });
+
+  (despesasQuery.data as any[])?.forEach((d: any) => {
+    const budgetId = d.campaign?.budget_id;
+    if (budgetId) {
+      if (!entriesByBudget[budgetId]) entriesByBudget[budgetId] = [];
+      entriesByBudget[budgetId].push({
+        id: d.id,
+        description: d.campaign?.name || 'Despesa campanha',
+        amount: parseFloat(String(d.valor_realizado)) || 0,
+        status: d.status || 'pending',
+        entry_date: d.created_at || '',
+        campaign_name: d.campaign?.name,
+      });
+    }
+  });
+
+  // Lista de despesas por campanha com entries detalhados
+  type CampanhaEntry = { id: string; description?: string; supplier_name?: string; amount: number; status: string; date: string; store_name?: string; source: 'expense' | 'financial_entry' };
+  const despesasPorCampanha: Record<string, { pendente: number; pago: number; entries: CampanhaEntry[] }> = {};
+  
+  (despesasQuery.data as any[])?.forEach((d: any) => {
     const campanha = d.campaign?.name || 'Sem campanha';
-    if (!acc[campanha]) {
-      acc[campanha] = { pendente: 0, pago: 0 };
+    if (!despesasPorCampanha[campanha]) {
+      despesasPorCampanha[campanha] = { pendente: 0, pago: 0, entries: [] };
     }
     const valor = parseFloat(String(d.valor_realizado)) || 0;
     if (d.status === 'pending') {
-      acc[campanha].pendente += valor;
+      despesasPorCampanha[campanha].pendente += valor;
     } else {
-      acc[campanha].pago += valor;
+      despesasPorCampanha[campanha].pago += valor;
     }
-    return acc;
-  }, {} as Record<string, { pendente: number; pago: number }>) || {};
+    despesasPorCampanha[campanha].entries.push({
+      id: d.id,
+      description: d.campaign?.name || 'Despesa',
+      amount: valor,
+      status: d.status || 'pending',
+      date: d.created_at || '',
+      source: 'expense',
+    });
+  });
 
-  // Adicionar financial entries ao despesasPorCampanha
   financialEntries.forEach((e: any) => {
     const campanha = (e.campaign as any)?.name || 'Lançamentos Diretos';
     if (!despesasPorCampanha[campanha]) {
-      despesasPorCampanha[campanha] = { pendente: 0, pago: 0 };
+      despesasPorCampanha[campanha] = { pendente: 0, pago: 0, entries: [] };
     }
     const valor = parseFloat(String(e.amount)) || 0;
     const isPending = ['pending', 'pendente'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase());
@@ -376,6 +421,16 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     } else {
       despesasPorCampanha[campanha].pago += valor;
     }
+    despesasPorCampanha[campanha].entries.push({
+      id: e.id,
+      description: e.description,
+      supplier_name: e.supplier_name,
+      amount: valor,
+      status: e.status || e.approval_status || 'pending',
+      date: e.entry_date || '',
+      store_name: (e.store as any)?.name,
+      source: 'financial_entry',
+    });
   });
 
   return {
@@ -387,6 +442,7 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     campanhaMetrics,
     fluxoCaixa,
     despesasPorCampanha,
+    entriesByBudget,
     isLoading: verbasQuery.isLoading || campanhasQuery.isLoading || despesasQuery.isLoading || lancamentosQuery.isLoading || financialEntriesQuery.isLoading,
     error: verbasQuery.error || campanhasQuery.error || despesasQuery.error || lancamentosQuery.error || financialEntriesQuery.error,
   };
