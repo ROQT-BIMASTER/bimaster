@@ -126,6 +126,23 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     enabled: !!projetoId && !!user,
   });
 
+  // Movement history for ghost rows
+  const { data: movimentacoes = [] } = useQuery({
+    queryKey: ["tarefa-movimentacoes", projetoId],
+    queryFn: async () => {
+      const secaoIds = secoes.map(s => s.id);
+      if (secaoIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("projeto_tarefa_movimentacoes" as any)
+        .select("*")
+        .in("secao_origem_id", secaoIds)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!projetoId && !!user && secoes.length > 0,
+  });
+
   const tarefasPorSecao = (secaoId: string) => {
     const parentTasks = tarefas.filter(t => t.secao_id === secaoId && !t.parent_tarefa_id);
     return parentTasks.map(t => ({
@@ -133,6 +150,46 @@ export function useProjetoTarefas(projetoId: string | undefined) {
       subtarefas: tarefas.filter(st => st.parent_tarefa_id === t.id),
     }));
   };
+
+  // Ghost trails: tasks that were moved FROM a given section
+  const ghostsPorSecao = (secaoId: string) => {
+    return movimentacoes
+      .filter(m => m.secao_origem_id === secaoId)
+      .map(m => {
+        const tarefa = tarefas.find(t => t.id === m.tarefa_id);
+        const destSecao = secoes.find(s => s.id === m.secao_destino_id);
+        return tarefa ? { ...m, tarefa, destSecaoNome: destSecao?.nome || "Outra seção" } : null;
+      })
+      .filter(Boolean);
+  };
+
+  const moveTarefaToSecao = useMutation({
+    mutationFn: async ({ tarefaId, secaoOrigemId, secaoDestinoId }: { tarefaId: string; secaoOrigemId: string; secaoDestinoId: string }) => {
+      // Record the movement
+      const { error: movError } = await supabase
+        .from("projeto_tarefa_movimentacoes" as any)
+        .insert({
+          tarefa_id: tarefaId,
+          secao_origem_id: secaoOrigemId,
+          secao_destino_id: secaoDestinoId,
+          movido_por: user?.id,
+        } as any);
+      if (movError) throw movError;
+
+      // Actually move the task
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({ secao_id: secaoDestinoId, updated_at: new Date().toISOString() })
+        .eq("id", tarefaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["tarefa-movimentacoes", projetoId] });
+      toast.success("Tarefa movida!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   const createTarefa = useMutation({
     mutationFn: async (tarefa: { titulo: string; secao_id: string; parent_tarefa_id?: string }) => {
@@ -208,9 +265,11 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     secoesLoading,
     tarefasLoading,
     tarefasPorSecao,
+    ghostsPorSecao,
     createTarefa,
     updateTarefa,
     toggleTarefaCompleta,
+    moveTarefaToSecao,
     createSecao,
   };
 }

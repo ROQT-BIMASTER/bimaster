@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
 import { useProjetoTarefaDetalhe, ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { MentionInput } from "./MentionInput";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft
 } from "lucide-react";
 
 const ESTAGIO_OPTIONS = [
@@ -83,10 +83,12 @@ interface ProjetoTarefaDetalheProps {
   onUpdate: (id: string, updates: Partial<ProjetoTarefa>) => void;
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
+  secoes?: ProjetoSecaoType[];
+  onMoveTarefa?: (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => void;
 }
 
 export function ProjetoTarefaDetalhe({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa,
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa,
 }: ProjetoTarefaDetalheProps) {
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
@@ -412,6 +414,33 @@ export function ProjetoTarefaDetalhe({
                       </div>
                     )}
                   </div>
+
+                  {/* Mover para Seção */}
+                  {secoes.length > 1 && onMoveTarefa && (
+                    <>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <ArrowRightLeft className="h-3.5 w-3.5" /> Mover para
+                      </span>
+                      <Select
+                        value={tarefa.secao_id}
+                        onValueChange={v => {
+                          if (v !== tarefa.secao_id) {
+                            onMoveTarefa(tarefa.id, tarefa.secao_id, v);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {secoes.map(s => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.nome}
+                              {s.id === tarefa.secao_id && " (atual)"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                 </div>
 
                 <Separator />
