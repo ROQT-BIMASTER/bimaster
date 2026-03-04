@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Link, useNavigate } from "react-router-dom";
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import {
   FileText,
   CheckCircle,
@@ -57,6 +58,11 @@ import {
   SplitSquareVertical,
   Barcode,
   Copy,
+  ChevronDown,
+  Paperclip,
+  Download,
+  Image,
+  File,
 } from "lucide-react";
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
@@ -85,6 +91,7 @@ export default function TradeLancamentos() {
   const [sendFinancialDialogOpen, setSendFinancialDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [chatEntry, setChatEntry] = useState<any>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getCurrentUser();
@@ -238,6 +245,28 @@ export default function TradeLancamentos() {
     toast.success("Linha digitável copiada!");
   };
 
+  const toggleRowExpand = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const getAttachmentIcon = (type: string) => {
+    if (type?.startsWith("image/")) return <Image className="h-4 w-4" />;
+    if (type?.includes("pdf")) return <FileText className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -389,8 +418,9 @@ export default function TradeLancamentos() {
             ) : (
               <TooltipProvider>
                 <Table>
-                  <TableHeader>
+                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10"></TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Descrição</TableHead>
@@ -404,8 +434,28 @@ export default function TradeLancamentos() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <TableRow key={entry.id} className="hover:bg-muted/50">
+                    {filteredEntries.map((entry) => {
+                      const attachments = Array.isArray(entry.attachments) ? entry.attachments : [];
+                      const hasAttachments = attachments.length > 0;
+                      const isExpanded = expandedRows.has(entry.id);
+
+                      return (
+                        <React.Fragment key={entry.id}>
+                        <TableRow className="hover:bg-muted/50">
+                          <TableCell className="w-10 px-2">
+                            {hasAttachments ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => toggleRowExpand(entry.id)}
+                              >
+                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                              </Button>
+                            ) : (
+                              <span className="block h-7 w-7" />
+                            )}
+                          </TableCell>
                         <TableCell>
                           {format(new Date(entry.entry_date), "dd/MM/yyyy", { locale: ptBR })}
                         </TableCell>
@@ -413,7 +463,22 @@ export default function TradeLancamentos() {
                           {getEntryTypeLabel(entry.entry_type)}
                         </TableCell>
                         <TableCell className="max-w-xs">
-                          <div className="truncate">{entry.description || "-"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate">{entry.description || "-"}</span>
+                            {hasAttachments && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => toggleRowExpand(entry.id)} className="inline-flex shrink-0">
+                                    <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer hover:bg-secondary/80">
+                                      <Paperclip className="h-2.5 w-2.5" />
+                                      {attachments.length}
+                                    </Badge>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Clique para ver anexos</TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {/* Installment badge */}
                             {entry.installment_number && entry.installment_total && (
@@ -564,7 +629,72 @@ export default function TradeLancamentos() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+
+                      {/* Expanded attachments row */}
+                      {isExpanded && hasAttachments && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/40">
+                          <TableCell colSpan={11} className="py-3 px-6">
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                <Paperclip className="h-3.5 w-3.5" />
+                                Documentos Anexados ({attachments.length})
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {attachments.map((att: any, idx: number) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2 p-2 rounded-md border bg-background hover:bg-muted/50 transition-colors"
+                                  >
+                                    <div className="flex-shrink-0 text-muted-foreground">
+                                      {getAttachmentIcon(att.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{att.name}</p>
+                                      <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={async () => {
+                                          const { signedUrl, error } = await resolveStorageUrl(att.url);
+                                          if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+                                          window.open(signedUrl, "_blank");
+                                        }}
+                                        title="Visualizar"
+                                      >
+                                        <Eye className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={async () => {
+                                          const { signedUrl, error } = await resolveStorageUrl(att.url);
+                                          if (error || !signedUrl) { toast.error(error || "Erro ao baixar"); return; }
+                                          const a = document.createElement("a");
+                                          a.href = signedUrl;
+                                          a.download = att.name;
+                                          a.click();
+                                        }}
+                                        title="Baixar"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </React.Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TooltipProvider>
