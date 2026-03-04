@@ -1,77 +1,73 @@
 
 
-## Plano: Parcelas com anexos individuais, linha digitável e integração sistêmica
+## Plano: Replicar sistema de parcelas, tipo de documento e linha digitável para Eventos e Departamentos
 
-### Problema atual
+### Escopo
 
-1. Parcelas compartilham um único conjunto de anexos (só a 1ª parcela recebe)
-2. Não há campo para linha digitável do boleto
-3. Parcelas não são tratadas como grupo coeso no restante do sistema (aprovação, envio ao financeiro, dashboard)
+Trazer para **corporate_event_expenses** e **department_expenses** as mesmas funcionalidades já implementadas no Trade:
+1. Parcelamento com anexos individuais por parcela
+2. Tipo de documento (Orçamento/NF/Boleto) com badge "Pendente NF"
+3. Linha digitável do boleto por parcela
+4. Agrupamento visual de parcelas nas tabelas
 
-### O que será feito
+### 1. Migração de banco
 
-#### 1. Migração de banco: adicionar colunas para parcelas
+Adicionar 4 colunas em cada tabela:
 
-Adicionar 2 novas colunas na tabela `trade_financial_entries`:
+```sql
+-- corporate_event_expenses
+ALTER TABLE corporate_event_expenses
+  ADD COLUMN installment_group_id text,
+  ADD COLUMN installment_number integer,
+  ADD COLUMN installment_total integer,
+  ADD COLUMN boleto_barcode text;
 
-- `installment_group_id` (text, nullable) — substitui o hack de `PARC-` no `reference_number` por um campo dedicado que permite consultas eficientes
-- `installment_number` (integer, nullable) — número da parcela (1, 2, 3...)
-- `installment_total` (integer, nullable) — total de parcelas no grupo
-- `boleto_barcode` (text, nullable) — linha digitável do boleto para pagamento
-
-#### 2. NovoLancamentoDialog: anexos e boleto por parcela
-
-Refatorar a UI de parcelas para que cada parcela tenha:
-
-- **Campo de anexo individual** (reutilizando `ExpenseAttachments`) — cada parcela recebe seu próprio documento (NF, boleto, etc.)
-- **Campo "Linha digitável"** — input de texto para colar a linha do boleto
-- **Tipo de documento por parcela** — cada parcela pode ter tipo diferente (parcela 1 = orçamento, parcela 2 = boleto, etc.)
-
-A estrutura `Parcela` passa a ser:
-```typescript
-interface Parcela {
-  numero: number;
-  valor: number;
-  dueDate: string;
-  boletoBarcode: string;
-  attachments: any[];
-  documentType: string;
-  tempId: string; // para o ExpenseAttachments
-}
+-- department_expenses
+ALTER TABLE department_expenses
+  ADD COLUMN installment_group_id text,
+  ADD COLUMN installment_number integer,
+  ADD COLUMN installment_total integer,
+  ADD COLUMN boleto_barcode text;
 ```
 
-Na submissão, cada entrada no banco recebe seus próprios anexos, boleto e `installment_group_id` compartilhado.
+### 2. Dialogs de criação de despesa (parcelamento + documento + boleto)
 
-#### 3. Tabela de lançamentos: agrupamento visual de parcelas
+**`NovaDespesaEventoDialog.tsx`** e **`NovaDespesaDepartamentoDialog.tsx`**:
+- Adicionar toggle "Parcelar valor" (2-12x) — mesmo padrão do Trade
+- Cada parcela com: valor, data de vencimento, tipo de documento, linha digitável, anexos individuais
+- Na submissão, gerar múltiplos registros com `installment_group_id` compartilhado
+- Validação: soma das parcelas = valor total
 
-Na `TradeLancamentos.tsx`:
+### 3. Tabelas de despesas (badges e agrupamento)
 
-- Exibir ícone de boleto quando `boleto_barcode` estiver preenchido (com tooltip mostrando a linha)
-- Botão "copiar linha digitável" inline
-- Filtro para agrupar/visualizar parcelas do mesmo grupo
+**`EventsExpensesTable.tsx`** e **`DepartmentExpensesTable.tsx`**:
+- Badge de parcela (`1/3`, `2/3`) quando `installment_number` existir
+- Badge "Pendente NF" quando `document_type === "orcamento"`
+- Ícone de boleto com tooltip e botão copiar quando `boleto_barcode` preenchido
+- Coluna de tipo de documento
 
-#### 4. Envio ao financeiro: parcelas como itens individuais
+### 4. Dialogs de envio ao financeiro
 
-No `EnviarFinanceiroTradeDialog.tsx`:
+**`EnviarFinanceiroDialog.tsx`** (eventos) e **`EnviarFinanceiroDepDialog.tsx`** (departamentos):
+- Alerta contextual "Parcela X de Y" quando aplicável
+- Incluir linha digitável nas notas de pagamento
 
-- Quando o lançamento faz parte de um grupo de parcelas, exibir alerta informando "Esta é a parcela X de Y"
-- Cada parcela é enviada individualmente ao `financial_payment_queue` com seus próprios anexos e `due_date`
-- A linha digitável do boleto é passada como `notes` ou campo dedicado na fila de pagamento
+### 5. Dialogs de aprovação
 
-#### 5. Hub de aprovações: visão de grupo
-
-Na aprovação de lançamentos parcelados:
-
-- Ao aprovar uma parcela, exibir as demais parcelas do grupo como contexto
-- Permitir "aprovar todas as parcelas do grupo" de uma vez
+**`AprovarDespesaDepartamentoDialog.tsx`**:
+- Quando a despesa pertencer a um grupo de parcelas, exibir as irmãs como contexto
+- Botão "Aprovar todas as parcelas"
 
 ### Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar `installment_group_id`, `installment_number`, `installment_total`, `boleto_barcode` |
-| `src/components/trade/NovoLancamentoDialog.tsx` | Refatorar parcelas com anexos/boleto individuais |
-| `src/pages/TradeLancamentos.tsx` | Exibir boleto, melhorar agrupamento visual |
-| `src/components/trade/EnviarFinanceiroTradeDialog.tsx` | Contexto de parcela no envio |
-| `src/components/trade/EditarLancamentoDialog.tsx` | Adicionar campo boleto e anexos na edição |
+| Migração SQL | 4 colunas em 2 tabelas |
+| `src/components/events/NovaDespesaEventoDialog.tsx` | Parcelamento + doc type + boleto |
+| `src/components/departments/NovaDespesaDepartamentoDialog.tsx` | Parcelamento + doc type + boleto |
+| `src/components/events/EventsExpensesTable.tsx` | Badges parcela/NF/boleto |
+| `src/components/departments/DepartmentExpensesTable.tsx` | Badges parcela/NF/boleto |
+| `src/components/events/EnviarFinanceiroDialog.tsx` | Contexto parcela |
+| `src/components/departments/EnviarFinanceiroDepDialog.tsx` | Contexto parcela |
+| `src/components/departments/AprovarDespesaDepartamentoDialog.tsx` | Aprovação em lote |
 
