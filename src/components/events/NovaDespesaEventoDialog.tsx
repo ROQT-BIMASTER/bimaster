@@ -27,7 +27,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useEventExpenses, EXPENSE_CATEGORIES } from "@/hooks/useEventExpenses";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
-import { Loader2, Building, SplitSquareVertical, Trash2, Barcode, ChevronDown, ChevronUp } from "lucide-react";
+import { useApproverProfiles, sendApproverNotification } from "@/hooks/useApproverProfiles";
+import { Loader2, Building, SplitSquareVertical, Trash2, Barcode, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { ExpenseAttachments } from "./ExpenseAttachments";
 import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,9 @@ export function NovaDespesaEventoDialog({
   const { createExpense } = useEventExpenses(eventId);
   const { data: userEmpresas = [] } = useUserEmpresas();
   const { primaryEmpresa } = usePrimaryEmpresa();
+  const { data: approvers = [] } = useApproverProfiles();
+
+  const [notifyApproverId, setNotifyApproverId] = useState("");
 
   const [formData, setFormData] = useState({
     category: "outros",
@@ -205,6 +209,12 @@ export function NovaDespesaEventoDialog({
         }
       }
 
+      // Send push notification to selected approver
+      if (notifyApproverId) {
+        const valor = parseFloat(formData.valor_realizado) || parseFloat(formData.valor_previsto) || 0;
+        await sendApproverNotification(notifyApproverId, formData.description, valor);
+      }
+
       setIsOpen(false);
       resetForm();
     } catch (error) {
@@ -250,6 +260,7 @@ export function NovaDespesaEventoDialog({
     setParcelado(false);
     setNumParcelas(2);
     setParcelas([]);
+    setNotifyApproverId("");
   };
 
   return (
@@ -505,6 +516,27 @@ export function NovaDespesaEventoDialog({
               />
             </div>
           )}
+
+          {/* Notificar Aprovador */}
+          <Separator />
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notificar Aprovador (opcional)
+            </Label>
+            <Select value={notifyApproverId} onValueChange={setNotifyApproverId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione quem será notificado" />
+              </SelectTrigger>
+              <SelectContent>
+                {approvers.map((approver) => (
+                  <SelectItem key={approver.id} value={approver.id}>
+                    {approver.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
