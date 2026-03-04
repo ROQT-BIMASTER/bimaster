@@ -66,6 +66,10 @@ interface Lancamento {
   sell_out_atual?: number;
   tipo_brinde?: string;
   acoes_manuais?: string;
+  source?: 'campaign' | 'financial_entry';
+  description?: string;
+  supplier_name?: string;
+  entry_type?: string;
 }
 
 export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
@@ -142,7 +146,7 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Query para lançamentos com clientes e despesas
+  // Query para lançamentos de campanha
   const lancamentosQuery = useQuery({
     queryKey: ['trade-dashboard-lancamentos', startDateStr, endDateStr],
     queryFn: async () => {
@@ -176,6 +180,28 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     staleTime: 3 * 60 * 1000,
   });
 
+  // Query para lançamentos financeiros diretos (trade_financial_entries)
+  const financialEntriesQuery = useQuery({
+    queryKey: ['trade-dashboard-financial-entries', startDateStr, endDateStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trade_financial_entries")
+        .select(`
+          *,
+          store:stores(name, code),
+          budget:trade_budgets(name, code, total_amount, spent_amount, reserved_amount),
+          campaign:trade_campaigns(name)
+        `)
+        .gte("entry_date", startDateStr)
+        .lte("entry_date", endDateStr)
+        .order("entry_date", { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
   // Calcular métricas de verbas - usando despesas aprovadas vinculadas a campanhas com budget
   const activeBudgetIds = new Set(verbasQuery.data?.map(v => v.id) || []);
   
@@ -197,15 +223,26 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     ? (verbaMetrics.totalUtilizado / verbaMetrics.totalOrcado) * 100 
     : 0;
 
-  // Calcular métricas de campanhas
+  // Calcular métricas de campanhas (incluindo financial entries)
+  const financialEntries = financialEntriesQuery.data || [];
+  const feApproved = financialEntries.filter((e: any) => 
+    ['approved', 'aprovado', 'completed', 'pago', 'paid'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase())
+  );
+  const fePending = financialEntries.filter((e: any) => 
+    ['pending', 'pendente'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase())
+  );
+
+  const feValorPago = feApproved.reduce((sum: number, e: any) => sum + (parseFloat(String(e.amount)) || 0), 0);
+  const feValorPendente = fePending.reduce((sum: number, e: any) => sum + (parseFloat(String(e.amount)) || 0), 0);
+
   const campanhaMetrics: CampanhaMetrics = {
     qtdCampanhas: campanhasQuery.data?.length || 0,
-    valorPendente: (despesasQuery.data as any[])?.filter((d: any) => 
+    valorPendente: ((despesasQuery.data as any[])?.filter((d: any) => 
       ['pending', 'pendente'].includes(d.status?.toLowerCase())
-    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
-    valorPago: (despesasQuery.data as any[])?.filter((d: any) => 
+    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0) + feValorPendente,
+    valorPago: ((despesasQuery.data as any[])?.filter((d: any) => 
       ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase())
-    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0,
+    ).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0) + feValorPago,
     percentualPago: 0,
   };
   const totalDespesas = campanhaMetrics.valorPendente + campanhaMetrics.valorPago;
@@ -230,13 +267,20 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
       return vDate >= mesInicio && vDate <= mesFim;
     }).reduce((sum, v) => sum + (parseFloat(String(v.total_amount)) || 0), 0) || 0;
 
-    // Saídas: despesas realizadas no mês (aprovadas ou pagas)
-    const saidas = despesasQuery.data?.filter((d: any) => {
+    // Saídas: despesas realizadas no mês (aprovadas ou pagas) + financial entries aprovadas
+    const saidasCampanha = despesasQuery.data?.filter((d: any) => {
       const dDate = new Date(d.created_at);
       const isApproved = ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase());
       return dDate >= mesInicio && dDate <= mesFim && isApproved;
     }).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
 
+    const saidasEntries = financialEntries.filter((e: any) => {
+      const eDate = new Date(e.entry_date);
+      const isApproved = ['approved', 'aprovado', 'completed', 'pago', 'paid'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase());
+      return eDate >= mesInicio && eDate <= mesFim && isApproved;
+    }).reduce((sum: number, e: any) => sum + (parseFloat(String(e.amount)) || 0), 0);
+
+    const saidas = saidasCampanha + saidasEntries;
     saldoAcumulado += entradas - saidas;
 
     fluxoCaixa.push({
@@ -247,8 +291,8 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     });
   }
 
-  // Formatar lançamentos
-  const lancamentos: Lancamento[] = lancamentosQuery.data?.map(l => {
+  // Formatar lançamentos de campanha
+  const lancamentosCampanha: Lancamento[] = lancamentosQuery.data?.map(l => {
     const expenses = l.expense as any[] || [];
     const valorPago = expenses.length > 0 
       ? expenses.reduce((sum: number, e: any) => sum + (parseFloat(String(e.valor_realizado)) || 0), 0)
@@ -270,10 +314,33 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
       sell_out_atual: l.sell_out_atual ? parseFloat(String(l.sell_out_atual)) : undefined,
       tipo_brinde: l.tipo_brinde || undefined,
       acoes_manuais: l.acoes_manuais || undefined,
+      source: 'campaign' as const,
     };
   }) || [];
 
-  // Lista de despesas por campanha para o card
+  // Formatar lançamentos financeiros diretos
+  const lancamentosFinanceiros: Lancamento[] = financialEntries.map((e: any) => ({
+    id: e.id,
+    cliente: e.supplier_name || (e.store as any)?.name || 'Não identificado',
+    campanha: (e.campaign as any)?.name || 'Lançamento direto',
+    valorPedido: parseFloat(String(e.amount)) || 0,
+    valorPago: ['approved', 'aprovado', 'completed', 'pago', 'paid'].includes(e.status?.toLowerCase()) 
+      ? parseFloat(String(e.amount)) || 0 
+      : null,
+    status: e.status || e.approval_status || 'pending',
+    roi: null,
+    data: e.entry_date || '',
+    source: 'financial_entry' as const,
+    description: e.description,
+    supplier_name: e.supplier_name,
+    entry_type: e.entry_type,
+  }));
+
+  const lancamentos = [...lancamentosCampanha, ...lancamentosFinanceiros]
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    .slice(0, 50);
+
+  // Lista de despesas por campanha para o card (inclui financial entries)
   const despesasPorCampanha = (despesasQuery.data as any[])?.reduce((acc: Record<string, { pendente: number; pago: number }>, d: any) => {
     const campanha = d.campaign?.name || 'Sem campanha';
     if (!acc[campanha]) {
@@ -288,6 +355,21 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     return acc;
   }, {} as Record<string, { pendente: number; pago: number }>) || {};
 
+  // Adicionar financial entries ao despesasPorCampanha
+  financialEntries.forEach((e: any) => {
+    const campanha = (e.campaign as any)?.name || 'Lançamentos Diretos';
+    if (!despesasPorCampanha[campanha]) {
+      despesasPorCampanha[campanha] = { pendente: 0, pago: 0 };
+    }
+    const valor = parseFloat(String(e.amount)) || 0;
+    const isPending = ['pending', 'pendente'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase());
+    if (isPending) {
+      despesasPorCampanha[campanha].pendente += valor;
+    } else {
+      despesasPorCampanha[campanha].pago += valor;
+    }
+  });
+
   return {
     verbas: verbasQuery.data || [],
     campanhas: campanhasQuery.data || [],
@@ -297,7 +379,7 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     campanhaMetrics,
     fluxoCaixa,
     despesasPorCampanha,
-    isLoading: verbasQuery.isLoading || campanhasQuery.isLoading || despesasQuery.isLoading || lancamentosQuery.isLoading,
-    error: verbasQuery.error || campanhasQuery.error || despesasQuery.error || lancamentosQuery.error,
+    isLoading: verbasQuery.isLoading || campanhasQuery.isLoading || despesasQuery.isLoading || lancamentosQuery.isLoading || financialEntriesQuery.isLoading,
+    error: verbasQuery.error || campanhasQuery.error || despesasQuery.error || lancamentosQuery.error || financialEntriesQuery.error,
   };
 }

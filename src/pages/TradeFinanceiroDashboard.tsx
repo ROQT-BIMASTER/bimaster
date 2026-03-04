@@ -58,6 +58,7 @@ export default function TradeFinanceiroDashboard() {
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-campanhas'] });
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-despesas'] });
     queryClient.invalidateQueries({ queryKey: ['trade-dashboard-lancamentos'] });
+    queryClient.invalidateQueries({ queryKey: ['trade-dashboard-financial-entries'] });
   };
 
   const handlePresetChange = (value: string) => {
