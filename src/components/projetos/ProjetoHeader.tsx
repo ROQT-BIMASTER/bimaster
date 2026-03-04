@@ -1,7 +1,9 @@
 import { Projeto } from "@/hooks/useProjetos";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, BarChart3, FileText, Filter, ArrowUpDown } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, BarChart3, FileText, Filter, ArrowUpDown, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -10,6 +12,8 @@ interface ProjetoHeaderProps {
 }
 
 export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-4">
       {/* Project title */}
@@ -42,6 +46,12 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeader
             <TabsTrigger value="arquivos" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none pb-3 px-4 gap-1.5">
               <FileText className="h-4 w-4" /> Arquivos
             </TabsTrigger>
+            <button
+              onClick={() => navigate("/dashboard/projetos/aprovacoes")}
+              className="flex items-center gap-1.5 pb-3 px-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" /> Aprovações
+            </button>
           </TabsList>
         </Tabs>
 
