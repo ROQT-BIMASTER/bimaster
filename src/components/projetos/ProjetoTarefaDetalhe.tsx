@@ -26,10 +26,11 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useProjetoIA } from "@/hooks/useProjetoIA";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -121,6 +122,7 @@ export function ProjetoTarefaDetalhe({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedSubtarefa, setSelectedSubtarefa] = useState<ProjetoTarefa | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
 
   useEffect(() => {
     if (tarefa) {
@@ -601,7 +603,36 @@ export function ProjetoTarefaDetalhe({
 
                 {/* Descrição */}
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Descrição</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Descrição</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
+                      disabled={iaLoading === "suggest_fields"}
+                      onClick={async () => {
+                        const secaoNome = secoes.find(s => s.id === tarefa.secao_id)?.nome || "";
+                        try {
+                          const result = await suggestFields(tarefa.titulo, tarefa.descricao, "Projeto", secaoNome);
+                          setDescValue(result.descricao);
+                          onUpdate(tarefa.id, {
+                            descricao: result.descricao,
+                            prioridade: result.prioridade,
+                            estagio: result.estagio as any,
+                          });
+                          if (result.dias_prazo_sugerido && !tarefa.data_prazo) {
+                            const prazo = new Date();
+                            prazo.setDate(prazo.getDate() + result.dias_prazo_sugerido);
+                            onUpdate(tarefa.id, { data_prazo: prazo.toISOString().split("T")[0] });
+                          }
+                          toast.success("Campos preenchidos pela IA!");
+                        } catch { /* handled in hook */ }
+                      }}
+                    >
+                      {iaLoading === "suggest_fields" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      Sugerir com IA
+                    </Button>
+                  </div>
                   <Textarea
                     value={descValue}
                     onChange={e => setDescValue(e.target.value)}
@@ -615,14 +646,36 @@ export function ProjetoTarefaDetalhe({
 
                 {/* Subtarefas */}
                 <div>
-                  <h3 className="text-sm font-medium mb-2">
-                    Subtarefas
-                    {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
-                      <span className="text-muted-foreground ml-1">
-                        ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
-                      </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">
+                      Subtarefas
+                      {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
+                        <span className="text-muted-foreground ml-1">
+                          ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
+                        </span>
+                      )}
+                    </h3>
+                    {onAddSubtarefa && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
+                        disabled={iaLoading === "generate_checklist"}
+                        onClick={async () => {
+                          try {
+                            const result = await generateChecklist(tarefa.titulo, tarefa.descricao, tarefa.estagio);
+                            for (const item of result.items) {
+                              onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
+                            }
+                            toast.success(`${result.items.length} subtarefas geradas pela IA!`);
+                          } catch { /* handled in hook */ }
+                        }}
+                      >
+                        {iaLoading === "generate_checklist" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                        Gerar checklist IA
+                      </Button>
                     )}
-                  </h3>
+                  </div>
                   <div className="space-y-1.5">
                     {tarefa.subtarefas?.map(st => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
