@@ -8393,11 +8393,13 @@ export type Database = {
           mensagem_id: string | null
           metadata: Json | null
           nome_arquivo: string
+          origem_projeto_tarefa_id: string | null
           produto_id: string
           revisao_id: string | null
           status: string | null
           tamanho: number | null
           tipo_arquivo: string
+          visivel_fabrica: boolean
         }
         Insert: {
           aprovado_em?: string | null
@@ -8413,11 +8415,13 @@ export type Database = {
           mensagem_id?: string | null
           metadata?: Json | null
           nome_arquivo: string
+          origem_projeto_tarefa_id?: string | null
           produto_id: string
           revisao_id?: string | null
           status?: string | null
           tamanho?: number | null
           tipo_arquivo: string
+          visivel_fabrica?: boolean
         }
         Update: {
           aprovado_em?: string | null
@@ -8433,11 +8437,13 @@ export type Database = {
           mensagem_id?: string | null
           metadata?: Json | null
           nome_arquivo?: string
+          origem_projeto_tarefa_id?: string | null
           produto_id?: string
           revisao_id?: string | null
           status?: string | null
           tamanho?: number | null
           tipo_arquivo?: string
+          visivel_fabrica?: boolean
         }
         Relationships: [
           {
@@ -8452,6 +8458,13 @@ export type Database = {
             columns: ["mensagem_id"]
             isOneToOne: false
             referencedRelation: "fabrica_revisao_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_revisao_documentos_origem_projeto_tarefa_id_fkey"
+            columns: ["origem_projeto_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
             referencedColumns: ["id"]
           },
           {
@@ -13664,6 +13677,50 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_validacoes: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          id: string
+          observacoes: string | null
+          produto_id: string
+          solicitado_por: string
+          status: string
+          tarefa_id: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          produto_id: string
+          solicitado_por: string
+          status?: string
+          tarefa_id: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          produto_id?: string
+          solicitado_por?: string
+          status?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_validacoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefas: {
         Row: {
           codigo: string | null
@@ -13684,6 +13741,7 @@ export type Database = {
           status: string | null
           titulo: string
           updated_at: string | null
+          validacao_status: string | null
           visibilidade: string | null
         }
         Insert: {
@@ -13705,6 +13763,7 @@ export type Database = {
           status?: string | null
           titulo: string
           updated_at?: string | null
+          validacao_status?: string | null
           visibilidade?: string | null
         }
         Update: {
@@ -13726,6 +13785,7 @@ export type Database = {
           status?: string | null
           titulo?: string
           updated_at?: string | null
+          validacao_status?: string | null
           visibilidade?: string | null
         }
         Relationships: [

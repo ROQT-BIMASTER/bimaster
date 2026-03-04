@@ -105,6 +105,7 @@ export function CofreFullscreenModal({ open, onOpenChange, produtoId, produtoNom
         .from("fabrica_revisao_documentos" as any)
         .select("*")
         .eq("produto_id", produtoId)
+        .eq("visivel_fabrica", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
       setDocumentos((data as any[]) || []);
