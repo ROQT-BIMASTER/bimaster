@@ -248,6 +248,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const toggleTarefaCompleta = useMutation({
     mutationFn: async (tarefa: ProjetoTarefa) => {
       const isCompleting = tarefa.status !== "concluida";
+      console.log("[toggleTarefaCompleta] tarefa:", tarefa.id, "isCompleting:", isCompleting, "current status:", tarefa.status);
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({
@@ -256,10 +257,18 @@ export function useProjetoTarefas(projetoId: string | undefined) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", tarefa.id);
-      if (error) throw error;
+      if (error) {
+        console.error("[toggleTarefaCompleta] error:", error);
+        throw error;
+      }
+      console.log("[toggleTarefaCompleta] success");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+    },
+    onError: (err: Error) => {
+      console.error("[toggleTarefaCompleta] mutation error:", err);
+      toast.error("Erro ao atualizar status: " + err.message);
     },
   });
 
