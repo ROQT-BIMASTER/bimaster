@@ -27,10 +27,11 @@ import {
 import { useDepartmentExpenses, DEPARTMENT_EXPENSE_CATEGORIES } from "@/hooks/useDepartmentExpenses";
 import { useDepartmentBudgets } from "@/hooks/useDepartmentBudgets";
 import { useUserEmpresas, usePrimaryEmpresa } from "@/hooks/useUserEmpresas";
+import { useApproverProfiles, sendApproverNotification } from "@/hooks/useApproverProfiles";
 import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Plus, FileText, Wallet, Building, SplitSquareVertical, Barcode, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, FileText, Wallet, Building, SplitSquareVertical, Barcode, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -77,6 +78,9 @@ export function NovaDespesaDepartamentoDialog({
   const { activeBudgets } = useDepartmentBudgets(departmentId);
   const { data: userEmpresas = [] } = useUserEmpresas();
   const { primaryEmpresa } = usePrimaryEmpresa();
+  const { data: approvers = [] } = useApproverProfiles();
+
+  const [notifyApproverId, setNotifyApproverId] = useState("");
 
   const [formData, setFormData] = useState({
     category: "",
@@ -192,6 +196,12 @@ export function NovaDespesaDepartamentoDialog({
         });
       }
 
+      // Send push notification to selected approver
+      if (notifyApproverId) {
+        const valor = parseFloat(formData.valor_realizado) || parseFloat(formData.valor_previsto) || 0;
+        await sendApproverNotification(notifyApproverId, formData.description, valor);
+      }
+
       resetForm();
       onOpenChange(false);
     } catch (error) {
@@ -237,6 +247,7 @@ export function NovaDespesaDepartamentoDialog({
     setParcelado(false);
     setNumParcelas(2);
     setParcelas([]);
+    setNotifyApproverId("");
   };
 
   return (
@@ -510,6 +521,27 @@ export function NovaDespesaDepartamentoDialog({
               </div>
             </div>
           )}
+
+          {/* Notificar Aprovador */}
+          <Separator />
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notificar Aprovador (opcional)
+            </Label>
+            <Select value={notifyApproverId} onValueChange={setNotifyApproverId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione quem será notificado" />
+              </SelectTrigger>
+              <SelectContent>
+                {approvers.map((approver) => (
+                  <SelectItem key={approver.id} value={approver.id}>
+                    {approver.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
