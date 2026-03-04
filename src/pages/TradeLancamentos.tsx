@@ -48,6 +48,7 @@ import {
   Calendar,
   AlertCircle,
   AlertTriangle,
+  SplitSquareVertical,
 } from "lucide-react";
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
@@ -395,8 +396,19 @@ export default function TradeLancamentos() {
                       <TableCell className="text-sm">
                         {getEntryTypeLabel(entry.entry_type)}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {entry.description || "-"}
+                      <TableCell className="max-w-xs">
+                        <div className="truncate">{entry.description || "-"}</div>
+                        {entry.reference_number?.startsWith("PARC-") && (
+                          <Badge variant="outline" className="text-[10px] mt-0.5 gap-1">
+                            <SplitSquareVertical className="h-2.5 w-2.5" />
+                            {entry.reference_number.split("-").slice(2).join("-")}
+                          </Badge>
+                        )}
+                        {entry.due_date && (
+                          <span className="text-[10px] text-muted-foreground block mt-0.5">
+                            Venc: {format(new Date(entry.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
                         {entry.account ? (
