@@ -4,12 +4,13 @@ import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { Plus, CheckCircle, RefreshCw, LayoutDashboard, CalendarDays } from "lucide-react";
+import { Plus, CheckCircle, RefreshCw, LayoutDashboard, CalendarDays, Maximize2 } from "lucide-react";
 import { useTradeFinanceiroDashboard, getDateRangeFromPreset, DatePreset, DateRangeFilter } from "@/hooks/useTradeFinanceiroDashboard";
 import { TradeVerbaCard } from "@/components/trade/dashboard/TradeVerbaCard";
 import { TradeCampanhasAPagarCard } from "@/components/trade/dashboard/TradeCampanhasAPagarCard";
 import { TradeFluxoCaixaChart } from "@/components/trade/dashboard/TradeFluxoCaixaChart";
 import { TradeLancamentosTable } from "@/components/trade/dashboard/TradeLancamentosTable";
+import { TradeFocoModeDialog } from "@/components/trade/dashboard/TradeFocoModeDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { TourButton, tradeDashboardTourSteps, TRADE_DASHBOARD_TOUR_ID } from "@/components/tour";
 import {
@@ -39,6 +40,7 @@ export default function TradeFinanceiroDashboard() {
   const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
   const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [focoModeOpen, setFocoModeOpen] = useState(false);
 
   const dateRange = getDateRangeFromPreset(datePreset, customRange);
 
@@ -154,6 +156,10 @@ export default function TradeFinanceiroDashboard() {
                 )}
               </div>
 
+              <Button variant="outline" size="sm" onClick={() => setFocoModeOpen(true)}>
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Modo Foco
+              </Button>
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -225,6 +231,13 @@ export default function TradeFinanceiroDashboard() {
           description="Conheça o dashboard financeiro"
         />
       </div>
+
+      {/* Modo Foco Dialog */}
+      <TradeFocoModeDialog
+        open={focoModeOpen}
+        onOpenChange={setFocoModeOpen}
+        lancamentos={lancamentos}
+      />
     </DashboardLayout>
   );
 }
