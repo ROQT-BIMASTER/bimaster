@@ -13677,6 +13677,38 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_produtos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          produto_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          produto_id: string
+          tarefa_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          produto_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_produtos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_validacoes: {
         Row: {
           aprovado_em: string | null

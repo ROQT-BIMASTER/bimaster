@@ -25,7 +25,7 @@ import {
   FileText, FolderOpen, Send, Loader2, Package, Eye,
   Tag, Factory, FlaskConical, Barcode, BookOpen, MessageSquare,
   ClipboardList, Reply, X, ChevronDown, ChevronRight,
-  AlertTriangle, StickyNote, RotateCcw,
+  AlertTriangle, StickyNote, RotateCcw, Plus, Trash2, Link2,
 } from "lucide-react";
 
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
@@ -51,7 +51,7 @@ export default function ProjetoAprovacaoCadastro() {
   const { user } = useAuth();
   const [tarefas, setTarefas] = useState<any[]>([]);
   const [selectedTarefa, setSelectedTarefa] = useState<any | null>(null);
-  const [produto, setProduto] = useState<any | null>(null);
+  const [produtos, setProdutos] = useState<any[]>([]);
   const [documentos, setDocumentos] = useState<any[]>([]);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
@@ -82,19 +82,39 @@ export default function ProjetoAprovacaoCadastro() {
     setDocumentos((docs as any[]) || []);
   }, []);
 
+  const loadProdutos = useCallback(async (tarefaId: string) => {
+    // Load from junction table
+    const { data: links } = await supabase
+      .from("projeto_tarefa_produtos" as any)
+      .select("*")
+      .eq("tarefa_id", tarefaId)
+      .order("created_at", { ascending: true });
+
+    if (!links || links.length === 0) {
+      setProdutos([]);
+      return;
+    }
+
+    const produtoIds = (links as any[]).map((l: any) => l.produto_id);
+    const { data: prods } = await supabase
+      .from("fabrica_produtos" as any)
+      .select("*")
+      .in("id", produtoIds);
+    
+    // Merge link info with product data
+    const produtosComLink = (links as any[]).map((link: any) => {
+      const prod = (prods as any[] || []).find((p: any) => p.id === link.produto_id);
+      return { ...prod, _linkId: link.id };
+    }).filter((p: any) => p.id);
+
+    setProdutos(produtosComLink);
+  }, []);
+
   useEffect(() => {
-    if (!selectedTarefa) { setProduto(null); setDocumentos([]); return; }
-    const load = async () => {
-      if (selectedTarefa.produto_id) {
-        const { data: prod } = await supabase
-          .from("fabrica_produtos").select("*")
-          .eq("id", selectedTarefa.produto_id).single();
-        setProduto(prod);
-      } else { setProduto(null); }
-      loadDocumentos(selectedTarefa.id);
-    };
-    load();
-  }, [selectedTarefa, loadDocumentos]);
+    if (!selectedTarefa) { setProdutos([]); setDocumentos([]); return; }
+    loadProdutos(selectedTarefa.id);
+    loadDocumentos(selectedTarefa.id);
+  }, [selectedTarefa, loadDocumentos, loadProdutos]);
 
   const filteredTarefas = tarefas.filter(t =>
     !busca || t.titulo?.toLowerCase().includes(busca.toLowerCase()) ||
@@ -105,6 +125,10 @@ export default function ProjetoAprovacaoCadastro() {
 
   const handleAprovar = async () => {
     if (!user || !selectedTarefa) return;
+    if (produtos.length === 0) {
+      toast.error("Vincule pelo menos um produto acabado antes de aprovar.");
+      return;
+    }
     setSubmitting(true);
     try {
       await supabase
@@ -151,7 +175,6 @@ export default function ProjetoAprovacaoCadastro() {
     finally { setSubmitting(false); }
   };
 
-  // Document-level actions
   const handleDocStatusChange = async (docId: string, status: string, obs?: string) => {
     try {
       const metadata = obs ? { observacao_revisao: obs, revisao_em: new Date().toISOString(), revisao_por: user?.id } : undefined;
@@ -165,6 +188,31 @@ export default function ProjetoAprovacaoCadastro() {
         .eq("id", docId);
       toast.success(status === "aprovado" ? "Documento aprovado" : status === "revisao_solicitada" ? "Revisão solicitada" : "Status atualizado");
       if (selectedTarefa) loadDocumentos(selectedTarefa.id);
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleAddProduto = async (produtoId: string) => {
+    if (!user || !selectedTarefa) return;
+    try {
+      const { error } = await supabase.from("projeto_tarefa_produtos" as any).insert({
+        tarefa_id: selectedTarefa.id,
+        produto_id: produtoId,
+        created_by: user.id,
+      } as any);
+      if (error) throw error;
+      toast.success("Produto vinculado!");
+      loadProdutos(selectedTarefa.id);
+    } catch (err: any) {
+      if (err.message?.includes("duplicate")) toast.error("Produto já vinculado.");
+      else toast.error(err.message);
+    }
+  };
+
+  const handleRemoveProduto = async (linkId: string) => {
+    try {
+      await supabase.from("projeto_tarefa_produtos" as any).delete().eq("id", linkId);
+      toast.success("Produto desvinculado.");
+      if (selectedTarefa) loadProdutos(selectedTarefa.id);
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -280,7 +328,7 @@ export default function ProjetoAprovacaoCadastro() {
             {selectedTarefa && (
               <AprovacaoAnalisePanel
                 tarefa={selectedTarefa}
-                produto={produto}
+                produtos={produtos}
                 documentos={documentos}
                 isPending={!!isPending}
                 submitting={submitting}
@@ -291,6 +339,8 @@ export default function ProjetoAprovacaoCadastro() {
                 onAprovar={handleAprovar}
                 onRejeitar={handleRejeitar}
                 onDocStatusChange={handleDocStatusChange}
+                onAddProduto={handleAddProduto}
+                onRemoveProduto={handleRemoveProduto}
                 onClose={() => { setSelectedTarefa(null); setShowRejectForm(false); setRejectObs(""); }}
               />
             )}
@@ -312,7 +362,7 @@ export default function ProjetoAprovacaoCadastro() {
 
 interface AprovacaoAnalisePanelProps {
   tarefa: any;
-  produto: any;
+  produtos: any[];
   documentos: any[];
   isPending: boolean;
   submitting: boolean;
@@ -323,13 +373,15 @@ interface AprovacaoAnalisePanelProps {
   onAprovar: () => void;
   onRejeitar: () => void;
   onDocStatusChange: (docId: string, status: string, obs?: string) => void;
+  onAddProduto: (produtoId: string) => void;
+  onRemoveProduto: (linkId: string) => void;
   onClose: () => void;
 }
 
 function AprovacaoAnalisePanel({
-  tarefa, produto, documentos, isPending, submitting,
+  tarefa, produtos, documentos, isPending, submitting,
   showRejectForm, rejectObs, onRejectObsChange, onShowRejectForm,
-  onAprovar, onRejeitar, onDocStatusChange, onClose,
+  onAprovar, onRejeitar, onDocStatusChange, onAddProduto, onRemoveProduto, onClose,
 }: AprovacaoAnalisePanelProps) {
 
   const docsByCategoria = documentos.reduce((acc: Record<string, any[]>, doc: any) => {
@@ -341,6 +393,8 @@ function AprovacaoAnalisePanel({
 
   const allApproved = documentos.length > 0 && documentos.every(d => d.status === "aprovado");
   const hasRevisionPending = documentos.some(d => d.status === "revisao_solicitada");
+  const hasProdutos = produtos.length > 0;
+  const canApprove = allApproved && hasProdutos;
 
   return (
     <Card className="border-primary/20 shadow-lg overflow-hidden">
@@ -353,6 +407,9 @@ function AprovacaoAnalisePanel({
           </div>
           {allApproved && <Badge variant="success" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3" /> Docs OK</Badge>}
           {hasRevisionPending && <Badge variant="warning" className="text-[10px] gap-1"><AlertTriangle className="h-3 w-3" /> Revisão pendente</Badge>}
+          {!hasProdutos && isPending && (
+            <Badge variant="destructive" className="text-[10px] gap-1"><Package className="h-3 w-3" /> Sem produto</Badge>
+          )}
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
       </CardHeader>
@@ -362,34 +419,13 @@ function AprovacaoAnalisePanel({
           <ResizablePanel defaultSize={60} minSize={40}>
             <ScrollArea className="h-[650px]">
               <div className="p-6 space-y-6">
-                {/* Product data */}
-                {produto ? (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                      <Package className="h-4 w-4 text-primary" /> Dados Técnicos do Produto
-                    </h3>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-muted/30 rounded-lg p-4">
-                      <InfoRow icon={Tag} label="Nome Comercial" value={produto.nome_comercial || produto.nome} />
-                      <InfoRow icon={Barcode} label="SKU" value={produto.sku} />
-                      <InfoRow icon={BookOpen} label="Processo ANVISA" value={produto.processo_anvisa} />
-                      <InfoRow icon={Factory} label="Fabricante" value={produto.fabricante} />
-                      <InfoRow icon={Tag} label="Categoria" value={produto.categoria} />
-                      <InfoRow icon={Tag} label="Marca / Linha" value={[produto.marca, produto.linha].filter(Boolean).join(" / ")} />
-                    </div>
-                    {produto.descricao_completa && (
-                      <div className="bg-muted/30 rounded-lg p-4">
-                        <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
-                          <FlaskConical className="h-3.5 w-3.5" /> Composição / Descrição Completa
-                        </p>
-                        <p className="text-xs text-foreground/80 whitespace-pre-wrap">{produto.descricao_completa}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-muted/30 rounded-lg p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Nenhum produto vinculado a esta tarefa.</p>
-                  </div>
-                )}
+                {/* Linked Products Section */}
+                <ProdutosVinculadosSection
+                  produtos={produtos}
+                  isPending={isPending}
+                  onAddProduto={onAddProduto}
+                  onRemoveProduto={onRemoveProduto}
+                />
 
                 <Separator />
 
@@ -438,19 +474,22 @@ function AprovacaoAnalisePanel({
                       <Clock className="h-4 w-4" /> Parecer Final
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {allApproved
-                        ? "✅ Todos os documentos foram aprovados. Você pode aprovar o cadastro."
-                        : hasRevisionPending
-                          ? "⚠️ Existem documentos com revisão solicitada. Revise-os antes de aprovar."
-                          : "Marque os documentos como aprovados ou solicite revisão antes de dar o parecer final."
+                      {!hasProdutos
+                        ? "🔗 Vincule pelo menos um produto acabado da Fábrica antes de aprovar."
+                        : allApproved
+                          ? "✅ Todos os documentos foram aprovados. Você pode aprovar o cadastro."
+                          : hasRevisionPending
+                            ? "⚠️ Existem documentos com revisão solicitada. Revise-os antes de aprovar."
+                            : "Marque os documentos como aprovados ou solicite revisão antes de dar o parecer final."
                       }
                     </p>
 
                     {!showRejectForm ? (
                       <div className="flex items-center gap-2">
                         <Button
-                          onClick={onAprovar} disabled={submitting || !allApproved}
+                          onClick={onAprovar} disabled={submitting || !canApprove}
                           className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-xs" size="sm"
+                          title={!hasProdutos ? "Vincule pelo menos um produto para aprovar" : !allApproved ? "Aprove todos os documentos primeiro" : ""}
                         >
                           {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
                           Aprovar Cadastro
@@ -496,7 +535,148 @@ function AprovacaoAnalisePanel({
   );
 }
 
-// ─── Document Category Group with per-doc controls ──────────────────────────
+// ─── Produtos Vinculados Section ─────────────────────────────────────────────
+
+function ProdutosVinculadosSection({
+  produtos, isPending, onAddProduto, onRemoveProduto,
+}: {
+  produtos: any[];
+  isPending: boolean;
+  onAddProduto: (produtoId: string) => void;
+  onRemoveProduto: (linkId: string) => void;
+}) {
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const linkedIds = new Set(produtos.map(p => p.id));
+
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 1) { setSearchResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from("fabrica_produtos" as any)
+      .select("id, codigo, nome, marca, linha, tipo, foto_url")
+      .eq("ativo", true)
+      .or(`nome.ilike.%${query}%,codigo.ilike.%${query}%`)
+      .order("nome")
+      .limit(10);
+    setSearchResults((data as any[]) || []);
+    setSearching(false);
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+          <Package className="h-4 w-4 text-primary" /> Produtos Acabados Vinculados
+          <Badge variant="ghost" className="text-[10px]">{produtos.length}</Badge>
+        </h3>
+        {isPending && (
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setShowSearch(!showSearch)}>
+            <Plus className="h-3.5 w-3.5" /> Vincular Produto
+          </Button>
+        )}
+      </div>
+
+      {/* Search box */}
+      {showSearch && (
+        <div className="border border-primary/30 rounded-lg p-3 bg-primary/5 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produto por nome ou código..."
+              value={searchQuery}
+              onChange={e => handleSearch(e.target.value)}
+              className="pl-8 h-8 text-xs"
+              autoFocus
+            />
+          </div>
+          {searching && <div className="text-xs text-muted-foreground text-center py-2"><Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Buscando...</div>}
+          {searchResults.length > 0 && (
+            <div className="max-h-[180px] overflow-y-auto divide-y divide-border/30">
+              {searchResults.map((p: any) => (
+                <div key={p.id} className="flex items-center gap-2 py-1.5 px-1">
+                  {p.foto_url ? (
+                    <img src={p.foto_url} className="h-8 w-8 rounded object-cover shrink-0" alt="" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{p.nome}</p>
+                    <p className="text-[10px] text-muted-foreground">{p.codigo} · {p.marca} {p.linha ? `/ ${p.linha}` : ""}</p>
+                  </div>
+                  {linkedIds.has(p.id) ? (
+                    <Badge variant="outline" className="text-[9px] text-muted-foreground">Vinculado</Badge>
+                  ) : (
+                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary" onClick={() => { onAddProduto(p.id); }}>
+                      <Link2 className="h-3 w-3" /> Vincular
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {searchQuery.length > 0 && searchResults.length === 0 && !searching && (
+            <p className="text-xs text-muted-foreground text-center py-2">Nenhum produto encontrado.</p>
+          )}
+        </div>
+      )}
+
+      {/* Linked products list */}
+      {produtos.length === 0 ? (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 text-center">
+          <Package className="h-6 w-6 mx-auto mb-1.5 text-destructive/50" />
+          <p className="text-xs text-destructive/80 font-medium">Nenhum produto vinculado</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            É obrigatório vincular pelo menos um produto acabado para aprovar.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {produtos.map((p: any) => (
+            <div key={p._linkId} className="flex items-center gap-3 bg-muted/30 rounded-lg p-3">
+              {p.foto_url ? (
+                <img src={p.foto_url} className="h-10 w-10 rounded object-cover shrink-0" alt="" />
+              ) : (
+                <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{p.nome_comercial || p.nome}</p>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <span>{p.codigo}</span>
+                  {p.marca && <span>· {p.marca}</span>}
+                  {p.linha && <span>/ {p.linha}</span>}
+                  {p.tipo && <Badge variant="outline" className="text-[9px] h-4">{p.tipo}</Badge>}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
+                  {p.sku && <span><Barcode className="h-2.5 w-2.5 inline mr-0.5" />{p.sku}</span>}
+                  {p.processo_anvisa && <span><BookOpen className="h-2.5 w-2.5 inline mr-0.5" />{p.processo_anvisa}</span>}
+                  {p.fabricante && <span><Factory className="h-2.5 w-2.5 inline mr-0.5" />{p.fabricante}</span>}
+                </div>
+              </div>
+              {isPending && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  onClick={() => onRemoveProduto(p._linkId)} title="Desvincular produto"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Document Category Group ────────────────────────────────────────────────
 
 function DocumentCategoryGroup({
   categoria, docs, isPending, onDocStatusChange,
@@ -529,12 +709,7 @@ function DocumentCategoryGroup({
         <CollapsibleContent>
           <div className="border-t border-border/30 divide-y divide-border/20">
             {docs.map(doc => (
-              <DocumentReviewRow
-                key={doc.id}
-                doc={doc}
-                isPending={isPending}
-                onStatusChange={onDocStatusChange}
-              />
+              <DocumentReviewRow key={doc.id} doc={doc} isPending={isPending} onStatusChange={onDocStatusChange} />
             ))}
           </div>
         </CollapsibleContent>
@@ -583,17 +758,13 @@ function DocumentReviewRow({
 
         {isPending && (
           <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="ghost" size="icon" className="h-6 w-6"
-              title="Adicionar observação"
+            <Button variant="ghost" size="icon" className="h-6 w-6" title="Adicionar observação"
               onClick={() => setShowObsInput(!showObsInput)}
             >
               <StickyNote className="h-3 w-3 text-muted-foreground" />
             </Button>
             {!isRevision && (
-              <Button
-                variant="ghost" size="icon" className="h-6 w-6"
-                title="Solicitar revisão deste documento"
+              <Button variant="ghost" size="icon" className="h-6 w-6" title="Solicitar revisão deste documento"
                 onClick={() => setShowObsInput(true)}
               >
                 <RotateCcw className="h-3 w-3 text-amber-500" />
@@ -603,7 +774,6 @@ function DocumentReviewRow({
         )}
       </div>
 
-      {/* Existing observation */}
       {existingObs && !showObsInput && (
         <div className="ml-7 bg-amber-500/5 border border-amber-500/20 rounded px-2.5 py-1.5">
           <p className="text-[10px] text-muted-foreground flex items-center gap-1 mb-0.5">
@@ -613,31 +783,20 @@ function DocumentReviewRow({
         </div>
       )}
 
-      {/* Observation input */}
       {showObsInput && (
         <div className="ml-7 space-y-1.5">
-          <Textarea
-            value={obsText}
-            onChange={e => setObsText(e.target.value)}
-            placeholder="Observação sobre este documento..."
-            className="min-h-[40px] text-xs"
-            autoFocus
+          <Textarea value={obsText} onChange={e => setObsText(e.target.value)}
+            placeholder="Observação sobre este documento..." className="min-h-[40px] text-xs" autoFocus
           />
           <div className="flex items-center gap-1.5">
             <Button size="sm" className="text-xs h-7 gap-1 bg-amber-600 hover:bg-amber-700"
-              onClick={() => {
-                onStatusChange(doc.id, "revisao_solicitada", obsText);
-                setShowObsInput(false); setObsText("");
-              }}
+              onClick={() => { onStatusChange(doc.id, "revisao_solicitada", obsText); setShowObsInput(false); setObsText(""); }}
               disabled={!obsText.trim()}
             >
               <RotateCcw className="h-3 w-3" /> Solicitar Revisão
             </Button>
             <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
-              onClick={() => {
-                onStatusChange(doc.id, doc.status || "pendente", obsText);
-                setShowObsInput(false); setObsText("");
-              }}
+              onClick={() => { onStatusChange(doc.id, doc.status || "pendente", obsText); setShowObsInput(false); setObsText(""); }}
               disabled={!obsText.trim()}
             >
               <StickyNote className="h-3 w-3" /> Salvar Observação
