@@ -123,11 +123,13 @@ export function ProjetoTarefaDetalhe({
   const [selectedSubtarefa, setSelectedSubtarefa] = useState<ProjetoTarefa | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
+  const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
 
   useEffect(() => {
     if (tarefa) {
       setTitleValue(tarefa.titulo);
       setDescValue(tarefa.descricao || "");
+      setPendingAISubtarefas([]);
     }
   }, [tarefa?.id]);
 
@@ -664,10 +666,7 @@ export function ProjetoTarefaDetalhe({
                         onClick={async () => {
                           try {
                             const result = await generateChecklist(tarefa.titulo, tarefa.descricao, tarefa.estagio);
-                            for (const item of result.items) {
-                              onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
-                            }
-                            toast.success(`${result.items.length} subtarefas geradas pela IA!`);
+                            setPendingAISubtarefas(result.items.map(i => ({ titulo: i.titulo, selected: true })));
                           } catch { /* handled in hook */ }
                         }}
                       >
@@ -676,6 +675,55 @@ export function ProjetoTarefaDetalhe({
                       </Button>
                     )}
                   </div>
+
+                  {/* AI-generated subtasks pending validation */}
+                  {pendingAISubtarefas.length > 0 && (
+                    <div className="mb-3 p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+                      <p className="text-xs font-medium text-primary flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Subtarefas geradas pela IA — selecione as que deseja criar:
+                      </p>
+                      {pendingAISubtarefas.map((item, i) => (
+                        <label key={i} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/20 rounded px-1 py-0.5">
+                          <Checkbox
+                            checked={item.selected}
+                            onCheckedChange={(checked) => {
+                              setPendingAISubtarefas(prev => prev.map((it, idx) => idx === i ? { ...it, selected: !!checked } : it));
+                            }}
+                          />
+                          <span>{item.titulo}</span>
+                        </label>
+                      ))}
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs gap-1"
+                          onClick={() => {
+                            const selected = pendingAISubtarefas.filter(it => it.selected);
+                            if (onAddSubtarefa) {
+                              for (const item of selected) {
+                                onAddSubtarefa(item.titulo, tarefa.id, tarefa.secao_id);
+                              }
+                            }
+                            setPendingAISubtarefas([]);
+                            toast.success(`${selected.length} subtarefa(s) criada(s)!`);
+                          }}
+                          disabled={pendingAISubtarefas.filter(it => it.selected).length === 0}
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          Criar {pendingAISubtarefas.filter(it => it.selected).length} selecionada(s)
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setPendingAISubtarefas([])}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     {tarefa.subtarefas?.map(st => {
                       const stEstagioInfo = ESTAGIO_OPTIONS.find(e => e.value === st.estagio);
