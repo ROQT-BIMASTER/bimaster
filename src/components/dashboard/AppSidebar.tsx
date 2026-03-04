@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -917,6 +917,33 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarGroup>
           );
         })}
+
+        {/* Módulo de Projetos */}
+        <SidebarGroup className="py-2 px-2">
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger className="w-full">
+              <div className={cn(
+                "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                "bg-indigo-50 dark:bg-indigo-950/30",
+                "hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+              )}>
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500">
+                  <FolderKanban className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-semibold text-sm flex-1 text-indigo-600 dark:text-indigo-400">Projetos</span>
+                <ChevronDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="mt-1">
+                <SidebarMenu className="space-y-0.5 ps-2">
+                  <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
+                  <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && showModule("precos") && (

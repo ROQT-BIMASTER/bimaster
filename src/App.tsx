@@ -194,6 +194,9 @@ const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
 const FormularioEquipe = lazyWithRetry(() => import("./pages/FormularioEquipe"));
 const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
+const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
+const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
+const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 
 // Loading component
 const PageLoader = () => (
@@ -432,6 +435,11 @@ function AppContent() {
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleProtectedRoute></ProtectedRoute>} />
+
+            {/* Módulo de Projetos */}
+            <Route path="/dashboard/projetos" element={<ProtectedRoute><Projetos /></ProtectedRoute>} />
+            <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ProjetoInbox /></ProtectedRoute>} />
+            <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ProjetoDetalhe /></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={

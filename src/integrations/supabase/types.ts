@@ -13392,6 +13392,236 @@ export type Database = {
           },
         ]
       }
+      projeto_atividades: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          lida: boolean | null
+          metadata: Json | null
+          projeto_id: string
+          tarefa_id: string | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lida?: boolean | null
+          metadata?: Json | null
+          projeto_id: string
+          tarefa_id?: string | null
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          lida?: boolean | null
+          metadata?: Json | null
+          projeto_id?: string
+          tarefa_id?: string | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_atividades_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_atividades_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_secoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_secoes_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_tarefa_colaboradores: {
+        Row: {
+          created_at: string | null
+          id: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_colaboradores_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_tarefas: {
+        Row: {
+          codigo: string | null
+          created_at: string | null
+          data_conclusao: string | null
+          data_prazo: string | null
+          descricao: string | null
+          id: string
+          ordem: number | null
+          parent_tarefa_id: string | null
+          prioridade: string | null
+          projeto_id: string
+          responsavel_id: string | null
+          secao_id: string
+          status: string | null
+          titulo: string
+          updated_at: string | null
+          visibilidade: string | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_prazo?: string | null
+          descricao?: string | null
+          id?: string
+          ordem?: number | null
+          parent_tarefa_id?: string | null
+          prioridade?: string | null
+          projeto_id: string
+          responsavel_id?: string | null
+          secao_id: string
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+          visibilidade?: string | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string | null
+          data_conclusao?: string | null
+          data_prazo?: string | null
+          descricao?: string | null
+          id?: string
+          ordem?: number | null
+          parent_tarefa_id?: string | null
+          prioridade?: string | null
+          projeto_id?: string
+          responsavel_id?: string | null
+          secao_id?: string
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+          visibilidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefas_parent_tarefa_id_fkey"
+            columns: ["parent_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projetos: {
+        Row: {
+          cor: string | null
+          created_at: string | null
+          criador_id: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          status: string | null
+          updated_at: string | null
+          visibilidade: string | null
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string | null
+          criador_id: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+          visibilidade?: string | null
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string | null
+          criador_id?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
+          visibilidade?: string | null
+        }
+        Relationships: []
+      }
       promotion_execution: {
         Row: {
           checked_at: string | null
