@@ -5,6 +5,9 @@ import { NovaSecaoInline } from "./NovaSecaoInline";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { Loader2 } from "lucide-react";
 
+// Grid template matching ProjetoTarefaRow columns
+export const GRID_COLS = "grid-cols-[20px_20px_1fr_100px_80px_64px_100px_80px_90px_90px]";
+
 interface ProjetoListViewProps {
   projetoId: string;
 }
@@ -30,14 +33,12 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
   };
 
   const handleSelectTarefa = (tarefa: ProjetoTarefa) => {
-    // Find full tarefa with subtarefas from the organized data
     const fullTarefa = tarefas.find(t => t.id === tarefa.id);
     if (fullTarefa) {
-      const withSubs = {
+      setSelectedTarefa({
         ...fullTarefa,
         subtarefas: tarefas.filter(st => st.parent_tarefa_id === fullTarefa.id),
-      };
-      setSelectedTarefa(withSubs);
+      });
     } else {
       setSelectedTarefa(tarefa);
     }
@@ -45,7 +46,6 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
 
   const handleUpdateTarefa = (id: string, updates: Partial<ProjetoTarefa>) => {
     updateTarefa.mutate({ id, ...updates });
-    // Optimistically update the selected tarefa
     if (selectedTarefa?.id === id) {
       setSelectedTarefa(prev => prev ? { ...prev, ...updates } : null);
     }
@@ -59,15 +59,17 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
     <>
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
         {/* Column headers */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50 bg-muted/30 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          <div className="w-5" />
-          <div className="w-5" />
-          <div className="flex-1">Nome da tarefa</div>
-          <div className="w-16 text-center">Status</div>
-          <div className="w-14">Prior.</div>
-          <div className="w-20">Prazo</div>
-          <div className="w-7">Resp.</div>
-          <div className="w-16">Colab.</div>
+        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b border-border/50 bg-muted/30 text-[11px] font-medium text-muted-foreground uppercase tracking-wider`}>
+          <div /> {/* expand */}
+          <div /> {/* checkbox */}
+          <div>Nome da tarefa</div>
+          <div>Responsável</div>
+          <div>Data con.</div>
+          <div>Colab.</div>
+          <div>Criador</div>
+          <div>Data mod.</div>
+          <div className="text-center">Status</div>
+          <div className="text-center">Estágio</div>
         </div>
 
         {secoes.map(secao => (
@@ -86,7 +88,6 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
         <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
       </div>
 
-      {/* Task detail side panel */}
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}
         open={!!selectedTarefa}

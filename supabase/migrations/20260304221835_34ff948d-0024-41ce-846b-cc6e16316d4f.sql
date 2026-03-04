@@ -1,0 +1,1 @@
+ALTER TABLE public.projeto_tarefas ADD COLUMN IF NOT EXISTS criador_id uuid;
