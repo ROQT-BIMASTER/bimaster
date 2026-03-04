@@ -423,11 +423,11 @@ export function ProjetoTarefaDetalhe({
                                         <button
                                           key={filho.id}
                                           onClick={() => handleSelectProduto(filho)}
-                                          className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors pl-4"
+                                          className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors pl-4"
                                         >
-                                          <span className="text-muted-foreground">↳</span>
-                                          <span className="font-mono text-muted-foreground flex-shrink-0 text-[10px]">{filho.codigo}</span>
-                                          <span className="truncate text-muted-foreground">{filho.nome}</span>
+                                          <span className="text-primary">↳</span>
+                                          <span className="font-mono text-primary/70 flex-shrink-0 text-[10px]">{filho.codigo}</span>
+                                          <span className="truncate text-primary">{filho.nome}</span>
                                         </button>
                                       ))}
                                     </div>
