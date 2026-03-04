@@ -2650,6 +2650,7 @@ export type Database = {
           installment_total: number | null
           paid_at: string | null
           payment_notes: string | null
+          payment_queue_id: string | null
           portador: string | null
           send_to_financial: boolean | null
           status: string | null
@@ -2686,6 +2687,7 @@ export type Database = {
           installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
+          payment_queue_id?: string | null
           portador?: string | null
           send_to_financial?: boolean | null
           status?: string | null
@@ -2722,6 +2724,7 @@ export type Database = {
           installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
+          payment_queue_id?: string | null
           portador?: string | null
           send_to_financial?: boolean | null
           status?: string | null
@@ -2808,6 +2811,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_performance_view"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "corporate_event_expenses_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3189,6 +3199,7 @@ export type Database = {
           installment_total: number | null
           paid_at: string | null
           payment_notes: string | null
+          payment_queue_id: string | null
           portador: string | null
           send_to_financial: boolean
           status: string
@@ -3224,6 +3235,7 @@ export type Database = {
           installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
+          payment_queue_id?: string | null
           portador?: string | null
           send_to_financial?: boolean
           status?: string
@@ -3259,6 +3271,7 @@ export type Database = {
           installment_total?: number | null
           paid_at?: string | null
           payment_notes?: string | null
+          payment_queue_id?: string | null
           portador?: string | null
           send_to_financial?: boolean
           status?: string
@@ -3295,6 +3308,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_expenses_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
             referencedColumns: ["id"]
           },
         ]

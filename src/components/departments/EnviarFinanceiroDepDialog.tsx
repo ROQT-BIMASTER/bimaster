@@ -32,11 +32,14 @@ import {
 } from "@/components/ui/command";
 import { useDepartmentExpenses, DOCUMENT_TYPES, DepartmentExpense } from "@/hooks/useDepartmentExpenses";
 import { usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, SplitSquareVertical } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, SplitSquareVertical, CalendarCheck, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
+import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface Fornecedor {
   id: string;
@@ -57,6 +60,7 @@ export function EnviarFinanceiroDepDialog({
 }: EnviarFinanceiroDepDialogProps) {
   const { sendToFinancial } = useDepartmentExpenses(expense.department_id);
   const { data: portadores } = usePortadores();
+  const { data: activePolicy } = useActivePaymentPolicy();
 
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
@@ -73,6 +77,8 @@ export function EnviarFinanceiroDepDialog({
   });
 
   const hasAttachments = expense.attachments && expense.attachments.length > 0;
+  const isApproved = expense.status === "approved";
+  const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const boletoBarcode = (expense as any).boleto_barcode;
 
@@ -139,22 +145,27 @@ export function EnviarFinanceiroDepDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+    if (!isApproved) {
+      toast.error("Despesa precisa estar aprovada para enviar ao financeiro");
       return;
     }
 
     if (!hasAttachments) {
+      toast.error("Adicione pelo menos um anexo antes de enviar ao financeiro");
       return;
     }
 
-    // Include barcode and installment info in notes
-    let notes = formData.payment_notes || "";
-    if (boletoBarcode) {
-      notes = `${notes}\nLinha Digitável: ${boletoBarcode}`.trim();
+    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
     }
-    if (isInstallment) {
-      notes = `Parcela ${(expense as any).installment_number}/${(expense as any).installment_total}\n${notes}`.trim();
-    }
+
+    // Build standardized notes: "Observações | Linha digitável: XXX | Parcela X/Y"
+    const noteParts: string[] = [];
+    if (formData.payment_notes) noteParts.push(formData.payment_notes);
+    if (boletoBarcode) noteParts.push(`Linha digitável: ${boletoBarcode}`);
+    if (isInstallment) noteParts.push(`Parcela ${(expense as any).installment_number}/${(expense as any).installment_total}`);
+    const notes = noteParts.join(" | ") || undefined;
 
     await sendToFinancial.mutateAsync({
       id: expense.id,
@@ -164,7 +175,7 @@ export function EnviarFinanceiroDepDialog({
       document_number: formData.document_number,
       due_date: formData.due_date,
       portador: formData.portador,
-      payment_notes: notes || undefined,
+      payment_notes: notes,
     });
 
     onOpenChange(false);
@@ -200,6 +211,16 @@ export function EnviarFinanceiroDepDialog({
           </Alert>
         )}
 
+        {/* Approval status alert */}
+        {!isApproved && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Esta despesa ainda não foi aprovada. Somente despesas aprovadas podem ser enviadas ao financeiro.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {!hasAttachments && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -209,7 +230,42 @@ export function EnviarFinanceiroDepDialog({
           </Alert>
         )}
 
+        {/* Payment policy banner */}
+        {activePolicy && (
+          <Alert variant={withinCutoff ? "default" : "destructive"}>
+            {withinCutoff ? (
+              <CalendarCheck className="h-4 w-4" />
+            ) : (
+              <Clock className="h-4 w-4" />
+            )}
+            <AlertDescription className="text-xs">
+              {withinCutoff ? (
+                <>
+                  <strong>Dentro do corte.</strong> {getPolicySummary(activePolicy)} — Pagamento previsto: {getNextPaymentDateFormatted(activePolicy)}
+                </>
+              ) : (
+                <>
+                  <strong>Fora do corte.</strong> {getPolicySummary(activePolicy)} — Este envio será processado na próxima semana.
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* AI Suggestions */}
+          <FinancialFieldsSuggestion
+            expenseId={expense.id}
+            onApplySuggestions={(fields) => {
+              setFormData((prev) => ({
+                ...prev,
+                document_type: fields.document_type || prev.document_type,
+                portador: fields.portador || prev.portador,
+                due_date: fields.due_date || prev.due_date,
+              }));
+            }}
+          />
+
           {/* Dados do Fornecedor */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -389,7 +445,7 @@ export function EnviarFinanceiroDepDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={sendToFinancial.isPending || !fornecedorId || !hasAttachments}
+              disabled={sendToFinancial.isPending || !fornecedorId || !hasAttachments || !isApproved}
             >
               {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />

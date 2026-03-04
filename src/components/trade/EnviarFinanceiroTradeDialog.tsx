@@ -31,7 +31,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DOCUMENT_TYPES } from "@/hooks/useEventExpenses";
+import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck, SplitSquareVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
@@ -61,6 +61,7 @@ export function EnviarFinanceiroTradeDialog({
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
   const { data: activePolicy } = useActivePaymentPolicy();
+  const { data: portadores } = usePortadores();
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
@@ -480,15 +481,30 @@ export function EnviarFinanceiroTradeDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="portador">Portador</Label>
-                <Input
-                  id="portador"
+                <Label htmlFor="portador">Portador/Forma de Pagamento *</Label>
+                <Select
                   value={formData.portador}
-                  onChange={(e) =>
-                    setFormData({ ...formData, portador: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, portador: value })
                   }
-                  placeholder="Ex: BRADESCO, ITAÚ, PIX..."
-                />
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {portadores?.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="BRADESCO">BRADESCO</SelectItem>
+                    <SelectItem value="ITAU">ITAÚ</SelectItem>
+                    <SelectItem value="CARTEIRA">CARTEIRA</SelectItem>
+                    <SelectItem value="PIX">PIX</SelectItem>
+                    <SelectItem value="DEPOSITO">DEPÓSITO</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
