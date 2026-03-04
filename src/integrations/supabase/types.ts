@@ -9333,6 +9333,50 @@ export type Database = {
           },
         ]
       }
+      financial_payment_messages: {
+        Row: {
+          anexos: Json | null
+          conteudo: string
+          created_at: string | null
+          id: string
+          lida_por: string[] | null
+          payment_queue_id: string
+          tipo: string
+          usuario_id: string | null
+          usuario_nome: string
+        }
+        Insert: {
+          anexos?: Json | null
+          conteudo: string
+          created_at?: string | null
+          id?: string
+          lida_por?: string[] | null
+          payment_queue_id: string
+          tipo?: string
+          usuario_id?: string | null
+          usuario_nome: string
+        }
+        Update: {
+          anexos?: Json | null
+          conteudo?: string
+          created_at?: string | null
+          id?: string
+          lida_por?: string[] | null
+          payment_queue_id?: string
+          tipo?: string
+          usuario_id?: string | null
+          usuario_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_payment_messages_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_payment_policies: {
         Row: {
           allows_exceptions: boolean
