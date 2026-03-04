@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
 import { useProjetoTarefaDetalhe, ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { MentionInput } from "./MentionInput";
+import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
+import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -94,9 +96,8 @@ export function ProjetoTarefaDetalhe({
   const navigate = useNavigate();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    sendToCofre, messages, sendMessage, searchProdutos, teamMembers,
-  } = useProjetoTarefaDetalhe(tarefa?.id);
-
+    sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
+  } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
@@ -210,8 +211,7 @@ export function ProjetoTarefaDetalhe({
     setSelectedAnexoIds([]);
   };
 
-  // Get linked product info
-  const linkedProduto = produtoResults.find(p => p.id === (tarefa as any).produto_id);
+  // linkedProduto now comes from the hook
 
   return (
     <>
@@ -378,16 +378,39 @@ export function ProjetoTarefaDetalhe({
                   </span>
                   <div className="relative">
                     {(tarefa as any).produto_id && !showProdutoSearch ? (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs gap-1">
-                          <Package className="h-3 w-3" />
-                          {linkedProduto ? `${linkedProduto.codigo} - ${linkedProduto.nome}` : "Produto vinculado"}
-                        </Badge>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                          onUpdate(tarefa.id, { produto_id: null } as any);
-                        }}>
-                          <X className="h-3 w-3" />
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <ProductThumbnail src={linkedProduto?.foto_url} alt={linkedProduto?.nome} size="lg" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="outline" className="text-xs gap-1">
+                                <Package className="h-3 w-3" />
+                                {linkedProduto ? linkedProduto.codigo : "..."}
+                              </Badge>
+                              {linkedProduto?.tipo === "DISPLAY" && (
+                                <Badge variant="default" className="text-[9px] px-1">Display</Badge>
+                              )}
+                              {linkedProduto?.tipo === "DISPLAY" && (
+                                <DisplayGradePopover
+                                  produtoId={(tarefa as any).produto_id}
+                                  produtoNome={linkedProduto?.nome}
+                                  produtoCodigo={linkedProduto?.codigo}
+                                />
+                              )}
+                              <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => {
+                                onUpdate(tarefa.id, { produto_id: null } as any);
+                              }}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <p className="text-xs text-foreground truncate mt-0.5">
+                              {linkedProduto?.nome || "Produto vinculado"}
+                            </p>
+                            {linkedProduto?.marca && (
+                              <p className="text-[10px] text-muted-foreground">{linkedProduto.marca}{linkedProduto.linha ? ` · ${linkedProduto.linha}` : ""}</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="relative">
@@ -410,7 +433,11 @@ export function ProjetoTarefaDetalhe({
                                     onClick={() => handleSelectProduto(p)}
                                     className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${p.tipo === "DISPLAY" ? "bg-primary/5 font-medium" : ""}`}
                                   >
-                                    <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    {p.foto_url ? (
+                                      <img src={p.foto_url} alt="" className="h-5 w-5 rounded object-cover flex-shrink-0" />
+                                    ) : (
+                                      <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    )}
                                     <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
                                     <span className="truncate">{p.nome}</span>
                                     {p.tipo === "DISPLAY" && <Badge variant="default" className="text-[9px] px-1 flex-shrink-0">Display</Badge>}
