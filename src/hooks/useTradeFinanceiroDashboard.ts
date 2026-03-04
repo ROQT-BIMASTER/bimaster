@@ -202,15 +202,24 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     staleTime: 3 * 60 * 1000,
   });
 
-  // Calcular métricas de verbas - usando despesas aprovadas vinculadas a campanhas com budget
+  // Calcular métricas de verbas - usando despesas aprovadas vinculadas a campanhas com budget + financial entries com budget
   const activeBudgetIds = new Set(verbasQuery.data?.map(v => v.id) || []);
+  const financialEntries = financialEntriesQuery.data || [];
   
-  // Calcular total utilizado somando despesas aprovadas de campanhas vinculadas a verbas ativas
-  const totalUtilizadoReal = (despesasQuery.data as any[])?.filter((d: any) => {
+  // Total utilizado de campaign expenses
+  const totalUtilizadoCampanhas = (despesasQuery.data as any[])?.filter((d: any) => {
     const isApproved = ['approved', 'aprovado', 'completed', 'pago'].includes(d.status?.toLowerCase());
     const budgetId = d.campaign?.budget_id;
     return isApproved && budgetId && activeBudgetIds.has(budgetId);
   }).reduce((sum: number, d: any) => sum + (parseFloat(String(d.valor_realizado)) || 0), 0) || 0;
+
+  // Total utilizado de financial entries com budget_id
+  const totalUtilizadoEntries = financialEntries.filter((e: any) => {
+    const isApproved = ['approved', 'aprovado', 'completed', 'pago', 'paid', 'pending_financial'].includes(e.status?.toLowerCase());
+    return isApproved && e.budget_id && activeBudgetIds.has(e.budget_id);
+  }).reduce((sum: number, e: any) => sum + (parseFloat(String(e.amount)) || 0), 0);
+
+  const totalUtilizadoReal = totalUtilizadoCampanhas + totalUtilizadoEntries;
 
   const verbaMetrics: VerbaMetrics = {
     totalOrcado: verbasQuery.data?.reduce((sum, v) => sum + (parseFloat(String(v.total_amount)) || 0), 0) || 0,
@@ -224,7 +233,6 @@ export function useTradeFinanceiroDashboard(dateRange?: DateRangeFilter) {
     : 0;
 
   // Calcular métricas de campanhas (incluindo financial entries)
-  const financialEntries = financialEntriesQuery.data || [];
   const feApproved = financialEntries.filter((e: any) => 
     ['approved', 'aprovado', 'completed', 'pago', 'paid'].includes(e.status?.toLowerCase() || e.approval_status?.toLowerCase())
   );
