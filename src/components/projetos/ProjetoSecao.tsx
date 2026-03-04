@@ -26,9 +26,10 @@ interface ProjetoSecaoProps {
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
+  onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
 }
 
-export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts = [], onToggleTarefa, onSelectTarefa, onAddTarefa }: ProjetoSecaoProps) {
+export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts = [], onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
@@ -69,6 +70,7 @@ export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts 
               selected={tarefa.id === selectedTarefaId}
               onToggle={onToggleTarefa}
               onSelect={onSelectTarefa}
+              onUpdate={onUpdateTarefa}
             />
           ))}
 
