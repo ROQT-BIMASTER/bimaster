@@ -23,7 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileText, Search, TrendingUp, TrendingDown, Minus, Download, Filter, Eye, Calendar, User, DollarSign, Tag, ClipboardList } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Search, TrendingUp, TrendingDown, Minus, Download, Filter, Eye, Calendar, User, DollarSign, Tag, ClipboardList, Building2, Users } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,13 +46,20 @@ interface Lancamento {
   sell_out_atual?: number;
   tipo_brinde?: string;
   acoes_manuais?: string;
+  source?: 'campaign' | 'financial_entry';
+  description?: string;
+  supplier_name?: string;
+  entry_type?: string;
 }
 
 interface TradeLancamentosTableProps {
   lancamentos: Lancamento[];
 }
 
+type TabKey = "consolidada" | "clientes" | "fornecedores";
+
 export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>("consolidada");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLancamento, setSelectedLancamento] = useState<Lancamento | null>(null);
@@ -105,17 +113,46 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
     );
   };
 
-  const filteredLancamentos = lancamentos.filter(l => {
-    const matchesSearch = 
-      l.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.campanha.toLowerCase().includes(searchTerm.toLowerCase());
+  const getSourceBadge = (source?: string) => {
+    if (source === 'campaign') {
+      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800">Cliente</Badge>;
+    }
+    if (source === 'financial_entry') {
+      return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border-orange-200 dark:border-orange-800">Fornecedor</Badge>;
+    }
+    return <Badge variant="outline">-</Badge>;
+  };
+
+  // Filter by tab
+  const tabFiltered = lancamentos.filter(l => {
+    if (activeTab === "clientes") return l.source === 'campaign';
+    if (activeTab === "fornecedores") return l.source === 'financial_entry';
+    return true; // consolidada
+  });
+
+  // Then apply search & status filters
+  const filteredLancamentos = tabFiltered.filter(l => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      l.cliente.toLowerCase().includes(searchLower) ||
+      l.campanha.toLowerCase().includes(searchLower) ||
+      (l.supplier_name || '').toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+  const tabLabels: Record<TabKey, string> = {
+    consolidada: "Consolidada",
+    clientes: "Clientes",
+    fornecedores: "Fornecedores",
+  };
+
   const handleExport = async () => {
     const exportData = filteredLancamentos.map(l => ({
-      Cliente: l.cliente,
+      ...(activeTab === "consolidada" ? { Tipo: l.source === 'campaign' ? 'Cliente' : 'Fornecedor' } : {}),
+      ...(activeTab === "clientes" ? { Cliente: l.cliente } : {}),
+      ...(activeTab === "fornecedores" ? { Fornecedor: l.supplier_name || l.cliente } : {}),
+      ...(activeTab === "consolidada" ? { 'Cliente/Fornecedor': l.source === 'campaign' ? l.cliente : (l.supplier_name || l.cliente) } : {}),
       Campanha: l.campanha,
       'Valor Pedido': l.valorPedido,
       'Valor Pago': l.valorPago !== null ? l.valorPago : 0,
@@ -124,15 +161,103 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
       Data: l.data ? format(new Date(l.data), "dd/MM/yyyy", { locale: ptBR }) : '',
     }));
 
-    await exportArrayToExcel(exportData, "Lançamentos", `lancamentos-trade-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    await exportArrayToExcel(exportData, tabLabels[activeTab], `lancamentos-${activeTab}-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   };
+
+  const totalPedido = filteredLancamentos.reduce((sum, l) => sum + l.valorPedido, 0);
+  const totalPago = filteredLancamentos.reduce((sum, l) => sum + (l.valorPago ?? 0), 0);
+
+  const clienteCount = lancamentos.filter(l => l.source === 'campaign').length;
+  const fornecedorCount = lancamentos.filter(l => l.source === 'financial_entry').length;
+
+  const renderTable = () => (
+    <>
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {activeTab === "consolidada" && <TableHead>Tipo</TableHead>}
+              <TableHead>
+                {activeTab === "fornecedores" ? "Fornecedor" : activeTab === "clientes" ? "Cliente" : "Cliente/Fornecedor"}
+              </TableHead>
+              <TableHead>Campanha</TableHead>
+              <TableHead className="text-right">Valor Pago</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">ROI</TableHead>
+              <TableHead>Data</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredLancamentos.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={activeTab === "consolidada" ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  Nenhum lançamento encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredLancamentos.map((lancamento) => (
+                <TableRow
+                  key={lancamento.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedLancamento(lancamento)}
+                >
+                  {activeTab === "consolidada" && (
+                    <TableCell>{getSourceBadge(lancamento.source)}</TableCell>
+                  )}
+                  <TableCell className="font-medium">
+                    {activeTab === "fornecedores"
+                      ? (lancamento.supplier_name || lancamento.cliente)
+                      : activeTab === "clientes"
+                        ? lancamento.cliente
+                        : (lancamento.source === 'financial_entry'
+                          ? (lancamento.supplier_name || lancamento.cliente)
+                          : lancamento.cliente)}
+                  </TableCell>
+                  <TableCell>{lancamento.campanha}</TableCell>
+                  <TableCell className="text-right">
+                    <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">
+                      {formatCurrency(lancamento.valorPago ?? 0)}
+                    </span>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(lancamento.status)}</TableCell>
+                  <TableCell className="text-right">{getRoiBadge(lancamento.roi)}</TableCell>
+                  <TableCell>
+                    {lancamento.data
+                      ? format(new Date(lancamento.data), "dd/MM/yyyy", { locale: ptBR })
+                      : '-'}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Rodapé com totais */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 pt-4 border-t gap-2">
+        <p className="text-sm text-muted-foreground">
+          Exibindo {filteredLancamentos.length} de {tabFiltered.length} lançamentos
+        </p>
+        <div className="flex gap-4 text-sm">
+          <div>
+            <span className="text-muted-foreground">Total Pedido: </span>
+            <span className="font-bold">{formatCurrency(totalPedido)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Total Pago: </span>
+            <span className="font-bold text-emerald-600">{formatCurrency(totalPago)}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          Detalhes de Lançamentos por Cliente
+          Detalhes de Lançamentos
         </CardTitle>
         <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4 mr-2" />
@@ -140,95 +265,65 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
         </Button>
       </CardHeader>
       <CardContent>
-        {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente ou campanha..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="approved">Aprovado</SelectItem>
-              <SelectItem value="pending_financial">Pendente Financeiro</SelectItem>
-              <SelectItem value="sent_financial">Enviado Financeiro</SelectItem>
-              <SelectItem value="rejected">Rejeitado</SelectItem>
-              <SelectItem value="completed">Concluído</SelectItem>
-              <SelectItem value="paid">Pago</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as TabKey); setSearchTerm(""); setStatusFilter("all"); }}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="consolidada" className="gap-1.5">
+              <FileText className="h-4 w-4" />
+              Consolidada
+              <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{lancamentos.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="clientes" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              Clientes
+              <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{clienteCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="fornecedores" className="gap-1.5">
+              <Building2 className="h-4 w-4" />
+              Fornecedores
+              <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{fornecedorCount}</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tabela */}
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Campanha</TableHead>
-                <TableHead className="text-right">Valor Pago</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">ROI</TableHead>
-                <TableHead>Data</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLancamentos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhum lançamento encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredLancamentos.map((lancamento) => (
-                  <TableRow 
-                    key={lancamento.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setSelectedLancamento(lancamento)}
-                  >
-                    <TableCell className="font-medium">{lancamento.cliente}</TableCell>
-                    <TableCell>{lancamento.campanha}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">
-                        {formatCurrency(lancamento.valorPago ?? 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(lancamento.status)}</TableCell>
-                    <TableCell className="text-right">{getRoiBadge(lancamento.roi)}</TableCell>
-                    <TableCell>
-                      {lancamento.data 
-                        ? format(new Date(lancamento.data), "dd/MM/yyyy", { locale: ptBR }) 
-                        : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Rodapé com totais */}
-        <div className="flex justify-between items-center mt-4 pt-4 border-t">
-          <p className="text-sm text-muted-foreground">
-            Exibindo {filteredLancamentos.length} de {lancamentos.length} lançamentos
-          </p>
-          <div className="text-sm">
-            <span className="text-muted-foreground">Total Pago: </span>
-            <span className="font-bold text-emerald-600">
-              {formatCurrency(filteredLancamentos.reduce((sum, l) => sum + (l.valorPago ?? 0), 0))}
-            </span>
+          {/* Filtros (compartilhados entre abas) */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={
+                  activeTab === "fornecedores"
+                    ? "Buscar por fornecedor ou campanha..."
+                    : activeTab === "clientes"
+                      ? "Buscar por cliente ou campanha..."
+                      : "Buscar por cliente, fornecedor ou campanha..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="approved">Aprovado</SelectItem>
+                <SelectItem value="pending_financial">Pendente Financeiro</SelectItem>
+                <SelectItem value="sent_financial">Enviado Financeiro</SelectItem>
+                <SelectItem value="rejected">Rejeitado</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="paid">Pago</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+
+          {/* All three tabs render the same table structure, just filtered differently */}
+          <TabsContent value="consolidada">{renderTable()}</TabsContent>
+          <TabsContent value="clientes">{renderTable()}</TabsContent>
+          <TabsContent value="fornecedores">{renderTable()}</TabsContent>
+        </Tabs>
       </CardContent>
 
       {/* Dialog de Detalhes */}
@@ -243,14 +338,21 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
 
           {selectedLancamento && (
             <div className="space-y-6">
-              {/* Informações do Cliente e Campanha */}
+              {/* Source badge */}
+              <div>{getSourceBadge(selectedLancamento.source)}</div>
+
+              {/* Informações do Cliente/Fornecedor e Campanha */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    Cliente
+                    {selectedLancamento.source === 'financial_entry' ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    {selectedLancamento.source === 'financial_entry' ? 'Fornecedor' : 'Cliente'}
                   </p>
-                  <p className="font-medium">{selectedLancamento.cliente}</p>
+                  <p className="font-medium">
+                    {selectedLancamento.source === 'financial_entry'
+                      ? (selectedLancamento.supplier_name || selectedLancamento.cliente)
+                      : selectedLancamento.cliente}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -291,8 +393,8 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                     Data
                   </p>
                   <p className="font-medium">
-                    {selectedLancamento.data 
-                      ? format(new Date(selectedLancamento.data), "dd/MM/yyyy", { locale: ptBR }) 
+                    {selectedLancamento.data
+                      ? format(new Date(selectedLancamento.data), "dd/MM/yyyy", { locale: ptBR })
                       : '-'}
                   </p>
                 </div>
@@ -306,22 +408,22 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                 </div>
               </div>
 
-              {/* Sell Out (se disponível) */}
+              {/* Sell Out */}
               {(selectedLancamento.sell_out_anterior !== undefined || selectedLancamento.sell_out_atual !== undefined) && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-lg border bg-background">
                     <p className="text-xs text-muted-foreground mb-1">Sell Out Anterior</p>
                     <p className="font-bold text-lg">
-                      {selectedLancamento.sell_out_anterior !== undefined 
-                        ? formatCurrency(selectedLancamento.sell_out_anterior) 
+                      {selectedLancamento.sell_out_anterior !== undefined
+                        ? formatCurrency(selectedLancamento.sell_out_anterior)
                         : '-'}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg border bg-background">
                     <p className="text-xs text-muted-foreground mb-1">Sell Out Atual</p>
                     <p className="font-bold text-lg">
-                      {selectedLancamento.sell_out_atual !== undefined 
-                        ? formatCurrency(selectedLancamento.sell_out_atual) 
+                      {selectedLancamento.sell_out_atual !== undefined
+                        ? formatCurrency(selectedLancamento.sell_out_atual)
                         : '-'}
                     </p>
                   </div>
@@ -345,6 +447,16 @@ export function TradeLancamentosTable({ lancamentos }: TradeLancamentosTableProp
                   <p className="text-sm text-muted-foreground">Ações Realizadas</p>
                   <p className="text-sm p-3 rounded-lg bg-muted/30 border">
                     {selectedLancamento.acoes_manuais}
+                  </p>
+                </div>
+              )}
+
+              {/* Descrição */}
+              {selectedLancamento.description && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Descrição</p>
+                  <p className="text-sm p-3 rounded-lg bg-muted/30 border">
+                    {selectedLancamento.description}
                   </p>
                 </div>
               )}
