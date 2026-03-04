@@ -45,7 +45,9 @@ import {
   Package,
   Layers,
   Lock,
-  LockOpen
+  LockOpen,
+  CalendarClock,
+  Ban
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +60,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { format } from "date-fns";
 
 interface PriceTable {
   id: string;
@@ -100,7 +103,7 @@ type ScopeType = "tabela" | "linha" | "produto";
 export default function GerenciamentoAcessoPrecos() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { blocks, unblock, isUnblocking } = useVisibilityBlocks();
+  const { blocks, unblock, isUnblocking, blockItem, isBlocking } = useVisibilityBlocks();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [priceTables, setPriceTables] = useState<PriceTable[]>([]);
@@ -110,6 +113,18 @@ export default function GerenciamentoAcessoPrecos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTable, setSelectedTable] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  
+  // Block dialog state
+  const [blockForm, setBlockForm] = useState({
+    scope: "linha" as "linha" | "produto",
+    motivo: "",
+    launch_date: "",
+    tabela_id: "",
+  });
+  const [blockSelectedLinhas, setBlockSelectedLinhas] = useState<string[]>([]);
+  const [blockSelectedProdutos, setBlockSelectedProdutos] = useState<string[]>([]);
+  const [blockSearchTerm, setBlockSearchTerm] = useState("");
   
   // Form state for new access
   const [newAccess, setNewAccess] = useState({
@@ -801,20 +816,216 @@ export default function GerenciamentoAcessoPrecos() {
       {/* Bloqueios Ativos */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Lock className="h-5 w-5 text-destructive" />
-            Bloqueios de Visibilidade Ativos
-          </CardTitle>
-          <CardDescription>
-            Linhas ou produtos bloqueados ficam invisíveis para usuários não-admin em todas as tabelas
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Lock className="h-5 w-5 text-destructive" />
+                Bloqueios de Visibilidade
+              </CardTitle>
+              <CardDescription>
+                Linhas ou produtos bloqueados ficam invisíveis para usuários não-admin. Defina uma data de lançamento para liberação automática.
+              </CardDescription>
+            </div>
+            <Dialog open={blockDialogOpen} onOpenChange={(open) => { setBlockDialogOpen(open); if (!open) { setBlockForm({ scope: "linha", motivo: "", launch_date: "", tabela_id: "" }); setBlockSelectedLinhas([]); setBlockSelectedProdutos([]); setBlockSearchTerm(""); } }}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Ban className="h-4 w-4 mr-2" />
+                  Adicionar Bloqueio
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Bloquear Produto ou Linha
+                  </DialogTitle>
+                  <DialogDescription>
+                    Itens bloqueados ficam ocultos para todos os usuários exceto administradores
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Bloqueio</Label>
+                    <Select
+                      value={blockForm.scope}
+                      onValueChange={(v: "linha" | "produto") => { setBlockForm(prev => ({ ...prev, scope: v })); setBlockSelectedLinhas([]); setBlockSelectedProdutos([]); setBlockSearchTerm(""); }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="linha">
+                          <span className="flex items-center gap-2">
+                            <Layers className="h-4 w-4" /> Linha de Produto
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="produto">
+                          <span className="flex items-center gap-2">
+                            <Package className="h-4 w-4" /> Produto Individual
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Tabela (opcional) */}
+                  <div className="space-y-2">
+                    <Label>Tabela de Preço (opcional)</Label>
+                    <Select
+                      value={blockForm.tabela_id}
+                      onValueChange={(v) => setBlockForm(prev => ({ ...prev, tabela_id: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas as tabelas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Todas as tabelas</SelectItem>
+                        {priceTables.map(t => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.codigo} - {t.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Search and selection */}
+                  <div className="space-y-2">
+                    <Label>{blockForm.scope === "linha" ? "Linhas" : "Produtos"}</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={blockForm.scope === "linha" ? "Buscar linha..." : "Buscar produto..."}
+                        value={blockSearchTerm}
+                        onChange={(e) => setBlockSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <div className="border rounded-md max-h-48 overflow-y-auto bg-background">
+                      {blockForm.scope === "linha" ? (
+                        linhasDisponiveis
+                          .filter(l => !blockSearchTerm || l.toLowerCase().includes(blockSearchTerm.toLowerCase()))
+                          .length === 0 ? (
+                          <p className="p-3 text-sm text-muted-foreground text-center">Nenhuma linha encontrada</p>
+                        ) : (
+                          linhasDisponiveis
+                            .filter(l => !blockSearchTerm || l.toLowerCase().includes(blockSearchTerm.toLowerCase()))
+                            .map(l => (
+                              <label key={l} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 text-sm border-b last:border-b-0">
+                                <Checkbox
+                                  checked={blockSelectedLinhas.includes(l)}
+                                  onCheckedChange={() => setBlockSelectedLinhas(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l])}
+                                />
+                                <Layers className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                <span>{l}</span>
+                              </label>
+                            ))
+                        )
+                      ) : (
+                        produtos
+                          .filter(p => !blockSearchTerm || p.nome.toLowerCase().includes(blockSearchTerm.toLowerCase()) || p.codigo?.toLowerCase().includes(blockSearchTerm.toLowerCase()))
+                          .slice(0, 50)
+                          .length === 0 ? (
+                          <p className="p-3 text-sm text-muted-foreground text-center">Nenhum produto encontrado</p>
+                        ) : (
+                          produtos
+                            .filter(p => !blockSearchTerm || p.nome.toLowerCase().includes(blockSearchTerm.toLowerCase()) || p.codigo?.toLowerCase().includes(blockSearchTerm.toLowerCase()))
+                            .slice(0, 50)
+                            .map(p => (
+                              <label key={p.id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/50 text-sm border-b last:border-b-0">
+                                <Checkbox
+                                  checked={blockSelectedProdutos.includes(p.id)}
+                                  onCheckedChange={() => setBlockSelectedProdutos(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                                />
+                                <Package className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                                <span className="flex-1">{p.nome}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">{p.linha || "—"}</span>
+                              </label>
+                            ))
+                        )
+                      )}
+                    </div>
+                    {blockSelectedLinhas.length > 0 && blockForm.scope === "linha" && (
+                      <p className="text-xs text-muted-foreground">
+                        {blockSelectedLinhas.length} linha{blockSelectedLinhas.length > 1 ? 's' : ''} selecionada{blockSelectedLinhas.length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                    {blockSelectedProdutos.length > 0 && blockForm.scope === "produto" && (
+                      <p className="text-xs text-muted-foreground">
+                        {blockSelectedProdutos.length} produto{blockSelectedProdutos.length > 1 ? 's' : ''} selecionado{blockSelectedProdutos.length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Data de Lançamento */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <CalendarClock className="h-4 w-4" />
+                      Data de Lançamento (opcional)
+                    </Label>
+                    <Input
+                      type="date"
+                      value={blockForm.launch_date}
+                      onChange={(e) => setBlockForm(prev => ({ ...prev, launch_date: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Se definida, o produto ficará oculto até esta data e será liberado automaticamente.
+                    </p>
+                  </div>
+
+                  {/* Motivo */}
+                  <div className="space-y-2">
+                    <Label>Motivo (opcional)</Label>
+                    <Input
+                      placeholder="Ex: Produto em fase de registro, lançamento Q2..."
+                      value={blockForm.motivo}
+                      onChange={(e) => setBlockForm(prev => ({ ...prev, motivo: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>Cancelar</Button>
+                  <Button 
+                    variant="destructive"
+                    disabled={isBlocking || (blockForm.scope === "linha" ? blockSelectedLinhas.length === 0 : blockSelectedProdutos.length === 0)}
+                    onClick={async () => {
+                      try {
+                        const items = blockForm.scope === "linha" ? blockSelectedLinhas : blockSelectedProdutos;
+                        for (const item of items) {
+                          await blockItem({
+                            tipo: blockForm.scope,
+                            linha: blockForm.scope === "linha" ? item : undefined,
+                            produto_id: blockForm.scope === "produto" ? item : undefined,
+                            motivo: blockForm.motivo || undefined,
+                            launch_date: blockForm.launch_date || null,
+                            tabela_id: blockForm.tabela_id || null,
+                          });
+                        }
+                        setBlockDialogOpen(false);
+                        setBlockForm({ scope: "linha", motivo: "", launch_date: "", tabela_id: "" });
+                        setBlockSelectedLinhas([]);
+                        setBlockSelectedProdutos([]);
+                        setBlockSearchTerm("");
+                      } catch (e) {
+                        // error already handled by hook
+                      }
+                    }}
+                  >
+                    {isBlocking ? "Bloqueando..." : `Bloquear ${blockForm.scope === "linha" ? blockSelectedLinhas.length : blockSelectedProdutos.length} ite${(blockForm.scope === "linha" ? blockSelectedLinhas.length : blockSelectedProdutos.length) > 1 ? 'ns' : 'm'}`}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {blocks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <LockOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum bloqueio ativo</p>
-              <p className="text-sm">Use o Gerador de Preços para bloquear linhas ou produtos</p>
+              <p className="text-sm">Clique em "Adicionar Bloqueio" para ocultar produtos ou linhas</p>
             </div>
           ) : (
             <Table>
@@ -823,7 +1034,9 @@ export default function GerenciamentoAcessoPrecos() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Item Bloqueado</TableHead>
                   <TableHead>Motivo</TableHead>
-                  <TableHead>Data</TableHead>
+                  <TableHead>Data de Lançamento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Criado em</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -832,8 +1045,9 @@ export default function GerenciamentoAcessoPrecos() {
                   const produtoInfo = block.produto_id 
                     ? produtos.find(p => p.id === block.produto_id)
                     : null;
+                  const isActive = !block.launch_date || new Date(block.launch_date) > new Date();
                   return (
-                    <TableRow key={block.id}>
+                    <TableRow key={block.id} className={!isActive ? "opacity-50" : ""}>
                       <TableCell>
                         {block.tipo === "linha" ? (
                           <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -852,6 +1066,31 @@ export default function GerenciamentoAcessoPrecos() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {block.motivo || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {block.launch_date ? (
+                          <div className="flex items-center gap-1.5">
+                            <CalendarClock className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-sm font-medium">
+                              {format(new Date(block.launch_date + "T00:00:00"), "dd/MM/yyyy")}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isActive ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Bloqueado
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                            <LockOpen className="h-3 w-3 mr-1" />
+                            Lançado
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(block.created_at).toLocaleDateString("pt-BR")}
