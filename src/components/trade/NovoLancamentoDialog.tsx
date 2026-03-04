@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, Building, Loader2, Clock } from "lucide-react";
+import { Plus, Target, Building, Loader2, Clock, SplitSquareVertical, Trash2 } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -34,6 +35,13 @@ import { ExpenseReceiptScanner } from "@/components/ai/ExpenseReceiptScanner";
 import { Separator } from "@/components/ui/separator";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
+import { Badge } from "@/components/ui/badge";
+
+interface Parcela {
+  numero: number;
+  valor: number;
+  dueDate: string;
+}
 
 interface NovoLancamentoDialogProps {
   onSuccess: () => void;
@@ -50,7 +58,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const { data: allEmpresas = [], isLoading: loadingAllEmpresas } = useAllEmpresas();
   const { primaryEmpresa } = usePrimaryEmpresa();
 
-  // Fallback: se user_empresas estiver vazio, usar todas as empresas ativas
   const empresasDisponiveis = userEmpresas.length > 0
     ? userEmpresas.map(ue => ({ id: ue.empresa_id, nome: ue.empresa.nome, is_primary: ue.is_primary }))
     : allEmpresas.map(e => ({ id: e.id, nome: e.nome, is_primary: false }));
@@ -72,6 +79,11 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [empresaId, setEmpresaId] = useState("");
   const [fornecedorId, setFornecedorId] = useState("none");
   
+  // Parcelas
+  const [parcelamentoAtivo, setParcelamentoAtivo] = useState(false);
+  const [numParcelas, setNumParcelas] = useState(2);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  
   // Attachments
   const [attachments, setAttachments] = useState<any[]>([]);
   const [tempEntryId] = useState(() => crypto.randomUUID());
@@ -80,7 +92,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [isNovaContaOpen, setIsNovaContaOpen] = useState(false);
   const [isNovaVerbaOpen, setIsNovaVerbaOpen] = useState(false);
 
-  // Pre-selecionar filial principal ou primeira disponível
   useEffect(() => {
     if (!empresaId && empresasDisponiveis.length > 0) {
       const primary = empresasDisponiveis.find(e => e.is_primary);
@@ -88,7 +99,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     }
   }, [empresasDisponiveis, empresaId]);
 
-  // Buscar campanhas ativas
   const { data: campaigns = [] } = useQuery({
     queryKey: ['lancamento-campaigns'],
     queryFn: async () => {
@@ -104,8 +114,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     staleTime: 5 * 60 * 1000,
     enabled: open,
   });
-
-  // fornecedores query removed - handled by FornecedorCombobox
 
   useEffect(() => {
     if (open) {
@@ -128,6 +136,51 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     }
   };
 
+  // Gerar parcelas quando ativar parcelamento ou mudar valor/quantidade
+  useEffect(() => {
+    if (!parcelamentoAtivo || !amount) {
+      setParcelas([]);
+      return;
+    }
+    
+    const total = parseFloat(amount);
+    if (isNaN(total) || total <= 0 || numParcelas < 2) {
+      setParcelas([]);
+      return;
+    }
+
+    const valorParcela = Math.floor((total / numParcelas) * 100) / 100;
+    const resto = Math.round((total - valorParcela * numParcelas) * 100) / 100;
+    
+    const novasParcelas: Parcela[] = [];
+    const baseDate = entryDate ? new Date(entryDate + "T12:00:00") : new Date();
+    
+    for (let i = 0; i < numParcelas; i++) {
+      const dueDate = new Date(baseDate);
+      dueDate.setMonth(dueDate.getMonth() + (i + 1));
+      
+      novasParcelas.push({
+        numero: i + 1,
+        valor: i === 0 ? valorParcela + resto : valorParcela,
+        dueDate: dueDate.toISOString().split("T")[0],
+      });
+    }
+    
+    setParcelas(novasParcelas);
+  }, [parcelamentoAtivo, amount, numParcelas, entryDate]);
+
+  const updateParcelaDueDate = (index: number, date: string) => {
+    setParcelas(prev => prev.map((p, i) => 
+      i === index ? { ...p, dueDate: date } : p
+    ));
+  };
+
+  const updateParcelaValor = (index: number, valor: string) => {
+    setParcelas(prev => prev.map((p, i) => 
+      i === index ? { ...p, valor: parseFloat(valor) || 0 } : p
+    ));
+  };
+
   const moveAttachmentsToFinalPath = async (finalEntryId: string) => {
     if (attachments.length === 0) return attachments;
 
@@ -142,7 +195,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
           await supabase.storage.from("trade-expense-docs").move(oldPath, newPath);
           const { data: signedData } = await supabase.storage
             .from("trade-expense-docs")
-            .createSignedUrl(newPath, 31536000); // 1 ano
+            .createSignedUrl(newPath, 31536000);
           movedAttachments.push({ ...att, url: signedData?.signedUrl || att.url });
         } catch {
           movedAttachments.push(att);
@@ -170,6 +223,9 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     setNotes("");
     setAttachments([]);
     setDocumentType("none");
+    setParcelamentoAtivo(false);
+    setNumParcelas(2);
+    setParcelas([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +241,27 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       return;
     }
 
+    // Validar parcelas
+    if (parcelamentoAtivo && parcelas.length > 0) {
+      const totalParcelas = parcelas.reduce((s, p) => s + p.valor, 0);
+      const diff = Math.abs(totalParcelas - parseFloat(amount));
+      if (diff > 0.02) {
+        toast.error(`A soma das parcelas (R$ ${totalParcelas.toFixed(2)}) difere do valor total (R$ ${parseFloat(amount).toFixed(2)})`);
+        return;
+      }
+      
+      for (const p of parcelas) {
+        if (!p.dueDate) {
+          toast.error(`Defina a data de vencimento da parcela ${p.numero}`);
+          return;
+        }
+        if (p.valor <= 0) {
+          toast.error(`O valor da parcela ${p.numero} deve ser maior que zero`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -194,7 +271,6 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         e => e.id.toString() === empresaId
       );
 
-      // Resolver fornecedor - fetch fresh data if selected
       let supplierName: string | null = null;
       let supplierDocument: string | null = null;
       const hasFornecedor = fornecedorId !== "none";
@@ -211,12 +287,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         }
       }
 
-      const { data: inserted, error } = await supabase.from("trade_financial_entries").insert({
+      const baseData = {
         entry_date: entryDate,
         account_id: accountId,
         entry_type: entryType,
-        amount: parseFloat(amount),
-        valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
         category: category !== "none" ? category : null,
         description: description.trim(),
         reference_number: referenceNumber.trim() || null,
@@ -233,20 +307,60 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         fornecedor_id: hasFornecedor ? fornecedorId : null,
         supplier_name: supplierName,
         supplier_document: supplierDocument,
-        attachments: attachments,
         document_type: documentType !== "none" ? documentType : null,
-      }).select("id").single();
+      };
 
-      if (error) throw error;
+      if (parcelamentoAtivo && parcelas.length > 0) {
+        // Criar múltiplas entradas (uma por parcela)
+        const groupId = crypto.randomUUID().slice(0, 8).toUpperCase();
+        
+        const entries = parcelas.map((parcela) => ({
+          ...baseData,
+          amount: parcela.valor,
+          valor_previsto: parcela.valor,
+          due_date: parcela.dueDate,
+          reference_number: `PARC-${groupId}-${parcela.numero}/${parcelas.length}`,
+          description: `${description.trim()} (Parcela ${parcela.numero}/${parcelas.length})`,
+          attachments: parcela.numero === 1 ? attachments : [],
+        }));
 
-      if (inserted && attachments.length > 0) {
-        const finalAttachments = await moveAttachmentsToFinalPath(inserted.id);
-        await supabase.from("trade_financial_entries")
-          .update({ attachments: finalAttachments })
-          .eq("id", inserted.id);
+        const { data: inserted, error } = await supabase
+          .from("trade_financial_entries")
+          .insert(entries)
+          .select("id");
+
+        if (error) throw error;
+
+        // Mover anexos para a primeira parcela
+        if (inserted && inserted.length > 0 && attachments.length > 0) {
+          const finalAttachments = await moveAttachmentsToFinalPath(inserted[0].id);
+          await supabase.from("trade_financial_entries")
+            .update({ attachments: finalAttachments })
+            .eq("id", inserted[0].id);
+        }
+
+        toast.success(`${parcelas.length} parcelas criadas! Aguardando aprovação.`);
+      } else {
+        // Lançamento único (fluxo original)
+        const { data: inserted, error } = await supabase.from("trade_financial_entries").insert({
+          ...baseData,
+          amount: parseFloat(amount),
+          valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
+          attachments: attachments,
+        }).select("id").single();
+
+        if (error) throw error;
+
+        if (inserted && attachments.length > 0) {
+          const finalAttachments = await moveAttachmentsToFinalPath(inserted.id);
+          await supabase.from("trade_financial_entries")
+            .update({ attachments: finalAttachments })
+            .eq("id", inserted.id);
+        }
+
+        toast.success("Lançamento criado! Aguardando aprovação.");
       }
 
-      toast.success("Lançamento criado! Aguardando aprovação.");
       resetForm();
       setOpen(false);
       onSuccess();
@@ -256,6 +370,8 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       setLoading(false);
     }
   };
+
+  const totalParcelasValor = parcelas.reduce((s, p) => s + p.valor, 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -360,6 +476,78 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 required
               />
             </div>
+          </div>
+
+          {/* Parcelamento */}
+          <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <SplitSquareVertical className="h-4 w-4 text-primary" />
+                Parcelar valor
+              </Label>
+              <Switch
+                checked={parcelamentoAtivo}
+                onCheckedChange={setParcelamentoAtivo}
+                disabled={!amount || parseFloat(amount) <= 0}
+              />
+            </div>
+
+            {parcelamentoAtivo && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Número de Parcelas</Label>
+                  <Select value={numParcelas.toString()} onValueChange={(v) => setNumParcelas(parseInt(v))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n}x de R$ {(parseFloat(amount || "0") / n).toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {parcelas.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Parcelas e Vencimentos</Label>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {parcelas.map((parcela, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm">
+                          <Badge variant="outline" className="w-12 justify-center text-xs shrink-0">
+                            {parcela.numero}/{parcelas.length}
+                          </Badge>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="h-8 w-28 text-xs"
+                            value={parcela.valor}
+                            onChange={(e) => updateParcelaValor(idx, e.target.value)}
+                          />
+                          <Input
+                            type="date"
+                            className="h-8 flex-1 text-xs"
+                            value={parcela.dueDate}
+                            onChange={(e) => updateParcelaDueDate(idx, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Totalização */}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t">
+                      <span className="text-muted-foreground">Total parcelas:</span>
+                      <span className={`font-medium ${Math.abs(totalParcelasValor - parseFloat(amount || "0")) > 0.02 ? 'text-destructive' : 'text-emerald-600'}`}>
+                        R$ {totalParcelasValor.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Data */}
@@ -515,7 +703,12 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Criando..." : "Criar Lançamento"}
+              {loading 
+                ? "Criando..." 
+                : parcelamentoAtivo && parcelas.length > 0
+                  ? `Criar ${parcelas.length} Parcelas`
+                  : "Criar Lançamento"
+              }
             </Button>
           </div>
         </form>
