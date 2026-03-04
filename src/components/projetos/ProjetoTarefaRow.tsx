@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Calendar } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { format, isPast, isToday, formatDistanceToNow } from "date-fns";
@@ -7,6 +7,8 @@ import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
@@ -60,6 +62,8 @@ const ESTAGIO_OPTIONS = [
   { value: "lancamento", label: "Lançamento" },
 ];
 
+export type TeamMember = { id: string; nome: string; avatar_url: string | null };
+
 interface ProjetoTarefaRowProps {
   tarefa: ProjetoTarefa;
   indented?: boolean;
@@ -67,15 +71,21 @@ interface ProjetoTarefaRowProps {
   onToggle: (tarefa: ProjetoTarefa) => void;
   onSelect?: (tarefa: ProjetoTarefa) => void;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
+  teamMembers?: TeamMember[];
+  onAddColaborador?: (tarefaId: string, userId: string) => void;
+  onRemoveColaborador?: (tarefaId: string, userId: string) => void;
 }
 
-export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, onToggle, onSelect, onUpdate }: ProjetoTarefaRowProps) {
+export function ProjetoTarefaRow({
+  tarefa, indented = false, selected = false,
+  onToggle, onSelect, onUpdate,
+  teamMembers = [], onAddColaborador, onRemoveColaborador,
+}: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
   const isDueToday = tarefa.data_prazo && isToday(new Date(tarefa.data_prazo));
-
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
 
@@ -109,7 +119,7 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           {isCompleted ? <CheckCircle2 className="h-[18px] w-[18px]" /> : <Circle className="h-[18px] w-[18px]" />}
         </button>
 
-        {/* Title + code + product photo + subtask count */}
+        {/* Title - inline editable */}
         <div className="flex items-center gap-2 min-w-0 pr-2">
           {tarefa.produto_foto_url && (
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="sm" className="flex-shrink-0" />
@@ -117,16 +127,13 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           {tarefa.codigo && (
             <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">{tarefa.codigo}</span>
           )}
-          <span
-            className={cn(
-              "text-sm truncate cursor-pointer hover:text-primary transition-colors",
-              isCompleted && "line-through text-muted-foreground",
-              hasSubtarefas && !indented && "font-medium"
-            )}
+          <InlineTitle
+            value={tarefa.titulo}
+            isCompleted={isCompleted}
+            isBold={hasSubtarefas && !indented}
+            onSave={(val) => onUpdate?.(tarefa.id, { titulo: val })}
             onClick={() => onSelect?.(tarefa)}
-          >
-            {tarefa.titulo}
-          </span>
+          />
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
               {subtaskCompleted}/{subtaskTotal} ts
@@ -134,48 +141,33 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           )}
         </div>
 
-        {/* Responsável */}
+        {/* Responsável - inline picker */}
         <div className="flex items-center gap-1.5 min-w-0">
-          {tarefa.responsavel ? (
-            <>
-              <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                  {tarefa.responsavel.nome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs text-foreground/80 truncate hidden xl:inline">{tarefa.responsavel.nome?.split(" ")[0]}</span>
-            </>
-          ) : null}
+          <PersonPicker
+            current={tarefa.responsavel}
+            members={teamMembers}
+            onSelect={(userId) => onUpdate?.(tarefa.id, { responsavel_id: userId })}
+          />
         </div>
 
-        {/* Data conclusão / prazo */}
+        {/* Data prazo - inline date picker */}
         <div className="text-xs min-w-0">
-          {tarefa.data_prazo ? (
-            <span className={cn(
-              "flex items-center gap-1",
-              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
-            )}>
-              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-            </span>
-          ) : null}
+          <InlineDatePicker
+            value={tarefa.data_prazo}
+            isOverdue={!!isOverdue}
+            isDueToday={!!isDueToday}
+            onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
+          />
         </div>
 
-        {/* Colaboradores */}
+        {/* Colaboradores - inline add/remove */}
         <div className="flex items-center">
-          {tarefa.colaboradores && tarefa.colaboradores.length > 0 ? (
-            <div className="flex -space-x-1">
-              {tarefa.colaboradores.slice(0, 3).map(c => (
-                <Avatar key={c.user_id} className="h-5 w-5 border border-background">
-                  <AvatarImage src={c.avatar_url || undefined} />
-                  <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-              ))}
-              {tarefa.colaboradores.length > 3 && (
-                <span className="text-[10px] text-muted-foreground ml-1">+{tarefa.colaboradores.length - 3}</span>
-              )}
-            </div>
-          ) : null}
+          <ColaboradoresPicker
+            colaboradores={tarefa.colaboradores || []}
+            members={teamMembers}
+            onAdd={(userId) => onAddColaborador?.(tarefa.id, userId)}
+            onRemove={(userId) => onRemoveColaborador?.(tarefa.id, userId)}
+          />
         </div>
 
         {/* Criador */}
@@ -196,13 +188,13 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
         {/* Data modificação */}
         <div className="text-[11px] text-muted-foreground min-w-0 truncate">
           {tarefa.updated_at ? (
-            isDueToday
+            isToday(new Date(tarefa.updated_at))
               ? "Hoje"
               : formatDistanceToNow(new Date(tarefa.updated_at), { locale: ptBR, addSuffix: false })
           ) : null}
         </div>
 
-        {/* Status - inline editable */}
+        {/* Status */}
         <div className="flex justify-center">
           <InlineSelector
             value={tarefa.status}
@@ -213,7 +205,7 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
           />
         </div>
 
-        {/* Estágio - inline editable */}
+        {/* Estágio */}
         <div className="flex justify-center">
           <InlineSelector
             value={tarefa.estagio || ""}
@@ -228,20 +220,279 @@ export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, o
 
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
-        <ProjetoTarefaRow key={st.id} tarefa={st} indented onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} selected={false} />
+        <ProjetoTarefaRow
+          key={st.id} tarefa={st} indented
+          onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate}
+          teamMembers={teamMembers}
+          onAddColaborador={onAddColaborador}
+          onRemoveColaborador={onRemoveColaborador}
+          selected={false}
+        />
       ))}
     </>
   );
 }
 
+/* ───────── Inline Title Editor ───────── */
+function InlineTitle({ value, isCompleted, isBold, onSave, onClick }: {
+  value: string; isCompleted: boolean; isBold: boolean;
+  onSave: (val: string) => void; onClick: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => {
+    if (draft.trim() && draft.trim() !== value) onSave(draft.trim());
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+        className="h-6 text-sm px-1 py-0 border-primary/50"
+        onClick={e => e.stopPropagation()}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "text-sm truncate cursor-pointer hover:text-primary transition-colors",
+        isCompleted && "line-through text-muted-foreground",
+        isBold && "font-medium"
+      )}
+      onClick={onClick}
+      onDoubleClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
+      title="Clique duplo para editar"
+    >
+      {value}
+    </span>
+  );
+}
+
+/* ───────── Person Picker (Responsável) ───────── */
+function PersonPicker({ current, members, onSelect }: {
+  current: { id: string; nome: string; avatar_url: string | null } | null | undefined;
+  members: TeamMember[];
+  onSelect: (userId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = members.filter(m =>
+    m.nome?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity min-w-0">
+          {current ? (
+            <>
+              <Avatar className="h-6 w-6 flex-shrink-0">
+                <AvatarImage src={current.avatar_url || undefined} />
+                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                  {current.nome?.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-foreground/80 truncate hidden xl:inline">{current.nome?.split(" ")[0]}</span>
+            </>
+          ) : (
+            <div className="h-6 w-6 rounded-full border border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-2" align="start" onClick={e => e.stopPropagation()}>
+        <Input
+          placeholder="Buscar..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="h-7 text-xs mb-2"
+        />
+        <div className="max-h-40 overflow-y-auto space-y-0.5">
+          {current && (
+            <button
+              onClick={() => { onSelect(null); setOpen(false); setSearch(""); }}
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 text-red-400"
+            >
+              <X className="h-3 w-3" /> Remover responsável
+            </button>
+          )}
+          {filtered.map(m => (
+            <button
+              key={m.id}
+              onClick={() => { onSelect(m.id); setOpen(false); setSearch(""); }}
+              className={cn(
+                "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors",
+                current?.id === m.id && "bg-muted/30 font-medium"
+              )}
+            >
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={m.avatar_url || undefined} />
+                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="truncate">{m.nome}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ───────── Inline Date Picker ───────── */
+function InlineDatePicker({ value, isOverdue, isDueToday, onChange }: {
+  value: string | null; isOverdue: boolean; isDueToday: boolean;
+  onChange: (date: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const dateObj = value ? new Date(value) : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={e => e.stopPropagation()}
+          className={cn(
+            "flex items-center gap-1 hover:text-foreground transition-colors text-xs",
+            isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
+          )}
+        >
+          {value
+            ? format(new Date(value), "dd MMM", { locale: ptBR })
+            : <span className="text-muted-foreground/50 hover:text-muted-foreground">—</span>
+          }
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start" onClick={e => e.stopPropagation()}>
+        <CalendarComponent
+          mode="single"
+          selected={dateObj}
+          onSelect={(date) => {
+            onChange(date ? format(date, "yyyy-MM-dd") : null);
+            setOpen(false);
+          }}
+          locale={ptBR}
+          initialFocus
+        />
+        {value && (
+          <div className="border-t p-2">
+            <button
+              onClick={() => { onChange(null); setOpen(false); }}
+              className="text-xs text-red-400 hover:text-red-300 w-full text-center"
+            >
+              Remover data
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ───────── Colaboradores Picker ───────── */
+function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
+  colaboradores: { user_id: string; nome: string; avatar_url: string | null }[];
+  members: TeamMember[];
+  onAdd: (userId: string) => void;
+  onRemove: (userId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const colabIds = new Set(colaboradores.map(c => c.user_id));
+
+  const filtered = members.filter(m =>
+    m.nome?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button onClick={e => e.stopPropagation()} className="flex items-center -space-x-1 hover:opacity-80 transition-opacity">
+          {colaboradores.length > 0 ? (
+            <>
+              {colaboradores.slice(0, 3).map(c => (
+                <Avatar key={c.user_id} className="h-5 w-5 border border-background">
+                  <AvatarImage src={c.avatar_url || undefined} />
+                  <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              ))}
+              {colaboradores.length > 3 && (
+                <span className="text-[10px] text-muted-foreground ml-1">+{colaboradores.length - 3}</span>
+              )}
+            </>
+          ) : (
+            <div className="h-5 w-5 rounded-full border border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
+              <Plus className="h-2.5 w-2.5 text-muted-foreground" />
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start" onClick={e => e.stopPropagation()}>
+        <Input
+          placeholder="Buscar membro..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="h-7 text-xs mb-2"
+        />
+
+        {/* Current colaboradores */}
+        {colaboradores.length > 0 && (
+          <div className="mb-2 pb-2 border-b border-border/30 space-y-0.5">
+            <p className="text-[10px] text-muted-foreground font-medium mb-1">Colaboradores atuais</p>
+            {colaboradores.map(c => (
+              <div key={c.user_id} className="flex items-center justify-between px-2 py-1 rounded hover:bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={c.avatar_url || undefined} />
+                    <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs truncate">{c.nome}</span>
+                </div>
+                <button onClick={() => onRemove(c.user_id)} className="text-red-400 hover:text-red-300">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Available members */}
+        <div className="max-h-36 overflow-y-auto space-y-0.5">
+          {filtered.filter(m => !colabIds.has(m.id)).map(m => (
+            <button
+              key={m.id}
+              onClick={() => onAdd(m.id)}
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors"
+            >
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={m.avatar_url || undefined} />
+                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="truncate">{m.nome}</span>
+              <Plus className="h-3 w-3 ml-auto text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* ───────── Inline Selector Popover ───────── */
 function InlineSelector({
-  value,
-  options,
-  colors,
-  labels,
-  onChange,
-  placeholder = "—",
+  value, options, colors, labels, onChange, placeholder = "—",
 }: {
   value: string;
   options: { value: string; label: string }[];
@@ -257,22 +508,17 @@ function InlineSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="focus:outline-none"
-        >
+        <button onClick={e => e.stopPropagation()} className="focus:outline-none">
           {hasValue ? (
             <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity", colors[value])}>
               {display}
             </Badge>
           ) : (
-            <span className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-              {placeholder}
-            </span>
+            <span className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors">{placeholder}</span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-40 p-1" align="center" onClick={(e) => e.stopPropagation()}>
+      <PopoverContent className="w-40 p-1" align="center" onClick={e => e.stopPropagation()}>
         {options.map(opt => (
           <button
             key={opt.value}

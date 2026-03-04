@@ -13,7 +13,12 @@ interface ProjetoListViewProps {
 }
 
 export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
-  const { secoes, tarefas, tarefasPorSecao, ghostsPorSecao, secoesLoading, tarefasLoading, createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao } = useProjetoTarefas(projetoId);
+  const {
+    secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
+    secoesLoading, tarefasLoading,
+    createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
+    addColaborador, removeColaborador, teamMembers,
+  } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
 
   if (secoesLoading || tarefasLoading) {
@@ -92,6 +97,9 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
             onSelectTarefa={handleSelectTarefa}
             onAddTarefa={handleAddTarefa}
             onUpdateTarefa={handleUpdateTarefa}
+            teamMembers={teamMembers}
+            onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
+            onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
           />
         ))}
 
