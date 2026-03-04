@@ -1,35 +1,111 @@
 
 
-## Plano: Configurar Aprovador para Receber Alertas Push em Despesas
+## Plano: Módulo "Projetos" — Substituir o Asana com experiência superior
 
-### Objetivo
-Ao criar uma despesa (Departamentos, Eventos, Trade), o usuário poderá selecionar qual aprovador receberá um alerta push no celular/navegador.
+Baseado nas duas screenshots do Asana (visão de projeto com seções/tarefas e a Caixa de Entrada com feed de atividades), o plano cria um módulo completo que vai além do Asana integrando-se nativamente ao BiMaster.
 
-### O que será feito
+---
 
-**1. Adicionar campo "Notificar Aprovador" nos formulários de despesa**
-- `NovaDespesaDepartamentoDialog.tsx` - campo Select com lista de perfis (supervisores/gestores)
-- `NovaDespesaEventoDialog.tsx` - mesmo campo
-- Buscar perfis via `profiles` filtrando por usuários com papel de gestor/supervisor ou acesso ao módulo de aprovações
+### Funcionalidades que vão ALÉM do Asana
 
-**2. Disparar notificação push ao criar a despesa**
-- Após o `createExpense.mutateAsync`, invocar a edge function `send-notifications` com o `userId` do aprovador selecionado
-- Payload: tipo `expense_pending_approval`, título "Nova despesa aguardando aprovação", mensagem com valor e descrição
+| Recurso | Asana | BiMaster (proposto) |
+|---------|-------|---------------------|
+| Caixa de Entrada | Feed básico de atividades | Feed inteligente com ações rápidas (aprovar, comentar, reagir inline) |
+| Notificações | Email + in-app | Push nativo no celular + Realtime já existente |
+| Aprovações | Workflow separado | Integrado ao ApprovalHub existente |
+| Contexto de negócio | Genérico | Vincula tarefas a produtos, campanhas, lançamentos do sistema |
+| IA | Básico | Resumo IA de projeto, sugestão de prazos, detecção de gargalos |
+| Visão executiva | Portfólios pagos | Dashboard com progresso de todos os projetos em tempo real |
 
-**3. O alerta chega automaticamente**
-- O sistema existente já faz tudo: a edge function insere na tabela `notifications`, o Realtime detecta o INSERT, e o `usePushNotifications` dispara o `showNotification()` no navegador/celular do aprovador (se ele tiver concedido permissão de notificações)
+---
 
-### Arquivos a alterar
-- `src/components/departments/NovaDespesaDepartamentoDialog.tsx` - adicionar Select de aprovador + chamada à edge function
-- `src/components/events/NovaDespesaEventoDialog.tsx` - mesmo tratamento
-- Nenhuma mudança de banco de dados necessária (tabelas `notifications` e `profiles` já existem)
+### Fase 1 — Implementação completa
 
-### Fluxo
+#### 1. Banco de Dados (5 tabelas)
+
+- **`projetos`** — id, nome, descricao, cor, icone, criador_id, status, visibilidade, created_at
+- **`projeto_secoes`** — id, projeto_id, nome, ordem
+- **`projeto_tarefas`** — id, projeto_id, secao_id, parent_tarefa_id (subtarefas), titulo, descricao, responsavel_id, status, prioridade, data_prazo, data_conclusao, codigo, ordem
+- **`projeto_tarefa_colaboradores`** — tarefa_id, user_id (N:N)
+- **`projeto_atividades`** — id, projeto_id, tarefa_id, user_id, tipo (criou_tarefa, completou, comentou, compartilhou, moveu), descricao, metadata jsonb, created_at
+
+RLS: authenticated users com acesso ao projeto.
+
+#### 2. Página de Projetos (`/dashboard/projetos`)
+
+- Grid de cards de projetos com cor, ícone, progresso (barra), contagem de tarefas
+- Botão "Novo Projeto" com modal (nome, cor, ícone, descrição)
+- Filtros: Meus Projetos, Compartilhados, Todos
+- Ao criar projeto, gera 4 seções padrão automaticamente
+
+#### 3. Detalhe do Projeto (`/dashboard/projetos/:id`)
+
+**Abas:** Lista | Quadro | Cronograma | Painel | Arquivos
+
+**Visão Lista (principal, estilo Asana):**
+- Seções colapsáveis com chevron e nome em bold
+- Tarefas com checkbox circular, título, responsável (avatar), data prazo, colaboradores (avatar stack), status (badge colorido), prioridade
+- Subtarefas indentadas (tarefas consolidadas) com expand/collapse
+- "Adicionar tarefa..." inline no fim de cada seção
+- "+ Adicionar seção" no final
+- Toolbar: Filtrar, Ordenar, Agrupar, Densidade
+- Datas vencidas em vermelho
+
+**Visão Quadro:** Kanban por status com drag-and-drop (reutiliza padrão existente com @dnd-kit)
+
+#### 4. Caixa de Entrada do Projeto (`/dashboard/projetos/inbox`)
+
+Baseado na screenshot da "Caixa de entrada" do Asana, mas melhor:
+
+- **Abas:** Atividade | @Menções | Arquivadas
+- **Agrupamento temporal:** Hoje, Ontem, Últimos 7 dias, Mais antigos
+- **Cards de atividade:** 
+  - "Suas tarefas para hoje" com lista inline
+  - "Novas tarefas adicionadas por [Nome]" no projeto X com lista
+  - "[Nome] compartilhou este projeto com você"
+  - "[Nome] completou a tarefa X"
+- **Ações rápidas por card:** Curtir (👍), Comentar, Marcar como lida, Arquivar
+- **Indicador de não lida** (bolinha azul à direita)
+- **Filtro** e controle de **Densidade** (Compacto/Detalhado)
+- Dados vêm da tabela `projeto_atividades` + `notifications` existente
+
+#### 5. Sidebar e Navegação
+
+- Novo grupo "Projetos" no AppSidebar com ícone Briefcase
+  - Subitens: Caixa de Entrada, Meus Projetos, Todos os Projetos
+- Badge com contagem de atividades não lidas
+
+#### 6. Integração com sistema existente
+
+- Responsáveis/colaboradores via `profiles`
+- Push notifications via `send-notifications` edge function
+- Log de atividades automático (trigger no banco ou chamada no frontend)
+
+---
+
+### Arquivos a criar
+
 ```text
-Usuário cria despesa → Seleciona aprovador → Submete →
-  1. Despesa criada no banco (status pending)
-  2. Edge function send-notifications chamada com userId do aprovador
-  3. Notificação inserida na tabela notifications
-  4. Realtime dispara push no navegador/celular do aprovador
+src/pages/Projetos.tsx
+src/pages/ProjetoDetalhe.tsx
+src/pages/ProjetoInbox.tsx
+src/components/projetos/ProjetoListView.tsx
+src/components/projetos/ProjetoSecao.tsx
+src/components/projetos/ProjetoTarefaRow.tsx
+src/components/projetos/ProjetoSubtarefas.tsx
+src/components/projetos/ProjetoKanbanView.tsx
+src/components/projetos/ProjetoInboxFeed.tsx
+src/components/projetos/ProjetoInboxCard.tsx
+src/components/projetos/NovoProjetoDialog.tsx
+src/components/projetos/NovaTarefaInline.tsx
+src/components/projetos/NovaSecaoInline.tsx
+src/components/projetos/ProjetoHeader.tsx
+src/hooks/useProjetos.ts
+src/hooks/useProjetoTarefas.ts
+src/hooks/useProjetoAtividades.ts
 ```
+
+### Arquivos a editar
+- `src/App.tsx` — 3 novas rotas
+- `src/components/dashboard/AppSidebar.tsx` — grupo Projetos
 
