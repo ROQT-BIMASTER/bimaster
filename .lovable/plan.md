@@ -1,53 +1,77 @@
 
 
-## Plano: Eliminar duplicação mantendo o Trade Administrativo como hub único
+## Plano: Parcelas com anexos individuais, linha digitável e integração sistêmica
 
-### Diagnóstico rápido
+### Problema atual
 
-**TradeAdminModule** (que você quer manter) tem 7 cards. **TradeFinanceiro** tem 9 cards + tabs inline. A sobreposição é de ~5 itens (Campanhas, Verbas, Aprovações, Lançamentos, Contas Correntes). O TradeFinanceiro tem 4 itens exclusivos que precisam ser absorvidos.
+1. Parcelas compartilham um único conjunto de anexos (só a 1ª parcela recebe)
+2. Não há campo para linha digitável do boleto
+3. Parcelas não são tratadas como grupo coeso no restante do sistema (aprovação, envio ao financeiro, dashboard)
 
 ### O que será feito
 
-#### 1. Adicionar cards faltantes ao TradeAdminModule
+#### 1. Migração de banco: adicionar colunas para parcelas
 
-Itens que só existem no TradeFinanceiro e serão adicionados ao Admin:
+Adicionar 2 novas colunas na tabela `trade_financial_entries`:
 
-| Card | Rota | Categoria |
-|---|---|---|
-| Dashboard Financeiro | `/trade/financeiro/dashboard` | Já existe como "Financeiro Trade" — renomear |
-| Meu Extrato | `/trade/financeiro/extrato` | Novo card |
-| Painel de Lançamentos | `/trade/financeiro/lancamentos-campanhas` | Novo card |
-| Contas a Pagar | `/dashboard/contas-a-pagar` | Novo card |
-| Plano de Contas | `/dashboard/plano-contas` | Mover para seção secundária |
+- `installment_group_id` (text, nullable) — substitui o hack de `PARC-` no `reference_number` por um campo dedicado que permite consultas eficientes
+- `installment_number` (integer, nullable) — número da parcela (1, 2, 3...)
+- `installment_total` (integer, nullable) — total de parcelas no grupo
+- `boleto_barcode` (text, nullable) — linha digitável do boleto para pagamento
 
-O card "Financeiro Trade" atual (que aponta para a página duplicada) será **substituído** pelo card "Dashboard Financeiro" apontando direto para `/trade/financeiro/dashboard`.
+#### 2. NovoLancamentoDialog: anexos e boleto por parcela
 
-#### 2. Reorganizar cards em categorias visuais
+Refatorar a UI de parcelas para que cada parcela tenha:
 
-Agrupar os cards principais com labels de seção:
+- **Campo de anexo individual** (reutilizando `ExpenseAttachments`) — cada parcela recebe seu próprio documento (NF, boleto, etc.)
+- **Campo "Linha digitável"** — input de texto para colar a linha do boleto
+- **Tipo de documento por parcela** — cada parcela pode ter tipo diferente (parcela 1 = orçamento, parcela 2 = boleto, etc.)
 
-- **Operacional**: Campanhas, Lançamentos, Painel de Lançamentos
-- **Financeiro**: Verbas, Dashboard Financeiro, Contas Correntes, Meu Extrato, Contas a Pagar
-- **Gestão**: Aprovações, Visão Executiva
+A estrutura `Parcela` passa a ser:
+```typescript
+interface Parcela {
+  numero: number;
+  valor: number;
+  dueDate: string;
+  boletoBarcode: string;
+  attachments: any[];
+  documentType: string;
+  tempId: string; // para o ExpenseAttachments
+}
+```
 
-#### 3. Redirecionar TradeFinanceiro
+Na submissão, cada entrada no banco recebe seus próprios anexos, boleto e `installment_group_id` compartilhado.
 
-`/dashboard/trade/financeiro` passará a redirecionar para `/dashboard/trade/admin`. Todas as sub-rotas (`/trade/financeiro/dashboard`, `/trade/financeiro/campanhas`, etc.) continuam funcionando normalmente.
+#### 3. Tabela de lançamentos: agrupamento visual de parcelas
 
-#### 4. Mover Plano de Contas para seção secundária
+Na `TradeLancamentos.tsx`:
 
-Adicionar "Plano de Contas" à seção colapsável de "Configurações" no TradeAdminModule, já que é um item de configuração.
+- Exibir ícone de boleto quando `boleto_barcode` estiver preenchido (com tooltip mostrando a linha)
+- Botão "copiar linha digitável" inline
+- Filtro para agrupar/visualizar parcelas do mesmo grupo
+
+#### 4. Envio ao financeiro: parcelas como itens individuais
+
+No `EnviarFinanceiroTradeDialog.tsx`:
+
+- Quando o lançamento faz parte de um grupo de parcelas, exibir alerta informando "Esta é a parcela X de Y"
+- Cada parcela é enviada individualmente ao `financial_payment_queue` com seus próprios anexos e `due_date`
+- A linha digitável do boleto é passada como `notes` ou campo dedicado na fila de pagamento
+
+#### 5. Hub de aprovações: visão de grupo
+
+Na aprovação de lançamentos parcelados:
+
+- Ao aprovar uma parcela, exibir as demais parcelas do grupo como contexto
+- Permitir "aprovar todas as parcelas do grupo" de uma vez
 
 ### Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/modules/TradeAdminModule.tsx` | Adicionar cards faltantes, reorganizar em categorias, remover card "Financeiro Trade" |
-| `src/pages/TradeFinanceiro.tsx` | Substituir conteúdo por `<Navigate to="/dashboard/trade/admin" replace />` |
-| Breadcrumbs das sub-páginas de `/trade/financeiro/*` | Atualizar `moduleHref` para `/dashboard/trade/admin` |
-
-### O que NÃO muda
-- Nenhum card, KPI ou funcionalidade do TradeAdminModule atual será removido
-- Todas as sub-páginas de detalhe continuam acessíveis pelas mesmas URLs
-- O layout visual (cards com ícones coloridos, KPIs no topo, seções colapsáveis) permanece idêntico
+| Migração SQL | Adicionar `installment_group_id`, `installment_number`, `installment_total`, `boleto_barcode` |
+| `src/components/trade/NovoLancamentoDialog.tsx` | Refatorar parcelas com anexos/boleto individuais |
+| `src/pages/TradeLancamentos.tsx` | Exibir boleto, melhorar agrupamento visual |
+| `src/components/trade/EnviarFinanceiroTradeDialog.tsx` | Contexto de parcela no envio |
+| `src/components/trade/EditarLancamentoDialog.tsx` | Adicionar campo boleto e anexos na edição |
 
