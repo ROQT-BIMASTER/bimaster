@@ -47,6 +47,7 @@ import {
   FileCheck,
   Calendar,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
@@ -377,10 +378,11 @@ export default function TradeLancamentos() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Conta</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Valor Previsto</TableHead>
-                    <TableHead className="text-right">Valor Realizado</TableHead>
-                    <TableHead>Status</TableHead>
+                     <TableHead>Categoria</TableHead>
+                     <TableHead>Documento</TableHead>
+                     <TableHead className="text-right">Valor Previsto</TableHead>
+                     <TableHead className="text-right">Valor Realizado</TableHead>
+                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -414,6 +416,20 @@ export default function TradeLancamentos() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-sm">
+                        {entry.document_type ? (
+                          <Badge variant="outline" className={`text-xs ${entry.document_type === 'orcamento' ? 'border-amber-300 text-amber-700 dark:text-amber-400' : ''}`}>
+                            {entry.document_type === 'orcamento' ? 'Orçamento' : 
+                             entry.document_type === 'nf' ? 'NF' :
+                             entry.document_type === 'nfse' ? 'NFS-e' :
+                             entry.document_type === 'boleto' ? 'Boleto' :
+                             entry.document_type === 'recibo' ? 'Recibo' :
+                             entry.document_type}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {entry.valor_previsto ? (
                           <>R$ {parseFloat(entry.valor_previsto).toLocaleString("pt-BR", {
@@ -427,7 +443,17 @@ export default function TradeLancamentos() {
                           maximumFractionDigits: 2,
                         })}
                       </TableCell>
-                      <TableCell>{getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}
+                          {entry.document_type === "orcamento" && (
+                            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 w-fit text-[10px]">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              Pendente NF
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
