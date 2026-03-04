@@ -13,7 +13,7 @@ interface ProjetoListViewProps {
 }
 
 export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
-  const { secoes, tarefas, tarefasPorSecao, secoesLoading, tarefasLoading, createTarefa, updateTarefa, toggleTarefaCompleta, createSecao } = useProjetoTarefas(projetoId);
+  const { secoes, tarefas, tarefasPorSecao, ghostsPorSecao, secoesLoading, tarefasLoading, createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
 
   if (secoesLoading || tarefasLoading) {
@@ -55,6 +55,14 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
     createTarefa.mutate({ titulo, secao_id: secaoId, parent_tarefa_id: parentId });
   };
 
+  const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
+    moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
+    // Update selected tarefa if it's the one being moved
+    if (selectedTarefa?.id === tarefaId) {
+      setSelectedTarefa(prev => prev ? { ...prev, secao_id: secaoDestinoId } : null);
+    }
+  };
+
   return (
     <>
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
@@ -78,6 +86,7 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
             nome={secao.nome}
             secaoId={secao.id}
             tarefas={tarefasPorSecao(secao.id)}
+            ghosts={ghostsPorSecao(secao.id)}
             selectedTarefaId={selectedTarefa?.id}
             onToggleTarefa={handleToggle}
             onSelectTarefa={handleSelectTarefa}
@@ -95,6 +104,8 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
         onUpdate={handleUpdateTarefa}
         onToggle={handleToggle}
         onAddSubtarefa={handleAddSubtarefa}
+        secoes={secoes}
+        onMoveTarefa={handleMoveTarefa}
       />
     </>
   );

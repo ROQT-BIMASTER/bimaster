@@ -13615,6 +13615,55 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_movimentacoes: {
+        Row: {
+          created_at: string
+          id: string
+          movido_por: string | null
+          secao_destino_id: string
+          secao_origem_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movido_por?: string | null
+          secao_destino_id: string
+          secao_origem_id: string
+          tarefa_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movido_por?: string | null
+          secao_destino_id?: string
+          secao_origem_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_movimentacoes_secao_destino_id_fkey"
+            columns: ["secao_destino_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_movimentacoes_secao_origem_id_fkey"
+            columns: ["secao_origem_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_movimentacoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefas: {
         Row: {
           codigo: string | null

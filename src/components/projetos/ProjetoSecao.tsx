@@ -1,27 +1,47 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow } from "./ProjetoTarefaRow";
 import { NovaTarefaInline } from "./NovaTarefaInline";
+import { GRID_COLS } from "./ProjetoListView";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface GhostTrail {
+  tarefa_id: string;
+  secao_origem_id: string;
+  secao_destino_id: string;
+  created_at: string;
+  tarefa: ProjetoTarefa;
+  destSecaoNome: string;
+}
 
 interface ProjetoSecaoProps {
   nome: string;
   tarefas: ProjetoTarefa[];
   secaoId: string;
   selectedTarefaId?: string;
+  ghosts?: GhostTrail[];
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
 }
 
-export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, onToggleTarefa, onSelectTarefa, onAddTarefa }: ProjetoSecaoProps) {
+export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, ghosts = [], onToggleTarefa, onSelectTarefa, onAddTarefa }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
     return acc + (t.status === "concluida" ? 1 : 0) + sub;
   }, 0);
   const totalCount = tarefas.reduce((acc, t) => acc + 1 + (t.subtarefas?.length || 0), 0);
+
+  // Deduplicate ghosts per tarefa (keep latest move only)
+  const uniqueGhosts = ghosts.reduce((acc, g) => {
+    if (!acc.has(g.tarefa_id)) acc.set(g.tarefa_id, g);
+    return acc;
+  }, new Map<string, GhostTrail>());
+  const ghostList = Array.from(uniqueGhosts.values());
 
   return (
     <div className="mb-1">
@@ -51,6 +71,39 @@ export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, onToggl
               onSelect={onSelectTarefa}
             />
           ))}
+
+          {/* Ghost trails — tasks that were moved away from this section */}
+          {ghostList.map(ghost => (
+            <div
+              key={`ghost-${ghost.tarefa_id}`}
+              className={`group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/20 min-h-[36px] opacity-40 italic`}
+            >
+              <div /> {/* expand */}
+              <div /> {/* checkbox */}
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                {ghost.tarefa.codigo && (
+                  <span className="text-[10px] text-muted-foreground font-mono">{ghost.tarefa.codigo}</span>
+                )}
+                <span className="text-sm text-muted-foreground truncate line-through">
+                  {ghost.tarefa.titulo}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
+                  <ArrowRight className="h-3 w-3" />
+                  {ghost.destSecaoNome}
+                </span>
+              </div>
+              <div /> {/* responsavel */}
+              <div className="text-[10px] text-muted-foreground">
+                {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
+              </div>
+              <div /> {/* colab */}
+              <div /> {/* criador */}
+              <div /> {/* data mod */}
+              <div /> {/* status */}
+              <div /> {/* estagio */}
+            </div>
+          ))}
+
           <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} />
         </div>
       )}
