@@ -13475,6 +13475,47 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_anexos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          storage_path: string
+          tamanho: number | null
+          tarefa_id: string
+          tipo_arquivo: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          storage_path: string
+          tamanho?: number | null
+          tarefa_id: string
+          tipo_arquivo?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          storage_path?: string
+          tamanho?: number | null
+          tarefa_id?: string
+          tipo_arquivo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_anexos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_colaboradores: {
         Row: {
           created_at: string | null
@@ -13504,6 +13545,38 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_comentarios: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefas: {
         Row: {
           codigo: string | null
@@ -13511,6 +13584,7 @@ export type Database = {
           data_conclusao: string | null
           data_prazo: string | null
           descricao: string | null
+          estagio: string | null
           id: string
           ordem: number | null
           parent_tarefa_id: string | null
@@ -13529,6 +13603,7 @@ export type Database = {
           data_conclusao?: string | null
           data_prazo?: string | null
           descricao?: string | null
+          estagio?: string | null
           id?: string
           ordem?: number | null
           parent_tarefa_id?: string | null
@@ -13547,6 +13622,7 @@ export type Database = {
           data_conclusao?: string | null
           data_prazo?: string | null
           descricao?: string | null
+          estagio?: string | null
           id?: string
           ordem?: number | null
           parent_tarefa_id?: string | null

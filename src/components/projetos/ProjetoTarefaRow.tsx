@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Calendar, Users } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { format, isPast, isToday } from "date-fns";
@@ -30,10 +30,12 @@ const PRIORIDADE_COLORS: Record<string, string> = {
 interface ProjetoTarefaRowProps {
   tarefa: ProjetoTarefa;
   indented?: boolean;
+  selected?: boolean;
   onToggle: (tarefa: ProjetoTarefa) => void;
+  onSelect?: (tarefa: ProjetoTarefa) => void;
 }
 
-export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: ProjetoTarefaRowProps) {
+export function ProjetoTarefaRow({ tarefa, indented = false, selected = false, onToggle, onSelect }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
   const isCompleted = tarefa.status === "concluida";
@@ -44,12 +46,13 @@ export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: Projeto
     <>
       <div
         className={cn(
-          "group flex items-center gap-2 px-3 py-2 border-b border-border/40 hover:bg-muted/30 transition-colors min-h-[44px]",
+          "group flex items-center gap-2 px-3 py-2 border-b border-border/40 hover:bg-muted/30 transition-colors min-h-[44px] relative",
           indented && "pl-10",
-          isCompleted && "opacity-60"
+          isCompleted && "opacity-60",
+          selected && "bg-primary/5 border-l-2 border-l-primary"
         )}
       >
-        {/* Expand toggle for consolidated tasks */}
+        {/* Expand toggle */}
         <div className="w-5 flex-shrink-0">
           {hasSubtarefas ? (
             <button onClick={() => setExpanded(!expanded)} className="text-muted-foreground hover:text-foreground">
@@ -60,7 +63,7 @@ export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: Projeto
 
         {/* Checkbox */}
         <button
-          onClick={() => onToggle(tarefa)}
+          onClick={(e) => { e.stopPropagation(); onToggle(tarefa); }}
           className={cn(
             "flex-shrink-0 transition-colors",
             isCompleted ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
@@ -69,28 +72,36 @@ export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: Projeto
           {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
         </button>
 
-        {/* Title */}
-        <span className={cn(
-          "flex-1 text-sm truncate",
-          isCompleted && "line-through text-muted-foreground",
-          hasSubtarefas && !indented && "font-medium"
-        )}>
+        {/* Code */}
+        {tarefa.codigo && (
+          <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">{tarefa.codigo}</span>
+        )}
+
+        {/* Title — clickable to open detail */}
+        <span
+          className={cn(
+            "flex-1 text-sm truncate cursor-pointer hover:text-primary transition-colors",
+            isCompleted && "line-through text-muted-foreground",
+            hasSubtarefas && !indented && "font-medium"
+          )}
+          onClick={() => onSelect?.(tarefa)}
+        >
           {tarefa.titulo}
         </span>
 
-        {/* Subtask count badge */}
+        {/* Subtask count */}
         {hasSubtarefas && (
           <Badge variant="outline" className="text-xs px-1.5 py-0 h-5 gap-1 text-muted-foreground border-border/50">
             {tarefa.subtarefas?.filter(s => s.status === "concluida").length}/{tarefa.subtarefas?.length}
           </Badge>
         )}
 
-        {/* Status badge */}
+        {/* Status */}
         <Badge className={cn("text-[10px] px-2 py-0 h-5 font-medium border-0", STATUS_COLORS[tarefa.status])}>
           {STATUS_LABELS[tarefa.status] || tarefa.status}
         </Badge>
 
-        {/* Priority indicator */}
+        {/* Priority */}
         {tarefa.prioridade !== "media" && (
           <span className={cn("text-xs font-medium", PRIORIDADE_COLORS[tarefa.prioridade])}>
             {tarefa.prioridade === "alta" ? "↑ Alta" : "↓ Baixa"}
@@ -108,7 +119,7 @@ export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: Projeto
           </span>
         )}
 
-        {/* Responsavel avatar */}
+        {/* Responsavel */}
         {tarefa.responsavel && (
           <Avatar className="h-6 w-6">
             <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
@@ -136,7 +147,7 @@ export function ProjetoTarefaRow({ tarefa, indented = false, onToggle }: Projeto
 
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
-        <ProjetoTarefaRow key={st.id} tarefa={st} indented onToggle={onToggle} />
+        <ProjetoTarefaRow key={st.id} tarefa={st} indented onToggle={onToggle} onSelect={onSelect} selected={false} />
       ))}
     </>
   );
