@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DOCUMENT_TYPES } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck, SplitSquareVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
@@ -79,6 +79,8 @@ export function EnviarFinanceiroTradeDialog({
   const hasAttachments = entry?.attachments && entry.attachments.length > 0;
   const isApproved = entry?.approval_status === "approved";
   const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
+  const isInstallment = entry?.installment_number && entry?.installment_total;
+  const hasBoleto = entry?.boleto_barcode;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
@@ -198,7 +200,11 @@ export function EnviarFinanceiroTradeDialog({
           due_date: formData.due_date,
           portador: formData.portador,
           description: entry.description || null,
-          notes: formData.payment_notes || null,
+          notes: [
+            formData.payment_notes,
+            hasBoleto ? `Linha digitável: ${entry.boleto_barcode}` : null,
+            isInstallment ? `Parcela ${entry.installment_number}/${entry.installment_total}` : null,
+          ].filter(Boolean).join(" | ") || null,
           department_name: "Trade Marketing",
           requested_by: user.id,
           attachments: entry.attachments || null,
@@ -252,6 +258,21 @@ export function EnviarFinanceiroTradeDialog({
             Preencha os dados do fornecedor e documento para enviar ao financeiro
           </DialogDescription>
         </DialogHeader>
+
+        {/* Installment context */}
+        {isInstallment && (
+          <Alert variant="info">
+            <SplitSquareVertical className="h-4 w-4" />
+            <AlertDescription>
+              Esta é a <strong>parcela {entry.installment_number} de {entry.installment_total}</strong>
+              {hasBoleto && (
+                <span className="block text-xs mt-1 font-mono">
+                  Boleto: {entry.boleto_barcode}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Attachment validation alert */}
         {!hasAttachments && (

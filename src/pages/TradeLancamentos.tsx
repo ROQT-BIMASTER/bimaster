@@ -30,6 +30,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -49,6 +55,8 @@ import {
   AlertCircle,
   AlertTriangle,
   SplitSquareVertical,
+  Barcode,
+  Copy,
 } from "lucide-react";
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
@@ -128,7 +136,6 @@ export default function TradeLancamentos() {
     fetchData();
   }, [statusFilter]);
 
-  // Filtered entries by search
   const filteredEntries = entries.filter((entry) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -193,7 +200,6 @@ export default function TradeLancamentos() {
   };
 
   const handleEvidenceClick = (entry: any) => {
-    // Delay to avoid DropdownMenu/Dialog portal collision
     setTimeout(() => {
       setSelectedEntry(entry);
       setEvidenceDialogOpen(true);
@@ -221,6 +227,11 @@ export default function TradeLancamentos() {
       setSelectedEntry(entry);
       setSendFinancialDialogOpen(true);
     }, 0);
+  };
+
+  const copyBoletoBarcode = (barcode: string) => {
+    navigator.clipboard.writeText(barcode);
+    toast.success("Linha digitável copiada!");
   };
 
   return (
@@ -372,145 +383,178 @@ export default function TradeLancamentos() {
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Conta</TableHead>
-                     <TableHead>Categoria</TableHead>
-                     <TableHead>Documento</TableHead>
-                     <TableHead className="text-right">Valor Previsto</TableHead>
-                     <TableHead className="text-right">Valor Realizado</TableHead>
-                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEntries.map((entry) => (
-                    <TableRow key={entry.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        {format(new Date(entry.entry_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {getEntryTypeLabel(entry.entry_type)}
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        <div className="truncate">{entry.description || "-"}</div>
-                        {entry.reference_number?.startsWith("PARC-") && (
-                          <Badge variant="outline" className="text-[10px] mt-0.5 gap-1">
-                            <SplitSquareVertical className="h-2.5 w-2.5" />
-                            {entry.reference_number.split("-").slice(2).join("-")}
-                          </Badge>
-                        )}
-                        {entry.due_date && (
-                          <span className="text-[10px] text-muted-foreground block mt-0.5">
-                            Venc: {format(new Date(entry.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {entry.account ? (
-                          <span className="font-mono text-xs">
-                            {entry.account.code} - {entry.account.name}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {entry.category ? (
-                          <Badge variant="outline" className="text-xs">
-                            {TRADE_EXPENSE_CATEGORIES.find(c => c.value === entry.category)?.label || entry.category}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {entry.document_type ? (
-                          <Badge variant="outline" className={`text-xs ${entry.document_type === 'orcamento' ? 'border-amber-300 text-amber-700 dark:text-amber-400' : ''}`}>
-                            {entry.document_type === 'orcamento' ? 'Orçamento' : 
-                             entry.document_type === 'nf' ? 'NF' :
-                             entry.document_type === 'nfse' ? 'NFS-e' :
-                             entry.document_type === 'boleto' ? 'Boleto' :
-                             entry.document_type === 'recibo' ? 'Recibo' :
-                             entry.document_type}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground">
-                        {entry.valor_previsto ? (
-                          <>R$ {parseFloat(entry.valor_previsto).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2, maximumFractionDigits: 2,
-                          })}</>
-                        ) : "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        R$ {parseFloat(entry.amount).toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}
-                          {entry.document_type === "orcamento" && (
-                            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 w-fit text-[10px]">
-                              <AlertTriangle className="h-2.5 w-2.5" />
-                              Pendente NF
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {canEdit(entry) && (
-                              <>
-                                <DropdownMenuItem onClick={() => handleEditClick(entry)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  {entry.approval_status === "rejected" ? "Editar e Resubmeter" : "Editar"}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                              </>
-                            )}
-                            {canAddEvidence(entry) && (
-                              <DropdownMenuItem onClick={() => handleEvidenceClick(entry)}>
-                                <FileUp className="mr-2 h-4 w-4" />
-                                Adicionar Evidência
-                              </DropdownMenuItem>
-                            )}
-                            {canSendToFinancial(entry) && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleSendFinancialClick(entry)}>
-                                  <DollarSign className="mr-2 h-4 w-4" />
-                                  Enviar ao Financeiro
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && (
-                              <DropdownMenuItem disabled>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Sem ações disponíveis
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              <TooltipProvider>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Conta</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Documento</TableHead>
+                      <TableHead className="text-right">Valor Previsto</TableHead>
+                      <TableHead className="text-right">Valor Realizado</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEntries.map((entry) => (
+                      <TableRow key={entry.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          {format(new Date(entry.entry_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {getEntryTypeLabel(entry.entry_type)}
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate">{entry.description || "-"}</div>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {/* Installment badge */}
+                            {entry.installment_number && entry.installment_total && (
+                              <Badge variant="outline" className="text-[10px] gap-1">
+                                <SplitSquareVertical className="h-2.5 w-2.5" />
+                                {entry.installment_number}/{entry.installment_total}
+                              </Badge>
+                            )}
+                            {/* Boleto barcode indicator */}
+                            {entry.boleto_barcode && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyBoletoBarcode(entry.boleto_barcode)}
+                                    className="inline-flex"
+                                  >
+                                    <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer hover:bg-secondary/80">
+                                      <Barcode className="h-2.5 w-2.5" />
+                                      Boleto
+                                      <Copy className="h-2 w-2 ml-0.5" />
+                                    </Badge>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <p className="font-mono text-xs break-all">{entry.boleto_barcode}</p>
+                                  <p className="text-[10px] text-muted-foreground mt-1">Clique para copiar</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                          {entry.due_date && (
+                            <span className="text-[10px] text-muted-foreground block mt-0.5">
+                              Venc: {format(new Date(entry.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {entry.account ? (
+                            <span className="font-mono text-xs">
+                              {entry.account.code} - {entry.account.name}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {entry.category ? (
+                            <Badge variant="outline" className="text-xs">
+                              {TRADE_EXPENSE_CATEGORIES.find(c => c.value === entry.category)?.label || entry.category}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {entry.document_type ? (
+                            <Badge variant="outline" className={`text-xs ${entry.document_type === 'orcamento' ? 'border-amber-300 text-amber-700 dark:text-amber-400' : ''}`}>
+                              {entry.document_type === 'orcamento' ? 'Orçamento' : 
+                               entry.document_type === 'nf' ? 'NF' :
+                               entry.document_type === 'nfse' ? 'NFS-e' :
+                               entry.document_type === 'boleto' ? 'Boleto' :
+                               entry.document_type === 'recibo' ? 'Recibo' :
+                               entry.document_type}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">
+                          {entry.valor_previsto ? (
+                            <>R$ {parseFloat(entry.valor_previsto).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2, maximumFractionDigits: 2,
+                            })}</>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          R$ {parseFloat(entry.amount).toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}
+                            {entry.document_type === "orcamento" && (
+                              <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 w-fit text-[10px]">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                Pendente NF
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {canEdit(entry) && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleEditClick(entry)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    {entry.approval_status === "rejected" ? "Editar e Resubmeter" : "Editar"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              {canAddEvidence(entry) && (
+                                <DropdownMenuItem onClick={() => handleEvidenceClick(entry)}>
+                                  <FileUp className="mr-2 h-4 w-4" />
+                                  Adicionar Evidência
+                                </DropdownMenuItem>
+                              )}
+                              {entry.boleto_barcode && (
+                                <DropdownMenuItem onClick={() => copyBoletoBarcode(entry.boleto_barcode)}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copiar Linha Digitável
+                                </DropdownMenuItem>
+                              )}
+                              {canSendToFinancial(entry) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleSendFinancialClick(entry)}>
+                                    <DollarSign className="mr-2 h-4 w-4" />
+                                    Enviar ao Financeiro
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && (
+                                <DropdownMenuItem disabled>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Sem ações disponíveis
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
             )}
           </CardContent>
         </Card>

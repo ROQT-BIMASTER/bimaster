@@ -17842,6 +17842,7 @@ export type Database = {
           approved_by: string | null
           attachments: Json | null
           bank_account_id: string | null
+          boleto_barcode: string | null
           budget_id: string | null
           campaign_id: string | null
           category: string | null
@@ -17860,6 +17861,9 @@ export type Database = {
           entry_type: string
           fornecedor_id: string | null
           id: string
+          installment_group_id: string | null
+          installment_number: number | null
+          installment_total: number | null
           investment_id: string | null
           notes: string | null
           payment_queue_id: string | null
@@ -17882,6 +17886,7 @@ export type Database = {
           approved_by?: string | null
           attachments?: Json | null
           bank_account_id?: string | null
+          boleto_barcode?: string | null
           budget_id?: string | null
           campaign_id?: string | null
           category?: string | null
@@ -17900,6 +17905,9 @@ export type Database = {
           entry_type: string
           fornecedor_id?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           investment_id?: string | null
           notes?: string | null
           payment_queue_id?: string | null
@@ -17922,6 +17930,7 @@ export type Database = {
           approved_by?: string | null
           attachments?: Json | null
           bank_account_id?: string | null
+          boleto_barcode?: string | null
           budget_id?: string | null
           campaign_id?: string | null
           category?: string | null
@@ -17940,6 +17949,9 @@ export type Database = {
           entry_type?: string
           fornecedor_id?: string | null
           id?: string
+          installment_group_id?: string | null
+          installment_number?: number | null
+          installment_total?: number | null
           investment_id?: string | null
           notes?: string | null
           payment_queue_id?: string | null

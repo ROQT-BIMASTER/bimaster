@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, Building, Loader2, Clock, SplitSquareVertical, Trash2 } from "lucide-react";
+import { Plus, Target, Building, Loader2, Clock, SplitSquareVertical, Trash2, Barcode, ChevronDown, ChevronUp } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -36,11 +36,20 @@ import { Separator } from "@/components/ui/separator";
 import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Parcela {
   numero: number;
   valor: number;
   dueDate: string;
+  boletoBarcode: string;
+  attachments: any[];
+  documentType: string;
+  tempId: string;
 }
 
 interface NovoLancamentoDialogProps {
@@ -83,8 +92,9 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [parcelamentoAtivo, setParcelamentoAtivo] = useState(false);
   const [numParcelas, setNumParcelas] = useState(2);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [expandedParcela, setExpandedParcela] = useState<number | null>(null);
   
-  // Attachments
+  // Attachments (for single entry mode)
   const [attachments, setAttachments] = useState<any[]>([]);
   const [tempEntryId] = useState(() => crypto.randomUUID());
   
@@ -136,7 +146,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     }
   };
 
-  // Gerar parcelas quando ativar parcelamento ou mudar valor/quantidade
+  // Generate installments when toggling or changing value/count
   useEffect(() => {
     if (!parcelamentoAtivo || !amount) {
       setParcelas([]);
@@ -163,6 +173,10 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         numero: i + 1,
         valor: i === 0 ? valorParcela + resto : valorParcela,
         dueDate: dueDate.toISOString().split("T")[0],
+        boletoBarcode: "",
+        attachments: [],
+        documentType: "none",
+        tempId: crypto.randomUUID(),
       });
     }
     
@@ -181,11 +195,29 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     ));
   };
 
-  const moveAttachmentsToFinalPath = async (finalEntryId: string) => {
-    if (attachments.length === 0) return attachments;
+  const updateParcelaBoleto = (index: number, barcode: string) => {
+    setParcelas(prev => prev.map((p, i) => 
+      i === index ? { ...p, boletoBarcode: barcode } : p
+    ));
+  };
+
+  const updateParcelaDocType = (index: number, docType: string) => {
+    setParcelas(prev => prev.map((p, i) => 
+      i === index ? { ...p, documentType: docType } : p
+    ));
+  };
+
+  const updateParcelaAttachments = (index: number, atts: any[]) => {
+    setParcelas(prev => prev.map((p, i) => 
+      i === index ? { ...p, attachments: atts } : p
+    ));
+  };
+
+  const moveAttachmentsToFinalPath = async (finalEntryId: string, atts: any[]) => {
+    if (atts.length === 0) return atts;
 
     const movedAttachments = [];
-    for (const att of attachments) {
+    for (const att of atts) {
       const urlParts = att.url.split("/trade-expense-docs/");
       if (urlParts.length > 1) {
         const oldPath = urlParts[1];
@@ -226,6 +258,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     setParcelamentoAtivo(false);
     setNumParcelas(2);
     setParcelas([]);
+    setExpandedParcela(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,7 +274,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
       return;
     }
 
-    // Validar parcelas
+    // Validate installments
     if (parcelamentoAtivo && parcelas.length > 0) {
       const totalParcelas = parcelas.reduce((s, p) => s + p.valor, 0);
       const diff = Math.abs(totalParcelas - parseFloat(amount));
@@ -307,11 +340,9 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         fornecedor_id: hasFornecedor ? fornecedorId : null,
         supplier_name: supplierName,
         supplier_document: supplierDocument,
-        document_type: documentType !== "none" ? documentType : null,
       };
 
       if (parcelamentoAtivo && parcelas.length > 0) {
-        // Criar múltiplas entradas (uma por parcela)
         const groupId = crypto.randomUUID().slice(0, 8).toUpperCase();
         
         const entries = parcelas.map((parcela) => ({
@@ -319,9 +350,13 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
           amount: parcela.valor,
           valor_previsto: parcela.valor,
           due_date: parcela.dueDate,
-          reference_number: `PARC-${groupId}-${parcela.numero}/${parcelas.length}`,
+          installment_group_id: groupId,
+          installment_number: parcela.numero,
+          installment_total: parcelas.length,
+          boleto_barcode: parcela.boletoBarcode.trim() || null,
+          document_type: parcela.documentType !== "none" ? parcela.documentType : null,
           description: `${description.trim()} (Parcela ${parcela.numero}/${parcelas.length})`,
-          attachments: parcela.numero === 1 ? attachments : [],
+          attachments: parcela.attachments,
         }));
 
         const { data: inserted, error } = await supabase
@@ -331,28 +366,33 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
         if (error) throw error;
 
-        // Mover anexos para a primeira parcela
-        if (inserted && inserted.length > 0 && attachments.length > 0) {
-          const finalAttachments = await moveAttachmentsToFinalPath(inserted[0].id);
-          await supabase.from("trade_financial_entries")
-            .update({ attachments: finalAttachments })
-            .eq("id", inserted[0].id);
+        // Move attachments for each installment
+        if (inserted && inserted.length > 0) {
+          for (let i = 0; i < inserted.length; i++) {
+            if (parcelas[i].attachments.length > 0) {
+              const finalAttachments = await moveAttachmentsToFinalPath(inserted[i].id, parcelas[i].attachments);
+              await supabase.from("trade_financial_entries")
+                .update({ attachments: finalAttachments })
+                .eq("id", inserted[i].id);
+            }
+          }
         }
 
         toast.success(`${parcelas.length} parcelas criadas! Aguardando aprovação.`);
       } else {
-        // Lançamento único (fluxo original)
+        // Single entry
         const { data: inserted, error } = await supabase.from("trade_financial_entries").insert({
           ...baseData,
           amount: parseFloat(amount),
           valor_previsto: valorPrevisto ? parseFloat(valorPrevisto) : null,
           attachments: attachments,
+          document_type: documentType !== "none" ? documentType : null,
         }).select("id").single();
 
         if (error) throw error;
 
         if (inserted && attachments.length > 0) {
-          const finalAttachments = await moveAttachmentsToFinalPath(inserted.id);
+          const finalAttachments = await moveAttachmentsToFinalPath(inserted.id, attachments);
           await supabase.from("trade_financial_entries")
             .update({ attachments: finalAttachments })
             .eq("id", inserted.id);
@@ -512,32 +552,127 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
                 {parcelas.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Parcelas e Vencimentos</Label>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    <Label className="text-xs text-muted-foreground">Parcelas, Vencimentos e Documentos</Label>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {parcelas.map((parcela, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm">
-                          <Badge variant="outline" className="w-12 justify-center text-xs shrink-0">
-                            {parcela.numero}/{parcelas.length}
-                          </Badge>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="h-8 w-28 text-xs"
-                            value={parcela.valor}
-                            onChange={(e) => updateParcelaValor(idx, e.target.value)}
-                          />
-                          <Input
-                            type="date"
-                            className="h-8 flex-1 text-xs"
-                            value={parcela.dueDate}
-                            onChange={(e) => updateParcelaDueDate(idx, e.target.value)}
-                          />
-                        </div>
+                        <Collapsible
+                          key={parcela.tempId}
+                          open={expandedParcela === idx}
+                          onOpenChange={(isOpen) => setExpandedParcela(isOpen ? idx : null)}
+                        >
+                          <div className="rounded-md border bg-background">
+                            {/* Header row - always visible */}
+                            <div className="flex items-center gap-2 p-2">
+                              <Badge variant="outline" className="w-12 justify-center text-xs shrink-0">
+                                {parcela.numero}/{parcelas.length}
+                              </Badge>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="h-8 w-28 text-xs"
+                                value={parcela.valor}
+                                onChange={(e) => updateParcelaValor(idx, e.target.value)}
+                              />
+                              <Input
+                                type="date"
+                                className="h-8 flex-1 text-xs"
+                                value={parcela.dueDate}
+                                onChange={(e) => updateParcelaDueDate(idx, e.target.value)}
+                              />
+                              <CollapsibleTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                                  {expandedParcela === idx ? (
+                                    <ChevronUp className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </div>
+
+                            {/* Indicators */}
+                            {expandedParcela !== idx && (
+                              <div className="flex gap-1 px-2 pb-1.5">
+                                {parcela.boletoBarcode && (
+                                  <Badge variant="secondary" className="text-[9px] h-4 gap-0.5">
+                                    <Barcode className="h-2.5 w-2.5" />
+                                    Boleto
+                                  </Badge>
+                                )}
+                                {parcela.attachments.length > 0 && (
+                                  <Badge variant="secondary" className="text-[9px] h-4">
+                                    {parcela.attachments.length} anexo(s)
+                                  </Badge>
+                                )}
+                                {parcela.documentType !== "none" && (
+                                  <Badge variant="secondary" className="text-[9px] h-4">
+                                    {parcela.documentType === "orcamento" ? "Orçamento" :
+                                     parcela.documentType === "nf" ? "NF" :
+                                     parcela.documentType === "boleto" ? "Boleto" :
+                                     parcela.documentType === "nfse" ? "NFS-e" :
+                                     parcela.documentType === "recibo" ? "Recibo" : ""}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Expanded content */}
+                            <CollapsibleContent>
+                              <div className="border-t p-3 space-y-3">
+                                {/* Linha digitável */}
+                                <div className="space-y-1">
+                                  <Label className="text-xs flex items-center gap-1">
+                                    <Barcode className="h-3 w-3" />
+                                    Linha Digitável do Boleto
+                                  </Label>
+                                  <Input
+                                    placeholder="Cole aqui a linha digitável..."
+                                    className="h-8 text-xs font-mono"
+                                    value={parcela.boletoBarcode}
+                                    onChange={(e) => updateParcelaBoleto(idx, e.target.value)}
+                                  />
+                                </div>
+
+                                {/* Document type per installment */}
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Tipo de Documento</Label>
+                                  <Select
+                                    value={parcela.documentType}
+                                    onValueChange={(v) => updateParcelaDocType(idx, v)}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Nenhum</SelectItem>
+                                      <SelectItem value="orcamento">Orçamento</SelectItem>
+                                      <SelectItem value="nf">Nota Fiscal</SelectItem>
+                                      <SelectItem value="nfse">NFS-e (Serviços)</SelectItem>
+                                      <SelectItem value="boleto">Boleto Bancário</SelectItem>
+                                      <SelectItem value="recibo">Recibo</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {/* Attachments per installment */}
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Anexos da Parcela {parcela.numero}</Label>
+                                  <ExpenseAttachments
+                                    expenseId={parcela.tempId}
+                                    attachments={parcela.attachments}
+                                    onAttachmentsChange={(atts) => updateParcelaAttachments(idx, atts)}
+                                    bucket="trade-expense-docs"
+                                  />
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </div>
+                        </Collapsible>
                       ))}
                     </div>
                     
-                    {/* Totalização */}
+                    {/* Totalization */}
                     <div className="flex items-center justify-between text-xs pt-1 border-t">
                       <span className="text-muted-foreground">Total parcelas:</span>
                       <span className={`font-medium ${Math.abs(totalParcelasValor - parseFloat(amount || "0")) > 0.02 ? 'text-destructive' : 'text-emerald-600'}`}>
@@ -649,42 +784,48 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
             </Select>
           </div>
 
-          {/* Tipo de Documento */}
-          <div className="space-y-2">
-            <Label>Tipo de Documento</Label>
-            <Select value={documentType} onValueChange={setDocumentType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Selecione o tipo</SelectItem>
-                <SelectItem value="orcamento">Orçamento</SelectItem>
-                <SelectItem value="nf">Nota Fiscal</SelectItem>
-                <SelectItem value="nfse">NFS-e (Serviços)</SelectItem>
-                <SelectItem value="boleto">Boleto Bancário</SelectItem>
-                <SelectItem value="recibo">Recibo</SelectItem>
-              </SelectContent>
-            </Select>
-            {documentType === "orcamento" && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Lançamentos com orçamento ficam sinalizados como pendentes de NF
-              </p>
-            )}
-          </div>
+          {/* Tipo de Documento - only when NOT using installments */}
+          {!parcelamentoAtivo && (
+            <div className="space-y-2">
+              <Label>Tipo de Documento</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Selecione o tipo</SelectItem>
+                  <SelectItem value="orcamento">Orçamento</SelectItem>
+                  <SelectItem value="nf">Nota Fiscal</SelectItem>
+                  <SelectItem value="nfse">NFS-e (Serviços)</SelectItem>
+                  <SelectItem value="boleto">Boleto Bancário</SelectItem>
+                  <SelectItem value="recibo">Recibo</SelectItem>
+                </SelectContent>
+              </Select>
+              {documentType === "orcamento" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Lançamentos com orçamento ficam sinalizados como pendentes de NF
+                </p>
+              )}
+            </div>
+          )}
 
-          {/* Seção: Anexos */}
-          <div className="space-y-1 pt-2">
-            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Documentos Anexos</h4>
-            <Separator />
-          </div>
+          {/* Seção: Anexos - only when NOT using installments */}
+          {!parcelamentoAtivo && (
+            <>
+              <div className="space-y-1 pt-2">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Documentos Anexos</h4>
+                <Separator />
+              </div>
 
-          <ExpenseAttachments
-            expenseId={tempEntryId}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-            bucket="trade-expense-docs"
-          />
+              <ExpenseAttachments
+                expenseId={tempEntryId}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                bucket="trade-expense-docs"
+              />
+            </>
+          )}
 
           {/* Observações */}
           <div className="space-y-2">
