@@ -22,7 +22,10 @@ import {
   ClipboardCheck,
   Receipt,
   BarChart3,
-  LayoutDashboard
+  LayoutDashboard,
+  CreditCard,
+  ScrollText,
+  BookOpen
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +88,7 @@ const TradeAdminModule = () => {
     "Configurações": [
       { title: "Níveis de Aprovação", to: "/dashboard/trade/admin/approval-levels", icon: Settings, color: "text-slate-600" },
       { title: "Usuários e Perfis", to: "/dashboard/trade/admin/users", icon: Users, color: "text-blue-600" },
+      { title: "Plano de Contas", to: "/dashboard/plano-contas", icon: BookOpen, color: "text-teal-600" },
     ],
     "Relatórios": [
       { title: "Relatório por Campanha", to: "/dashboard/trade/admin/reports/campaigns", icon: FileText, color: "text-green-600" },
@@ -106,7 +110,7 @@ const TradeAdminModule = () => {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Administrativo Trade</h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
-              Campanhas, verbas e aprovações
+              Campanhas, verbas, financeiro e aprovações
             </p>
           </div>
         </div>
@@ -149,21 +153,21 @@ const TradeAdminModule = () => {
             </CardContent>
           </Card>
 
-          {/* ROI Médio */}
+          {/* Saldo Disponível */}
           <Card className="border-l-4 border-l-purple-500">
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-start justify-between">
                 <div className="p-2 sm:p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                  <PiggyBank className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
               <div className="mt-2 sm:mt-4">
-                <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {(stats?.roi || 0).toFixed(1)}%
+                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  R$ {((stats?.availableBudget || 0) / 1000).toFixed(0)}k
                 </p>
-                <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5">ROI Médio</h3>
+                <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5">Saldo Disponível</h3>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  {(stats?.roi || 0) >= 0 ? "Positivo" : "Negativo"}
+                  de R$ {((stats?.totalBudget || 0) / 1000).toFixed(0)}k em verbas
                 </p>
               </div>
             </CardContent>
@@ -193,167 +197,239 @@ const TradeAdminModule = () => {
           </Card>
         </div>
 
-        {/* Módulos Principais */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="admin-quick-actions">
-          {/* Campanhas */}
-          <Link to="/dashboard/trade/financeiro/campanhas">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
-                    <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <CardTitle className="mt-4">Campanhas</CardTitle>
-                <CardDescription>Gestão completa de campanhas com ROI e validação</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>{stats?.activeCampaigns || 0} ativas</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{(stats?.totalCampaigns || 0) - (stats?.activeCampaigns || 0)} outras</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Verbas */}
-          <Link to="/dashboard/trade/financeiro/verbas">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-xl">
-                    <PiggyBank className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <CardTitle className="mt-4">Verbas</CardTitle>
-                <CardDescription>Orçamentos e controle de verbas semestrais</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Disponível</span>
-                    <span className="font-medium text-green-600">
-                      R$ {((stats?.availableBudget || 0) / 1000).toFixed(0)}k
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full transition-all"
-                      style={{ 
-                        width: `${stats?.totalBudget ? ((stats?.usedBudget || 0) / stats.totalBudget) * 100 : 0}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Aprovações */}
-          <Link to="/dashboard/trade/financeiro/aprovacoes">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-xl">
-                    <ClipboardCheck className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {(stats?.pendingApprovals || 0) > 0 && (
-                      <Badge variant="destructive">{stats?.pendingApprovals}</Badge>
-                    )}
+        {/* === OPERACIONAL === */}
+        <div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3 px-1 uppercase tracking-wider">
+            <Target className="h-4 w-4" />
+            <span>Operacional</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="admin-quick-actions">
+            {/* Campanhas */}
+            <Link to="/dashboard/trade/financeiro/campanhas">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+                      <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                </div>
-                <CardTitle className="mt-4">Aprovações</CardTitle>
-                <CardDescription>Fluxo de aprovação hierárquica</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-amber-600">
-                    <Clock className="h-4 w-4" />
-                    <span>{stats?.pendingApprovals || 0} pendentes</span>
+                  <CardTitle className="mt-4">Campanhas</CardTitle>
+                  <CardDescription>Gestão completa de campanhas com ROI e validação</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>{stats?.activeCampaigns || 0} ativas</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{(stats?.totalCampaigns || 0) - (stats?.activeCampaigns || 0)} outras</span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                </CardContent>
+              </Card>
+            </Link>
 
-          {/* Lançamentos */}
-          <Link to="/dashboard/trade/financeiro/lancamentos">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
-                    <Receipt className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            {/* Lançamentos */}
+            <Link to="/dashboard/trade/financeiro/lancamentos">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                      <Receipt className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <CardTitle className="mt-4">Lançamentos</CardTitle>
-                <CardDescription>Registros de despesas e investimentos</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
+                  <CardTitle className="mt-4">Lançamentos</CardTitle>
+                  <CardDescription>Registros de despesas e investimentos</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-          {/* Contas Correntes */}
-          <Link to="/dashboard/trade/financeiro/contas">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-cyan-100 dark:bg-cyan-900/50 rounded-xl">
-                    <Wallet className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            {/* Painel de Lançamentos */}
+            <Link to="/dashboard/trade/financeiro/lancamentos-campanhas">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-rose-100 dark:bg-rose-900/50 rounded-xl">
+                      <ScrollText className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <CardTitle className="mt-4">Contas Correntes</CardTitle>
-                <CardDescription>Gestão de contas e extratos</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
+                  <CardTitle className="mt-4">Painel de Lançamentos</CardTitle>
+                  <CardDescription>Resultados e execução de campanhas</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          </div>
+        </div>
 
-          {/* Visão Executiva */}
-          <Link to="/dashboard/trade/admin/executivo">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer relative overflow-hidden">
-              <div className="absolute top-2 right-2">
-                <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] px-1.5">
-                  NOVO
-                </Badge>
-              </div>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
-                    <LayoutDashboard className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+        {/* === FINANCEIRO === */}
+        <div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3 px-1 uppercase tracking-wider">
+            <DollarSign className="h-4 w-4" />
+            <span>Financeiro</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Verbas */}
+            <Link to="/dashboard/trade/financeiro/verbas">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-xl">
+                      <PiggyBank className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <CardTitle className="mt-4">Visão Executiva</CardTitle>
-                <CardDescription>Painel consolidado para diretoria</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
+                  <CardTitle className="mt-4">Verbas</CardTitle>
+                  <CardDescription>Orçamentos e controle de verbas semestrais</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Disponível</span>
+                      <span className="font-medium text-green-600">
+                        R$ {((stats?.availableBudget || 0) / 1000).toFixed(0)}k
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 rounded-full transition-all"
+                        style={{ 
+                          width: `${stats?.totalBudget ? ((stats?.usedBudget || 0) / stats.totalBudget) * 100 : 0}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-          {/* Financeiro Geral */}
-          <Link to="/dashboard/trade/financeiro">
-            <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl">
-                    <DollarSign className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            {/* Dashboard Financeiro */}
+            <Link to="/dashboard/trade/financeiro/dashboard">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl">
+                      <LayoutDashboard className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardTitle className="mt-4">Dashboard Financeiro</CardTitle>
+                  <CardDescription>Visão consolidada de verbas e campanhas</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+
+            {/* Contas Correntes */}
+            <Link to="/dashboard/trade/financeiro/contas">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-cyan-100 dark:bg-cyan-900/50 rounded-xl">
+                      <Wallet className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <CardTitle className="mt-4">Contas Correntes</CardTitle>
+                  <CardDescription>Gestão de contas e extratos</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+
+            {/* Meu Extrato */}
+            <Link to="/dashboard/trade/financeiro/extrato">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-sky-100 dark:bg-sky-900/50 rounded-xl">
+                      <FileText className="h-6 w-6 text-sky-600 dark:text-sky-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <CardTitle className="mt-4">Meu Extrato</CardTitle>
+                  <CardDescription>Histórico de lançamentos e aprovações</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+
+            {/* Contas a Pagar */}
+            <Link to="/dashboard/contas-a-pagar">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                      <CreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <CardTitle className="mt-4">Contas a Pagar</CardTitle>
+                  <CardDescription>Gestão de contas e orçamentos</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          </div>
+        </div>
+
+        {/* === GESTÃO === */}
+        <div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-3 px-1 uppercase tracking-wider">
+            <ClipboardCheck className="h-4 w-4" />
+            <span>Gestão</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Aprovações */}
+            <Link to="/dashboard/trade/financeiro/aprovacoes">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-amber-100 dark:bg-amber-900/50 rounded-xl">
+                      <ClipboardCheck className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(stats?.pendingApprovals || 0) > 0 && (
+                        <Badge variant="destructive">{stats?.pendingApprovals}</Badge>
+                      )}
+                      <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  <CardTitle className="mt-4">Aprovações</CardTitle>
+                  <CardDescription>Fluxo de aprovação hierárquica</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-amber-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{stats?.pendingApprovals || 0} pendentes</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Visão Executiva */}
+            <Link to="/dashboard/trade/admin/executivo">
+              <Card className="group hover:shadow-lg active:scale-[0.98] transition-all duration-200 h-full cursor-pointer relative overflow-hidden">
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] px-1.5">
+                    NOVO
+                  </Badge>
                 </div>
-                <CardTitle className="mt-4">Financeiro Trade</CardTitle>
-                <CardDescription>Dashboard financeiro completo</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl">
+                      <LayoutDashboard className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <CardTitle className="mt-4">Visão Executiva</CardTitle>
+                  <CardDescription>Painel consolidado para diretoria</CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          </div>
         </div>
 
         {/* Módulos Secundários */}

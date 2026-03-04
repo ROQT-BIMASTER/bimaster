@@ -100,8 +100,8 @@ export default function TradeFinanceiroDashboard() {
         {/* Header */}
         <div data-tour="dashboard-header">
           <ModuleBreadcrumb
-            moduleName="Financeiro Trade"
-            moduleHref="/dashboard/trade/financeiro"
+            moduleName="Administrativo Trade"
+            moduleHref="/dashboard/trade/admin"
             currentPage="Dashboard Financeiro"
           />
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 gap-4">
