@@ -1,31 +1,30 @@
 
 
-# Corrigir Submissão Automática do Unitário Vinculado ao Kit
+## Plano: Separar tabela de lançamentos em Clientes e Fornecedores com visão consolidada
 
-## Problema
-Quando o Kit/Display é enviado para aprovação, o produto unitário vinculado **não está sendo submetido junto**. Isso acontece porque o código atual em `useFichaRevisao.ts` (linhas 220-229) pula o filho se:
-- Não existe `fabrica_produto_custos_config` para o filho
-- O filho não possui insumos cadastrados em `fabrica_produto_custos`
-- O status do filho já é `em_revisao`
+### O que muda
 
-Na prática, o produto unitário pode não ter config ou insumos próprios configurados, fazendo o `continue` ser executado.
+A tabela única de lançamentos será substituída por um componente com **3 abas (Tabs)**:
 
-## Solução
+1. **Consolidada** -- todos os lançamentos juntos (comportamento atual), com uma coluna extra indicando a origem (Cliente/Fornecedor)
+2. **Clientes** -- apenas lançamentos de campanhas (`source === 'campaign'`), com coluna "Cliente"
+3. **Fornecedores** -- apenas lançamentos financeiros diretos (`source === 'financial_entry'`), com coluna "Fornecedor" (usando `supplier_name`)
 
-### Alteração em `src/hooks/useFichaRevisao.ts`
+### Implementação
 
-Na função `submeterParaAprovacao`, relaxar as condições para os filhos:
+**Arquivo: `src/components/trade/dashboard/TradeLancamentosTable.tsx`**
 
-1. **Se o filho não tem config**: criar automaticamente um `fabrica_produto_custos_config` com valores padrão antes de submeter.
-2. **Se o filho não tem insumos**: submeter mesmo assim com array vazio de insumos (o snapshot ficará vazio, mas a revisão será criada e aparecerá na listagem da Diretoria).
-3. **Se o filho já está `em_revisao`**: pular (manter essa condição, pois já foi submetido).
-4. **Se o filho já está com status `aprovada`**: re-submeter com dados atuais para que acompanhe o Kit.
+- Envolver a tabela existente com `Tabs` / `TabsList` / `TabsTrigger` / `TabsContent`
+- Criar 3 tabs: "Consolidada", "Clientes", "Fornecedores"
+- Filtrar `lancamentos` conforme a aba ativa:
+  - Consolidada: todos, adiciona coluna "Tipo" com badge Cliente/Fornecedor
+  - Clientes: `source === 'campaign'`, coluna "Cliente"
+  - Fornecedores: `source === 'financial_entry'`, coluna "Fornecedor" mostrando `supplier_name`
+- Cada aba mantém os filtros de busca/status e o totalizador de rodapé independente
+- O Dialog de detalhes continua funcionando igual
 
-Mudanças específicas:
-- Remover o `if (!filhoInsumos || filhoInsumos.length === 0) continue;` (linha 229) -- submeter mesmo sem insumos
-- Quando `filhoConfig` não existir, criar um config padrão via insert antes de prosseguir
-- Tratar `filhoInsumos` como `[]` quando null
-
-### Arquivo a alterar
-- **`src/hooks/useFichaRevisao.ts`**: Ajustar bloco de submissão de filhos (linhas 208-243)
+### Detalhes visuais
+- Badge azul "Cliente" e badge laranja "Fornecedor" na aba consolidada
+- Totais de rodapé calculados por aba filtrada
+- Exportação Excel respeita a aba/filtro ativo
 
