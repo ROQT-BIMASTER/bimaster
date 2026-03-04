@@ -197,6 +197,7 @@ const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
+const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 
 // Loading component
 const PageLoader = () => (
@@ -439,6 +440,7 @@ function AppContent() {
             {/* Módulo de Projetos */}
             <Route path="/dashboard/projetos" element={<ProtectedRoute><Projetos /></ProtectedRoute>} />
             <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ProjetoInbox /></ProtectedRoute>} />
+            <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ProjetoAprovacaoCadastro /></ProtectedRoute>} />
             <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ProjetoDetalhe /></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
