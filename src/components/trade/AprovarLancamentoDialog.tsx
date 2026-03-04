@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,61 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
-import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, ExternalLink, Store, CreditCard, Calendar, User, DollarSign, Send, Paperclip, Building2, Image, File, Loader2 } from "lucide-react";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+function AttachmentRow({ attachment }: { attachment: any }) {
+  const [loading, setLoading] = useState(false);
+
+  const getIcon = () => {
+    const type = attachment.type || "";
+    if (type.startsWith("image/")) return <Image className="h-4 w-4" />;
+    if (type.includes("pdf")) return <FileText className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const formatSize = (bytes: number) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="flex items-center justify-between p-2 rounded-lg border bg-background">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {getIcon()}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{attachment.name}</p>
+          {attachment.size && (
+            <p className="text-xs text-muted-foreground">{formatSize(attachment.size)}</p>
+          )}
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={loading}
+        onClick={async () => {
+          setLoading(true);
+          try {
+            const { signedUrl, error } = await resolveStorageUrl(attachment.url);
+            if (error || !signedUrl) { toast.error(error || "Erro ao abrir arquivo"); return; }
+            window.open(signedUrl, "_blank");
+          } finally {
+            setLoading(false);
+          }
+        }}
+      >
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+      </Button>
+    </div>
+  );
+}
 
 interface AprovarLancamentoDialogProps {
   open: boolean;
@@ -371,8 +420,95 @@ export function AprovarLancamentoDialog({
               </Card>
             </div>
 
-            {/* Documentos Anexos */}
-            {(entry.document_url || entry.receipt_url) && (
+            {/* Fornecedor */}
+            {(entry.supplier_name || entry.fornecedor_id) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Building2 className="h-4 w-4" />
+                  Fornecedor
+                </div>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {entry.supplier_name && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Nome</p>
+                          <p className="font-medium mt-1">{entry.supplier_name}</p>
+                        </div>
+                      )}
+                      {entry.supplier_document && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">CNPJ/CPF</p>
+                          <p className="font-mono mt-1">{entry.supplier_document}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Informações do Documento */}
+            {(entry.document_type || entry.document_number || entry.due_date || entry.portador) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <FileText className="h-4 w-4" />
+                  Informações do Documento
+                </div>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {entry.document_type && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Tipo Documento</p>
+                          <p className="mt-1 capitalize">{entry.document_type}</p>
+                        </div>
+                      )}
+                      {entry.document_number && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Nº Documento</p>
+                          <p className="font-mono mt-1">{entry.document_number}</p>
+                        </div>
+                      )}
+                      {entry.due_date && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Vencimento</p>
+                          <p className="mt-1">
+                            {new Date(entry.due_date).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      )}
+                      {entry.portador && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Portador</p>
+                          <p className="mt-1">{entry.portador}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Anexos (attachments JSONB array) */}
+            {entry.attachments && Array.isArray(entry.attachments) && entry.attachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Paperclip className="h-4 w-4" />
+                  Anexos ({entry.attachments.length})
+                </div>
+                <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800">
+                  <CardContent className="pt-4 space-y-2">
+                    {entry.attachments.map((att: any, idx: number) => (
+                      <AttachmentRow key={idx} attachment={att} />
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Documento legado (document_url / receipt_url) */}
+            {(entry.document_url || entry.receipt_url) && !(entry.attachments && entry.attachments.length > 0) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <FileText className="h-4 w-4" />
