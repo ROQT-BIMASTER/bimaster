@@ -402,19 +402,37 @@ export function ProjetoTarefaDetalhe({
                           />
                         </div>
                         {showProdutoSearch && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-52 overflow-auto">
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-auto">
                             {produtoResults.length > 0 ? (
                               produtoResults.map(p => (
-                                <button
-                                  key={p.id}
-                                  onClick={() => handleSelectProduto(p)}
-                                  className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors"
-                                >
-                                  <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                  <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
-                                  <span className="truncate">{p.nome}</span>
-                                  {p.marca && <Badge variant="outline" className="text-[9px] px-1 flex-shrink-0">{p.marca}</Badge>}
-                                </button>
+                                <div key={p.id}>
+                                  <button
+                                    onClick={() => handleSelectProduto(p)}
+                                    className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${p.tipo === "DISPLAY" ? "bg-primary/5 font-medium" : ""}`}
+                                  >
+                                    <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
+                                    <span className="truncate">{p.nome}</span>
+                                    {p.tipo === "DISPLAY" && <Badge variant="default" className="text-[9px] px-1 flex-shrink-0">Display</Badge>}
+                                    {p.marca && <Badge variant="outline" className="text-[9px] px-1 flex-shrink-0">{p.marca}</Badge>}
+                                  </button>
+                                  {/* Filhos do Display */}
+                                  {p.tipo === "DISPLAY" && p.filhos && p.filhos.length > 0 && (
+                                    <div className="border-l-2 border-primary/30 ml-5">
+                                      {p.filhos.map(filho => (
+                                        <button
+                                          key={filho.id}
+                                          onClick={() => handleSelectProduto(filho)}
+                                          className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors pl-4"
+                                        >
+                                          <span className="text-muted-foreground">↳</span>
+                                          <span className="font-mono text-muted-foreground flex-shrink-0 text-[10px]">{filho.codigo}</span>
+                                          <span className="truncate text-muted-foreground">{filho.nome}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               ))
                             ) : (
                               <div className="px-3 py-3 text-xs text-muted-foreground text-center">
