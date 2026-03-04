@@ -7751,27 +7751,33 @@ export type Database = {
           blocked_by: string
           created_at: string
           id: string
+          launch_date: string | null
           linha: string | null
           motivo: string | null
           produto_id: string | null
+          tabela_id: string | null
           tipo: string
         }
         Insert: {
           blocked_by: string
           created_at?: string
           id?: string
+          launch_date?: string | null
           linha?: string | null
           motivo?: string | null
           produto_id?: string | null
+          tabela_id?: string | null
           tipo: string
         }
         Update: {
           blocked_by?: string
           created_at?: string
           id?: string
+          launch_date?: string | null
           linha?: string | null
           motivo?: string | null
           produto_id?: string | null
+          tabela_id?: string | null
           tipo?: string
         }
         Relationships: [
@@ -7780,6 +7786,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "fabrica_produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fabrica_produto_visibility_blocks_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
             referencedColumns: ["id"]
           },
         ]

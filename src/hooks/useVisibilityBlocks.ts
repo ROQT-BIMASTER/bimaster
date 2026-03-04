@@ -10,6 +10,8 @@ export interface VisibilityBlock {
   motivo: string | null;
   blocked_by: string;
   created_at: string;
+  launch_date: string | null;
+  tabela_id: string | null;
 }
 
 export function useVisibilityBlocks() {
@@ -28,20 +30,31 @@ export function useVisibilityBlocks() {
     },
   });
 
+  // Active blocks: no launch_date OR launch_date is in the future (product not launched yet)
+  const activeBlocks = blocks.filter(b => {
+    if (!b.launch_date) return true;
+    return new Date(b.launch_date) > new Date();
+  });
+
   const isProductBlocked = (linha: string | null, produtoId: string): boolean => {
-    // Check product-specific block
-    if (blocks.some(b => b.tipo === "produto" && b.produto_id === produtoId)) return true;
-    // Check line block
-    if (linha && blocks.some(b => b.tipo === "linha" && b.linha === linha)) return true;
+    if (activeBlocks.some(b => b.tipo === "produto" && b.produto_id === produtoId)) return true;
+    if (linha && activeBlocks.some(b => b.tipo === "linha" && b.linha === linha)) return true;
     return false;
   };
 
   const isLineBlocked = (linha: string): boolean => {
-    return blocks.some(b => b.tipo === "linha" && b.linha === linha);
+    return activeBlocks.some(b => b.tipo === "linha" && b.linha === linha);
   };
 
   const blockMutation = useMutation({
-    mutationFn: async (params: { tipo: "linha" | "produto"; linha?: string; produto_id?: string; motivo?: string }) => {
+    mutationFn: async (params: { 
+      tipo: "linha" | "produto"; 
+      linha?: string; 
+      produto_id?: string; 
+      motivo?: string;
+      launch_date?: string | null;
+      tabela_id?: string | null;
+    }) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Não autenticado");
 
@@ -53,6 +66,8 @@ export function useVisibilityBlocks() {
           produto_id: params.tipo === "produto" ? params.produto_id : null,
           motivo: params.motivo || null,
           blocked_by: user.user.id,
+          launch_date: params.launch_date || null,
+          tabela_id: params.tabela_id || null,
         } as any);
 
       if (error) throw error;
@@ -89,22 +104,26 @@ export function useVisibilityBlocks() {
   });
 
   const getBlockForProduct = (produtoId: string): VisibilityBlock | undefined => {
-    return blocks.find(b => b.tipo === "produto" && b.produto_id === produtoId);
+    return activeBlocks.find(b => b.tipo === "produto" && b.produto_id === produtoId);
   };
 
   const getBlockForLine = (linha: string): VisibilityBlock | undefined => {
-    return blocks.find(b => b.tipo === "linha" && b.linha === linha);
+    return activeBlocks.find(b => b.tipo === "linha" && b.linha === linha);
   };
 
   return {
-    blocks,
+    blocks, // all blocks (for admin listing)
+    activeBlocks, // only currently active blocks
     isLoading,
     isProductBlocked,
     isLineBlocked,
     getBlockForProduct,
     getBlockForLine,
-    blockProduct: (produtoId: string, motivo?: string) => blockMutation.mutateAsync({ tipo: "produto", produto_id: produtoId, motivo }),
-    blockLine: (linha: string, motivo?: string) => blockMutation.mutateAsync({ tipo: "linha", linha, motivo }),
+    blockProduct: (produtoId: string, motivo?: string, launch_date?: string | null, tabela_id?: string | null) => 
+      blockMutation.mutateAsync({ tipo: "produto", produto_id: produtoId, motivo, launch_date, tabela_id }),
+    blockLine: (linha: string, motivo?: string, launch_date?: string | null, tabela_id?: string | null) => 
+      blockMutation.mutateAsync({ tipo: "linha", linha, motivo, launch_date, tabela_id }),
+    blockItem: (params: Parameters<typeof blockMutation.mutateAsync>[0]) => blockMutation.mutateAsync(params),
     unblock: (blockId: string) => unblockMutation.mutateAsync(blockId),
     isBlocking: blockMutation.isPending,
     isUnblocking: unblockMutation.isPending,
