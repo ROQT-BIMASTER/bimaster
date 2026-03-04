@@ -13550,6 +13550,7 @@ export type Database = {
           conteudo: string
           created_at: string
           id: string
+          mentions: string[] | null
           tarefa_id: string
           user_id: string
         }
@@ -13557,6 +13558,7 @@ export type Database = {
           conteudo: string
           created_at?: string
           id?: string
+          mentions?: string[] | null
           tarefa_id: string
           user_id: string
         }
@@ -13564,12 +13566,48 @@ export type Database = {
           conteudo?: string
           created_at?: string
           id?: string
+          mentions?: string[] | null
           tarefa_id?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "projeto_tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_tarefa_messages: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          mentions: string[] | null
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_messages_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "projeto_tarefas"
@@ -13590,6 +13628,7 @@ export type Database = {
           ordem: number | null
           parent_tarefa_id: string | null
           prioridade: string | null
+          produto_id: string | null
           projeto_id: string
           responsavel_id: string | null
           secao_id: string
@@ -13610,6 +13649,7 @@ export type Database = {
           ordem?: number | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
+          produto_id?: string | null
           projeto_id: string
           responsavel_id?: string | null
           secao_id: string
@@ -13630,6 +13670,7 @@ export type Database = {
           ordem?: number | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
+          produto_id?: string | null
           projeto_id?: string
           responsavel_id?: string | null
           secao_id?: string
@@ -13644,6 +13685,13 @@ export type Database = {
             columns: ["parent_tarefa_id"]
             isOneToOne: false
             referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_produtos"
             referencedColumns: ["id"]
           },
           {
