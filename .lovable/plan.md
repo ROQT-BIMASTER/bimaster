@@ -1,54 +1,54 @@
 
 
-## Sugestões de IA para Facilitar Lançamentos em Projetos
+## Cronograma do Projeto — Plano de Implementação
 
-Baseado na análise do módulo de projetos atual (tarefas, seções, estágios, cofre de documentos, aprovação), aqui estão as funcionalidades de IA que podemos implementar:
+### Conceito
 
----
+Um **Gantt Chart interativo** que mostra cada **produto vinculado** como uma linha (swim lane), e dentro de cada linha as **tarefas agrupadas por seção** aparecem como barras horizontais posicionadas pelo prazo. Isso dá visibilidade de todo o ciclo de vida do produto através das seções do projeto.
 
-### 1. Criação de Tarefas por IA (Texto Livre → Tarefas Estruturadas)
-O usuário digita uma descrição livre como *"Precisamos fazer rótulo, ficha técnica e arte final do produto X até dia 15"* e a IA cria automaticamente múltiplas tarefas com:
-- Título, descrição, prioridade e prazo sugeridos
-- Seção e estágio corretos
-- Produto vinculado (se mencionado)
+```text
+Produto A  │ ▓▓▓ Briefing ▓▓▓│░░ Criação ░░│▒▒ Revisão ▒▒│■■ Aprovação ■■│
+Produto B  │ ▓▓ Briefing ▓▓  │░░░ Criação ░░░│            │▒▒▒ Aprovação ▒▒▒│
+Sem produto│ ▓ Tarefa avulsa ▓│                                              │
+           └──────────────────┴──────────────┴──────────────┴─────────────────┘
+            Mar 10            Mar 17          Mar 24          Mar 31
+```
 
-Botão "✨ Criar com IA" ao lado do "Adicionar tarefa" existente.
+### Funcionalidades
 
-### 2. Assistente de Preenchimento de Tarefa
-Ao abrir o detalhe de uma tarefa, um botão "Sugerir preenchimento" analisa o título e contexto do projeto para sugerir:
-- Descrição detalhada
-- Prioridade recomendada
-- Prazo estimado baseado em tarefas similares anteriores
-- Checklist de subtarefas comuns para aquele tipo de trabalho
+1. **Eixo Y = Produtos** — Cada produto vinculado (via `projeto_tarefa_produtos`) é uma swim lane. Tarefas sem produto ficam em "Geral".
 
-### 3. Geração Automática de Checklist/Subtarefas
-Dado o tipo de tarefa (ex: "Desenvolvimento de Rótulo"), a IA gera uma checklist padrão:
-- Briefing aprovado
-- Primeira versão criada
-- Revisão do regulatório
-- Arte final aprovada
-- Arquivo enviado para gráfica
+2. **Barras = Tarefas** — Cada barra representa uma tarefa, colorida pela seção. A largura vai de `created_at` até `data_prazo` (ou largura fixa se sem prazo).
 
-### 4. Resumo Inteligente do Projeto
-Um botão "Resumo IA" no header do projeto que gera:
-- Status geral (% concluído, atrasados, bloqueados)
-- Riscos identificados (tarefas sem responsável, prazos próximos)
-- Próximos passos recomendados
+3. **Estágios visuais** — A cor/padrão da barra reflete o estágio atual (briefing, criação, revisão, etc.).
 
-### 5. Classificação Automática de Documentos do Cofre
-Ao fazer upload de um arquivo, a IA analisa o conteúdo/nome e sugere automaticamente a categoria correta (Rótulo, Ficha Técnica, Laudo, etc.).
+4. **Marcador "Hoje"** — Linha vertical vermelha no dia atual.
 
----
+5. **Interação** — Clicar na barra abre o `ProjetoTarefaDetalhe`. Tooltip com título, responsável e status.
+
+6. **Zoom** — Controle de zoom (semana/mês/trimestre) reutilizando o padrão do `LaunchTimeline`.
+
+7. **Filtros** — Filtrar por seção, status, prioridade.
 
 ### Implementação Técnica
 
-| Recurso | Backend | Frontend |
-|---------|---------|----------|
-| Criação por IA | Nova edge function `projeto-ia-assistant` usando Lovable AI (gemini-2.5-flash) | Botão + modal no `NovaTarefaInline` |
-| Preenchimento | Mesma edge function, action `suggest_fields` | Botão no `ProjetoTarefaDetalhe` |
-| Checklist | Mesma edge function, action `generate_checklist` | Seção no detalhe da tarefa |
-| Resumo | Mesma edge function, action `project_summary` | Botão no `ProjetoHeader` |
-| Classificação docs | Mesma edge function, action `classify_document` | Auto-trigger no upload |
+**Novo componente**: `src/components/projetos/ProjetoCronogramaView.tsx`
 
-Todos usariam uma única edge function com branching por `action`, reutilizando o padrão já existente no `expense-ai-assistant`.
+- Recebe `projetoId`
+- Usa `useProjetoTarefas` para obter seções e tarefas
+- Busca produtos vinculados via `projeto_tarefa_produtos` para agrupar
+- Renderiza um Gantt horizontal com:
+  - Header de meses/semanas (similar ao `LaunchTimeline`)
+  - Swim lanes por produto
+  - Barras posicionadas por data
+
+**Atualizar**: `src/pages/ProjetoDetalhe.tsx` — substituir o placeholder "Em breve" pelo novo componente.
+
+**Sem alterações de banco** — usa dados existentes (`projeto_tarefas.data_prazo`, `projeto_tarefa_produtos`, `projeto_secoes`).
+
+### Componentes reutilizados
+- Zoom/navegação temporal do `LaunchTimeline`
+- `ProductThumbnail` para as swim lanes
+- `ProjetoTarefaDetalhe` ao clicar nas barras
+- Cores de estágio/status já definidas no projeto
 
