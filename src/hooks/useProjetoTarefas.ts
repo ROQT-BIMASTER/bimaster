@@ -24,6 +24,7 @@ export interface ProjetoTarefa {
   data_prazo: string | null;
   data_conclusao: string | null;
   codigo: string | null;
+  estagio: string | null;
   visibilidade: string;
   ordem: number;
   created_at: string;

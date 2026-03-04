@@ -9,11 +9,13 @@ interface ProjetoSecaoProps {
   nome: string;
   tarefas: ProjetoTarefa[];
   secaoId: string;
+  selectedTarefaId?: string;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
+  onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
 }
 
-export function ProjetoSecao({ nome, tarefas, secaoId, onToggleTarefa, onAddTarefa }: ProjetoSecaoProps) {
+export function ProjetoSecao({ nome, tarefas, secaoId, selectedTarefaId, onToggleTarefa, onSelectTarefa, onAddTarefa }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
@@ -23,7 +25,6 @@ export function ProjetoSecao({ nome, tarefas, secaoId, onToggleTarefa, onAddTare
 
   return (
     <div className="mb-1">
-      {/* Section header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center gap-2 px-3 py-2.5 w-full hover:bg-muted/30 transition-colors group"
@@ -39,14 +40,15 @@ export function ProjetoSecao({ nome, tarefas, secaoId, onToggleTarefa, onAddTare
         </span>
       </button>
 
-      {/* Tasks */}
       {!collapsed && (
         <div>
           {tarefas.map(tarefa => (
             <ProjetoTarefaRow
               key={tarefa.id}
               tarefa={tarefa}
+              selected={tarefa.id === selectedTarefaId}
               onToggle={onToggleTarefa}
+              onSelect={onSelectTarefa}
             />
           ))}
           <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} />
