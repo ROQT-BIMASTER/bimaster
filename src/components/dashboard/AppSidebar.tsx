@@ -719,7 +719,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       )}
                       
                       {fabricaGroups.map((group) => {
-                        const filteredItems = group.items.filter((item) => hasPermission(item.screenCode));
+                        const filteredItems = group.items.filter((item) => isAdmin || hasPermission(item.screenCode));
                         if (filteredItems.length === 0) return null;
                         
                         return (
