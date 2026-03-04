@@ -16,8 +16,8 @@ export default function TradeLancamentosCampanhas() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb 
-          moduleName="Financeiro Trade" 
-          moduleHref="/dashboard/trade/financeiro" 
+          moduleName="Administrativo Trade" 
+          moduleHref="/dashboard/trade/admin" 
           currentPage="Painel de Lançamentos" 
         />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

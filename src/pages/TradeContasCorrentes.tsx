@@ -121,8 +121,8 @@ export default function TradeContasCorrentes() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb 
-          moduleName="Financeiro Trade" 
-          moduleHref="/dashboard/trade/financeiro" 
+          moduleName="Administrativo Trade" 
+          moduleHref="/dashboard/trade/admin" 
           currentPage="Contas Correntes" 
         />
         <div className="flex items-center justify-between">

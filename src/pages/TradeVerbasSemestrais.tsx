@@ -393,8 +393,8 @@ export default function TradeVerbasSemestrais() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb 
-          moduleName="Financeiro Trade" 
-          moduleHref="/dashboard/trade/financeiro" 
+          moduleName="Administrativo Trade" 
+          moduleHref="/dashboard/trade/admin" 
           currentPage="Verbas Semestrais" 
         />
         <div className="flex items-center justify-between" data-tour="verbas-header">

@@ -295,8 +295,8 @@ export default function TradeCampaigns() {
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb 
-          moduleName="Financeiro Trade" 
-          moduleHref="/dashboard/trade/financeiro" 
+          moduleName="Administrativo Trade" 
+          moduleHref="/dashboard/trade/admin" 
           currentPage="Campanhas" 
         />
         <div className="flex items-center justify-between" data-tour="campaigns-header">
