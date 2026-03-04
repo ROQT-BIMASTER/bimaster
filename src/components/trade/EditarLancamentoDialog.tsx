@@ -26,7 +26,7 @@ import { ExpenseAttachments } from "@/components/events/ExpenseAttachments";
 import { TRADE_EXPENSE_CATEGORIES } from "./tradeExpenseCategories";
 import { useQuery } from "@tanstack/react-query";
 import { useUserEmpresas, useAllEmpresas } from "@/hooks/useUserEmpresas";
-import { Building, Target, Loader2 } from "lucide-react";
+import { Building, Target, Loader2, Clock } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
 
@@ -72,6 +72,7 @@ export function EditarLancamentoDialog({
   const [empresaId, setEmpresaId] = useState("");
   const [notes, setNotes] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [documentType, setDocumentType] = useState("none");
 
   // Buscar campanhas
   const { data: campaigns = [] } = useQuery({
@@ -138,6 +139,7 @@ export function EditarLancamentoDialog({
       setCampaignId(data.campaign_id || "none");
       setFornecedorId(data.fornecedor_id || "none");
       setEmpresaId(data.empresa_id?.toString() || "");
+      setDocumentType(data.document_type || "none");
       
       const savedAttachments = data.attachments;
       if (Array.isArray(savedAttachments) && savedAttachments.length > 0) {
@@ -215,6 +217,7 @@ export function EditarLancamentoDialog({
           attachments: attachments,
           approval_status: "pending",
           rejected_reason: null,
+          document_type: documentType !== "none" ? documentType : null,
         })
         .eq("id", entryId);
 
@@ -411,6 +414,30 @@ export function EditarLancamentoDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Tipo de Documento */}
+            <div className="space-y-2">
+              <Label>Tipo de Documento</Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Selecione o tipo</SelectItem>
+                  <SelectItem value="orcamento">Orçamento</SelectItem>
+                  <SelectItem value="nf">Nota Fiscal</SelectItem>
+                  <SelectItem value="nfse">NFS-e (Serviços)</SelectItem>
+                  <SelectItem value="boleto">Boleto Bancário</SelectItem>
+                  <SelectItem value="recibo">Recibo</SelectItem>
+                </SelectContent>
+              </Select>
+              {documentType === "orcamento" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Lançamentos com orçamento ficam sinalizados como pendentes de NF
+                </p>
+              )}
             </div>
 
             {/* Anexos */}

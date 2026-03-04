@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Target, Building, Loader2 } from "lucide-react";
+import { Plus, Target, Building, Loader2, Clock } from "lucide-react";
 import { FornecedorCombobox } from "./FornecedorCombobox";
 import { LojaCombobox } from "./LojaCombobox";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -67,6 +67,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
   const [storeId, setStoreId] = useState("none");
   const [budgetId, setBudgetId] = useState("none");
   const [notes, setNotes] = useState("");
+  const [documentType, setDocumentType] = useState("none");
   const [campaignId, setCampaignId] = useState("none");
   const [empresaId, setEmpresaId] = useState("");
   const [fornecedorId, setFornecedorId] = useState("none");
@@ -168,6 +169,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
     setFornecedorId("none");
     setNotes("");
     setAttachments([]);
+    setDocumentType("none");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,6 +234,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
         supplier_name: supplierName,
         supplier_document: supplierDocument,
         attachments: attachments,
+        document_type: documentType !== "none" ? documentType : null,
       }).select("id").single();
 
       if (error) throw error;
@@ -456,6 +459,30 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Tipo de Documento */}
+          <div className="space-y-2">
+            <Label>Tipo de Documento</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Selecione o tipo</SelectItem>
+                <SelectItem value="orcamento">Orçamento</SelectItem>
+                <SelectItem value="nf">Nota Fiscal</SelectItem>
+                <SelectItem value="nfse">NFS-e (Serviços)</SelectItem>
+                <SelectItem value="boleto">Boleto Bancário</SelectItem>
+                <SelectItem value="recibo">Recibo</SelectItem>
+              </SelectContent>
+            </Select>
+            {documentType === "orcamento" && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Lançamentos com orçamento ficam sinalizados como pendentes de NF
+              </p>
+            )}
           </div>
 
           {/* Seção: Anexos */}
