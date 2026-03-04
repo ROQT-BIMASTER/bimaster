@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -33,11 +32,13 @@ import {
 } from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useEventExpenses, DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, SplitSquareVertical } from "lucide-react";
+import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, SplitSquareVertical, AlertTriangle, CalendarCheck, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
+import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Fornecedor {
   id: string;
@@ -58,11 +59,18 @@ export function EnviarFinanceiroDialog({
 }: EnviarFinanceiroDialogProps) {
   const { sendToFinancial } = useEventExpenses();
   const { data: portadores } = usePortadores();
+  const { data: activePolicy } = useActivePaymentPolicy();
 
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
   const [openCombobox, setOpenCombobox] = useState(false);
-  const [installmentInfo, setInstallmentInfo] = useState<{ number: number; total: number; barcode: string | null } | null>(null);
+  const [expenseInfo, setExpenseInfo] = useState<{ 
+    status: string | null; 
+    attachments: any[] | null;
+    installment_number: number | null; 
+    installment_total: number | null; 
+    boleto_barcode: string | null;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     supplier_name: "",
@@ -74,7 +82,13 @@ export function EnviarFinanceiroDialog({
     payment_notes: "",
   });
 
-  // Fetch suppliers + installment info when dialog opens
+  const hasAttachments = expenseInfo?.attachments && expenseInfo.attachments.length > 0;
+  const isApproved = expenseInfo?.status === "approved";
+  const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
+  const isInstallment = !!(expenseInfo?.installment_number) && !!(expenseInfo?.installment_total);
+  const boletoBarcode = expenseInfo?.boleto_barcode;
+
+  // Fetch suppliers + expense info when dialog opens
   useEffect(() => {
     if (open) {
       supabase
@@ -84,18 +98,19 @@ export function EnviarFinanceiroDialog({
         .order("razao_social")
         .then(({ data }) => setFornecedores(data || []));
 
-      // Check installment info
       supabase
         .from("corporate_event_expenses")
-        .select("installment_number, installment_total, boleto_barcode")
+        .select("status, attachments, installment_number, installment_total, boleto_barcode")
         .eq("id", expenseId)
         .single()
         .then(({ data }) => {
-          if (data?.installment_number && data?.installment_total) {
-            setInstallmentInfo({
-              number: data.installment_number,
-              total: data.installment_total,
-              barcode: data.boleto_barcode,
+          if (data) {
+            setExpenseInfo({
+              status: data.status,
+              attachments: (data.attachments as any[]) || [],
+              installment_number: data.installment_number,
+              installment_total: data.installment_total,
+              boleto_barcode: data.boleto_barcode,
             });
           }
         });
@@ -106,7 +121,7 @@ export function EnviarFinanceiroDialog({
   useEffect(() => {
     if (!open) {
       setFornecedorId("");
-      setInstallmentInfo(null);
+      setExpenseInfo(null);
       setFormData({
         supplier_name: "",
         supplier_document: "",
@@ -154,18 +169,27 @@ export function EnviarFinanceiroDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+    if (!isApproved) {
+      toast.error("Despesa precisa estar aprovada para enviar ao financeiro");
       return;
     }
 
-    // Include barcode in notes if available
-    let notes = formData.payment_notes || "";
-    if (installmentInfo?.barcode) {
-      notes = `${notes}\nLinha Digitável: ${installmentInfo.barcode}`.trim();
+    if (!hasAttachments) {
+      toast.error("Adicione pelo menos um anexo antes de enviar ao financeiro");
+      return;
     }
-    if (installmentInfo) {
-      notes = `Parcela ${installmentInfo.number}/${installmentInfo.total}\n${notes}`.trim();
+
+    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
     }
+
+    // Build standardized notes: "Observações | Linha digitável: XXX | Parcela X/Y"
+    const noteParts: string[] = [];
+    if (formData.payment_notes) noteParts.push(formData.payment_notes);
+    if (boletoBarcode) noteParts.push(`Linha digitável: ${boletoBarcode}`);
+    if (isInstallment) noteParts.push(`Parcela ${expenseInfo!.installment_number}/${expenseInfo!.installment_total}`);
+    const notes = noteParts.join(" | ") || undefined;
 
     await sendToFinancial.mutateAsync({
       id: expenseId,
@@ -175,7 +199,7 @@ export function EnviarFinanceiroDialog({
       document_number: formData.document_number,
       due_date: formData.due_date,
       portador: formData.portador,
-      payment_notes: notes || undefined,
+      payment_notes: notes,
     });
 
     onOpenChange(false);
@@ -197,15 +221,57 @@ export function EnviarFinanceiroDialog({
         </DialogHeader>
 
         {/* Installment context alert */}
-        {installmentInfo && (
+        {isInstallment && (
           <Alert>
             <SplitSquareVertical className="h-4 w-4" />
             <AlertDescription>
-              Esta é a <strong>parcela {installmentInfo.number} de {installmentInfo.total}</strong>.
-              {installmentInfo.barcode && (
+              Esta é a <strong>parcela {expenseInfo!.installment_number} de {expenseInfo!.installment_total}</strong>.
+              {boletoBarcode && (
                 <span className="block mt-1 font-mono text-xs break-all">
-                  Linha digitável: {installmentInfo.barcode}
+                  Linha digitável: {boletoBarcode}
                 </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Approval status alert */}
+        {expenseInfo && !isApproved && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Esta despesa ainda não foi aprovada. Somente despesas aprovadas podem ser enviadas ao financeiro.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Attachments validation alert */}
+        {expenseInfo && !hasAttachments && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Esta despesa não possui anexos. Adicione pelo menos um documento antes de enviar ao financeiro.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Payment policy banner */}
+        {activePolicy && (
+          <Alert variant={withinCutoff ? "default" : "destructive"}>
+            {withinCutoff ? (
+              <CalendarCheck className="h-4 w-4" />
+            ) : (
+              <Clock className="h-4 w-4" />
+            )}
+            <AlertDescription className="text-xs">
+              {withinCutoff ? (
+                <>
+                  <strong>Dentro do corte.</strong> {getPolicySummary(activePolicy)} — Pagamento previsto: {getNextPaymentDateFormatted(activePolicy)}
+                </>
+              ) : (
+                <>
+                  <strong>Fora do corte.</strong> {getPolicySummary(activePolicy)} — Este envio será processado na próxima semana.
+                </>
               )}
             </AlertDescription>
           </Alert>
@@ -404,7 +470,7 @@ export function EnviarFinanceiroDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={sendToFinancial.isPending || !fornecedorId}
+              disabled={sendToFinancial.isPending || !fornecedorId || !hasAttachments || !isApproved}
             >
               {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
