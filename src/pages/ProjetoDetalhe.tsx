@@ -6,6 +6,7 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
+import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -71,11 +72,7 @@ export default function ProjetoDetalhe() {
             {/* Tab content */}
             {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} />}
             {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} />}
-            {activeTab === "cronograma" && (
-              <div className="flex items-center justify-center py-20 text-muted-foreground">
-                <p>Cronograma — Em breve</p>
-              </div>
-            )}
+            {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} />}
             {activeTab === "painel" && (
               <div className="flex items-center justify-center py-20 text-muted-foreground">
                 <p>Painel — Em breve</p>
