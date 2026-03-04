@@ -163,3 +163,108 @@ export function usePaymentMessageCounts(paymentQueueIds: string[]) {
     staleTime: 30000,
   });
 }
+
+export interface PaymentConversation {
+  paymentQueueId: string;
+  fornecedor: string;
+  descricao: string;
+  sourceType: string;
+  status: string;
+  totalMessages: number;
+  unread: number;
+  lastMessage: string;
+  lastMessageDate: string;
+  lastSender: string;
+}
+
+export function useAllPaymentConversations() {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["all-payment-conversations"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return [];
+      const userId = userData.user.id;
+
+      // Get all messages
+      const { data: messages, error: msgError } = await supabase
+        .from("financial_payment_messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (msgError) throw msgError;
+      if (!messages || messages.length === 0) return [];
+
+      // Group by payment_queue_id
+      const grouped = new Map<string, any[]>();
+      for (const m of messages) {
+        const arr = grouped.get(m.payment_queue_id) || [];
+        arr.push(m);
+        grouped.set(m.payment_queue_id, arr);
+      }
+
+      // Get payment queue items for metadata
+      const queueIds = [...grouped.keys()];
+      const { data: queueItems } = await supabase
+        .from("financial_payment_queue")
+        .select("id, fornecedor, descricao, source_type, financial_status")
+        .in("id", queueIds);
+
+      const queueMap = new Map<string, any>();
+      (queueItems || []).forEach((q: any) => queueMap.set(q.id, q));
+
+      const conversations: PaymentConversation[] = [];
+
+      for (const [qId, msgs] of grouped) {
+        const queueItem = queueMap.get(qId);
+        const lastMsg = msgs[0]; // already sorted desc
+        const unread = msgs.filter((m: any) => {
+          const lidaPor = (m.lida_por as string[]) || [];
+          return !lidaPor.includes(userId) && m.usuario_id !== userId;
+        }).length;
+
+        conversations.push({
+          paymentQueueId: qId,
+          fornecedor: queueItem?.fornecedor || "—",
+          descricao: queueItem?.descricao || "",
+          sourceType: queueItem?.source_type || "",
+          status: queueItem?.financial_status || "",
+          totalMessages: msgs.length,
+          unread,
+          lastMessage: lastMsg.conteudo,
+          lastMessageDate: lastMsg.created_at,
+          lastSender: lastMsg.usuario_nome,
+        });
+      }
+
+      // Sort: unread first, then by date
+      conversations.sort((a, b) => {
+        if (a.unread > 0 && b.unread === 0) return -1;
+        if (a.unread === 0 && b.unread > 0) return 1;
+        return new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime();
+      });
+
+      return conversations;
+    },
+    staleTime: 15000,
+  });
+
+  // Realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel("all-payment-conversations-rt")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "financial_payment_messages",
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["all-payment-conversations"] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
+  return query;
+}
