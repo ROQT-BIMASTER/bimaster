@@ -127,6 +127,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = true
   [functions.process-nfe-xml]
     verify_jwt = true
+  [functions.projeto-ia-assistant]
+    verify_jwt = false
   [functions.process-photo-analysis-queue]
     verify_jwt = false
   [functions.processar-transacao-n8n]

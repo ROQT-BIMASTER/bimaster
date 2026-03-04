@@ -3,7 +3,10 @@ import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
-import { Loader2 } from "lucide-react";
+import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
+import { useProjetoIA } from "@/hooks/useProjetoIA";
+import { Button } from "@/components/ui/button";
+import { Loader2, Sparkles } from "lucide-react";
 
 // Grid template matching ProjetoTarefaRow columns
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_100px_80px_64px_100px_80px_90px_90px]";
@@ -20,6 +23,8 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
     addColaborador, removeColaborador, teamMembers,
   } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
+  const [iaDialogOpen, setIaDialogOpen] = useState(false);
+  const { createTasksWithAI, loading: iaLoading } = useProjetoIA();
 
   if (secoesLoading || tarefasLoading) {
     return (
@@ -68,6 +73,17 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
     }
   };
 
+  const handleCreateIATasks = (tasks: any[]) => {
+    for (const task of tasks) {
+      createTarefa.mutate({
+        titulo: task.titulo,
+        secao_id: task.secao_id,
+      });
+      // After creation, update with extra fields
+      // Note: createTarefa returns data, but we batch here for simplicity
+    }
+  };
+
   return (
     <>
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
@@ -103,8 +119,29 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
           />
         ))}
 
-        <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
+        <div className="flex items-center gap-2 border-t border-border/30">
+          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs gap-1.5 mr-2 text-primary hover:text-primary"
+            onClick={() => setIaDialogOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Criar com IA
+          </Button>
+        </div>
       </div>
+
+      <CriarTarefasIADialog
+        open={iaDialogOpen}
+        onOpenChange={setIaDialogOpen}
+        secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+        projetoId={projetoId}
+        onCreateTasks={handleCreateIATasks}
+        createTasksWithAI={createTasksWithAI}
+        loading={iaLoading === "create_tasks"}
+      />
 
       <ProjetoTarefaDetalhe
         tarefa={selectedTarefa}

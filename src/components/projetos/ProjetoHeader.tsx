@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Projeto } from "@/hooks/useProjetos";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, BarChart3, FileText, Filter, ArrowUpDown, ShieldCheck } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, BarChart3, FileText, Filter, ArrowUpDown, ShieldCheck, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useProjetoIA } from "@/hooks/useProjetoIA";
+import { ResumoIADialog } from "./ResumoIADialog";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -13,6 +15,8 @@ interface ProjetoHeaderProps {
 
 export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeaderProps) {
   const navigate = useNavigate();
+  const { getProjectSummary, loading } = useProjetoIA();
+  const [resumoOpen, setResumoOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -21,10 +25,19 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeader
         <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: projeto.cor }}>
           <span className="text-white text-lg font-bold">{projeto.nome.charAt(0)}</span>
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">{projeto.nome}</h1>
           {projeto.descricao && <p className="text-sm text-muted-foreground">{projeto.descricao}</p>}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setResumoOpen(true)}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Resumo IA
+        </Button>
       </div>
 
       {/* Tabs and toolbar */}
@@ -67,6 +80,14 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeader
           </Button>
         </div>
       </div>
+
+      <ResumoIADialog
+        open={resumoOpen}
+        onOpenChange={setResumoOpen}
+        projetoId={projeto.id}
+        getProjectSummary={getProjectSummary}
+        loading={loading === "project_summary"}
+      />
     </div>
   );
 }
