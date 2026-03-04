@@ -1,27 +1,25 @@
 
 
-## Plano: Corrigir Análise de Espaço em Branco
+## Excluir Despesas de Teste do Banco de Dados
 
-### Problema Raiz
+Identifiquei os dois registros de teste na tabela `trade_financial_entries`:
 
-Todas as 4 funções RPC do Whitespace estão com `search_path=""` (vazio) no banco de dados. Isso faz com que referências a tabelas como `clientes`, `ibge_municipios` etc. falhem com erro `relation "clientes" does not exist` (HTTP 404).
+| ID | Descrição | Valor | Data |
+|---|---|---|---|
+| `d0c14f3f-...` | teste 01 | R$ 1.000,00 | 10/02/2026 |
+| `ccf538b1-...` | ;;. | R$ 3.000,00 | 02/02/2026 |
 
-Adicionalmente, a função `fn_get_whitespace_kpi_details` referencia colunas que não existem na tabela `ibge_municipios`:
-- `m.uf` (correto: `m.uf_sigla`)
-- `m.populacao` (correto: `m.populacao_estimada`)
+### Ação
 
-### Correção
+Executar uma migração SQL para deletar esses dois registros específicos pelo ID:
 
-Uma única migração SQL para recriar as 4 funções com `SET search_path TO 'public'` (formato correto que persiste):
+```sql
+DELETE FROM trade_financial_entries 
+WHERE id IN (
+  'd0c14f3f-4dc5-4516-8e70-493a66421e7a',
+  'ccf538b1-09e0-405d-afe6-25b4fdb50bf9'
+);
+```
 
-1. **`fn_get_whitespace_kpis`** — recriar com `SET search_path TO 'public'`
-2. **`fn_get_whitespace_analysis`** — recriar com `SET search_path TO 'public'`
-3. **`fn_get_whitespace_top_microrregioes`** — recriar com `SET search_path TO 'public'`
-4. **`fn_get_whitespace_kpi_details`** — recriar com `SET search_path TO 'public'` + corrigir `m.uf` → `m.uf_sigla` e `m.populacao` → `m.populacao_estimada`
-
-Nenhum arquivo de código frontend precisa mudar — o problema é exclusivamente no banco de dados.
-
-### Impacto
-- KPIs, tabela, gráfico e detalhes do Whitespace voltarão a funcionar
-- Sem impacto em outras funcionalidades
+Nenhum arquivo de código será alterado.
 
