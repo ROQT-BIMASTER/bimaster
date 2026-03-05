@@ -1,64 +1,56 @@
 
 
-## Plano: Exportar Briefing com Imagem do Produto + Auditoria IA do Briefing
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema 1: Exportação Excel do Briefing com imagem do produto
-Atualmente, não existe nenhuma função de exportação no `BriefingView`. Preciso adicionar um botão "Exportar Excel" que gere uma planilha com os campos do briefing e inclua a imagem do produto na primeira célula.
+### O que muda
 
-### Problema 2: Auditoria IA do Briefing
-Seguir o padrão já existente no `ProductLaunchPanel.tsx` (que usa `audit-produto-tarefa`) para criar uma auditoria IA no contexto do briefing. Quando o briefing e o produto vinculado existirem, a IA analisa se o conteúdo do briefing é compatível com a tarefa e o produto.
-
----
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
 ### Implementação
 
-#### 1. Exportação Excel no BriefingView
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-**Arquivo**: `src/components/projetos/BriefingView.tsx`
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-- Adicionar prop opcional `produtoInfo?: { nome: string; codigo: string; foto_url?: string }`
-- Adicionar botão `Download` no header (ícone Download)
-- Função `handleExport` usando `ExcelJS`:
-  - Primeira aba: "Briefing" com imagem do produto no topo (fetch da URL → addImage ao workbook)
-  - Tabela abaixo com colunas: Categoria, Campo, Valor, Responsabilidade
-  - Header estilizado e bordas
-- Usar `exceljs` + `file-saver` (já instalados)
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-#### 2. Nova Edge Function: `audit-briefing-tarefa`
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-**Arquivo**: `supabase/functions/audit-briefing-tarefa/index.ts`
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-- Mesmo padrão do `audit-produto-tarefa` existente
-- Recebe: `{ tarefa, produto, briefingCampos }` 
-- System prompt analisa se os campos do briefing correspondem ao produto e à tarefa
-- Retorna `{ match, confianca, motivo, alertas }` via tool calling
-- Modelo: `google/gemini-2.5-flash-lite`
+### Visual esperado
 
-#### 3. Integrar Auditoria no BriefingView / TarefaFocusMode
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
 
-**Arquivo**: `src/components/projetos/BriefingView.tsx`
-
-- Adicionar props: `tarefaContext?`, `linkedProduto?`
-- Quando ambos existem + briefing tem campos, auto-executar auditoria
-- Exibir badge de resultado (ShieldCheck/ShieldQuestion/ShieldAlert) com tooltip no header
-- Seguir o mesmo padrão visual do `AUDIT_CONFIG` no `ProductLaunchPanel`
-
-**Arquivo**: `src/components/projetos/TarefaFocusMode.tsx`
-
-- Passar `tarefaContext` e `linkedProduto` para o `BriefingView` no modo foco
-
-#### 4. Adicionar `verify_jwt = false` no config.toml
-
-**Arquivo**: `supabase/config.toml` — NÃO editável. A função será deployada automaticamente.
-
----
-
-### Arquivos
-
-| Ação | Arquivo |
-|------|---------|
-| Criar | `supabase/functions/audit-briefing-tarefa/index.ts` |
-| Editar | `src/components/projetos/BriefingView.tsx` — exportação Excel + auditoria IA |
-| Editar | `src/components/projetos/TarefaFocusMode.tsx` — passar props ao BriefingView |
-| Editar | `src/components/projetos/ProjetoBriefingPanel.tsx` — passar props ao BriefingView expandido |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
