@@ -1,0 +1,1 @@
+ALTER TABLE public.projetos ADD COLUMN bg_cor text DEFAULT null;
