@@ -15,9 +15,15 @@ interface ProjetoHeaderProps {
   onTabChange: (tab: string) => void;
   tarefas?: ProjetoTarefa[];
   customBg?: boolean;
+  darkBg?: boolean;
 }
 
-export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], customBg = false }: ProjetoHeaderProps) {
+export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false }: ProjetoHeaderProps) {
+  const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
+  const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
+  const borderColor = darkBg ? "border-white/20" : customBg ? "border-black/20" : "border-border/50";
+  const tabActive = darkBg ? "data-[state=active]:border-white" : customBg ? "data-[state=active]:border-black" : "data-[state=active]:border-primary";
+  const btnHover = darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "";
   const navigate = useNavigate();
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
@@ -30,13 +36,13 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
           <span className="text-white text-lg font-bold">{projeto.nome.charAt(0)}</span>
         </div>
         <div className="flex-1">
-          <h1 className={`text-xl font-bold ${customBg ? "text-black" : "text-foreground"}`}>{projeto.nome}</h1>
-          {projeto.descricao && <p className={`text-sm ${customBg ? "text-black/70" : "text-muted-foreground"}`}>{projeto.descricao}</p>}
+          <h1 className={`text-xl font-bold ${textColor || "text-foreground"}`}>{projeto.nome}</h1>
+          {projeto.descricao && <p className={`text-sm ${textMuted}`}>{projeto.descricao}</p>}
         </div>
         <Button
           variant="outline"
           size="sm"
-          className={`gap-1.5 text-xs ${customBg ? "text-black border-black/20 hover:bg-black/10" : ""}`}
+          className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
           onClick={() => setResumoOpen(true)}
         >
           <Sparkles className="h-3.5 w-3.5" />
@@ -48,27 +54,27 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
       {tarefas.length > 0 && <ProjetoHealthPanel tarefas={tarefas} />}
 
       {/* Tabs and toolbar */}
-      <div className={`flex items-center justify-between border-b pb-0 ${customBg ? "border-black/20" : "border-border/50"}`}>
+      <div className={`flex items-center justify-between border-b pb-0 ${borderColor}`}>
         <Tabs value={activeTab} onValueChange={onTabChange}>
           <TabsList className="bg-transparent h-auto p-0 gap-0">
-            <TabsTrigger value="lista" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${customBg ? "text-black data-[state=active]:border-black" : "data-[state=active]:border-primary"}`}>
+            <TabsTrigger value="lista" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <List className="h-4 w-4" /> Lista
             </TabsTrigger>
-            <TabsTrigger value="quadro" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${customBg ? "text-black data-[state=active]:border-black" : "data-[state=active]:border-primary"}`}>
+            <TabsTrigger value="quadro" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <LayoutGrid className="h-4 w-4" /> Quadro
             </TabsTrigger>
-            <TabsTrigger value="cronograma" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${customBg ? "text-black data-[state=active]:border-black" : "data-[state=active]:border-primary"}`}>
+            <TabsTrigger value="cronograma" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <Calendar className="h-4 w-4" /> Cronograma
             </TabsTrigger>
-            <TabsTrigger value="painel" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${customBg ? "text-black data-[state=active]:border-black" : "data-[state=active]:border-primary"}`}>
+            <TabsTrigger value="painel" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <BarChart3 className="h-4 w-4" /> Painel
             </TabsTrigger>
-            <TabsTrigger value="arquivos" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${customBg ? "text-black data-[state=active]:border-black" : "data-[state=active]:border-primary"}`}>
+            <TabsTrigger value="arquivos" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <FileText className="h-4 w-4" /> Arquivos
             </TabsTrigger>
             <button
               onClick={() => navigate("/dashboard/projetos/aprovacoes")}
-              className={`flex items-center gap-1.5 pb-3 px-4 text-sm hover:text-foreground transition-colors ${customBg ? "text-black/70 hover:text-black" : "text-muted-foreground"}`}
+              className={`flex items-center gap-1.5 pb-3 px-4 text-sm hover:text-foreground transition-colors ${textMuted}`}
             >
               <ShieldCheck className="h-4 w-4" /> Aprovações
             </button>
@@ -76,10 +82,10 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
         </Tabs>
 
         <div className="flex items-center gap-2 pb-3">
-          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${customBg ? "text-black hover:bg-black/10" : ""}`}>
+          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${btnHover}`}>
             <Filter className="h-3.5 w-3.5" /> Filtrar
           </Button>
-          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${customBg ? "text-black hover:bg-black/10" : ""}`}>
+          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${btnHover}`}>
             <ArrowUpDown className="h-3.5 w-3.5" /> Ordenar
           </Button>
           <Button size="sm" className="h-8 text-xs gap-1.5">

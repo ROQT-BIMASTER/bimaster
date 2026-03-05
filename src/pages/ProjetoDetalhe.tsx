@@ -15,6 +15,15 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+function isDarkColor(hex: string | null): boolean {
+  if (!hex) return false;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum < 0.4;
+}
+
 export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -45,6 +54,7 @@ export default function ProjetoDetalhe() {
   };
 
   const customBg = !!projeto?.bg_cor;
+  const darkBg = isDarkColor(projeto?.bg_cor ?? null);
 
   if (isLoading) {
     return (
@@ -88,26 +98,26 @@ export default function ProjetoDetalhe() {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/dashboard/projetos")}
-                className={`gap-1.5 ${customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}`}
+                className={`gap-1.5 ${darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}`}
               >
                 <ArrowLeft className="h-4 w-4" /> Projetos
               </Button>
               <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 
-            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} customBg={customBg} />
+            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} customBg={customBg} darkBg={darkBg} />
 
             {/* Tab content */}
-            {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} />}
+            {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} />}
             {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} />}
             {activeTab === "painel" && (
-              <div className={`flex items-center justify-center py-20 ${customBg ? "text-black" : "text-muted-foreground"}`}>
+              <div className={`flex items-center justify-center py-20 ${darkBg ? "text-white" : customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Painel — Em breve</p>
               </div>
             )}
             {activeTab === "arquivos" && (
-              <div className={`flex items-center justify-center py-20 ${customBg ? "text-black" : "text-muted-foreground"}`}>
+              <div className={`flex items-center justify-center py-20 ${darkBg ? "text-white" : customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Arquivos — Em breve</p>
               </div>
             )}

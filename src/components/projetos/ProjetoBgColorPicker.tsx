@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Palette, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function isDarkHex(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum < 0.4;
+}
+
 const PRESET_COLORS = [
   "#FFFFFF", "#F3F4F6", "#FEF9C3", "#FDE68A",
   "#FECACA", "#FBCFE8", "#D1FAE5", "#A7F3D0",
   "#BFDBFE", "#C7D2FE", "#E9D5FF", "#DDD6FE",
+  "#111111", "#1A1A2E", "#1E293B", "#1C1917",
 ];
 
 interface ProjetoBgColorPickerProps {
@@ -74,7 +83,7 @@ export function ProjetoBgColorPicker({ value, onChange }: ProjetoBgColorPickerPr
                 onClick={() => handleSelect(color)}
                 title={color}
               >
-                {value === color && <Check className="h-3 w-3 text-black" />}
+                {value === color && <Check className={`h-3 w-3 ${isDarkHex(color) ? "text-white" : "text-black"}`} />}
               </button>
             ))}
           </div>
