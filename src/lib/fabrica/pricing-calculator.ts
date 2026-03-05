@@ -577,6 +577,51 @@ export function formatarPercentual(valor: number): string {
 }
 
 /**
+ * Cálculo reverso: dado um preço desejado e custo base, calcula o markup necessário
+ */
+export function reverseMarkupPercentual(custo: number, precoDesejado: number): number {
+  if (custo <= 0) return 0;
+  return ((precoDesejado / custo) - 1) * 100;
+}
+
+export function reverseMarkupMultiplicador(custo: number, precoDesejado: number): number {
+  if (custo <= 0) return 0;
+  return precoDesejado / custo;
+}
+
+export function reverseMarkupValorFixo(custo: number, precoDesejado: number): number {
+  return precoDesejado - custo;
+}
+
+export function reverseMarkup(
+  custo: number,
+  precoDesejado: number,
+  tipoMarkup: 'percentual' | 'multiplicador' | 'valor_fixo'
+): number {
+  switch (tipoMarkup) {
+    case 'percentual':
+      return reverseMarkupPercentual(custo, precoDesejado);
+    case 'multiplicador':
+      return reverseMarkupMultiplicador(custo, precoDesejado);
+    case 'valor_fixo':
+      return reverseMarkupValorFixo(custo, precoDesejado);
+    default:
+      return 0;
+  }
+}
+
+export function formatarMarkupLabel(valor: number, tipo: 'percentual' | 'multiplicador' | 'valor_fixo'): string {
+  switch (tipo) {
+    case 'percentual':
+      return `+${valor.toFixed(2)}%`;
+    case 'multiplicador':
+      return `×${valor.toFixed(4)}`;
+    case 'valor_fixo':
+      return formatarMoeda(valor);
+  }
+}
+
+/**
  * Interface para simulação de cálculo reverso
  */
 export interface SimulacaoPrecoReverso {

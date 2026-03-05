@@ -78,6 +78,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
+import { ReversePrecoDialog, ReversePrecoDialogData } from "./ReversePrecoDialog";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -106,6 +107,8 @@ interface TabelaPreco {
   ativo: boolean;
   tabela_base_id: string | null;
   updated_at: string;
+  tipo_markup: string;
+  valor_markup: number;
 }
 
 interface PrecoItem {
@@ -269,6 +272,10 @@ export function MatrizPrecosComparativa() {
     tabelaId: string;
     tabelaNome: string;
   } | null>(null);
+
+  // Estado do dialog de ajuste reverso de preço
+  const [reverseDialogOpen, setReverseDialogOpen] = useState(false);
+  const [reverseDialogData, setReverseDialogData] = useState<ReversePrecoDialogData | null>(null);
   
   // Filtros avançados
   const [filtroMarca, setFiltroMarca] = useState<string>("all");
@@ -327,7 +334,7 @@ export function MatrizPrecosComparativa() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fabrica_tabelas_preco")
-        .select("id, nome, codigo, ordem, ativo, tabela_base_id, updated_at")
+        .select("id, nome, codigo, ordem, ativo, tabela_base_id, updated_at, tipo_markup, valor_markup")
         .eq("ativo", true)
         .order("codigo", { ascending: true });
 
@@ -608,6 +615,28 @@ export function MatrizPrecosComparativa() {
     setHistoricoData({ produtoId, produtoNome, tabelaId, tabelaNome });
     setHistoricoOpen(true);
   };
+
+  const handlePrecoDoubleClick = (row: MatrizRow, tabela: TabelaPreco) => {
+    const preco = row.precos[tabela.id];
+    if (!preco) return;
+
+    setReverseDialogData({
+      produtoId: row.produto.id,
+      produtoNome: row.produto.nome,
+      tabelaId: tabela.id,
+      tabelaNome: tabela.nome,
+      tipoMarkup: tabela.tipo_markup as 'percentual' | 'multiplicador' | 'valor_fixo',
+      custoBase: preco.custo,
+      precoAtual: preco.preco,
+      margemAtual: preco.margem,
+    });
+    setReverseDialogOpen(true);
+  };
+
+  const { refetch: refetchPrecos } = useQuery({
+    queryKey: ["fabrica-matriz-precos"],
+    enabled: false,
+  });
 
   const exportarExcel = async () => {
     if (!matrizDados.length || !tabelasOrdenadas.length) {
@@ -900,6 +929,7 @@ export function MatrizPrecosComparativa() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => handlePrecoClick(row.produto.id, row.produto.nome, tabela.id, tabela.nome)}
+                        onDoubleClick={(e) => { e.stopPropagation(); handlePrecoDoubleClick(row, tabela); }}
                         className="w-full cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors group"
                       >
                         <div className="font-semibold group-hover:text-primary flex items-center justify-center gap-1">
@@ -978,7 +1008,7 @@ export function MatrizPrecosComparativa() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor. Clique em um preço para ver o histórico.
+            Arraste as colunas para reordenar. Clique no ícone de paleta para mudar a cor. Clique em um preço para ver o histórico. Dê duplo clique para ajustar o preço.
           </p>
 
           {/* Filtros avançados */}
@@ -1214,6 +1244,14 @@ export function MatrizPrecosComparativa() {
           tabelaId={historicoData.tabelaId}
         />
       )}
+
+      {/* Dialog de Ajuste Reverso de Preço */}
+      <ReversePrecoDialog
+        open={reverseDialogOpen}
+        onOpenChange={setReverseDialogOpen}
+        data={reverseDialogData}
+        onSaved={() => refetchPrecos()}
+      />
     </>
   );
 }
