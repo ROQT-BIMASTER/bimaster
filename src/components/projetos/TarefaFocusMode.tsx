@@ -711,6 +711,12 @@ export function TarefaFocusMode({
             metas={displayMetas}
             searchProdutos={searchProdutos}
             onLinkProduto={(produtoId) => onUpdate(tarefa.id, { produto_id: produtoId } as any)}
+            tarefaContext={{
+              titulo: tarefa.titulo,
+              descricao: tarefa.descricao || undefined,
+              estagio: tarefa.estagio || undefined,
+              codigo: tarefa.codigo || undefined,
+            }}
           />
 
           {/* Right column - Chat */}
