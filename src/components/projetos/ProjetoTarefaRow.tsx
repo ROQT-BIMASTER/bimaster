@@ -21,6 +21,14 @@ const STATUS_COLORS: Record<string, string> = {
   bloqueada: "bg-red-500/15 text-red-600",
 };
 
+const STATUS_COLORS_DARK: Record<string, string> = {
+  pendente: "bg-white/10 text-white/70",
+  nao_iniciado: "bg-pink-500/20 text-pink-300",
+  em_andamento: "bg-amber-500/20 text-amber-300",
+  concluida: "bg-emerald-500/20 text-emerald-300",
+  bloqueada: "bg-red-500/20 text-red-300",
+};
+
 const STATUS_LABELS: Record<string, string> = {
   pendente: "Não iniciado",
   nao_iniciado: "Não iniciado",
@@ -43,6 +51,15 @@ const ESTAGIO_COLORS: Record<string, string> = {
   aprovado: "bg-emerald-500/15 text-emerald-600",
   producao: "bg-pink-500/15 text-pink-600",
   lancamento: "bg-pink-500/15 text-pink-600",
+};
+
+const ESTAGIO_COLORS_DARK: Record<string, string> = {
+  briefing: "bg-purple-500/20 text-purple-300",
+  em_criacao: "bg-blue-500/20 text-blue-300",
+  revisao: "bg-amber-500/20 text-amber-300",
+  aprovado: "bg-emerald-500/20 text-emerald-300",
+  producao: "bg-pink-500/20 text-pink-300",
+  lancamento: "bg-pink-500/20 text-pink-300",
 };
 
 const ESTAGIO_LABELS: Record<string, string> = {
@@ -75,12 +92,13 @@ interface ProjetoTarefaRowProps {
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
+  darkBg?: boolean;
 }
 
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
   onToggle, onSelect, onUpdate,
-  teamMembers = [], onAddColaborador, onRemoveColaborador,
+  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
@@ -94,16 +112,17 @@ export function ProjetoTarefaRow({
     <>
       <div
         className={cn(
-          `group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/60 hover:bg-muted/30 transition-colors min-h-[40px] relative`,
+          `group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 transition-colors min-h-[40px] relative`,
+          darkBg ? "border-b border-white/10 hover:bg-white/5" : "border-b border-border/60 hover:bg-muted/30",
           indented && "pl-10",
           isCompleted && "opacity-70",
-          selected && "bg-primary/5 border-l-2 border-l-primary"
+          selected && (darkBg ? "bg-white/10 border-l-2 border-l-primary" : "bg-primary/5 border-l-2 border-l-primary")
         )}
       >
         {/* Expand toggle */}
         <div className="flex-shrink-0">
           {hasSubtarefas ? (
-            <button onClick={() => setExpanded(!expanded)} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => setExpanded(!expanded)} className={darkBg ? "text-white/50 hover:text-white" : "text-muted-foreground hover:text-foreground"}>
               {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
           ) : null}
@@ -114,7 +133,7 @@ export function ProjetoTarefaRow({
           onClick={(e) => { e.stopPropagation(); onToggle(tarefa); }}
           className={cn(
             "flex-shrink-0 transition-colors",
-            isCompleted ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
+            isCompleted ? "text-emerald-400" : (darkBg ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
           )}
         >
           {isCompleted ? <CheckCircle2 className="h-[18px] w-[18px]" /> : <Circle className="h-[18px] w-[18px]" />}
@@ -126,7 +145,7 @@ export function ProjetoTarefaRow({
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="sm" className="flex-shrink-0" />
           )}
           {tarefa.codigo && (
-            <span className="text-[10px] text-foreground/60 font-mono flex-shrink-0">{tarefa.codigo}</span>
+            <span className={`text-[10px] font-mono flex-shrink-0 ${darkBg ? "text-white/50" : "text-foreground/60"}`}>{tarefa.codigo}</span>
           )}
           <InlineTitle
             value={tarefa.titulo}
@@ -134,6 +153,7 @@ export function ProjetoTarefaRow({
             isBold={hasSubtarefas && !indented}
             onSave={(val) => onUpdate?.(tarefa.id, { titulo: val })}
             onClick={() => onSelect?.(tarefa)}
+            darkBg={darkBg}
           />
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
@@ -187,13 +207,13 @@ export function ProjetoTarefaRow({
                   {tarefa.criador.nome?.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-[11px] text-foreground/70 truncate hidden xl:inline">{tarefa.criador.nome?.split(" ")[0]}</span>
+              <span className={`text-[11px] truncate hidden xl:inline ${darkBg ? "text-white/60" : "text-foreground/70"}`}>{tarefa.criador.nome?.split(" ")[0]}</span>
             </>
           ) : null}
         </div>
 
         {/* Data modificação */}
-        <div className="text-[11px] text-foreground/60 min-w-0 truncate">
+        <div className={`text-[11px] min-w-0 truncate ${darkBg ? "text-white/50" : "text-foreground/60"}`}>
           {tarefa.updated_at ? (
             isToday(new Date(tarefa.updated_at))
               ? "Hoje"
@@ -206,7 +226,7 @@ export function ProjetoTarefaRow({
           <InlineSelector
             value={tarefa.status}
             options={STATUS_OPTIONS}
-            colors={STATUS_COLORS}
+            colors={darkBg ? STATUS_COLORS_DARK : STATUS_COLORS}
             labels={STATUS_LABELS}
             onChange={(val) => onUpdate?.(tarefa.id, { status: val })}
           />
@@ -217,7 +237,7 @@ export function ProjetoTarefaRow({
           <InlineSelector
             value={tarefa.estagio || ""}
             options={ESTAGIO_OPTIONS}
-            colors={ESTAGIO_COLORS}
+            colors={darkBg ? ESTAGIO_COLORS_DARK : ESTAGIO_COLORS}
             labels={ESTAGIO_LABELS}
             onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
             placeholder="—"
@@ -234,6 +254,7 @@ export function ProjetoTarefaRow({
           onAddColaborador={onAddColaborador}
           onRemoveColaborador={onRemoveColaborador}
           selected={false}
+          darkBg={darkBg}
         />
       ))}
     </>
@@ -241,9 +262,9 @@ export function ProjetoTarefaRow({
 }
 
 /* ───────── Inline Title Editor ───────── */
-function InlineTitle({ value, isCompleted, isBold, onSave, onClick }: {
+function InlineTitle({ value, isCompleted, isBold, onSave, onClick, darkBg = false }: {
   value: string; isCompleted: boolean; isBold: boolean;
-  onSave: (val: string) => void; onClick: () => void;
+  onSave: (val: string) => void; onClick: () => void; darkBg?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -274,7 +295,8 @@ function InlineTitle({ value, isCompleted, isBold, onSave, onClick }: {
     <span
       className={cn(
         "text-sm truncate cursor-pointer hover:text-primary transition-colors",
-        isCompleted && "line-through text-muted-foreground",
+        darkBg && !isCompleted && "text-white",
+        isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground"),
         isBold && "font-medium"
       )}
       onClick={onClick}

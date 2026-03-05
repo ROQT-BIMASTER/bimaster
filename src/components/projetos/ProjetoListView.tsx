@@ -13,9 +13,10 @@ export const GRID_COLS = "grid-cols-[20px_20px_1fr_100px_80px_64px_100px_80px_90
 
 interface ProjetoListViewProps {
   projetoId: string;
+  darkBg?: boolean;
 }
 
-export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
@@ -86,9 +87,9 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
 
   return (
     <>
-      <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
+      <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
-        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b border-border/50 bg-muted/50 text-[11px] font-semibold text-foreground/60 uppercase tracking-wider`}>
+        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
           <div /> {/* expand */}
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
@@ -119,7 +120,7 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
           />
         ))}
 
-        <div className="flex items-center gap-2 border-t border-border/30">
+        <div className={`flex items-center gap-2 border-t ${darkBg ? "border-white/10" : "border-border/30"}`}>
           <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
           <Button
             variant="ghost"
