@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { GRID_COLS } from "./ProjetoListView";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -23,10 +24,12 @@ interface ProjetoSecaoProps {
   secaoId: string;
   selectedTarefaId?: string;
   ghosts?: GhostTrail[];
+  temBriefing?: boolean;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
   onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
+  onToggleBriefing?: (secaoId: string, value: boolean) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -34,8 +37,8 @@ interface ProjetoSecaoProps {
 }
 
 export function ProjetoSecao({
-  nome, tarefas, secaoId, selectedTarefaId, ghosts = [],
-  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa,
+  nome, tarefas, secaoId, selectedTarefaId, ghosts = [], temBriefing = false,
+  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,20 +56,45 @@ export function ProjetoSecao({
 
   return (
     <div className="mb-1">
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className={`flex items-center gap-2 px-3 py-2.5 w-full transition-colors group ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}
-      >
-        {collapsed ? (
-          <ChevronRight className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
-        ) : (
-          <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
-        )}
-        <span className={`font-semibold text-sm ${darkBg ? "text-white" : "text-foreground"}`}>{nome}</span>
-        <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
-          {completedCount}/{totalCount}
-        </span>
-      </button>
+      <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-2 flex-1 min-w-0 transition-colors group"
+        >
+          {collapsed ? (
+            <ChevronRight className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+          ) : (
+            <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
+          )}
+          <span className={`font-semibold text-sm ${darkBg ? "text-white" : "text-foreground"}`}>{nome}</span>
+          <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
+            {completedCount}/{totalCount}
+          </span>
+        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleBriefing?.(secaoId, !temBriefing);
+                }}
+                className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  temBriefing
+                    ? "text-primary bg-primary/10 hover:bg-primary/20"
+                    : darkBg ? "text-white/30 hover:text-white/60 hover:bg-white/5" : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30"
+                )}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{temBriefing ? "Briefing ativo nesta seção" : "Ativar Briefing nesta seção"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
       {!collapsed && (
         <div>
