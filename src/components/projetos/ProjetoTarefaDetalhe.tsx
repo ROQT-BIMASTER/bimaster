@@ -263,7 +263,7 @@ export function ProjetoTarefaDetalhe({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open && !focusMode} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-[580px] p-0 flex flex-col">
           <SheetHeader className="sr-only">
             <SheetTitle>Detalhe da tarefa</SheetTitle>
@@ -324,7 +324,7 @@ export function ProjetoTarefaDetalhe({
                 variant="outline"
                 size="sm"
                 className="gap-1.5 text-xs"
-                onClick={() => { setFocusMode(true); onOpenChange(false); }}
+                onClick={() => setFocusMode(true)}
               >
                 <Maximize2 className="h-3.5 w-3.5" />
                 Foco
