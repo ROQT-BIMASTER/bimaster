@@ -80,8 +80,21 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
         titulo: task.titulo,
         secao_id: task.secao_id,
       });
-      // After creation, update with extra fields
-      // Note: createTarefa returns data, but we batch here for simplicity
+    }
+  };
+
+  const handleCreateBriefingTasks = (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => {
+    for (const task of tasks) {
+      createTarefa.mutate({
+        titulo: task.titulo,
+        secao_id: task.secao_id,
+      }, {
+        onSuccess: (data: any) => {
+          if (data?.id) {
+            updateTarefa.mutate({ id: data.id, descricao: task.descricao, prioridade: task.prioridade } as any);
+          }
+        },
+      });
     }
   };
 
@@ -111,12 +124,14 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
             tarefas={tarefasPorSecao(secao.id)}
             ghosts={ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
+            allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
             selectedTarefaId={selectedTarefa?.id}
             onToggleTarefa={handleToggle}
             onSelectTarefa={handleSelectTarefa}
             onAddTarefa={handleAddTarefa}
             onUpdateTarefa={handleUpdateTarefa}
             onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
+            onCreateBriefingTasks={handleCreateBriefingTasks}
             teamMembers={teamMembers}
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}

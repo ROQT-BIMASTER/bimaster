@@ -67,6 +67,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.expense-ai-assistant]
     verify_jwt = false
+  [functions.importar-briefing-ia]
+    verify_jwt = false
   [functions.extrair-materia-prima-ia]
     verify_jwt = false
   [functions.extrair-produto-ia]
