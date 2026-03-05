@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Upload, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
 import { NovaTarefaInline } from "./NovaTarefaInline";
+import { BriefingImportDialog } from "./BriefingImportDialog";
 import { GRID_COLS } from "./ProjetoListView";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -25,11 +27,13 @@ interface ProjetoSecaoProps {
   selectedTarefaId?: string;
   ghosts?: GhostTrail[];
   temBriefing?: boolean;
+  allSecoes?: { id: string; nome: string }[];
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
   onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
+  onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -37,11 +41,12 @@ interface ProjetoSecaoProps {
 }
 
 export function ProjetoSecao({
-  nome, tarefas, secaoId, selectedTarefaId, ghosts = [], temBriefing = false,
-  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing,
+  nome, tarefas, secaoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
+  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
     return acc + (t.status === "concluida" ? 1 : 0) + sub;
@@ -93,6 +98,24 @@ export function ProjetoSecao({
               <p>{temBriefing ? "Briefing ativo nesta seção" : "Ativar Briefing nesta seção"}</p>
             </TooltipContent>
           </Tooltip>
+          {temBriefing && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBriefingDialogOpen(true);
+                  }}
+                  className="p-1.5 rounded-md transition-colors text-primary hover:bg-primary/10"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Importar Briefing com IA</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </TooltipProvider>
       </div>
 
@@ -146,6 +169,16 @@ export function ProjetoSecao({
 
           <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} darkBg={darkBg} />
         </div>
+      )}
+
+      {temBriefing && (
+        <BriefingImportDialog
+          open={briefingDialogOpen}
+          onOpenChange={setBriefingDialogOpen}
+          secoes={allSecoes.length > 0 ? allSecoes : [{ id: secaoId, nome }]}
+          secaoId={secaoId}
+          onCreateTasks={(tasks) => onCreateBriefingTasks?.(tasks)}
+        />
       )}
     </div>
   );
