@@ -1,44 +1,57 @@
 
 
-## Melhorar Legibilidade da Tabela de Tarefas
+## Fundo Preto na Tabela com Contraste Automático
 
-### Problema
+### O que será feito
 
-A tabela de tarefas usa extensivamente `text-muted-foreground` e opacidades baixas (`opacity-60`, `/40`, `/50`), resultando em texto apagado — especialmente quando há cor de fundo customizada. Os badges de status também usam cores com baixa opacidade (`bg-pink-500/20 text-pink-400`).
+Adicionar **preto (#1A1A2E ou #111111)** como opção de cor no seletor de cores do projeto. Quando o fundo for escuro, todo o texto da tabela (cabeçalhos, nomes, datas, badges, seções) mudará automaticamente para branco/claro, com cores de badges adaptadas para dark background.
 
-### Mudanças Propostas
+### Lógica de detecção
 
-#### 1. `ProjetoTarefaRow.tsx`
+Criar uma função utilitária `isDarkColor(hex)` que calcula a luminância relativa da cor. Se luminância < 0.5, considera "dark" e aplica texto claro. Isso funciona para preto e qualquer outra cor escura que o usuário digite via hex.
 
-- **Status badges**: Aumentar contraste — de `bg-X-500/20 text-X-400` para `bg-X-500/15 text-X-600` (light mode friendly)
-- **Estágio badges**: Mesmo tratamento
-- **Texto de data**: De `text-muted-foreground` para `text-foreground/70`
-- **Texto do criador**: De `text-muted-foreground` para `text-foreground/70`  
-- **Data de modificação**: De `text-muted-foreground` para `text-foreground/60`
-- **Tarefas concluídas**: De `opacity-60` para `opacity-70`
-- **Código da tarefa**: De `text-muted-foreground` para `text-foreground/60`
-- **Bordas das linhas**: De `border-border/40` para `border-border/60`
+### Mudanças
 
-#### 2. `ProjetoListView.tsx`
+#### 1. `ProjetoBgColorPicker.tsx`
+- Adicionar cores escuras ao `PRESET_COLORS`: `#111111`, `#1A1A2E`, `#1E293B`, `#1C1917`
+- Ajustar o ícone de check para usar `text-white` em cores escuras
 
-- **Cabeçalhos da tabela**: De `text-muted-foreground` para `text-foreground/60` com `font-semibold`
-- **Fundo do header**: De `bg-muted/30` para `bg-muted/50`
+#### 2. `ProjetoDetalhe.tsx`
+- Criar função `isDarkColor(hex)` para detectar fundo escuro
+- Passar nova prop `darkBg` (boolean) além de `customBg` para `ProjetoListView` e `ProjetoHeader`
+- Ajustar textos do botão Voltar: `text-white` quando `darkBg`
 
-#### 3. `ProjetoSecao.tsx`
+#### 3. `ProjetoHeader.tsx`
+- Receber prop `darkBg`
+- Quando `darkBg`: usar `text-white` em títulos, tabs, botões (em vez de `text-black`)
 
-- **Contador de tarefas**: De `text-muted-foreground` para `text-foreground/60`
-- **Ghosts**: De `opacity-40` para `opacity-50`
+#### 4. `ProjetoListView.tsx`
+- Receber prop `darkBg`
+- Quando `darkBg`: cabeçalhos da tabela em `text-white/70`, fundo do card em `bg-black/20`, bordas em `border-white/20`
+- Propagar `darkBg` para `ProjetoSecao`
 
-#### 4. Suporte a cor de fundo customizada
+#### 5. `ProjetoSecao.tsx`
+- Receber prop `darkBg`
+- Quando `darkBg`: nome da seção em `text-white`, contador em `text-white/60`
+- Propagar para `ProjetoTarefaRow`
 
-Propagar `customBg` para `ProjetoListView` e aplicar `text-black` nos cabeçalhos e textos secundários quando ativo, garantindo contraste com fundos coloridos.
+#### 6. `ProjetoTarefaRow.tsx`
+- Receber prop `darkBg`
+- Quando `darkBg`:
+  - Título da tarefa: `text-white`
+  - Código, datas, criador: `text-white/60`
+  - Badges de status: manter cores vibrantes mas com texto claro (`text-pink-300`, `text-amber-300`, etc.)
+  - Bordas: `border-white/10`
+  - Hover: `hover:bg-white/5`
 
 #### Arquivos
 
 | Ação | Arquivo |
 |------|---------|
-| Editar | `src/components/projetos/ProjetoTarefaRow.tsx` |
+| Editar | `src/components/projetos/ProjetoBgColorPicker.tsx` |
+| Editar | `src/pages/ProjetoDetalhe.tsx` |
+| Editar | `src/components/projetos/ProjetoHeader.tsx` |
 | Editar | `src/components/projetos/ProjetoListView.tsx` |
 | Editar | `src/components/projetos/ProjetoSecao.tsx` |
-| Editar | `src/pages/ProjetoDetalhe.tsx` (passar customBg) |
+| Editar | `src/components/projetos/ProjetoTarefaRow.tsx` |
 
