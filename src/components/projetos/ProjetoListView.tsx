@@ -121,6 +121,7 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
             key={secao.id}
             nome={secao.nome}
             secaoId={secao.id}
+            projetoId={projetoId}
             tarefas={tarefasPorSecao(secao.id)}
             ghosts={ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
