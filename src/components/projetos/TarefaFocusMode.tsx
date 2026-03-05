@@ -57,6 +57,48 @@ const COFRE_CATEGORIAS = [
   "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
 ];
 
+// ── Mock data for testing/demo ──────────────────────────────────────────
+const now = new Date();
+const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000).toISOString();
+
+const MOCK_ANEXOS: any[] = [
+  { id: "mock-a1", nome: "Briefing_HB-L6532.pdf", tipo_arquivo: "application/pdf", tamanho: 2516582, storage_path: "mock/briefing.pdf", created_at: daysAgo(28), tarefa_id: "mock", user_id: "mock" },
+  { id: "mock-a2", nome: "Rotulo_frente_v3.png", tipo_arquivo: "image/png", tamanho: 1153434, storage_path: "mock/rotulo.png", created_at: daysAgo(22), tarefa_id: "mock", user_id: "mock" },
+  { id: "mock-a3", nome: "Ficha_Tecnica_final.pdf", tipo_arquivo: "application/pdf", tamanho: 911360, storage_path: "mock/ficha.pdf", created_at: daysAgo(18), tarefa_id: "mock", user_id: "mock" },
+  { id: "mock-a4", nome: "Arte_embalagem.ai", tipo_arquivo: "application/illustrator", tamanho: 5452595, storage_path: "mock/arte.ai", created_at: daysAgo(14), tarefa_id: "mock", user_id: "mock" },
+  { id: "mock-a5", nome: "Laudo_estabilidade.pdf", tipo_arquivo: "application/pdf", tamanho: 327680, storage_path: "mock/laudo.pdf", created_at: daysAgo(8), tarefa_id: "mock", user_id: "mock" },
+  { id: "mock-a6", nome: "Foto_amostra_01.jpg", tipo_arquivo: "image/jpeg", tamanho: 3984588, storage_path: "mock/foto.jpg", created_at: daysAgo(3), tarefa_id: "mock", user_id: "mock" },
+];
+
+const MOCK_COFRE_DOCS = [
+  { id: "mock-cd1", nome_arquivo: "Briefing_HB-L6532.pdf", tipo_arquivo: "application/pdf", categoria: "briefing", status: "aprovado", visivel_fabrica: false, created_at: daysAgo(26) },
+  { id: "mock-cd2", nome_arquivo: "Ficha_Tecnica_final.pdf", tipo_arquivo: "application/pdf", categoria: "ficha_tecnica", status: "ativo", visivel_fabrica: false, created_at: daysAgo(16) },
+  { id: "mock-cd3", nome_arquivo: "Laudo_estabilidade.pdf", tipo_arquivo: "application/pdf", categoria: "laudo", status: "ativo", visivel_fabrica: true, created_at: daysAgo(6) },
+];
+
+const MOCK_MESSAGES: any[] = [
+  { id: "mock-m1", conteudo: "Pessoal, acabei de subir o briefing atualizado. Podem revisar?", user_id: "u1", created_at: daysAgo(27), autor: { nome: "Ana Costa", avatar_url: null } },
+  { id: "mock-m2", conteudo: "Revisado! Faltou o campo de registro ANVISA, @Ana pode completar?", user_id: "u2", created_at: daysAgo(25), autor: { nome: "Carlos Silva", avatar_url: null } },
+  { id: "mock-m3", conteudo: "Feito! Já atualizei o briefing e subi a ficha técnica também.", user_id: "u1", created_at: daysAgo(17), autor: { nome: "Ana Costa", avatar_url: null } },
+  { id: "mock-m4", conteudo: "A arte da embalagem ficou ótima. Vou enviar para aprovação do cliente.", user_id: "u3", created_at: daysAgo(10), autor: { nome: "Mariana Souza", avatar_url: null } },
+  { id: "mock-m5", conteudo: "Cliente aprovou a arte! Podemos seguir para produção. 🎉", user_id: "u3", created_at: daysAgo(5), autor: { nome: "Mariana Souza", avatar_url: null } },
+];
+
+const MOCK_COMENTARIOS: any[] = [
+  { id: "mock-c1", conteudo: "Briefing revisado e aprovado. @Carlos pode iniciar a arte.", created_at: daysAgo(24), autor: { nome: "Ana Costa", avatar_url: null } },
+  { id: "mock-c2", conteudo: "Arte finalizada. Enviei o arquivo .AI para revisão do time de qualidade.", created_at: daysAgo(12), autor: { nome: "Carlos Silva", avatar_url: null } },
+  { id: "mock-c3", conteudo: "Laudo de estabilidade recebido do laboratório. Tudo dentro dos parâmetros.", created_at: daysAgo(4), autor: { nome: "Mariana Souza", avatar_url: null } },
+];
+
+const MOCK_METAS = [
+  { id: "mock-mt1", descricao: "Briefing aprovado pelo gerente de produto", concluida: true, created_at: daysAgo(26), data_meta: daysAgo(26) },
+  { id: "mock-mt2", descricao: "Arte da embalagem finalizada", concluida: true, created_at: daysAgo(14), data_meta: daysAgo(14) },
+  { id: "mock-mt3", descricao: "Ficha técnica validada pelo regulatório", concluida: true, created_at: daysAgo(10), data_meta: daysAgo(10) },
+  { id: "mock-mt4", descricao: "Aprovação final do cliente", concluida: false, created_at: daysAgo(5), data_meta: null },
+  { id: "mock-mt5", descricao: "Envio para linha de produção", concluida: false, created_at: daysAgo(2), data_meta: null },
+];
+// ── End mock data ───────────────────────────────────────────────────────
+
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   briefing: "Briefing", arte_final: "Arte Final", rotulo: "Rótulo", ficha_tecnica: "Ficha Técnica",
   laudo: "Laudo", certificado: "Certificado", orcamento: "Orçamento", nota_fiscal: "Nota Fiscal",
@@ -121,7 +163,7 @@ export function TarefaFocusMode({
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Cofre documents for this task
-  const { data: cofreDocs = [] } = useQuery({
+  const { data: cofreDocsReal = [] } = useQuery({
     queryKey: ["cofre-docs-tarefa", tarefa?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -135,11 +177,18 @@ export function TarefaFocusMode({
     enabled: !!tarefa?.id,
   });
 
+  // Use mock data as fallback when real data is empty
+  const displayAnexos = useMemo(() => anexos.length > 0 ? anexos : MOCK_ANEXOS, [anexos]);
+  const cofreDocs = useMemo(() => cofreDocsReal.length > 0 ? cofreDocsReal : MOCK_COFRE_DOCS, [cofreDocsReal]);
+  const displayComentarios = useMemo(() => comentarios.length > 0 ? comentarios : MOCK_COMENTARIOS, [comentarios]);
+  const displayMessages = useMemo(() => messages.length > 0 ? messages : MOCK_MESSAGES, [messages]);
+  const displayMetas = useMemo(() => metas.length > 0 ? metas : MOCK_METAS as any[], [metas]);
+
   // Identify which annexes are NOT in the cofre
   const anexosNoCofre = useMemo(() => {
     const cofreNames = new Set(cofreDocs.map((d: any) => d.nome_arquivo));
-    return anexos.filter(a => !cofreNames.has(a.nome));
-  }, [anexos, cofreDocs]);
+    return displayAnexos.filter(a => !cofreNames.has(a.nome));
+  }, [displayAnexos, cofreDocs]);
 
   useEffect(() => {
     if (tarefa) setDescValue(tarefa.descricao || "");
@@ -185,7 +234,7 @@ export function TarefaFocusMode({
     setSubtarefaValue("");
   };
 
-  const completedMetas = metas.filter(m => m.concluida).length;
+  const completedMetas = displayMetas.filter(m => m.concluida).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -314,9 +363,9 @@ export function TarefaFocusMode({
                   Evolução da Tarefa
                 </h3>
                 <TaskEvolutionChart
-                  metas={metas}
-                  comentarios={comentarios}
-                  messages={messages}
+                  metas={displayMetas}
+                  comentarios={displayComentarios}
+                  messages={displayMessages}
                   subtarefas={tarefa.subtarefas?.map(s => ({ status: s.status, created_at: (s as any).created_at })) || []}
                 />
               </div>
@@ -329,16 +378,16 @@ export function TarefaFocusMode({
                   <h3 className="text-sm font-medium flex items-center gap-1.5">
                     <Target className="h-3.5 w-3.5" />
                     Marcos
-                    {metas.length > 0 && (
+                    {displayMetas.length > 0 && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">
-                        {completedMetas}/{metas.length}
+                        {completedMetas}/{displayMetas.length}
                       </Badge>
                     )}
                   </h3>
                 </div>
-                {metas.length > 0 && (
+                {displayMetas.length > 0 && (
                   <div className="space-y-1 mb-2">
-                    {metas.map(meta => (
+                    {displayMetas.map(meta => (
                       <div key={meta.id} className="flex items-center gap-2 group">
                         <button onClick={() => toggleMeta.mutate(meta)} className="flex-shrink-0">
                           {meta.concluida
@@ -441,7 +490,7 @@ export function TarefaFocusMode({
                   <div className="flex items-center justify-between mb-3">
                     <TabsList className="h-8">
                       <TabsTrigger value="todos" className="text-xs h-7 gap-1">
-                        <Paperclip className="h-3.5 w-3.5" /> Todos ({anexos.length})
+                        <Paperclip className="h-3.5 w-3.5" /> Todos ({displayAnexos.length})
                       </TabsTrigger>
                       <TabsTrigger value="cofre" className="text-xs h-7 gap-1">
                         <FolderOpen className="h-3.5 w-3.5" /> No Cofre ({cofreDocs.length})
@@ -458,9 +507,9 @@ export function TarefaFocusMode({
 
                   {/* Tab: Todos os anexos */}
                   <TabsContent value="todos" className="mt-0">
-                    {anexos.length > 0 ? (
+                    {displayAnexos.length > 0 ? (
                       <div className="space-y-1.5">
-                        {anexos.map(a => {
+                        {displayAnexos.map(a => {
                           const inCofre = cofreDocs.some((d: any) => d.nome_arquivo === a.nome);
                           return (
                             <div key={a.id} className={cn("flex items-center gap-2 p-2 rounded-md border border-border/30", inCofre ? "bg-emerald-500/5" : "bg-muted/30")}>
@@ -617,10 +666,10 @@ export function TarefaFocusMode({
               {/* Comentários */}
               <div>
                 <h3 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                  <MessageSquare className="h-4 w-4" /> Comentários ({comentarios.length})
+                  <MessageSquare className="h-4 w-4" /> Comentários ({displayComentarios.length})
                 </h3>
                 <div className="space-y-3 mb-3">
-                  {comentarios.map(c => (
+                  {displayComentarios.map(c => (
                     <div key={c.id} className="flex gap-2">
                       <Avatar className="h-7 w-7 flex-shrink-0">
                         <AvatarImage src={c.autor?.avatar_url || undefined} />
@@ -658,17 +707,17 @@ export function TarefaFocusMode({
             <div className="px-4 py-3 border-b border-border/50">
               <h4 className="text-sm font-semibold flex items-center gap-1.5">
                 <MessageCircle className="h-4 w-4" /> Chat
-                {messages.length > 0 && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">{messages.length}</Badge>
+                {displayMessages.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">{displayMessages.length}</Badge>
                 )}
               </h4>
             </div>
             <ScrollArea className="flex-1 px-4 py-3">
               <div className="space-y-3">
-                {messages.length === 0 && (
+                {displayMessages.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-12">Nenhuma mensagem ainda. Inicie uma conversa!</p>
                 )}
-                {messages.map(m => {
+                {displayMessages.map(m => {
                   const isMe = m.user_id === (tarefa as any).criador_id;
                   return (
                     <div key={m.id} className={cn("flex gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
