@@ -1,17 +1,20 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
   ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X,
-  Eye, ChevronDown, ChevronUp, CornerDownRight
+  Eye, ChevronDown, ChevronUp, CornerDownRight, Bot, ShieldAlert,
+  ShieldCheck, ShieldQuestion, Loader2, RefreshCw
 } from "lucide-react";
 
 interface ChecklistItem {
@@ -21,12 +24,25 @@ interface ChecklistItem {
   done: boolean;
 }
 
+interface AuditResult {
+  match: "alto" | "medio" | "baixo";
+  confianca: number;
+  motivo: string;
+  alertas: string[];
+}
+
 interface ProductLaunchPanelProps {
   linkedProduto: ProdutoAcabado | null;
   cofreDocs: any[];
   metas: any[];
   searchProdutos: (query?: string) => Promise<ProdutoAcabado[]>;
   onLinkProduto: (produtoId: string) => void;
+  tarefaContext?: {
+    titulo: string;
+    descricao?: string;
+    estagio?: string;
+    codigo?: string;
+  };
 }
 
 const CHECKLIST_CONFIG = [
@@ -39,35 +55,77 @@ const CHECKLIST_CONFIG = [
   { key: "aprovacao_cliente", label: "Aprovação Cliente", icon: <UserCheck className="h-3.5 w-3.5" /> },
 ];
 
-export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProdutos, onLinkProduto }: ProductLaunchPanelProps) {
+const AUDIT_CONFIG = {
+  alto: { icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20", label: "Compatível" },
+  medio: { icon: ShieldQuestion, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20", label: "Verificar" },
+  baixo: { icon: ShieldAlert, color: "text-red-500", bg: "bg-red-500/10 border-red-500/20", label: "Incompatível" },
+};
+
+export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProdutos, onLinkProduto, tarefaContext }: ProductLaunchPanelProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<ProdutoAcabado[]>([]);
   const [searching, setSearching] = useState(false);
   const [showFilhos, setShowFilhos] = useState(false);
+  const [audit, setAudit] = useState<AuditResult | null>(null);
+  const [auditing, setAuditing] = useState(false);
+  const [showAuditDetails, setShowAuditDetails] = useState(false);
+
+  // Auto-run audit when product is linked
+  const runAudit = useCallback(async () => {
+    if (!linkedProduto || !tarefaContext) return;
+    setAuditing(true);
+    setAudit(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-produto-tarefa", {
+        body: {
+          tarefa: tarefaContext,
+          produto: {
+            codigo: linkedProduto.codigo,
+            nome: linkedProduto.nome,
+            marca: linkedProduto.marca,
+            linha: linkedProduto.linha,
+            tipo: linkedProduto.tipo,
+          },
+          documentos: cofreDocs.map((d: any) => ({
+            nome_arquivo: d.nome_arquivo,
+            categoria: d.categoria,
+          })),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAudit(data as AuditResult);
+    } catch (e) {
+      console.error("Audit error:", e);
+      // Silent fail - audit is informational
+    } finally {
+      setAuditing(false);
+    }
+  }, [linkedProduto?.id, tarefaContext?.titulo, cofreDocs.length]);
+
+  useEffect(() => {
+    if (linkedProduto && tarefaContext) {
+      runAudit();
+    } else {
+      setAudit(null);
+    }
+  }, [linkedProduto?.id]);
 
   const checklist = useMemo<ChecklistItem[]>(() => {
     const cofreCategorias = new Set(cofreDocs.map((d: any) => d.categoria));
     const hasAprovacao = metas.some(
       m => m.concluida && m.descricao?.toLowerCase().includes("aprovação")
     );
-
     return CHECKLIST_CONFIG.map(item => ({
       ...item,
-      done: item.key === "aprovacao_cliente"
-        ? hasAprovacao
-        : cofreCategorias.has(item.key),
+      done: item.key === "aprovacao_cliente" ? hasAprovacao : cofreCategorias.has(item.key),
     }));
   }, [cofreDocs, metas]);
 
   const completedCount = checklist.filter(c => c.done).length;
   const progressPercent = Math.round((completedCount / checklist.length) * 100);
-
-  const progressColor = progressPercent >= 70
-    ? "bg-emerald-500"
-    : progressPercent >= 30
-      ? "bg-amber-500"
-      : "bg-red-500";
+  const progressColor = progressPercent >= 70 ? "bg-emerald-500" : progressPercent >= 30 ? "bg-amber-500" : "bg-red-500";
 
   const handleOpenSearch = async () => {
     setShowSearch(true);
@@ -90,7 +148,10 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
     setShowSearch(false);
     setSearchQuery("");
     setResults([]);
+    setAudit(null); // Reset audit for new product
   };
+
+  const auditCfg = audit ? AUDIT_CONFIG[audit.match] : null;
 
   return (
     <div className="w-[280px] flex-shrink-0 border-r border-border/50 overflow-y-auto p-4 space-y-4">
@@ -135,6 +196,67 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
                   </Badge>
                 )}
               </div>
+
+              {/* AI Audit Badge */}
+              {(auditing || audit) && (
+                <div className="w-full">
+                  {auditing ? (
+                    <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-muted/30 border border-border/30">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground">Auditoria IA...</span>
+                    </div>
+                  ) : audit && auditCfg ? (
+                    <div className="space-y-1.5">
+                      <button
+                        onClick={() => setShowAuditDetails(!showAuditDetails)}
+                        className={cn(
+                          "w-full flex items-center gap-2 py-2 px-3 rounded-md border transition-colors",
+                          auditCfg.bg
+                        )}
+                      >
+                        <Bot className={cn("h-3.5 w-3.5 flex-shrink-0", auditCfg.color)} />
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-1.5">
+                            <auditCfg.icon className={cn("h-3 w-3", auditCfg.color)} />
+                            <span className={cn("text-[11px] font-semibold", auditCfg.color)}>
+                              {auditCfg.label}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground ml-auto">
+                              {audit.confianca}%
+                            </span>
+                          </div>
+                        </div>
+                        {showAuditDetails ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+                      </button>
+
+                      {showAuditDetails && (
+                        <div className={cn("p-2.5 rounded-md border text-left space-y-2", auditCfg.bg)}>
+                          <p className="text-[11px] text-foreground/80">{audit.motivo}</p>
+                          {audit.alertas.length > 0 && (
+                            <div className="space-y-1">
+                              {audit.alertas.map((alerta, i) => (
+                                <div key={i} className="flex items-start gap-1.5">
+                                  <ShieldAlert className="h-3 w-3 text-amber-500 flex-shrink-0 mt-0.5" />
+                                  <span className="text-[10px] text-foreground/70">{alerta}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] gap-1 text-muted-foreground w-full"
+                            onClick={(e) => { e.stopPropagation(); runAudit(); }}
+                          >
+                            <RefreshCw className="h-2.5 w-2.5" />
+                            Reavaliar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {/* Display filhos */}
               {linkedProduto.tipo === "DISPLAY" && linkedProduto.filhos && linkedProduto.filhos.length > 0 && (
