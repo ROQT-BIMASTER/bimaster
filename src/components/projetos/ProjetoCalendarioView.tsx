@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2 } from "lucide-react";
+import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
+import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
@@ -56,6 +57,25 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
   const [filterSecao, setFilterSecao] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  const [showAnalisePanel, setShowAnalisePanel] = useState(false);
+
+  // Period boundaries for analysis
+  const periodoInfo = useMemo(() => {
+    if (viewMode === "month") {
+      return {
+        inicio: startOfMonth(currentDate),
+        fim: endOfMonth(currentDate),
+        label: format(currentDate, "'Mês de' MMMM yyyy", { locale: ptBR }),
+      };
+    }
+    const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const we = endOfWeek(currentDate, { weekStartsOn: 1 });
+    return {
+      inicio: ws,
+      fim: we,
+      label: `Semana de ${format(ws, "dd MMM", { locale: ptBR })} – ${format(we, "dd MMM", { locale: ptBR })}`,
+    };
+  }, [currentDate, viewMode]);
 
   // Group tasks by date key
   const tasksByDate = useMemo(() => {
@@ -128,6 +148,14 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
           </Button>
           <Button variant="outline" size="sm" className={cn("h-8 text-xs ml-2", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={goToday}>
             Hoje
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("h-8 text-xs ml-1 gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")}
+            onClick={() => setShowAnalisePanel(true)}
+          >
+            <BarChart3 className="h-3.5 w-3.5" /> Análise
           </Button>
         </div>
 
@@ -244,6 +272,19 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
       {/* Task detail panel */}
       {selectedTarefaId && (
         <TaskDetailPanel tarefaId={selectedTarefaId} tarefas={tarefas} darkBg={darkBg} onClose={() => setSelectedTarefaId(null)} />
+      )}
+
+      {/* Analysis panel */}
+      {showAnalisePanel && (
+        <CalendarioAnalisePanel
+          projetoId={projetoId}
+          tarefas={tarefas}
+          periodoInicio={periodoInfo.inicio}
+          periodoFim={periodoInfo.fim}
+          periodoLabel={periodoInfo.label}
+          darkBg={darkBg}
+          onClose={() => setShowAnalisePanel(false)}
+        />
       )}
     </div>
   );
