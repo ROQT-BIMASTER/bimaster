@@ -105,11 +105,18 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
         <CardContent className="p-4 pt-0">
           {linkedProduto ? (
             <div className="flex flex-col items-center text-center gap-3">
-              <ProductThumbnail
-                src={linkedProduto.foto_url}
-                alt={linkedProduto.nome}
-                size="xl"
-              />
+              <div className="w-full aspect-[4/3] rounded-lg overflow-hidden border border-border/50 bg-muted/30 flex items-center justify-center">
+                {linkedProduto.foto_url ? (
+                  <ProductThumbnail
+                    src={linkedProduto.foto_url}
+                    alt={linkedProduto.nome}
+                    size="xl"
+                    className="h-full w-full [&_img]:object-contain"
+                  />
+                ) : (
+                  <Package className="h-10 w-10 text-muted-foreground/30" />
+                )}
+              </div>
               <div className="space-y-1">
                 <Badge variant="outline" className="text-[10px] font-mono px-2">
                   {linkedProduto.codigo}
