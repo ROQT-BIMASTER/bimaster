@@ -18,6 +18,7 @@ import { useProjetoTarefaMetas } from "@/hooks/useProjetoTarefaMetas";
 import { TaskEvolutionChart } from "./TaskEvolutionChart";
 import { MentionInput } from "./MentionInput";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
+import { ProductLaunchPanel } from "./ProductLaunchPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -267,7 +268,8 @@ export function TarefaFocusMode({
         <div className="flex flex-1 overflow-hidden">
           {/* Left column - Task details */}
           <ScrollArea className="flex-1 border-r border-border/50">
-            <div className="p-6 space-y-5 max-w-3xl">
+            <div className="p-6 space-y-5">
+
               {/* Fields grid */}
               <div className="grid grid-cols-[130px_1fr_130px_1fr] gap-y-3 gap-x-3 text-sm">
                 <span className="text-muted-foreground">Status</span>
@@ -701,6 +703,13 @@ export function TarefaFocusMode({
               </div>
             </div>
           </ScrollArea>
+
+          {/* Middle column - Product panel & checklist */}
+          <ProductLaunchPanel
+            linkedProduto={linkedProduto}
+            cofreDocs={cofreDocs}
+            metas={displayMetas}
+          />
 
           {/* Right column - Chat */}
           <div className="w-[380px] flex flex-col bg-muted/10 flex-shrink-0">
