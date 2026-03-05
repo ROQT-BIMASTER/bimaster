@@ -116,7 +116,7 @@ export function ProjetoSecao({
             </div>
           ))}
 
-          <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} />
+          <NovaTarefaInline onAdd={(titulo) => onAddTarefa(titulo, secaoId)} darkBg={darkBg} />
         </div>
       )}
     </div>

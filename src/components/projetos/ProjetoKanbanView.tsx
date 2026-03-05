@@ -53,9 +53,10 @@ const ESTAGIO_LABELS: Record<string, string> = {
 
 interface Props {
   projetoId: string;
+  darkBg?: boolean;
 }
 
-export function ProjetoKanbanView({ projetoId }: Props) {
+export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
   const {
     secoes, tarefas, secoesLoading, tarefasLoading,
     tarefasPorSecao, createTarefa, updateTarefa,
@@ -86,7 +87,7 @@ export function ProjetoKanbanView({ projetoId }: Props) {
 
   if (secoesLoading || tarefasLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
+      <div className={cn("flex items-center justify-center py-20", darkBg ? "text-white/60" : "text-muted-foreground")}>
         Carregando...
       </div>
     );
@@ -102,15 +103,18 @@ export function ProjetoKanbanView({ projetoId }: Props) {
           return (
             <div
               key={secao.id}
-              className="flex-shrink-0 w-72 bg-muted/30 rounded-xl border border-border/50 flex flex-col"
+              className={cn(
+                "flex-shrink-0 w-72 rounded-xl border flex flex-col",
+                darkBg ? "bg-white/5 border-white/15" : "bg-muted/30 border-border/50"
+              )}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, secao.id)}
             >
               {/* Column header */}
-              <div className="px-3 py-3 border-b border-border/30">
+              <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold truncate">{secao.nome}</h3>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
+                  <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
+                  <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
                     {completedCount}/{secaoTarefas.length}
                   </Badge>
                 </div>
@@ -126,15 +130,17 @@ export function ProjetoKanbanView({ projetoId }: Props) {
                       onSelect={() => setSelectedTarefa(tarefa)}
                       onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
                       onDragStart={(e) => handleDragStart(e, tarefa)}
+                      darkBg={darkBg}
                     />
                   ))}
                 </div>
               </ScrollArea>
 
               {/* Add task */}
-              <div className="border-t border-border/30">
+              <div className={cn("border-t", darkBg ? "border-white/10" : "border-border/30")}>
                 <NovaTarefaInline
                   onAdd={(titulo) => createTarefa.mutate({ titulo, secao_id: secao.id })}
+                  darkBg={darkBg}
                 />
               </div>
             </div>
@@ -143,7 +149,7 @@ export function ProjetoKanbanView({ projetoId }: Props) {
 
         {/* Add column */}
         <div className="flex-shrink-0 w-72">
-          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
+          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
         </div>
       </div>
 
@@ -208,11 +214,13 @@ function KanbanCard({
   onSelect,
   onToggle,
   onDragStart,
+  darkBg = false,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
   onToggle: () => void;
   onDragStart: (e: React.DragEvent) => void;
+  darkBg?: boolean;
 }) {
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
@@ -225,7 +233,10 @@ function KanbanCard({
       draggable
       onDragStart={onDragStart}
       className={cn(
-        "bg-background rounded-lg border border-border/60 p-3 cursor-grab active:cursor-grabbing hover:border-primary/40 hover:shadow-sm transition-all group",
+        "rounded-lg border p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group",
+        darkBg
+          ? "bg-white/5 border-white/10 hover:border-white/25"
+          : "bg-background border-border/60 hover:border-primary/40",
         isCompleted && "opacity-60"
       )}
     >
@@ -242,7 +253,7 @@ function KanbanCard({
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           className={cn(
             "mt-0.5 flex-shrink-0 transition-colors",
-            isCompleted ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
+            isCompleted ? "text-emerald-400" : (darkBg ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
           )}
         >
           {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -250,7 +261,8 @@ function KanbanCard({
         <span
           className={cn(
             "text-sm cursor-pointer hover:text-primary transition-colors flex-1",
-            isCompleted && "line-through text-muted-foreground"
+            darkBg && !isCompleted && "text-white",
+            isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground")
           )}
           onClick={onSelect}
         >
@@ -261,7 +273,7 @@ function KanbanCard({
       {/* Meta row */}
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {tarefa.codigo && (
-          <span className="text-[10px] text-muted-foreground font-mono">{tarefa.codigo}</span>
+          <span className={cn("text-[10px] font-mono", darkBg ? "text-white/50" : "text-muted-foreground")}>{tarefa.codigo}</span>
         )}
         {tarefa.estagio && ESTAGIO_LABELS[tarefa.estagio] && (
           <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", ESTAGIO_COLORS[tarefa.estagio])}>
@@ -287,7 +299,7 @@ function KanbanCard({
           {tarefa.data_prazo ? (
             <span className={cn(
               "text-[10px] flex items-center gap-1",
-              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : "text-muted-foreground"
+              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
             )}>
               <Calendar className="h-3 w-3" />
               {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
@@ -313,7 +325,7 @@ function KanbanCard({
 
         <div className="flex items-center -space-x-1">
           {tarefa.responsavel && (
-            <Avatar className="h-5 w-5 border border-background">
+            <Avatar className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
               <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
               <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
                 {tarefa.responsavel.nome?.substring(0, 2).toUpperCase()}
@@ -321,7 +333,7 @@ function KanbanCard({
             </Avatar>
           )}
           {tarefa.colaboradores?.slice(0, 2).map(c => (
-            <Avatar key={c.user_id} className="h-5 w-5 border border-background">
+            <Avatar key={c.user_id} className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
               <AvatarImage src={c.avatar_url || undefined} />
               <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>

@@ -51,7 +51,7 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
       </div>
 
       {/* Health Panel */}
-      {tarefas.length > 0 && <ProjetoHealthPanel tarefas={tarefas} />}
+      {tarefas.length > 0 && <ProjetoHealthPanel tarefas={tarefas} darkBg={darkBg} />}
 
       {/* Tabs and toolbar */}
       <div className={`flex items-center justify-between border-b pb-0 ${borderColor}`}>
