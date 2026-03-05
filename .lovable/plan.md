@@ -1,56 +1,43 @@
 
 
-## Implementação LGPD Completa — 3 Funcionalidades
+## Gerenciamento de API Keys — Plano
 
-### 1. Registro de Aceite de Termos
+### Contexto
 
-**Banco de dados** — nova tabela `terms_acceptance`:
-- `id` (uuid, PK), `user_id` (uuid, NOT NULL), `document_type` (text — 'privacy_policy' ou 'terms_of_use'), `document_version` (text), `accepted_at` (timestamptz), `ip_address` (text nullable)
-- RLS: usuário só lê seus próprios registros; insert para authenticated
-- Unique constraint em `(user_id, document_type, document_version)`
+O sistema usa 14 secrets no backend (N8N_API_KEY, POLLO_API_KEY, ELEVENLABS_API_KEY, etc.). Secrets são gerenciados pela infraestrutura Cloud e **não podem ser lidos pelo frontend** (são criptografados). Portanto, a página será um **painel de gestão visual** com:
 
-**Componente** — `TermsAcceptanceModal.tsx`:
-- Modal que aparece no `DashboardLayout` quando o usuário logado não tem aceite registrado para a versão atual dos termos
-- Exibe links para Política de Privacidade e Termos de Uso
-- Checkbox + botão "Aceitar e Continuar"
-- Ao aceitar, insere registro na tabela e fecha o modal
-- Hook `useTermsAcceptance` que consulta se o usuário já aceitou a versão vigente
+- Lista das API keys do sistema com status e mascaramento
+- Tabela no banco para registrar metadata das chaves (nome, última rotação, status ativo/inativo)
+- Funcionalidade de rotação (gerar nova chave + registrar no log)
+- Logs de uso via `api_security_log` já existente
 
-**Integração**: Adicionar o modal no `DashboardLayout.tsx` após o header.
+### Implementação
 
----
+#### 1. Migração — Tabela `api_keys_management`
 
-### 2. Ferramenta LGPD para Admin (Exportar/Excluir Dados)
+Nova tabela para rastrear metadata das chaves:
+- `id`, `key_name` (text, unique), `description`, `masked_value` (últimos 4 chars), `is_active` (bool), `last_rotated_at` (timestamptz), `rotated_by` (uuid), `created_at`
+- RLS: somente admins leem/escrevem (via `has_role`)
+- Seed com as 14 chaves atuais do sistema
 
-**Nova página** — `src/pages/LGPDAdmin.tsx`:
-- Acessível em `/dashboard/configuracoes/lgpd` (admin only)
-- Busca por email/nome de usuário
-- **Exportar**: Coleta dados de `profiles`, `team_members`, `team_member_details`, `terms_acceptance`, `audit_logs` do usuário e gera JSON para download
-- **Anonimizar**: Substitui dados pessoais (nome, email, telefone, CPF) por valores anonimizados, cumprindo Art. 18 LGPD (não deleta registros para manter integridade referencial)
+#### 2. Componente — `GerenciamentoAPIKeys.tsx`
 
-**Rota**: Protegida por `ProtectedRoute` + verificação de role admin no componente.
+Em `src/components/configuracoes/GerenciamentoAPIKeys.tsx`:
+- Tabela com: Nome da chave, Valor mascarado (`****xxxx`), Status (ativo/inativo badge), Última rotação, Ações
+- Toggle ativo/inativo por chave
+- Botão "Rotacionar" — abre dialog de confirmação, registra nova data de rotação e quem fez
+- Card com estatísticas: total de chaves, ativas, última rotação
+- Seção de logs recentes da `api_security_log`
 
-**Sidebar**: Adicionar item "LGPD" no grupo de Configurações (apenas para admins).
+#### 3. Integração na página Configurações
 
----
+Adicionar nova tab "API Keys" dentro da seção protegida por senha ("Outras opções") em `Configuracoes.tsx`, visível apenas para admins.
 
-### 3. Links de Política no Dashboard
-
-**Footer do Sidebar** (`AppSidebar.tsx`):
-- Antes do botão de logout, adicionar links discretos para `/politica-privacidade` e `/termos-de-uso`
-- Estilo: texto pequeno, muted, com ícone `FileText`
-
----
-
-### Arquivos a criar/editar
+#### Arquivos
 
 | Ação | Arquivo |
 |------|---------|
-| Criar | `src/components/auth/TermsAcceptanceModal.tsx` |
-| Criar | `src/hooks/useTermsAcceptance.ts` |
-| Criar | `src/pages/LGPDAdmin.tsx` |
-| Editar | `src/components/dashboard/DashboardLayout.tsx` (adicionar modal) |
-| Editar | `src/components/dashboard/AppSidebar.tsx` (links legais + item LGPD) |
-| Editar | `src/App.tsx` (rota LGPD) |
-| Migração | Tabela `terms_acceptance` + RLS |
+| Criar | `src/components/configuracoes/GerenciamentoAPIKeys.tsx` |
+| Editar | `src/pages/Configuracoes.tsx` (nova tab) |
+| Migração | Tabela `api_keys_management` + RLS + seed data |
 
