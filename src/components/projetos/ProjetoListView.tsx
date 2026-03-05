@@ -21,7 +21,7 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
     createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
-    addColaborador, removeColaborador, teamMembers,
+    toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
   } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
@@ -110,11 +110,13 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
             secaoId={secao.id}
             tarefas={tarefasPorSecao(secao.id)}
             ghosts={ghostsPorSecao(secao.id)}
+            temBriefing={(secao as any).tem_briefing || false}
             selectedTarefaId={selectedTarefa?.id}
             onToggleTarefa={handleToggle}
             onSelectTarefa={handleSelectTarefa}
             onAddTarefa={handleAddTarefa}
             onUpdateTarefa={handleUpdateTarefa}
+            onToggleBriefing={(secaoId, value) => toggleSecaoBriefing.mutate({ secaoId, temBriefing: value })}
             teamMembers={teamMembers}
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}

@@ -13642,6 +13642,7 @@ export type Database = {
           nome: string
           ordem: number | null
           projeto_id: string
+          tem_briefing: boolean
         }
         Insert: {
           created_at?: string | null
@@ -13649,6 +13650,7 @@ export type Database = {
           nome: string
           ordem?: number | null
           projeto_id: string
+          tem_briefing?: boolean
         }
         Update: {
           created_at?: string | null
@@ -13656,6 +13658,7 @@ export type Database = {
           nome?: string
           ordem?: number | null
           projeto_id?: string
+          tem_briefing?: boolean
         }
         Relationships: [
           {
@@ -14041,6 +14044,7 @@ export type Database = {
           responsavel_id: string | null
           secao_id: string
           status: string | null
+          tem_briefing: boolean
           titulo: string
           updated_at: string | null
           validacao_status: string | null
@@ -14065,6 +14069,7 @@ export type Database = {
           responsavel_id?: string | null
           secao_id: string
           status?: string | null
+          tem_briefing?: boolean
           titulo: string
           updated_at?: string | null
           validacao_status?: string | null
@@ -14089,6 +14094,7 @@ export type Database = {
           responsavel_id?: string | null
           secao_id?: string
           status?: string | null
+          tem_briefing?: boolean
           titulo?: string
           updated_at?: string | null
           validacao_status?: string | null

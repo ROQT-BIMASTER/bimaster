@@ -8,6 +8,7 @@ export interface ProjetoSecao {
   projeto_id: string;
   nome: string;
   ordem: number;
+  tem_briefing: boolean;
   created_at: string;
 }
 
@@ -358,7 +359,21 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Team members for pickers
+  // Toggle briefing on section
+  const toggleSecaoBriefing = useMutation({
+    mutationFn: async ({ secaoId, temBriefing }: { secaoId: string; temBriefing: boolean }) => {
+      const { error } = await supabase
+        .from("projeto_secoes")
+        .update({ tem_briefing: temBriefing } as any)
+        .eq("id", secaoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-secoes", projetoId] });
+      toast.success("Briefing atualizado!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
   const { data: teamMembers = [] } = useQuery({
     queryKey: ["team-members"],
     queryFn: async () => {
@@ -384,6 +399,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     toggleTarefaCompleta,
     moveTarefaToSecao,
     createSecao,
+    toggleSecaoBriefing,
     addColaborador,
     removeColaborador,
     teamMembers,
