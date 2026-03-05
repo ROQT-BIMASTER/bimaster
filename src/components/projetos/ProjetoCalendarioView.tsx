@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import { CalendarioAnalisePanel } from "./CalendarioAnalisePanel";
 import { ChevronLeft, ChevronRight, CalendarDays, Circle, CheckCircle2, BarChart3 } from "lucide-react";
 import {
@@ -139,11 +140,27 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
             <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("prev")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h2 className={cn("text-lg font-semibold capitalize min-w-[180px] text-center", txt)}>
-              {viewMode === "month"
-                ? format(currentDate, "MMMM yyyy", { locale: ptBR })
-                : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
-            </h2>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
+                  {viewMode === "month"
+                    ? format(currentDate, "MMMM yyyy", { locale: ptBR })
+                    : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={currentDate}
+                  onSelect={(d) => d && setCurrentDate(d)}
+                  locale={ptBR}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2020}
+                  toYear={2030}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
             <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("next")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -175,11 +192,27 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
           <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("prev")}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h2 className={cn("text-lg font-semibold capitalize min-w-[180px] text-center", txt)}>
-            {viewMode === "month"
-              ? format(currentDate, "MMMM yyyy", { locale: ptBR })
-              : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
-          </h2>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn("text-lg font-semibold capitalize min-w-[180px] text-center cursor-pointer hover:opacity-80 transition-opacity", txt)}>
+                {viewMode === "month"
+                  ? format(currentDate, "MMMM yyyy", { locale: ptBR })
+                  : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={currentDate}
+                onSelect={(d) => d && setCurrentDate(d)}
+                locale={ptBR}
+                captionLayout="dropdown-buttons"
+                fromYear={2020}
+                toYear={2030}
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
           <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("next")}>
             <ChevronRight className="h-4 w-4" />
           </Button>
