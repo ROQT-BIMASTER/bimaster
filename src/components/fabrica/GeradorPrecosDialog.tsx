@@ -232,7 +232,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
           tabela_id: tabela.id,
           produto_id: preco.produto_id,
           custo_base: preco.custo_base,
-          custo_base_origem: fonteCusto,
+          custo_base_origem: fonteCusto === 'preco_final' ? 'tabela_anterior' : fonteCusto,
           preco_calculado: preco.preco_calculado,
           preco_final: preco.preco_final,
           margem_lucro_percentual: preco.margem_lucro_percentual,
