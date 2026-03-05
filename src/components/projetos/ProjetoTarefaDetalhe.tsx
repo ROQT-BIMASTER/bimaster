@@ -28,12 +28,16 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
+import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
+import { BriefingImportDialog } from "./BriefingImportDialog";
+import { BriefingView } from "./BriefingView";
+import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -103,6 +107,7 @@ export function ProjetoTarefaDetalhe({
   tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], onMoveTarefa,
 }: ProjetoTarefaDetalheProps) {
   const navigate = useNavigate();
+  const { id: projetoId } = useParams<{ id: string }>();
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
     sendToCofre, messages, sendMessage, searchProdutos, teamMembers, linkedProduto,
@@ -128,6 +133,9 @@ export function ProjetoTarefaDetalhe({
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
   const [focusMode, setFocusMode] = useState(false);
+  const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
+  const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
 
   useEffect(() => {
     if (tarefa) {
@@ -709,6 +717,35 @@ export function ProjetoTarefaDetalhe({
                   />
                 </div>
 
+                {/* Briefing da Tarefa */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium flex items-center gap-1.5">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      Briefing
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px] gap-1 text-primary hover:text-primary"
+                      onClick={() => setBriefingDialogOpen(true)}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      {tarefaBriefing ? "Reimportar" : "Importar Briefing"}
+                    </Button>
+                  </div>
+                  {tarefaBriefing && (
+                    <BriefingView
+                      briefing={tarefaBriefing}
+                      onDelete={() => deleteTarefaBriefing.mutate(tarefaBriefing.id)}
+                      onCreateTasks={() => setBriefingTasksDialogOpen(true)}
+                    />
+                  )}
+                  {!tarefaBriefing && (
+                    <p className="text-xs text-muted-foreground">Nenhum briefing importado para esta tarefa.</p>
+                  )}
+                </div>
+
                 <Separator />
 
                 {/* Subtarefas */}
@@ -1131,6 +1168,41 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
           secoes={secoes}
+        />
+      )}
+
+      {/* Briefing Dialogs */}
+      {tarefa && (
+        <BriefingImportDialog
+          open={briefingDialogOpen}
+          onOpenChange={setBriefingDialogOpen}
+          projetoId={projetoId || ""}
+          tarefaId={tarefa.id}
+          onSave={(nomeArquivo, campos) => {
+            saveTarefaBriefing.mutate({
+              projetoId: projetoId || "",
+              tarefaId: tarefa.id,
+              nomeArquivo,
+              campos,
+            });
+          }}
+        />
+      )}
+
+      {tarefa && tarefaBriefing?.campos && (
+        <BriefingToTasksDialog
+          open={briefingTasksDialogOpen}
+          onOpenChange={setBriefingTasksDialogOpen}
+          campos={tarefaBriefing.campos}
+          secoes={secoes.length > 0 ? secoes.map(s => ({ id: s.id, nome: s.nome })) : [{ id: tarefa.secao_id, nome: "Seção" }]}
+          defaultSecaoId={tarefa.secao_id}
+          onCreateTasks={(tasks) => {
+            if (onAddSubtarefa) {
+              for (const t of tasks) {
+                onAddSubtarefa(t.titulo, tarefa.id, tarefa.secao_id);
+              }
+            }
+          }}
         />
       )}
     </>

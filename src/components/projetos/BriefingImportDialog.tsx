@@ -21,7 +21,8 @@ interface BriefingImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projetoId: string;
-  secaoId: string;
+  secaoId?: string;
+  tarefaId?: string;
   onSave: (nomeArquivo: string, campos: BriefingField[]) => void;
 }
 
@@ -33,7 +34,7 @@ const RESP_COLORS: Record<string, string> = {
   COMP: "bg-emerald-500/20 text-emerald-400",
 };
 
-export function BriefingImportDialog({ open, onOpenChange, projetoId, secaoId, onSave }: BriefingImportDialogProps) {
+export function BriefingImportDialog({ open, onOpenChange, projetoId, secaoId, tarefaId, onSave }: BriefingImportDialogProps) {
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [loading, setLoading] = useState(false);
   const [campos, setCampos] = useState<BriefingField[]>([]);

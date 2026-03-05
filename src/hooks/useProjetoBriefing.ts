@@ -15,28 +15,42 @@ export interface BriefingCampo {
 export interface Briefing {
   id: string;
   projeto_id: string;
-  secao_id: string;
+  secao_id: string | null;
+  tarefa_id: string | null;
   nome_arquivo: string;
+  status: string;
+  aprovado_por: string | null;
+  aprovado_em: string | null;
+  observacao_aprovacao: string | null;
   created_at: string;
   user_id: string;
   campos?: BriefingCampo[];
 }
 
-export function useProjetoBriefing(secaoId: string | undefined) {
+/** Hook to manage a single briefing linked to a tarefa (or secao for backward compat) */
+export function useProjetoBriefing(tarefaId: string | undefined, secaoId?: string | undefined) {
   const queryClient = useQueryClient();
-  const queryKey = ["projeto-briefing", secaoId];
+  const key = tarefaId || secaoId;
+  const queryKey = ["projeto-briefing", key];
 
   const { data: briefing, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      if (!secaoId) return null;
-      const { data, error } = await supabase
+      if (!key) return null;
+
+      let query = supabase
         .from("projeto_briefings")
         .select("*")
-        .eq("secao_id", secaoId)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      if (tarefaId) {
+        query = query.eq("tarefa_id", tarefaId);
+      } else if (secaoId) {
+        query = query.eq("secao_id", secaoId);
+      }
+
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) return null;
 
@@ -49,25 +63,29 @@ export function useProjetoBriefing(secaoId: string | undefined) {
 
       return { ...data, campos: campos || [] } as Briefing;
     },
-    enabled: !!secaoId,
+    enabled: !!key,
   });
 
   const saveBriefing = useMutation({
     mutationFn: async (params: {
       projetoId: string;
-      secaoId: string;
+      secaoId?: string;
+      tarefaId?: string;
       nomeArquivo: string;
       campos: { categoria: string; campo: string; valor: string; responsabilidade?: string }[];
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Delete existing briefing for this section
-      const { data: existing } = await supabase
-        .from("projeto_briefings")
-        .select("id")
-        .eq("secao_id", params.secaoId);
-      
+      // Delete existing briefing for this target
+      let existingQuery = supabase.from("projeto_briefings").select("id");
+      if (params.tarefaId) {
+        existingQuery = existingQuery.eq("tarefa_id", params.tarefaId);
+      } else if (params.secaoId) {
+        existingQuery = existingQuery.eq("secao_id", params.secaoId);
+      }
+      const { data: existing } = await existingQuery;
+
       if (existing && existing.length > 0) {
         for (const b of existing) {
           await supabase.from("projeto_briefing_campos").delete().eq("briefing_id", b.id);
@@ -76,19 +94,22 @@ export function useProjetoBriefing(secaoId: string | undefined) {
       }
 
       // Create new briefing
+      const insertData: any = {
+        projeto_id: params.projetoId,
+        nome_arquivo: params.nomeArquivo,
+        user_id: user.id,
+        status: "pendente",
+      };
+      if (params.tarefaId) insertData.tarefa_id = params.tarefaId;
+      if (params.secaoId) insertData.secao_id = params.secaoId;
+
       const { data: briefing, error: bError } = await supabase
         .from("projeto_briefings")
-        .insert({
-          projeto_id: params.projetoId,
-          secao_id: params.secaoId,
-          nome_arquivo: params.nomeArquivo,
-          user_id: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
       if (bError) throw bError;
 
-      // Insert campos
       const camposToInsert = params.campos.map((c, i) => ({
         briefing_id: briefing.id,
         categoria: c.categoria,
@@ -107,6 +128,7 @@ export function useProjetoBriefing(secaoId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["projeto-briefings"] });
       toast.success("Briefing salvo com sucesso!");
     },
     onError: (err: any) => {
@@ -122,6 +144,7 @@ export function useProjetoBriefing(secaoId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["projeto-briefings"] });
       toast.success("Briefing removido.");
     },
   });
