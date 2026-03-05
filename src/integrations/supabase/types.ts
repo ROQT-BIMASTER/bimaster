@@ -784,6 +784,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys_management: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key_name: string
+          last_rotated_at: string | null
+          masked_value: string | null
+          rotated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key_name: string
+          last_rotated_at?: string | null
+          masked_value?: string | null
+          rotated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key_name?: string
+          last_rotated_at?: string | null
+          masked_value?: string | null
+          rotated_by?: string | null
+        }
+        Relationships: []
+      }
       api_security_log: {
         Row: {
           api_key_used: boolean | null
