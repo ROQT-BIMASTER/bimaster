@@ -1,67 +1,84 @@
 
 
-## Plano: Briefing como Planilha Interna com Criação Opcional de Tarefas
+## Plano: Briefing por Tarefa + Painel de Briefings
 
-### Mudança de Conceito
-O fluxo atual cria tarefas diretamente. O novo fluxo é:
-1. **Upload Excel** → IA extrai e organiza os dados estruturados
-2. **Armazena como planilha interna** no banco (tabela `projeto_briefings` + `projeto_briefing_campos`)
-3. **Visualização** em formato de tabela dentro da seção com briefing ativo
-4. **Opcional**: botão "Criar Tarefas a partir do Briefing" para quem quiser gerar tarefas
+### Mudança Arquitetural
 
-### 1. Nova Tabela: `projeto_briefings`
-Armazena o briefing importado por seção:
-```sql
-CREATE TABLE projeto_briefings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  projeto_id uuid REFERENCES projetos(id) ON DELETE CASCADE NOT NULL,
-  secao_id uuid REFERENCES projeto_secoes(id) ON DELETE CASCADE NOT NULL,
-  nome_arquivo text NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  user_id uuid NOT NULL
-);
-```
+Atualmente o briefing está vinculado à **seção**. O novo modelo vincula o briefing à **tarefa** (cada tarefa que representa um produto tem seu próprio briefing). Além disso, será criada uma nova aba **"Briefings"** no projeto para análise centralizada, cumprimentos e aprovações.
 
-### 2. Nova Tabela: `projeto_briefing_campos`
-Cada linha/campo extraído da planilha:
-```sql
-CREATE TABLE projeto_briefing_campos (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  briefing_id uuid REFERENCES projeto_briefings(id) ON DELETE CASCADE NOT NULL,
-  categoria text NOT NULL,        -- 'PRODUTO', 'ROTULAGEM', 'COMPRAS E EMBALAGEM'
-  campo text NOT NULL,            -- 'Nome comercial', 'Composição em EN', etc.
-  valor text,                     -- conteúdo extraído
-  responsabilidade text,          -- 'D', 'C', 'R', 'E', 'COMP'
-  ordem int DEFAULT 0
-);
-```
+---
 
-### 3. Edge Function `importar-briefing-ia` (Atualizar)
-Em vez de retornar tarefas, a IA retorna os **campos estruturados** do briefing:
-- Categoria, campo, valor, responsabilidade
-- Organizado nas 3 seções da planilha (Produto, Rotulagem, Compras)
-- Salva diretamente no banco após confirmação do usuário
+### 1. Migração do Banco de Dados
 
-### 4. Componente `BriefingImportDialog` (Refatorar)
-Fluxo de 2 etapas:
-- **Upload**: Envia Excel, IA extrai campos estruturados
-- **Review**: Exibe os campos organizados por categoria para o usuário confirmar → salva no banco
+- Adicionar coluna `tarefa_id` (nullable, FK → `projeto_tarefas`) em `projeto_briefings`
+- Tornar `secao_id` nullable (manter compatibilidade)
+- Adicionar colunas de aprovação em `projeto_briefings`:
+  - `status` (text, default `'pendente'` — `pendente`, `em_analise`, `aprovado`, `rejeitado`)
+  - `aprovado_por` (uuid, nullable)
+  - `aprovado_em` (timestamptz, nullable)
+  - `observacao_aprovacao` (text, nullable)
+- RLS policies para as novas colunas
 
-### 5. Novo Componente `BriefingView`
-Exibido dentro da seção quando `tem_briefing = true` e existe briefing salvo:
-- Tabela visual com os campos organizados por categoria (Produto, Rotulagem, Compras)
-- Badges de responsabilidade (D, C, R, E, COMP)
-- Botão **"Criar Tarefas"** que abre um segundo dialog para gerar tarefas a partir dos campos do briefing (reusa a lógica de IA existente)
+### 2. Refatorar `useProjetoBriefing.ts`
 
-### 6. RLS Policies
-- Select/Insert/Update/Delete para usuários autenticados com base no `projeto_id`
+- Aceitar `tarefa_id` ao invés de (ou além de) `secao_id`
+- `saveBriefing` recebe `tarefa_id` como parâmetro
+- Novo hook `useProjetoBriefings(projetoId)` para buscar **todos** os briefings do projeto (para o painel)
+  - Join com `projeto_tarefas` para pegar nome da tarefa e produto vinculado
+  - Join com `fabrica_produtos` para pegar foto, código, nome do produto
+
+### 3. Mover Briefing para a Tarefa
+
+- **`ProjetoTarefaRow.tsx`**: Adicionar ícone de briefing (FileSpreadsheet) na linha da tarefa quando `tem_briefing = true`
+- **`ProjetoTarefaDetalhe.tsx`**: Adicionar aba/seção de Briefing dentro do detalhe da tarefa:
+  - Botão para importar briefing (abre `BriefingImportDialog`)
+  - Visualização do briefing importado (`BriefingView`)
+  - Botão "Criar Tarefas" (subtarefas) a partir do briefing
+- **`BriefingImportDialog.tsx`**: Refatorar para aceitar `tarefa_id` ao invés de `secao_id`
+- **`ProjetoSecao.tsx`**: Remover lógica de briefing do nível de seção
+
+### 4. Nova Aba "Briefings" no Projeto
+
+Criar componente `ProjetoBriefingPanel.tsx` — uma visão centralizada de todos os briefings do projeto:
+
+**Layout**:
+- **Cards/Tabela** listando todos os briefings, cada um mostrando:
+  - **Produto**: foto thumbnail + nome + código (do produto vinculado à tarefa)
+  - **Tarefa**: título da tarefa associada
+  - **Status**: badge colorido (Pendente / Em Análise / Aprovado / Rejeitado)
+  - **Data de importação**
+  - **Responsabilidade**: resumo dos códigos (D, C, R, E, COMP)
+  - **Ações**: Aprovar, Rejeitar, Ver detalhes
+
+**KPIs no topo**:
+- Total de briefings
+- Aprovados / Pendentes / Rejeitados
+- % de cumprimento
+
+**Filtros**:
+- Por status, por seção, por responsabilidade
+
+**Detalhe expandível**: Clicar num briefing expande para ver a tabela completa de campos
+
+### 5. Integrar no `ProjetoHeader` e `ProjetoDetalhe`
+
+- Adicionar tab `"briefings"` com ícone `FileSpreadsheet` no `ProjetoHeader.tsx`
+- Renderizar `ProjetoBriefingPanel` no `ProjetoDetalhe.tsx` quando `activeTab === "briefings"`
+
+---
 
 ### Arquivos a Criar/Editar
-- **Migração SQL**: criar `projeto_briefings` e `projeto_briefing_campos` + RLS
-- **Editar**: `supabase/functions/importar-briefing-ia/index.ts` — retornar campos estruturados em vez de tarefas
-- **Refatorar**: `src/components/projetos/BriefingImportDialog.tsx` — novo fluxo de import + save
-- **Criar**: `src/components/projetos/BriefingView.tsx` — visualização da planilha interna
-- **Criar**: `src/components/projetos/BriefingToTasksDialog.tsx` — criação opcional de tarefas
-- **Editar**: `src/components/projetos/ProjetoSecao.tsx` — exibir `BriefingView` quando ativo
-- **Criar**: `src/hooks/useProjetoBriefing.ts` — hook para CRUD do briefing
+
+| Ação | Arquivo |
+|------|---------|
+| Migração SQL | Alterar `projeto_briefings` (add `tarefa_id`, `status`, `aprovado_por`, `aprovado_em`, `observacao_aprovacao`) |
+| Criar | `src/components/projetos/ProjetoBriefingPanel.tsx` |
+| Criar | `src/hooks/useProjetoBriefings.ts` (hook para painel — lista todos do projeto) |
+| Editar | `src/hooks/useProjetoBriefing.ts` — suportar `tarefa_id` |
+| Editar | `src/components/projetos/BriefingImportDialog.tsx` — aceitar `tarefa_id` |
+| Editar | `src/components/projetos/BriefingView.tsx` — funcionar no contexto da tarefa |
+| Editar | `src/components/projetos/ProjetoTarefaDetalhe.tsx` — integrar briefing |
+| Editar | `src/components/projetos/ProjetoSecao.tsx` — remover briefing do nível de seção |
+| Editar | `src/components/projetos/ProjetoHeader.tsx` — adicionar tab Briefings |
+| Editar | `src/pages/ProjetoDetalhe.tsx` — renderizar `ProjetoBriefingPanel` |
 
