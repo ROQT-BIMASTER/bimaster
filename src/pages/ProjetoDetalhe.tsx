@@ -109,8 +109,8 @@ export default function ProjetoDetalhe() {
 
             {/* Tab content */}
             {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} />}
-            {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} />}
+            {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} />}
+            {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "painel" && (
               <div className={`flex items-center justify-center py-20 ${darkBg ? "text-white" : customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Painel — Em breve</p>

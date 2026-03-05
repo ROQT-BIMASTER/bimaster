@@ -6,9 +6,10 @@ import { cn } from "@/lib/utils";
 
 interface ProjetoHealthPanelProps {
   tarefas: ProjetoTarefa[];
+  darkBg?: boolean;
 }
 
-export function ProjetoHealthPanel({ tarefas }: ProjetoHealthPanelProps) {
+export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPanelProps) {
   const stats = useMemo(() => {
     let onTrack = 0, atRisk = 0, overdue = 0, completed = 0, noDeadline = 0;
     for (const t of tarefas) {
@@ -28,10 +29,10 @@ export function ProjetoHealthPanel({ tarefas }: ProjetoHealthPanelProps) {
   if (stats.total === 0) return null;
 
   const items = [
-    { icon: CheckCircle2, label: "Concluídas", count: stats.completed, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-    { icon: Target, label: "No prazo", count: stats.onTrack, color: "text-blue-400", bg: "bg-blue-500/10" },
-    { icon: Clock, label: "Em risco", count: stats.atRisk, color: "text-amber-400", bg: "bg-amber-500/10" },
-    { icon: AlertTriangle, label: "Atrasadas", count: stats.overdue, color: "text-red-400", bg: "bg-red-500/10" },
+    { icon: CheckCircle2, label: "Concluídas", count: stats.completed, color: "text-emerald-400", bg: darkBg ? "bg-emerald-500/20" : "bg-emerald-500/10" },
+    { icon: Target, label: "No prazo", count: stats.onTrack, color: "text-blue-400", bg: darkBg ? "bg-blue-500/20" : "bg-blue-500/10" },
+    { icon: Clock, label: "Em risco", count: stats.atRisk, color: "text-amber-400", bg: darkBg ? "bg-amber-500/20" : "bg-amber-500/10" },
+    { icon: AlertTriangle, label: "Atrasadas", count: stats.overdue, color: "text-red-400", bg: darkBg ? "bg-red-500/20" : "bg-red-500/10" },
   ];
 
   return (

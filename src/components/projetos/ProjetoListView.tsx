@@ -122,7 +122,7 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
         ))}
 
         <div className={`flex items-center gap-2 border-t ${darkBg ? "border-white/10" : "border-border/30"}`}>
-          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} />
+          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
           <Button
             variant="ghost"
             size="sm"

@@ -70,9 +70,10 @@ interface MetaMarker {
 interface Props {
   projetoId: string;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
+  darkBg?: boolean;
 }
 
-export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
+export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = false }: Props) {
   const { tarefas, secoes, tarefasLoading, secoesLoading } = useProjetoTarefas(projetoId);
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [filterSecao, setFilterSecao] = useState<string>("all");
@@ -273,14 +274,14 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
   if (tarefasLoading || secoesLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className={`h-6 w-6 animate-spin ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
       </div>
     );
   }
 
   if (filteredTarefas.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+      <div className={`flex flex-col items-center justify-center py-20 gap-2 ${darkBg ? "text-white/60" : "text-muted-foreground"}`}>
         <Calendar className="h-10 w-10 opacity-40" />
         <p className="text-sm">Nenhuma tarefa encontrada para exibir no cronograma.</p>
         <p className="text-xs">Crie tarefas com prazos para visualizá-las aqui.</p>
@@ -336,13 +337,13 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
         </div>
 
         {/* Gantt chart */}
-        <div className="border rounded-xl overflow-hidden bg-card">
+        <div className={`border rounded-xl overflow-hidden ${darkBg ? "bg-white/5 border-white/15" : "bg-card"}`}>
           <div className="overflow-x-auto" ref={scrollRef}>
             <div className="flex" style={{ minWidth: totalWidth + LANE_LABEL_WIDTH }}>
               {/* Lane labels (fixed) */}
-              <div className="flex-shrink-0 border-r bg-muted/30 sticky left-0 z-10 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.1)]" style={{ width: LANE_LABEL_WIDTH }}>
-                <div className="h-10 border-b px-3 flex items-center">
-                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Produto</span>
+              <div className={`flex-shrink-0 border-r sticky left-0 z-10 ${darkBg ? "bg-white/5 border-white/10 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.3)]" : "bg-muted/30 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.1)]"}`} style={{ width: LANE_LABEL_WIDTH }}>
+                <div className={`h-10 border-b px-3 flex items-center ${darkBg ? "border-white/10" : ""}`}>
+                  <span className={`text-[11px] font-medium uppercase tracking-wider ${darkBg ? "text-white/60" : "text-muted-foreground"}`}>Produto</span>
                 </div>
                 {lanes.map((lane) => (
                   <div
