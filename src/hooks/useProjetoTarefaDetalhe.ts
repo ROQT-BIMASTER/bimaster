@@ -250,7 +250,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // ===== Linked Product query =====
+  // ===== Linked Product query (with filhos for DISPLAY) =====
   const { data: linkedProduto } = useQuery({
     queryKey: ["linked-produto", produtoId],
     queryFn: async () => {
@@ -259,7 +259,23 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         .select("id, codigo, nome, marca, linha, tipo, foto_url")
         .eq("id", produtoId!)
         .single();
-      return (data as unknown as ProdutoAcabado) || null;
+      if (!data) return null;
+      const produto = data as unknown as ProdutoAcabado;
+
+      // If DISPLAY, fetch grade children
+      if (produto.tipo === "DISPLAY") {
+        const { data: gradeItens } = await supabase
+          .from("fabrica_produto_grade_itens" as any)
+          .select("produto_filho_id, quantidade, produto_filho:fabrica_produtos!produto_filho_id(id, codigo, nome, marca, linha, tipo, foto_url)")
+          .eq("produto_pai_id", produto.id);
+        if (gradeItens) {
+          produto.filhos = (gradeItens as any[])
+            .filter(i => i.produto_filho)
+            .map(i => i.produto_filho as ProdutoAcabado);
+        }
+      }
+
+      return produto;
     },
     enabled: !!produtoId,
   });
