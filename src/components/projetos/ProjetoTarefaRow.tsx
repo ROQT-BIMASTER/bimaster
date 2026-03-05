@@ -14,11 +14,11 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
 const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-muted text-muted-foreground",
-  nao_iniciado: "bg-pink-500/20 text-pink-400",
-  em_andamento: "bg-amber-500/20 text-amber-400",
-  concluida: "bg-emerald-500/20 text-emerald-400",
-  bloqueada: "bg-red-500/20 text-red-400",
+  pendente: "bg-muted text-foreground/70",
+  nao_iniciado: "bg-pink-500/15 text-pink-600",
+  em_andamento: "bg-amber-500/15 text-amber-600",
+  concluida: "bg-emerald-500/15 text-emerald-600",
+  bloqueada: "bg-red-500/15 text-red-600",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -37,12 +37,12 @@ const STATUS_OPTIONS = [
 ];
 
 const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-400",
-  em_criacao: "bg-blue-500/20 text-blue-400",
-  revisao: "bg-amber-500/20 text-amber-400",
-  aprovado: "bg-emerald-500/20 text-emerald-400",
-  producao: "bg-pink-500/20 text-pink-400",
-  lancamento: "bg-pink-500/20 text-pink-400",
+  briefing: "bg-purple-500/15 text-purple-600",
+  em_criacao: "bg-blue-500/15 text-blue-600",
+  revisao: "bg-amber-500/15 text-amber-600",
+  aprovado: "bg-emerald-500/15 text-emerald-600",
+  producao: "bg-pink-500/15 text-pink-600",
+  lancamento: "bg-pink-500/15 text-pink-600",
 };
 
 const ESTAGIO_LABELS: Record<string, string> = {
@@ -94,9 +94,9 @@ export function ProjetoTarefaRow({
     <>
       <div
         className={cn(
-          `group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/40 hover:bg-muted/30 transition-colors min-h-[40px] relative`,
+          `group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/60 hover:bg-muted/30 transition-colors min-h-[40px] relative`,
           indented && "pl-10",
-          isCompleted && "opacity-60",
+          isCompleted && "opacity-70",
           selected && "bg-primary/5 border-l-2 border-l-primary"
         )}
       >
@@ -126,7 +126,7 @@ export function ProjetoTarefaRow({
             <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="sm" className="flex-shrink-0" />
           )}
           {tarefa.codigo && (
-            <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">{tarefa.codigo}</span>
+            <span className="text-[10px] text-foreground/60 font-mono flex-shrink-0">{tarefa.codigo}</span>
           )}
           <InlineTitle
             value={tarefa.titulo}
@@ -187,13 +187,13 @@ export function ProjetoTarefaRow({
                   {tarefa.criador.nome?.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-[11px] text-muted-foreground truncate hidden xl:inline">{tarefa.criador.nome?.split(" ")[0]}</span>
+              <span className="text-[11px] text-foreground/70 truncate hidden xl:inline">{tarefa.criador.nome?.split(" ")[0]}</span>
             </>
           ) : null}
         </div>
 
         {/* Data modificação */}
-        <div className="text-[11px] text-muted-foreground min-w-0 truncate">
+        <div className="text-[11px] text-foreground/60 min-w-0 truncate">
           {tarefa.updated_at ? (
             isToday(new Date(tarefa.updated_at))
               ? "Hoje"
