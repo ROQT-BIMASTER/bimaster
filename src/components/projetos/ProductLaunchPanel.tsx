@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
+import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
   ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X,
   Eye, ChevronDown, ChevronUp, CornerDownRight, Bot, ShieldAlert,
-  ShieldCheck, ShieldQuestion, Loader2, RefreshCw
+  ShieldCheck, ShieldQuestion, Loader2, RefreshCw, Users, Crown, UserCog
 } from "lucide-react";
 
 interface ChecklistItem {
@@ -31,6 +33,32 @@ interface AuditResult {
   alertas: string[];
 }
 
+interface TarefaPerson {
+  id: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
+interface TarefaColaborador {
+  user_id: string;
+  nome: string;
+  avatar_url: string | null;
+}
+
+interface TarefaSubtarefa {
+  id: string;
+  titulo: string;
+  status: string;
+  responsavel?: TarefaPerson | null;
+}
+
+interface TarefaAuditData {
+  responsavel?: TarefaPerson | null;
+  criador?: TarefaPerson | null;
+  colaboradores?: TarefaColaborador[];
+  subtarefas?: TarefaSubtarefa[];
+}
+
 interface ProductLaunchPanelProps {
   linkedProduto: ProdutoAcabado | null;
   cofreDocs: any[];
@@ -43,6 +71,7 @@ interface ProductLaunchPanelProps {
     estagio?: string;
     codigo?: string;
   };
+  tarefa?: TarefaAuditData;
 }
 
 const CHECKLIST_CONFIG = [
@@ -61,7 +90,19 @@ const AUDIT_CONFIG = {
   baixo: { icon: ShieldAlert, color: "text-red-500", bg: "bg-red-500/10 border-red-500/20", label: "Incompatível" },
 };
 
-export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProdutos, onLinkProduto, tarefaContext }: ProductLaunchPanelProps) {
+function AuditAvatar({ person }: { person: { nome: string; avatar_url: string | null } }) {
+  const resolved = useResolvedAvatarUrl(person.avatar_url);
+  return (
+    <Avatar className="h-7 w-7">
+      <AvatarImage src={resolved} />
+      <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+        {person.nome?.substring(0, 2).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProdutos, onLinkProduto, tarefaContext, tarefa }: ProductLaunchPanelProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<ProdutoAcabado[]>([]);
@@ -417,6 +458,110 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
           </div>
         </CardContent>
       </Card>
+
+      {/* Trilha de Auditoria */}
+      {tarefa && (tarefa.responsavel || tarefa.criador || (tarefa.colaboradores && tarefa.colaboradores.length > 0)) && (
+        <Card className="shadow-none border-border/50">
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Trilha de Auditoria
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-3">
+            {/* Responsável */}
+            {tarefa.responsavel && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Crown className="h-3 w-3 text-amber-500" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Responsável</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
+                  <AuditAvatar person={tarefa.responsavel} />
+                  <span className="text-xs font-medium truncate">{tarefa.responsavel.nome}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Criador */}
+            {tarefa.criador && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <UserCog className="h-3 w-3 text-blue-500" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Criador</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
+                  <AuditAvatar person={tarefa.criador} />
+                  <span className="text-xs font-medium truncate">{tarefa.criador.nome}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Colaboradores */}
+            {tarefa.colaboradores && tarefa.colaboradores.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3 w-3 text-violet-500" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Colaboradores ({tarefa.colaboradores.length})
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {tarefa.colaboradores.map((col) => (
+                    <Tooltip key={col.user_id}>
+                      <TooltipTrigger>
+                        <AuditAvatar person={col} />
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        {col.nome}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Subtarefas */}
+            {tarefa.subtarefas && tarefa.subtarefas.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Subtarefas ({tarefa.subtarefas.filter(s => s.status === "concluida").length}/{tarefa.subtarefas.length})
+                  </span>
+                  <div className="space-y-1">
+                    {tarefa.subtarefas.map((st) => (
+                      <div key={st.id} className="flex items-center gap-2 py-1">
+                        {st.status === "concluida" ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
+                        )}
+                        <span className={cn(
+                          "text-[11px] flex-1 truncate",
+                          st.status === "concluida" && "line-through text-muted-foreground"
+                        )}>
+                          {st.titulo}
+                        </span>
+                        {st.responsavel && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AuditAvatar person={st.responsavel} />
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="text-xs">
+                              {st.responsavel.nome}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
