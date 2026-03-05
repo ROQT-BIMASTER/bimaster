@@ -24,6 +24,7 @@ interface ChecklistItem {
   label: string;
   icon: React.ReactNode;
   done: boolean;
+  docs: any[];
 }
 
 interface AuditResult {
@@ -111,6 +112,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [auditing, setAuditing] = useState(false);
   const [showAuditDetails, setShowAuditDetails] = useState(false);
+  const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
 
   // Auto-run audit when product is linked
   const runAudit = useCallback(async () => {
@@ -161,6 +163,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
     return CHECKLIST_CONFIG.map(item => ({
       ...item,
       done: item.key === "aprovacao_cliente" ? hasAprovacao : cofreCategorias.has(item.key),
+      docs: cofreDocs.filter((d: any) => d.categoria === item.key),
     }));
   }, [cofreDocs, metas]);
 
@@ -415,22 +418,67 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-3">
           <div className="space-y-2">
-            {checklist.map(item => (
-              <div key={item.key} className="flex items-center gap-2">
-                {item.done ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                ) : (
-                  <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                )}
-                <span className={cn(
-                  "text-xs flex items-center gap-1.5",
-                  item.done ? "text-foreground" : "text-muted-foreground"
-                )}>
-                  {item.icon}
-                  {item.label}
-                </span>
-              </div>
-            ))}
+            {checklist.map(item => {
+              const hasDocs = item.docs.length > 0;
+              const isExpanded = expandedChecklist === item.key;
+              return (
+                <div key={item.key} className="space-y-0.5">
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-1.5 py-1 -mx-1.5 transition-colors",
+                      hasDocs && "cursor-pointer hover:bg-muted/50"
+                    )}
+                    onClick={() => hasDocs && setExpandedChecklist(isExpanded ? null : item.key)}
+                  >
+                    {item.done ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                    )}
+                    <span className={cn(
+                      "text-xs flex items-center gap-1.5 flex-1",
+                      item.done ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {item.icon}
+                      {item.label}
+                    </span>
+                    {hasDocs && (
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-normal">
+                        {item.docs.length}
+                      </Badge>
+                    )}
+                    {hasDocs && (
+                      isExpanded
+                        ? <ChevronUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        : <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <div className="ml-6 space-y-1 pb-1">
+                      {item.docs.map((doc: any, idx: number) => (
+                        <div key={doc.id || idx} className="flex items-center gap-1.5 text-[11px] text-muted-foreground py-0.5 pl-1 border-l-2 border-border/50 ml-0.5">
+                          <FileText className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate flex-1" title={doc.nome_arquivo}>
+                            {doc.nome_arquivo}
+                          </span>
+                          <Badge
+                            variant={doc.status === 'aprovado' ? 'success' : 'outline'}
+                            className="text-[8px] px-1 py-0 h-3.5"
+                          >
+                            {doc.status || 'ativo'}
+                          </Badge>
+                          {doc.created_at && (
+                            <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                              {new Date(doc.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <Separator />
