@@ -145,7 +145,7 @@ export function TarefaFocusMode({
 }: TarefaFocusModeProps) {
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    messages, sendMessage, sendToCofre, teamMembers, linkedProduto,
+    messages, sendMessage, sendToCofre, teamMembers, linkedProduto, searchProdutos,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
   const { user } = useAuth();
@@ -709,6 +709,8 @@ export function TarefaFocusMode({
             linkedProduto={linkedProduto}
             cofreDocs={cofreDocs}
             metas={displayMetas}
+            searchProdutos={searchProdutos}
+            onLinkProduto={(produtoId) => onUpdate(tarefa.id, { produto_id: produtoId } as any)}
           />
 
           {/* Right column - Chat */}

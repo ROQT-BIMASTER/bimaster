@@ -1,14 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
-  ClipboardList, FlaskConical, Award, UserCheck
+  ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X
 } from "lucide-react";
 
 interface ChecklistItem {
@@ -22,6 +24,8 @@ interface ProductLaunchPanelProps {
   linkedProduto: ProdutoAcabado | null;
   cofreDocs: any[];
   metas: any[];
+  searchProdutos: (query?: string) => Promise<ProdutoAcabado[]>;
+  onLinkProduto: (produtoId: string) => void;
 }
 
 const CHECKLIST_CONFIG = [
@@ -34,7 +38,12 @@ const CHECKLIST_CONFIG = [
   { key: "aprovacao_cliente", label: "Aprovação Cliente", icon: <UserCheck className="h-3.5 w-3.5" /> },
 ];
 
-export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas }: ProductLaunchPanelProps) {
+export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProdutos, onLinkProduto }: ProductLaunchPanelProps) {
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<ProdutoAcabado[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const checklist = useMemo<ChecklistItem[]>(() => {
     const cofreCategorias = new Set(cofreDocs.map((d: any) => d.categoria));
     const hasAprovacao = metas.some(
@@ -57,6 +66,29 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas }: ProductL
     : progressPercent >= 30
       ? "bg-amber-500"
       : "bg-red-500";
+
+  const handleOpenSearch = async () => {
+    setShowSearch(true);
+    setSearching(true);
+    const r = await searchProdutos();
+    setResults(r);
+    setSearching(false);
+  };
+
+  const handleSearch = async (q: string) => {
+    setSearchQuery(q);
+    setSearching(true);
+    const r = await searchProdutos(q || undefined);
+    setResults(r);
+    setSearching(false);
+  };
+
+  const handleSelect = (produto: ProdutoAcabado) => {
+    onLinkProduto(produto.id);
+    setShowSearch(false);
+    setSearchQuery("");
+    setResults([]);
+  };
 
   return (
     <div className="w-[280px] flex-shrink-0 border-r border-border/50 overflow-y-auto p-4 space-y-4">
@@ -92,11 +124,74 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas }: ProductL
                   </Badge>
                 )}
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[11px] h-7 text-muted-foreground gap-1"
+                onClick={handleOpenSearch}
+              >
+                <Link2 className="h-3 w-3" />
+                Trocar produto
+              </Button>
             </div>
           ) : (
             <div className="text-center py-4">
               <Package className="h-10 w-10 mx-auto mb-2 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground">Nenhum produto vinculado</p>
+              <p className="text-xs text-muted-foreground mb-3">Nenhum produto vinculado</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1.5"
+                onClick={handleOpenSearch}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular produto
+              </Button>
+            </div>
+          )}
+
+          {/* Product Search Dropdown */}
+          {showSearch && (
+            <div className="mt-3 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={e => handleSearch(e.target.value)}
+                  placeholder="Buscar por nome ou código..."
+                  className="h-8 text-xs pl-7 pr-7"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { setShowSearch(false); setSearchQuery(""); setResults([]); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <ScrollArea className="max-h-[200px]">
+                <div className="space-y-1">
+                  {searching && (
+                    <p className="text-[11px] text-muted-foreground text-center py-3">Buscando...</p>
+                  )}
+                  {!searching && results.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground text-center py-3">Nenhum produto encontrado.</p>
+                  )}
+                  {!searching && results.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelect(p)}
+                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <ProductThumbnail src={p.foto_url} alt={p.nome} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium truncate">{p.nome}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{p.codigo}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
         </CardContent>
