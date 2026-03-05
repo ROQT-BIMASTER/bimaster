@@ -475,6 +475,9 @@ export function TarefaFocusMode({
                     briefing={briefing}
                     onDelete={() => deleteBriefing.mutate(briefing.id)}
                     onCreateTasks={() => setBriefingTasksDialogOpen(true)}
+                    produtoInfo={linkedProduto ? { nome: linkedProduto.nome, codigo: linkedProduto.codigo, foto_url: (linkedProduto as any).foto_url } : undefined}
+                    tarefaContext={{ titulo: tarefa.titulo, descricao: tarefa.descricao || undefined, estagio: (tarefa as any).estagio || undefined, codigo: (tarefa as any).codigo || undefined }}
+                    linkedProduto={linkedProduto ? { codigo: linkedProduto.codigo, nome: linkedProduto.nome, marca: (linkedProduto as any).marca, linha: (linkedProduto as any).linha, tipo: (linkedProduto as any).tipo } : null}
                   />
                 ) : (
                   <p className="text-xs text-muted-foreground italic">Nenhum briefing importado.</p>
