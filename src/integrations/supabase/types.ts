@@ -13565,27 +13565,42 @@ export type Database = {
       }
       projeto_briefings: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           created_at: string | null
           id: string
           nome_arquivo: string
+          observacao_aprovacao: string | null
           projeto_id: string
-          secao_id: string
+          secao_id: string | null
+          status: string
+          tarefa_id: string | null
           user_id: string
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string | null
           id?: string
           nome_arquivo: string
+          observacao_aprovacao?: string | null
           projeto_id: string
-          secao_id: string
+          secao_id?: string | null
+          status?: string
+          tarefa_id?: string | null
           user_id: string
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string | null
           id?: string
           nome_arquivo?: string
+          observacao_aprovacao?: string | null
           projeto_id?: string
-          secao_id?: string
+          secao_id?: string | null
+          status?: string
+          tarefa_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -13601,6 +13616,13 @@ export type Database = {
             columns: ["secao_id"]
             isOneToOne: false
             referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_briefings_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
             referencedColumns: ["id"]
           },
         ]
