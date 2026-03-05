@@ -1,43 +1,51 @@
 
 
-## Gerenciamento de API Keys — Plano
+## Personalização de Cor de Fundo do Módulo Projetos
 
-### Contexto
+### O que será feito
 
-O sistema usa 14 secrets no backend (N8N_API_KEY, POLLO_API_KEY, ELEVENLABS_API_KEY, etc.). Secrets são gerenciados pela infraestrutura Cloud e **não podem ser lidos pelo frontend** (são criptografados). Portanto, a página será um **painel de gestão visual** com:
-
-- Lista das API keys do sistema com status e mascaramento
-- Tabela no banco para registrar metadata das chaves (nome, última rotação, status ativo/inativo)
-- Funcionalidade de rotação (gerar nova chave + registrar no log)
-- Logs de uso via `api_security_log` já existente
+Adicionar um seletor de cor acima do header do projeto (entre o botão "Voltar" e o título) que permite ao usuário escolher uma cor de fundo para a área do módulo. As escritas se ajustarão automaticamente para preto, garantindo contraste.
 
 ### Implementação
 
-#### 1. Migração — Tabela `api_keys_management`
+#### 1. Persistência — campo `bg_cor` na tabela `projetos`
 
-Nova tabela para rastrear metadata das chaves:
-- `id`, `key_name` (text, unique), `description`, `masked_value` (últimos 4 chars), `is_active` (bool), `last_rotated_at` (timestamptz), `rotated_by` (uuid), `created_at`
-- RLS: somente admins leem/escrevem (via `has_role`)
-- Seed com as 14 chaves atuais do sistema
+Adicionar coluna `bg_cor` (text, nullable, default null) à tabela `projetos` para salvar a preferência de cor de fundo por projeto.
 
-#### 2. Componente — `GerenciamentoAPIKeys.tsx`
+#### 2. Atualizar interface `Projeto`
 
-Em `src/components/configuracoes/GerenciamentoAPIKeys.tsx`:
-- Tabela com: Nome da chave, Valor mascarado (`****xxxx`), Status (ativo/inativo badge), Última rotação, Ações
-- Toggle ativo/inativo por chave
-- Botão "Rotacionar" — abre dialog de confirmação, registra nova data de rotação e quem fez
-- Card com estatísticas: total de chaves, ativas, última rotação
-- Seção de logs recentes da `api_security_log`
+O tipo será atualizado automaticamente via types.ts após a migração.
 
-#### 3. Integração na página Configurações
+#### 3. Editar `ProjetoDetalhe.tsx`
 
-Adicionar nova tab "API Keys" dentro da seção protegida por senha ("Outras opções") em `Configuracoes.tsx`, visível apenas para admins.
+- Aplicar `style={{ backgroundColor: projeto.bg_cor }}` no container principal (`<main>`)
+- Quando `bg_cor` está definida, todas as classes de texto mudam para `text-black` (títulos, labels, tabs, badges)
+- Adicionar um pequeno botão de paleta de cores ao lado do botão "Voltar", com um popover contendo:
+  - Grade de cores predefinidas (branco, cinza claro, amarelo claro, rosa claro, verde claro, azul claro, lilás, etc.)
+  - Input hex para cor customizada
+  - Botão "Remover" para voltar ao padrão
+- Ao selecionar, faz `update` no campo `bg_cor` do projeto
+
+#### 4. Editar `ProjetoHeader.tsx`
+
+- Receber prop `customBg` (boolean) para saber se há cor de fundo customizada
+- Quando `customBg = true`, aplicar `text-black` nos textos do header (título, descrição, tabs, botões) em vez das classes padrão do tema
+
+#### 5. Componente `ProjetoBgColorPicker.tsx`
+
+Novo componente com:
+- Botão com ícone `Palette` que abre um `Popover`
+- Grade de ~12 cores pastel predefinidas
+- Input para cor hex customizada
+- Preview da cor selecionada
+- Callback `onColorChange(cor: string | null)`
 
 #### Arquivos
 
 | Ação | Arquivo |
 |------|---------|
-| Criar | `src/components/configuracoes/GerenciamentoAPIKeys.tsx` |
-| Editar | `src/pages/Configuracoes.tsx` (nova tab) |
-| Migração | Tabela `api_keys_management` + RLS + seed data |
+| Migração | Adicionar coluna `bg_cor` em `projetos` |
+| Criar | `src/components/projetos/ProjetoBgColorPicker.tsx` |
+| Editar | `src/pages/ProjetoDetalhe.tsx` |
+| Editar | `src/components/projetos/ProjetoHeader.tsx` |
 
