@@ -1,75 +1,57 @@
 
 
-## Plan: Reverse Price Calculation (Goal Seek) in the Price Matrix
+## Plano: Ativar Briefing por Seção e Tarefa
 
-### What will be built
+### Objetivo
+Permitir que o usuário marque uma **Seção** e/ou **Tarefa** como "possui Briefing", ativando assim a funcionalidade de importação e gestão de Briefing naquele contexto.
 
-A feature that allows clicking on a price cell in the Matrix, entering a desired final price, and having the system reverse-calculate the required markup override to achieve that price. The system will:
+### 1. Migração de Banco de Dados
 
-1. Show the current cost base and current price
-2. Accept a new desired price input
-3. Reverse-calculate the markup (percentual) needed: `markup = ((precoDesejado / custoBase) - 1) * 100`
-4. Save it as a product-level override in `fabrica_markup_overrides`
-5. Refresh the matrix to reflect the new price
+Adicionar coluna `tem_briefing` (boolean, default false) nas tabelas:
+- `projeto_secoes` — indica que a seção trabalha com briefings
+- `projeto_tarefas` — indica que a tarefa individual possui briefing
 
-### Technical approach
-
-**New component: `ReversePrecoDialog.tsx`**
-- A dialog that opens when user double-clicks (or via context menu) on a price cell
-- Shows: product name, table name, current cost base, current price, current markup
-- Input field for the desired new price
-- Auto-calculates and displays the implied markup (percentual, multiplicador, or valor_fixo) in real-time as user types
-- Shows the resulting margin preview
-- "Salvar" button that upserts a product-level override in `fabrica_markup_overrides`
-
-**Edit: `MatrizPrecosComparativa.tsx`**
-- Add a new handler `handlePrecoEdit` triggered by double-click on price cells
-- Pass cost base, current price, product ID, table ID, and table's markup type to the dialog
-- On save, invalidate the prices query to refresh the matrix
-- Add visual indicator (e.g., small edit icon on hover) to show cells are editable
-
-**Edit: `pricing-calculator.ts`**
-- Add reverse calculation functions:
-  - `reverseMarkupPercentual(custo, precoDesejado)` → returns percentage
-  - `reverseMarkupMultiplicador(custo, precoDesejado)` → returns multiplier
-  - `reverseMarkupValorFixo(custo, precoDesejado)` → returns fixed value
-
-### Reverse calculation logic
-
-```text
-Given: custoBase, precoDesejado, tipoMarkup
-
-Percentual:  markup = ((precoDesejado / custoBase) - 1) * 100
-Multiplicador: markup = precoDesejado / custoBase
-Valor Fixo:  markup = precoDesejado - custoBase
+```sql
+ALTER TABLE projeto_secoes ADD COLUMN tem_briefing boolean NOT NULL DEFAULT false;
+ALTER TABLE projeto_tarefas ADD COLUMN tem_briefing boolean NOT NULL DEFAULT false;
 ```
 
-### UI flow
+### 2. UI da Seção — Toggle de Briefing
 
-```text
-1. User double-clicks a price cell in the matrix
-2. Dialog opens showing:
-   ┌──────────────────────────────────┐
-   │ Ajustar Preço — [Produto]       │
-   │ Tabela: [Nome da Tabela]        │
-   ├──────────────────────────────────┤
-   │ Custo Base:     R$ 45,00        │
-   │ Preço Atual:    R$ 67,50        │
-   │ Markup Atual:   +50%            │
-   │                                  │
-   │ Novo Preço: [___R$ 72,00___]    │
-   │                                  │
-   │ → Markup calculado: +60.0%      │
-   │ → Margem resultante: 37.5%      │
-   │                                  │
-   │        [Cancelar]  [Salvar]     │
-   └──────────────────────────────────┘
-3. System upserts override in fabrica_markup_overrides
-4. Matrix refreshes with new price
-```
+No componente `ProjetoSecao.tsx`, adicionar um ícone/botão no cabeçalho da seção (ao lado do nome) que permite ativar/desativar o briefing da seção:
+- Ícone `FileSpreadsheet` com estado visual (ativo = cor primária, inativo = muted)
+- Ao ativar, todas as tarefas da seção ganham acesso ao módulo de briefing
+- Tooltip explicativo: "Ativar Briefing nesta seção"
 
-### Files summary
-- **Create** `src/components/fabrica/ReversePrecoDialog.tsx` — dialog with reverse calc UI
-- **Edit** `src/lib/fabrica/pricing-calculator.ts` — add reverse calculation functions
-- **Edit** `src/components/fabrica/MatrizPrecosComparativa.tsx` — add double-click handler and dialog integration
+### 3. UI da Tarefa — Toggle de Briefing
+
+No painel de detalhe da tarefa (`ProjetoTarefaDetalhe.tsx`), adicionar um checkbox/switch na área de metadados:
+- Label: "Possui Briefing"
+- Quando ativado, exibe a área de importação/gestão do briefing na tarefa
+- Herda automaticamente o estado da seção (se a seção tem briefing, tarefa inicia com briefing ativo)
+
+### 4. Botão "Importar Briefing" Condicional
+
+O botão de importação de briefing (Excel → IA) aparece apenas quando:
+- A seção tem `tem_briefing = true`, ou
+- A tarefa individual tem `tem_briefing = true`
+
+Será renderizado:
+- No cabeçalho da seção (se seção tem briefing) — importa para todas as tarefas daquela seção
+- No detalhe da tarefa (se tarefa tem briefing) — importa apenas para aquela tarefa
+
+### 5. Hook e Mutations
+
+Atualizar `useProjetoTarefas.ts`:
+- Incluir `tem_briefing` no select de seções e tarefas
+- Adicionar mutation para toggle do briefing na seção
+- O toggle da tarefa já é coberto pelo `updateTarefa` existente
+
+### Arquivos a Criar/Editar
+- **Migração SQL**: adicionar colunas `tem_briefing`
+- **Editar**: `src/hooks/useProjetoTarefas.ts` — incluir campo e mutation de seção
+- **Editar**: `src/components/projetos/ProjetoSecao.tsx` — botão toggle briefing no header
+- **Editar**: `src/components/projetos/ProjetoTarefaDetalhe.tsx` — switch briefing + área condicional
+- **Criar**: `src/components/projetos/BriefingImportDialog.tsx` — dialog de importação (exibido condicionalmente)
+- **Criar**: `supabase/functions/importar-briefing-ia/index.ts` — edge function para parsing com IA
 
