@@ -198,6 +198,8 @@ const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
+const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
+const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 
 // Loading component
 const PageLoader = () => (
@@ -469,6 +471,8 @@ function AppContent() {
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
             <Route path="/cofre-share" element={<CofreSharePage />} />
+            <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}
