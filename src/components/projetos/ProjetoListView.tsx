@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
 
 // Grid template matching ProjetoTarefaRow columns
-export const GRID_COLS = "grid-cols-[20px_20px_1fr_100px_80px_64px_100px_80px_90px_90px]";
+export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_100px_80px_64px_100px_80px_90px_90px]";
 
 interface ProjetoListViewProps {
   projetoId: string;
@@ -93,6 +93,7 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
           <div /> {/* expand */}
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
+          <div>Produto</div>
           <div>Responsável</div>
           <div>Data con.</div>
           <div>Colab.</div>

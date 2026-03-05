@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
@@ -166,6 +166,34 @@ export function ProjetoTarefaRow({
             diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
             compact
           />
+        </div>
+
+        {/* Produto vinculado */}
+        <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+          {(() => {
+            // Show linked_produtos from junction table, or fallback to produto_id
+            const produtos = tarefa.linked_produtos && tarefa.linked_produtos.length > 0
+              ? tarefa.linked_produtos
+              : tarefa.produto_foto_url
+                ? [{ id: tarefa.produto_id || "", nome: tarefa.produto_nome || "", foto_url: tarefa.produto_foto_url, codigo: null }]
+                : [];
+            if (produtos.length === 0) return <span className={`text-[10px] ${darkBg ? "text-white/30" : "text-muted-foreground/40"}`}>—</span>;
+            const first = produtos[0];
+            return (
+              <div className="flex items-center gap-1 min-w-0" title={first.nome}>
+                {first.foto_url ? (
+                  <img src={first.foto_url} alt={first.nome} className="h-6 w-6 rounded object-contain bg-muted/50 flex-shrink-0" />
+                ) : (
+                  <div className="h-6 w-6 rounded bg-muted/50 flex items-center justify-center flex-shrink-0">
+                    <Package className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                )}
+                {produtos.length > 1 && (
+                  <span className={`text-[10px] flex-shrink-0 ${darkBg ? "text-white/50" : "text-muted-foreground"}`}>+{produtos.length - 1}</span>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Responsável - inline picker */}
