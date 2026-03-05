@@ -20,6 +20,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
+import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -129,6 +130,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <ErrorBoundary>
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>
+            <TermsAcceptanceModal />
           </div>
         </main>
         

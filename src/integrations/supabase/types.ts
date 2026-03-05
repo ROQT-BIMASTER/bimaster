@@ -17154,6 +17154,33 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_acceptance: {
+        Row: {
+          accepted_at: string
+          document_type: string
+          document_version: string
+          id: string
+          ip_address: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          document_type: string
+          document_version: string
+          id?: string
+          ip_address?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          document_type?: string
+          document_version?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       trade_action_points: {
         Row: {
           action_code: string
