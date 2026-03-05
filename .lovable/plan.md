@@ -1,54 +1,69 @@
 
 
-## Cronograma do Projeto — Plano de Implementação
+## Metas de Tarefas com Monitoramento de Atrasos
 
 ### Conceito
 
-Um **Gantt Chart interativo** que mostra cada **produto vinculado** como uma linha (swim lane), e dentro de cada linha as **tarefas agrupadas por seção** aparecem como barras horizontais posicionadas pelo prazo. Isso dá visibilidade de todo o ciclo de vida do produto através das seções do projeto.
+O coordenador define **metas por tarefa** (data início planejada, data prazo, e marcos intermediários opcionais). O sistema monitora automaticamente e:
+- Sinaliza visualmente tarefas em risco (prazo próximo) ou atrasadas
+- Envia notificações automáticas para responsáveis e coordenador
+- Mostra um painel de saúde do projeto no header
 
-```text
-Produto A  │ ▓▓▓ Briefing ▓▓▓│░░ Criação ░░│▒▒ Revisão ▒▒│■■ Aprovação ■■│
-Produto B  │ ▓▓ Briefing ▓▓  │░░░ Criação ░░░│            │▒▒▒ Aprovação ▒▒▒│
-Sem produto│ ▓ Tarefa avulsa ▓│                                              │
-           └──────────────────┴──────────────┴──────────────┴─────────────────┘
-            Mar 10            Mar 17          Mar 24          Mar 31
-```
+### Novas Colunas na Tabela `projeto_tarefas`
 
-### Funcionalidades
+| Campo | Tipo | Uso |
+|-------|------|-----|
+| `data_inicio_planejada` | date | Data que o coordenador define como início esperado |
+| `dias_alerta_antes` | integer (default 2) | Quantos dias antes do prazo alertar |
 
-1. **Eixo Y = Produtos** — Cada produto vinculado (via `projeto_tarefa_produtos`) é uma swim lane. Tarefas sem produto ficam em "Geral".
+### Nova Tabela: `projeto_tarefa_metas`
 
-2. **Barras = Tarefas** — Cada barra representa uma tarefa, colorida pela seção. A largura vai de `created_at` até `data_prazo` (ou largura fixa se sem prazo).
+Para marcos intermediários opcionais dentro de uma tarefa:
 
-3. **Estágios visuais** — A cor/padrão da barra reflete o estágio atual (briefing, criação, revisão, etc.).
+| Campo | Tipo |
+|-------|------|
+| `id` | uuid PK |
+| `tarefa_id` | FK → projeto_tarefas |
+| `descricao` | text |
+| `data_meta` | date |
+| `concluida` | boolean default false |
+| `created_at` | timestamp |
 
-4. **Marcador "Hoje"** — Linha vertical vermelha no dia atual.
+### Edge Function: `projeto-monitor-atrasos`
 
-5. **Interação** — Clicar na barra abre o `ProjetoTarefaDetalhe`. Tooltip com título, responsável e status.
+Função agendada via `pg_cron` (executa 1x/dia) que:
+1. Busca tarefas não concluídas com `data_prazo` definido
+2. Calcula dias restantes
+3. Se `dias_restantes <= dias_alerta_antes` → cria notificação de **alerta** para responsável + coordenador
+4. Se `dias_restantes < 0` → cria notificação de **atraso** 
+5. Verifica metas intermediárias vencidas não concluídas
 
-6. **Zoom** — Controle de zoom (semana/mês/trimestre) reutilizando o padrão do `LaunchTimeline`.
+### Mudanças no Frontend
 
-7. **Filtros** — Filtrar por seção, status, prioridade.
+**1. Painel de definição de metas (ProjetoTarefaDetalhe)**
+- Campo "Data Início Planejada" ao lado do prazo existente
+- Campo "Alertar X dias antes" (selector: 1, 2, 3, 5, 7)
+- Seção "Marcos/Metas" com lista editável de checkpoints intermediários
 
-### Implementação Técnica
+**2. Indicadores visuais (ListView, KanbanView, CronogramaView)**
+- Badge vermelho pulsante para tarefas atrasadas
+- Badge amarelo para tarefas em risco (dentro do período de alerta)
+- Ícone de progresso baseado em metas concluídas vs total
 
-**Novo componente**: `src/components/projetos/ProjetoCronogramaView.tsx`
+**3. Painel de Saúde no ProjetoHeader**
+- Mini dashboard: "X tarefas no prazo | Y em risco | Z atrasadas"
+- Clicável para filtrar apenas as problemáticas
 
-- Recebe `projetoId`
-- Usa `useProjetoTarefas` para obter seções e tarefas
-- Busca produtos vinculados via `projeto_tarefa_produtos` para agrupar
-- Renderiza um Gantt horizontal com:
-  - Header de meses/semanas (similar ao `LaunchTimeline`)
-  - Swim lanes por produto
-  - Barras posicionadas por data
+### Arquivos Impactados
 
-**Atualizar**: `src/pages/ProjetoDetalhe.tsx` — substituir o placeholder "Em breve" pelo novo componente.
-
-**Sem alterações de banco** — usa dados existentes (`projeto_tarefas.data_prazo`, `projeto_tarefa_produtos`, `projeto_secoes`).
-
-### Componentes reutilizados
-- Zoom/navegação temporal do `LaunchTimeline`
-- `ProductThumbnail` para as swim lanes
-- `ProjetoTarefaDetalhe` ao clicar nas barras
-- Cores de estágio/status já definidas no projeto
+| Arquivo | Mudança |
+|---------|---------|
+| Migration SQL | Adicionar colunas + criar tabela `projeto_tarefa_metas` |
+| `supabase/functions/projeto-monitor-atrasos/index.ts` | Nova edge function agendada |
+| `src/hooks/useProjetoTarefas.ts` | Buscar metas, expor helper de status de risco |
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Campos de meta + marcos intermediários |
+| `src/components/projetos/ProjetoListView.tsx` | Badges de alerta/atraso |
+| `src/components/projetos/ProjetoKanbanView.tsx` | Badges de alerta/atraso |
+| `src/components/projetos/ProjetoCronogramaView.tsx` | Cores de risco nas barras |
+| `src/components/projetos/ProjetoHeader.tsx` | Mini painel de saúde |
 
