@@ -20,6 +20,10 @@ import { MentionInput } from "./MentionInput";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { ProductLaunchPanel } from "./ProductLaunchPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
+import { BriefingView } from "./BriefingView";
+import { BriefingImportDialog } from "./BriefingImportDialog";
+import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -29,7 +33,7 @@ import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet
 } from "lucide-react";
 
 const ESTAGIO_OPTIONS = [
@@ -160,8 +164,12 @@ export function TarefaFocusMode({
   const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
   const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
   const [sendingToCofre, setSendingToCofre] = useState(false);
+  const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const { briefing, saveBriefing, deleteBriefing } = useProjetoBriefing(tarefa?.id);
 
   // Cofre documents for this task
   const { data: cofreDocsReal = [] } = useQuery({
@@ -441,6 +449,36 @@ export function TarefaFocusMode({
                   placeholder="Do que se trata esta tarefa?"
                   className="min-h-[100px] text-sm bg-muted/30 border-border/50 resize-none"
                 />
+              </div>
+
+              <Separator />
+
+              {/* Briefing */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium flex items-center gap-1.5">
+                    <FileSpreadsheet className="h-4 w-4 text-primary" />
+                    Briefing
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setBriefingDialogOpen(true)}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {briefing ? "Reimportar" : "Importar"}
+                  </Button>
+                </div>
+                {briefing ? (
+                  <BriefingView
+                    briefing={briefing}
+                    onDelete={() => deleteBriefing.mutate(briefing.id)}
+                    onCreateTasks={() => setBriefingTasksDialogOpen(true)}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Nenhum briefing importado.</p>
+                )}
               </div>
 
               <Separator />
@@ -784,6 +822,39 @@ export function TarefaFocusMode({
           </div>
         </div>
       </DialogContent>
+
+      {/* Briefing Dialogs */}
+      {tarefa && (
+        <BriefingImportDialog
+          open={briefingDialogOpen}
+          onOpenChange={setBriefingDialogOpen}
+          projetoId={tarefa.projeto_id}
+          tarefaId={tarefa.id}
+          onSave={(nomeArquivo, campos) => {
+            saveBriefing.mutate({
+              projetoId: tarefa.projeto_id,
+              tarefaId: tarefa.id,
+              nomeArquivo,
+              campos,
+            });
+          }}
+        />
+      )}
+
+      {briefing && briefing.campos && (
+        <BriefingToTasksDialog
+          open={briefingTasksDialogOpen}
+          onOpenChange={setBriefingTasksDialogOpen}
+          campos={briefing.campos}
+          secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+          defaultSecaoId={tarefa.secao_id}
+          onCreateTasks={(tasks) => {
+            tasks.forEach(t => {
+              onAddSubtarefa?.(t.titulo, tarefa.id, t.secao_id);
+            });
+          }}
+        />
+      )}
     </Dialog>
   );
 }
