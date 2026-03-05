@@ -62,7 +62,7 @@ export function ProjetoSecao({
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         )}
         <span className="font-semibold text-sm text-foreground">{nome}</span>
-        <span className="text-xs text-muted-foreground ml-1">
+        <span className="text-xs text-foreground/60 ml-1">
           {completedCount}/{totalCount}
         </span>
       </button>
@@ -86,7 +86,7 @@ export function ProjetoSecao({
           {ghostList.map(ghost => (
             <div
               key={`ghost-${ghost.tarefa_id}`}
-              className={`group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/20 min-h-[36px] opacity-40 italic`}
+              className={`group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 border-b border-border/20 min-h-[36px] opacity-50 italic`}
             >
               <div />
               <div />

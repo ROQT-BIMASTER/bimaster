@@ -88,7 +88,7 @@ export function ProjetoListView({ projetoId }: ProjetoListViewProps) {
     <>
       <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
         {/* Column headers */}
-        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b border-border/50 bg-muted/30 text-[11px] font-medium text-muted-foreground uppercase tracking-wider`}>
+        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b border-border/50 bg-muted/50 text-[11px] font-semibold text-foreground/60 uppercase tracking-wider`}>
           <div /> {/* expand */}
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
