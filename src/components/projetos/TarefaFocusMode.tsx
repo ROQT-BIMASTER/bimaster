@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,19 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjetoTarefa, ProjetoSecao as ProjetoSecaoType } from "@/hooks/useProjetoTarefas";
 import { useProjetoTarefaDetalhe } from "@/hooks/useProjetoTarefaDetalhe";
 import { useProjetoTarefaMetas } from "@/hooks/useProjetoTarefaMetas";
 import { TaskEvolutionChart } from "./TaskEvolutionChart";
 import { MentionInput } from "./MentionInput";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle
 } from "lucide-react";
 
 const ESTAGIO_OPTIONS = [
@@ -47,6 +52,16 @@ const PRIORIDADE_OPTIONS = [
   { value: "media", label: "Média" },
   { value: "alta", label: "Alta" },
 ];
+
+const COFRE_CATEGORIAS = [
+  "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
+];
+
+const COFRE_CATEGORIA_LABELS: Record<string, string> = {
+  briefing: "Briefing", arte_final: "Arte Final", rotulo: "Rótulo", ficha_tecnica: "Ficha Técnica",
+  laudo: "Laudo", certificado: "Certificado", orcamento: "Orçamento", nota_fiscal: "Nota Fiscal",
+  art: "ART", outro: "Outro",
+};
 
 function getFileIcon(tipo: string | null) {
   if (!tipo) return <File className="h-5 w-5" />;
@@ -87,9 +102,11 @@ export function TarefaFocusMode({
 }: TarefaFocusModeProps) {
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
-    messages, sendMessage, teamMembers, linkedProduto,
+    messages, sendMessage, sendToCofre, teamMembers, linkedProduto,
   } = useProjetoTarefaDetalhe(tarefa?.id, (tarefa as any)?.produto_id);
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
@@ -97,8 +114,32 @@ export function TarefaFocusMode({
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [newMeta, setNewMeta] = useState("");
+  const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
+  const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
+  const [sendingToCofre, setSendingToCofre] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Cofre documents for this task
+  const { data: cofreDocs = [] } = useQuery({
+    queryKey: ["cofre-docs-tarefa", tarefa?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fabrica_revisao_documentos" as any)
+        .select("*")
+        .eq("origem_projeto_tarefa_id", tarefa!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!tarefa?.id,
+  });
+
+  // Identify which annexes are NOT in the cofre
+  const anexosNoCofre = useMemo(() => {
+    const cofreNames = new Set(cofreDocs.map((d: any) => d.nome_arquivo));
+    return anexos.filter(a => !cofreNames.has(a.nome));
+  }, [anexos, cofreDocs]);
 
   useEffect(() => {
     if (tarefa) setDescValue(tarefa.descricao || "");
@@ -394,38 +435,181 @@ export function TarefaFocusMode({
 
               <Separator />
 
-              {/* Anexos */}
+              {/* Documentos & Cofre */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium flex items-center gap-1.5">
-                    <Paperclip className="h-4 w-4" /> Anexos ({anexos.length})
-                  </h3>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="h-3.5 w-3.5" /> Upload
-                  </Button>
-                  <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
-                </div>
-                {anexos.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {anexos.map(a => (
-                      <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
-                        {getFileIcon(a.tipo_arquivo)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{a.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                <Tabs defaultValue="todos" className="w-full">
+                  <div className="flex items-center justify-between mb-3">
+                    <TabsList className="h-8">
+                      <TabsTrigger value="todos" className="text-xs h-7 gap-1">
+                        <Paperclip className="h-3.5 w-3.5" /> Todos ({anexos.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="cofre" className="text-xs h-7 gap-1">
+                        <FolderOpen className="h-3.5 w-3.5" /> No Cofre ({cofreDocs.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="pendentes" className="text-xs h-7 gap-1">
+                        <AlertTriangle className="h-3.5 w-3.5" /> Fora do Cofre ({anexosNoCofre.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5" /> Upload
+                    </Button>
+                    <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
-                )}
+
+                  {/* Tab: Todos os anexos */}
+                  <TabsContent value="todos" className="mt-0">
+                    {anexos.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {anexos.map(a => {
+                          const inCofre = cofreDocs.some((d: any) => d.nome_arquivo === a.nome);
+                          return (
+                            <div key={a.id} className={cn("flex items-center gap-2 p-2 rounded-md border border-border/30", inCofre ? "bg-emerald-500/5" : "bg-muted/30")}>
+                              {getFileIcon(a.tipo_arquivo)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{a.nome}</p>
+                                <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
+                              </div>
+                              {inCofre && (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-emerald-500/30 text-emerald-500 gap-0.5">
+                                  <ShieldCheck className="h-2.5 w-2.5" /> Cofre
+                                </Badge>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-4 text-center">Nenhum anexo.</p>
+                    )}
+                  </TabsContent>
+
+                  {/* Tab: Documentos no Cofre */}
+                  <TabsContent value="cofre" className="mt-0">
+                    {cofreDocs.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {cofreDocs.map((doc: any) => (
+                          <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                            {getFileIcon(doc.tipo_arquivo)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {doc.categoria && (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+                                    {COFRE_CATEGORIA_LABELS[doc.categoria] || doc.categoria}
+                                  </Badge>
+                                )}
+                                <span className="text-[10px] text-muted-foreground">
+                                  {doc.created_at && format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
+                                </span>
+                                {doc.status === "aprovado" && (
+                                  <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-500/20 text-emerald-500 border-0">Aprovado</Badge>
+                                )}
+                              </div>
+                            </div>
+                            {doc.visivel_fabrica && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
+                                <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <FolderOpen className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground">Nenhum documento no Cofre ainda.</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Selecione documentos na aba "Fora do Cofre" para enviar.</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Tab: Fora do Cofre */}
+                  <TabsContent value="pendentes" className="mt-0">
+                    {anexosNoCofre.length > 0 ? (
+                      <div className="space-y-2">
+                        {!(tarefa as any).produto_id && (
+                          <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                            <p className="text-xs">Vincule um produto à tarefa para enviar documentos ao Cofre.</p>
+                          </div>
+                        )}
+                        {anexosNoCofre.map(a => (
+                          <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
+                            <Checkbox
+                              checked={selectedAnexoIds.includes(a.id)}
+                              onCheckedChange={() => {
+                                setSelectedAnexoIds(prev =>
+                                  prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id]
+                                );
+                              }}
+                              className="flex-shrink-0"
+                            />
+                            {getFileIcon(a.tipo_arquivo)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{a.nome}</p>
+                              <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
+                            </div>
+                            {selectedAnexoIds.includes(a.id) && (
+                              <Select
+                                value={categoriasPorAnexo[a.id] || ""}
+                                onValueChange={v => setCategoriasPorAnexo(prev => ({ ...prev, [a.id]: v }))}
+                              >
+                                <SelectTrigger className="h-7 w-[120px] text-[11px]">
+                                  <SelectValue placeholder="Categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {COFRE_CATEGORIAS.map(c => (
+                                    <SelectItem key={c} value={c}>{COFRE_CATEGORIA_LABELS[c]}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        ))}
+                        {selectedAnexoIds.length > 0 && (tarefa as any).produto_id && (
+                          <Button
+                            size="sm"
+                            className="w-full gap-1.5 text-xs mt-2"
+                            disabled={sendingToCofre || !selectedAnexoIds.every(id => categoriasPorAnexo[id])}
+                            onClick={async () => {
+                              if (!selectedAnexoIds.every(id => categoriasPorAnexo[id])) {
+                                toast.error("Selecione uma categoria para cada documento.");
+                                return;
+                              }
+                              setSendingToCofre(true);
+                              try {
+                                await sendToCofre.mutateAsync({
+                                  anexoIds: selectedAnexoIds,
+                                  produtoId: (tarefa as any).produto_id,
+                                  categoriasPorAnexo,
+                                });
+                                queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefa.id] });
+                                setSelectedAnexoIds([]);
+                                setCategoriasPorAnexo({});
+                              } finally {
+                                setSendingToCofre(false);
+                              }
+                            }}
+                          >
+                            <FolderOpen className="h-3.5 w-3.5" />
+                            {sendingToCofre ? "Enviando..." : `Enviar ${selectedAnexoIds.length} ao Cofre`}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-500/40" />
+                        <p className="text-xs text-muted-foreground">Todos os documentos estão no Cofre!</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
 
               <Separator />
