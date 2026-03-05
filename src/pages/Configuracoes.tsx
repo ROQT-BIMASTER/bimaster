@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2 } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key } from "lucide-react";
 
 // Direct imports
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
@@ -35,6 +35,7 @@ import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/Conf
 import { DocumentacaoIntegracaoERP } from "@/components/configuracoes/DocumentacaoIntegracaoERP";
 import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCategoriasDRE";
 import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
+import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
 
 interface Profile {
   id: string;
@@ -404,29 +405,45 @@ function Configuracoes() {
                       </CardDescription>
                     </CardHeader>
                   </Card>
-                </TabsContent>
 
-                <TabsContent value="integracoes">
-                  <GerenciamentoIntegracoes />
-                </TabsContent>
-                
-                <TabsContent value="api">
-                  <DocumentacaoAPI />
-                </TabsContent>
-                
-                <TabsContent value="api-health">
-                  <div>
-                    <p className="text-muted-foreground mb-4">
-                      Acesse a página de verificação de APIs para ver o status completo do sistema.
-                    </p>
-                    <Button 
-                      onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
-                      className="flex items-center gap-2"
-                    >
-                      <Activity className="h-4 w-4" />
-                      Abrir Verificação de APIs
-                    </Button>
-                  </div>
+                  <Tabs defaultValue="api-keys" className="space-y-4">
+                    <TabsList>
+                      <TabsTrigger value="api-keys" className="flex items-center gap-2">
+                        <Key className="h-4 w-4" />
+                        API Keys
+                      </TabsTrigger>
+                      <TabsTrigger value="sub-integracoes">Integrações</TabsTrigger>
+                      <TabsTrigger value="sub-api-docs">Documentação API</TabsTrigger>
+                      <TabsTrigger value="sub-api-health">Saúde das APIs</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="api-keys">
+                      <GerenciamentoAPIKeys />
+                    </TabsContent>
+
+                    <TabsContent value="sub-integracoes">
+                      <GerenciamentoIntegracoes />
+                    </TabsContent>
+
+                    <TabsContent value="sub-api-docs">
+                      <DocumentacaoAPI />
+                    </TabsContent>
+
+                    <TabsContent value="sub-api-health">
+                      <div>
+                        <p className="text-muted-foreground mb-4">
+                          Acesse a página de verificação de APIs para ver o status completo do sistema.
+                        </p>
+                        <Button
+                          onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
+                          className="flex items-center gap-2"
+                        >
+                          <Activity className="h-4 w-4" />
+                          Abrir Verificação de APIs
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </TabsContent>
               </>
             )}
