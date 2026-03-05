@@ -1,33 +1,60 @@
 
 
-## Dados de Simulação para Testar o Modo Foco
+## Painel de Produto + Checklist de Lançamento
 
-Adicionar dados mock/demo diretamente no `TarefaFocusMode.tsx` para que a tela possa ser visualizada e testada mesmo sem dados reais no banco. Os dados simulados serão usados como fallback quando não houver dados reais.
+Remover o `max-w-3xl` da coluna esquerda e reorganizar em **sub-layout de 2 colunas**: conteúdo principal à esquerda + painel lateral fixo à direita (antes do chat).
 
-### O que será adicionado
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Header (status, estágio, código, título, sair do foco)                │
+├────────────────────────────┬──────────────────┬────────────────────────┤
+│  DETALHES DA TAREFA        │  PAINEL PRODUTO  │  💬 CHAT              │
+│                            │                  │                        │
+│  Campos (status, prazo..)  │  ┌────────────┐  │  mensagens...          │
+│                            │  │   📷 Foto  │  │                        │
+│  📊 Gráfico Evolução       │  │  HB-L6532  │  │                        │
+│                            │  │  Marca/Linha│  │                        │
+│  Marcos                    │  └────────────┘  │                        │
+│  Descrição                 │                  │                        │
+│  Subtarefas                │  ✅ CHECKLIST     │                        │
+│                            │  ☑ Briefing      │                        │
+│  📎 Documentos & Cofre     │  ☑ Arte Final    │                        │
+│                            │  ☑ Ficha Técnica │                        │
+│  💬 Comentários            │  ☐ Laudo         │                        │
+│                            │  ☐ Certificado   │                        │
+│                            │                  │                        │
+│                            │  ── Progresso ── │                        │
+│                            │  ████████░░ 60%  │                        │
+└────────────────────────────┴──────────────────┴────────────────────────┘
+```
 
-**Anexos simulados (6 itens)**:
-- Briefing_HB-L6532.pdf (PDF, 2.4 MB)
-- Rotulo_frente_v3.png (imagem, 1.1 MB)
-- Ficha_Tecnica_final.pdf (PDF, 890 KB)
-- Arte_embalagem.ai (arquivo, 5.2 MB)
-- Laudo_estabilidade.pdf (PDF, 320 KB)
-- Foto_amostra_01.jpg (imagem, 3.8 MB)
-
-**Documentos no Cofre simulados (3 itens)**:
-- Briefing_HB-L6532.pdf — categoria: briefing, status: aprovado
-- Ficha_Tecnica_final.pdf — categoria: ficha_tecnica, status: ativo
-- Laudo_estabilidade.pdf — categoria: laudo, status: ativo, visível fábrica
-
-**Mensagens de chat simuladas (5 msgs)**: Conversa entre membros do time sobre aprovação de arte e revisão técnica.
-
-**Comentários simulados (3 itens)**: Comentários sobre progresso da tarefa com @mentions.
-
-**Marcos simulados (5 itens)**: 3 concluídos, 2 pendentes — para alimentar o gráfico de evolução.
-
-### Mudança Técnica
+### Mudanças
 
 | Ação | Arquivo | Descrição |
 |------|---------|-----------|
-| Editar | `src/components/projetos/TarefaFocusMode.tsx` | Adicionar constantes `MOCK_ANEXOS`, `MOCK_COFRE_DOCS`, `MOCK_MESSAGES`, `MOCK_COMENTARIOS` no topo. Usar `useMemo` para fazer merge: se os dados reais estiverem vazios, usar os mocks como fallback. Os mocks terão datas espalhadas nos últimos 30 dias para popular o gráfico de evolução. |
+| Editar | `TarefaFocusMode.tsx` | Remover `max-w-3xl`. Reorganizar a coluna esquerda em flex com 2 sub-colunas: (1) conteúdo scrollável existente, (2) painel fixo de ~280px com card do produto e checklist. |
+
+### Painel do Produto (sub-coluna direita, ~280px)
+
+**Card do Produto Vinculado:**
+- Foto do produto (ou placeholder com ícone Package)
+- Código, nome, marca, linha, tipo
+- Dados vêm de `linkedProduto` (já disponível via `useProjetoTarefaDetalhe`)
+- Se não houver produto vinculado, mostrar estado vazio com botão "Vincular produto"
+
+**Checklist de Pré-Lançamento:**
+Lista fixa de etapas necessárias para lançamento, auto-calculada com base nos dados existentes:
+- **Briefing** — check se existe doc no cofre com categoria "briefing"
+- **Arte Final** — check categoria "arte_final" no cofre
+- **Rótulo** — check categoria "rotulo"
+- **Ficha Técnica** — check categoria "ficha_tecnica"
+- **Laudo** — check categoria "laudo"
+- **Certificado** — check categoria "certificado"
+- **Aprovação cliente** — check se existe marco "aprovação" concluído
+
+Cada item fica verde (check) se o documento correspondente existe no cofre ou o marco está concluído. Usa os dados de `cofreDocs` e `displayMetas` já disponíveis.
+
+**Barra de Progresso Geral:**
+- Percentual = itens do checklist concluídos / total
+- Progress bar visual com cor dinâmica (vermelho < 30%, amarelo < 70%, verde >= 70%)
 
