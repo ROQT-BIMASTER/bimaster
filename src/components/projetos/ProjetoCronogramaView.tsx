@@ -298,9 +298,9 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Filter className={`h-4 w-4 ${darkBg ? "text-white/60" : "text-muted-foreground"}`} />
             <Select value={filterSecao} onValueChange={setFilterSecao}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
+              <SelectTrigger className={cn("h-8 w-[160px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
                 <SelectValue placeholder="Seção" />
               </SelectTrigger>
               <SelectContent>
@@ -311,7 +311,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
+              <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -324,13 +324,13 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
             </Select>
           </div>
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => z === "quarter" ? "month" : "week")}>
+            <Button variant="ghost" size="icon" className={cn("h-7 w-7", darkBg && "text-white hover:bg-white/10")} onClick={() => setZoom(z => z === "quarter" ? "month" : "week")}>
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
-            <Badge variant="outline" className="text-[10px] px-2 h-6">
+            <Badge variant="outline" className={cn("text-[10px] px-2 h-6", darkBg && "border-white/20 text-white/70")}>
               {zoom === "week" ? "Dia" : zoom === "month" ? "Semana" : "Mês"}
             </Badge>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => z === "week" ? "month" : "quarter")}>
+            <Button variant="ghost" size="icon" className={cn("h-7 w-7", darkBg && "text-white hover:bg-white/10")} onClick={() => setZoom(z => z === "week" ? "month" : "quarter")}>
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -348,17 +348,17 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
                 {lanes.map((lane) => (
                   <div
                     key={lane.produtoId || "general"}
-                    className="border-b px-3 flex items-center gap-2"
+                    className={cn("border-b px-3 flex items-center gap-2", darkBg ? "border-white/10" : "")}
                     style={{ height: Math.max(ROW_HEIGHT, lane.tarefas.length * ROW_HEIGHT) }}
                   >
                     {lane.produtoId ? (
                       <ProductThumbnail src={lane.fotoUrl} size="sm" />
                     ) : (
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                        <Package className="h-4 w-4 text-muted-foreground" />
+                      <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", darkBg ? "bg-white/10" : "bg-muted")}>
+                        <Package className={cn("h-4 w-4", darkBg ? "text-white/50" : "text-muted-foreground")} />
                       </div>
                     )}
-                    <span className="text-xs font-medium line-clamp-2">{lane.produtoNome}</span>
+                    <span className={cn("text-xs font-medium line-clamp-2", darkBg ? "text-white" : "")}>{lane.produtoNome}</span>
                   </div>
                 ))}
               </div>
@@ -367,15 +367,15 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
               <div className="flex-1">
                 <div style={{ minWidth: totalWidth }}>
                   {/* Column headers */}
-                  <div className="h-10 border-b flex items-end">
+                  <div className={cn("h-10 border-b flex items-end", darkBg ? "border-white/10" : "")}>
                     {columns.map((col, i) => (
                       <div
                         key={i}
-                        className="flex-shrink-0 border-r border-border/30 px-1 flex flex-col items-center justify-center"
+                        className={cn("flex-shrink-0 border-r px-1 flex flex-col items-center justify-center", darkBg ? "border-white/10" : "border-border/30")}
                         style={{ width: col.width }}
                       >
-                        <span className="text-[10px] text-muted-foreground leading-tight">{col.subLabel}</span>
-                        <span className="text-[11px] font-medium leading-tight">{col.label}</span>
+                        <span className={cn("text-[10px] leading-tight", darkBg ? "text-white/50" : "text-muted-foreground")}>{col.subLabel}</span>
+                        <span className={cn("text-[11px] font-medium leading-tight", darkBg ? "text-white/80" : "")}>{col.label}</span>
                       </div>
                     ))}
                   </div>
@@ -397,7 +397,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
                     {/* Grid lines */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {columns.map((col, i) => (
-                        <div key={i} className="flex-shrink-0 border-r border-border/10" style={{ width: col.width }} />
+                        <div key={i} className={cn("flex-shrink-0 border-r", darkBg ? "border-white/5" : "border-border/10")} style={{ width: col.width }} />
                       ))}
                     </div>
 
@@ -407,7 +407,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
                       return (
                         <div
                           key={lane.produtoId || "general"}
-                          className="relative border-b"
+                          className={cn("relative border-b", darkBg ? "border-white/10" : "")}
                           style={{ height: laneHeight }}
                         >
                           {lane.tarefas.map((t, ti) => {
@@ -563,20 +563,20 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
           {Object.entries(ESTAGIO_COLORS).map(([key, color]) => (
             <div key={key} className="flex items-center gap-1.5">
               <div className="h-2.5 w-5 rounded-sm" style={{ backgroundColor: color }} />
-              <span className="text-muted-foreground">{ESTAGIO_LABELS[key]}</span>
+              <span className={darkBg ? "text-white/60" : "text-muted-foreground"}>{ESTAGIO_LABELS[key]}</span>
             </div>
           ))}
           <div className="flex items-center gap-1.5">
             <div className="h-2.5 w-5 rounded-sm bg-destructive" />
-            <span className="text-muted-foreground">Hoje</span>
+            <span className={darkBg ? "text-white/60" : "text-muted-foreground"}>Hoje</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-2.5 w-2.5 rotate-45 bg-amber-400 border border-muted-foreground/30" />
-            <span className="text-muted-foreground">Marco pendente</span>
+            <span className={darkBg ? "text-white/60" : "text-muted-foreground"}>Marco pendente</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-2.5 w-2.5 rotate-45 bg-emerald-400 border border-muted-foreground/30" />
-            <span className="text-muted-foreground">Marco concluído</span>
+            <span className={darkBg ? "text-white/60" : "text-muted-foreground"}>Marco concluído</span>
           </div>
         </div>
       </div>

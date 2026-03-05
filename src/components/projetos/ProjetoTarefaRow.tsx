@@ -294,7 +294,7 @@ function InlineTitle({ value, isCompleted, isBold, onSave, onClick, darkBg = fal
   return (
     <span
       className={cn(
-        "text-sm truncate cursor-pointer hover:text-primary transition-colors",
+        "text-sm cursor-pointer hover:text-primary transition-colors",
         darkBg && !isCompleted && "text-white",
         isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground"),
         isBold && "font-medium"
