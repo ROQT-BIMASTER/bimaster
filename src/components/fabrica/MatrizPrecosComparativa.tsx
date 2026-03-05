@@ -79,6 +79,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { HistoricoPrecoProduto } from "./HistoricoPrecoProduto";
 import { ReversePrecoDialog, ReversePrecoDialogData } from "./ReversePrecoDialog";
+import { SelecionarTabelasExportDialog } from "./SelecionarTabelasExportDialog";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -276,7 +277,11 @@ export function MatrizPrecosComparativa() {
   // Estado do dialog de ajuste reverso de preço
   const [reverseDialogOpen, setReverseDialogOpen] = useState(false);
   const [reverseDialogData, setReverseDialogData] = useState<ReversePrecoDialogData | null>(null);
-  
+
+  // Estado do dialog de seleção de tabelas para exportação
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportDialogMode, setExportDialogMode] = useState<'excel' | 'pdf-margem' | 'pdf-sem-margem'>('excel');
+
   // Filtros avançados
   const [filtroMarca, setFiltroMarca] = useState<string>("all");
   const [filtroLinha, setFiltroLinha] = useState<string>("all");
@@ -638,8 +643,12 @@ export function MatrizPrecosComparativa() {
     enabled: false,
   });
 
-  const exportarExcel = async () => {
-    if (!matrizDados.length || !tabelasOrdenadas.length) {
+  const exportarExcel = async (tabelaIds?: string[]) => {
+    const tabelasParaExportar = tabelaIds
+      ? tabelasOrdenadas.filter(t => tabelaIds.includes(t.id))
+      : tabelasOrdenadas;
+
+    if (!matrizDados.length || !tabelasParaExportar.length) {
       toast.error("Não há dados para exportar");
       return;
     }
@@ -657,7 +666,7 @@ export function MatrizPrecosComparativa() {
       { header: 'Linha', key: 'linha', width: 15 },
     ];
 
-    tabelasOrdenadas.forEach((t) => {
+    tabelasParaExportar.forEach((t) => {
       columns.push({ header: `${t.nome} (Preço)`, key: `preco_${t.id}`, width: 15 });
       columns.push({ header: `${t.nome} (Margem %)`, key: `margem_${t.id}`, width: 12 });
     });
@@ -674,7 +683,7 @@ export function MatrizPrecosComparativa() {
         linha: row.produto.linha || '-',
       };
 
-      tabelasOrdenadas.forEach((t) => {
+      tabelasParaExportar.forEach((t) => {
         const preco = row.precos[t.id];
         rowData[`preco_${t.id}`] = preco ? preco.preco : '-';
         rowData[`margem_${t.id}`] = preco ? `${preco.margem.toFixed(1)}%` : '-';
@@ -694,8 +703,12 @@ export function MatrizPrecosComparativa() {
     toast.success("Arquivo exportado com sucesso!");
   };
 
-  const exportarPDF = (incluirMargem: boolean = true) => {
-    if (!matrizDados.length || !tabelasOrdenadas.length) {
+  const exportarPDF = (incluirMargem: boolean = true, tabelaIds?: string[]) => {
+    const tabelasParaExportar = tabelaIds
+      ? tabelasOrdenadas.filter(t => tabelaIds.includes(t.id))
+      : tabelasOrdenadas;
+
+    if (!matrizDados.length || !tabelasParaExportar.length) {
       toast.error("Não há dados para exportar");
       return;
     }
@@ -836,7 +849,7 @@ export function MatrizPrecosComparativa() {
       <body>
         <div class="header">
           <h1>Matriz Comparativa de Preços</h1>
-          <div class="subtitle">${matrizDados.length} produto(s) · ${tabelasOrdenadas.length} tabela(s)</div>
+          <div class="subtitle">${matrizDados.length} produto(s) · ${tabelasParaExportar.length} tabela(s)</div>
         </div>
         
         <div class="meta-info">
@@ -849,7 +862,7 @@ export function MatrizPrecosComparativa() {
             <tr>
               <th class="product-header">Produto</th>
               <th class="code-header">Código</th>
-              ${tabelasOrdenadas.map(t => `<th>${t.nome}<br/><small>${t.codigo}</small></th>`).join('')}
+              ${tabelasParaExportar.map(t => `<th>${t.nome}<br/><small>${t.codigo}</small></th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -857,7 +870,7 @@ export function MatrizPrecosComparativa() {
               <tr>
                 <td class="product-cell">${row.produto.nome}</td>
                 <td class="code-cell">${row.produto.codigo}</td>
-                ${tabelasOrdenadas.map(tabela => {
+                ${tabelasParaExportar.map(tabela => {
                   const preco = row.precos[tabela.id];
                   if (preco) {
                     return `
@@ -991,17 +1004,17 @@ export function MatrizPrecosComparativa() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => exportarPDF(true)}>
+                  <DropdownMenuItem onClick={() => { setExportDialogMode('pdf-margem'); setExportDialogOpen(true); }}>
                     <FileText className="h-4 w-4 mr-2" />
                     Com Margem de Contribuição
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => exportarPDF(false)}>
+                  <DropdownMenuItem onClick={() => { setExportDialogMode('pdf-sem-margem'); setExportDialogOpen(true); }}>
                     <Printer className="h-4 w-4 mr-2" />
                     Somente Tabelas (sem margem)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" onClick={exportarExcel}>
+              <Button variant="outline" onClick={() => { setExportDialogMode('excel'); setExportDialogOpen(true); }}>
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Excel
               </Button>
@@ -1251,6 +1264,24 @@ export function MatrizPrecosComparativa() {
         onOpenChange={setReverseDialogOpen}
         data={reverseDialogData}
         onSaved={() => refetchPrecos()}
+      />
+
+      {/* Dialog de seleção de tabelas para exportação */}
+      <SelecionarTabelasExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        tabelas={tabelasOrdenadas.map(t => ({ id: t.id, nome: t.nome, codigo: t.codigo }))}
+        title={exportDialogMode === 'excel' ? 'Exportar Excel' : 'Imprimir PDF'}
+        description="Selecione quais tabelas deseja incluir na exportação."
+        onConfirm={(tabelaIds) => {
+          if (exportDialogMode === 'excel') {
+            exportarExcel(tabelaIds);
+          } else if (exportDialogMode === 'pdf-margem') {
+            exportarPDF(true, tabelaIds);
+          } else {
+            exportarPDF(false, tabelaIds);
+          }
+        }}
       />
     </>
   );
