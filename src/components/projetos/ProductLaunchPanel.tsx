@@ -211,7 +211,8 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
                         onClick={() => setShowAuditDetails(!showAuditDetails)}
                         className={cn(
                           "w-full flex items-center gap-2 py-2 px-3 rounded-md border transition-colors",
-                          auditCfg.bg
+                          auditCfg.bg,
+                          audit.match === "baixo" && audit.confianca >= 70 && "animate-pulse shadow-[0_0_12px_hsla(0,84%,60%,0.4)]"
                         )}
                       >
                         <Bot className={cn("h-3.5 w-3.5 flex-shrink-0", auditCfg.color)} />
