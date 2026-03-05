@@ -717,6 +717,17 @@ export function TarefaFocusMode({
               estagio: tarefa.estagio || undefined,
               codigo: tarefa.codigo || undefined,
             }}
+            tarefa={{
+              responsavel: tarefa.responsavel,
+              criador: tarefa.criador,
+              colaboradores: tarefa.colaboradores,
+              subtarefas: tarefa.subtarefas?.map(s => ({
+                id: s.id,
+                titulo: s.titulo,
+                status: s.status,
+                responsavel: s.responsavel,
+              })),
+            }}
           />
 
           {/* Right column - Chat */}
