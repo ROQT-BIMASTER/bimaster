@@ -1028,6 +1028,24 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink 
+                  to="/dashboard/configuracoes/lgpd"
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                    isActive 
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>LGPD</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLogout}
@@ -1038,6 +1056,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        
+        {/* Links legais LGPD */}
+        <div className="px-4 py-2 border-t border-sidebar-border/50 flex gap-3">
+          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            Privacidade
+          </a>
+          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            Termos
+          </a>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

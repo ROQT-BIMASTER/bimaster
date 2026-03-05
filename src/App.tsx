@@ -200,6 +200,7 @@ const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
+const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 
 // Loading component
 const PageLoader = () => (
@@ -461,6 +462,7 @@ function AppContent() {
               </ProtectedRoute>
             } />
             <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><ScreenProtectedRoute screenCode="admin"><APIHealthCheck /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/configuracoes/lgpd" element={<ProtectedRoute><LGPDAdmin /></ProtectedRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
