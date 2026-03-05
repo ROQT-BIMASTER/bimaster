@@ -88,7 +88,10 @@ export function BriefingImportDialog({ open, onOpenChange, secoes, secaoId, onCr
     setLoading(true);
 
     try {
+      console.log("[BriefingImport] Extracting text from:", file.name, "size:", file.size);
       const textoExtraido = await extractExcelText(file);
+      console.log("[BriefingImport] Extracted text length:", textoExtraido.length);
+      console.log("[BriefingImport] First 200 chars:", textoExtraido.substring(0, 200));
       
       if (textoExtraido.length < 20) {
         toast.error("Planilha parece vazia ou não foi possível extrair dados.");
@@ -96,9 +99,13 @@ export function BriefingImportDialog({ open, onOpenChange, secoes, secaoId, onCr
         return;
       }
 
+      console.log("[BriefingImport] Calling edge function with", secoes.length, "secoes");
       const { data, error } = await supabase.functions.invoke("importar-briefing-ia", {
         body: { textoExtraido, secoes },
       });
+
+      console.log("[BriefingImport] Response data:", JSON.stringify(data)?.substring(0, 500));
+      console.log("[BriefingImport] Response error:", error);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -108,6 +115,8 @@ export function BriefingImportDialog({ open, onOpenChange, secoes, secaoId, onCr
         secao_id: t.secao_id || secaoId,
         selected: true,
       }));
+
+      console.log("[BriefingImport] Parsed tarefas count:", tarefas.length);
 
       if (tarefas.length === 0) {
         toast.error("IA não conseguiu extrair tarefas do briefing.");
