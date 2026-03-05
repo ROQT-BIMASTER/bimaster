@@ -13525,6 +13525,86 @@ export type Database = {
           },
         ]
       }
+      projeto_briefing_campos: {
+        Row: {
+          briefing_id: string
+          campo: string
+          categoria: string
+          id: string
+          ordem: number | null
+          responsabilidade: string | null
+          valor: string | null
+        }
+        Insert: {
+          briefing_id: string
+          campo: string
+          categoria: string
+          id?: string
+          ordem?: number | null
+          responsabilidade?: string | null
+          valor?: string | null
+        }
+        Update: {
+          briefing_id?: string
+          campo?: string
+          categoria?: string
+          id?: string
+          ordem?: number | null
+          responsabilidade?: string | null
+          valor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_briefing_campos_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_briefings: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome_arquivo: string
+          projeto_id: string
+          secao_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo: string
+          projeto_id: string
+          secao_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo?: string
+          projeto_id?: string
+          secao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_briefings_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_briefings_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_calendario_regras: {
         Row: {
           ativo: boolean

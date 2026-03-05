@@ -9,10 +9,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { textoExtraido, secoes } = await req.json();
+    const { textoExtraido } = await req.json();
 
-    if (!textoExtraido || !secoes) {
-      return new Response(JSON.stringify({ error: "textoExtraido e secoes são obrigatórios" }), {
+    if (!textoExtraido) {
+      return new Response(JSON.stringify({ error: "textoExtraido é obrigatório" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -21,7 +21,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const systemPrompt = `Você é um especialista em gestão de projetos de produtos cosméticos. Sua tarefa é analisar o texto extraído de uma planilha de Briefing e gerar tarefas organizadas para o projeto.
+    const systemPrompt = `Você é um especialista em gestão de projetos de produtos cosméticos. Sua tarefa é analisar o texto extraído de uma planilha de Briefing e retornar os dados organizados em campos estruturados.
 
 A planilha contém seções como:
 - PRODUTO: Nome comercial, ativos, apelos, variações
@@ -35,17 +35,17 @@ Cada campo pode ter siglas de responsabilidade:
 - (E) = Embalagens
 - (COMP) = Compras
 
-Você deve retornar tarefas usando a função suggest_briefing_tasks.
+Você deve retornar os campos estruturados usando a função extract_briefing_fields.
 
 Regras:
-1. Agrupe tarefas por área de responsabilidade
-2. Use dados reais da planilha na descrição
-3. Sugira a seção mais adequada dentre as disponíveis
-4. Prioridade: alta para itens regulatórios/legais, média para desenvolvimento, baixa para complementares
-5. Gere entre 5 e 30 tarefas conforme a complexidade do briefing`;
+1. Extraia TODOS os campos presentes na planilha
+2. Agrupe por categoria (PRODUTO, ROTULAGEM, COMPRAS E EMBALAGEM, ou outra encontrada)
+3. Use o nome exato do campo como aparece na planilha
+4. Extraia o valor real preenchido
+5. Identifique a sigla de responsabilidade quando presente
+6. Mantenha a ordem lógica dos campos dentro de cada categoria`;
 
-    const secoesInfo = secoes.map((s: any) => `- ${s.nome} (id: ${s.id})`).join("\n");
-    const userPrompt = `Seções disponíveis no projeto:\n${secoesInfo}\n\nTexto extraído da planilha de Briefing:\n\n${textoExtraido}`;
+    const userPrompt = `Texto extraído da planilha de Briefing:\n\n${textoExtraido}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -54,7 +54,7 @@ Regras:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -63,34 +63,33 @@ Regras:
           {
             type: "function",
             function: {
-              name: "suggest_briefing_tasks",
-              description: "Retorna as tarefas sugeridas a partir do briefing",
+              name: "extract_briefing_fields",
+              description: "Retorna os campos estruturados extraídos do briefing",
               parameters: {
                 type: "object",
                 properties: {
-                  tarefas: {
+                  campos: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        titulo: { type: "string", description: "Título da tarefa" },
-                        descricao: { type: "string", description: "Descrição com dados extraídos do briefing" },
-                        prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
-                        area: { type: "string", description: "Área de responsabilidade: Desenvolvimento, Criação, Regulatório, Embalagem ou Compras" },
-                        secao_id: { type: "string", description: "ID da seção sugerida" },
+                        categoria: { type: "string", description: "Categoria/seção do briefing: PRODUTO, ROTULAGEM, COMPRAS E EMBALAGEM, etc." },
+                        campo: { type: "string", description: "Nome do campo como aparece na planilha" },
+                        valor: { type: "string", description: "Valor preenchido no campo" },
+                        responsabilidade: { type: "string", description: "Sigla de responsabilidade: D, C, R, E, COMP ou vazio" },
                       },
-                      required: ["titulo", "descricao", "prioridade", "area", "secao_id"],
+                      required: ["categoria", "campo", "valor"],
                       additionalProperties: false,
                     },
                   },
                 },
-                required: ["tarefas"],
+                required: ["campos"],
                 additionalProperties: false,
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "suggest_briefing_tasks" } },
+        tool_choice: { type: "function", function: { name: "extract_briefing_fields" } },
       }),
     });
 
@@ -116,7 +115,7 @@ Regras:
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {
-      return new Response(JSON.stringify({ error: "IA não retornou tarefas" }), {
+      return new Response(JSON.stringify({ error: "IA não retornou campos estruturados" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

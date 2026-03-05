@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Upload, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { BriefingImportDialog } from "./BriefingImportDialog";
+import { BriefingView } from "./BriefingView";
+import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
+import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,6 +26,7 @@ interface ProjetoSecaoProps {
   nome: string;
   tarefas: ProjetoTarefa[];
   secaoId: string;
+  projetoId: string;
   selectedTarefaId?: string;
   ghosts?: GhostTrail[];
   temBriefing?: boolean;
@@ -41,12 +44,15 @@ interface ProjetoSecaoProps {
 }
 
 export function ProjetoSecao({
-  nome, tarefas, secaoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
+  nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
+  const { briefing, saveBriefing, deleteBriefing } = useProjetoBriefing(temBriefing ? secaoId : undefined);
+
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
     return acc + (t.status === "concluida" ? 1 : 0) + sub;
@@ -58,6 +64,10 @@ export function ProjetoSecao({
     return acc;
   }, new Map<string, GhostTrail>());
   const ghostList = Array.from(uniqueGhosts.values());
+
+  const handleSaveBriefing = (nomeArquivo: string, campos: any[]) => {
+    saveBriefing.mutate({ projetoId, secaoId, nomeArquivo, campos });
+  };
 
   return (
     <div className="mb-1">
@@ -121,6 +131,16 @@ export function ProjetoSecao({
 
       {!collapsed && (
         <div>
+          {/* Briefing view when available */}
+          {temBriefing && briefing && (
+            <BriefingView
+              briefing={briefing}
+              onDelete={() => deleteBriefing.mutate(briefing.id)}
+              onCreateTasks={() => setTasksDialogOpen(true)}
+              darkBg={darkBg}
+            />
+          )}
+
           {tarefas.map(tarefa => (
             <ProjetoTarefaRow
               key={tarefa.id}
@@ -175,8 +195,19 @@ export function ProjetoSecao({
         <BriefingImportDialog
           open={briefingDialogOpen}
           onOpenChange={setBriefingDialogOpen}
-          secoes={allSecoes.length > 0 ? allSecoes : [{ id: secaoId, nome }]}
+          projetoId={projetoId}
           secaoId={secaoId}
+          onSave={handleSaveBriefing}
+        />
+      )}
+
+      {temBriefing && briefing?.campos && (
+        <BriefingToTasksDialog
+          open={tasksDialogOpen}
+          onOpenChange={setTasksDialogOpen}
+          campos={briefing.campos}
+          secoes={allSecoes.length > 0 ? allSecoes : [{ id: secaoId, nome }]}
+          defaultSecaoId={secaoId}
           onCreateTasks={(tasks) => onCreateBriefingTasks?.(tasks)}
         />
       )}
