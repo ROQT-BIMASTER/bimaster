@@ -37,6 +37,8 @@ export interface ProjetoTarefa {
   colaboradores?: { user_id: string; nome: string; avatar_url: string | null }[];
   produto_foto_url?: string | null;
   produto_tipo?: string | null;
+  produto_nome?: string | null;
+  linked_produtos?: { id: string; nome: string; foto_url: string | null; codigo: string | null }[];
 }
 
 export function useProjetoTarefas(projetoId: string | undefined) {
@@ -121,14 +123,53 @@ export function useProjetoTarefas(projetoId: string | undefined) {
 
       // Fetch product photos for tarefas with produto_id
       const produtoIds = [...new Set((data as ProjetoTarefa[]).filter(t => t.produto_id).map(t => t.produto_id!))];
-      let produtoInfo: Record<string, { foto_url: string | null; tipo: string | null }> = {};
+      let produtoInfo: Record<string, { foto_url: string | null; tipo: string | null; nome: string | null }> = {};
       if (produtoIds.length > 0) {
         const { data: produtos } = await supabase
           .from("fabrica_produtos" as any)
-          .select("id, foto_url, tipo")
+          .select("id, foto_url, tipo, nome")
           .in("id", produtoIds);
         if (produtos) {
-          produtoInfo = Object.fromEntries((produtos as any[]).map(p => [p.id, { foto_url: p.foto_url, tipo: p.tipo }]));
+          produtoInfo = Object.fromEntries((produtos as any[]).map(p => [p.id, { foto_url: p.foto_url, tipo: p.tipo, nome: p.nome }]));
+        }
+      }
+
+      // Fetch linked products from junction table (projeto_tarefa_produtos)
+      let linkedProdutosMap: Record<string, { id: string; nome: string; foto_url: string | null; codigo: string | null }[]> = {};
+      if (tarefaIds.length > 0) {
+        const { data: links } = await supabase
+          .from("projeto_tarefa_produtos" as any)
+          .select("tarefa_id, produto_id")
+          .in("tarefa_id", tarefaIds);
+        if (links && (links as any[]).length > 0) {
+          const linkedProdutoIds = [...new Set((links as any[]).map((l: any) => l.produto_id))];
+          const missingProdutoIds = linkedProdutoIds.filter(id => !produtoInfo[id]);
+          let allProdutoData: Record<string, { id: string; nome: string; foto_url: string | null; codigo: string | null }> = {};
+          
+          // Reuse already fetched data
+          for (const id of linkedProdutoIds) {
+            if (produtoInfo[id]) {
+              allProdutoData[id] = { id, nome: produtoInfo[id].nome || "", foto_url: produtoInfo[id].foto_url, codigo: null };
+            }
+          }
+          
+          if (missingProdutoIds.length > 0) {
+            const { data: extraProdutos } = await supabase
+              .from("fabrica_produtos" as any)
+              .select("id, nome, foto_url, codigo")
+              .in("id", missingProdutoIds);
+            if (extraProdutos) {
+              for (const p of extraProdutos as any[]) {
+                allProdutoData[p.id] = { id: p.id, nome: p.nome, foto_url: p.foto_url, codigo: p.codigo };
+              }
+            }
+          }
+          
+          for (const link of links as any[]) {
+            if (!linkedProdutosMap[link.tarefa_id]) linkedProdutosMap[link.tarefa_id] = [];
+            const prod = allProdutoData[link.produto_id];
+            if (prod) linkedProdutosMap[link.tarefa_id].push(prod);
+          }
         }
       }
 
@@ -139,6 +180,8 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         colaboradores: colabMap[t.id] || [],
         produto_foto_url: t.produto_id ? (produtoInfo[t.produto_id]?.foto_url || null) : null,
         produto_tipo: t.produto_id ? (produtoInfo[t.produto_id]?.tipo || null) : null,
+        produto_nome: t.produto_id ? (produtoInfo[t.produto_id]?.nome || null) : null,
+        linked_produtos: linkedProdutosMap[t.id] || [],
       }));
     },
     enabled: !!projetoId && !!user,
