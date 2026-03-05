@@ -28,8 +28,9 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2
 } from "lucide-react";
+import { TarefaFocusMode } from "./TarefaFocusMode";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
@@ -126,6 +127,7 @@ export function ProjetoTarefaDetalhe({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
+  const [focusMode, setFocusMode] = useState(false);
 
   useEffect(() => {
     if (tarefa) {
@@ -317,6 +319,15 @@ export function ProjetoTarefaDetalhe({
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Chat {messages.length > 0 && `(${messages.length})`}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => { setFocusMode(true); onOpenChange(false); }}
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Foco
               </Button>
             </div>
           </div>
@@ -1108,6 +1119,18 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           secoes={secoes}
           onMoveTarefa={onMoveTarefa}
+        />
+      )}
+      {/* Focus Mode */}
+      {focusMode && tarefa && (
+        <TarefaFocusMode
+          tarefa={tarefa}
+          open={focusMode}
+          onOpenChange={(open) => { setFocusMode(open); if (!open) onOpenChange(true); }}
+          onUpdate={onUpdate}
+          onToggle={onToggle}
+          onAddSubtarefa={onAddSubtarefa}
+          secoes={secoes}
         />
       )}
     </>
