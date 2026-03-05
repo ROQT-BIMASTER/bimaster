@@ -117,6 +117,7 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
             teamMembers={teamMembers}
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
+            darkBg={darkBg}
           />
         ))}
 
