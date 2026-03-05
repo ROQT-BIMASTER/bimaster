@@ -1,51 +1,44 @@
 
 
-## Personalização de Cor de Fundo do Módulo Projetos
+## Melhorar Legibilidade da Tabela de Tarefas
 
-### O que será feito
+### Problema
 
-Adicionar um seletor de cor acima do header do projeto (entre o botão "Voltar" e o título) que permite ao usuário escolher uma cor de fundo para a área do módulo. As escritas se ajustarão automaticamente para preto, garantindo contraste.
+A tabela de tarefas usa extensivamente `text-muted-foreground` e opacidades baixas (`opacity-60`, `/40`, `/50`), resultando em texto apagado — especialmente quando há cor de fundo customizada. Os badges de status também usam cores com baixa opacidade (`bg-pink-500/20 text-pink-400`).
 
-### Implementação
+### Mudanças Propostas
 
-#### 1. Persistência — campo `bg_cor` na tabela `projetos`
+#### 1. `ProjetoTarefaRow.tsx`
 
-Adicionar coluna `bg_cor` (text, nullable, default null) à tabela `projetos` para salvar a preferência de cor de fundo por projeto.
+- **Status badges**: Aumentar contraste — de `bg-X-500/20 text-X-400` para `bg-X-500/15 text-X-600` (light mode friendly)
+- **Estágio badges**: Mesmo tratamento
+- **Texto de data**: De `text-muted-foreground` para `text-foreground/70`
+- **Texto do criador**: De `text-muted-foreground` para `text-foreground/70`  
+- **Data de modificação**: De `text-muted-foreground` para `text-foreground/60`
+- **Tarefas concluídas**: De `opacity-60` para `opacity-70`
+- **Código da tarefa**: De `text-muted-foreground` para `text-foreground/60`
+- **Bordas das linhas**: De `border-border/40` para `border-border/60`
 
-#### 2. Atualizar interface `Projeto`
+#### 2. `ProjetoListView.tsx`
 
-O tipo será atualizado automaticamente via types.ts após a migração.
+- **Cabeçalhos da tabela**: De `text-muted-foreground` para `text-foreground/60` com `font-semibold`
+- **Fundo do header**: De `bg-muted/30` para `bg-muted/50`
 
-#### 3. Editar `ProjetoDetalhe.tsx`
+#### 3. `ProjetoSecao.tsx`
 
-- Aplicar `style={{ backgroundColor: projeto.bg_cor }}` no container principal (`<main>`)
-- Quando `bg_cor` está definida, todas as classes de texto mudam para `text-black` (títulos, labels, tabs, badges)
-- Adicionar um pequeno botão de paleta de cores ao lado do botão "Voltar", com um popover contendo:
-  - Grade de cores predefinidas (branco, cinza claro, amarelo claro, rosa claro, verde claro, azul claro, lilás, etc.)
-  - Input hex para cor customizada
-  - Botão "Remover" para voltar ao padrão
-- Ao selecionar, faz `update` no campo `bg_cor` do projeto
+- **Contador de tarefas**: De `text-muted-foreground` para `text-foreground/60`
+- **Ghosts**: De `opacity-40` para `opacity-50`
 
-#### 4. Editar `ProjetoHeader.tsx`
+#### 4. Suporte a cor de fundo customizada
 
-- Receber prop `customBg` (boolean) para saber se há cor de fundo customizada
-- Quando `customBg = true`, aplicar `text-black` nos textos do header (título, descrição, tabs, botões) em vez das classes padrão do tema
-
-#### 5. Componente `ProjetoBgColorPicker.tsx`
-
-Novo componente com:
-- Botão com ícone `Palette` que abre um `Popover`
-- Grade de ~12 cores pastel predefinidas
-- Input para cor hex customizada
-- Preview da cor selecionada
-- Callback `onColorChange(cor: string | null)`
+Propagar `customBg` para `ProjetoListView` e aplicar `text-black` nos cabeçalhos e textos secundários quando ativo, garantindo contraste com fundos coloridos.
 
 #### Arquivos
 
 | Ação | Arquivo |
 |------|---------|
-| Migração | Adicionar coluna `bg_cor` em `projetos` |
-| Criar | `src/components/projetos/ProjetoBgColorPicker.tsx` |
-| Editar | `src/pages/ProjetoDetalhe.tsx` |
-| Editar | `src/components/projetos/ProjetoHeader.tsx` |
+| Editar | `src/components/projetos/ProjetoTarefaRow.tsx` |
+| Editar | `src/components/projetos/ProjetoListView.tsx` |
+| Editar | `src/components/projetos/ProjetoSecao.tsx` |
+| Editar | `src/pages/ProjetoDetalhe.tsx` (passar customBg) |
 
