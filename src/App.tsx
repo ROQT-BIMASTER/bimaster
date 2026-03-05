@@ -438,10 +438,10 @@ function AppContent() {
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Projetos */}
-            <Route path="/dashboard/projetos" element={<ProtectedRoute><Projetos /></ProtectedRoute>} />
-            <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ProjetoInbox /></ProtectedRoute>} />
-            <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ProjetoAprovacaoCadastro /></ProtectedRoute>} />
-            <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ProjetoDetalhe /></ProtectedRoute>} />
+             <Route path="/dashboard/projetos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><Projetos /></ModuleProtectedRoute></ProtectedRoute>} />
+             <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoInbox /></ModuleProtectedRoute></ProtectedRoute>} />
+             <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleProtectedRoute></ProtectedRoute>} />
+             <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={

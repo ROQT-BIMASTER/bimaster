@@ -299,6 +299,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "eventos", label: t("module.eventos"), icon: PartyPopper },
       { code: "departamentos", label: t("module.departamentos"), icon: Building2 },
       { code: "precos", label: t("module.precos"), icon: DollarSign },
+      { code: "projetos", label: "Projetos", icon: FolderKanban },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -919,6 +920,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         })}
 
         {/* Módulo de Projetos */}
+        {hasModulePermission("projetos") && showModule("projetos") && (
         <SidebarGroup className="py-2 px-2">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger className="w-full">
@@ -944,6 +946,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+        )}
 
         {/* Módulo de Tabelas de Preços */}
         {hasModulePermission("precos") && showModule("precos") && (
