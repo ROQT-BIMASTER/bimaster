@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -13,11 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   X, Plus, Target, TrendingUp, AlertTriangle, CheckCircle2,
-  BarChart3, ClipboardList, Trash2, ChevronDown, Circle, Clock,
-  Users,
+  BarChart3, ClipboardList, Trash2, ChevronDown, Clock, Flag,
 } from "lucide-react";
 import { useProjetoCalendarioRegras, CalendarioRegra } from "@/hooks/useProjetoCalendarioRegras";
-import { useProjetoPlanosAcao, PlanoAcao } from "@/hooks/useProjetoPlanosAcao";
+import { useProjetoPlanosAcao } from "@/hooks/useProjetoPlanosAcao";
+import { useProjetoTarefaMetasCalendario, TarefaMetaCalendario } from "@/hooks/useProjetoTarefaMetasCalendario";
 import { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { format, differenceInWeeks, differenceInDays, isAfter, isBefore, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -91,12 +92,23 @@ const STATUS_PLANO_CONFIG: Record<string, { label: string; variant: "default" | 
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
+const TAREFA_META_TIPOS: Record<string, string> = {
+  prazo_limite: "Prazo Limite",
+  entrega_obrigatoria: "Entrega Obrigatória",
+  qualidade: "Qualidade",
+  custom: "Personalizada",
+};
+
 export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInicio, periodoFim, periodoLabel, darkBg = false, onClose }: Props) {
   const { regras, createRegra, updateRegra, deleteRegra } = useProjetoCalendarioRegras(projetoId);
   const { planos, createPlano, updatePlano, deletePlano } = useProjetoPlanosAcao(projetoId);
+  const { tarefaMetas, createTarefaMeta, updateTarefaMeta, deleteTarefaMeta } = useProjetoTarefaMetasCalendario(projetoId);
 
   const [showRegraDialog, setShowRegraDialog] = useState(false);
+  const [regraSecaoId, setRegraSecaoId] = useState<string | null>(null);
   const [showPlanoDialog, setShowPlanoDialog] = useState(false);
+  const [showTarefaMetaDialog, setShowTarefaMetaDialog] = useState(false);
+  const [metaTarefaId, setMetaTarefaId] = useState<string | null>(null);
 
   // Filter tasks by period
   const periodTasks = useMemo(() => {
@@ -121,17 +133,29 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
     const taxa = total > 0 ? Math.round((concluidas / total) * 100) : 0;
     const weeks = Math.max(1, differenceInWeeks(periodoFim, periodoInicio) || 1);
     const velocidade = +(concluidas / weeks).toFixed(1);
-
-    // For new rule types
     const tarefasEmAndamento = periodTasks.filter((t) => t.status === "em_andamento");
     const maxDiasAndamento = tarefasEmAndamento.reduce((max, t) => {
       const startDate = t.updated_at ? parseISO(t.updated_at) : parseISO(t.created_at);
-      const dias = differenceInDays(now, startDate);
-      return Math.max(max, dias);
+      return Math.max(max, differenceInDays(now, startDate));
     }, 0);
-
     return { total, concluidas, atrasadas, emAndamento, taxa, velocidade, maxDiasAndamento, simultaneasAndamento: emAndamento };
   }, [periodTasks, periodoInicio, periodoFim]);
+
+  // Compute section-level KPIs
+  const computeSectionKpis = (sectionTasks: ProjetoTarefa[]) => {
+    const now = new Date();
+    const total = sectionTasks.length;
+    const concluidas = sectionTasks.filter((t) => t.status === "concluida").length;
+    const atrasadas = sectionTasks.filter((t) => t.status !== "concluida" && t.data_prazo && isBefore(parseISO(t.data_prazo), now)).length;
+    const emAndamento = sectionTasks.filter((t) => t.status === "em_andamento").length;
+    const taxa = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+    const weeks = Math.max(1, differenceInWeeks(periodoFim, periodoInicio) || 1);
+    const velocidade = +(concluidas / weeks).toFixed(1);
+    const maxDiasAndamento = sectionTasks.filter((t) => t.status === "em_andamento").reduce((max, t) => {
+      return Math.max(max, differenceInDays(now, parseISO(t.updated_at || t.created_at)));
+    }, 0);
+    return { total, concluidas, atrasadas, emAndamento, taxa, velocidade, maxDiasAndamento, simultaneasAndamento: emAndamento };
+  };
 
   // ── Tasks grouped by section ──
   const tasksBySection = useMemo(() => {
@@ -143,15 +167,36 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
     return map;
   }, [periodTasks]);
 
+  // Group regras: global vs per-section
+  const globalRegras = regras.filter((r) => !r.secao_id);
+  const regrasBySection = useMemo(() => {
+    const map: Record<string, CalendarioRegra[]> = {};
+    regras.filter((r) => r.secao_id).forEach((r) => {
+      if (!map[r.secao_id!]) map[r.secao_id!] = [];
+      map[r.secao_id!].push(r);
+    });
+    return map;
+  }, [regras]);
+
+  // Group task metas by tarefa_id
+  const metasByTarefa = useMemo(() => {
+    const map: Record<string, TarefaMetaCalendario[]> = {};
+    tarefaMetas.forEach((m) => {
+      if (!map[m.tarefa_id]) map[m.tarefa_id] = [];
+      map[m.tarefa_id].push(m);
+    });
+    return map;
+  }, [tarefaMetas]);
+
   // ── Evaluate rules ──
-  const evaluateRegra = (regra: CalendarioRegra): boolean => {
+  const evaluateRegraWithKpis = (regra: CalendarioRegra, kpisData: typeof kpis): boolean => {
     let actual: number;
     switch (regra.tipo) {
-      case "percentual_conclusao": actual = kpis.taxa; break;
-      case "max_atrasadas": actual = kpis.atrasadas; break;
-      case "min_velocity": actual = kpis.velocidade; break;
-      case "max_dias_andamento": actual = kpis.maxDiasAndamento; break;
-      case "max_simultaneas_andamento": actual = kpis.simultaneasAndamento; break;
+      case "percentual_conclusao": actual = kpisData.taxa; break;
+      case "max_atrasadas": actual = kpisData.atrasadas; break;
+      case "min_velocity": actual = kpisData.velocidade; break;
+      case "max_dias_andamento": actual = kpisData.maxDiasAndamento; break;
+      case "max_simultaneas_andamento": actual = kpisData.simultaneasAndamento; break;
       default: return true;
     }
     switch (regra.operador) {
@@ -169,6 +214,16 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const sectionBg = darkBg ? "bg-white/[0.03]" : "bg-muted/30";
   const borderColor = darkBg ? "border-white/10" : "border-border";
+
+  const openRegraDialogForSection = (secaoId: string | null) => {
+    setRegraSecaoId(secaoId);
+    setShowRegraDialog(true);
+  };
+
+  const openTarefaMetaDialog = (tarefaId: string) => {
+    setMetaTarefaId(tarefaId);
+    setShowTarefaMetaDialog(true);
+  };
 
   return (
     <div className={cn("w-full animate-in fade-in-0 duration-300", bg)}>
@@ -210,55 +265,28 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
           </div>
         </section>
 
-        {/* ── Regras de Metas ── */}
+        {/* ── Regras de Metas (Globais) ── */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h3 className={cn("text-sm font-semibold flex items-center gap-2", txt)}>
-              <Target className="h-4 w-4" /> Regras de Metas
+              <Target className="h-4 w-4" /> Regras de Metas (Projeto)
             </h3>
-            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={() => setShowRegraDialog(true)}>
+            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={() => openRegraDialogForSection(null)}>
               <Plus className="h-3 w-3" /> Nova Regra
             </Button>
           </div>
-          {regras.length === 0 ? (
-            <p className={cn("text-xs text-center py-6", txtMuted)}>Nenhuma regra configurada</p>
+          {globalRegras.length === 0 ? (
+            <p className={cn("text-xs text-center py-4", txtMuted)}>Nenhuma regra global configurada</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {regras.map((r) => {
-                const passed = evaluateRegra(r);
-                return (
-                  <div key={r.id} className={cn("rounded-lg p-3 flex items-center gap-3 border", sectionBg, borderColor)}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={cn("text-xs font-medium truncate", txt)}>{r.titulo}</span>
-                        {r.ativo ? (
-                          <Badge variant={passed ? "success" : "destructive"} className="text-[10px] h-4 shrink-0">
-                            {passed ? "✅ Cumprida" : "❌ Violada"}
-                          </Badge>
-                        ) : (
-                          <Badge variant="ghost" className="text-[10px] h-4">Inativa</Badge>
-                        )}
-                      </div>
-                      <p className={cn("text-[10px]", txtMuted)}>
-                        {TIPO_LABELS[r.tipo] || r.tipo} {r.operador} {r.valor}{r.tipo === "percentual_conclusao" ? "%" : ""} • {r.periodo}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={r.ativo}
-                      onCheckedChange={(checked) => updateRegra.mutate({ id: r.id, ativo: checked })}
-                      className="scale-75"
-                    />
-                    <Button variant="ghost" size="icon" className={cn("h-6 w-6 shrink-0", darkBg && "text-white/50 hover:bg-white/10")} onClick={() => deleteRegra.mutate(r.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                );
-              })}
+              {globalRegras.map((r) => (
+                <RegraCard key={r.id} regra={r} passed={evaluateRegraWithKpis(r, kpis)} darkBg={darkBg} onToggle={(checked) => updateRegra.mutate({ id: r.id, ativo: checked })} onDelete={() => deleteRegra.mutate(r.id)} />
+              ))}
             </div>
           )}
         </section>
 
-        {/* ── Tabelas por Seção ── */}
+        {/* ── Tabelas por Seção (com regras e metas de tarefa) ── */}
         <section>
           <h3 className={cn("text-sm font-semibold flex items-center gap-2 mb-4", txt)}>
             <ClipboardList className="h-4 w-4" /> Tarefas por Seção
@@ -271,6 +299,8 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
                 const secaoTasks = tasksBySection[secao.id] || [];
                 const concluidas = secaoTasks.filter((t) => t.status === "concluida").length;
                 const pct = secaoTasks.length > 0 ? Math.round((concluidas / secaoTasks.length) * 100) : 0;
+                const secaoRegras = regrasBySection[secao.id] || [];
+                const secaoKpis = computeSectionKpis(secaoTasks);
 
                 return (
                   <SectionTable
@@ -279,7 +309,17 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
                     tarefas={secaoTasks}
                     concluidas={concluidas}
                     percentual={pct}
+                    regras={secaoRegras}
+                    secaoKpis={secaoKpis}
+                    metasByTarefa={metasByTarefa}
                     darkBg={darkBg}
+                    onAddRegra={() => openRegraDialogForSection(secao.id)}
+                    onToggleRegra={(id, checked) => updateRegra.mutate({ id, ativo: checked })}
+                    onDeleteRegra={(id) => deleteRegra.mutate(id)}
+                    evaluateRegra={(r) => evaluateRegraWithKpis(r, secaoKpis)}
+                    onAddTarefaMeta={openTarefaMetaDialog}
+                    onToggleTarefaMeta={(id, cumprida) => updateTarefaMeta.mutate({ id, cumprida })}
+                    onDeleteTarefaMeta={(id) => deleteTarefaMeta.mutate(id)}
                   />
                 );
               })}
@@ -341,8 +381,9 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
       <NovaRegraDialog
         open={showRegraDialog}
         onOpenChange={setShowRegraDialog}
+        secaoNome={regraSecaoId ? secoes.find((s) => s.id === regraSecaoId)?.nome : undefined}
         onSave={(data) => {
-          createRegra.mutate({ projeto_id: projetoId, ...data });
+          createRegra.mutate({ projeto_id: projetoId, secao_id: regraSecaoId, ...data });
           setShowRegraDialog(false);
         }}
       />
@@ -354,23 +395,83 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInic
           setShowPlanoDialog(false);
         }}
       />
+      <NovaTarefaMetaDialog
+        open={showTarefaMetaDialog}
+        onOpenChange={setShowTarefaMetaDialog}
+        tarefaNome={metaTarefaId ? tarefas.find((t) => t.id === metaTarefaId)?.titulo : undefined}
+        onSave={(data) => {
+          if (metaTarefaId) {
+            createTarefaMeta.mutate({ projeto_id: projetoId, tarefa_id: metaTarefaId, ...data });
+          }
+          setShowTarefaMetaDialog(false);
+        }}
+      />
     </div>
   );
 }
 
-// ─── Section Table (Collapsible) ───
-function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
+// ─── Regra Card (reused for global and section) ───
+function RegraCard({ regra, passed, darkBg, onToggle, onDelete }: {
+  regra: CalendarioRegra;
+  passed: boolean;
+  darkBg: boolean;
+  onToggle: (checked: boolean) => void;
+  onDelete: () => void;
+}) {
+  const txt = darkBg ? "text-white" : "text-foreground";
+  const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
+  const sectionBg = darkBg ? "bg-white/[0.03]" : "bg-muted/30";
+  const borderColor = darkBg ? "border-white/10" : "border-border";
+
+  return (
+    <div className={cn("rounded-lg p-3 flex items-center gap-3 border", sectionBg, borderColor)}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className={cn("text-xs font-medium truncate", txt)}>{regra.titulo}</span>
+          {regra.ativo ? (
+            <Badge variant={passed ? "success" : "destructive"} className="text-[10px] h-4 shrink-0">
+              {passed ? "✅ Cumprida" : "❌ Violada"}
+            </Badge>
+          ) : (
+            <Badge variant="ghost" className="text-[10px] h-4">Inativa</Badge>
+          )}
+        </div>
+        <p className={cn("text-[10px]", txtMuted)}>
+          {TIPO_LABELS[regra.tipo] || regra.tipo} {regra.operador} {regra.valor}{regra.tipo === "percentual_conclusao" ? "%" : ""} • {regra.periodo}
+        </p>
+      </div>
+      <Switch checked={regra.ativo} onCheckedChange={onToggle} className="scale-75" />
+      <Button variant="ghost" size="icon" className={cn("h-6 w-6 shrink-0", darkBg && "text-white/50 hover:bg-white/10")} onClick={onDelete}>
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
+// ─── Section Table (Collapsible) with regras + task metas ───
+function SectionTable({ secao, tarefas, concluidas, percentual, regras, secaoKpis, metasByTarefa, darkBg, onAddRegra, onToggleRegra, onDeleteRegra, evaluateRegra, onAddTarefaMeta, onToggleTarefaMeta, onDeleteTarefaMeta }: {
   secao: ProjetoSecao;
   tarefas: ProjetoTarefa[];
   concluidas: number;
   percentual: number;
+  regras: CalendarioRegra[];
+  secaoKpis: any;
+  metasByTarefa: Record<string, TarefaMetaCalendario[]>;
   darkBg: boolean;
+  onAddRegra: () => void;
+  onToggleRegra: (id: string, checked: boolean) => void;
+  onDeleteRegra: (id: string) => void;
+  evaluateRegra: (r: CalendarioRegra) => boolean;
+  onAddTarefaMeta: (tarefaId: string) => void;
+  onToggleTarefaMeta: (id: string, cumprida: boolean) => void;
+  onDeleteTarefaMeta: (id: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const borderColor = darkBg ? "border-white/10" : "border-border";
   const headerBg = darkBg ? "bg-white/[0.05]" : "bg-muted/50";
+  const sectionBg = darkBg ? "bg-white/[0.03]" : "bg-muted/30";
   const now = new Date();
 
   return (
@@ -388,6 +489,26 @@ function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
+          {/* Section-level regras */}
+          <div className={cn("px-4 py-2 border-b flex items-center gap-2 flex-wrap", borderColor, sectionBg)}>
+            <Target className={cn("h-3 w-3 shrink-0", txtMuted)} />
+            <span className={cn("text-[10px] font-semibold uppercase tracking-wider", txtMuted)}>Metas da seção</span>
+            {regras.map((r) => {
+              const passed = evaluateRegra(r);
+              return (
+                <div key={r.id} className="flex items-center gap-1">
+                  <Badge variant={r.ativo ? (passed ? "success" : "destructive") : "ghost"} className="text-[10px] h-4">
+                    {r.ativo ? (passed ? "✅" : "❌") : "⏸️"} {r.titulo}
+                  </Badge>
+                  <button className={cn("text-[10px] opacity-50 hover:opacity-100", darkBg ? "text-white" : "text-foreground")} onClick={() => onDeleteRegra(r.id)}>×</button>
+                </div>
+              );
+            })}
+            <Button variant="ghost" size="sm" className={cn("h-5 text-[10px] px-1.5 gap-0.5", darkBg && "text-white/50 hover:bg-white/10")} onClick={(e) => { e.stopPropagation(); onAddRegra(); }}>
+              <Plus className="h-2.5 w-2.5" /> Meta
+            </Button>
+          </div>
+
           {tarefas.length === 0 ? (
             <p className={cn("text-xs text-center py-4", txtMuted)}>Sem tarefas neste período</p>
           ) : (
@@ -399,6 +520,7 @@ function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
                   <TableHead className={cn("text-xs w-[80px]", txtMuted)}>Prazo</TableHead>
                   <TableHead className={cn("text-xs w-[100px]", txtMuted)}>Estágio</TableHead>
                   <TableHead className={cn("text-xs w-[120px]", txtMuted)}>Responsável</TableHead>
+                  <TableHead className={cn("text-xs w-[140px]", txtMuted)}>Metas</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -409,6 +531,7 @@ function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
                   const estagioColors = darkBg
                     ? (ESTAGIO_COLORS[t.estagio || ""] || "bg-white/10 text-white/50")
                     : (ESTAGIO_COLORS_LIGHT[t.estagio || ""] || "bg-muted text-muted-foreground");
+                  const taskMetas = metasByTarefa[t.id] || [];
 
                   return (
                     <TableRow key={t.id} className={cn(borderColor, darkBg ? "hover:bg-white/[0.03]" : "hover:bg-muted/30")}>
@@ -449,6 +572,27 @@ function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
                           <span className={cn("text-xs", txtMuted)}>—</span>
                         )}
                       </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex flex-col gap-0.5">
+                          {taskMetas.map((m) => (
+                            <div key={m.id} className="flex items-center gap-1">
+                              <Checkbox
+                                checked={m.cumprida}
+                                onCheckedChange={(checked) => onToggleTarefaMeta(m.id, !!checked)}
+                                className="h-3 w-3"
+                              />
+                              <span className={cn("text-[10px] truncate max-w-[90px]", m.cumprida && "line-through opacity-60", txtMuted)}>{m.titulo}</span>
+                              <button className={cn("text-[10px] opacity-40 hover:opacity-100 shrink-0", darkBg ? "text-white" : "text-foreground")} onClick={() => onDeleteTarefaMeta(m.id)}>×</button>
+                            </div>
+                          ))}
+                          <button
+                            className={cn("text-[10px] flex items-center gap-0.5 opacity-40 hover:opacity-100 transition-opacity", darkBg ? "text-white" : "text-foreground")}
+                            onClick={() => onAddTarefaMeta(t.id)}
+                          >
+                            <Flag className="h-2.5 w-2.5" /> meta
+                          </button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -479,9 +623,10 @@ function KPICard({ label, value, icon, darkBg, accent }: { label: string; value:
 }
 
 // ─── Nova Regra Dialog ───
-function NovaRegraDialog({ open, onOpenChange, onSave }: {
+function NovaRegraDialog({ open, onOpenChange, secaoNome, onSave }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  secaoNome?: string;
   onSave: (data: { titulo: string; tipo: string; operador: string; valor: number; periodo: string; ativo: boolean }) => void;
 }) {
   const [titulo, setTitulo] = useState("");
@@ -500,7 +645,7 @@ function NovaRegraDialog({ open, onOpenChange, onSave }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova Regra de Meta</DialogTitle>
+          <DialogTitle>Nova Regra de Meta{secaoNome ? ` — ${secaoNome}` : " (Projeto)"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input placeholder="Título da regra" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
@@ -535,6 +680,53 @@ function NovaRegraDialog({ open, onOpenChange, onSave }: {
               <SelectItem value="trimestral">Trimestral</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={!titulo.trim()}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Nova Tarefa Meta Dialog ───
+function NovaTarefaMetaDialog({ open, onOpenChange, tarefaNome, onSave }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  tarefaNome?: string;
+  onSave: (data: { titulo: string; tipo: string; valor: string | null; cumprida: boolean }) => void;
+}) {
+  const [titulo, setTitulo] = useState("");
+  const [tipo, setTipo] = useState("entrega_obrigatoria");
+  const [valor, setValor] = useState("");
+
+  const handleSave = () => {
+    if (!titulo.trim()) return;
+    onSave({ titulo: titulo.trim(), tipo, valor: valor.trim() || null, cumprida: false });
+    setTitulo("");
+    setValor("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nova Meta — {tarefaNome || "Tarefa"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input placeholder="Título da meta (ex: Aprovar arte final)" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={tipo} onValueChange={setTipo}>
+              <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(TAREFA_META_TIPOS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input placeholder="Valor/descrição (opcional)" value={valor} onChange={(e) => setValor(e.target.value)} className="text-xs" />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

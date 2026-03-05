@@ -13534,6 +13534,7 @@ export type Database = {
           operador: string
           periodo: string
           projeto_id: string
+          secao_id: string | null
           tipo: string
           titulo: string
           updated_at: string
@@ -13547,6 +13548,7 @@ export type Database = {
           operador?: string
           periodo?: string
           projeto_id: string
+          secao_id?: string | null
           tipo?: string
           titulo: string
           updated_at?: string
@@ -13560,6 +13562,7 @@ export type Database = {
           operador?: string
           periodo?: string
           projeto_id?: string
+          secao_id?: string | null
           tipo?: string
           titulo?: string
           updated_at?: string
@@ -13571,6 +13574,13 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_calendario_regras_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
             referencedColumns: ["id"]
           },
         ]
@@ -13825,6 +13835,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "projeto_tarefa_metas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_tarefa_metas_calendario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cumprida: boolean
+          id: string
+          projeto_id: string
+          tarefa_id: string
+          tipo: string
+          titulo: string
+          updated_at: string
+          valor: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cumprida?: boolean
+          id?: string
+          projeto_id: string
+          tarefa_id: string
+          tipo?: string
+          titulo: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cumprida?: boolean
+          id?: string
+          projeto_id?: string
+          tarefa_id?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_metas_calendario_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_metas_calendario_tarefa_id_fkey"
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "projeto_tarefas"

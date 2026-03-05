@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export interface CalendarioRegra {
   id: string;
   projeto_id: string;
+  secao_id: string | null;
   titulo: string;
   tipo: string;
   operador: string;
