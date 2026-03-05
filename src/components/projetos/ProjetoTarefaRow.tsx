@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { format, isPast, isToday, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -139,6 +140,12 @@ export function ProjetoTarefaRow({
               {subtaskCompleted}/{subtaskTotal} ts
             </Badge>
           )}
+          <TarefaRiskBadge
+            status={tarefa.status}
+            dataPrazo={tarefa.data_prazo}
+            diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
+            compact
+          />
         </div>
 
         {/* Responsável - inline picker */}

@@ -12672,6 +12672,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          id: string
+          lida: boolean
+          mensagem: string | null
+          referencia_id: string | null
+          referencia_tipo: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          tipo?: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           digest_frequency: string | null
@@ -13628,6 +13664,41 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_metas: {
+        Row: {
+          concluida: boolean
+          created_at: string
+          data_meta: string | null
+          descricao: string
+          id: string
+          tarefa_id: string
+        }
+        Insert: {
+          concluida?: boolean
+          created_at?: string
+          data_meta?: string | null
+          descricao: string
+          id?: string
+          tarefa_id: string
+        }
+        Update: {
+          concluida?: boolean
+          created_at?: string
+          data_meta?: string | null
+          descricao?: string
+          id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_metas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_movimentacoes: {
         Row: {
           created_at: string
@@ -13759,8 +13830,10 @@ export type Database = {
           created_at: string | null
           criador_id: string | null
           data_conclusao: string | null
+          data_inicio_planejada: string | null
           data_prazo: string | null
           descricao: string | null
+          dias_alerta_antes: number
           estagio: string | null
           id: string
           ordem: number | null
@@ -13781,8 +13854,10 @@ export type Database = {
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
+          data_inicio_planejada?: string | null
           data_prazo?: string | null
           descricao?: string | null
+          dias_alerta_antes?: number
           estagio?: string | null
           id?: string
           ordem?: number | null
@@ -13803,8 +13878,10 @@ export type Database = {
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
+          data_inicio_planejada?: string | null
           data_prazo?: string | null
           descricao?: string | null
+          dias_alerta_antes?: number
           estagio?: string | null
           id?: string
           ordem?: number | null
