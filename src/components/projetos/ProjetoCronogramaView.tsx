@@ -8,17 +8,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  addDays, addWeeks, addMonths, differenceInDays, startOfWeek, endOfWeek,
-  startOfMonth, endOfMonth, format, isSameMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval,
-  isToday, subWeeks, subMonths,
+  addDays, differenceInDays, startOfWeek, endOfWeek,
+  startOfMonth, endOfMonth, format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Calendar, Package, Filter,
-  Loader2, User,
+  ZoomIn, ZoomOut, Calendar, Package, Filter,
+  Loader2, User, Diamond,
 } from "lucide-react";
 
 // ─── Stage colors (for bar fill) ───
@@ -52,6 +50,21 @@ interface ProductLane {
   produtoNome: string;
   fotoUrl: string | null;
   tarefas: ProjetoTarefa[];
+}
+
+interface TarefaProgress {
+  subtasksDone: number;
+  subtasksTotal: number;
+  metasDone: number;
+  metasTotal: number;
+  percent: number;
+}
+
+interface MetaMarker {
+  id: string;
+  descricao: string;
+  data_meta: string;
+  concluida: boolean;
 }
 
 interface Props {
@@ -96,7 +109,22 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
     enabled: produtoIds.length > 0,
   });
 
-  // Build a map tarefa -> produto
+  // Fetch all metas for all parent tasks (batch)
+  const parentTaskIds = useMemo(() => tarefas.filter(t => !t.parent_tarefa_id).map(t => t.id), [tarefas]);
+  const { data: allMetas = [] } = useQuery({
+    queryKey: ["cronograma-metas", projetoId, parentTaskIds.join(",")],
+    queryFn: async () => {
+      if (parentTaskIds.length === 0) return [];
+      const { data } = await supabase
+        .from("projeto_tarefa_metas" as any)
+        .select("id, tarefa_id, descricao, data_meta, concluida")
+        .in("tarefa_id", parentTaskIds);
+      return (data || []) as unknown as { id: string; tarefa_id: string; descricao: string; data_meta: string | null; concluida: boolean }[];
+    },
+    enabled: parentTaskIds.length > 0,
+  });
+
+  // Build maps
   const tarefaProdutoMap = useMemo(() => {
     const m: Record<string, string> = {};
     for (const l of produtoLinks) m[l.tarefa_id] = l.produto_id;
@@ -109,9 +137,41 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
     return m;
   }, [produtos]);
 
+  // Build progress map per task
+  const progressMap = useMemo<Record<string, TarefaProgress>>(() => {
+    const m: Record<string, TarefaProgress> = {};
+    for (const parentId of parentTaskIds) {
+      const subtasks = tarefas.filter(t => t.parent_tarefa_id === parentId);
+      const subtasksDone = subtasks.filter(t => t.status === "concluida").length;
+      const subtasksTotal = subtasks.length;
+
+      const metas = allMetas.filter(mt => mt.tarefa_id === parentId);
+      const metasDone = metas.filter(mt => mt.concluida).length;
+      const metasTotal = metas.length;
+
+      const totalItems = subtasksTotal + metasTotal;
+      const doneItems = subtasksDone + metasDone;
+      const percent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+
+      m[parentId] = { subtasksDone, subtasksTotal, metasDone, metasTotal, percent };
+    }
+    return m;
+  }, [parentTaskIds, tarefas, allMetas]);
+
+  // Build metas markers map per task (only those with dates)
+  const metasMarkersMap = useMemo<Record<string, MetaMarker[]>>(() => {
+    const m: Record<string, MetaMarker[]> = {};
+    for (const meta of allMetas) {
+      if (!meta.data_meta) continue;
+      if (!m[meta.tarefa_id]) m[meta.tarefa_id] = [];
+      m[meta.tarefa_id].push({ id: meta.id, descricao: meta.descricao, data_meta: meta.data_meta, concluida: meta.concluida });
+    }
+    return m;
+  }, [allMetas]);
+
   // Filter tarefas
   const filteredTarefas = useMemo(() => {
-    let t = tarefas.filter(t => !t.parent_tarefa_id); // only parent tasks
+    let t = tarefas.filter(t => !t.parent_tarefa_id);
     if (filterSecao !== "all") t = t.filter(x => x.secao_id === filterSecao);
     if (filterStatus !== "all") t = t.filter(x => x.status === filterStatus);
     return t;
@@ -152,14 +212,11 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
       if (end && end > latest) latest = end;
     }
 
-    // Add padding
     const pad = zoom === "week" ? 7 : zoom === "month" ? 14 : 30;
     const tStart = addDays(startOfWeek(earliest, { weekStartsOn: 1 }), -pad);
     const tEnd = addDays(endOfWeek(latest, { weekStartsOn: 1 }), pad);
-
     const dw = zoom === "week" ? 40 : zoom === "month" ? 18 : 6;
 
-    // Column headers
     let cols: { label: string; subLabel?: string; start: Date; width: number }[] = [];
     if (zoom === "week") {
       const days = eachDayOfInterval({ start: tStart, end: tEnd });
@@ -174,11 +231,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
       cols = weeks.map(w => {
         const we = endOfWeek(w, { weekStartsOn: 1 });
         const days = differenceInDays(we > tEnd ? tEnd : we, w) + 1;
-        return {
-          label: `${format(w, "dd/MM", { locale: ptBR })}`,
-          start: w,
-          width: days * dw,
-        };
+        return { label: `${format(w, "dd/MM", { locale: ptBR })}`, start: w, width: days * dw };
       });
     } else {
       const months = eachMonthOfInterval({ start: tStart, end: tEnd });
@@ -187,28 +240,20 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
         const mStart = m < tStart ? tStart : m;
         const mEnd = me > tEnd ? tEnd : me;
         const days = differenceInDays(mEnd, mStart) + 1;
-        return {
-          label: format(m, "MMM yyyy", { locale: ptBR }),
-          start: mStart,
-          width: days * dw,
-        };
+        return { label: format(m, "MMM yyyy", { locale: ptBR }), start: mStart, width: days * dw };
       });
     }
 
     return { timelineStart: tStart, timelineEnd: tEnd, dayWidth: dw, columns: cols };
   }, [filteredTarefas, zoom]);
 
-  const totalWidth = useMemo(() => {
-    return columns.reduce((acc, c) => acc + c.width, 0);
-  }, [columns]);
+  const totalWidth = useMemo(() => columns.reduce((acc, c) => acc + c.width, 0), [columns]);
 
-  // Today marker position
   const todayOffset = useMemo(() => {
     const d = differenceInDays(new Date(), timelineStart);
     return d * dayWidth;
   }, [timelineStart, dayWidth]);
 
-  // Bar position for a task
   const getBarStyle = (t: ProjetoTarefa) => {
     const start = parseLocalDate(t.created_at) || new Date();
     const end = parseLocalDate(t.data_prazo) || addDays(start, 5);
@@ -216,10 +261,9 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
     const width = Math.max(dayWidth * 2, differenceInDays(end, start) * dayWidth);
     const color = ESTAGIO_COLORS[t.estagio || ""] || "hsl(210, 15%, 50%)";
     const isCompleted = t.status === "concluida";
-    return { left, width, color, isCompleted };
+    return { left, width, color, isCompleted, startDate: start, endDate: end };
   };
 
-  // Section color helper
   const secaoMap = useMemo(() => {
     const m: Record<string, string> = {};
     for (const s of secoes) m[s.id] = s.nome;
@@ -295,130 +339,221 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
         <div className="border rounded-xl overflow-hidden bg-card">
           <div className="overflow-x-auto" ref={scrollRef}>
             <div className="flex" style={{ minWidth: totalWidth + LANE_LABEL_WIDTH }}>
-            {/* Lane labels (fixed) */}
-            <div className="flex-shrink-0 border-r bg-muted/30 sticky left-0 z-10 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.1)]" style={{ width: LANE_LABEL_WIDTH }}>
-              {/* Header spacer */}
-              <div className="h-10 border-b px-3 flex items-center">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Produto</span>
-              </div>
-              {lanes.map((lane, li) => (
-                <div
-                  key={lane.produtoId || "general"}
-                  className="border-b px-3 flex items-center gap-2"
-                  style={{ height: Math.max(ROW_HEIGHT, lane.tarefas.length * ROW_HEIGHT) }}
-                >
-                  {lane.produtoId ? (
-                    <ProductThumbnail src={lane.fotoUrl} size="sm" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <span className="text-xs font-medium line-clamp-2">{lane.produtoNome}</span>
+              {/* Lane labels (fixed) */}
+              <div className="flex-shrink-0 border-r bg-muted/30 sticky left-0 z-10 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.1)]" style={{ width: LANE_LABEL_WIDTH }}>
+                <div className="h-10 border-b px-3 flex items-center">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Produto</span>
                 </div>
-              ))}
-            </div>
-
-            {/* Scrollable timeline */}
-            <div className="flex-1">
-              <div style={{ minWidth: totalWidth }}>
-                {/* Column headers */}
-                <div className="h-10 border-b flex items-end">
-                  {columns.map((col, i) => (
-                    <div
-                      key={i}
-                      className="flex-shrink-0 border-r border-border/30 px-1 flex flex-col items-center justify-center"
-                      style={{ width: col.width }}
-                    >
-                      <span className="text-[10px] text-muted-foreground leading-tight">{col.subLabel}</span>
-                      <span className="text-[11px] font-medium leading-tight">{col.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Rows */}
-                <div className="relative">
-                  {/* Today line */}
-                  {todayOffset > 0 && todayOffset < totalWidth && (
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
-                      style={{ left: todayOffset }}
-                    >
-                      <div className="absolute -top-0 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-b font-medium">
-                        Hoje
+                {lanes.map((lane) => (
+                  <div
+                    key={lane.produtoId || "general"}
+                    className="border-b px-3 flex items-center gap-2"
+                    style={{ height: Math.max(ROW_HEIGHT, lane.tarefas.length * ROW_HEIGHT) }}
+                  >
+                    {lane.produtoId ? (
+                      <ProductThumbnail src={lane.fotoUrl} size="sm" />
+                    ) : (
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                        <Package className="h-4 w-4 text-muted-foreground" />
                       </div>
-                    </div>
-                  )}
+                    )}
+                    <span className="text-xs font-medium line-clamp-2">{lane.produtoNome}</span>
+                  </div>
+                ))}
+              </div>
 
-                  {/* Grid lines */}
-                  <div className="absolute inset-0 flex pointer-events-none">
+              {/* Scrollable timeline */}
+              <div className="flex-1">
+                <div style={{ minWidth: totalWidth }}>
+                  {/* Column headers */}
+                  <div className="h-10 border-b flex items-end">
                     {columns.map((col, i) => (
-                      <div key={i} className="flex-shrink-0 border-r border-border/10" style={{ width: col.width }} />
+                      <div
+                        key={i}
+                        className="flex-shrink-0 border-r border-border/30 px-1 flex flex-col items-center justify-center"
+                        style={{ width: col.width }}
+                      >
+                        <span className="text-[10px] text-muted-foreground leading-tight">{col.subLabel}</span>
+                        <span className="text-[11px] font-medium leading-tight">{col.label}</span>
+                      </div>
                     ))}
                   </div>
 
-                  {/* Lane rows */}
-                  {lanes.map((lane) => {
-                    const laneHeight = Math.max(ROW_HEIGHT, lane.tarefas.length * ROW_HEIGHT);
-                    return (
+                  {/* Rows */}
+                  <div className="relative">
+                    {/* Today line */}
+                    {todayOffset > 0 && todayOffset < totalWidth && (
                       <div
-                        key={lane.produtoId || "general"}
-                        className="relative border-b"
-                        style={{ height: laneHeight }}
+                        className="absolute top-0 bottom-0 w-0.5 bg-destructive z-20 pointer-events-none"
+                        style={{ left: todayOffset }}
                       >
-                        {lane.tarefas.map((t, ti) => {
-                          const bar = getBarStyle(t);
-                          const secaoNome = secaoMap[t.secao_id] || "";
-                          return (
-                            <Tooltip key={t.id}>
-                              <TooltipTrigger asChild>
-                                <button
-                                  className={cn(
-                                    "absolute rounded-md h-7 flex items-center px-2 gap-1 text-[11px] font-medium text-white transition-all hover:brightness-110 hover:shadow-md cursor-pointer truncate",
-                                    bar.isCompleted && "opacity-50 line-through"
-                                  )}
-                                  style={{
-                                    left: bar.left,
-                                    width: bar.width,
-                                    top: ti * ROW_HEIGHT + (ROW_HEIGHT - 28) / 2,
-                                    backgroundColor: bar.color,
-                                  }}
-                                  onClick={() => onSelectTarefa?.(t)}
-                                >
-                                  <span className="truncate">{t.titulo}</span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <div className="space-y-1">
-                                  <p className="font-semibold text-sm">{t.titulo}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{secaoNome}</span>
-                                    <span>•</span>
-                                    <span>{ESTAGIO_LABELS[t.estagio || ""] || "Sem estágio"}</span>
-                                    <span>•</span>
-                                    <span>{STATUS_LABELS[t.status] || t.status}</span>
-                                  </div>
-                                  {t.responsavel && (
-                                    <div className="flex items-center gap-1 text-xs">
-                                      <User className="h-3 w-3" />
-                                      <span>{t.responsavel.nome}</span>
-                                    </div>
-                                  )}
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {formatLocalDate(t.created_at, "dd/MM")} → {t.data_prazo ? formatLocalDate(t.data_prazo, "dd/MM") : "sem prazo"}
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
+                        <div className="absolute -top-0 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground text-[9px] px-1.5 py-0.5 rounded-b font-medium">
+                          Hoje
+                        </div>
                       </div>
-                    );
-                  })}
+                    )}
+
+                    {/* Grid lines */}
+                    <div className="absolute inset-0 flex pointer-events-none">
+                      {columns.map((col, i) => (
+                        <div key={i} className="flex-shrink-0 border-r border-border/10" style={{ width: col.width }} />
+                      ))}
+                    </div>
+
+                    {/* Lane rows */}
+                    {lanes.map((lane) => {
+                      const laneHeight = Math.max(ROW_HEIGHT, lane.tarefas.length * ROW_HEIGHT);
+                      return (
+                        <div
+                          key={lane.produtoId || "general"}
+                          className="relative border-b"
+                          style={{ height: laneHeight }}
+                        >
+                          {lane.tarefas.map((t, ti) => {
+                            const bar = getBarStyle(t);
+                            const secaoNome = secaoMap[t.secao_id] || "";
+                            const progress = progressMap[t.id];
+                            const markers = metasMarkersMap[t.id] || [];
+                            const hasProgress = progress && (progress.subtasksTotal > 0 || progress.metasTotal > 0);
+
+                            return (
+                              <Tooltip key={t.id}>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className={cn(
+                                      "absolute rounded-md h-7 flex items-center text-[11px] font-medium text-white transition-all hover:brightness-110 hover:shadow-md cursor-pointer group",
+                                      bar.isCompleted && "opacity-60"
+                                    )}
+                                    style={{
+                                      left: bar.left,
+                                      width: bar.width,
+                                      top: ti * ROW_HEIGHT + (ROW_HEIGHT - 28) / 2,
+                                      backgroundColor: "transparent",
+                                    }}
+                                    onClick={() => onSelectTarefa?.(t)}
+                                  >
+                                    {/* Background (unfilled portion - darker/dimmed) */}
+                                    <div
+                                      className="absolute inset-0 rounded-md"
+                                      style={{ backgroundColor: bar.color, opacity: hasProgress ? 0.35 : 1 }}
+                                    />
+                                    {/* Filled portion (progress) */}
+                                    {hasProgress && progress.percent > 0 && (
+                                      <div
+                                        className="absolute inset-y-0 left-0 rounded-l-md"
+                                        style={{
+                                          width: `${progress.percent}%`,
+                                          backgroundColor: bar.color,
+                                          borderTopRightRadius: progress.percent >= 100 ? '0.375rem' : 0,
+                                          borderBottomRightRadius: progress.percent >= 100 ? '0.375rem' : 0,
+                                        }}
+                                      />
+                                    )}
+                                    {/* Diamond markers for metas */}
+                                    {markers.map((marker) => {
+                                      const metaDate = parseLocalDate(marker.data_meta);
+                                      if (!metaDate) return null;
+                                      const taskDuration = differenceInDays(bar.endDate, bar.startDate);
+                                      if (taskDuration <= 0) return null;
+                                      const metaOffset = differenceInDays(metaDate, bar.startDate);
+                                      const markerPercent = Math.max(0, Math.min(100, (metaOffset / taskDuration) * 100));
+                                      return (
+                                        <Tooltip key={marker.id}>
+                                          <TooltipTrigger asChild>
+                                            <div
+                                              className="absolute z-10 pointer-events-auto"
+                                              style={{
+                                                left: `${markerPercent}%`,
+                                                top: '50%',
+                                                transform: 'translate(-50%, -50%) rotate(45deg)',
+                                              }}
+                                            >
+                                              <div
+                                                className={cn(
+                                                  "h-2.5 w-2.5 border border-white/80",
+                                                  marker.concluida ? "bg-emerald-400" : "bg-amber-400"
+                                                )}
+                                              />
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="text-xs">
+                                            <div className="flex items-center gap-1.5">
+                                              <Diamond className={cn("h-3 w-3", marker.concluida ? "text-emerald-500" : "text-amber-500")} />
+                                              <span>{marker.descricao}</span>
+                                              <span className="text-muted-foreground">
+                                                ({formatLocalDate(marker.data_meta, "dd/MM")})
+                                              </span>
+                                            </div>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      );
+                                    })}
+                                    {/* Label + progress % */}
+                                    <div className="relative z-[5] flex items-center gap-1 px-2 w-full min-w-0">
+                                      <span className={cn("truncate", bar.isCompleted && "line-through")}>{t.titulo}</span>
+                                      {hasProgress && (
+                                        <span className="flex-shrink-0 text-[9px] opacity-80 bg-black/20 rounded px-1">
+                                          {progress.percent}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold text-sm">{t.titulo}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span>{secaoNome}</span>
+                                      <span>•</span>
+                                      <span>{ESTAGIO_LABELS[t.estagio || ""] || "Sem estágio"}</span>
+                                      <span>•</span>
+                                      <span>{STATUS_LABELS[t.status] || t.status}</span>
+                                    </div>
+                                    {hasProgress && (
+                                      <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                              className="h-full rounded-full transition-all"
+                                              style={{
+                                                width: `${progress.percent}%`,
+                                                backgroundColor: bar.color,
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-[10px] font-medium">{progress.percent}%</span>
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground flex gap-3">
+                                          {progress.subtasksTotal > 0 && (
+                                            <span>Subtarefas: {progress.subtasksDone}/{progress.subtasksTotal}</span>
+                                          )}
+                                          {progress.metasTotal > 0 && (
+                                            <span>Marcos: {progress.metasDone}/{progress.metasTotal}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {t.responsavel && (
+                                      <div className="flex items-center gap-1 text-xs">
+                                        <User className="h-3 w-3" />
+                                        <span>{t.responsavel.nome}</span>
+                                      </div>
+                                    )}
+                                    <div className="text-[10px] text-muted-foreground">
+                                      {formatLocalDate(t.created_at, "dd/MM")} → {t.data_prazo ? formatLocalDate(t.data_prazo, "dd/MM") : "sem prazo"}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
 
@@ -431,8 +566,16 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
             </div>
           ))}
           <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-5 rounded-sm bg-red-500" />
+            <div className="h-2.5 w-5 rounded-sm bg-destructive" />
             <span className="text-muted-foreground">Hoje</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rotate-45 bg-amber-400 border border-muted-foreground/30" />
+            <span className="text-muted-foreground">Marco pendente</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rotate-45 bg-emerald-400 border border-muted-foreground/30" />
+            <span className="text-muted-foreground">Marco concluído</span>
           </div>
         </div>
       </div>
