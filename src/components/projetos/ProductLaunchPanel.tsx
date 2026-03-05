@@ -10,7 +10,8 @@ import { ProdutoAcabado } from "@/hooks/useProjetoTarefaDetalhe";
 import { cn } from "@/lib/utils";
 import {
   Package, CheckCircle2, Circle, FileText, Palette, Tag,
-  ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X
+  ClipboardList, FlaskConical, Award, UserCheck, Search, Link2, X,
+  Eye, ChevronDown, ChevronUp, CornerDownRight
 } from "lucide-react";
 
 interface ChecklistItem {
@@ -43,6 +44,7 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<ProdutoAcabado[]>([]);
   const [searching, setSearching] = useState(false);
+  const [showFilhos, setShowFilhos] = useState(false);
 
   const checklist = useMemo<ChecklistItem[]>(() => {
     const cofreCategorias = new Set(cofreDocs.map((d: any) => d.categoria));
@@ -124,6 +126,39 @@ export function ProductLaunchPanel({ linkedProduto, cofreDocs, metas, searchProd
                   </Badge>
                 )}
               </div>
+
+              {/* Display filhos */}
+              {linkedProduto.tipo === "DISPLAY" && linkedProduto.filhos && linkedProduto.filhos.length > 0 && (
+                <div className="w-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[11px] h-7 gap-1.5 justify-between"
+                    onClick={() => setShowFilhos(!showFilhos)}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      Grade ({linkedProduto.filhos.length} itens)
+                    </span>
+                    {showFilhos ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                  {showFilhos && (
+                    <div className="mt-2 space-y-1.5">
+                      {linkedProduto.filhos.map(filho => (
+                        <div key={filho.id} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30 border border-border/30">
+                          <CornerDownRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <ProductThumbnail src={filho.foto_url} alt={filho.nome} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium truncate">{filho.nome}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">{filho.codigo}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button
                 variant="ghost"
                 size="sm"
