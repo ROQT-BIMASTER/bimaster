@@ -494,6 +494,26 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
             </div>
           )}
 
+          {/* Opção de preço final para tabelas baseadas em tabela anterior */}
+          {tabela.tipo_base === "tabela_anterior" && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant={fonteCusto === "preco_final" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFonteCusto(fonteCusto === "preco_final" ? "tabela_anterior" : "preco_final")}
+                className="flex items-center gap-2"
+              >
+                <DollarSign className="h-4 w-4" />
+                Digitar Preço Final
+              </Button>
+              {fonteCusto === "preco_final" && (
+                <span className="text-xs text-muted-foreground">
+                  O markup será calculado automaticamente comparado à tabela anterior
+                </span>
+              )}
+            </div>
+          )}
+
           {fonteCusto === "preco_final" && (
             <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-start gap-2">
               <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
