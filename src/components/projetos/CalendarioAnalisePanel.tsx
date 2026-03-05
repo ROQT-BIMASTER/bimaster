@@ -8,20 +8,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   X, Plus, Target, TrendingUp, AlertTriangle, CheckCircle2,
-  BarChart3, ClipboardList, Trash2, Edit2,
+  BarChart3, ClipboardList, Trash2, ChevronDown, Circle, Clock,
+  Users,
 } from "lucide-react";
 import { useProjetoCalendarioRegras, CalendarioRegra } from "@/hooks/useProjetoCalendarioRegras";
 import { useProjetoPlanosAcao, PlanoAcao } from "@/hooks/useProjetoPlanosAcao";
-import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
-import { format, differenceInWeeks, isAfter, isBefore, parseISO } from "date-fns";
+import { ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
+import { format, differenceInWeeks, differenceInDays, isAfter, isBefore, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Props {
   projetoId: string;
   tarefas: ProjetoTarefa[];
+  secoes: ProjetoSecao[];
   periodoInicio: Date;
   periodoFim: Date;
   periodoLabel: string;
@@ -33,6 +37,51 @@ const TIPO_LABELS: Record<string, string> = {
   percentual_conclusao: "% Conclusão",
   max_atrasadas: "Máx. Atrasadas",
   min_velocity: "Mín. Velocidade",
+  max_dias_andamento: "Máx. Dias em Andamento",
+  max_simultaneas_andamento: "Máx. Simultâneas em Andamento",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  pendente: "Não iniciado",
+  nao_iniciado: "Não iniciado",
+  em_andamento: "Em andamento",
+  concluida: "Concluída",
+  bloqueada: "Bloqueada",
+};
+
+const STATUS_BADGE_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive"> = {
+  pendente: "secondary",
+  nao_iniciado: "secondary",
+  em_andamento: "warning",
+  concluida: "success",
+  bloqueada: "destructive",
+};
+
+const ESTAGIO_LABELS: Record<string, string> = {
+  briefing: "Briefing",
+  em_criacao: "Em Criação",
+  revisao: "Revisão",
+  aprovado: "Aprovado",
+  producao: "Produção",
+  lancamento: "Lançamento",
+};
+
+const ESTAGIO_COLORS: Record<string, string> = {
+  briefing: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  em_criacao: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  revisao: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  aprovado: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  producao: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+  lancamento: "bg-pink-500/20 text-pink-300 border-pink-500/30",
+};
+
+const ESTAGIO_COLORS_LIGHT: Record<string, string> = {
+  briefing: "bg-purple-100 text-purple-700 border-purple-200",
+  em_criacao: "bg-blue-100 text-blue-700 border-blue-200",
+  revisao: "bg-amber-100 text-amber-700 border-amber-200",
+  aprovado: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  producao: "bg-pink-100 text-pink-700 border-pink-200",
+  lancamento: "bg-pink-100 text-pink-700 border-pink-200",
 };
 
 const STATUS_PLANO_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" }> = {
@@ -42,22 +91,25 @@ const STATUS_PLANO_CONFIG: Record<string, { label: string; variant: "default" | 
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
-export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, periodoFim, periodoLabel, darkBg = false, onClose }: Props) {
+export function CalendarioAnalisePanel({ projetoId, tarefas, secoes, periodoInicio, periodoFim, periodoLabel, darkBg = false, onClose }: Props) {
   const { regras, createRegra, updateRegra, deleteRegra } = useProjetoCalendarioRegras(projetoId);
   const { planos, createPlano, updatePlano, deletePlano } = useProjetoPlanosAcao(projetoId);
 
   const [showRegraDialog, setShowRegraDialog] = useState(false);
   const [showPlanoDialog, setShowPlanoDialog] = useState(false);
 
-  // ── KPIs ──
-  const kpis = useMemo(() => {
-    const now = new Date();
-    const periodTasks = tarefas.filter((t) => {
+  // Filter tasks by period
+  const periodTasks = useMemo(() => {
+    return tarefas.filter((t) => {
       if (!t.data_prazo) return false;
       const d = parseISO(t.data_prazo);
       return !isBefore(d, periodoInicio) && !isAfter(d, periodoFim);
     });
+  }, [tarefas, periodoInicio, periodoFim]);
 
+  // ── KPIs ──
+  const kpis = useMemo(() => {
+    const now = new Date();
     const total = periodTasks.length;
     const concluidas = periodTasks.filter((t) => t.status === "concluida").length;
     const atrasadas = periodTasks.filter((t) => {
@@ -65,18 +117,31 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
       if (!t.data_prazo) return false;
       return isBefore(parseISO(t.data_prazo), now);
     }).length;
-    const emRisco = periodTasks.filter((t) => {
-      if (t.status === "concluida" || !t.data_prazo) return false;
-      const d = parseISO(t.data_prazo);
-      const diffDays = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      return diffDays > 0 && diffDays <= 3;
-    }).length;
+    const emAndamento = periodTasks.filter((t) => t.status === "em_andamento").length;
     const taxa = total > 0 ? Math.round((concluidas / total) * 100) : 0;
     const weeks = Math.max(1, differenceInWeeks(periodoFim, periodoInicio) || 1);
     const velocidade = +(concluidas / weeks).toFixed(1);
 
-    return { total, concluidas, atrasadas, emRisco, taxa, velocidade };
-  }, [tarefas, periodoInicio, periodoFim]);
+    // For new rule types
+    const tarefasEmAndamento = periodTasks.filter((t) => t.status === "em_andamento");
+    const maxDiasAndamento = tarefasEmAndamento.reduce((max, t) => {
+      const startDate = t.updated_at ? parseISO(t.updated_at) : parseISO(t.created_at);
+      const dias = differenceInDays(now, startDate);
+      return Math.max(max, dias);
+    }, 0);
+
+    return { total, concluidas, atrasadas, emAndamento, taxa, velocidade, maxDiasAndamento, simultaneasAndamento: emAndamento };
+  }, [periodTasks, periodoInicio, periodoFim]);
+
+  // ── Tasks grouped by section ──
+  const tasksBySection = useMemo(() => {
+    const map: Record<string, ProjetoTarefa[]> = {};
+    periodTasks.forEach((t) => {
+      if (!map[t.secao_id]) map[t.secao_id] = [];
+      map[t.secao_id].push(t);
+    });
+    return map;
+  }, [periodTasks]);
 
   // ── Evaluate rules ──
   const evaluateRegra = (regra: CalendarioRegra): boolean => {
@@ -85,6 +150,8 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
       case "percentual_conclusao": actual = kpis.taxa; break;
       case "max_atrasadas": actual = kpis.atrasadas; break;
       case "min_velocity": actual = kpis.velocidade; break;
+      case "max_dias_andamento": actual = kpis.maxDiasAndamento; break;
+      case "max_simultaneas_andamento": actual = kpis.simultaneasAndamento; break;
       default: return true;
     }
     switch (regra.operador) {
@@ -97,76 +164,75 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
     }
   };
 
-  const bg = darkBg ? "bg-zinc-900/95 border-white/10" : "bg-background border-border";
+  const bg = darkBg ? "bg-zinc-900/95" : "bg-background";
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
-  const cardBg = darkBg ? "bg-white/5 border-white/10" : "";
   const sectionBg = darkBg ? "bg-white/[0.03]" : "bg-muted/30";
+  const borderColor = darkBg ? "border-white/10" : "border-border";
 
   return (
-    <div className={cn(
-      "fixed inset-y-0 right-0 w-[420px] z-50 shadow-2xl border-l overflow-y-auto animate-in slide-in-from-right-5",
-      bg
-    )}>
+    <div className={cn("w-full animate-in fade-in-0 duration-300", bg)}>
       {/* Header */}
-      <div className={cn("sticky top-0 z-10 flex items-center justify-between p-4 border-b backdrop-blur-sm", bg)}>
-        <div>
-          <h2 className={cn("font-semibold text-base", txt)}>📊 Painel de Análise</h2>
-          <p className={cn("text-xs mt-0.5", txtMuted)}>{periodoLabel}</p>
+      <div className={cn("flex items-center justify-between px-6 py-4 border-b", borderColor)}>
+        <div className="flex items-center gap-3">
+          <BarChart3 className={cn("h-5 w-5", darkBg ? "text-white/70" : "text-primary")} />
+          <div>
+            <h2 className={cn("font-semibold text-lg", txt)}>Painel de Análise</h2>
+            <p className={cn("text-xs", txtMuted)}>{periodoLabel}</p>
+          </div>
         </div>
         <Button variant="ghost" size="icon" className={cn("h-8 w-8", darkBg && "text-white hover:bg-white/10")} onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-6 space-y-8 max-h-[calc(100vh-200px)] overflow-y-auto">
         {/* ── KPIs ── */}
         <section>
-          <h3 className={cn("text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5", txtMuted)}>
-            <BarChart3 className="h-3.5 w-3.5" /> KPIs do Período
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KPICard label="Total" value={kpis.total} icon={<ClipboardList className="h-4 w-4" />} darkBg={darkBg} />
-            <KPICard label="Concluídas" value={kpis.concluidas} icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />} darkBg={darkBg} />
-            <KPICard label="Atrasadas" value={kpis.atrasadas} icon={<AlertTriangle className="h-4 w-4 text-red-500" />} darkBg={darkBg} accent={kpis.atrasadas > 0 ? "destructive" : undefined} />
-            <KPICard label="Em Risco" value={kpis.emRisco} icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} darkBg={darkBg} accent={kpis.emRisco > 0 ? "warning" : undefined} />
+            <KPICard label="Concluídas" value={`${kpis.concluidas} (${kpis.taxa}%)`} icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />} darkBg={darkBg} />
+            <KPICard label="Atrasadas" value={kpis.atrasadas} icon={<AlertTriangle className="h-4 w-4 text-red-500" />} darkBg={darkBg} accent={kpis.atrasadas > 0} />
+            <KPICard label="Velocidade" value={`${kpis.velocidade}/sem`} icon={<TrendingUp className="h-4 w-4 text-blue-500" />} darkBg={darkBg} />
           </div>
-          <div className={cn("mt-3 rounded-lg p-3", sectionBg)}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={cn("text-xs font-medium", txt)}>Taxa de Conclusão</span>
+          <div className={cn("mt-4 rounded-lg p-4", sectionBg)}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={cn("text-sm font-medium", txt)}>Progresso Geral</span>
               <span className={cn("text-sm font-bold", txt)}>{kpis.taxa}%</span>
             </div>
-            <Progress value={kpis.taxa} className="h-2" />
-            <div className={cn("flex items-center justify-between mt-2 text-xs", txtMuted)}>
-              <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Velocidade</span>
-              <span className="font-medium">{kpis.velocidade} tarefas/semana</span>
+            <Progress value={kpis.taxa} className="h-2.5" />
+            <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-xs", txtMuted)}>
+              <span>📊 Velocidade: {kpis.velocidade}/sem</span>
+              <span>🔄 Em andamento: {kpis.emAndamento}</span>
+              <span>⚠️ Atrasadas: {kpis.atrasadas}</span>
+              <span>⏱️ Máx dias em and.: {kpis.maxDiasAndamento}d</span>
             </div>
           </div>
         </section>
 
         {/* ── Regras de Metas ── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={cn("text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5", txtMuted)}>
-              <Target className="h-3.5 w-3.5" /> Regras de Metas
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={cn("text-sm font-semibold flex items-center gap-2", txt)}>
+              <Target className="h-4 w-4" /> Regras de Metas
             </h3>
-            <Button variant="ghost" size="sm" className={cn("h-7 text-xs gap-1", darkBg && "text-white hover:bg-white/10")} onClick={() => setShowRegraDialog(true)}>
-              <Plus className="h-3 w-3" /> Nova
+            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={() => setShowRegraDialog(true)}>
+              <Plus className="h-3 w-3" /> Nova Regra
             </Button>
           </div>
           {regras.length === 0 ? (
-            <p className={cn("text-xs text-center py-4", txtMuted)}>Nenhuma regra configurada</p>
+            <p className={cn("text-xs text-center py-6", txtMuted)}>Nenhuma regra configurada</p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {regras.map((r) => {
                 const passed = evaluateRegra(r);
                 return (
-                  <div key={r.id} className={cn("rounded-lg p-3 flex items-center gap-3", sectionBg)}>
+                  <div key={r.id} className={cn("rounded-lg p-3 flex items-center gap-3 border", sectionBg, borderColor)}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={cn("text-xs font-medium truncate", txt)}>{r.titulo}</span>
                         {r.ativo ? (
-                          <Badge variant={passed ? "success" : "destructive"} className="text-[10px] h-4">
+                          <Badge variant={passed ? "success" : "destructive"} className="text-[10px] h-4 shrink-0">
                             {passed ? "✅ Cumprida" : "❌ Violada"}
                           </Badge>
                         ) : (
@@ -192,27 +258,56 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
           )}
         </section>
 
+        {/* ── Tabelas por Seção ── */}
+        <section>
+          <h3 className={cn("text-sm font-semibold flex items-center gap-2 mb-4", txt)}>
+            <ClipboardList className="h-4 w-4" /> Tarefas por Seção
+          </h3>
+          {secoes.length === 0 ? (
+            <p className={cn("text-xs text-center py-6", txtMuted)}>Nenhuma seção encontrada</p>
+          ) : (
+            <div className="space-y-3">
+              {secoes.map((secao) => {
+                const secaoTasks = tasksBySection[secao.id] || [];
+                const concluidas = secaoTasks.filter((t) => t.status === "concluida").length;
+                const pct = secaoTasks.length > 0 ? Math.round((concluidas / secaoTasks.length) * 100) : 0;
+
+                return (
+                  <SectionTable
+                    key={secao.id}
+                    secao={secao}
+                    tarefas={secaoTasks}
+                    concluidas={concluidas}
+                    percentual={pct}
+                    darkBg={darkBg}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* ── Planos de Ação ── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={cn("text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5", txtMuted)}>
-              <ClipboardList className="h-3.5 w-3.5" /> Planos de Ação
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={cn("text-sm font-semibold flex items-center gap-2", txt)}>
+              <ClipboardList className="h-4 w-4" /> Planos de Ação
             </h3>
-            <Button variant="ghost" size="sm" className={cn("h-7 text-xs gap-1", darkBg && "text-white hover:bg-white/10")} onClick={() => setShowPlanoDialog(true)}>
-              <Plus className="h-3 w-3" /> Novo
+            <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", darkBg && "bg-white/10 border-white/20 text-white hover:bg-white/20")} onClick={() => setShowPlanoDialog(true)}>
+              <Plus className="h-3 w-3" /> Novo Plano
             </Button>
           </div>
           {planos.length === 0 ? (
-            <p className={cn("text-xs text-center py-4", txtMuted)}>Nenhum plano de ação registrado</p>
+            <p className={cn("text-xs text-center py-6", txtMuted)}>Nenhum plano de ação registrado</p>
           ) : (
             <div className="space-y-2">
               {planos.map((p) => {
                 const cfg = STATUS_PLANO_CONFIG[p.status] || STATUS_PLANO_CONFIG.pendente;
                 return (
-                  <div key={p.id} className={cn("rounded-lg p-3", sectionBg)}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={cn("text-xs font-medium", txt)}>{p.titulo}</span>
-                      <div className="flex items-center gap-1">
+                  <div key={p.id} className={cn("rounded-lg p-4 border flex items-start gap-4", sectionBg, borderColor)}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn("text-sm font-medium", txt)}>{p.titulo}</span>
                         <Select value={p.status} onValueChange={(v) => updatePlano.mutate({ id: p.id, status: v })}>
                           <SelectTrigger className={cn("h-5 w-auto border-0 text-[10px] px-1.5 gap-0.5", darkBg && "bg-transparent text-white")}>
                             <Badge variant={cfg.variant} className="text-[10px] h-4">{cfg.label}</Badge>
@@ -223,17 +318,17 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button variant="ghost" size="icon" className={cn("h-5 w-5", darkBg && "text-white/50 hover:bg-white/10")} onClick={() => deletePlano.mutate(p.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
+                      {p.descricao && <p className={cn("text-xs line-clamp-2", txtMuted)}>{p.descricao}</p>}
+                      {(p.data_inicio || p.data_fim) && (
+                        <p className={cn("text-[10px] mt-1", txtMuted)}>
+                          {p.data_inicio && format(parseISO(p.data_inicio), "dd/MM")} — {p.data_fim && format(parseISO(p.data_fim), "dd/MM")}
+                        </p>
+                      )}
                     </div>
-                    {p.descricao && <p className={cn("text-[10px] line-clamp-2", txtMuted)}>{p.descricao}</p>}
-                    {(p.data_inicio || p.data_fim) && (
-                      <p className={cn("text-[10px] mt-1", txtMuted)}>
-                        {p.data_inicio && format(parseISO(p.data_inicio), "dd/MM")} — {p.data_fim && format(parseISO(p.data_fim), "dd/MM")}
-                      </p>
-                    )}
+                    <Button variant="ghost" size="icon" className={cn("h-6 w-6 shrink-0", darkBg && "text-white/50 hover:bg-white/10")} onClick={() => deletePlano.mutate(p.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 );
               })}
@@ -242,7 +337,7 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
         </section>
       </div>
 
-      {/* ── Dialog Nova Regra ── */}
+      {/* Dialogs */}
       <NovaRegraDialog
         open={showRegraDialog}
         onOpenChange={setShowRegraDialog}
@@ -251,8 +346,6 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
           setShowRegraDialog(false);
         }}
       />
-
-      {/* ── Dialog Novo Plano ── */}
       <NovoPlanoDialog
         open={showPlanoDialog}
         onOpenChange={setShowPlanoDialog}
@@ -265,22 +358,123 @@ export function CalendarioAnalisePanel({ projetoId, tarefas, periodoInicio, peri
   );
 }
 
+// ─── Section Table (Collapsible) ───
+function SectionTable({ secao, tarefas, concluidas, percentual, darkBg }: {
+  secao: ProjetoSecao;
+  tarefas: ProjetoTarefa[];
+  concluidas: number;
+  percentual: number;
+  darkBg: boolean;
+}) {
+  const [open, setOpen] = useState(true);
+  const txt = darkBg ? "text-white" : "text-foreground";
+  const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
+  const borderColor = darkBg ? "border-white/10" : "border-border";
+  const headerBg = darkBg ? "bg-white/[0.05]" : "bg-muted/50";
+  const now = new Date();
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className={cn("rounded-lg border overflow-hidden", borderColor)}>
+        <CollapsibleTrigger asChild>
+          <button className={cn("w-full flex items-center gap-3 px-4 py-3 transition-colors", headerBg, darkBg ? "hover:bg-white/[0.08]" : "hover:bg-muted/70")}>
+            <ChevronDown className={cn("h-4 w-4 transition-transform shrink-0", !open && "-rotate-90", darkBg ? "text-white/50" : "text-muted-foreground")} />
+            <span className={cn("text-sm font-medium", txt)}>{secao.nome}</span>
+            <Badge variant="secondary" className="text-[10px] h-4">{tarefas.length} tarefas</Badge>
+            <div className="flex-1 mx-3">
+              <Progress value={percentual} className="h-1.5" />
+            </div>
+            <span className={cn("text-xs font-medium shrink-0", txt)}>{concluidas}/{tarefas.length} ({percentual}%)</span>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          {tarefas.length === 0 ? (
+            <p className={cn("text-xs text-center py-4", txtMuted)}>Sem tarefas neste período</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className={cn(borderColor)}>
+                  <TableHead className={cn("text-xs", txtMuted)}>Tarefa</TableHead>
+                  <TableHead className={cn("text-xs w-[120px]", txtMuted)}>Status</TableHead>
+                  <TableHead className={cn("text-xs w-[80px]", txtMuted)}>Prazo</TableHead>
+                  <TableHead className={cn("text-xs w-[100px]", txtMuted)}>Estágio</TableHead>
+                  <TableHead className={cn("text-xs w-[120px]", txtMuted)}>Responsável</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tarefas.map((t) => {
+                  const isOverdue = t.status !== "concluida" && t.data_prazo && isBefore(parseISO(t.data_prazo), now);
+                  const diasAndamento = t.status === "em_andamento" ? differenceInDays(now, parseISO(t.updated_at || t.created_at)) : null;
+                  const estagioLabel = ESTAGIO_LABELS[t.estagio || ""] || "—";
+                  const estagioColors = darkBg
+                    ? (ESTAGIO_COLORS[t.estagio || ""] || "bg-white/10 text-white/50")
+                    : (ESTAGIO_COLORS_LIGHT[t.estagio || ""] || "bg-muted text-muted-foreground");
+
+                  return (
+                    <TableRow key={t.id} className={cn(borderColor, darkBg ? "hover:bg-white/[0.03]" : "hover:bg-muted/30")}>
+                      <TableCell className={cn("text-xs font-medium py-2", txt)}>
+                        <div className="flex flex-col gap-0.5">
+                          <span className={cn(t.status === "concluida" && "line-through opacity-60")}>{t.titulo}</span>
+                          {diasAndamento !== null && diasAndamento > 7 && (
+                            <span className="text-[10px] text-amber-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> {diasAndamento}d em andamento
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <Badge variant={STATUS_BADGE_VARIANT[t.status] || "secondary"} className={cn("text-[10px] h-5", isOverdue && "border-red-500/50")}>
+                          {isOverdue && <AlertTriangle className="h-3 w-3 mr-0.5" />}
+                          {STATUS_LABELS[t.status] || t.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={cn("text-xs py-2", isOverdue ? "text-red-500 font-medium" : txtMuted)}>
+                        {t.data_prazo ? format(parseISO(t.data_prazo), "dd/MM") : "—"}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full border", estagioColors)}>
+                          {estagioLabel}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        {t.responsavel ? (
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={t.responsavel.avatar_url || undefined} />
+                              <AvatarFallback className="text-[8px]">{t.responsavel.nome?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className={cn("text-xs truncate max-w-[80px]", txtMuted)}>{t.responsavel.nome}</span>
+                          </div>
+                        ) : (
+                          <span className={cn("text-xs", txtMuted)}>—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 // ─── KPI Card ───
-function KPICard({ label, value, icon, darkBg, accent }: { label: string; value: number; icon: React.ReactNode; darkBg: boolean; accent?: string }) {
-  const bg = darkBg ? "bg-white/5 border-white/10" : "bg-card";
+function KPICard({ label, value, icon, darkBg, accent }: { label: string; value: number | string; icon: React.ReactNode; darkBg: boolean; accent?: boolean }) {
+  const bg = darkBg ? "bg-white/5 border-white/10" : "bg-card border-border";
   const txt = darkBg ? "text-white" : "text-foreground";
   const txtMuted = darkBg ? "text-white/60" : "text-muted-foreground";
 
   return (
-    <Card className={cn("border", bg)}>
-      <CardContent className="p-3 flex items-center gap-2.5">
-        {icon}
-        <div>
-          <p className={cn("text-lg font-bold leading-none", txt)}>{value}</p>
-          <p className={cn("text-[10px] mt-0.5", txtMuted)}>{label}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={cn("rounded-lg border p-4 flex items-center gap-3", bg, accent && "border-red-500/30")}>
+      {icon}
+      <div>
+        <p className={cn("text-lg font-bold leading-none", txt)}>{value}</p>
+        <p className={cn("text-[10px] mt-0.5", txtMuted)}>{label}</p>
+      </div>
+    </div>
   );
 }
 
@@ -317,6 +511,8 @@ function NovaRegraDialog({ open, onOpenChange, onSave }: {
                 <SelectItem value="percentual_conclusao">% Conclusão</SelectItem>
                 <SelectItem value="max_atrasadas">Máx. Atrasadas</SelectItem>
                 <SelectItem value="min_velocity">Mín. Velocidade</SelectItem>
+                <SelectItem value="max_dias_andamento">Máx. Dias em And.</SelectItem>
+                <SelectItem value="max_simultaneas_andamento">Máx. Simultâneas</SelectItem>
               </SelectContent>
             </Select>
             <Select value={operador} onValueChange={setOperador}>
@@ -387,11 +583,11 @@ function NovoPlanoDialog({ open, onOpenChange, onSave }: {
           <Textarea placeholder="Descrição (opcional)" value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-muted-foreground">Início</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Início</label>
               <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="text-xs" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Fim</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Fim</label>
               <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="text-xs" />
             </div>
           </div>

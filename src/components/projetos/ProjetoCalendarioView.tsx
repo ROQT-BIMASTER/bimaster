@@ -130,6 +130,43 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
 
   const maxVisible = viewMode === "month" ? 3 : 20;
 
+  // If analysis panel is open, render it full-width instead of the calendar
+  if (showAnalisePanel) {
+    return (
+      <div className="space-y-4">
+        <div className={cn("flex items-center justify-between flex-wrap gap-3")}>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("prev")}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className={cn("text-lg font-semibold capitalize min-w-[180px] text-center", txt)}>
+              {viewMode === "month"
+                ? format(currentDate, "MMMM yyyy", { locale: ptBR })
+                : `Semana de ${format(days[0], "dd MMM", { locale: ptBR })} – ${format(days[6], "dd MMM", { locale: ptBR })}`}
+            </h2>
+            <Button variant="ghost" size="icon" className={cn("h-8 w-8", btnGhost)} onClick={() => navigate("next")}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <div className={cn("flex rounded-md border overflow-hidden ml-2", border)}>
+              <button onClick={() => setViewMode("month")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Mês</button>
+              <button onClick={() => setViewMode("week")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Semana</button>
+            </div>
+          </div>
+        </div>
+        <CalendarioAnalisePanel
+          projetoId={projetoId}
+          tarefas={tarefas}
+          secoes={secoes}
+          periodoInicio={periodoInfo.inicio}
+          periodoFim={periodoInfo.fim}
+          periodoLabel={periodoInfo.label}
+          darkBg={darkBg}
+          onClose={() => setShowAnalisePanel(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -160,40 +197,19 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
           <div className={cn("flex rounded-md border overflow-hidden", border)}>
-            <button
-              onClick={() => setViewMode("month")}
-              className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}
-            >
-              Mês
-            </button>
-            <button
-              onClick={() => setViewMode("week")}
-              className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}
-            >
-              Semana
-            </button>
+            <button onClick={() => setViewMode("month")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Mês</button>
+            <button onClick={() => setViewMode("week")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Semana</button>
           </div>
-
-          {/* Section filter */}
           <Select value={filterSecao} onValueChange={setFilterSecao}>
-            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
-              <SelectValue placeholder="Seção" />
-            </SelectTrigger>
+            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Seção" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas seções</SelectItem>
-              {secoes.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-              ))}
+              {secoes.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
             </SelectContent>
           </Select>
-
-          {/* Status filter */}
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
+            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="pendente">Não iniciado</SelectItem>
@@ -207,51 +223,25 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
 
       {/* Calendar grid */}
       <div className={cn("border rounded-lg overflow-hidden", border)}>
-        {/* Weekday headers */}
         <div className="grid grid-cols-7">
           {WEEKDAYS.map((d) => (
-            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/50 text-muted-foreground")}>
-              {d}
-            </div>
+            <div key={d} className={cn("text-center text-xs font-semibold py-2 border-b", border, darkBg ? "bg-white/5 text-white/70" : "bg-muted/50 text-muted-foreground")}>{d}</div>
           ))}
         </div>
-
-        {/* Day cells */}
         <div className="grid grid-cols-7">
           {days.map((day, i) => {
             const key = getDateKey(day);
             const dayTasks = tasksByDate[key] || [];
             const isCurrentMonth = isSameMonth(day, currentDate);
             const today = isDateToday(day);
-
             return (
-              <div
-                key={i}
-                className={cn(
-                  "border-b border-r min-h-[100px] p-1.5 transition-colors",
-                  border,
-                  today ? cellBgToday : isCurrentMonth ? cellBg : cellBgOutside,
-                  viewMode === "week" && "min-h-[200px]",
-                )}
-              >
-                {/* Day number */}
+              <div key={i} className={cn("border-b border-r min-h-[100px] p-1.5 transition-colors", border, today ? cellBgToday : isCurrentMonth ? cellBg : cellBgOutside, viewMode === "week" && "min-h-[200px]")}>
                 <div className={cn("text-right mb-1")}>
-                  <span className={cn(
-                    "inline-flex items-center justify-center text-xs font-medium w-6 h-6 rounded-full",
-                    today ? "bg-primary text-primary-foreground" : isCurrentMonth ? txt : txtMuted
-                  )}>
-                    {format(day, "d")}
-                  </span>
+                  <span className={cn("inline-flex items-center justify-center text-xs font-medium w-6 h-6 rounded-full", today ? "bg-primary text-primary-foreground" : isCurrentMonth ? txt : txtMuted)}>{format(day, "d")}</span>
                 </div>
-
-                {/* Task pills */}
                 <div className="space-y-0.5">
-                  {dayTasks.slice(0, maxVisible).map((t) => (
-                    <TaskPill key={t.id} tarefa={t} darkBg={darkBg} onClick={() => setSelectedTarefaId(t.id)} />
-                  ))}
-                  {dayTasks.length > maxVisible && (
-                    <OverflowPopover tasks={dayTasks.slice(maxVisible)} count={dayTasks.length - maxVisible} darkBg={darkBg} onClickTask={setSelectedTarefaId} />
-                  )}
+                  {dayTasks.slice(0, maxVisible).map((t) => (<TaskPill key={t.id} tarefa={t} darkBg={darkBg} onClick={() => setSelectedTarefaId(t.id)} />))}
+                  {dayTasks.length > maxVisible && (<OverflowPopover tasks={dayTasks.slice(maxVisible)} count={dayTasks.length - maxVisible} darkBg={darkBg} onClickTask={setSelectedTarefaId} />)}
                 </div>
               </div>
             );
@@ -272,19 +262,6 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
       {/* Task detail panel */}
       {selectedTarefaId && (
         <TaskDetailPanel tarefaId={selectedTarefaId} tarefas={tarefas} darkBg={darkBg} onClose={() => setSelectedTarefaId(null)} />
-      )}
-
-      {/* Analysis panel */}
-      {showAnalisePanel && (
-        <CalendarioAnalisePanel
-          projetoId={projetoId}
-          tarefas={tarefas}
-          periodoInicio={periodoInfo.inicio}
-          periodoFim={periodoInfo.fim}
-          periodoLabel={periodoInfo.label}
-          darkBg={darkBg}
-          onClose={() => setShowAnalisePanel(false)}
-        />
       )}
     </div>
   );
