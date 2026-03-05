@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Building, Shield } from "lucide-react";
-import { profileSchema, ProfileFormData } from "@/lib/validations/profile";
+import { User, Mail, Phone, Building, Shield, Lock, Loader2 } from "lucide-react";
+import { profileSchema } from "@/lib/validations/profile";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
@@ -26,73 +27,105 @@ interface EditarPerfilProps {
 
 export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const getTipoUsuarioLabel = () => {
     switch (profile?.tipo_usuario) {
-      case 'admin':
-        return 'Administrador';
-      case 'supervisor':
-        return 'Supervisor';
-      case 'vendedor':
-        return 'Vendedor';
-      default:
-        return 'Usuário';
+      case 'admin': return 'Administrador';
+      case 'gerente': return 'Gerente';
+      case 'supervisor': return 'Supervisor';
+      case 'vendedor': return 'Vendedor';
+      case 'promotor': return 'Promotor';
+      case 'cliente': return 'Cliente';
+      default: return 'Usuário';
     }
   };
 
   const getTipoUsuarioVariant = () => {
     switch (profile?.tipo_usuario) {
-      case 'admin':
-        return 'default';
-      case 'supervisor':
-        return 'secondary';
-      default:
-        return 'outline';
+      case 'admin': return 'default';
+      case 'gerente': case 'supervisor': return 'secondary';
+      default: return 'outline';
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setErrors({});
     
     try {
-      const validatedData = profileSchema.parse(formData);
-      onUpdate({ ...profile, ...validatedData });
+      // Validate with email kept from original (not editable)
+      const dataToValidate = { ...formData, email: profile.email };
+      profileSchema.parse(dataToValidate);
+
+      setSaving(true);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nome: formData.nome.trim(),
+          telefone: formData.telefone?.trim() || null,
+          cargo: formData.cargo?.trim() || null,
+          departamento: formData.departamento?.trim() || null,
+        })
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      const updatedProfile = { ...profile, ...formData, email: profile.email };
+      onUpdate(updatedProfile);
       setIsEditing(false);
       toast({
         title: "Perfil atualizado",
-        description: "Suas informações foram validadas e atualizadas com sucesso",
+        description: "Suas informações foram salvas com sucesso",
       });
     } catch (error: any) {
-      const fieldErrors: Record<string, string> = {};
-      error.errors?.forEach((err: any) => {
-        fieldErrors[err.path[0]] = err.message;
-      });
-      setErrors(fieldErrors);
-      toast({
-        title: "Erro de validação",
-        description: "Verifique os campos destacados",
-        variant: "destructive",
-      });
+      if (error.errors) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          fieldErrors[err.path[0]] = err.message;
+        });
+        setErrors(fieldErrors);
+        toast({
+          title: "Erro de validação",
+          description: "Verifique os campos destacados",
+          variant: "destructive",
+        });
+      } else {
+        console.error("Erro ao salvar perfil:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar as alterações",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
     setFormData(profile);
+    setErrors({});
     setIsEditing(false);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Informações do Perfil</CardTitle>
-        <CardDescription>Atualize suas informações pessoais</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Meus Dados
+        </CardTitle>
+        <CardDescription>
+          Visualize e atualize suas informações pessoais. O e-mail não pode ser alterado por questões de segurança (LGPD).
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="tipo_usuario">
+          <Label>
             <Shield className="inline-block w-4 h-4 mr-2" />
             Tipo de Usuário
           </Label>
@@ -101,9 +134,27 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
               {getTipoUsuarioLabel()}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              (Não pode ser alterado por você)
+              (Definido pelo administrador)
             </span>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" className="flex items-center gap-1">
+            <Mail className="w-4 h-4" />
+            Email
+            <Lock className="w-3 h-3 text-muted-foreground ml-1" />
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            value={profile.email}
+            disabled
+            className="bg-muted"
+          />
+          <p className="text-xs text-muted-foreground">
+            O e-mail é utilizado como identificador único e não pode ser alterado (Art. 18 LGPD)
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -115,26 +166,10 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             id="nome"
             value={formData.nome}
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-            disabled={!isEditing}
+            disabled={!isEditing || saving}
             maxLength={100}
           />
           {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">
-            <Mail className="inline-block w-4 h-4 mr-2" />
-            Email
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            disabled={!isEditing}
-            maxLength={255}
-          />
-          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -146,7 +181,7 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             id="telefone"
             value={formData.telefone || ""}
             onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-            disabled={!isEditing}
+            disabled={!isEditing || saving}
             placeholder="(00) 00000-0000"
             maxLength={15}
           />
@@ -162,7 +197,7 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
             id="cargo"
             value={formData.cargo || ""}
             onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-            disabled={!isEditing}
+            disabled={!isEditing || saving}
             placeholder="Ex: Vendedor Sênior"
             maxLength={100}
           />
@@ -174,21 +209,26 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
           <Input
             id="departamento"
             value={formData.departamento || ""}
-            onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-            disabled={!isEditing}
-            placeholder="Ex: Vendas"
-            maxLength={100}
+            disabled
+            className="bg-muted"
           />
-          {errors.departamento && <p className="text-sm text-destructive">{errors.departamento}</p>}
+          <p className="text-xs text-muted-foreground">
+            Departamento é definido pelo administrador
+          </p>
         </div>
 
         <div className="flex gap-2 pt-4">
           {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)}>Editar Perfil</Button>
+            <Button onClick={() => setIsEditing(true)}>Editar Meus Dados</Button>
           ) : (
             <>
-              <Button onClick={handleSave}>Salvar Alterações</Button>
-              <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Salvar Alterações
+              </Button>
+              <Button variant="outline" onClick={handleCancel} disabled={saving}>
+                Cancelar
+              </Button>
             </>
           )}
         </div>
