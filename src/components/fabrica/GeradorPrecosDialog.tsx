@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,8 +16,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao } from "@/lib/fabrica/pricing-calculator";
-import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, Lock, LockOpen } from "lucide-react";
+import { calcularPrecosProdutos, formatarMoeda, buscarCustoFichaProduto, CustoComposicao, reverseMarkup, calcularMargemLucro, formatarMarkupLabel } from "@/lib/fabrica/pricing-calculator";
+import { Loader2, CheckCircle2, Factory, Ship, AlertTriangle, Check, FileText, Lock, LockOpen, DollarSign, ArrowRight } from "lucide-react";
 import { useUserPriceTableAccess } from "@/hooks/useUserPriceTableAccess";
 import { useVisibilityBlocks } from "@/hooks/useVisibilityBlocks";
 
@@ -40,10 +40,11 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
   const queryClient = useQueryClient();
   const { filterProductsByAccess, hasFullAccess } = useUserPriceTableAccess();
   const { isProductBlocked, isLineBlocked, getBlockForProduct, getBlockForLine, blockProduct, blockLine, unblock, isBlocking, isUnblocking } = useVisibilityBlocks();
-  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem" | "ficha_custo">("ordem_producao");
+  const [fonteCusto, setFonteCusto] = useState<"ordem_producao" | "custo_medio" | "manual" | "tabela_anterior" | "custo_origem" | "ficha_custo" | "preco_final">("ordem_producao");
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [produtosNaTabelaBase, setProdutosNaTabelaBase] = useState<string[]>([]);
   const [custosManual, setCustosManual] = useState<Record<string, string>>({});
+  const [precosManual, setPrecosManual] = useState<Record<string, string>>({});
   const [precosCalculados, setPrecosCalculados] = useState<any[]>([]);
   const [composicoesCache, setComposicoesCache] = useState<Record<string, { composicao: CustoComposicao | null; configId: string | null }>>({});
   const [calculando, setCalculando] = useState(false);
@@ -72,6 +73,7 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       setProdutosNaTabelaBase([]);
       setPrecosCalculados([]);
       setCustosManual({});
+      setPrecosManual({});
       setBuscaProduto("");
       setOrigemSelecionada(null);
     }
@@ -140,6 +142,39 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
     mutationFn: async () => {
       setCalculando(true);
       
+      // Modo preço final: calcular com tabela_anterior para obter custo base, depois aplicar preço desejado
+      if (fonteCusto === 'preco_final') {
+        // Buscar preços da tabela base para obter custos base
+        const precos = await calcularPrecosProdutos(
+          tabela.id,
+          produtosSelecionados,
+          {
+            fonteCusto: 'tabela_anterior',
+            origem: origemSelecionada || undefined,
+          }
+        );
+
+        // Sobrescrever com preços manuais desejados e calcular markup reverso
+        const precosAjustados = precos.map(preco => {
+          const precoDesejadoStr = precosManual[preco.produto_id];
+          const precoDesejado = precoDesejadoStr ? parseFloat(precoDesejadoStr.replace(',', '.')) : 0;
+          
+          if (precoDesejado > 0 && preco.custo_base > 0) {
+            const margem = calcularMargemLucro(preco.custo_base, precoDesejado);
+            return {
+              ...preco,
+              preco_calculado: precoDesejado,
+              preco_final: precoDesejado,
+              margem_lucro_percentual: margem,
+              _precoManual: true,
+            };
+          }
+          return preco;
+        });
+
+        return precosAjustados;
+      }
+
       // Se for ficha_custo, buscar os custos de todas as fichas primeiro
       let custosFichaProduto: Record<string, { custoTotal: number; composicao: CustoComposicao | null; configId: string | null }> = {};
       
@@ -216,6 +251,47 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
 
       if (error) throw error;
 
+      // Se fonteCusto === 'preco_final', criar overrides de markup para produtos com preço manual
+      if (fonteCusto === 'preco_final') {
+        const { data: user } = await supabase.auth.getUser();
+        const tipoMarkup = tabela.tipo_markup as 'percentual' | 'multiplicador' | 'valor_fixo';
+        
+        for (const preco of precosCalculados) {
+          if ((preco as any)._precoManual && preco.custo_base > 0) {
+            const markupValue = reverseMarkup(preco.custo_base, preco.preco_final, tipoMarkup);
+            
+            // Upsert override
+            const { error: ovError } = await supabase
+              .from("fabrica_markup_overrides")
+              .upsert(
+                {
+                  tabela_id: tabela.id,
+                  produto_id: preco.produto_id,
+                  tipo_markup: tipoMarkup,
+                  valor_markup: markupValue,
+                  ativo: true,
+                  created_by: user.user?.id || null,
+                },
+                { onConflict: "tabela_id,produto_id" }
+              );
+            
+            if (ovError) {
+              // Fallback: update
+              await supabase
+                .from("fabrica_markup_overrides")
+                .update({
+                  tipo_markup: tipoMarkup,
+                  valor_markup: markupValue,
+                  ativo: true,
+                  created_by: user.user?.id || null,
+                })
+                .eq("tabela_id", tabela.id)
+                .eq("produto_id", preco.produto_id);
+            }
+          }
+        }
+      }
+
       // (Versões são criadas automaticamente por trigger ao mudar status para pending_approval)
 
       // SEMPRE atualizar para pending_approval e ativar
@@ -285,6 +361,19 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
       const faltamCustos = produtosSelecionados.some(id => !custosManual[id] || parseFloat(custosManual[id]) <= 0);
       if (faltamCustos) {
         toast.error("Preencha o custo manual de todos os produtos selecionados");
+        return;
+      }
+    }
+
+    if (fonteCusto === "preco_final") {
+      const faltamPrecos = produtosSelecionados.some(id => {
+        const val = precosManual[id];
+        if (!val) return true;
+        const num = parseFloat(val.replace(',', '.'));
+        return isNaN(num) || num <= 0;
+      });
+      if (faltamPrecos) {
+        toast.error("Preencha o preço desejado de todos os produtos selecionados");
         return;
       }
     }
@@ -394,7 +483,27 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                     Ficha de Custos do Produto
                   </Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="preco_final" id="fonte_preco_final" />
+                  <Label htmlFor="fonte_preco_final" className="font-normal cursor-pointer flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    Digitar Preço Final (cálculo reverso)
+                  </Label>
+                </div>
               </RadioGroup>
+            </div>
+          )}
+
+          {fonteCusto === "preco_final" && (
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-start gap-2">
+              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium">Modo Preço Final</p>
+                <p className="text-muted-foreground">
+                  Digite o preço desejado para cada produto. O sistema calculará automaticamente o markup necessário 
+                  comparado à tabela anterior e salvará como override individual.
+                </p>
+              </div>
             </div>
           )}
 
@@ -485,6 +594,9 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                       {fonteCusto === "manual" && (
                         <th className="p-2 text-left w-32">Custo Base (R$)</th>
                       )}
+                      {fonteCusto === "preco_final" && (
+                        <th className="p-2 text-left w-40">Preço Desejado (R$)</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -565,6 +677,23 @@ export function GeradorPrecosDialog({ open, onOpenChange, tabela, onSuccess }: P
                               }
                               disabled={!produtosSelecionados.includes(produto.id)}
                             />
+                          </td>
+                        )}
+                        {fonteCusto === "preco_final" && (
+                          <td className="p-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">R$</span>
+                              <Input
+                                type="text"
+                                placeholder="0,00"
+                                value={precosManual[produto.id] || ""}
+                                onChange={(e) =>
+                                  setPrecosManual({ ...precosManual, [produto.id]: e.target.value })
+                                }
+                                disabled={!produtosSelecionados.includes(produto.id)}
+                                className="w-28"
+                              />
+                            </div>
                           </td>
                         )}
                       </tr>
