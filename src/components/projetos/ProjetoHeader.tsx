@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { Projeto } from "@/hooks/useProjetos";
+import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, List, LayoutGrid, Calendar, BarChart3, FileText, Filter, ArrowUpDown, ShieldCheck, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
+import { ProjetoHealthPanel } from "./ProjetoHealthPanel";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  tarefas?: ProjetoTarefa[];
 }
 
-export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeaderProps) {
+export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [] }: ProjetoHeaderProps) {
   const navigate = useNavigate();
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
@@ -39,6 +42,9 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange }: ProjetoHeader
           Resumo IA
         </Button>
       </div>
+
+      {/* Health Panel */}
+      {tarefas.length > 0 && <ProjetoHealthPanel tarefas={tarefas} />}
 
       {/* Tabs and toolbar */}
       <div className="flex items-center justify-between border-b border-border/50 pb-0">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
+import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
 import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
@@ -16,6 +17,7 @@ export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("lista");
+  const { tarefas } = useProjetoTarefas(id);
 
   const { data: projeto, isLoading } = useQuery({
     queryKey: ["projeto", id],
@@ -67,7 +69,7 @@ export default function ProjetoDetalhe() {
               </Button>
             </div>
 
-            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} />
+            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} />
 
             {/* Tab content */}
             {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} />}

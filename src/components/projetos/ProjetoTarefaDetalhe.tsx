@@ -4,6 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useProjetoTarefaMetas, TarefaMeta } from "@/hooks/useProjetoTarefaMetas";
+import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +28,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -409,6 +411,54 @@ export function ProjetoTarefaDetalhe({
                     </PopoverContent>
                   </Popover>
 
+                  {/* Data Início Planejada */}
+                  <span className="text-muted-foreground">Início planejado</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 justify-start text-xs gap-1.5">
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        {(tarefa as any).data_inicio_planejada
+                          ? format(new Date((tarefa as any).data_inicio_planejada), "dd MMM yyyy", { locale: ptBR })
+                          : "Definir início"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={(tarefa as any).data_inicio_planejada ? new Date((tarefa as any).data_inicio_planejada) : undefined}
+                        onSelect={d => {
+                          onUpdate(tarefa.id, { data_inicio_planejada: d ? d.toISOString().split("T")[0] : null } as any);
+                        }}
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Alertar antes */}
+                  <span className="text-muted-foreground">Alertar antes</span>
+                  <Select
+                    value={String((tarefa as any).dias_alerta_antes ?? 2)}
+                    onValueChange={v => onUpdate(tarefa.id, { dias_alerta_antes: parseInt(v) } as any)}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 5, 7].map(d => (
+                        <SelectItem key={d} value={String(d)}>{d} dia{d > 1 ? "s" : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Risk badge */}
+                  <span className="text-muted-foreground">Risco</span>
+                  <div>
+                    <TarefaRiskBadge
+                      status={tarefa.status}
+                      dataPrazo={tarefa.data_prazo}
+                      diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
+                    />
+                    {!tarefa.data_prazo && <span className="text-xs text-muted-foreground">Defina um prazo</span>}
+                  </div>
+
                   {/* Responsável */}
                   <span className="text-muted-foreground">Responsável</span>
                   <div className="flex items-center gap-2">
@@ -594,12 +644,16 @@ export function ProjetoTarefaDetalhe({
                       tarefaId={tarefa.id}
                       validacaoStatus={(tarefa as any).validacao_status}
                       onStatusChange={() => {
-                        // Refresh tarefa data
                         onUpdate(tarefa.id, {});
                       }}
                     />
                   </>
                 )}
+
+                <Separator />
+
+                {/* Marcos/Metas */}
+                <MetasSection tarefaId={tarefa.id} />
 
                 <Separator />
 
@@ -1057,6 +1111,76 @@ export function ProjetoTarefaDetalhe({
         />
       )}
     </>
+  );
+}
+
+/** Metas/Marcos Section */
+function MetasSection({ tarefaId }: { tarefaId: string }) {
+  const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefaId);
+  const [newMeta, setNewMeta] = useState("");
+
+  const handleAdd = () => {
+    if (!newMeta.trim()) return;
+    addMeta.mutate({ descricao: newMeta.trim() });
+    setNewMeta("");
+  };
+
+  const completed = metas.filter(m => m.concluida).length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium flex items-center gap-1.5">
+          <Target className="h-3.5 w-3.5" />
+          Marcos
+          {metas.length > 0 && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 ml-1">
+              {completed}/{metas.length}
+            </Badge>
+          )}
+        </h3>
+      </div>
+      {metas.length > 0 && (
+        <div className="space-y-1 mb-2">
+          {metas.map(meta => (
+            <div key={meta.id} className="flex items-center gap-2 group">
+              <button onClick={() => toggleMeta.mutate(meta)} className="flex-shrink-0">
+                {meta.concluida
+                  ? <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  : <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                }
+              </button>
+              <span className={cn("text-xs flex-1", meta.concluida && "line-through text-muted-foreground")}>
+                {meta.descricao}
+              </span>
+              {meta.data_meta && (
+                <span className="text-[10px] text-muted-foreground">
+                  {format(new Date(meta.data_meta), "dd/MM", { locale: ptBR })}
+                </span>
+              )}
+              <button
+                onClick={() => deleteMeta.mutate(meta.id)}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <Input
+          value={newMeta}
+          onChange={e => setNewMeta(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleAdd()}
+          placeholder="Adicionar marco..."
+          className="h-7 text-xs flex-1"
+        />
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleAdd} disabled={!newMeta.trim()}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

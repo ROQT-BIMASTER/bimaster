@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TarefaRiskBadge } from "./TarefaRiskBadge";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { DisplayGradePopover } from "@/components/fabrica/DisplayGradePopover";
 import { cn } from "@/lib/utils";
@@ -272,6 +273,12 @@ function KanbanCard({
             {STATUS_LABELS[tarefa.status] || tarefa.status}
           </Badge>
         )}
+        <TarefaRiskBadge
+          status={tarefa.status}
+          dataPrazo={tarefa.data_prazo}
+          diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
+          compact
+        />
       </div>
 
       {/* Footer: date + grade eye + subtasks + avatar */}
