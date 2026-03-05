@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Briefing } from "@/hooks/useProjetoBriefing";
-import { Trash2, ListTodo, FileSpreadsheet } from "lucide-react";
+import { Trash2, ListTodo, FileSpreadsheet, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,9 +29,11 @@ interface BriefingViewProps {
   onDelete: () => void;
   onCreateTasks: () => void;
   darkBg?: boolean;
+  defaultCollapsed?: boolean;
 }
 
-export function BriefingView({ briefing, onDelete, onCreateTasks, darkBg = false }: BriefingViewProps) {
+export function BriefingView({ briefing, onDelete, onCreateTasks, darkBg = false, defaultCollapsed = false }: BriefingViewProps) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const campos = briefing.campos || [];
 
   const grouped = campos.reduce<Record<string, typeof campos>>((acc, c) => {
@@ -43,6 +46,12 @@ export function BriefingView({ briefing, onDelete, onCreateTasks, darkBg = false
     <div className={cn("mx-3 mb-3 rounded-lg border p-3", darkBg ? "border-white/10 bg-white/5" : "border-border/40 bg-muted/20")}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
+          <button onClick={() => setCollapsed(c => !c)} className="flex-shrink-0 hover:text-primary transition-colors">
+            {collapsed
+              ? <ChevronRight className={cn("h-4 w-4", darkBg ? "text-white/50" : "text-muted-foreground")} />
+              : <ChevronDown className={cn("h-4 w-4", darkBg ? "text-white/50" : "text-muted-foreground")} />
+            }
+          </button>
           <FileSpreadsheet className={cn("h-4 w-4", darkBg ? "text-primary/80" : "text-primary")} />
           <span className={cn("text-xs font-medium", darkBg ? "text-white/80" : "text-foreground")}>
             {briefing.nome_arquivo}
@@ -72,7 +81,7 @@ export function BriefingView({ briefing, onDelete, onCreateTasks, darkBg = false
         </div>
       </div>
 
-      <div className="space-y-3">
+      {!collapsed && <div className="space-y-3">
         {Object.entries(grouped).map(([categoria, fields]) => (
           <div key={categoria}>
             <h4 className={cn("text-[10px] font-semibold uppercase tracking-wider mb-1.5", darkBg ? "text-white/50" : "text-muted-foreground")}>
@@ -110,7 +119,7 @@ export function BriefingView({ briefing, onDelete, onCreateTasks, darkBg = false
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
