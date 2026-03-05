@@ -1,48 +1,33 @@
 
 
-## Modo Foco com Gráfico de Evolução
+## Dados de Simulação para Testar o Modo Foco
 
-### O que será feito
+Adicionar dados mock/demo diretamente no `TarefaFocusMode.tsx` para que a tela possa ser visualizada e testada mesmo sem dados reais no banco. Os dados simulados serão usados como fallback quando não houver dados reais.
 
-Adicionar um **Modo Foco** na tela de detalhes da tarefa (Sheet) que expande para um Dialog full-screen (98vw × 95vh) com:
+### O que será adicionado
 
-1. **Layout de 2 colunas**: Detalhes da tarefa à esquerda (60%) + Chat ativo à direita (40%)
-2. **Gráfico de Evolução** na coluna esquerda, mostrando:
-   - Progresso de marcos/metas ao longo do tempo (datas de conclusão)
-   - Atividade da tarefa: comentários e mensagens por dia
-   - Linha do tempo visual de status/estágio
+**Anexos simulados (6 itens)**:
+- Briefing_HB-L6532.pdf (PDF, 2.4 MB)
+- Rotulo_frente_v3.png (imagem, 1.1 MB)
+- Ficha_Tecnica_final.pdf (PDF, 890 KB)
+- Arte_embalagem.ai (arquivo, 5.2 MB)
+- Laudo_estabilidade.pdf (PDF, 320 KB)
+- Foto_amostra_01.jpg (imagem, 3.8 MB)
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  ● Concluída  [HB-L6532]                            [⊟ Sair Foco] │
-├─────────────────────────────────────────┬────────────────────────────┤
-│  Campos (status, prioridade, estágio…)  │  💬 Chat                  │
-│                                         │  ┌────────────────────┐   │
-│  📊 Evolução da Tarefa                  │  │ João: Revisado ✓   │   │
-│  ┌─────────────────────────────────┐    │  │ Ana: aprovado      │   │
-│  │ ▓▓▓▓▓ marcos concluídos        │    │  │                    │   │
-│  │ ───── atividade (msgs+comments) │    │  │                    │   │
-│  └─────────────────────────────────┘    │  └────────────────────┘   │
-│                                         │  ┌────────────┐ [Send]   │
-│  Marcos · Descrição · Subtarefas        │  │ Digite...  │          │
-│  Anexos · Comentários                   │  └────────────┘          │
-└─────────────────────────────────────────┴────────────────────────────┘
-```
+**Documentos no Cofre simulados (3 itens)**:
+- Briefing_HB-L6532.pdf — categoria: briefing, status: aprovado
+- Ficha_Tecnica_final.pdf — categoria: ficha_tecnica, status: ativo
+- Laudo_estabilidade.pdf — categoria: laudo, status: ativo, visível fábrica
 
-### Mudanças Técnicas
+**Mensagens de chat simuladas (5 msgs)**: Conversa entre membros do time sobre aprovação de arte e revisão técnica.
+
+**Comentários simulados (3 itens)**: Comentários sobre progresso da tarefa com @mentions.
+
+**Marcos simulados (5 itens)**: 3 concluídos, 2 pendentes — para alimentar o gráfico de evolução.
+
+### Mudança Técnica
 
 | Ação | Arquivo | Descrição |
 |------|---------|-----------|
-| Editar | `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Adicionar estado `focusMode`, botão `Maximize2` na top bar, Dialog full-screen com layout 2 colunas. Incluir componente `TaskEvolutionChart` inline que renderiza um `AreaChart` (recharts) com dados de marcos concluídos ao longo do tempo + atividade (comentários/mensagens por dia). O conteúdo do Dialog reutiliza as mesmas seções (campos, marcos, subtarefas, descrição, anexos, comentários) com mais espaço. Chat sempre visível na coluna direita. |
-
-### Gráfico de Evolução — Dados
-
-O gráfico será construído a partir de dados já disponíveis no componente:
-- **Marcos**: `metas` do `useProjetoTarefaMetas` — cada meta tem `created_at` e `concluida`
-- **Atividade**: `comentarios` e `messages` do `useProjetoTarefaDetalhe` — agrupados por dia
-- **Subtarefas**: `tarefa.subtarefas` — contagem de concluídas ao longo do tempo
-
-O gráfico usa `ComposedChart` do recharts com:
-- `Area` para progresso acumulado de marcos/subtarefas concluídas
-- `Bar` para atividade diária (mensagens + comentários)
+| Editar | `src/components/projetos/TarefaFocusMode.tsx` | Adicionar constantes `MOCK_ANEXOS`, `MOCK_COFRE_DOCS`, `MOCK_MESSAGES`, `MOCK_COMENTARIOS` no topo. Usar `useMemo` para fazer merge: se os dados reais estiverem vazios, usar os mocks como fallback. Os mocks terão datas espalhadas nos últimos 30 dias para popular o gráfico de evolução. |
 
