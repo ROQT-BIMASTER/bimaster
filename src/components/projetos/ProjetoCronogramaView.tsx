@@ -244,7 +244,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
     );
   }
 
-  const LANE_LABEL_WIDTH = 200;
+  const LANE_LABEL_WIDTH = 260;
   const ROW_HEIGHT = 48;
 
   return (
@@ -293,9 +293,10 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
 
         {/* Gantt chart */}
         <div className="border rounded-xl overflow-hidden bg-card">
-          <div className="flex">
+          <div className="overflow-x-auto" ref={scrollRef}>
+            <div className="flex" style={{ minWidth: totalWidth + LANE_LABEL_WIDTH }}>
             {/* Lane labels (fixed) */}
-            <div className="flex-shrink-0 border-r bg-muted/30" style={{ width: LANE_LABEL_WIDTH }}>
+            <div className="flex-shrink-0 border-r bg-muted/30 sticky left-0 z-10 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.1)]" style={{ width: LANE_LABEL_WIDTH }}>
               {/* Header spacer */}
               <div className="h-10 border-b px-3 flex items-center">
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Produto</span>
@@ -313,13 +314,13 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
                       <Package className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
-                  <span className="text-xs font-medium truncate">{lane.produtoNome}</span>
+                  <span className="text-xs font-medium line-clamp-2">{lane.produtoNome}</span>
                 </div>
               ))}
             </div>
 
             {/* Scrollable timeline */}
-            <div className="flex-1 overflow-x-auto" ref={scrollRef}>
+            <div className="flex-1">
               <div style={{ minWidth: totalWidth }}>
                 {/* Column headers */}
                 <div className="h-10 border-b flex items-end">
@@ -417,6 +418,7 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa }: Props) {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 
