@@ -1,60 +1,49 @@
 
 
-## Painel de Produto + Checklist de Lançamento
+## Plan: Audit Trail with Users and Responsibilities in the Product Launch Panel
 
-Remover o `max-w-3xl` da coluna esquerda e reorganizar em **sub-layout de 2 colunas**: conteúdo principal à esquerda + painel lateral fixo à direita (antes do chat).
+### What will be built
+
+A new **"Trilha de Auditoria"** (Audit Trail) card in the `ProductLaunchPanel` showing the task's team members and their roles/responsibilities. This will display:
+
+1. **Responsável** (task owner) with avatar + name
+2. **Criador** (task creator) with avatar + name  
+3. **Colaboradores** (collaborators) with avatars + names
+4. **Subtarefas** summary showing each subtask's title, status, and assigned responsible person
+
+### Technical approach
+
+**File: `src/components/projetos/ProductLaunchPanel.tsx`**
+- Add new props: `tarefa` (with responsavel, criador, colaboradores, subtarefas data)
+- Add a new `Card` section at the bottom of the panel titled "Trilha de Auditoria"
+- Display team members with `Avatar` components and role badges (Responsável, Criador, Colaborador)
+- List subtarefas with their responsible person and status indicator (checkmark or circle)
+
+**File: `src/components/projetos/TarefaFocusMode.tsx`**
+- Pass the `tarefa` object (which already contains `responsavel`, `criador`, `colaboradores`, `subtarefas`) to `ProductLaunchPanel`
+
+### UI structure
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│  Header (status, estágio, código, título, sair do foco)                │
-├────────────────────────────┬──────────────────┬────────────────────────┤
-│  DETALHES DA TAREFA        │  PAINEL PRODUTO  │  💬 CHAT              │
-│                            │                  │                        │
-│  Campos (status, prazo..)  │  ┌────────────┐  │  mensagens...          │
-│                            │  │   📷 Foto  │  │                        │
-│  📊 Gráfico Evolução       │  │  HB-L6532  │  │                        │
-│                            │  │  Marca/Linha│  │                        │
-│  Marcos                    │  └────────────┘  │                        │
-│  Descrição                 │                  │                        │
-│  Subtarefas                │  ✅ CHECKLIST     │                        │
-│                            │  ☑ Briefing      │                        │
-│  📎 Documentos & Cofre     │  ☑ Arte Final    │                        │
-│                            │  ☑ Ficha Técnica │                        │
-│  💬 Comentários            │  ☐ Laudo         │                        │
-│                            │  ☐ Certificado   │                        │
-│                            │                  │                        │
-│                            │  ── Progresso ── │                        │
-│                            │  ████████░░ 60%  │                        │
-└────────────────────────────┴──────────────────┴────────────────────────┘
+┌─────────────────────────┐
+│ 👤 Trilha de Auditoria  │
+├─────────────────────────┤
+│ Responsável             │
+│  [Avatar] Nome          │
+│                         │
+│ Criador                 │
+│  [Avatar] Nome          │
+│                         │
+│ Colaboradores           │
+│  [Av] [Av] [Av]        │
+│                         │
+│ ── Subtarefas ───────── │
+│ ● Subtarefa 1  [Avatar] │
+│ ✓ Subtarefa 2  [Avatar] │
+└─────────────────────────┘
 ```
 
-### Mudanças
-
-| Ação | Arquivo | Descrição |
-|------|---------|-----------|
-| Editar | `TarefaFocusMode.tsx` | Remover `max-w-3xl`. Reorganizar a coluna esquerda em flex com 2 sub-colunas: (1) conteúdo scrollável existente, (2) painel fixo de ~280px com card do produto e checklist. |
-
-### Painel do Produto (sub-coluna direita, ~280px)
-
-**Card do Produto Vinculado:**
-- Foto do produto (ou placeholder com ícone Package)
-- Código, nome, marca, linha, tipo
-- Dados vêm de `linkedProduto` (já disponível via `useProjetoTarefaDetalhe`)
-- Se não houver produto vinculado, mostrar estado vazio com botão "Vincular produto"
-
-**Checklist de Pré-Lançamento:**
-Lista fixa de etapas necessárias para lançamento, auto-calculada com base nos dados existentes:
-- **Briefing** — check se existe doc no cofre com categoria "briefing"
-- **Arte Final** — check categoria "arte_final" no cofre
-- **Rótulo** — check categoria "rotulo"
-- **Ficha Técnica** — check categoria "ficha_tecnica"
-- **Laudo** — check categoria "laudo"
-- **Certificado** — check categoria "certificado"
-- **Aprovação cliente** — check se existe marco "aprovação" concluído
-
-Cada item fica verde (check) se o documento correspondente existe no cofre ou o marco está concluído. Usa os dados de `cofreDocs` e `displayMetas` já disponíveis.
-
-**Barra de Progresso Geral:**
-- Percentual = itens do checklist concluídos / total
-- Progress bar visual com cor dinâmica (vermelho < 30%, amarelo < 70%, verde >= 70%)
+### Changes summary
+- **Edit** `ProductLaunchPanel.tsx`: Add `tarefa` prop, new audit trail card with team + subtask listing
+- **Edit** `TarefaFocusMode.tsx`: Pass `tarefa` to the panel
 
