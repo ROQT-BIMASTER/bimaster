@@ -20,6 +20,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -659,7 +665,7 @@ export function MatrizPrecosComparativa() {
     toast.success("Arquivo exportado com sucesso!");
   };
 
-  const exportarPDF = () => {
+  const exportarPDF = (incluirMargem: boolean = true) => {
     if (!matrizDados.length || !tabelasOrdenadas.length) {
       toast.error("Não há dados para exportar");
       return;
@@ -828,7 +834,7 @@ export function MatrizPrecosComparativa() {
                     return `
                       <td class="price-cell">
                         <div class="price-value">${formatarMoeda(preco.preco)}</div>
-                        <div class="margin-value" style="${getMargemColorCSS(preco.margem)}">${preco.margem.toFixed(1)}%</div>
+                        ${incluirMargem ? `<div class="margin-value" style="${getMargemColorCSS(preco.margem)}">${preco.margem.toFixed(1)}%</div>` : ''}
                       </td>
                     `;
                   }
@@ -840,11 +846,11 @@ export function MatrizPrecosComparativa() {
         </table>
 
         <div class="footer">
-          <div class="legend">
+          ${incluirMargem ? `<div class="legend">
             <div class="legend-item"><span class="legend-dot legend-red"></span> Margem ≤ 0%</div>
             <div class="legend-item"><span class="legend-dot legend-yellow"></span> Margem &lt; 15%</div>
             <div class="legend-item"><span class="legend-dot legend-green"></span> Margem ≥ 15%</div>
-          </div>
+          </div>` : '<div></div>'}
           <span>Documento gerado automaticamente pelo sistema</span>
         </div>
       </body>
@@ -947,10 +953,24 @@ export function MatrizPrecosComparativa() {
               <CardTitle>Matriz Comparativa de Preços</CardTitle>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={exportarPDF}>
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimir PDF
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Imprimir PDF
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportarPDF(true)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Com Margem de Contribuição
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportarPDF(false)}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Somente Tabelas (sem margem)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" onClick={exportarExcel}>
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Excel
