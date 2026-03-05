@@ -1,55 +1,71 @@
 
 
-## Calendário Profissional para Projetos
+## Painel Administrativo do Calendário — Metas, Regras e Planos de Ação
 
 ### Conceito
 
-Criar uma nova aba **"Calendário"** no módulo de projetos — uma visão mensal/semanal estilo Google Calendar, complementar ao Cronograma (Gantt). O calendário mostra tarefas posicionadas nas células dos seus **prazos (data_prazo)**, com indicadores visuais de status, prioridade e responsável. Diferente do Gantt que foca em duração/barras, o calendário foca em **datas-chave e visão rápida do mês**.
+Ao clicar em um dia no calendário (ou selecionar um período como mês/trimestre), abre-se um **Painel Lateral de Análise** que funciona como centro de comando administrativo. Nele o gestor pode:
 
-### Layout
+1. **Ver análise do período** — KPIs automáticos (tarefas concluídas, atrasadas, taxa de conclusão, velocidade)
+2. **Configurar regras de metas** — Definir metas por período (ex: "80% das tarefas concluídas no mês", "máximo 3 tarefas atrasadas por semana")
+3. **Criar planos de ação** — Registrar ações corretivas vinculadas ao período/dia selecionado
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│  ◀  Março 2026  ▶    [Mês] [Semana]    🔍 Filtrar  │
-├──────┬──────┬──────┬──────┬──────┬──────┬──────────┤
-│ Seg  │ Ter  │ Qua  │ Qui  │ Sex  │ Sáb  │ Dom      │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────────┤
-│      │      │  1   │  2   │  3   │  4   │  5       │
-│      │      │ ●T1  │      │ ●T2  │      │          │
-│      │      │ ●T3  │      │      │      │          │
-├──────┼──────┼──────┼──────┼──────┼──────┼──────────┤
-│  6   │  7   │  ...                                  │
-│ ●T4  │      │                                       │
-│+2more│      │                                       │
-└──────┴──────┴───────────────────────────────────────┘
+┌─ Calendário ────────────────────┐ ┌─ Painel de Análise ──────────┐
+│                                 │ │ 📅 Março 2026                │
+│   ◀ Março 2026 ▶  [Mês][Sem]   │ │                              │
+│ ┌───┬───┬───┬───┬───┬───┬───┐  │ │ ── KPIs ──                   │
+│ │   │   │ 1 │ 2 │ 3 │   │   │  │ │ ✅ 12/20 concluídas (60%)   │
+│ │   │   │●T1│   │●T2│   │   │  │ │ ⚠️ 3 atrasadas              │
+│ ├───┼───┼───┼───┼───┼───┼───┤  │ │ 📊 Vel: 4.2 tarefas/semana  │
+│ │ 6 │ 7 │ 8 │...│   │   │   │  │ │                              │
+│ │●T4│   │   │   │   │   │   │  │ │ ── Regras de Metas ──        │
+│ └───┴───┴───┴───┴───┴───┴───┘  │ │ [+] Nova regra               │
+│                                 │ │ • ≥80% conclusão ✅ OK       │
+│                                 │ │ • ≤2 atrasadas ❌ Violada    │
+│                                 │ │                              │
+│                                 │ │ ── Planos de Ação ──         │
+│                                 │ │ [+] Novo plano               │
+│                                 │ │ • Realocar equipe Criação    │
+│                                 │ │   Status: Em andamento       │
+└─────────────────────────────────┘ └──────────────────────────────┘
 ```
 
-### Funcionalidades
+### Mudanças no Banco de Dados
 
-1. **Visão Mensal** — Grade 7 colunas × 5-6 semanas. Cada célula mostra até 3 tarefas + badge "+N mais"
-2. **Visão Semanal** — 7 colunas com mais espaço vertical, mostrando todas as tarefas do dia
-3. **Cartão de tarefa** — Pill colorida pelo estágio, com ícone de status (●), nome truncado, avatar do responsável
-4. **Navegação** — Botões ◀ ▶ para mês/semana anterior/próximo, botão "Hoje" para voltar ao presente
-5. **Marcador de Hoje** — Célula do dia atual com destaque (borda/fundo diferenciado)
-6. **Filtros** — Reutiliza filtros de seção e status já existentes no cronograma
-7. **Dark mode** — Respeita prop `darkBg` com contraste automático (branco sobre preto)
-8. **Click na tarefa** — Abre o painel de detalhe lateral (ProjetoTarefaDetalhe) existente
+**Tabela `projeto_calendario_regras`** — Regras de metas configuráveis por projeto:
+- `id`, `projeto_id`, `titulo`, `tipo` (percentual_conclusao, max_atrasadas, min_velocity), `operador` (>=, <=, =), `valor` (numeric), `periodo` (mensal, semanal, trimestral), `ativo`, `created_by`, timestamps
+
+**Tabela `projeto_planos_acao`** — Planos de ação vinculados a períodos:
+- `id`, `projeto_id`, `titulo`, `descricao`, `data_inicio`, `data_fim`, `status` (pendente, em_andamento, concluido, cancelado), `responsavel_id`, `created_by`, timestamps
+
+RLS: Ambas acessíveis apenas por membros autenticados do projeto.
 
 ### Mudanças Técnicas
 
-| Ação | Arquivo | Descrição |
-|------|---------|-----------|
-| Criar | `src/components/projetos/ProjetoCalendarioView.tsx` | Componente principal com grade mensal/semanal, navegação, filtros, e renderização de tarefas por data_prazo |
-| Editar | `src/pages/ProjetoDetalhe.tsx` | Adicionar aba "calendario" e renderizar `ProjetoCalendarioView` |
-| Editar | `src/components/projetos/ProjetoHeader.tsx` | Adicionar tab "Calendário" com ícone CalendarDays entre Cronograma e Painel |
+| Ação | Arquivo |
+|------|---------|
+| Migração | Criar tabelas `projeto_calendario_regras` e `projeto_planos_acao` com RLS |
+| Criar | `src/hooks/useProjetoCalendarioRegras.ts` — CRUD de regras de metas |
+| Criar | `src/hooks/useProjetoPlanosAcao.ts` — CRUD de planos de ação |
+| Criar | `src/components/projetos/CalendarioAnalisePanel.tsx` — Painel lateral com 3 seções: KPIs, Regras, Planos de Ação |
+| Editar | `src/components/projetos/ProjetoCalendarioView.tsx` — Adicionar seleção de período (dia/mês/trimestre), botão "Análise", e renderizar o painel lateral |
 
-### Detalhes do componente `ProjetoCalendarioView`
+### Detalhes do Painel
 
-- Usa `useProjetoTarefas(projetoId)` para dados (mesmo hook das outras views)
-- Agrupa tarefas por `data_prazo` usando `getDateKey()` do `dateUtils.ts`
-- Grade construída com `eachDayOfInterval` do date-fns para o mês/semana atual
-- Estado local: `currentDate` (mês navegado), `viewMode` ("month" | "week"), filtros de seção/status
-- Cada task pill usa cores de estágio existentes (`ESTAGIO_COLORS`) e ícones de status
-- Célula com mais de 3 tarefas mostra "+N" com popover listando todas
-- Suporte completo a `darkBg`: células `bg-white/5`, textos `text-white`, bordas `border-white/10`
+**Seção KPIs** (calculados automaticamente a partir das tarefas do período):
+- Total de tarefas, concluídas, atrasadas, em risco, taxa de conclusão (%), velocidade (tarefas/semana)
+- Barras de progresso visuais
+
+**Seção Regras de Metas**:
+- Lista de regras ativas com badge de status (✅ Cumprida / ❌ Violada) calculado em tempo real
+- Dialog para criar/editar regra com campos: título, tipo de métrica, operador, valor alvo, período
+- Toggle para ativar/desativar regra
+
+**Seção Planos de Ação**:
+- Lista de planos com status colorido
+- Dialog para criar plano com título, descrição, responsável, datas
+- Transição de status inline
+
+Suporte completo ao `darkBg` em todos os componentes.
 
