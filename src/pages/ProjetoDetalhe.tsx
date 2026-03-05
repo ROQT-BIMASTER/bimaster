@@ -8,6 +8,7 @@ import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
 import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
+import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioView";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
@@ -111,6 +112,7 @@ export default function ProjetoDetalhe() {
             {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} />}
+            {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "painel" && (
               <div className={`flex items-center justify-center py-20 ${darkBg ? "text-white" : customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Painel — Em breve</p>
