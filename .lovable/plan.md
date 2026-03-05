@@ -1,62 +1,48 @@
 
 
-## Painel de Análise Expandido — Full-Page com Tabelas por Seção e Regras em Tarefas
+## Modo Foco com Gráfico de Evolução
 
-### Conceito
+### O que será feito
 
-Transformar o painel lateral estreito (420px) em um **painel full-width** que ocupa a área principal do calendário (não mais um slide-over fixo). O painel terá:
+Adicionar um **Modo Foco** na tela de detalhes da tarefa (Sheet) que expande para um Dialog full-screen (98vw × 95vh) com:
 
-1. **KPIs expandidos** no topo (mesma lógica, layout horizontal maior)
-2. **Tabelas por seção** — Para cada seção do projeto, uma mini-tabela colapsável mostrando suas tarefas com status, prazo, responsável, estágio e progresso
-3. **Regras de metas** — Agora com tipos adicionais incluindo regras aplicáveis a **tarefas em andamento** (ex: "nenhuma tarefa em andamento há mais de 14 dias", "máximo 5 tarefas simultâneas em andamento")
-4. **Planos de ação** — Seção mantida, com mais espaço visual
-
-### Layout
+1. **Layout de 2 colunas**: Detalhes da tarefa à esquerda (60%) + Chat ativo à direita (40%)
+2. **Gráfico de Evolução** na coluna esquerda, mostrando:
+   - Progresso de marcos/metas ao longo do tempo (datas de conclusão)
+   - Atividade da tarefa: comentários e mensagens por dia
+   - Linha do tempo visual de status/estágio
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  📊 Painel de Análise — Março 2026              [✕ Fechar]     │
-├─────────────────────────────────────────────────────────────────┤
-│  [Total: 45] [Concluídas: 28 (62%)] [Atrasadas: 3] [Veloc: 7] │
-│  ████████████████████░░░░░░░░░ 62%                              │
-├─────────────────────────────────────────────────────────────────┤
-│  ── Regras de Metas ──                          [+ Nova Regra] │
-│  ✅ ≥80% conclusão mensal    ❌ ≤2 atrasadas                   │
-│  ✅ Máx 14 dias em andamento ✅ Máx 5 simultâneas              │
-├─────────────────────────────────────────────────────────────────┤
-│  ▼ Seção: Criação (12 tarefas)                                 │
-│  ┌──────────────┬──────────┬──────┬────────┬──────────┐        │
-│  │ Tarefa       │ Status   │Prazo │Estágio │Responsável│       │
-│  │ Logo final   │●Em and.  │05/03 │Revisão │ JM       │        │
-│  │ Banner site  │●Concluída│01/03 │Aprovado│ AS       │        │
-│  └──────────────┴──────────┴──────┴────────┴──────────┘        │
-│  ▼ Seção: Regulatório (8 tarefas)                              │
-│  ┌──────────────┬──────────┬──────┬────────┬──────────┐        │
-│  │ ...                                                │        │
-├─────────────────────────────────────────────────────────────────┤
-│  ── Planos de Ação ──                          [+ Novo Plano]  │
-│  • Realocar equipe — Em andamento — 01/03 a 15/03              │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  ● Concluída  [HB-L6532]                            [⊟ Sair Foco] │
+├─────────────────────────────────────────┬────────────────────────────┤
+│  Campos (status, prioridade, estágio…)  │  💬 Chat                  │
+│                                         │  ┌────────────────────┐   │
+│  📊 Evolução da Tarefa                  │  │ João: Revisado ✓   │   │
+│  ┌─────────────────────────────────┐    │  │ Ana: aprovado      │   │
+│  │ ▓▓▓▓▓ marcos concluídos        │    │  │                    │   │
+│  │ ───── atividade (msgs+comments) │    │  │                    │   │
+│  └─────────────────────────────────┘    │  └────────────────────┘   │
+│                                         │  ┌────────────┐ [Send]   │
+│  Marcos · Descrição · Subtarefas        │  │ Digite...  │          │
+│  Anexos · Comentários                   │  └────────────┘          │
+└─────────────────────────────────────────┴────────────────────────────┘
 ```
 
 ### Mudanças Técnicas
 
 | Ação | Arquivo | Descrição |
 |------|---------|-----------|
-| Reescrever | `src/components/projetos/CalendarioAnalisePanel.tsx` | Expandir de 420px slide-over para painel full-width inline. Adicionar seção de tabelas por seção com Collapsible. Adicionar novos tipos de regra para tarefas em andamento (`max_dias_andamento`, `max_simultaneas_andamento`). |
-| Editar | `src/components/projetos/ProjetoCalendarioView.tsx` | Em vez de renderizar o painel como overlay fixo, renderizar inline substituindo o grid do calendário quando `showAnalisePanel` é true. |
+| Editar | `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Adicionar estado `focusMode`, botão `Maximize2` na top bar, Dialog full-screen com layout 2 colunas. Incluir componente `TaskEvolutionChart` inline que renderiza um `AreaChart` (recharts) com dados de marcos concluídos ao longo do tempo + atividade (comentários/mensagens por dia). O conteúdo do Dialog reutiliza as mesmas seções (campos, marcos, subtarefas, descrição, anexos, comentários) com mais espaço. Chat sempre visível na coluna direita. |
 
-### Detalhes
+### Gráfico de Evolução — Dados
 
-**Novos tipos de regra**:
-- `max_dias_andamento` — Alerta se alguma tarefa está "em andamento" há mais de N dias
-- `max_simultaneas_andamento` — Limita quantidade de tarefas simultâneas em andamento
+O gráfico será construído a partir de dados já disponíveis no componente:
+- **Marcos**: `metas` do `useProjetoTarefaMetas` — cada meta tem `created_at` e `concluida`
+- **Atividade**: `comentarios` e `messages` do `useProjetoTarefaDetalhe` — agrupados por dia
+- **Subtarefas**: `tarefa.subtarefas` — contagem de concluídas ao longo do tempo
 
-**Tabelas por seção**:
-- Cada seção renderizada com `Collapsible` (aberta por padrão)
-- Cabeçalho mostra nome da seção + contagem + mini progress bar
-- Colunas: Tarefa (nome completo), Status (badge), Prazo, Estágio (pill colorida), Responsável (avatar + nome)
-- Filtrada pelo mesmo período selecionado no calendário
-
-**Dark mode**: Todas as tabelas, headers e badges respeitam `darkBg` com variantes `white/10`, `text-white`.
+O gráfico usa `ComposedChart` do recharts com:
+- `Area` para progresso acumulado de marcos/subtarefas concluídas
+- `Bar` para atividade diária (mensagens + comentários)
 
