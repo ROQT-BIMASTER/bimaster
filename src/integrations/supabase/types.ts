@@ -13963,6 +13963,7 @@ export type Database = {
       }
       projetos: {
         Row: {
+          bg_cor: string | null
           cor: string | null
           created_at: string | null
           criador_id: string
@@ -13975,6 +13976,7 @@ export type Database = {
           visibilidade: string | null
         }
         Insert: {
+          bg_cor?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id: string
@@ -13987,6 +13989,7 @@ export type Database = {
           visibilidade?: string | null
         }
         Update: {
+          bg_cor?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id?: string

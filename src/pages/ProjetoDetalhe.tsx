@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
@@ -8,14 +8,17 @@ import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
 import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
+import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function ProjetoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
   const { tarefas } = useProjetoTarefas(id);
 
@@ -28,6 +31,20 @@ export default function ProjetoDetalhe() {
     },
     enabled: !!id,
   });
+
+  const handleBgColorChange = async (cor: string | null) => {
+    if (!id) return;
+    const { error } = await supabase.from("projetos").update({ bg_cor: cor }).eq("id", id);
+    if (error) {
+      toast.error("Erro ao salvar cor de fundo");
+      return;
+    }
+    queryClient.setQueryData(["projeto", id], (old: Projeto | undefined) =>
+      old ? { ...old, bg_cor: cor } : old
+    );
+  };
+
+  const customBg = !!projeto?.bg_cor;
 
   if (isLoading) {
     return (
@@ -59,29 +76,38 @@ export default function ProjetoDetalhe() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
+        <main
+          className="flex-1 overflow-auto transition-colors duration-300"
+          style={customBg ? { backgroundColor: projeto.bg_cor! } : undefined}
+        >
           <div className="p-6 max-w-7xl mx-auto space-y-6">
-            {/* Back button + sidebar trigger */}
+            {/* Back button + sidebar trigger + color picker */}
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/projetos")} className="gap-1.5 text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/dashboard/projetos")}
+                className={`gap-1.5 ${customBg ? "text-black hover:bg-black/10" : "text-muted-foreground"}`}
+              >
                 <ArrowLeft className="h-4 w-4" /> Projetos
               </Button>
+              <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 
-            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} />
+            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} customBg={customBg} />
 
             {/* Tab content */}
             {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} />}
             {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} />}
             {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} />}
             {activeTab === "painel" && (
-              <div className="flex items-center justify-center py-20 text-muted-foreground">
+              <div className={`flex items-center justify-center py-20 ${customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Painel — Em breve</p>
               </div>
             )}
             {activeTab === "arquivos" && (
-              <div className="flex items-center justify-center py-20 text-muted-foreground">
+              <div className={`flex items-center justify-center py-20 ${customBg ? "text-black" : "text-muted-foreground"}`}>
                 <p>Arquivos — Em breve</p>
               </div>
             )}

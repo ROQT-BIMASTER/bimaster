@@ -15,6 +15,7 @@ export interface Projeto {
   visibilidade: string;
   created_at: string;
   updated_at: string;
+  bg_cor?: string | null;
 }
 
 export function useProjetos() {
