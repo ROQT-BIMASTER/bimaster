@@ -268,21 +268,25 @@ function Configuracoes() {
               {isAdmin && <TabsTrigger value="acessos">Acessos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
               {isAdmin && (
-                <TabsTrigger 
-                  value="outras-opcoes" 
-                  className="flex items-center gap-2"
-                  disabled={!outrasOpcoesUnlocked}
-                  onClick={(e) => {
-                    if (!outrasOpcoesUnlocked) {
-                      e.preventDefault();
-                      handleOutrasOpcoesClick();
-                    }
-                  }}
-                >
-                  <Lock className="h-4 w-4" />
-                  Outras opções
-                  {outrasOpcoesUnlocked && <CheckCircle className="h-3 w-3 text-green-500" />}
-                </TabsTrigger>
+                outrasOpcoesUnlocked ? (
+                  <TabsTrigger 
+                    value="outras-opcoes" 
+                    className="flex items-center gap-2"
+                  >
+                    <Lock className="h-4 w-4" />
+                    Outras opções
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  </TabsTrigger>
+                ) : (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={handleOutrasOpcoesClick}
+                  >
+                    <Lock className="h-4 w-4" />
+                    Outras opções
+                  </button>
+                )
               )}
             </TabsList>
 
