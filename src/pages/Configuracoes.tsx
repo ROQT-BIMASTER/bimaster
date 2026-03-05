@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3 } from "lucide-react";
 
 // Direct imports
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
@@ -36,6 +36,7 @@ import { DocumentacaoIntegracaoERP } from "@/components/configuracoes/Documentac
 import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCategoriasDRE";
 import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
 import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
+import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
 
 interface Profile {
   id: string;
@@ -415,6 +416,10 @@ function Configuracoes() {
                       <TabsTrigger value="sub-integracoes">Integrações</TabsTrigger>
                       <TabsTrigger value="sub-api-docs">Documentação API</TabsTrigger>
                       <TabsTrigger value="sub-api-health">Saúde das APIs</TabsTrigger>
+                      <TabsTrigger value="sub-monitoring" className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Monitoramento
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
@@ -442,6 +447,10 @@ function Configuracoes() {
                           Abrir Verificação de APIs
                         </Button>
                       </div>
+                    </TabsContent>
+
+                    <TabsContent value="sub-monitoring">
+                      <MonitoramentoAPIs />
                     </TabsContent>
                   </Tabs>
                 </TabsContent>
