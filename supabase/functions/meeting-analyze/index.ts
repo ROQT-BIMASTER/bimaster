@@ -212,9 +212,35 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
                     type: "string",
                     description: "Resumo executivo da reunião em 2-4 parágrafos, baseado fielmente no que foi discutido",
                   },
-                  mermaid_mindmap: {
-                    type: "string",
-                    description: "Mapa mental em sintaxe Mermaid mindmap. Exemplo: mindmap\\n  root((Tema))\\n    Subtema1\\n      Item\\n    Subtema2",
+                  mindmap_data: {
+                    type: "object",
+                    description: "Mapa mental estruturado em JSON com root e children. Cada child tem label, type (problema|oportunidade|decisao|tarefa|risco) e opcionalmente children.",
+                    properties: {
+                      root: { type: "string", description: "Tema central da reunião" },
+                      children: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            label: { type: "string" },
+                            type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco"] },
+                            children: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                properties: {
+                                  label: { type: "string" },
+                                  type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco"] },
+                                },
+                                required: ["label", "type"],
+                              },
+                            },
+                          },
+                          required: ["label", "type"],
+                        },
+                      },
+                    },
+                    required: ["root", "children"],
                   },
                   insights: {
                     type: "array",
@@ -260,7 +286,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
                     },
                   },
                 },
-                required: ["summary", "mermaid_mindmap", "insights", "tasks", "risks"],
+                required: ["summary", "mindmap_data", "insights", "tasks", "risks"],
                 additionalProperties: false,
               },
             },
@@ -330,7 +356,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
     await supabaseAdmin.from("meetings").update({
       transcription: transcription,
       summary: analysis.summary,
-      mermaid_mindmap: analysis.mermaid_mindmap,
+      mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
