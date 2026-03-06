@@ -24,6 +24,7 @@ import { MeetingTranscription } from "@/components/meetings/MeetingTranscription
 import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
 import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
+import { MeetingAnalysisProgress } from "@/components/meetings/MeetingAnalysisProgress";
 // audio-chunker no longer used — audio is fetched server-side
 import { resolveStorageUrl, parseBucketAndPath } from "@/lib/utils/storage-url";
 
@@ -305,41 +306,15 @@ export default function ReuniaoDetalhe() {
           </div>
         </div>
 
-        {/* Progress bar — shows during analysis OR when meeting is in-progress (realtime from DB) */}
+        {/* Progress — shows during analysis OR when meeting is in-progress (realtime from DB) */}
         {(analyzing || meeting.status === "transcribing" || meeting.status === "processing") && (
           <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="pt-5 pb-4 space-y-3">
-              <div className="flex items-center gap-3">
-                {liveProgress.progress < 100 ? (
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    {liveProgress.status === "transcribing" ? (
-                      <Mic className="h-4 w-4 text-primary animate-pulse" />
-                    ) : liveProgress.status === "processing" ? (
-                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                    ) : (
-                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">
-                      {liveProgress.status === "transcribing" ? "Transcrevendo" :
-                       liveProgress.status === "processing" ? "Analisando com IA" :
-                       liveProgress.progress >= 100 ? "Concluído!" : "Preparando..."}
-                    </p>
-                    <span className="text-xs font-mono text-muted-foreground">{liveProgress.progress}%</span>
-                  </div>
-                  <Progress value={liveProgress.progress} className="h-2" />
-                  {liveProgress.detail && (
-                    <p className="text-xs text-muted-foreground mt-1.5">{liveProgress.detail}</p>
-                  )}
-                </div>
-              </div>
+            <CardContent className="pt-5 pb-4">
+              <MeetingAnalysisProgress
+                progress={liveProgress.progress}
+                detail={liveProgress.detail}
+                status={liveProgress.status}
+              />
             </CardContent>
           </Card>
         )}
