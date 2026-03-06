@@ -190,6 +190,15 @@ export default function Reunioes() {
           </Card>
         </div>
 
+        {/* Executive Dashboard */}
+        {meetings && meetings.length > 0 && (
+          <MeetingExecutiveDashboard
+            meetings={meetings as any}
+            risks={allRisks || []}
+            tasks={allTasks || []}
+          />
+        )}
+
         {/* List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
