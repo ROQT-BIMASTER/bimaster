@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, Brain, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio
+  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,6 +217,38 @@ export default function ReuniaoDetalhe() {
               toast.success("Mídia salva! Agora clique em 'Analisar com IA'.");
             }}
           />
+        )}
+
+        {/* Download audio button */}
+        {meeting.audio_url && (
+          <Card>
+            <CardContent className="pt-4 pb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Radio className="h-4 w-4" />
+                <span>Gravação disponível ({meeting.duration_seconds ? `${Math.floor(meeting.duration_seconds / 60)}min ${meeting.duration_seconds % 60}s` : 'áudio'})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <audio controls src={meeting.audio_url} className="h-8 max-w-[300px]" preload="metadata" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = meeting.audio_url;
+                    link.download = `${meeting.title || 'gravacao'}.webm`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Gravação
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Manual transcription input */}
