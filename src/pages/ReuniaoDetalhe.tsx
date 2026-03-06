@@ -201,7 +201,7 @@ export default function ReuniaoDetalhe() {
               {meeting.duration_seconds && ` • ${Math.floor(meeting.duration_seconds / 60)}min`}
             </p>
           </div>
-          <Button onClick={handleAnalyze} disabled={analyzing || meeting.status === "processing"} className="gap-2">
+          <Button onClick={handleAnalyze} disabled={analyzing} className="gap-2">
             {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
             Analisar com IA
           </Button>
