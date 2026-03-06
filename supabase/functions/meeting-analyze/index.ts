@@ -249,7 +249,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
 
     let phase1Response: Response;
     try {
-      phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 120000);
+      phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 180000);
     } catch (abortErr) {
       console.error("[meeting-analyze] Phase 1 timeout:", abortErr);
       await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
