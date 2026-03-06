@@ -107,10 +107,8 @@ serve(async (req) => {
       });
     }
 
-    console.log("[meeting-analyze] Starting 2-phase analysis, transcription length:", transcription.length, "estimated minutes:", Math.max(5, Math.round(transcription.length / 120)));
-
-    // Support up to ~1h of audio transcription (200K chars)
-    const MAX_TRANSCRIPTION_CHARS = 200000;
+    // Support up to ~1h of audio transcription (350K chars for diarized text)
+    const MAX_TRANSCRIPTION_CHARS = 350000;
     let analysisTranscription = transcription;
     if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
       const halfLimit = Math.floor(MAX_TRANSCRIPTION_CHARS / 2);
