@@ -85,7 +85,7 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, transcription: providedTranscription } = await req.json();
+    const { meetingId, transcription: providedTranscription, duration_seconds: providedDuration } = await req.json();
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -128,9 +128,11 @@ serve(async (req) => {
 
     // Estimate meeting duration: prefer stored duration, fallback to transcription heuristic
     // Diarized transcriptions with timestamps average ~650 chars/min
-    const estimatedMinutes = meetingData.duration_seconds 
-      ? Math.max(5, Math.round(meetingData.duration_seconds / 60))
-      : Math.max(5, Math.round(analysisTranscription.length / 650));
+    const estimatedMinutes = providedDuration
+      ? Math.max(5, Math.round(providedDuration / 60))
+      : meetingData.duration_seconds 
+        ? Math.max(5, Math.round(meetingData.duration_seconds / 60))
+        : Math.max(5, Math.round(analysisTranscription.length / 650));
     const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
 
     console.log(`[meeting-analyze] Starting 2-phase analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
@@ -334,7 +336,10 @@ Departamentos disponíveis: ${deptNames}
 
 🔖 HIGHLIGHTS — META: ${targetHighlights}+ itens
 - Decisões, conflitos, ideias novas, problemas críticos, mudanças de direção, compromissos
-- Estime timestamp em segundos; distribua proporcionalmente se não houver timestamps
+- DURAÇÃO TOTAL DA REUNIÃO: ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos
+- Os timestamps DEVEM ser distribuídos UNIFORMEMENTE ao longo de toda a duração (de 0 até ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos)
+- NÃO concentre timestamps no início. Garanta que haja highlights no primeiro terço, terço do meio e terço final da reunião
+- Se a transcrição tem timestamps [MM:SS], use-os. Senão, distribua proporcionalmente
 
 ⚠️ INSTRUÇÃO ANTI-PREGUIÇA — LEIA COM ATENÇÃO:
 1. NÃO pare após gerar os primeiros 10 itens de cada tipo. Continue até ESGOTAR o conteúdo.
@@ -412,7 +417,7 @@ Departamentos disponíveis: ${deptNames}
                   type: "object",
                   properties: {
                     label: { type: "string", description: "Descrição do momento importante" },
-                    timestamp_seconds: { type: "number", description: "Posição estimada em segundos" },
+                    timestamp_seconds: { type: "number", description: `Posição em segundos (de 0 a ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)}). Distribua uniformemente ao longo de toda a duração.` },
                     type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
                     speaker: { type: "string", description: "Quem estava falando" },
                   },

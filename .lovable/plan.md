@@ -1,38 +1,56 @@
 
 
-## Plano: Ajustar Timeline de Gravação e Garantir Análise de até 1 Hora
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Diagnóstico
+### O que muda
 
-Os logs confirmam que a análise **funciona corretamente** (Phase 1 OK: ata 11.828 chars, 6 participantes; Phase 2 OK: 20 insights, 14 tasks, 8 risks, 18 highlights). O problema é visual e de robustez:
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-1. **Marcadores comprimidos**: Os highlights estão todos agrupados na metade esquerda da timeline porque os `timestamp_seconds` gerados pela IA não se distribuem bem ao longo da duração
-2. **Scribe timeout**: Para áudios de 1h (~50-100MB), o download + upload do áudio pode levar mais tempo. O timeout de 120s no Scribe é OK, mas o download precisa de margem
-3. **Timeline visual pobre**: Marcadores são barras finas difíceis de clicar; falta feedback visual do progresso de reprodução
+### Implementação
 
-### Alterações
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-#### 1. `supabase/functions/meeting-analyze/index.ts` — Melhorar distribuição dos highlights
-- No prompt da Phase 2, adicionar instrução explícita: "Distribua os highlights **uniformemente** ao longo da duração total da reunião (${durationSeconds} segundos). Use timestamps proporcionais do início ao fim."
-- Passar `duration_seconds` real ao prompt para que o modelo saiba o range correto de timestamps
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-#### 2. `supabase/functions/meeting-transcribe/index.ts` — Suportar 1h de áudio
-- Aumentar timeout do Scribe de 120s para **300s** (5 min) — 1h de áudio pode demorar mais
-- Aumentar progresso incremental durante download para dar feedback ao usuário
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-#### 3. `src/components/meetings/MeetingTimeline.tsx` — Melhorar visual dos marcadores
-- Aumentar largura dos marcadores de `w-2.5` para `w-3` com bordas arredondadas
-- Adicionar **tooltip persistente** ao passar o mouse (não apenas hover rápido)
-- Melhorar a legenda com contadores mais visíveis
-- Adicionar indicador de tempo atual mais visível (linha vertical com label)
-- Quando `durationSeconds` é 0 mas há highlights, estimar duração pelo último highlight
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-#### 4. `src/pages/ReuniaoDetalhe.tsx` — Passar `duration_seconds` para o analyze
-- Incluir `duration_seconds` no body do `meeting-analyze` invoke para o edge function ter o valor real
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-### Arquivos alterados
-- `supabase/functions/meeting-analyze/index.ts`
-- `supabase/functions/meeting-transcribe/index.ts`
-- `src/components/meetings/MeetingTimeline.tsx`
-- `src/pages/ReuniaoDetalhe.tsx`
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
