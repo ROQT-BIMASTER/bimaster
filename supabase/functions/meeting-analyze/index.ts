@@ -85,7 +85,7 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, transcription: providedTranscription } = await req.json();
+    const { meetingId, transcription: providedTranscription, duration_seconds: providedDuration } = await req.json();
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
