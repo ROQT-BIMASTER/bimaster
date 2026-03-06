@@ -159,6 +159,9 @@ serve(async (req) => {
 
     if (req.method === 'POST' && path[0] === 'query') {
       const params: QueryParams = await req.json();
+      if (!isTableAllowed(params.table, ALLOWED_CUSTOM_QUERY)) {
+        throw new Error(`Table '${params.table}' is not allowed for custom queries`);
+      }
       return handleCustomQuery(supabase, params);
     }
 
