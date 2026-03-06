@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,8 +17,8 @@ serve(async (req) => {
       });
     }
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    const elevenLabsKey = Deno.env.get("ELEVENLABS_API_KEY");
+    if (!elevenLabsKey) throw new Error("ELEVENLABS_API_KEY não configurada");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -34,7 +33,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { meetingId, audioUrl, audioBase64, mimeType, chunkIndex, totalChunks, startSeconds, endSeconds } = body;
+    const { meetingId, audioUrl, audioBase64, mimeType, chunkIndex, totalChunks } = body;
 
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
@@ -44,142 +43,118 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    let finalBase64: string;
-    let finalMimeType: string;
+    // ── Step 1: Get audio bytes ──────────────────────────────────────────
+    let audioBytes: Uint8Array;
+    let audioMime: string;
 
     if (audioUrl) {
-      // NEW PATH: Download audio from Storage via signed URL (server-side)
       console.log(`[meeting-transcribe] Fetching audio from URL, meetingId: ${meetingId}`);
-      
       await supabaseAdmin.from("meetings").update({
         status: "transcribing",
-        progress: 10,
+        progress: 5,
         progress_detail: "Baixando áudio do servidor...",
       }).eq("id", meetingId);
 
       const audioResponse = await fetch(audioUrl);
-      if (!audioResponse.ok) {
-        throw new Error(`Erro ao baixar áudio: ${audioResponse.status}`);
-      }
+      if (!audioResponse.ok) throw new Error(`Erro ao baixar áudio: ${audioResponse.status}`);
 
-      const audioBuffer = await audioResponse.arrayBuffer();
-      const audioBytes = new Uint8Array(audioBuffer);
-      finalBase64 = base64Encode(audioBytes);
-      finalMimeType = audioResponse.headers.get("content-type") || mimeType || "audio/webm";
-
-      const audioMB = (audioBytes.length / 1024 / 1024).toFixed(1);
-      const base64MB = (finalBase64.length / 1024 / 1024).toFixed(1);
-      console.log(`[meeting-transcribe] Downloaded ${audioMB}MB, base64: ${base64MB}MB, mime: ${finalMimeType}`);
-
-      await supabaseAdmin.from("meetings").update({
-        progress: 20,
-        progress_detail: "Transcrevendo áudio completo...",
-      }).eq("id", meetingId);
-
+      audioBytes = new Uint8Array(await audioResponse.arrayBuffer());
+      audioMime = audioResponse.headers.get("content-type") || mimeType || "audio/webm";
     } else if (audioBase64) {
-      // LEGACY PATH: Direct base64 from client (kept for backward compat)
-      finalBase64 = audioBase64;
-      finalMimeType = mimeType || "audio/webm";
-      
-      const idx = chunkIndex || 0;
-      const chunks = totalChunks || 1;
-      console.log(`[meeting-transcribe] Legacy path: chunk ${idx + 1}/${chunks}, base64 length: ${finalBase64.length}`);
-      
-      const progressPct = Math.round(5 + ((idx) / chunks) * 80);
-      await supabaseAdmin.from("meetings").update({
-        status: "transcribing",
-        progress: progressPct,
-        progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
-      }).eq("id", meetingId);
+      // Legacy path: base64 from client
+      const binaryString = atob(audioBase64);
+      audioBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        audioBytes[i] = binaryString.charCodeAt(i);
+      }
+      audioMime = mimeType || "audio/webm";
     } else {
       return new Response(JSON.stringify({ error: "audioUrl ou audioBase64 é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build temporal context for prompt
-    const chunkStart = startSeconds || 0;
-    const chunkEnd = endSeconds || 0;
-    const startMin = Math.floor(chunkStart / 60);
-    const startSec = Math.floor(chunkStart % 60);
-    const endMin = Math.floor(chunkEnd / 60);
-    const endSec = Math.floor(chunkEnd % 60);
-    const timeRange = chunkEnd > 0
-      ? `\n\nEste trecho corresponde ao período de ${String(startMin).padStart(2, "0")}:${String(startSec).padStart(2, "0")} até ${String(endMin).padStart(2, "0")}:${String(endSec).padStart(2, "0")} da gravação original. Use esses timestamps como referência.`
-      : "";
+    const audioMB = (audioBytes.length / 1024 / 1024).toFixed(1);
+    console.log(`[meeting-transcribe] Audio: ${audioMB}MB, mime: ${audioMime}`);
 
-    const systemPrompt = `Você é um transcritor profissional. Transcreva o áudio/vídeo COMPLETO em português do Brasil, do início ao fim, sem omitir nenhuma parte.
+    // ── Step 2: Transcribe with ElevenLabs Scribe v2 ─────────────────────
+    await supabaseAdmin.from("meetings").update({
+      status: "transcribing",
+      progress: 15,
+      progress_detail: "Transcrevendo com IA dedicada (Scribe v2)...",
+    }).eq("id", meetingId);
 
-REGRAS OBRIGATÓRIAS:
-1. Transcreva TODAS as falas, do primeiro ao último segundo do áudio
-2. Identifique falantes quando possível (use nomes mencionados ou "Falante 1", "Falante 2")
-3. Inclua timestamps aproximados a cada 2-3 minutos no formato [MM:SS]
-4. NÃO pare no meio — continue até o final absoluto do áudio
-5. Retorne APENAS a transcrição completa, sem resumos, comentários ou análises
-6. Se houver silêncio ou ruído, indique brevemente: [silêncio] ou [ruído de fundo]${timeRange}`;
+    // Determine file extension from mime
+    const extMap: Record<string, string> = {
+      "audio/webm": "webm",
+      "audio/ogg": "ogg",
+      "audio/mp4": "mp4",
+      "audio/mpeg": "mp3",
+      "audio/wav": "wav",
+      "video/webm": "webm",
+      "video/mp4": "mp4",
+    };
+    const ext = extMap[audioMime] || "webm";
+
+    const formData = new FormData();
+    formData.append("file", new Blob([audioBytes], { type: audioMime }), `audio.${ext}`);
+    formData.append("model_id", "scribe_v2");
+    formData.append("language_code", "por");
+    formData.append("diarize", "true");
+    formData.append("tag_audio_events", "true");
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout for full audio
+    const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
 
-    let transcribeResponse: Response;
+    let scribeResponse: Response;
     try {
-      transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      scribeResponse = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
         method: "POST",
         signal: controller.signal,
         headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
+          "xi-api-key": elevenLabsKey,
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Transcreva este áudio/vídeo completo, do início ao fim." },
-                { type: "image_url", image_url: { url: `data:${finalMimeType};base64,${finalBase64}` } },
-              ],
-            },
-          ],
-          temperature: 0.1,
-        }),
+        body: formData,
       });
     } catch (abortErr) {
       clearTimeout(timeout);
-      console.error("[meeting-transcribe] Request aborted/timeout:", abortErr);
+      console.error("[meeting-transcribe] Scribe timeout:", abortErr);
       return new Response(JSON.stringify({ error: "Timeout na transcrição. Tente novamente." }), {
         status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     clearTimeout(timeout);
 
-    if (!transcribeResponse.ok) {
-      const errText = await transcribeResponse.text();
-      console.error("[meeting-transcribe] AI error:", transcribeResponse.status, errText);
+    if (!scribeResponse.ok) {
+      const errText = await scribeResponse.text();
+      console.error("[meeting-transcribe] Scribe error:", scribeResponse.status, errText);
 
-      if (transcribeResponse.status === 429) {
+      if (scribeResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (transcribeResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`Erro na transcrição: ${transcribeResponse.status}`);
+      throw new Error(`Erro na transcrição Scribe: ${scribeResponse.status} - ${errText}`);
     }
 
-    const transcribeData = await transcribeResponse.json();
-    const transcription = transcribeData.choices?.[0]?.message?.content?.trim();
-    console.log("[meeting-transcribe] Transcription length:", transcription?.length || 0);
+    const scribeData = await scribeResponse.json();
+    console.log(`[meeting-transcribe] Scribe response: ${scribeData.text?.length || 0} chars, ${scribeData.words?.length || 0} words`);
+
+    await supabaseAdmin.from("meetings").update({
+      progress: 80,
+      progress_detail: "Formatando transcrição...",
+    }).eq("id", meetingId);
+
+    // ── Step 3: Format transcription with speakers and timestamps ────────
+    const transcription = formatTranscription(scribeData);
 
     if (!transcription || transcription.length < 5) {
       return new Response(JSON.stringify({ error: "Não foi possível transcrever o áudio." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[meeting-transcribe] Final transcription: ${transcription.length} chars`);
 
     return new Response(JSON.stringify({ transcription, chunkIndex: chunkIndex || 0, success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -191,3 +166,66 @@ REGRAS OBRIGATÓRIAS:
     });
   }
 });
+
+/**
+ * Formats Scribe v2 response into a readable transcription with speakers and timestamps.
+ */
+function formatTranscription(scribeData: any): string {
+  // If we have words with speaker info, group by speaker turns
+  if (scribeData.words && scribeData.words.length > 0 && scribeData.words[0].speaker !== undefined) {
+    return formatWithSpeakers(scribeData.words);
+  }
+
+  // Fallback: just return raw text with audio events
+  let text = scribeData.text || "";
+
+  if (scribeData.audio_events && scribeData.audio_events.length > 0) {
+    for (const event of scribeData.audio_events) {
+      const mm = String(Math.floor(event.start / 60)).padStart(2, "0");
+      const ss = String(Math.floor(event.start % 60)).padStart(2, "0");
+      text += `\n[${mm}:${ss}] [${event.type}]`;
+    }
+  }
+
+  return text;
+}
+
+function formatWithSpeakers(words: any[]): string {
+  if (!words || words.length === 0) return "";
+
+  const lines: string[] = [];
+  let currentSpeaker = words[0].speaker;
+  let currentStart = words[0].start;
+  let currentWords: string[] = [];
+
+  for (const word of words) {
+    if (word.speaker !== currentSpeaker) {
+      // Flush current segment
+      const mm = String(Math.floor(currentStart / 60)).padStart(2, "0");
+      const ss = String(Math.floor(currentStart % 60)).padStart(2, "0");
+      const speakerLabel = currentSpeaker !== undefined && currentSpeaker !== null
+        ? `Falante ${Number(currentSpeaker) + 1}`
+        : "Falante";
+      lines.push(`[${mm}:${ss}] ${speakerLabel}: ${currentWords.join(" ")}`);
+
+      currentSpeaker = word.speaker;
+      currentStart = word.start;
+      currentWords = [];
+    }
+    // Clean up word text (remove leading/trailing spaces)
+    const w = (word.text || "").trim();
+    if (w) currentWords.push(w);
+  }
+
+  // Flush last segment
+  if (currentWords.length > 0) {
+    const mm = String(Math.floor(currentStart / 60)).padStart(2, "0");
+    const ss = String(Math.floor(currentStart % 60)).padStart(2, "0");
+    const speakerLabel = currentSpeaker !== undefined && currentSpeaker !== null
+      ? `Falante ${Number(currentSpeaker) + 1}`
+      : "Falante";
+    lines.push(`[${mm}:${ss}] ${speakerLabel}: ${currentWords.join(" ")}`);
+  }
+
+  return lines.join("\n\n");
+}
