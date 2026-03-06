@@ -209,7 +209,7 @@ export default function ReuniaoDetalhe() {
       }
 
       // STEP 2: Analyze transcription (text only — lightweight)
-      toast.info("🧠 Etapa 2/2: Analisando com IA...");
+      setAnalyzeProgress({ step: "Analisando com IA", percent: 90, detail: "Extraindo insights, tarefas e riscos..." });
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
