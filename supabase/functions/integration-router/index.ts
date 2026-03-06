@@ -232,8 +232,17 @@ Deno.serve(async (req) => {
     const action = pathParts[1]; // inbound, outbound, health, configs
     const sourceCode = pathParts[2]; // integration config codigo
     
-    // Health check endpoint
+    // Health check endpoint - requires API key
     if (action === 'health' || (!action && req.method === 'GET')) {
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      const polloKey = Deno.env.get('POLLO_API_KEY');
+      if (!apiKey || (apiKey !== expectedKey && apiKey !== polloKey)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       return new Response(JSON.stringify({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -243,8 +252,17 @@ Deno.serve(async (req) => {
       });
     }
     
-    // List configs endpoint
+    // List configs endpoint - requires API key
     if (action === 'configs' && req.method === 'GET') {
+      const apiKey = req.headers.get('x-api-key');
+      const expectedKey = Deno.env.get('N8N_API_KEY');
+      const polloKey = Deno.env.get('POLLO_API_KEY');
+      if (!apiKey || (apiKey !== expectedKey && apiKey !== polloKey)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       const { data: configs, error } = await supabase
         .from('integration_configs')
         .select('id, codigo, nome, tipo, sistema_origem, entidade_destino, ativo, ultima_execucao, ultimo_status')

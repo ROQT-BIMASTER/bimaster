@@ -254,8 +254,15 @@ Deno.serve(async (req) => {
     return pathWithoutBase === route || pathWithoutBase === `${route}/` || path.includes(route);
   }
 
-  // ============ GET /sync-status ============
+  // ============ GET /sync-status - REQUIRES API KEY ============
   if (matchRoute('/sync-status') && req.method === 'GET') {
+    if (!validateApiKey()) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { data } = await supabase
       .from('sync_control')
       .select('*')

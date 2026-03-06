@@ -6,6 +6,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// =====================================================
+// ALLOWLIST DE TABELAS PERMITIDAS
+// =====================================================
+const ALLOWED_DIMENSIONS = new Set([
+  'municipios',
+  'prospects',
+  'stores',
+  'profiles',
+  'competitors',
+  'trade_chart_of_accounts',
+  'trade_campaigns',
+]);
+
+const ALLOWED_FACTS = new Set([
+  'atividades',
+  'visits',
+  'gondola_audits',
+  'shelf_share',
+  'trade_investments',
+  'trade_financial_entries',
+  'trade_bank_transactions',
+  'sales',
+  'kpis_tracking',
+]);
+
+const ALLOWED_AGGREGATIONS = new Set([
+  'mv_sales_performance',
+  'mv_conversion_funnel',
+  'mv_trade_performance',
+  'agg_daily_kpis',
+]);
+
+const ALLOWED_CUSTOM_QUERY = new Set([
+  ...ALLOWED_DIMENSIONS,
+  ...ALLOWED_FACTS,
+  ...ALLOWED_AGGREGATIONS,
+  'etl_changelog',
+]);
+
+function isTableAllowed(table: string, allowedSet: Set<string>): boolean {
+  return allowedSet.has(table);
+}
+
 interface QueryParams {
   table: string;
   filters?: Record<string, any>;
@@ -88,14 +131,24 @@ serve(async (req) => {
       }
       
       if (path[0] === 'dimensions' && path[1]) {
+        if (!isTableAllowed(path[1], ALLOWED_DIMENSIONS)) {
+          throw new Error(`Table '${path[1]}' is not allowed. Allowed dimensions: ${[...ALLOWED_DIMENSIONS].join(', ')}`);
+        }
         return handleGetDimension(supabase, path[1], url.searchParams);
       }
       
       if (path[0] === 'facts' && path[1]) {
+        if (!isTableAllowed(path[1], ALLOWED_FACTS)) {
+          throw new Error(`Table '${path[1]}' is not allowed. Allowed facts: ${[...ALLOWED_FACTS].join(', ')}`);
+        }
         return handleGetFacts(supabase, path[1], url.searchParams);
       }
       
       if (path[0] === 'aggregations') {
+        const view = url.searchParams.get('view') || 'agg_daily_kpis';
+        if (!isTableAllowed(view, ALLOWED_AGGREGATIONS)) {
+          throw new Error(`View '${view}' is not allowed. Allowed aggregations: ${[...ALLOWED_AGGREGATIONS].join(', ')}`);
+        }
         return handleGetAggregations(supabase, url.searchParams);
       }
 
@@ -106,6 +159,9 @@ serve(async (req) => {
 
     if (req.method === 'POST' && path[0] === 'query') {
       const params: QueryParams = await req.json();
+      if (!isTableAllowed(params.table, ALLOWED_CUSTOM_QUERY)) {
+        throw new Error(`Table '${params.table}' is not allowed for custom queries`);
+      }
       return handleCustomQuery(supabase, params);
     }
 
