@@ -32,7 +32,6 @@ serve(async (req) => {
       });
     }
 
-    // Accept chunk data directly from the client
     const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks } = await req.json();
 
     if (!meetingId) {
@@ -48,13 +47,12 @@ serve(async (req) => {
     }
 
     const resolvedMimeType = mimeType || "audio/webm";
-    const isFirstChunk = (chunkIndex || 0) === 0;
     const chunks = totalChunks || 1;
     const idx = chunkIndex || 0;
 
     console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}`);
 
-    // Update progress in DB for realtime tracking
+    // Update progress in DB
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const progressPct = Math.round(5 + ((idx) / chunks) * 80);
     await supabaseAdmin.from("meetings").update({
@@ -63,27 +61,9 @@ serve(async (req) => {
       progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
     }).eq("id", meetingId);
 
-    // Build system prompt with chunk context
-    let systemPrompt = `Você é um transcritor profissional de áudio/vídeo com capacidade de DIARIZAÇÃO (identificação de falantes).
+    // Simplified prompt — just transcribe, diarization moves to analysis step
+    const systemPrompt = `Transcreva o áudio/vídeo completo em português do Brasil, palavra por palavra. Identifique falantes quando possível (use nomes mencionados ou "Falante 1", "Falante 2"). Retorne APENAS a transcrição, sem resumos ou comentários.`;
 
-REGRAS DE TRANSCRIÇÃO:
-1. Transcreva tudo que foi falado, palavra por palavra, em português do Brasil
-2. IDENTIFIQUE CADA FALANTE DISTINTO — quando o nome é mencionado na conversa, use o nome real (ex: "João:", "Maria:")
-3. Se o nome não for mencionado, use "Falante 1:", "Falante 2:", etc.
-4. Indique mudanças de falante em cada fala
-5. Marque pausas significativas com [pausa]
-6. NÃO adicione interpretações, resumos ou comentários
-7. Retorne APENAS a transcrição
-
-FORMATO:
-João: Bom dia a todos, vamos começar a reunião...
-Maria: Obrigada João, eu queria falar sobre...`;
-
-    if (chunks > 1) {
-      systemPrompt += `\n\nIMPORTANTE: Este é o trecho ${idx + 1} de ${chunks} de uma gravação longa. Transcreva apenas o conteúdo audível deste trecho. Não repita conteúdo de trechos anteriores.`;
-    }
-
-    // Use AbortController to enforce a 50s timeout (edge functions timeout at 55s)
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 50000);
 
@@ -97,13 +77,13 @@ Maria: Obrigada João, eu queria falar sobre...`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-flash-lite",
           messages: [
             { role: "system", content: systemPrompt },
             {
               role: "user",
               content: [
-                { type: "text", text: `Transcreva completamente este trecho de áudio/vídeo (parte ${idx + 1} de ${chunks}). Retorne APENAS a transcrição.` },
+                { type: "text", text: "Transcreva este áudio/vídeo." },
                 { type: "image_url", image_url: { url: `data:${resolvedMimeType};base64,${audioBase64}` } },
               ],
             },
@@ -122,7 +102,7 @@ Maria: Obrigada João, eu queria falar sobre...`;
 
     if (!transcribeResponse.ok) {
       const errText = await transcribeResponse.text();
-      console.error("[meeting-transcribe] Gemini error:", transcribeResponse.status, errText);
+      console.error("[meeting-transcribe] AI error:", transcribeResponse.status, errText);
 
       if (transcribeResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
@@ -139,7 +119,7 @@ Maria: Obrigada João, eu queria falar sobre...`;
 
     const transcribeData = await transcribeResponse.json();
     const transcription = transcribeData.choices?.[0]?.message?.content?.trim();
-    console.log("[meeting-transcribe] Chunk transcription length:", transcription?.length || 0);
+    console.log("[meeting-transcribe] Transcription length:", transcription?.length || 0);
 
     if (!transcription || transcription.length < 5) {
       return new Response(JSON.stringify({ error: "Não foi possível transcrever este trecho de áudio." }), {
