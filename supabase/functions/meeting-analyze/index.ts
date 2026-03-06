@@ -6,11 +6,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000) {
+async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000, model = "google/gemini-2.5-pro", temperature?: number) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const body: any = {
+      model,
+      messages,
+      tools,
+      tool_choice: { type: "function", function: { name: toolName } },
+    };
+    if (temperature !== undefined) body.temperature = temperature;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       signal: controller.signal,
@@ -18,12 +26,7 @@ async function callAI(lovableApiKey: string, messages: any[], tools: any[], tool
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages,
-        tools,
-        tool_choice: { type: "function", function: { name: toolName } },
-      }),
+      body: JSON.stringify(body),
     });
     clearTimeout(timeout);
     return response;
