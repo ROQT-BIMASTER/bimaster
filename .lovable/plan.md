@@ -1,47 +1,82 @@
 
 
-## Diagnóstico Consolidado de Segurança — bimaster.online
+## Análise das Falhas de Segurança
 
-### Resultado Final
+Baseado no scan e na imagem, aqui está o diagnóstico de cada item:
 
-**5 scans realizados, 5 vulnerabilidades encontradas, 3 corrigidas, 2 aceitas como risco de infraestrutura.**
+---
 
-| # | Vulnerabilidade | Severidade | Status | Ação |
-|---|----------------|-----------|--------|------|
-| 1 | CSP ausente (CWE-693) | Média | ✅ Corrigido | Meta tag CSP completa adicionada ao `index.html` |
-| 2 | Anti-Clickjacking ausente (CWE-1021) | Média | ✅ Corrigido | `frame-ancestors 'self'` incluído na CSP |
-| 3 | SRI ausente em Google Fonts (CWE-345) | Média | ✅ Corrigido | Fontes hospedadas localmente, links externos removidos |
-| 4 | Porta TCP 8080 aberta | Média | ⚠️ Aceito | Porta do Cloudflare, sem controle no código |
-| 5 | Porta TCP 8443 aberta | Média | ⚠️ Aceito | Porta do Cloudflare, sem controle no código |
+### ERROS (4)
 
-### Scans Limpos (sem vulnerabilidades)
+| # | Finding | Status Real | Ação Necessária |
+|---|---------|------------|-----------------|
+| 1 | **Expense storage buckets públicos** | ✅ Já corrigido (ignored) | Nenhuma — buckets já são privados, migration posterior corrigiu |
+| 2 | **Billing API keys no banco** | ✅ Já mitigado (ignored) | Nenhuma — frontend usa view `_safe` com mascaramento; base restrita a admin |
+| 3 | **AI Extraction sem autenticação** | 🔴 **Aberto** | Adicionar validação JWT nas funções `extrair-materia-prima-ia` e `extrair-produto-ia`. Qualquer pessoa pode chamar e gastar créditos de IA |
+| 4 | **datawarehouse-api aceita qualquer tabela** | 🔴 **Aberto** | Adicionar allowlist de tabelas permitidas. Hoje aceita nomes arbitrários e usa `service_role`, bypassando todo RLS |
 
-- **SSLyze** (1000/1000) — TLS/SSL perfeito
-- **Nmap UDP** (1000/1000) — Nenhuma porta UDP exposta
-- **Nuclei** (1000/1000) — Nenhum CVE ou misconfiguration
+### WARNINGS (6)
 
-### Diagnóstico
+| # | Finding | Status Real | Ação Necessária |
+|---|---------|------------|-----------------|
+| 1 | **High severity vulnerabilities in dependencies** | ⚠️ Verificar | Atualizar pacotes npm com vulnerabilidades conhecidas |
+| 2 | **Ads credentials sem criptografia** | ⚠️ Aberto | Coluna `credentials_encrypted` provavelmente armazena texto plano. Mitigado por view `_safe` e RLS, mas não criptografado de fato |
+| 3 | **SECURITY DEFINER search_path = public** | ✅ Já corrigido | Todas as 100+ funções atualizadas para `search_path = ''` |
+| 4 | **Status/Config endpoints sem auth** | ⚠️ Aberto | Endpoints `/health`, `/configs`, `/status` expõem detalhes internos sem autenticação |
+| 5 | **Extension in Public** | ✅ Ignorado | `pg_net` é gerenciado pelo Cloud, não pode ser movido |
+| 6 | **RLS Policy Always True** | ⚠️ Aberto | Políticas permissivas `USING(true)` em operações INSERT/UPDATE/DELETE |
 
-A aplicação está em **excelente estado de segurança** para um projeto hospedado em plataforma gerenciada:
+### INFO (1)
 
-1. **Tudo que era controlável pelo código foi corrigido** — CSP, clickjacking e fontes externas
-2. **As 2 vulnerabilidades restantes são de infraestrutura** (portas 8080/8443 do Cloudflare) e não representam risco real, pois servem o mesmo conteúdo com as mesmas proteções TLS
-3. **SSL/TLS está perfeito** com HSTS habilitado
-4. **Nenhum CVE conhecido** foi detectado pelo Nuclei
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | **Comprehensive Security Review** | ✅ Score STRONG — 307 tabelas, 1900+ policies, 85+ edge functions |
 
-### Limitação importante
+---
 
-Os meta tags CSP no `index.html` funcionam como defesa em profundidade, mas a proteção ideal viria de headers HTTP reais no servidor. Como o Lovable Cloud/Cloudflare já injeta `Strict-Transport-Security`, `Referrer-Policy` e `X-Content-Type-Options` automaticamente, a cobertura é boa — mas `Content-Security-Policy` e `X-Frame-Options` como headers HTTP dependem da plataforma.
+### Priorização de Correções
 
-### Score estimado
+**Prioridade CRÍTICA (fazer agora):**
 
-| Área | Score |
-|------|-------|
-| SSL/TLS | 100% |
-| Vulnerabilidades conhecidas | 100% |
-| Headers de segurança | ~90% (CSP via meta tag, não header) |
-| Superfície de ataque (portas) | ~95% (8080/8443 são Cloudflare) |
-| **Geral** | **~96/100** |
+1. **datawarehouse-api — allowlist de tabelas**
+   - Arquivo: `supabase/functions/datawarehouse-api/index.ts`
+   - Criar `Set` de tabelas permitidas para dimensions, facts e custom queries
+   - Rejeitar qualquer tabela fora da lista com status 400
+   - Impacto: Impede acesso a `auth.users`, `user_roles`, `contas_pagar`, etc.
 
-Não há mais ações de código necessárias. O sistema está pronto para produção.
+2. **AI Extraction — adicionar autenticação**
+   - Arquivos: `supabase/functions/extrair-materia-prima-ia/index.ts` e `extrair-produto-ia/index.ts`
+   - Adicionar validação JWT via `getClaims()` no início do handler
+   - Impacto: Impede abuso externo dos créditos de IA
+
+**Prioridade ALTA:**
+
+3. **Status/Config endpoints — adicionar auth**
+   - Endpoints `integration-router /health+/configs`, `contas-pagar-api /status`, `contas-receber-api /sync-status`
+   - Adicionar `validateApiKey()` ou JWT check nesses handlers específicos
+   - Impacto: Elimina vazamento de informações internas
+
+4. **RLS Policy Always True**
+   - Identificar quais tabelas têm `USING(true)` em INSERT/UPDATE/DELETE
+   - Substituir por políticas baseadas em `auth.uid()` ou role
+
+**Prioridade MÉDIA:**
+
+5. **Dependências npm com vulnerabilidades**
+   - Rodar auditoria e atualizar pacotes afetados
+
+6. **Ads credentials — criptografia real**
+   - Implementar pgcrypto ou criptografia na edge function antes de gravar
+
+---
+
+### Resumo
+
+- **2 itens já corrigidos/ignorados** (buckets, billing keys) — sem ação
+- **1 item já corrigido** (search_path) — sem ação  
+- **1 item de infraestrutura** (pg_net extension) — sem ação
+- **4 itens precisam de correção** (datawarehouse-api, AI extraction, status endpoints, RLS always true)
+- **2 itens de melhoria** (dependências, criptografia ads)
+
+Posso implementar as correções na ordem de prioridade acima. Deseja prosseguir?
 
