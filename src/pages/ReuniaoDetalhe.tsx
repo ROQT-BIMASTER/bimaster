@@ -148,13 +148,13 @@ export default function ReuniaoDetalhe() {
       // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
         // Update DB progress so realtime picks it up
-        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "Baixando e dividindo áudio..." } as any).eq("id", id);
+        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "✓ Áudio enviado\n⟳ Baixando e dividindo áudio..." } as any).eq("id", id);
 
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
 
         const chunks = await chunkAudioFromUrl(signedUrl);
-        await supabase.from("meetings").update({ progress: 5, progress_detail: `0/${chunks.length} trechos` } as any).eq("id", id);
+        await supabase.from("meetings").update({ progress: 5, progress_detail: `✓ Áudio enviado\n⟳ Transcrevendo trecho 1 de ${chunks.length}...` } as any).eq("id", id);
 
         // Process chunks in parallel batches of 3 for speed
         const BATCH_SIZE = 1;
@@ -211,14 +211,26 @@ export default function ReuniaoDetalhe() {
             }
           }
 
-          // Small delay between batches to avoid rate limiting
+          // Save partial transcription to DB after each batch (incremental save)
+          const partialText = partialTranscriptions.filter(Boolean).join("\n\n---\n\n");
+          if (partialText.length > 0) {
+            await supabase.from("meetings").update({
+              transcription: partialText,
+              progress: Math.round(5 + (completedChunks / chunks.length) * 80),
+              progress_detail: completedChunks < chunks.length
+                ? `✓ Áudio enviado\n⟳ Transcrevendo trecho ${completedChunks + 1} de ${chunks.length}...`
+                : `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...`,
+            } as any).eq("id", id);
+          }
+
+          // Delay between batches — larger chunks need more breathing room
           if (batchStart + BATCH_SIZE < chunks.length) {
-            await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 5000));
           }
         }
 
 
-        await supabase.from("meetings").update({ progress: 85, progress_detail: `${chunks.length}/${chunks.length} trechos concluídos` } as any).eq("id", id);
+        await supabase.from("meetings").update({ progress: 85, progress_detail: `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...` } as any).eq("id", id);
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);

@@ -1,62 +1,56 @@
 
 
-## Problem
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-The transcription consistently fails at chunk 3 of 14. The logs show the pattern: chunks 1-2 succeed, chunk 3 starts processing, then the Edge Function shuts down. This happens **every single attempt**.
+### O que muda
 
-**Root cause: Raw byte-slicing of audio containers produces invalid fragments.**
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-WebM/MP4 files have a **container header** at the beginning of the file. When the audio-chunker does `blob.slice(start, end)`, only chunk 0 gets the valid header. Chunks 1+ are raw bytes without container metadata — Gemini can sometimes guess the format for chunk 1-2, but by chunk 3 it fails completely, causing the model to hang until the Edge Function times out and shuts down.
+### Implementação
 
-Additionally, each chunk is ~800KB raw = ~1.09MB base64. The Gemini Audio API has a practical limit around 15MB, but even small invalid audio fragments cause it to spin indefinitely.
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-## Solution
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-### 1. Increase chunk size to ~4MB (fewer, larger chunks with valid headers)
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-Since we can't properly split audio containers without re-encoding (which requires ffmpeg, not available in browser), the better approach is to **send the entire file as a single chunk if under 15MB**, or use **much larger chunks** (4MB) to reduce the total number of calls. For files over 15MB, we'll need a different strategy.
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-Actually, the fundamental fix is: **stop splitting raw audio bytes**. Instead:
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-### Strategy: Send entire audio as one request if under ~10MB base64
-
-For most meeting recordings (under ~7.5MB raw / ~10MB base64), send the whole file in a single Edge Function call. This avoids the invalid-fragment problem entirely.
-
-For larger files, increase chunk size to **4MB** (producing ~5.3MB base64), which keeps us well under Gemini's 15MB audio limit while dramatically reducing the number of chunks (from 14 to ~3).
-
-### Changes
-
-| File | Change |
-|---|---|
-| `src/lib/utils/audio-chunker.ts` | Increase `CHUNK_SIZE_BYTES` from 800KB to **4MB**. Increase single-chunk threshold to 5MB. |
-| `src/pages/ReuniaoDetalhe.tsx` | Keep batch size 1, increase inter-chunk delay to 5s (larger chunks need more processing time) |
-| `supabase/functions/meeting-transcribe/index.ts` | Reduce timeout from 50s to 45s for safety margin. Already using Flash which is correct. |
-| SQL migration | Reset stuck meetings |
-
-### 2. Save partial transcriptions to DB
-
-Add incremental saves — after each successful chunk, update the `transcription` column with what we have so far. If the process fails mid-way, the user doesn't lose completed work.
-
-| File | Change |
-|---|---|
-| `src/pages/ReuniaoDetalhe.tsx` | After each successful chunk, save partial transcription to DB |
-
-### 3. Better progress UX
-
-Show step-by-step status like professional tools:
+### Visual esperado
 
 ```text
-✓ Áudio enviado
-⟳ Transcrevendo trecho 2 de 4...
-○ Analisando reunião
-○ Gerando insights
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-| File | Change |
-|---|---|
-| `src/pages/ReuniaoDetalhe.tsx` | Update progress_detail messages to show step-by-step status |
-
-### Summary
-
-The core fix is using **4MB chunks instead of 800KB** — this means a ~11MB recording produces only 3 chunks instead of 14, each chunk is a larger valid audio segment, and the total number of Edge Function calls drops dramatically. Combined with partial saves, the process becomes resilient to failures.
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

@@ -4,7 +4,7 @@
  * then base64-encodes each chunk for sending to edge functions.
  */
 
-const CHUNK_SIZE_BYTES = 800 * 1024; // ~800KB per chunk — optimized for 2h recordings, fast Gemini processing
+const CHUNK_SIZE_BYTES = 4 * 1024 * 1024; // ~4MB per chunk — fewer chunks, avoids invalid container fragments
 
 export interface AudioChunk {
   base64: string;
@@ -43,7 +43,8 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
   console.log(`[audio-chunker] Total size: ${(totalBytes / 1024 / 1024).toFixed(1)}MB, type: ${mimeType}`);
 
   // If small enough, send as single chunk
-  if (totalBytes <= CHUNK_SIZE_BYTES * 1.2) {
+  // Send as single chunk if under ~5MB (produces ~6.6MB base64, well under Gemini's 15MB limit)
+  if (totalBytes <= 5 * 1024 * 1024) {
     const base64 = await blobToBase64(blob);
     return [{ base64, mimeType, chunkIndex: 0, totalChunks: 1 }];
   }
