@@ -357,7 +357,7 @@ Departamentos disponíveis: ${deptNames}
             properties: {
               insights: {
                 type: "array",
-                description: "10-20 insights extraídos da reunião (MÍNIMO 10)",
+                description: `${targetInsights}+ insights extraídos exaustivamente da reunião`,
                 items: {
                   type: "object",
                   properties: {
