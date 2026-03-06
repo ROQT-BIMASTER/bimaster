@@ -157,7 +157,7 @@ export default function ReuniaoDetalhe() {
         await supabase.from("meetings").update({ progress: 5, progress_detail: `0/${chunks.length} trechos` } as any).eq("id", id);
 
         // Process chunks in parallel batches of 3 for speed
-        const BATCH_SIZE = 2;
+        const BATCH_SIZE = 1;
         const MAX_RETRIES = 3;
         const partialTranscriptions: (string | null)[] = new Array(chunks.length).fill(null);
         let completedChunks = 0;
@@ -171,7 +171,7 @@ export default function ReuniaoDetalhe() {
               let lastError: any = null;
               for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
                 if (attempt > 0) {
-                  await new Promise(r => setTimeout(r, 3000 * attempt)); // 3s, 6s, 9s backoff
+                  await new Promise(r => setTimeout(r, 5000 * attempt)); // 5s, 10s, 15s backoff
                 }
                 try {
                   const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
@@ -213,7 +213,7 @@ export default function ReuniaoDetalhe() {
 
           // Small delay between batches to avoid rate limiting
           if (batchStart + BATCH_SIZE < chunks.length) {
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 3000));
           }
         }
 
