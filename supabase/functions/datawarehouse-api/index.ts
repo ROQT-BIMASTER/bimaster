@@ -131,14 +131,24 @@ serve(async (req) => {
       }
       
       if (path[0] === 'dimensions' && path[1]) {
+        if (!isTableAllowed(path[1], ALLOWED_DIMENSIONS)) {
+          throw new Error(`Table '${path[1]}' is not allowed. Allowed dimensions: ${[...ALLOWED_DIMENSIONS].join(', ')}`);
+        }
         return handleGetDimension(supabase, path[1], url.searchParams);
       }
       
       if (path[0] === 'facts' && path[1]) {
+        if (!isTableAllowed(path[1], ALLOWED_FACTS)) {
+          throw new Error(`Table '${path[1]}' is not allowed. Allowed facts: ${[...ALLOWED_FACTS].join(', ')}`);
+        }
         return handleGetFacts(supabase, path[1], url.searchParams);
       }
       
       if (path[0] === 'aggregations') {
+        const view = url.searchParams.get('view') || 'agg_daily_kpis';
+        if (!isTableAllowed(view, ALLOWED_AGGREGATIONS)) {
+          throw new Error(`View '${view}' is not allowed. Allowed aggregations: ${[...ALLOWED_AGGREGATIONS].join(', ')}`);
+        }
         return handleGetAggregations(supabase, url.searchParams);
       }
 
