@@ -25,7 +25,7 @@ import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTi
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
 import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
 // audio-chunker no longer used — audio is fetched server-side
-import { resolveStorageUrl } from "@/lib/utils/storage-url";
+import { resolveStorageUrl, parseBucketAndPath } from "@/lib/utils/storage-url";
 
 const riskColors: Record<string, string> = {
   low: "bg-green-100 text-green-700 border-green-200",
