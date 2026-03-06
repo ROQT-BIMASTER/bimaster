@@ -300,6 +300,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "departamentos", label: t("module.departamentos"), icon: Building2 },
       { code: "precos", label: t("module.precos"), icon: DollarSign },
       { code: "projetos", label: "Projetos", icon: FolderKanban },
+      { code: "reunioes", label: "Reuniões", icon: Mic },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
