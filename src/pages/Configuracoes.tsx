@@ -27,6 +27,7 @@ import { GerenciamentoPremiacoes } from "@/components/configuracoes/Gerenciament
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
+import { MFASettings } from "@/components/configuracoes/MFASettings";
 import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
 import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
 import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
