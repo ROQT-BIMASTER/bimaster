@@ -522,6 +522,62 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
               )}
             </GlassCard>
           </div>
+          {/* Row 4: Risks by Department */}
+          <GlassCard className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="h-4 w-4" style={{ color: "hsl(0, 84%, 60%)" }} />
+              <h3 className="text-sm font-semibold text-foreground">Departamentos com Maior Incidência de Riscos</h3>
+              <Badge variant="outline" className="ml-auto text-[10px]">por severidade</Badge>
+            </div>
+            {risksByDepartment.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={risksByDepartment} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="gradCritical" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(0, 72%, 45%)" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="hsl(0, 72%, 55%)" stopOpacity={0.8} />
+                      </linearGradient>
+                      <linearGradient id="gradHigh" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="hsl(0, 84%, 70%)" stopOpacity={0.8} />
+                      </linearGradient>
+                      <linearGradient id="gradMedium" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="hsl(38, 92%, 60%)" stopOpacity={0.8} />
+                      </linearGradient>
+                      <linearGradient id="gradLow" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(152, 76%, 36%)" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="hsl(152, 76%, 46%)" stopOpacity={0.8} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(220, 13%, 91%)" strokeOpacity={0.5} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(220, 9%, 46%)" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="department"
+                      tick={{ fontSize: 11, fill: "hsl(220, 9%, 46%)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={120}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="critical" name="Crítico" stackId="risk" fill="url(#gradCritical)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="high" name="Alto" stackId="risk" fill="url(#gradHigh)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="medium" name="Médio" stackId="risk" fill="url(#gradMedium)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="low" name="Baixo" stackId="risk" fill="url(#gradLow)" radius={[0, 8, 8, 0]} barSize={22} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mb-2 opacity-20" />
+                <span className="text-xs">Nenhum risco departamental registrado</span>
+                <span className="text-[10px] mt-1">Riscos serão agrupados por departamento após a análise de reuniões</span>
+              </div>
+            )}
+          </GlassCard>
         </CardContent>
       )}
     </Card>
