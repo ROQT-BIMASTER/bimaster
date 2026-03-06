@@ -124,6 +124,18 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
+
+  // Resolve storage path to a signed URL for media playback
+  useEffect(() => {
+    if (!meeting?.audio_url) { setResolvedAudioUrl(null); return; }
+    let cancelled = false;
+    resolveStorageUrl(meeting.audio_url).then(({ signedUrl }) => {
+      if (!cancelled) setResolvedAudioUrl(signedUrl || null);
+    });
+    return () => { cancelled = true; };
+  }, [meeting?.audio_url]);
+
   // When user returns to a page with an in-progress analysis, sync local state from DB
   useEffect(() => {
     if (meeting) {
