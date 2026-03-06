@@ -387,6 +387,7 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
       summary: analysis.summary,
       ata: analysis.ata || null,
       participants: analysis.participants || null,
+      highlights: analysis.highlights || null,
       mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
       updated_at: new Date().toISOString(),
