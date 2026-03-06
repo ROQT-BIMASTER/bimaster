@@ -23,6 +23,7 @@ import { MeetingAta } from "@/components/meetings/MeetingAta";
 import { MeetingTranscription } from "@/components/meetings/MeetingTranscription";
 import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
+import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
 import { chunkAudioFromUrl } from "@/lib/utils/audio-chunker";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 
