@@ -622,7 +622,7 @@ export default function ReuniaoDetalhe() {
             </TabsContent>
 
             <TabsContent value="transcricao">
-              <MeetingTranscription transcription={meeting.transcription} audioUrl={meeting.audio_url} />
+              <MeetingTranscription transcription={meeting.transcription} audioUrl={resolvedAudioUrl} />
             </TabsContent>
           </Tabs>
         )}
