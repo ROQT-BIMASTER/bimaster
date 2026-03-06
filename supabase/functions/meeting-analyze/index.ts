@@ -41,7 +41,7 @@ serve(async (req) => {
       });
     }
 
-    await supabaseAdmin.from("meetings").update({ status: "processing" }).eq("id", meetingId);
+    await supabaseAdmin.from("meetings").update({ status: "processing", progress: 90, progress_detail: "Analisando com IA..." }).eq("id", meetingId);
 
     const { data: meetingData, error: meetingError } = await supabaseAdmin
       .from("meetings").select("*").eq("id", meetingId).single();
@@ -320,6 +320,8 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
       highlights: analysis.highlights || null,
       mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
+      progress: 100,
+      progress_detail: "Análise concluída!",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
 

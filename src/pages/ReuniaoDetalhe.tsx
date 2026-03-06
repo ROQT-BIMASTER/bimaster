@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,10 +47,42 @@ export default function ReuniaoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
-  const [analyzeProgress, setAnalyzeProgress] = useState({ step: "", percent: 0, detail: "" });
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
+
+  // Realtime progress from DB — works even if user navigates away and comes back
+  const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
+
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`meeting-progress-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "meetings", filter: `id=eq.${id}` },
+        (payload) => {
+          const row = payload.new as any;
+          setLiveProgress({
+            progress: row.progress || 0,
+            detail: row.progress_detail || "",
+            status: row.status || "",
+          });
+          // Auto-refresh queries when analysis completes
+          if (row.status === "analyzed") {
+            setAnalyzing(false);
+            toast.success("✅ Análise concluída!");
+            queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id, queryClient]);
 
   const { data: meeting, isLoading } = useQuery({
     queryKey: ["meeting", id],
@@ -92,6 +124,17 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  // When user returns to a page with an in-progress analysis, sync local state from DB
+  useEffect(() => {
+    if (meeting) {
+      const m = meeting as any;
+      if (m.status === "transcribing" || m.status === "processing") {
+        setAnalyzing(true);
+        setLiveProgress({ progress: m.progress || 0, detail: m.progress_detail || "", status: m.status });
+      }
+    }
+  }, [meeting]);
+
   const handleAnalyze = async () => {
     const existingTranscription = meeting?.transcription || manualTranscription.trim() || null;
     if (!existingTranscription && !meeting?.audio_url) {
@@ -99,20 +142,19 @@ export default function ReuniaoDetalhe() {
       return;
     }
     setAnalyzing(true);
-    setAnalyzeProgress({ step: "Preparando", percent: 0, detail: "" });
     try {
       let transcription = existingTranscription;
 
       // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
-        setAnalyzeProgress({ step: "Preparando áudio", percent: 2, detail: "Baixando e dividindo áudio..." });
-        // Get a working URL for the audio
+        // Update DB progress so realtime picks it up
+        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "Baixando e dividindo áudio..." } as any).eq("id", id);
+
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
 
-        // Download and chunk in the browser
         const chunks = await chunkAudioFromUrl(signedUrl);
-        setAnalyzeProgress({ step: "Transcrevendo", percent: 5, detail: `0/${chunks.length} trechos` });
+        await supabase.from("meetings").update({ progress: 5, progress_detail: `0/${chunks.length} trechos` } as any).eq("id", id);
 
         // Process chunks in parallel batches of 3 for speed
         const BATCH_SIZE = 3;
@@ -123,13 +165,6 @@ export default function ReuniaoDetalhe() {
 
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
           const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
-          // Progress: transcription is 5-85% of total
-          const transcribePct = 5 + Math.round((completedChunks / chunks.length) * 80);
-          setAnalyzeProgress({
-            step: "Transcrevendo",
-            percent: transcribePct,
-            detail: `${completedChunks}/${chunks.length} trechos concluídos`,
-          });
 
           const batchResults = await Promise.allSettled(
             batch.map(async (chunk) => {
@@ -183,7 +218,7 @@ export default function ReuniaoDetalhe() {
         }
 
 
-        setAnalyzeProgress({ step: "Transcrevendo", percent: 85, detail: `${chunks.length}/${chunks.length} trechos concluídos` });
+        await supabase.from("meetings").update({ progress: 85, progress_detail: `${chunks.length}/${chunks.length} trechos concluídos` } as any).eq("id", id);
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
@@ -203,24 +238,18 @@ export default function ReuniaoDetalhe() {
           status: "transcribed",
           updated_at: new Date().toISOString(),
         }).eq("id", id);
-
-        setAnalyzeProgress({ step: "Salvando transcrição", percent: 88, detail: "" });
+        queryClient.invalidateQueries({ queryKey: ["meeting", id] });
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
       // STEP 2: Analyze transcription (text only — lightweight)
-      setAnalyzeProgress({ step: "Analisando com IA", percent: 90, detail: "Extraindo insights, tarefas e riscos..." });
+      // progress is updated by the edge function via DB
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setAnalyzeProgress({ step: "Concluído!", percent: 100, detail: `${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos` });
-      toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
-      queryClient.invalidateQueries({ queryKey: ["meeting", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+      // Realtime subscription will handle the final state update
     } catch (e: any) {
       toast.error(e.message || "Erro ao analisar reunião");
     } finally {
@@ -304,16 +333,16 @@ export default function ReuniaoDetalhe() {
           </Button>
         </div>
 
-        {/* Progress bar during analysis */}
-        {analyzing && (
+        {/* Progress bar — shows during analysis OR when meeting is in-progress (realtime from DB) */}
+        {(analyzing || meeting.status === "transcribing" || meeting.status === "processing") && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="pt-5 pb-4 space-y-3">
               <div className="flex items-center gap-3">
-                {analyzeProgress.percent < 100 ? (
+                {liveProgress.progress < 100 ? (
                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    {analyzeProgress.step === "Transcrevendo" ? (
+                    {liveProgress.status === "transcribing" ? (
                       <Mic className="h-4 w-4 text-primary animate-pulse" />
-                    ) : analyzeProgress.step === "Analisando com IA" ? (
+                    ) : liveProgress.status === "processing" ? (
                       <Sparkles className="h-4 w-4 text-primary animate-pulse" />
                     ) : (
                       <Loader2 className="h-4 w-4 text-primary animate-spin" />
@@ -326,12 +355,16 @@ export default function ReuniaoDetalhe() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">{analyzeProgress.step}</p>
-                    <span className="text-xs font-mono text-muted-foreground">{analyzeProgress.percent}%</span>
+                    <p className="text-sm font-medium">
+                      {liveProgress.status === "transcribing" ? "Transcrevendo" :
+                       liveProgress.status === "processing" ? "Analisando com IA" :
+                       liveProgress.progress >= 100 ? "Concluído!" : "Preparando..."}
+                    </p>
+                    <span className="text-xs font-mono text-muted-foreground">{liveProgress.progress}%</span>
                   </div>
-                  <Progress value={analyzeProgress.percent} className="h-2" />
-                  {analyzeProgress.detail && (
-                    <p className="text-xs text-muted-foreground mt-1.5">{analyzeProgress.detail}</p>
+                  <Progress value={liveProgress.progress} className="h-2" />
+                  {liveProgress.detail && (
+                    <p className="text-xs text-muted-foreground mt-1.5">{liveProgress.detail}</p>
                   )}
                 </div>
               </div>
