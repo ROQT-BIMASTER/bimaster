@@ -308,7 +308,7 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
       </CardHeader>
 
       {expanded && (
-        <CardContent className="pt-0 space-y-6 pb-6">
+        <CardContent ref={dashboardRef} className="pt-0 space-y-6 pb-6">
           {/* KPI Cards Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard icon={Activity} label="Total Reuniões" value={meetings.length} color="hsl(221, 83%, 53%)" />
