@@ -423,7 +423,7 @@ export default function ReuniaoDetalhe() {
                   className="gap-2"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = meeting.audio_url;
+                    link.href = resolvedAudioUrl || meeting.audio_url;
                     link.download = `${meeting.title || 'gravacao'}.webm`;
                     link.target = '_blank';
                     document.body.appendChild(link);
