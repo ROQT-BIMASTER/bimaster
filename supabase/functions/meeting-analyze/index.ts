@@ -351,7 +351,7 @@ Departamentos disponíveis: ${deptNames}
         type: "function",
         function: {
           name: "phase2_extraction",
-          description: "Extrai exaustivamente insights, tarefas, riscos e highlights da reunião.",
+          description: `Extrai exaustivamente insights (${targetInsights}+), tarefas (${targetTasks}+), riscos (${targetRisks}+) e highlights (${targetHighlights}+) da reunião de ~${estimatedMinutes} minutos.`,
           parameters: {
             type: "object",
             properties: {
