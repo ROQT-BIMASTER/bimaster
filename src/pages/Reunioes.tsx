@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
+import { MeetingExecutiveDashboard } from "@/components/meetings/MeetingExecutiveDashboard";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   draft: { label: "Rascunho", variant: "secondary", icon: FileText },
