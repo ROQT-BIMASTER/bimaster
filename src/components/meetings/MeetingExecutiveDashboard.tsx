@@ -296,6 +296,10 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
                 <p className="text-[10px] text-muted-foreground">riscos abertos</p>
               </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handlePrintDashboard} className="gap-2 h-8 rounded-xl">
+              <Printer className="h-3.5 w-3.5" />
+              PDF
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
