@@ -307,7 +307,22 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
                     },
                   },
                 },
-                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks"],
+                  highlights: {
+                    type: "array",
+                    description: "5-15 momentos-chave da reunião com timestamps estimados",
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: { type: "string", description: "Descrição curta do momento importante" },
+                        timestamp_seconds: { type: "number", description: "Posição estimada em segundos no áudio/vídeo" },
+                        type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
+                        speaker: { type: "string", description: "Quem estava falando neste momento" },
+                      },
+                      required: ["label", "timestamp_seconds", "type"],
+                    },
+                  },
+                },
+                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks", "highlights"],
                 additionalProperties: false,
               },
             },
