@@ -351,10 +351,20 @@ export default function ReuniaoDetalhe() {
               {meeting.duration_seconds && ` • ${Math.floor(meeting.duration_seconds / 60)}min`}
             </p>
           </div>
-          <Button onClick={handleAnalyze} disabled={analyzing} className="gap-2">
-            {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-            Analisar com IA
-          </Button>
+          <div className="flex items-center gap-2">
+            {meeting.status === "analyzed" && insights && tasks && risks && (
+              <MeetingPrintReport
+                meeting={meeting}
+                insights={insights || []}
+                tasks={tasks || []}
+                risks={risks || []}
+              />
+            )}
+            <Button onClick={handleAnalyze} disabled={analyzing} className="gap-2">
+              {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+              Analisar com IA
+            </Button>
+          </div>
         </div>
 
         {/* Progress bar — shows during analysis OR when meeting is in-progress (realtime from DB) */}
