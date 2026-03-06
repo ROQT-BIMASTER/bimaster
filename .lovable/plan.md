@@ -1,36 +1,56 @@
 
 
-## Plano: Relatório Executivo de Reunião — Design Premium de Última Geração
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema
-O relatório atual (`MeetingPrintReport.tsx`) usa `cloneNode` para copiar SVGs do Recharts para uma janela de impressão, mas os gráficos ficam **vazios** porque SVGs do Recharts não se renderizam corretamente quando clonados. Além disso, o design é genérico e pouco impactante.
+### O que muda
 
-### Solução
-Reescrever completamente o `MeetingPrintReport.tsx` com um design **HTML/CSS puro** (sem Recharts) que renderiza diretamente na janela de impressão, garantindo que tudo apareça. Os gráficos serão substituídos por **barras CSS animadas**, **indicadores visuais** e **cards estilizados** que funcionam 100% em print.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-### Mudanças em `src/components/meetings/MeetingPrintReport.tsx`
+### Implementação
 
-#### Design Premium:
-- **Header**: Gradiente sofisticado com logo, título, data, duração e badge de status
-- **KPI Cards**: 4 cards com ícones CSS, valores grandes e labels — cores por tipo (azul/verde/laranja/vermelho)
-- **Distribuição de Insights**: Barras horizontais CSS coloridas com labels e contadores (substitui PieChart vazio)
-- **Status de Tarefas**: Barras horizontais CSS com cores por status (substitui PieChart vazio)
-- **Riscos por Severidade**: Barras horizontais CSS com gradientes vermelho/laranja/amarelo/verde
-- **Riscos por Departamento**: Tabela estilizada com barras de progresso CSS
-- **Radar de Performance**: Substituído por scorecard visual com barras radiais CSS (5 dimensões)
-- **Resumo Executivo**: Bloco com borda lateral gradiente e tipografia premium
-- **Insights Detalhados**: Lista com cards coloridos por tipo e badges de impacto
-- **Tarefas**: Lista com indicadores de prioridade e status
-- **Riscos**: Cards com borda lateral colorida por severidade + ação recomendada
-- **Rodapé**: Marca d'água sutil "BI Master" com timestamp
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-#### Técnica:
-- Zero dependência de Recharts no print — tudo é HTML/CSS inline
-- Gráficos são barras CSS com `width: ${percentage}%` e transições
-- Funciona 100% em `window.print()` e exportação PDF
-- Layout responsivo A4 com `page-break-inside: avoid`
-- Paleta corporativa: azul profundo (#1e3a5f), roxo (#6366f1), gradientes premium
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-### Arquivo alterado
-- `src/components/meetings/MeetingPrintReport.tsx` (reescrita completa)
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
