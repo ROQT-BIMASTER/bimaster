@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +32,6 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verificar usuário
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Usuário inválido" }), {
@@ -40,23 +40,147 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, transcription } = await req.json();
+    const { meetingId, transcription: providedTranscription } = await req.json();
 
-    if (!meetingId || !transcription) {
-      return new Response(JSON.stringify({ error: "meetingId e transcription são obrigatórios" }), {
+    if (!meetingId) {
+      return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Atualizar status para processando
+    // Update status
     await supabaseAdmin.from("meetings").update({ status: "processing" }).eq("id", meetingId);
 
-    // Buscar departamentos existentes
+    // Get meeting data
+    const { data: meetingData, error: meetingError } = await supabaseAdmin
+      .from("meetings")
+      .select("*")
+      .eq("id", meetingId)
+      .single();
+
+    if (meetingError || !meetingData) {
+      throw new Error("Reunião não encontrada");
+    }
+
+    let transcription = providedTranscription || meetingData.transcription;
+
+    // ============ STEP 1: TRANSCRIBE AUDIO IF NEEDED ============
+    if (!transcription && meetingData.audio_url) {
+      console.log("[meeting-analyze] No transcription found, transcribing audio...");
+
+      // Download audio from storage
+      // Extract the file path from the signed URL or audio_url
+      const audioUrl = meetingData.audio_url as string;
+      let audioBase64: string | null = null;
+
+      try {
+        // Download the audio via the signed URL
+        const audioResponse = await fetch(audioUrl);
+        if (!audioResponse.ok) {
+          throw new Error(`Failed to download audio: ${audioResponse.status}`);
+        }
+
+        const audioBuffer = await audioResponse.arrayBuffer();
+        audioBase64 = base64Encode(new Uint8Array(audioBuffer));
+        console.log("[meeting-analyze] Audio downloaded, size:", audioBuffer.byteLength, "bytes");
+      } catch (downloadErr) {
+        console.error("[meeting-analyze] Audio download error:", downloadErr);
+        throw new Error("Erro ao baixar áudio para transcrição. Tente colar a transcrição manualmente.");
+      }
+
+      if (audioBase64) {
+        // Send audio to Gemini for transcription
+        const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: `Você é um transcritor profissional de áudio. Transcreva o áudio fornecido de forma precisa e completa em português do Brasil. 
+Inclua:
+- Tudo que foi falado, palavra por palavra
+- Identificação de diferentes falantes quando possível (Falante 1, Falante 2, etc.)
+- Pausas significativas marcadas com [pausa]
+Não adicione interpretações, resumos ou comentários. Apenas a transcrição fiel do que foi dito.`,
+              },
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Transcreva completamente este áudio de reunião. Retorne APENAS a transcrição, sem comentários adicionais.",
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:audio/webm;base64,${audioBase64}`,
+                    },
+                  },
+                ],
+              },
+            ],
+            temperature: 0.1,
+          }),
+        });
+
+        if (!transcribeResponse.ok) {
+          const errText = await transcribeResponse.text();
+          console.error("[meeting-analyze] Transcription error:", transcribeResponse.status, errText);
+          
+          if (transcribeResponse.status === 429) {
+            await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
+            return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
+              status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (transcribeResponse.status === 402) {
+            await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
+            return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), {
+              status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          throw new Error("Erro na transcrição do áudio");
+        }
+
+        const transcribeData = await transcribeResponse.json();
+        transcription = transcribeData.choices?.[0]?.message?.content?.trim();
+        console.log("[meeting-analyze] Transcription completed, length:", transcription?.length || 0);
+
+        if (!transcription || transcription.length < 10) {
+          await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
+          return new Response(JSON.stringify({ error: "Não foi possível transcrever o áudio. O áudio pode estar vazio ou muito curto. Tente colar a transcrição manualmente." }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Save transcription
+        await supabaseAdmin.from("meetings").update({
+          transcription,
+          updated_at: new Date().toISOString(),
+        }).eq("id", meetingId);
+      }
+    }
+
+    if (!transcription) {
+      await supabaseAdmin.from("meetings").update({ status: "draft" }).eq("id", meetingId);
+      return new Response(JSON.stringify({ error: "Nenhuma transcrição ou áudio disponível para análise." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ STEP 2: ANALYZE TRANSCRIPTION ============
+    console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
+
+    // Get departments
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    // Chamar Lovable AI Gateway com tool calling
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -86,7 +210,7 @@ serve(async (req) => {
                 properties: {
                   summary: {
                     type: "string",
-                    description: "Resumo executivo da reunião em 2-4 parágrafos",
+                    description: "Resumo executivo da reunião em 2-4 parágrafos, baseado fielmente no que foi discutido",
                   },
                   mermaid_mindmap: {
                     type: "string",
@@ -148,20 +272,18 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      
+      console.error("[meeting-analyze] AI Gateway error:", aiResponse.status, errorText);
+
       if (aiResponse.status === 429) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
         return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error(`AI error: ${aiResponse.status}`);
@@ -169,21 +291,18 @@ serve(async (req) => {
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     let analysis: any;
-    
+
     if (toolCall?.function?.arguments) {
-      // Tool calling worked - parse arguments
       let argsStr = toolCall.function.arguments;
-      // Clean markdown artifacts if present
       if (typeof argsStr === "string") {
         argsStr = argsStr.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
         analysis = JSON.parse(argsStr);
       } else {
-        analysis = argsStr; // Already parsed
+        analysis = argsStr;
       }
     } else {
-      // Fallback: try parsing content directly
       const content = aiData.choices?.[0]?.message?.content;
       if (content) {
         let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
@@ -197,7 +316,7 @@ serve(async (req) => {
         throw new Error("IA não retornou dados estruturados");
       }
     }
-    
+
     console.log("[meeting-analyze] Analysis parsed OK:", {
       summary: !!analysis.summary,
       insights: analysis.insights?.length,
@@ -205,16 +324,25 @@ serve(async (req) => {
       risks: analysis.risks?.length,
     });
 
-    // Salvar resumo e mapa mental na reunião
+    // ============ STEP 3: SAVE RESULTS ============
+
+    // Save summary and mindmap
     await supabaseAdmin.from("meetings").update({
-      transcription,
+      transcription: transcription,
       summary: analysis.summary,
       mermaid_mindmap: analysis.mermaid_mindmap,
       status: "analyzed",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
 
-    // Inserir insights
+    // Delete old insights/tasks/risks for re-analysis
+    await Promise.all([
+      supabaseAdmin.from("meeting_insights").delete().eq("meeting_id", meetingId),
+      supabaseAdmin.from("meeting_tasks").delete().eq("meeting_id", meetingId),
+      supabaseAdmin.from("meeting_risks").delete().eq("meeting_id", meetingId),
+    ]);
+
+    // Insert insights
     if (analysis.insights?.length > 0) {
       const insightsRows = analysis.insights.map((i: any) => ({
         meeting_id: meetingId,
@@ -228,7 +356,7 @@ serve(async (req) => {
       await supabaseAdmin.from("meeting_insights").insert(insightsRows);
     }
 
-    // Inserir tarefas
+    // Insert tasks
     if (analysis.tasks?.length > 0) {
       const tasksRows = analysis.tasks.map((t: any) => ({
         meeting_id: meetingId,
@@ -239,7 +367,7 @@ serve(async (req) => {
       await supabaseAdmin.from("meeting_tasks").insert(tasksRows);
     }
 
-    // Inserir riscos
+    // Insert risks
     if (analysis.risks?.length > 0) {
       const risksRows = analysis.risks.map((r: any) => ({
         meeting_id: meetingId,
@@ -254,24 +382,21 @@ serve(async (req) => {
       await supabaseAdmin.from("meeting_risks").insert(risksRows);
     }
 
-    // Notificar sobre riscos HIGH/CRITICAL
+    // Notify about HIGH/CRITICAL risks
     const highRisks = (analysis.risks || []).filter((r: any) => r.risk_level === "high" || r.risk_level === "critical");
     if (highRisks.length > 0) {
-      // Buscar o título da reunião
-      const { data: meetingData } = await supabaseAdmin.from("meetings").select("title").eq("id", meetingId).single();
-      
-      // Notificar o criador da reunião
       await supabaseAdmin.from("notifications").insert({
         user_id: user.id,
         type: "meeting_risk",
         title: `⚠️ ${highRisks.length} risco(s) identificado(s)`,
-        message: `A análise da reunião "${meetingData?.title || ''}" identificou ${highRisks.length} risco(s) de nível alto/crítico.`,
+        message: `A análise da reunião "${meetingData.title}" identificou ${highRisks.length} risco(s) de nível alto/crítico.`,
         action_url: `/dashboard/reunioes/${meetingId}`,
       });
     }
 
     return new Response(JSON.stringify({
       success: true,
+      transcribed: !providedTranscription && !meetingData.transcription,
       summary: analysis.summary,
       insights_count: analysis.insights?.length || 0,
       tasks_count: analysis.tasks?.length || 0,
@@ -281,7 +406,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("meeting-analyze error:", error);
+    console.error("[meeting-analyze] error:", error);
     return new Response(JSON.stringify({ error: error.message || "Erro ao analisar reunião" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
