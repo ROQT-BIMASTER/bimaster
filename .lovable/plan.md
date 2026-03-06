@@ -1,56 +1,38 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Plano: Configuração de Seções + Exportação Excel com Formatação Premium
 
-### O que muda
+### Mudanças em `src/components/meetings/MeetingPrintReport.tsx`
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+#### 1. Modal de Configuração antes de imprimir/exportar
+- Substituir o botão direto "Relatório PDF" por um **dropdown** com "Imprimir PDF" e "Exportar Excel"
+- Ao clicar em qualquer opção, abrir um **Dialog** com checkboxes para o usuário escolher quais seções incluir:
+  - Visão Geral (KPIs)
+  - Análise Gráfica
+  - Scorecard de Performance
+  - Resumo Executivo
+  - Insights Detalhados
+  - Tarefas Identificadas
+  - Riscos Identificados
+- Todas marcadas por default; usuário desmarca o que não quer
+- Botões "Imprimir PDF" e "Exportar Excel" no rodapé do dialog
 
-### Implementação
+#### 2. Ajuste A4 no CSS de impressão
+- Adicionar `@page { size: A4 portrait; margin: 15mm 18mm; }` mais preciso
+- Garantir `max-width: 210mm` no body para evitar overflow
+- Melhorar `page-break-before: always` nas seções longas (Insights, Tarefas, Riscos)
+- Ajustar font-sizes para caber melhor em A4
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+#### 3. Exportação Excel com formatação premium
+- Usar `ExcelJS` (já instalado) para gerar workbook com múltiplas abas:
+  - **Resumo**: KPIs + score + resumo executivo
+  - **Insights**: tabela com tipo, título, descrição, impacto, departamento
+  - **Tarefas**: tabela com tarefa, status, prioridade, departamento
+  - **Riscos**: tabela com título, severidade, departamento, probabilidade, ação recomendada
+- Aplicar formatação corporativa: header azul (#1a5276) com texto branco, bordas, larguras automáticas, filtros automáticos
+- Gerar gráficos Excel nativos via `ExcelJS.chart` (barras de insights/tarefas) — se não suportado, incluir dados formatados que o usuário pode grafar facilmente
+- Respeitar as seções selecionadas pelo usuário (só gera abas das seções marcadas)
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
-
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Arquivo alterado
+- `src/components/meetings/MeetingPrintReport.tsx` (adicionar Dialog de config + lógica de export Excel)
 
