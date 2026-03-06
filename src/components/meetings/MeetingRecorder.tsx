@@ -102,31 +102,69 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
   }, []);
 
   const uploadRecording = useCallback(async () => {
-    if (chunksRef.current.length === 0) return;
+    if (chunksRef.current.length === 0) {
+      toast.error("Nenhum áudio gravado para salvar");
+      return;
+    }
     setIsUploading(true);
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const fileName = `${session!.user.id}/${meetingId}.webm`;
+      console.log("[MeetingRecorder] Blob size:", blob.size, "bytes, chunks:", chunksRef.current.length);
+      
+      if (blob.size < 100) {
+        toast.error("Gravação muito curta. Tente novamente.");
+        return;
+      }
 
-      const { error } = await supabase.storage.from("meeting-recordings").upload(fileName, blob, { upsert: true });
-      if (error) throw error;
+      const fileName = `${session!.user.id}/${meetingId}_${Date.now()}.webm`;
 
-      // Get signed URL
-      const { data: urlData } = await supabase.storage.from("meeting-recordings").createSignedUrl(fileName, 31536000);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("meeting-recordings")
+        .upload(fileName, blob, { 
+          contentType: "audio/webm",
+          upsert: true,
+          cacheControl: "3600",
+        });
+      
+      if (uploadError) {
+        console.error("[MeetingRecorder] Upload error:", uploadError);
+        throw new Error(`Erro no upload: ${uploadError.message}`);
+      }
+      
+      console.log("[MeetingRecorder] Upload OK:", uploadData?.path);
+
+      // Get signed URL (1 year)
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("meeting-recordings")
+        .createSignedUrl(fileName, 31536000);
+      
+      if (urlError) {
+        console.error("[MeetingRecorder] SignedUrl error:", urlError);
+        throw new Error("Erro ao gerar URL do áudio");
+      }
+      
       const audioUrl = urlData?.signedUrl || "";
+      console.log("[MeetingRecorder] Audio URL obtained:", audioUrl ? "OK" : "EMPTY");
 
-      // Update meeting
-      await supabase.from("meetings").update({
+      // Update meeting record
+      const { error: updateError } = await supabase.from("meetings").update({
         audio_url: audioUrl,
         duration_seconds: duration,
         status: "draft",
         updated_at: new Date().toISOString(),
       }).eq("id", meetingId);
 
+      if (updateError) {
+        console.error("[MeetingRecorder] Update error:", updateError);
+        throw new Error(`Erro ao atualizar reunião: ${updateError.message}`);
+      }
+
       onRecordingComplete(audioUrl, duration);
       onUploadComplete?.();
       toast.success("Áudio salvo com sucesso!");
+      setHasRecording(false);
     } catch (err: any) {
+      console.error("[MeetingRecorder] Error:", err);
       toast.error("Erro ao salvar áudio: " + (err.message || "Erro desconhecido"));
     } finally {
       setIsUploading(false);

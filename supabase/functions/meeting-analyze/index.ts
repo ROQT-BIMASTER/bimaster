@@ -170,11 +170,40 @@ serve(async (req) => {
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     
-    if (!toolCall) {
-      throw new Error("IA não retornou dados estruturados");
+    let analysis: any;
+    
+    if (toolCall?.function?.arguments) {
+      // Tool calling worked - parse arguments
+      let argsStr = toolCall.function.arguments;
+      // Clean markdown artifacts if present
+      if (typeof argsStr === "string") {
+        argsStr = argsStr.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+        analysis = JSON.parse(argsStr);
+      } else {
+        analysis = argsStr; // Already parsed
+      }
+    } else {
+      // Fallback: try parsing content directly
+      const content = aiData.choices?.[0]?.message?.content;
+      if (content) {
+        let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+        const jsonStart = cleaned.search(/[\{\[]/);
+        const jsonEnd = cleaned.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+        }
+        analysis = JSON.parse(cleaned);
+      } else {
+        throw new Error("IA não retornou dados estruturados");
+      }
     }
-
-    const analysis = JSON.parse(toolCall.function.arguments);
+    
+    console.log("[meeting-analyze] Analysis parsed OK:", {
+      summary: !!analysis.summary,
+      insights: analysis.insights?.length,
+      tasks: analysis.tasks?.length,
+      risks: analysis.risks?.length,
+    });
 
     // Salvar resumo e mapa mental na reunião
     await supabaseAdmin.from("meetings").update({
