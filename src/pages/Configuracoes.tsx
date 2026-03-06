@@ -482,6 +482,7 @@ function Configuracoes() {
                   <Button onClick={handleResetPassword}>Redefinir Senha</Button>
                 </CardContent>
               </Card>
+              <MFASettings />
             </TabsContent>
 
             <TabsContent value="notificacoes" className="space-y-4">
