@@ -175,8 +175,12 @@ export default function ReuniaoDetalhe() {
         {meeting.status !== "analyzed" && (
           <MeetingRecorder
             meetingId={meeting.id}
-            onRecordingComplete={() => {
+            onRecordingComplete={(audioUrl: string, durationSeconds: number) => {
               queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+            }}
+            onUploadComplete={() => {
+              queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+              toast.success("Áudio salvo! Agora clique em 'Analisar com IA' ou cole a transcrição.");
             }}
           />
         )}
