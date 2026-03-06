@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,6 +124,18 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
+
+  // Resolve storage path to a signed URL for media playback
+  useEffect(() => {
+    if (!meeting?.audio_url) { setResolvedAudioUrl(null); return; }
+    let cancelled = false;
+    resolveStorageUrl(meeting.audio_url).then(({ signedUrl }) => {
+      if (!cancelled) setResolvedAudioUrl(signedUrl || null);
+    });
+    return () => { cancelled = true; };
+  }, [meeting?.audio_url]);
+
   // When user returns to a page with an in-progress analysis, sync local state from DB
   useEffect(() => {
     if (meeting) {
@@ -228,7 +240,6 @@ export default function ReuniaoDetalhe() {
             await new Promise(r => setTimeout(r, 2000));
           }
         }
-
 
         await supabase.from("meetings").update({ progress: 85, progress_detail: `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...` } as any).eq("id", id);
 
@@ -405,14 +416,14 @@ export default function ReuniaoDetalhe() {
                 <span>Gravação disponível ({meeting.duration_seconds ? `${Math.floor(meeting.duration_seconds / 60)}min ${meeting.duration_seconds % 60}s` : 'áudio'})</span>
               </div>
               <div className="flex items-center gap-2">
-                <audio controls src={meeting.audio_url} className="h-8 max-w-[300px]" preload="metadata" />
+                <audio controls src={resolvedAudioUrl || undefined} className="h-8 max-w-[300px]" preload="metadata" />
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-2"
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = meeting.audio_url;
+                    link.href = resolvedAudioUrl || meeting.audio_url;
                     link.download = `${meeting.title || 'gravacao'}.webm`;
                     link.target = '_blank';
                     document.body.appendChild(link);
@@ -493,7 +504,7 @@ export default function ReuniaoDetalhe() {
 
                 {/* Timeline with highlights */}
                 <MeetingTimeline
-                  audioUrl={meeting.audio_url}
+                  audioUrl={resolvedAudioUrl}
                   durationSeconds={meeting.duration_seconds || 0}
                   highlights={highlights}
                   searchResults={searchResults}
@@ -611,7 +622,7 @@ export default function ReuniaoDetalhe() {
             </TabsContent>
 
             <TabsContent value="transcricao">
-              <MeetingTranscription transcription={meeting.transcription} audioUrl={meeting.audio_url} />
+              <MeetingTranscription transcription={meeting.transcription} audioUrl={resolvedAudioUrl} />
             </TabsContent>
           </Tabs>
         )}
