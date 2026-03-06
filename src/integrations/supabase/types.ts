@@ -12683,6 +12683,7 @@ export type Database = {
           created_by: string
           description: string | null
           duration_seconds: number | null
+          highlights: Json | null
           id: string
           meeting_date: string
           mermaid_mindmap: string | null
@@ -12700,6 +12701,7 @@ export type Database = {
           created_by: string
           description?: string | null
           duration_seconds?: number | null
+          highlights?: Json | null
           id?: string
           meeting_date?: string
           mermaid_mindmap?: string | null
@@ -12717,6 +12719,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           duration_seconds?: number | null
+          highlights?: Json | null
           id?: string
           meeting_date?: string
           mermaid_mindmap?: string | null

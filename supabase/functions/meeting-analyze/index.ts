@@ -180,7 +180,13 @@ IMPORTANTE para o MAPA MENTAL:
 
 IMPORTANTE para a ATA:
 - Formato profissional de ata corporativa em Markdown
-- Inclua: Data, Participantes, Pauta, Discussões, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos`,
+- Inclua: Data, Participantes, Pauta, Discussões, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
+
+IMPORTANTE para HIGHLIGHTS (momentos importantes):
+- Identifique 5-15 momentos-chave da reunião (decisões, conflitos, ideias, problemas levantados)
+- Para cada momento, estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
+- Se não houver timestamps, distribua proporcionalmente ao longo do texto
+- Cada highlight deve ter: label descritivo, timestamp em segundos, tipo e falante`,
           },
           {
             role: "user",
@@ -300,8 +306,22 @@ IMPORTANTE para a ATA:
                       required: ["title", "description", "risk_level"],
                     },
                   },
+                  highlights: {
+                    type: "array",
+                    description: "5-15 momentos-chave da reunião com timestamps estimados",
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: { type: "string", description: "Descrição curta do momento importante" },
+                        timestamp_seconds: { type: "number", description: "Posição estimada em segundos no áudio/vídeo" },
+                        type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
+                        speaker: { type: "string", description: "Quem estava falando neste momento" },
+                      },
+                      required: ["label", "timestamp_seconds", "type"],
+                    },
+                  },
                 },
-                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks"],
+                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks", "highlights"],
                 additionalProperties: false,
               },
             },
@@ -366,6 +386,7 @@ IMPORTANTE para a ATA:
       summary: analysis.summary,
       ata: analysis.ata || null,
       participants: analysis.participants || null,
+      highlights: analysis.highlights || null,
       mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
       updated_at: new Date().toISOString(),
