@@ -84,6 +84,17 @@ export default function ReuniaoDetalhe() {
     return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
 
+  // Initialize liveProgress from meeting data when user returns to an in-progress analysis
+  useEffect(() => {
+    if (meeting) {
+      const m = meeting as any;
+      if (m.status === "transcribing" || m.status === "processing") {
+        setAnalyzing(true);
+        setLiveProgress({ progress: m.progress || 0, detail: m.progress_detail || "", status: m.status });
+      }
+    }
+  }, [meeting]);
+
   const { data: meeting, isLoading } = useQuery({
     queryKey: ["meeting", id],
     queryFn: async () => {
