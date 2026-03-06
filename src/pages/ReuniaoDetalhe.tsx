@@ -47,10 +47,42 @@ export default function ReuniaoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
-  const [analyzeProgress, setAnalyzeProgress] = useState({ step: "", percent: 0, detail: "" });
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
+
+  // Realtime progress from DB — works even if user navigates away and comes back
+  const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
+
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`meeting-progress-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "meetings", filter: `id=eq.${id}` },
+        (payload) => {
+          const row = payload.new as any;
+          setLiveProgress({
+            progress: row.progress || 0,
+            detail: row.progress_detail || "",
+            status: row.status || "",
+          });
+          // Auto-refresh queries when analysis completes
+          if (row.status === "analyzed") {
+            setAnalyzing(false);
+            toast.success("✅ Análise concluída!");
+            queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
+            queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id, queryClient]);
 
   const { data: meeting, isLoading } = useQuery({
     queryKey: ["meeting", id],
