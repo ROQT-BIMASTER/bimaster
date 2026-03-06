@@ -131,7 +131,6 @@ export default function ReuniaoDetalhe() {
       return;
     }
     setAnalyzing(true);
-    setAnalyzeProgress({ step: "Preparando", percent: 0, detail: "" });
     try {
       let transcription = existingTranscription;
 
