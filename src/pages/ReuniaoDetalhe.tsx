@@ -100,17 +100,46 @@ export default function ReuniaoDetalhe() {
     try {
       let transcription = existingTranscription;
 
-      // STEP 1: Transcribe if needed (separate function — no memory issues)
+      // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
-        toast.info("⏳ Etapa 1/2: Transcrevendo mídia com IA... pode levar até 2 minutos");
-        const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
-          body: { meetingId: id },
-        });
-        if (transcribeError) throw transcribeError;
-        if (transcribeData?.error) throw new Error(transcribeData.error);
-        transcription = transcribeData.transcription;
+        toast.info("⏳ Etapa 1/2: Preparando áudio para transcrição...");
+
+        // Get a working URL for the audio
+        const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
+        if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
+
+        // Download and chunk in the browser
+        const chunks = await chunkAudioFromUrl(signedUrl);
+        toast.info(`⏳ Transcrevendo ${chunks.length} trecho(s) com IA...`);
+
+        const partialTranscriptions: string[] = [];
+
+        for (const chunk of chunks) {
+          toast.info(`⏳ Transcrevendo parte ${chunk.chunkIndex + 1}/${chunk.totalChunks}...`);
+          const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
+            body: {
+              meetingId: id,
+              audioBase64: chunk.base64,
+              mimeType: chunk.mimeType,
+              chunkIndex: chunk.chunkIndex,
+              totalChunks: chunk.totalChunks,
+            },
+          });
+          if (transcribeError) throw transcribeError;
+          if (transcribeData?.error) throw new Error(transcribeData.error);
+          partialTranscriptions.push(transcribeData.transcription);
+        }
+
+        transcription = partialTranscriptions.join("\n\n");
+
+        // Save the full transcription
+        await supabase.from("meetings").update({
+          transcription,
+          status: "transcribed",
+          updated_at: new Date().toISOString(),
+        }).eq("id", id);
+
         toast.success("✅ Transcrição concluída!");
-        // Refresh meeting data to show transcription
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 

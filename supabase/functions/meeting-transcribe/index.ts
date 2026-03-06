@@ -1,49 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-/**
- * Downloads audio in a memory-efficient way using streaming.
- * For files under ~30MB, downloads directly.
- * Returns base64 encoded string.
- */
-async function downloadAndEncode(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Download failed: ${response.status}`);
-  
-  const contentLength = parseInt(response.headers.get("content-length") || "0");
-  console.log(`[meeting-transcribe] File size: ${(contentLength / 1024 / 1024).toFixed(1)}MB`);
-  
-  // Stream the response body into chunks to avoid a single huge allocation
-  const reader = response.body!.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalSize = 0;
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    totalSize += value.length;
-  }
-  
-  // Concatenate chunks
-  const fullBuffer = new Uint8Array(totalSize);
-  let offset = 0;
-  for (const chunk of chunks) {
-    fullBuffer.set(chunk, offset);
-    offset += chunk.length;
-  }
-  
-  // Free chunk references
-  chunks.length = 0;
-  
-  return base64Encode(fullBuffer);
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -56,12 +17,10 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -73,75 +32,54 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId } = await req.json();
+    // Accept chunk data directly from the client
+    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks } = await req.json();
+
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: meeting, error: meetingError } = await supabaseAdmin
-      .from("meetings").select("id, audio_url, transcription").eq("id", meetingId).single();
-    if (meetingError || !meeting) throw new Error("Reunião não encontrada");
-
-    if (meeting.transcription) {
-      console.log("[meeting-transcribe] Transcription already exists, skipping");
-      return new Response(JSON.stringify({ transcription: meeting.transcription, skipped: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const audioUrl = meeting.audio_url as string;
-    if (!audioUrl) {
-      return new Response(JSON.stringify({ error: "Nenhuma mídia disponível para transcrição." }), {
+    if (!audioBase64) {
+      return new Response(JSON.stringify({ error: "audioBase64 é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await supabaseAdmin.from("meetings").update({ status: "transcribing" }).eq("id", meetingId);
+    const resolvedMimeType = mimeType || "audio/webm";
+    const isFirstChunk = (chunkIndex || 0) === 0;
+    const chunks = totalChunks || 1;
+    const idx = chunkIndex || 0;
 
-    // Generate a fresh signed URL for downloading
-    let downloadUrl = audioUrl;
-    try {
-      const urlObj = new URL(audioUrl);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
-      if (pathMatch) {
-        const bucket = pathMatch[1];
-        const filePath = decodeURIComponent(pathMatch[2].split('?')[0]);
-        console.log(`[meeting-transcribe] Generating signed URL for ${bucket}/${filePath}`);
-        const { data: signedData, error: signError } = await supabaseAdmin.storage
-          .from(bucket)
-          .createSignedUrl(filePath, 3600);
-        if (!signError && signedData?.signedUrl) {
-          downloadUrl = signedData.signedUrl;
-        }
-      }
-    } catch {
-      // Use original URL
+    console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}`);
+
+    // Update status on first chunk
+    if (isFirstChunk) {
+      const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await supabaseAdmin.from("meetings").update({ status: "transcribing" }).eq("id", meetingId);
     }
 
-    // Detect MIME type
-    const isVideo = audioUrl.includes(".mp4") || audioUrl.includes(".mov") || audioUrl.includes(".avi") || audioUrl.includes(".mkv") || audioUrl.includes("video/");
-    const mimeType = isVideo ? "video/mp4" : 
-      audioUrl.includes(".mp3") ? "audio/mpeg" :
-      audioUrl.includes(".wav") ? "audio/wav" :
-      audioUrl.includes(".m4a") ? "audio/mp4" :
-      "audio/webm";
+    // Build system prompt with chunk context
+    let systemPrompt = `Você é um transcritor profissional de áudio/vídeo com capacidade de DIARIZAÇÃO (identificação de falantes).
 
-    console.log(`[meeting-transcribe] Downloading and encoding audio, mimeType: ${mimeType}`);
+REGRAS DE TRANSCRIÇÃO:
+1. Transcreva tudo que foi falado, palavra por palavra, em português do Brasil
+2. IDENTIFIQUE CADA FALANTE DISTINTO — quando o nome é mencionado na conversa, use o nome real (ex: "João:", "Maria:")
+3. Se o nome não for mencionado, use "Falante 1:", "Falante 2:", etc.
+4. Indique mudanças de falante em cada fala
+5. Marque pausas significativas com [pausa]
+6. NÃO adicione interpretações, resumos ou comentários
+7. Retorne APENAS a transcrição
 
-    // Download and encode as base64 using streaming (memory efficient)
-    let audioBase64: string;
-    try {
-      audioBase64 = await downloadAndEncode(downloadUrl);
-      console.log(`[meeting-transcribe] Base64 encoded, length: ${audioBase64.length}`);
-    } catch (downloadErr) {
-      console.error("[meeting-transcribe] Download error:", downloadErr);
-      await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-      throw new Error("Erro ao baixar mídia para transcrição.");
+FORMATO:
+João: Bom dia a todos, vamos começar a reunião...
+Maria: Obrigada João, eu queria falar sobre...`;
+
+    if (chunks > 1) {
+      systemPrompt += `\n\nIMPORTANTE: Este é o trecho ${idx + 1} de ${chunks} de uma gravação longa. Transcreva apenas o conteúdo audível deste trecho. Não repita conteúdo de trechos anteriores.`;
     }
 
-    // Send as data URL (required by gateway for non-image media)
     const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -151,28 +89,12 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: `Você é um transcritor profissional de áudio/vídeo com capacidade de DIARIZAÇÃO (identificação de falantes).
-
-REGRAS DE TRANSCRIÇÃO:
-1. Transcreva tudo que foi falado, palavra por palavra, em português do Brasil
-2. IDENTIFIQUE CADA FALANTE DISTINTO — quando o nome é mencionado na conversa, use o nome real (ex: "João:", "Maria:")
-3. Se o nome não for mencionado, use "Falante 1:", "Falante 2:", etc.
-4. Indique mudanças de falante em cada fala
-5. Marque pausas significativas com [pausa]
-6. Inclua timestamps aproximados a cada 1-2 minutos no formato [MM:SS]
-7. NÃO adicione interpretações, resumos ou comentários
-
-FORMATO:
-[00:00] João: Bom dia a todos, vamos começar a reunião...
-[00:15] Maria: Obrigada João, eu queria falar sobre...`,
-          },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              { type: "text", text: "Transcreva completamente este áudio/vídeo de reunião com identificação de cada falante. Retorne APENAS a transcrição diarizada." },
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${audioBase64}` } },
+              { type: "text", text: `Transcreva completamente este trecho de áudio/vídeo (parte ${idx + 1} de ${chunks}). Retorne APENAS a transcrição.` },
+              { type: "image_url", image_url: { url: `data:${resolvedMimeType};base64,${audioBase64}` } },
             ],
           },
         ],
@@ -180,13 +102,9 @@ FORMATO:
       }),
     });
 
-    // Free memory immediately after sending
-    audioBase64 = "";
-
     if (!transcribeResponse.ok) {
       const errText = await transcribeResponse.text();
       console.error("[meeting-transcribe] Gemini error:", transcribeResponse.status, errText);
-      await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
 
       if (transcribeResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
@@ -203,22 +121,15 @@ FORMATO:
 
     const transcribeData = await transcribeResponse.json();
     const transcription = transcribeData.choices?.[0]?.message?.content?.trim();
-    console.log("[meeting-transcribe] Transcription completed, length:", transcription?.length || 0);
+    console.log("[meeting-transcribe] Chunk transcription length:", transcription?.length || 0);
 
-    if (!transcription || transcription.length < 10) {
-      await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-      return new Response(JSON.stringify({ error: "Não foi possível transcrever a mídia. Tente colar a transcrição manualmente." }), {
+    if (!transcription || transcription.length < 5) {
+      return new Response(JSON.stringify({ error: "Não foi possível transcrever este trecho de áudio." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    await supabaseAdmin.from("meetings").update({
-      transcription,
-      status: "transcribed",
-      updated_at: new Date().toISOString(),
-    }).eq("id", meetingId);
-
-    return new Response(JSON.stringify({ transcription, success: true }), {
+    return new Response(JSON.stringify({ transcription, chunkIndex: idx, success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
