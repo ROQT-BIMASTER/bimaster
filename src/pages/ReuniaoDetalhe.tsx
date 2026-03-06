@@ -341,7 +341,6 @@ export default function ReuniaoDetalhe() {
                 <span>Gravação disponível ({meeting.duration_seconds ? `${Math.floor(meeting.duration_seconds / 60)}min ${meeting.duration_seconds % 60}s` : 'áudio'})</span>
               </div>
               <div className="flex items-center gap-2">
-                <audio controls src={resolvedAudioUrl || undefined} className="h-8 max-w-[300px]" preload="metadata" />
                 <Button
                   variant="outline"
                   size="sm"
