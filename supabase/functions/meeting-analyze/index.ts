@@ -356,7 +356,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
     await supabaseAdmin.from("meetings").update({
       transcription: transcription,
       summary: analysis.summary,
-      mermaid_mindmap: analysis.mermaid_mindmap,
+      mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
