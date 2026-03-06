@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, Mic, Sparkles, FileText, Brain, ListTodo, ShieldAlert, Lightbulb } from "lucide-react";
+import { CheckCircle2, Loader2, Mic, Sparkles, FileText, Brain, ListTodo, ShieldAlert, Lightbulb, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
@@ -126,9 +126,11 @@ interface MeetingAnalysisProgressProps {
   progress: number;
   detail: string;
   status: string;
+  durationSeconds?: number | null;
 }
 
-export function MeetingAnalysisProgress({ progress, detail, status }: MeetingAnalysisProgressProps) {
+export function MeetingAnalysisProgress({ progress, detail, status, durationSeconds }: MeetingAnalysisProgressProps) {
+  const durationMinutes = durationSeconds ? Math.round(durationSeconds / 60) : null;
   const isTranscribing = status === "transcribing";
   const isProcessing = status === "processing";
   const isDone = progress >= 100;
@@ -160,7 +162,15 @@ export function MeetingAnalysisProgress({ progress, detail, status }: MeetingAna
           </div>
           <Progress value={progress} className="h-2 mt-1.5" gradient />
           {detail && (
-            <p className="text-[11px] text-muted-foreground mt-1">{detail}</p>
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
+              {durationMinutes && (
+                <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-medium">
+                  <Clock className="h-2.5 w-2.5" />
+                  {durationMinutes} min
+                </span>
+              )}
+              <span>{detail}</span>
+            </p>
           )}
         </div>
       </div>
