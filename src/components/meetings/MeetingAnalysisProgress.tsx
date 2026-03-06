@@ -162,7 +162,15 @@ export function MeetingAnalysisProgress({ progress, detail, status, durationSeco
           </div>
           <Progress value={progress} className="h-2 mt-1.5" gradient />
           {detail && (
-            <p className="text-[11px] text-muted-foreground mt-1">{detail}</p>
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
+              {durationMinutes && (
+                <span className="inline-flex items-center gap-0.5 bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-medium">
+                  <Clock className="h-2.5 w-2.5" />
+                  {durationMinutes} min
+                </span>
+              )}
+              <span>{detail}</span>
+            </p>
           )}
         </div>
       </div>

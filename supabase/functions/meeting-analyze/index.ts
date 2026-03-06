@@ -128,9 +128,14 @@ serve(async (req) => {
     // ========================================================================
     await supabaseAdmin.from("meetings").update({ progress: 88, progress_detail: "Fase 1: Gerando ata e mapa mental..." }).eq("id", meetingId);
 
-    // Estimate meeting duration from transcription length (~120 chars/min of speech)
-    const estimatedMinutes = Math.max(5, Math.round(analysisTranscription.length / 120));
+    // Estimate meeting duration: prefer stored duration, fallback to transcription heuristic
+    // Diarized transcriptions with timestamps average ~650 chars/min
+    const estimatedMinutes = meetingData.duration_seconds 
+      ? Math.max(5, Math.round(meetingData.duration_seconds / 60))
+      : Math.max(5, Math.round(analysisTranscription.length / 650));
     const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
+
+    console.log(`[meeting-analyze] Estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
 
     const phase1Messages = [
       {
