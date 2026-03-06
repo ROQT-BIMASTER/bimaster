@@ -113,7 +113,7 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
           },
           {
             role: "user",
-            content: `Analise esta transcrição de reunião:\n\n${transcription}`,
+            content: `Analise esta transcrição de reunião:\n\n${analysisTranscription}`,
           },
         ],
         tools: [
