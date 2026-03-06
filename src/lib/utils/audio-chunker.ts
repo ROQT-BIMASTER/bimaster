@@ -5,7 +5,6 @@
  */
 
 const CHUNK_DURATION_SECONDS = 240; // 4 minutes per chunk
-const TARGET_SAMPLE_RATE = 16000; // 16kHz mono — keeps WAV size manageable
 
 export interface AudioChunk {
   base64: string;
@@ -30,18 +29,13 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
- * Encode an AudioBuffer (mono, any sample rate) into a WAV Blob.
+ * Encode a mono Float32Array as a WAV Blob at given sample rate.
  */
-function encodeWav(audioBuffer: AudioBuffer): Blob {
-  const numChannels = 1; // force mono
-  const sampleRate = audioBuffer.sampleRate;
-  const channelData = audioBuffer.getChannelData(0);
-  const numSamples = channelData.length;
-
+function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   // Convert float32 to int16
-  const int16 = new Int16Array(numSamples);
-  for (let i = 0; i < numSamples; i++) {
-    const s = Math.max(-1, Math.min(1, channelData[i]));
+  const int16 = new Int16Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
     int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
 
@@ -49,7 +43,6 @@ function encodeWav(audioBuffer: AudioBuffer): Blob {
   const buffer = new ArrayBuffer(44 + dataBytes);
   const view = new DataView(buffer);
 
-  // WAV header
   const writeString = (offset: number, str: string) => {
     for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
   };
@@ -58,12 +51,12 @@ function encodeWav(audioBuffer: AudioBuffer): Blob {
   view.setUint32(4, 36 + dataBytes, true);
   writeString(8, "WAVE");
   writeString(12, "fmt ");
-  view.setUint32(16, 16, true); // PCM chunk size
-  view.setUint16(20, 1, true); // PCM format
-  view.setUint16(22, numChannels, true);
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
   view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numChannels * 2, true); // byte rate
-  view.setUint16(32, numChannels * 2, true); // block align
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true); // block align
   view.setUint16(34, 16, true); // bits per sample
   writeString(36, "data");
   view.setUint32(40, dataBytes, true);
@@ -76,41 +69,30 @@ function encodeWav(audioBuffer: AudioBuffer): Blob {
 }
 
 /**
- * Downsample an AudioBuffer to a target sample rate using OfflineAudioContext.
+ * Mix multi-channel AudioBuffer down to a mono Float32Array.
  */
-async function downsampleBuffer(
-  audioBuffer: AudioBuffer,
-  targetRate: number
-): Promise<AudioBuffer> {
-  if (audioBuffer.sampleRate <= targetRate) return audioBuffer;
+function mixToMono(audioBuffer: AudioBuffer): Float32Array {
+  const length = audioBuffer.length;
+  const mono = new Float32Array(length);
+  const numChannels = audioBuffer.numberOfChannels;
 
-  const duration = audioBuffer.duration;
-  const offlineCtx = new OfflineAudioContext(1, Math.ceil(duration * targetRate), targetRate);
-  const source = offlineCtx.createBufferSource();
-
-  // Mix down to mono if needed
-  if (audioBuffer.numberOfChannels > 1) {
-    const monoBuffer = offlineCtx.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
-    const monoData = monoBuffer.getChannelData(0);
-    for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-      const chData = audioBuffer.getChannelData(ch);
-      for (let i = 0; i < audioBuffer.length; i++) {
-        monoData[i] += chData[i] / audioBuffer.numberOfChannels;
-      }
-    }
-    source.buffer = monoBuffer;
-  } else {
-    source.buffer = audioBuffer;
+  if (numChannels === 1) {
+    mono.set(audioBuffer.getChannelData(0));
+    return mono;
   }
 
-  source.connect(offlineCtx.destination);
-  source.start(0);
-  return await offlineCtx.startRendering();
+  for (let ch = 0; ch < numChannels; ch++) {
+    const chData = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      mono[i] += chData[i] / numChannels;
+    }
+  }
+  return mono;
 }
 
 /**
  * Downloads an audio file from a URL and splits it into temporal chunks (~4 min each).
- * Each chunk is re-encoded as mono 16kHz WAV → base64.
+ * Each chunk is re-encoded as mono WAV (original sample rate) → base64.
  */
 export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]> {
   const response = await fetch(audioUrl);
@@ -129,13 +111,13 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
     await audioCtx.close();
   }
 
+  const sampleRate = audioBuffer.sampleRate;
   const totalDuration = audioBuffer.duration;
-  console.log(`[audio-chunker] Decoded: ${totalDuration.toFixed(1)}s, ${audioBuffer.sampleRate}Hz, ${audioBuffer.numberOfChannels}ch`);
+  console.log(`[audio-chunker] Decoded: ${totalDuration.toFixed(1)}s, ${sampleRate}Hz, ${audioBuffer.numberOfChannels}ch`);
 
-  // Downsample to 16kHz mono for smaller WAV chunks
-  const downsampled = await downsampleBuffer(audioBuffer, TARGET_SAMPLE_RATE);
-  const sampleRate = downsampled.sampleRate;
-  const totalSamples = downsampled.length;
+  // Mix down to mono (simple array copy, no OfflineAudioContext needed)
+  const monoSamples = mixToMono(audioBuffer);
+  const totalSamples = monoSamples.length;
   const samplesPerChunk = sampleRate * CHUNK_DURATION_SECONDS;
 
   const totalChunks = Math.ceil(totalSamples / samplesPerChunk);
@@ -146,22 +128,15 @@ export async function chunkAudioFromUrl(audioUrl: string): Promise<AudioChunk[]>
   for (let i = 0; i < totalChunks; i++) {
     const startSample = i * samplesPerChunk;
     const endSample = Math.min(startSample + samplesPerChunk, totalSamples);
-    const chunkLength = endSample - startSample;
 
     const startSeconds = startSample / sampleRate;
     const endSeconds = endSample / sampleRate;
 
-    // Create a new buffer for this chunk
-    const offlineCtx = new OfflineAudioContext(1, chunkLength, sampleRate);
-    const chunkBuffer = offlineCtx.createBuffer(1, chunkLength, sampleRate);
-    const srcData = downsampled.getChannelData(0);
-    const dstData = chunkBuffer.getChannelData(0);
-    for (let j = 0; j < chunkLength; j++) {
-      dstData[j] = srcData[startSample + j];
-    }
+    // Slice the mono samples for this chunk
+    const chunkSamples = monoSamples.subarray(startSample, endSample);
 
     // Encode as WAV
-    const wavBlob = encodeWav(chunkBuffer);
+    const wavBlob = encodeWav(chunkSamples, sampleRate);
     const base64 = await blobToBase64(wavBlob);
 
     const wavMB = (wavBlob.size / 1024 / 1024).toFixed(1);
