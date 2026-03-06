@@ -304,6 +304,41 @@ export default function ReuniaoDetalhe() {
           </Button>
         </div>
 
+        {/* Progress bar during analysis */}
+        {analyzing && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-5 pb-4 space-y-3">
+              <div className="flex items-center gap-3">
+                {analyzeProgress.percent < 100 ? (
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    {analyzeProgress.step === "Transcrevendo" ? (
+                      <Mic className="h-4 w-4 text-primary animate-pulse" />
+                    ) : analyzeProgress.step === "Analisando com IA" ? (
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    ) : (
+                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-medium">{analyzeProgress.step}</p>
+                    <span className="text-xs font-mono text-muted-foreground">{analyzeProgress.percent}%</span>
+                  </div>
+                  <Progress value={analyzeProgress.percent} className="h-2" />
+                  {analyzeProgress.detail && (
+                    <p className="text-xs text-muted-foreground mt-1.5">{analyzeProgress.detail}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recorder (if not analyzed) */}
         {meeting.status !== "analyzed" && (
           <MeetingRecorder
