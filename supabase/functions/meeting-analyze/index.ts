@@ -14,18 +14,14 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY não configurada");
-    }
+    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -35,62 +31,47 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Usuário inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { meetingId, transcription: providedTranscription } = await req.json();
-
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Update status
     await supabaseAdmin.from("meetings").update({ status: "processing" }).eq("id", meetingId);
 
-    // Get meeting data
     const { data: meetingData, error: meetingError } = await supabaseAdmin
-      .from("meetings")
-      .select("*")
-      .eq("id", meetingId)
-      .single();
-
-    if (meetingError || !meetingData) {
-      throw new Error("Reunião não encontrada");
-    }
+      .from("meetings").select("*").eq("id", meetingId).single();
+    if (meetingError || !meetingData) throw new Error("Reunião não encontrada");
 
     let transcription = providedTranscription || meetingData.transcription;
 
-    // ============ STEP 1: TRANSCRIBE AUDIO IF NEEDED ============
+    // ============ STEP 1: TRANSCRIBE AUDIO/VIDEO IF NEEDED ============
     if (!transcription && meetingData.audio_url) {
-      console.log("[meeting-analyze] No transcription found, transcribing audio...");
-
-      // Download audio from storage
-      // Extract the file path from the signed URL or audio_url
+      console.log("[meeting-analyze] No transcription found, transcribing media...");
       const audioUrl = meetingData.audio_url as string;
       let audioBase64: string | null = null;
 
       try {
-        // Download the audio via the signed URL
         const audioResponse = await fetch(audioUrl);
-        if (!audioResponse.ok) {
-          throw new Error(`Failed to download audio: ${audioResponse.status}`);
-        }
-
+        if (!audioResponse.ok) throw new Error(`Failed to download media: ${audioResponse.status}`);
         const audioBuffer = await audioResponse.arrayBuffer();
         audioBase64 = base64Encode(new Uint8Array(audioBuffer));
-        console.log("[meeting-analyze] Audio downloaded, size:", audioBuffer.byteLength, "bytes");
+        console.log("[meeting-analyze] Media downloaded, size:", audioBuffer.byteLength, "bytes");
       } catch (downloadErr) {
-        console.error("[meeting-analyze] Audio download error:", downloadErr);
-        throw new Error("Erro ao baixar áudio para transcrição. Tente colar a transcrição manualmente.");
+        console.error("[meeting-analyze] Media download error:", downloadErr);
+        throw new Error("Erro ao baixar mídia para transcrição. Tente colar a transcrição manualmente.");
       }
 
       if (audioBase64) {
-        // Send audio to Gemini for transcription
+        // Detect MIME type from URL
+        const isVideo = audioUrl.includes(".mp4") || audioUrl.includes(".mov") || audioUrl.includes(".avi") || audioUrl.includes(".mkv");
+        const mimeType = isVideo ? "video/mp4" : "audio/webm";
+
         const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -102,26 +83,26 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `Você é um transcritor profissional de áudio. Transcreva o áudio fornecido de forma precisa e completa em português do Brasil. 
-Inclua:
-- Tudo que foi falado, palavra por palavra
-- Identificação de diferentes falantes quando possível (Falante 1, Falante 2, etc.)
-- Pausas significativas marcadas com [pausa]
-Não adicione interpretações, resumos ou comentários. Apenas a transcrição fiel do que foi dito.`,
+                content: `Você é um transcritor profissional de áudio/vídeo com capacidade de DIARIZAÇÃO (identificação de falantes).
+
+REGRAS DE TRANSCRIÇÃO:
+1. Transcreva tudo que foi falado, palavra por palavra, em português do Brasil
+2. IDENTIFIQUE CADA FALANTE DISTINTO — quando o nome é mencionado na conversa, use o nome real (ex: "João:", "Maria:")
+3. Se o nome não for mencionado, use "Falante 1:", "Falante 2:", etc.
+4. Indique mudanças de falante em cada fala
+5. Marque pausas significativas com [pausa]
+6. Inclua timestamps aproximados a cada 1-2 minutos no formato [MM:SS]
+7. NÃO adicione interpretações, resumos ou comentários
+
+FORMATO:
+[00:00] João: Bom dia a todos, vamos começar a reunião...
+[00:15] Maria: Obrigada João, eu queria falar sobre...`,
               },
               {
                 role: "user",
                 content: [
-                  {
-                    type: "text",
-                    text: "Transcreva completamente este áudio de reunião. Retorne APENAS a transcrição, sem comentários adicionais.",
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:audio/webm;base64,${audioBase64}`,
-                    },
-                  },
+                  { type: "text", text: "Transcreva completamente este áudio/vídeo de reunião com identificação de cada falante. Retorne APENAS a transcrição diarizada." },
+                  { type: "image_url", image_url: { url: `data:${mimeType};base64,${audioBase64}` } },
                 ],
               },
             ],
@@ -132,7 +113,6 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
         if (!transcribeResponse.ok) {
           const errText = await transcribeResponse.text();
           console.error("[meeting-analyze] Transcription error:", transcribeResponse.status, errText);
-          
           if (transcribeResponse.status === 429) {
             await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
             return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
@@ -145,7 +125,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
               status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
-          throw new Error("Erro na transcrição do áudio");
+          throw new Error("Erro na transcrição da mídia");
         }
 
         const transcribeData = await transcribeResponse.json();
@@ -154,22 +134,20 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
 
         if (!transcription || transcription.length < 10) {
           await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-          return new Response(JSON.stringify({ error: "Não foi possível transcrever o áudio. O áudio pode estar vazio ou muito curto. Tente colar a transcrição manualmente." }), {
+          return new Response(JSON.stringify({ error: "Não foi possível transcrever a mídia. Tente colar a transcrição manualmente." }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        // Save transcription
         await supabaseAdmin.from("meetings").update({
-          transcription,
-          updated_at: new Date().toISOString(),
+          transcription, updated_at: new Date().toISOString(),
         }).eq("id", meetingId);
       }
     }
 
     if (!transcription) {
       await supabaseAdmin.from("meetings").update({ status: "draft" }).eq("id", meetingId);
-      return new Response(JSON.stringify({ error: "Nenhuma transcrição ou áudio disponível para análise." }), {
+      return new Response(JSON.stringify({ error: "Nenhuma transcrição ou mídia disponível para análise." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -177,7 +155,6 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
     // ============ STEP 2: ANALYZE TRANSCRIPTION ============
     console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
 
-    // Get departments
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
@@ -192,7 +169,18 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
         messages: [
           {
             role: "system",
-            content: `Você é um analista de reuniões corporativas. Analise a transcrição fornecida e extraia informações estruturadas. Use os departamentos disponíveis na empresa: ${deptNames}. Responda SEMPRE em português do Brasil.`,
+            content: `Você é um analista de reuniões corporativas especializado em gerar análises profundas e atas formais. Analise a transcrição e extraia TODAS as informações estruturadas. Use os departamentos: ${deptNames}. Responda SEMPRE em português do Brasil.
+
+IMPORTANTE para o MAPA MENTAL:
+- Crie uma hierarquia PROFUNDA com 3-4 níveis de profundidade
+- Use categorias intermediárias (tipo "processo") para agrupar subtemas
+- Cada ramo deve ter 2-5 sub-itens detalhados
+- Labels devem ser descritivos (frases curtas, não apenas uma palavra)
+- Inclua TODOS os temas discutidos na reunião
+
+IMPORTANTE para a ATA:
+- Formato profissional de ata corporativa em Markdown
+- Inclua: Data, Participantes, Pauta, Discussões, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos`,
           },
           {
             role: "user",
@@ -204,17 +192,33 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
             type: "function",
             function: {
               name: "analyze_meeting",
-              description: "Analisa a reunião e retorna dados estruturados com resumo, insights, tarefas e riscos.",
+              description: "Analisa reunião e retorna dados estruturados completos incluindo ata formal e mapa mental profundo.",
               parameters: {
                 type: "object",
                 properties: {
                   summary: {
                     type: "string",
-                    description: "Resumo executivo da reunião em 2-4 parágrafos, baseado fielmente no que foi discutido",
+                    description: "Resumo executivo da reunião em 2-4 parágrafos",
+                  },
+                  ata: {
+                    type: "string",
+                    description: "Ata formal da reunião em formato Markdown com seções: ## Participantes, ## Pauta, ## Discussões, ## Deliberações, ## Encaminhamentos (com responsáveis e prazos), ## Próximos Passos",
+                  },
+                  participants: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string", description: "Nome do participante identificado" },
+                        role: { type: "string", description: "Cargo ou papel na reunião, se identificável" },
+                      },
+                      required: ["name"],
+                    },
+                    description: "Lista de participantes identificados na reunião",
                   },
                   mindmap_data: {
                     type: "object",
-                    description: "Mapa mental estruturado em JSON com root e children. Cada child tem label, type (problema|oportunidade|decisao|tarefa|risco) e opcionalmente children.",
+                    description: "Mapa mental profundo com 3-4 níveis. Cada nó tem label, type e opcionalmente children.",
                     properties: {
                       root: { type: "string", description: "Tema central da reunião" },
                       children: {
@@ -223,14 +227,25 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
                           type: "object",
                           properties: {
                             label: { type: "string" },
-                            type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco"] },
+                            type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
                             children: {
                               type: "array",
                               items: {
                                 type: "object",
                                 properties: {
                                   label: { type: "string" },
-                                  type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco"] },
+                                  type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
+                                  children: {
+                                    type: "array",
+                                    items: {
+                                      type: "object",
+                                      properties: {
+                                        label: { type: "string" },
+                                        type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
+                                      },
+                                      required: ["label", "type"],
+                                    },
+                                  },
                                 },
                                 required: ["label", "type"],
                               },
@@ -286,7 +301,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
                     },
                   },
                 },
-                required: ["summary", "mindmap_data", "insights", "tasks", "risks"],
+                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks"],
                 additionalProperties: false,
               },
             },
@@ -299,10 +314,9 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("[meeting-analyze] AI Gateway error:", aiResponse.status, errorText);
-
       if (aiResponse.status === 429) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -317,7 +331,6 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-
     let analysis: any;
 
     if (toolCall?.function?.arguments) {
@@ -334,9 +347,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
         let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
         const jsonStart = cleaned.search(/[\{\[]/);
         const jsonEnd = cleaned.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-        }
+        if (jsonStart !== -1 && jsonEnd !== -1) cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
         analysis = JSON.parse(cleaned);
       } else {
         throw new Error("IA não retornou dados estruturados");
@@ -344,18 +355,17 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
     }
 
     console.log("[meeting-analyze] Analysis parsed OK:", {
-      summary: !!analysis.summary,
-      insights: analysis.insights?.length,
-      tasks: analysis.tasks?.length,
-      risks: analysis.risks?.length,
+      summary: !!analysis.summary, ata: !!analysis.ata,
+      participants: analysis.participants?.length,
+      insights: analysis.insights?.length, tasks: analysis.tasks?.length, risks: analysis.risks?.length,
     });
 
     // ============ STEP 3: SAVE RESULTS ============
-
-    // Save summary and mindmap
     await supabaseAdmin.from("meetings").update({
-      transcription: transcription,
+      transcription,
       summary: analysis.summary,
+      ata: analysis.ata || null,
+      participants: analysis.participants || null,
       mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
       status: "analyzed",
       updated_at: new Date().toISOString(),
@@ -368,52 +378,40 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
       supabaseAdmin.from("meeting_risks").delete().eq("meeting_id", meetingId),
     ]);
 
-    // Insert insights
     if (analysis.insights?.length > 0) {
-      const insightsRows = analysis.insights.map((i: any) => ({
-        meeting_id: meetingId,
-        insight_type: i.insight_type,
-        title: i.title,
-        description: i.description,
-        department: i.department || null,
-        impact_level: i.impact_level || null,
-        urgency_level: i.urgency_level || null,
-      }));
-      await supabaseAdmin.from("meeting_insights").insert(insightsRows);
+      await supabaseAdmin.from("meeting_insights").insert(
+        analysis.insights.map((i: any) => ({
+          meeting_id: meetingId, insight_type: i.insight_type, title: i.title,
+          description: i.description, department: i.department || null,
+          impact_level: i.impact_level || null, urgency_level: i.urgency_level || null,
+        }))
+      );
     }
 
-    // Insert tasks
     if (analysis.tasks?.length > 0) {
-      const tasksRows = analysis.tasks.map((t: any) => ({
-        meeting_id: meetingId,
-        task: t.task,
-        department: t.department || null,
-        priority: t.priority || "medium",
-      }));
-      await supabaseAdmin.from("meeting_tasks").insert(tasksRows);
+      await supabaseAdmin.from("meeting_tasks").insert(
+        analysis.tasks.map((t: any) => ({
+          meeting_id: meetingId, task: t.task, department: t.department || null, priority: t.priority || "medium",
+        }))
+      );
     }
 
-    // Insert risks
     if (analysis.risks?.length > 0) {
-      const risksRows = analysis.risks.map((r: any) => ({
-        meeting_id: meetingId,
-        title: r.title,
-        description: r.description,
-        department: r.department || null,
-        risk_level: r.risk_level || "medium",
-        impact_level: r.impact_level || null,
-        urgency_level: r.urgency_level || null,
-        recommended_action: r.recommended_action || null,
-      }));
-      await supabaseAdmin.from("meeting_risks").insert(risksRows);
+      await supabaseAdmin.from("meeting_risks").insert(
+        analysis.risks.map((r: any) => ({
+          meeting_id: meetingId, title: r.title, description: r.description,
+          department: r.department || null, risk_level: r.risk_level || "medium",
+          impact_level: r.impact_level || null, urgency_level: r.urgency_level || null,
+          recommended_action: r.recommended_action || null,
+        }))
+      );
     }
 
     // Notify about HIGH/CRITICAL risks
     const highRisks = (analysis.risks || []).filter((r: any) => r.risk_level === "high" || r.risk_level === "critical");
     if (highRisks.length > 0) {
       await supabaseAdmin.from("notifications").insert({
-        user_id: user.id,
-        type: "meeting_risk",
+        user_id: user.id, type: "meeting_risk",
         title: `⚠️ ${highRisks.length} risco(s) identificado(s)`,
         message: `A análise da reunião "${meetingData.title}" identificou ${highRisks.length} risco(s) de nível alto/crítico.`,
         action_url: `/dashboard/reunioes/${meetingId}`,
@@ -434,8 +432,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
   } catch (error) {
     console.error("[meeting-analyze] error:", error);
     return new Response(JSON.stringify({ error: error.message || "Erro ao analisar reunião" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

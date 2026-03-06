@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, Brain, Mic, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ShieldAlert, Target, Loader2, FileText, ListTodo, Clipboard
+  Lightbulb, ShieldAlert, Target, Loader2, FileText, ListTodo, Clipboard, ScrollText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 import { MeetingMindMap } from "@/components/meetings/MeetingMindMap";
+import { MeetingAta } from "@/components/meetings/MeetingAta";
+import { MeetingTranscription } from "@/components/meetings/MeetingTranscription";
 
 const riskColors: Record<string, string> = {
   low: "bg-green-100 text-green-700 border-green-200",
@@ -86,14 +88,14 @@ export default function ReuniaoDetalhe() {
     const transcription = meeting?.transcription || manualTranscription.trim() || null;
     
     if (!transcription && !meeting?.audio_url) {
-      toast.error("Grave o áudio ou cole a transcrição antes de analisar");
+      toast.error("Grave o áudio, envie um vídeo ou cole a transcrição antes de analisar");
       return;
     }
 
     setAnalyzing(true);
     try {
       if (!transcription && meeting?.audio_url) {
-        toast.info("Transcrevendo áudio com IA... isso pode levar alguns segundos");
+        toast.info("Transcrevendo mídia com IA... isso pode levar alguns segundos");
       }
 
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
@@ -103,7 +105,7 @@ export default function ReuniaoDetalhe() {
       if (data?.error) throw new Error(data.error);
 
       const msg = data.transcribed
-        ? `Áudio transcrito e analisado! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`
+        ? `Mídia transcrita e analisada! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`
         : `Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`;
       toast.success(msg);
 
@@ -160,6 +162,9 @@ export default function ReuniaoDetalhe() {
     urgent: "bg-red-100 text-red-700",
   };
 
+  // Parse participants from meeting data
+  const participants = meeting.participants ? (typeof meeting.participants === "string" ? JSON.parse(meeting.participants) : meeting.participants) : null;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -191,7 +196,7 @@ export default function ReuniaoDetalhe() {
             }}
             onUploadComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["meeting", id] });
-              toast.success("Áudio salvo! Agora clique em 'Analisar com IA' ou cole a transcrição.");
+              toast.success("Mídia salva! Agora clique em 'Analisar com IA' ou cole a transcrição.");
             }}
           />
         )}
@@ -209,7 +214,7 @@ export default function ReuniaoDetalhe() {
               <Textarea
                 value={manualTranscription}
                 onChange={(e) => setManualTranscription(e.target.value)}
-                placeholder="Cole aqui a transcrição da reunião ou grave o áudio acima..."
+                placeholder="Cole aqui a transcrição da reunião ou grave/envie o arquivo acima..."
                 rows={8}
               />
               <div className="flex gap-2">
@@ -224,8 +229,12 @@ export default function ReuniaoDetalhe() {
         {/* Analysis results */}
         {meeting.status === "analyzed" && (
           <Tabs defaultValue="resumo" className="space-y-4">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="resumo">Resumo</TabsTrigger>
+              <TabsTrigger value="ata" className="gap-1">
+                <ScrollText className="h-3.5 w-3.5" />
+                Ata
+              </TabsTrigger>
               <TabsTrigger value="mindmap">Mapa Mental</TabsTrigger>
               <TabsTrigger value="insights">Insights ({insights?.length || 0})</TabsTrigger>
               <TabsTrigger value="tarefas">Tarefas ({tasks?.length || 0})</TabsTrigger>
@@ -241,6 +250,10 @@ export default function ReuniaoDetalhe() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="ata">
+              <MeetingAta ata={meeting.ata} participants={participants as any} />
             </TabsContent>
 
             <TabsContent value="mindmap">
@@ -339,13 +352,7 @@ export default function ReuniaoDetalhe() {
             </TabsContent>
 
             <TabsContent value="transcricao">
-              <Card>
-                <CardContent className="pt-6">
-                  <pre className="text-sm whitespace-pre-wrap text-foreground font-sans">
-                    {meeting.transcription || "Nenhuma transcrição disponível."}
-                  </pre>
-                </CardContent>
-              </Card>
+              <MeetingTranscription transcription={meeting.transcription} audioUrl={meeting.audio_url} />
             </TabsContent>
           </Tabs>
         )}
