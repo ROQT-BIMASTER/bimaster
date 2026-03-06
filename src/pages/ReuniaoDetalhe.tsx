@@ -232,18 +232,13 @@ export default function ReuniaoDetalhe() {
       }
 
       // STEP 2: Analyze transcription (text only — lightweight)
-      setAnalyzeProgress({ step: "Analisando com IA", percent: 90, detail: "Extraindo insights, tarefas e riscos..." });
+      // progress is updated by the edge function via DB
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setAnalyzeProgress({ step: "Concluído!", percent: 100, detail: `${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos` });
-      toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
-      queryClient.invalidateQueries({ queryKey: ["meeting", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
-      queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+      // Realtime subscription will handle the final state update
     } catch (e: any) {
       toast.error(e.message || "Erro ao analisar reunião");
     } finally {
