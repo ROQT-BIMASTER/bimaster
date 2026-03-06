@@ -83,25 +83,30 @@ export default function ReuniaoDetalhe() {
   });
 
   const handleAnalyze = async () => {
-    let transcription = meeting?.transcription || manualTranscription.trim();
-    
-    // If no transcription but has audio, send audio URL so edge function can handle it
-    if (!transcription && meeting?.audio_url) {
-      transcription = `[ÁUDIO DISPONÍVEL - URL: ${meeting.audio_url}]\n\nNota: O áudio foi gravado mas não possui transcrição manual. Analise com base no contexto disponível: Reunião "${meeting.title}"${meeting.description ? ` - ${meeting.description}` : ""}.`;
-    }
+    const transcription = meeting?.transcription || manualTranscription.trim() || null;
     
     if (!transcription && !meeting?.audio_url) {
-      toast.error("Grave o áudio ou cole a transcrição da reunião antes de analisar");
+      toast.error("Grave o áudio ou cole a transcrição antes de analisar");
       return;
     }
+
     setAnalyzing(true);
     try {
+      if (!transcription && meeting?.audio_url) {
+        toast.info("Transcrevendo áudio com IA... isso pode levar alguns segundos");
+      }
+
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
+
+      const msg = data.transcribed
+        ? `Áudio transcrito e analisado! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`
+        : `Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`;
+      toast.success(msg);
+
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
