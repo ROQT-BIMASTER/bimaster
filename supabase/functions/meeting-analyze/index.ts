@@ -60,10 +60,27 @@ serve(async (req) => {
     // ============ ANALYZE TRANSCRIPTION (TEXT ONLY — no audio/video in memory) ============
     console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
 
+    // Truncate very long transcriptions to avoid timeouts (keep first + last parts for context)
+    const MAX_TRANSCRIPTION_CHARS = 80000;
+    let analysisTranscription = transcription;
+    if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
+      const halfLimit = Math.floor(MAX_TRANSCRIPTION_CHARS / 2);
+      analysisTranscription = transcription.substring(0, halfLimit)
+        + "\n\n[... parte central da transcrição omitida por tamanho — total: " + transcription.length + " caracteres ...]\n\n"
+        + transcription.substring(transcription.length - halfLimit);
+      console.log(`[meeting-analyze] Transcription truncated: ${transcription.length} → ${analysisTranscription.length} chars`);
+    }
+
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // AbortController to enforce 50s timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000);
+
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,
