@@ -373,7 +373,7 @@ Departamentos disponíveis: ${deptNames}
               },
               tasks: {
                 type: "array",
-                description: "8-15 tarefas extraídas da reunião (MÍNIMO 8)",
+                description: `${targetTasks}+ tarefas extraídas exaustivamente da reunião`,
                 items: {
                   type: "object",
                   properties: {
