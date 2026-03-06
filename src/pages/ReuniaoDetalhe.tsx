@@ -215,6 +215,7 @@ export default function ReuniaoDetalhe() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      setAnalyzeProgress({ step: "Concluído!", percent: 100, detail: `${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos` });
       toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
