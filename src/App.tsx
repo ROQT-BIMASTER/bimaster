@@ -201,6 +201,8 @@ const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoApro
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
+const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
+const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 
 // Loading component
 const PageLoader = () => (
@@ -445,6 +447,10 @@ function AppContent() {
              <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoInbox /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+
+            {/* Módulo de Reuniões */}
+            <Route path="/dashboard/reunioes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><Reunioes /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/reunioes/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><ReuniaoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={
