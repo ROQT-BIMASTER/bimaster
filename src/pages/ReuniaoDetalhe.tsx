@@ -83,9 +83,15 @@ export default function ReuniaoDetalhe() {
   });
 
   const handleAnalyze = async () => {
-    const transcription = meeting?.transcription || manualTranscription.trim();
-    if (!transcription) {
-      toast.error("Cole ou grave a transcrição da reunião antes de analisar");
+    let transcription = meeting?.transcription || manualTranscription.trim();
+    
+    // If no transcription but has audio, send audio URL so edge function can handle it
+    if (!transcription && meeting?.audio_url) {
+      transcription = `[ÁUDIO DISPONÍVEL - URL: ${meeting.audio_url}]\n\nNota: O áudio foi gravado mas não possui transcrição manual. Analise com base no contexto disponível: Reunião "${meeting.title}"${meeting.description ? ` - ${meeting.description}` : ""}.`;
+    }
+    
+    if (!transcription && !meeting?.audio_url) {
+      toast.error("Grave o áudio ou cole a transcrição da reunião antes de analisar");
       return;
     }
     setAnalyzing(true);
