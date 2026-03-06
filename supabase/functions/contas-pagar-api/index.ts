@@ -425,6 +425,14 @@ Deno.serve(async (req) => {
     // GET /status - Status da API
     // =====================================================
     if (path.endsWith('/status') && req.method === 'GET') {
+      // Require API key for status endpoint
+      if (!validateApiKey()) {
+        logError('status', 'Unauthorized - API Key inválida');
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
       // Buscar slots ativos para mostrar no status
       const activeSlots = await getActiveSlotCount(supabase);
       
