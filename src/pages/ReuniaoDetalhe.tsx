@@ -225,7 +225,7 @@ export default function ReuniaoDetalhe() {
 
           // Delay between batches — larger chunks need more breathing room
           if (batchStart + BATCH_SIZE < chunks.length) {
-            await new Promise(r => setTimeout(r, 5000));
+            await new Promise(r => setTimeout(r, 2000));
           }
         }
 
