@@ -12,10 +12,10 @@ interface MeetingPrintReportProps {
 }
 
 const RISK_COLORS: Record<string, string> = {
-  critical: "#dc2626",
-  high: "#f97316",
-  medium: "#eab308",
-  low: "#16a34a",
+  critical: "#c0392b",
+  high: "#e67e22",
+  medium: "#f1c40f",
+  low: "#27ae60",
 };
 
 const RISK_LABELS: Record<string, string> = {
@@ -34,19 +34,11 @@ const INSIGHT_LABELS: Record<string, string> = {
 };
 
 const INSIGHT_COLORS: Record<string, string> = {
-  risco: "#dc2626",
-  oportunidade: "#16a34a",
-  decisao: "#2563eb",
-  bloqueio: "#7c3aed",
-  problema: "#f97316",
-};
-
-const INSIGHT_ICONS: Record<string, string> = {
-  risco: "⚠",
-  oportunidade: "🚀",
-  decisao: "⚡",
-  bloqueio: "🚧",
-  problema: "🔴",
+  risco: "#c0392b",
+  oportunidade: "#27ae60",
+  decisao: "#2980b9",
+  bloqueio: "#8e44ad",
+  problema: "#e67e22",
 };
 
 const TASK_STATUS_LABELS: Record<string, string> = {
@@ -91,7 +83,7 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
     const counts: Record<string, number> = {};
     insights.forEach((i) => { counts[i.insight_type || "outro"] = (counts[i.insight_type || "outro"] || 0) + 1; });
     return Object.entries(counts).map(([key, value]) => ({
-      key, label: INSIGHT_LABELS[key] || key, value, color: INSIGHT_COLORS[key] || "#6b7280",
+      key, label: INSIGHT_LABELS[key] || key, value, color: INSIGHT_COLORS[key] || "#7f8c8d",
     }));
   }, [insights]);
 
@@ -100,14 +92,13 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
     const inProgress = tasks.filter((t) => t.status === "in_progress").length;
     const pending = tasks.length - done - inProgress;
     return [
-      { key: "done", label: "Concluídas", value: done, color: "#16a34a" },
-      { key: "in_progress", label: "Em Andamento", value: inProgress, color: "#2563eb" },
-      { key: "pending", label: "Pendentes", value: pending, color: "#eab308" },
+      { key: "done", label: "Concluídas", value: done, color: "#27ae60" },
+      { key: "in_progress", label: "Em Andamento", value: inProgress, color: "#2980b9" },
+      { key: "pending", label: "Pendentes", value: pending, color: "#f39c12" },
     ].filter((d) => d.value > 0);
   }, [tasks]);
 
   const radarData = useMemo(() => {
-    const totalInsights = insights.length || 1;
     const totalTasks = tasks.length || 1;
     const totalRisks = risks.length || 1;
     const completedTasks = tasks.filter((t) => t.status === "done").length;
@@ -115,11 +106,11 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
     const highRisks = risks.filter((r) => r.risk_level === "critical" || r.risk_level === "high").length;
 
     return [
-      { label: "Insights Gerados", value: Math.min(100, totalInsights * 20), icon: "💡" },
-      { label: "Tarefas Concluídas", value: Math.round((completedTasks / totalTasks) * 100), icon: "✅" },
-      { label: "Riscos Resolvidos", value: Math.round((resolvedRisks / totalRisks) * 100), icon: "🛡" },
-      { label: "Controle de Severidade", value: Math.max(0, 100 - Math.round((highRisks / totalRisks) * 100)), icon: "📊" },
-      { label: "Cobertura Analítica", value: insights.length > 0 && tasks.length > 0 && risks.length > 0 ? 100 : 50, icon: "🎯" },
+      { label: "Insights Gerados", value: Math.min(100, insights.length * 20) },
+      { label: "Tarefas Concluídas", value: Math.round((completedTasks / totalTasks) * 100) },
+      { label: "Riscos Resolvidos", value: Math.round((resolvedRisks / totalRisks) * 100) },
+      { label: "Controle de Severidade", value: Math.max(0, 100 - Math.round((highRisks / totalRisks) * 100)) },
+      { label: "Cobertura Analítica", value: insights.length > 0 && tasks.length > 0 && risks.length > 0 ? 100 : 50 },
     ];
   }, [insights, tasks, risks]);
 
@@ -136,12 +127,18 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const maxRisksInDept = Math.max(...risksByDepartment.map(d => d.total), 1);
     const maxInsightCount = Math.max(...insightsByType.map(d => d.value), 1);
     const maxRiskLevel = Math.max(...risksByLevel.map(d => d.value), 1);
+    const maxRisksInDept = Math.max(...risksByDepartment.map(d => d.total), 1);
 
-    const scoreColor = overallScore >= 75 ? "#16a34a" : overallScore >= 50 ? "#eab308" : "#dc2626";
-    const scoreLabel = overallScore >= 75 ? "Excelente" : overallScore >= 50 ? "Moderado" : "Atenção";
+    const scoreColor = overallScore >= 75 ? "#27ae60" : overallScore >= 50 ? "#f39c12" : "#c0392b";
+    const scoreLabel = overallScore >= 75 ? "Excelente" : overallScore >= 50 ? "Moderado" : "Atenção Necessária";
+
+    const figureCounter = { n: 0 };
+    const fig = () => { figureCounter.n++; return `Figura ${figureCounter.n}`; };
+
+    const tableCounter = { n: 0 };
+    const tab = () => { tableCounter.n++; return `Tabela ${tableCounter.n}`; };
 
     printWindow.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
@@ -149,417 +146,449 @@ export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingP
 <meta charset="UTF-8">
 <title>Relatório Executivo — ${meeting.title}</title>
 <style>
-  @page { size: A4; margin: 12mm 14mm; }
+  @page { size: A4; margin: 18mm 20mm; }
   @media print { .no-print { display: none !important; } }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #1a1a2e; line-height: 1.55; background: #fff; font-size: 12px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #2c3e50; line-height: 1.65; background: #fff; font-size: 11pt;
   }
 
   /* === HEADER === */
   .header {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #4338ca 100%);
-    color: #fff; padding: 32px 36px; border-radius: 16px; margin-bottom: 24px;
-    position: relative; overflow: hidden;
+    border-bottom: 3px solid #1a5276;
+    padding-bottom: 18px; margin-bottom: 28px;
+    display: flex; justify-content: space-between; align-items: flex-end;
   }
-  .header::before {
-    content: ''; position: absolute; top: -40px; right: -40px;
-    width: 200px; height: 200px; border-radius: 50%;
-    background: rgba(255,255,255,0.04);
+  .header-left h1 {
+    font-size: 20pt; font-weight: 700; color: #1a5276;
+    line-height: 1.2; margin-bottom: 4px; font-family: 'Segoe UI', Arial, sans-serif;
   }
-  .header::after {
-    content: ''; position: absolute; bottom: -60px; right: 60px;
-    width: 160px; height: 160px; border-radius: 50%;
-    background: rgba(255,255,255,0.03);
+  .header-left .subtitle {
+    font-size: 10pt; color: #5d6d7e; font-style: italic;
   }
-  .header-brand { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.6; margin-bottom: 8px; font-weight: 600; }
-  .header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
-  .header-sub { font-size: 13px; opacity: 0.75; font-weight: 400; }
-  .header-meta { display: flex; gap: 28px; margin-top: 18px; flex-wrap: wrap; }
-  .header-meta-item {
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.1); padding: 6px 14px;
-    border-radius: 8px; font-size: 11px; font-weight: 500; backdrop-filter: blur(4px);
+  .header-right {
+    text-align: right; font-size: 9pt; color: #5d6d7e;
+    font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.7;
+  }
+  .header-right .brand {
+    font-size: 12pt; font-weight: 800; color: #1a5276;
+    letter-spacing: 1.5px; font-family: 'Segoe UI', Arial, sans-serif;
   }
 
-  /* === KPI === */
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-  .kpi-card {
-    border-radius: 14px; padding: 20px 16px; text-align: center;
-    position: relative; overflow: hidden;
+  /* === SECTION HEADINGS === */
+  h2 {
+    font-size: 13pt; font-weight: 700; color: #1a5276;
+    margin: 24px 0 10px 0; padding-bottom: 6px;
+    border-bottom: 1.5px solid #d5dbdb;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    page-break-after: avoid;
   }
-  .kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-  }
-  .kpi-blue { background: #eff6ff; border: 1px solid #bfdbfe; }
-  .kpi-blue::before { background: linear-gradient(90deg, #2563eb, #3b82f6); }
-  .kpi-blue .kpi-value { color: #1d4ed8; }
-  .kpi-green { background: #f0fdf4; border: 1px solid #bbf7d0; }
-  .kpi-green::before { background: linear-gradient(90deg, #16a34a, #22c55e); }
-  .kpi-green .kpi-value { color: #15803d; }
-  .kpi-orange { background: #fff7ed; border: 1px solid #fed7aa; }
-  .kpi-orange::before { background: linear-gradient(90deg, #ea580c, #f97316); }
-  .kpi-orange .kpi-value { color: #c2410c; }
-  .kpi-red { background: #fef2f2; border: 1px solid #fecaca; }
-  .kpi-red::before { background: linear-gradient(90deg, #dc2626, #ef4444); }
-  .kpi-red .kpi-value { color: #b91c1c; }
-  .kpi-icon { font-size: 22px; margin-bottom: 6px; }
-  .kpi-value { font-size: 32px; font-weight: 900; line-height: 1; }
-  .kpi-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; font-weight: 700; }
-
-  /* === SECTIONS === */
-  .section { margin-bottom: 22px; page-break-inside: avoid; }
-  .section-header {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 14px; font-weight: 800; color: #0f172a;
-    margin-bottom: 14px; padding-bottom: 8px;
-    border-bottom: 2px solid #e2e8f0;
-  }
-  .section-header .icon {
-    width: 28px; height: 28px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; color: #fff; flex-shrink: 0;
-  }
-  .section-header .count {
-    margin-left: auto; font-size: 11px; font-weight: 600;
-    background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 20px;
+  h2 .num { color: #2980b9; margin-right: 6px; }
+  h3 {
+    font-size: 11pt; font-weight: 700; color: #2c3e50;
+    margin: 16px 0 8px 0; font-family: 'Segoe UI', Arial, sans-serif;
   }
 
-  /* === CHARTS === */
-  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .chart-card {
-    border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px;
-    background: #fff;
-  }
-  .chart-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
-  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .bar-label { width: 90px; font-size: 11px; font-weight: 600; color: #475569; text-align: right; flex-shrink: 0; }
-  .bar-track { flex: 1; height: 22px; background: #f1f5f9; border-radius: 6px; overflow: hidden; position: relative; }
-  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; min-width: 28px; }
-  .bar-fill span { font-size: 10px; font-weight: 800; color: #fff; }
-  .bar-value { width: 28px; font-size: 12px; font-weight: 800; color: #0f172a; text-align: center; }
+  /* === TWO COLUMN LAYOUT === */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 14px 0; }
+  .two-col-wide-left { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; margin: 14px 0; }
 
-  /* === SCORE CARD === */
-  .score-section { display: grid; grid-template-columns: 200px 1fr; gap: 24px; margin-bottom: 24px; align-items: start; }
+  /* === KPI STRIP === */
+  .kpi-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    border: 1px solid #d5dbdb; border-radius: 0; margin-bottom: 24px;
+  }
+  .kpi-item {
+    padding: 14px 16px; text-align: center;
+    border-right: 1px solid #d5dbdb;
+  }
+  .kpi-item:last-child { border-right: none; }
+  .kpi-item .val {
+    font-size: 22pt; font-weight: 800; color: #1a5276;
+    font-family: 'Segoe UI', Arial, sans-serif; line-height: 1;
+  }
+  .kpi-item .lbl {
+    font-size: 8pt; color: #7f8c8d; text-transform: uppercase;
+    letter-spacing: 0.8px; margin-top: 4px;
+    font-family: 'Segoe UI', Arial, sans-serif; font-weight: 600;
+  }
+
+  /* === CHART BOX === */
+  .chart-box {
+    border: 1px solid #d5dbdb; padding: 14px 16px; margin-bottom: 14px;
+    page-break-inside: avoid;
+  }
+  .chart-box .chart-title {
+    font-size: 9pt; font-weight: 700; color: #2c3e50;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #eaecee;
+  }
+  .figure-label {
+    font-size: 8pt; color: #7f8c8d; text-align: center;
+    margin-top: 8px; font-style: italic;
+  }
+
+  /* === HORIZONTAL BARS === */
+  .hbar { display: flex; align-items: center; margin-bottom: 8px; }
+  .hbar-label {
+    width: 100px; font-size: 9pt; font-weight: 600; color: #2c3e50;
+    text-align: right; padding-right: 10px; flex-shrink: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .hbar-track { flex: 1; height: 18px; background: #eaecee; position: relative; }
+  .hbar-fill { height: 100%; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+  .hbar-fill span { font-size: 8pt; font-weight: 700; color: #fff; font-family: 'Segoe UI', sans-serif; }
+  .hbar-val {
+    width: 30px; text-align: center; font-size: 9pt; font-weight: 700;
+    color: #2c3e50; font-family: 'Segoe UI', sans-serif; padding-left: 6px;
+  }
+
+  /* === TABLE === */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 9pt; font-family: 'Segoe UI', Arial, sans-serif; }
+  .data-table th {
+    text-align: left; font-weight: 700; color: #fff; background: #1a5276;
+    padding: 7px 10px; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .data-table td { padding: 8px 10px; border-bottom: 1px solid #eaecee; color: #2c3e50; }
+  .data-table tr:nth-child(even) td { background: #f8f9f9; }
+  .data-table .bar-cell { width: 40%; }
+  .table-bar-track { width: 100%; height: 8px; background: #eaecee; }
+  .table-bar-fill { height: 100%; }
+  .table-label { font-size: 8pt; color: #7f8c8d; text-align: center; margin-top: 6px; font-style: italic; }
+
+  /* === SCORE PANEL === */
+  .score-panel {
+    border: 1px solid #d5dbdb; padding: 18px; page-break-inside: avoid;
+  }
+  .score-panel-grid { display: grid; grid-template-columns: 140px 1fr; gap: 20px; align-items: center; }
   .score-ring {
-    width: 160px; height: 160px; border-radius: 50%; position: relative;
+    width: 120px; height: 120px; border-radius: 50%; position: relative;
     display: flex; align-items: center; justify-content: center; margin: 0 auto;
   }
   .score-ring-inner {
-    width: 120px; height: 120px; border-radius: 50%; background: #fff;
+    width: 88px; height: 88px; border-radius: 50%; background: #fff;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   }
-  .score-number { font-size: 36px; font-weight: 900; line-height: 1; }
-  .score-label-text { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-  .score-dim { margin-bottom: 12px; }
-  .score-dim-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .score-dim-label { font-size: 11px; font-weight: 600; color: #334155; }
-  .score-dim-value { font-size: 11px; font-weight: 800; color: #0f172a; }
-  .score-dim-track { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
-  .score-dim-fill { height: 100%; border-radius: 4px; }
+  .score-num { font-size: 26pt; font-weight: 900; line-height: 1; font-family: 'Segoe UI', sans-serif; }
+  .score-lbl { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; font-family: 'Segoe UI', sans-serif; }
+  .dim-row { margin-bottom: 10px; }
+  .dim-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .dim-name { font-size: 9pt; font-weight: 600; color: #2c3e50; font-family: 'Segoe UI', sans-serif; }
+  .dim-val { font-size: 9pt; font-weight: 800; color: #1a5276; font-family: 'Segoe UI', sans-serif; }
+  .dim-track { height: 6px; background: #eaecee; }
+  .dim-fill { height: 100%; }
 
   /* === SUMMARY === */
-  .summary-box {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-    border-left: 4px solid; border-image: linear-gradient(180deg, #2563eb, #7c3aed) 1;
-    border-radius: 0 14px 14px 0; padding: 20px 24px;
-    font-size: 12px; line-height: 1.8; white-space: pre-wrap; color: #334155;
+  .summary-block {
+    background: #f8f9f9; border-left: 3px solid #1a5276;
+    padding: 16px 20px; font-size: 10pt; line-height: 1.8;
+    white-space: pre-wrap; color: #2c3e50;
   }
 
-  /* === ITEM CARDS === */
-  .item-card {
-    border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px;
-    margin-bottom: 10px; background: #fff; position: relative;
-    border-left: 4px solid #e2e8f0; page-break-inside: avoid;
+  /* === ITEM LIST === */
+  .item-entry {
+    border-bottom: 1px solid #eaecee; padding: 10px 0;
+    page-break-inside: avoid;
   }
-  .item-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-  .item-card-title { font-size: 12px; font-weight: 700; color: #0f172a; flex: 1; }
-  .item-card-desc { font-size: 11px; color: #64748b; line-height: 1.6; }
-  .item-card-action { font-size: 11px; color: #475569; margin-top: 8px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #6366f1; }
-  .item-card-action em { font-style: normal; font-weight: 600; color: #4338ca; }
+  .item-entry:last-child { border-bottom: none; }
+  .item-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .item-title { font-size: 10pt; font-weight: 700; color: #2c3e50; font-family: 'Segoe UI', Arial, sans-serif; }
+  .item-desc { font-size: 9pt; color: #5d6d7e; line-height: 1.5; margin-top: 3px; }
+  .item-action {
+    font-size: 9pt; color: #2c3e50; margin-top: 6px; padding: 6px 10px;
+    background: #f2f3f4; border-left: 2px solid #2980b9;
+  }
+  .item-action strong { color: #1a5276; }
 
-  /* === BADGES === */
-  .badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 2px 10px; border-radius: 20px; font-size: 9px;
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  /* === TAGS === */
+  .tag {
+    display: inline-block; padding: 2px 8px; font-size: 7pt;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+    font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid;
   }
-  .badge-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-  .badge-high { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-  .badge-medium { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
-  .badge-low { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-  .badge-dept { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-  .badge-done { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-  .badge-in_progress { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-  .badge-pending { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
+  .tag-critical { color: #c0392b; border-color: #e6b0aa; background: #fdedec; }
+  .tag-high { color: #e67e22; border-color: #f5cba7; background: #fef5e7; }
+  .tag-medium { color: #b7950b; border-color: #f9e79f; background: #fef9e7; }
+  .tag-low { color: #1e8449; border-color: #a9dfbf; background: #eafaf1; }
+  .tag-dept { color: #2471a3; border-color: #aed6f1; background: #ebf5fb; }
+  .tag-done { color: #1e8449; border-color: #a9dfbf; background: #eafaf1; }
+  .tag-in_progress { color: #2471a3; border-color: #aed6f1; background: #ebf5fb; }
+  .tag-pending { color: #b7950b; border-color: #f9e79f; background: #fef9e7; }
+  .tag-insight { color: #fff; border: none; padding: 2px 10px; }
 
-  /* === DEPT TABLE === */
-  .dept-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  .dept-table th {
-    text-align: left; font-size: 10px; font-weight: 700; color: #64748b;
-    text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px;
-    border-bottom: 2px solid #e2e8f0; background: #f8fafc;
+  /* === SEVERITY INDICATOR === */
+  .sev-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle;
   }
-  .dept-table th:first-child { border-radius: 8px 0 0 0; }
-  .dept-table th:last-child { border-radius: 0 8px 0 0; }
-  .dept-table td {
-    padding: 10px 12px; font-size: 11px; color: #334155;
-    border-bottom: 1px solid #f1f5f9;
-  }
-  .dept-table tr:last-child td { border-bottom: none; }
-  .dept-bar-track { width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-  .dept-bar-fill { height: 100%; border-radius: 3px; }
 
   /* === FOOTER === */
   .footer {
-    margin-top: 32px; padding-top: 16px;
-    border-top: 1px solid #e2e8f0; text-align: center; position: relative;
+    margin-top: 30px; padding-top: 12px;
+    border-top: 2px solid #1a5276;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
   }
-  .footer-brand { font-size: 16px; font-weight: 900; color: #e2e8f0; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 6px; }
-  .footer-info { font-size: 9px; color: #94a3b8; }
-  .footer-line { display: flex; justify-content: center; gap: 20px; margin-top: 4px; }
+  .footer-left { font-size: 8pt; color: #7f8c8d; }
+  .footer-right { font-size: 10pt; font-weight: 800; color: #1a5276; letter-spacing: 1px; }
+  .footer-conf { font-size: 7pt; color: #aab7b8; text-align: center; margin-top: 6px; }
+
+  /* === PAGE BREAKS === */
+  .page-break { page-break-before: always; }
+  .avoid-break { page-break-inside: avoid; }
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div class="header">
-  <div class="header-brand">BI MASTER • RELATÓRIO EXECUTIVO</div>
-  <h1>${meeting.title}</h1>
-  <div class="header-sub">Análise Inteligente de Reunião com IA</div>
-  <div class="header-meta">
-    <div class="header-meta-item">📅 ${format(new Date(meeting.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</div>
-    <div class="header-meta-item">🕐 ${format(new Date(meeting.created_at), "HH:mm", { locale: ptBR })}</div>
-    <div class="header-meta-item">⏱ ${durationText}</div>
-    <div class="header-meta-item">📊 ${meeting.status === "analyzed" ? "✓ Analisada" : meeting.status}</div>
+  <div class="header-left">
+    <h1>${meeting.title}</h1>
+    <div class="subtitle">Relatório Executivo de Análise de Reunião</div>
+  </div>
+  <div class="header-right">
+    <div class="brand">BI MASTER</div>
+    <div>${format(new Date(meeting.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</div>
+    <div>Duração: ${durationText}</div>
+    <div>Status: ${meeting.status === "analyzed" ? "Analisada" : meeting.status}</div>
   </div>
 </div>
 
-<!-- KPIs -->
-<div class="kpi-grid">
-  <div class="kpi-card kpi-blue">
-    <div class="kpi-icon">💡</div>
-    <div class="kpi-value">${insights.length}</div>
-    <div class="kpi-label">Insights</div>
+<!-- 1. OVERVIEW -->
+<h2><span class="num">1.</span> Visão Geral</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  Resumo quantitativo dos principais indicadores extraídos da análise inteligente desta reunião.
+</p>
+
+<div class="kpi-strip">
+  <div class="kpi-item">
+    <div class="val">${insights.length}</div>
+    <div class="lbl">Insights</div>
   </div>
-  <div class="kpi-card kpi-green">
-    <div class="kpi-icon">✅</div>
-    <div class="kpi-value">${tasks.length}</div>
-    <div class="kpi-label">Tarefas</div>
+  <div class="kpi-item">
+    <div class="val">${tasks.length}</div>
+    <div class="lbl">Tarefas</div>
   </div>
-  <div class="kpi-card kpi-orange">
-    <div class="kpi-icon">⚠️</div>
-    <div class="kpi-value">${risks.length}</div>
-    <div class="kpi-label">Riscos</div>
+  <div class="kpi-item">
+    <div class="val">${risks.length}</div>
+    <div class="lbl">Riscos</div>
   </div>
-  <div class="kpi-card kpi-red">
-    <div class="kpi-icon">🎯</div>
-    <div class="kpi-value">${tasks.filter((t) => t.status === "done").length}/${tasks.length}</div>
-    <div class="kpi-label">Concluídas</div>
+  <div class="kpi-item">
+    <div class="val">${tasks.filter((t) => t.status === "done").length}<span style="font-size:12pt;color:#7f8c8d">/${tasks.length}</span></div>
+    <div class="lbl">Concluídas</div>
   </div>
 </div>
 
-<!-- CHARTS -->
-<div class="charts-grid">
-  <!-- Insights by Type -->
-  <div class="chart-card">
-    <div class="chart-title">📊 Distribuição de Insights</div>
-    ${insightsByType.map(d => `
-    <div class="bar-row">
-      <div class="bar-label">${d.label}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width: ${(d.value / maxInsightCount) * 100}%; background: ${d.color};">
+<!-- 2. ANÁLISE GRÁFICA -->
+<h2><span class="num">2.</span> Análise Gráfica</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  Representação visual da distribuição de insights, tarefas e riscos identificados durante a reunião.
+</p>
+
+<div class="two-col">
+  <!-- Insights -->
+  <div class="chart-box">
+    <div class="chart-title">Distribuição de Insights por Tipo</div>
+    ${insightsByType.length > 0 ? insightsByType.map(d => `
+    <div class="hbar">
+      <div class="hbar-label">${d.label}</div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${(d.value / maxInsightCount) * 100}%;background:${d.color}">
           <span>${d.value}</span>
         </div>
       </div>
-    </div>`).join("")}
-    ${insightsByType.length === 0 ? '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:11px;">Sem dados</div>' : ""}
+    </div>`).join("") : '<div style="padding:20px;text-align:center;color:#aab7b8;font-size:9pt">Nenhum insight registrado</div>'}
+    <div class="figure-label">${fig()} — Classificação dos insights por categoria</div>
   </div>
 
-  <!-- Tasks by Status -->
-  <div class="chart-card">
-    <div class="chart-title">✅ Status de Tarefas</div>
-    ${tasksByStatus.map(d => `
-    <div class="bar-row">
-      <div class="bar-label">${d.label}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width: ${tasks.length > 0 ? (d.value / tasks.length) * 100 : 0}%; background: ${d.color};">
+  <!-- Tasks -->
+  <div class="chart-box">
+    <div class="chart-title">Status de Tarefas</div>
+    ${tasksByStatus.length > 0 ? tasksByStatus.map(d => `
+    <div class="hbar">
+      <div class="hbar-label">${d.label}</div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${tasks.length > 0 ? (d.value / tasks.length) * 100 : 0}%;background:${d.color}">
           <span>${d.value}</span>
         </div>
       </div>
-    </div>`).join("")}
-    ${tasksByStatus.length === 0 ? '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:11px;">Sem dados</div>' : ""}
+    </div>`).join("") : '<div style="padding:20px;text-align:center;color:#aab7b8;font-size:9pt">Nenhuma tarefa registrada</div>'}
+    <div class="figure-label">${fig()} — Progresso das tarefas por status</div>
   </div>
+</div>
 
+<div class="two-col">
   <!-- Risks by Level -->
-  <div class="chart-card">
-    <div class="chart-title">⚠️ Riscos por Severidade</div>
-    ${risksByLevel.filter(d => d.value > 0).map(d => `
-    <div class="bar-row">
-      <div class="bar-label">${d.label}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width: ${(d.value / maxRiskLevel) * 100}%; background: ${d.color};">
+  <div class="chart-box">
+    <div class="chart-title">Riscos por Nível de Severidade</div>
+    ${risksByLevel.filter(d => d.value > 0).length > 0 ? risksByLevel.filter(d => d.value > 0).map(d => `
+    <div class="hbar">
+      <div class="hbar-label"><span class="sev-dot" style="background:${d.color}"></span>${d.label}</div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${(d.value / maxRiskLevel) * 100}%;background:${d.color}">
           <span>${d.value}</span>
         </div>
       </div>
-    </div>`).join("")}
-    ${risksByLevel.every(d => d.value === 0) ? '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:11px;">Nenhum risco identificado</div>' : ""}
+    </div>`).join("") : '<div style="padding:20px;text-align:center;color:#aab7b8;font-size:9pt">Nenhum risco identificado</div>'}
+    <div class="figure-label">${fig()} — Distribuição de riscos por severidade</div>
   </div>
 
-  <!-- Risks by Department -->
-  <div class="chart-card">
-    <div class="chart-title">🏢 Riscos por Departamento</div>
+  <!-- Risks by Dept -->
+  <div class="chart-box">
+    <div class="chart-title">Riscos por Departamento</div>
     ${risksByDepartment.length > 0 ? `
-    <table class="dept-table">
-      <thead><tr><th>Departamento</th><th>Distribuição</th><th style="text-align:center">Total</th></tr></thead>
+    <table class="data-table">
+      <thead><tr><th>Departamento</th><th class="bar-cell">Incidência</th><th style="text-align:center">Total</th></tr></thead>
       <tbody>
       ${risksByDepartment.map(d => `
         <tr>
           <td style="font-weight:600">${d.department}</td>
-          <td>
-            <div class="dept-bar-track">
-              <div class="dept-bar-fill" style="width:${(d.total / maxRisksInDept) * 100}%;background:linear-gradient(90deg,#f97316,#fb923c);"></div>
+          <td class="bar-cell">
+            <div class="table-bar-track">
+              <div class="table-bar-fill" style="width:${(d.total / maxRisksInDept) * 100}%;background:#e67e22"></div>
             </div>
           </td>
-          <td style="text-align:center;font-weight:800;color:#ea580c">${d.total}</td>
+          <td style="text-align:center;font-weight:700">${d.total}</td>
         </tr>`).join("")}
       </tbody>
-    </table>` : '<div style="text-align:center;color:#94a3b8;padding:20px;font-size:11px;">Sem dados</div>'}
+    </table>
+    <div class="table-label">${tab()} — Concentração de riscos por área</div>
+    ` : '<div style="padding:20px;text-align:center;color:#aab7b8;font-size:9pt">Sem dados departamentais</div>'}
   </div>
 </div>
 
-<!-- PERFORMANCE SCORE -->
+<!-- 3. SCORECARD -->
 ${(insights.length > 0 || tasks.length > 0 || risks.length > 0) ? `
-<div class="section">
-  <div class="section-header">
-    <div class="icon" style="background:linear-gradient(135deg,#2563eb,#7c3aed)">🎯</div>
-    Scorecard de Performance da Reunião
-  </div>
-  <div class="score-section">
+<h2><span class="num">3.</span> Scorecard de Performance</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  Avaliação consolidada da qualidade analítica da reunião em cinco dimensões-chave.
+</p>
+<div class="score-panel">
+  <div class="score-panel-grid">
     <div>
-      <div class="score-ring" style="background: conic-gradient(${scoreColor} ${overallScore * 3.6}deg, #f1f5f9 ${overallScore * 3.6}deg);">
+      <div class="score-ring" style="background:conic-gradient(${scoreColor} ${overallScore * 3.6}deg, #eaecee ${overallScore * 3.6}deg)">
         <div class="score-ring-inner">
-          <div class="score-number" style="color:${scoreColor}">${overallScore}</div>
-          <div class="score-label-text" style="color:${scoreColor}">${scoreLabel}</div>
+          <div class="score-num" style="color:${scoreColor}">${overallScore}</div>
+          <div class="score-lbl" style="color:${scoreColor}">${scoreLabel}</div>
         </div>
       </div>
+      <div class="figure-label" style="margin-top:10px">${fig()} — Score geral</div>
     </div>
     <div>
       ${radarData.map(d => {
-        const barColor = d.value >= 75 ? "#16a34a" : d.value >= 50 ? "#eab308" : "#ef4444";
+        const c = d.value >= 75 ? "#27ae60" : d.value >= 50 ? "#f39c12" : "#c0392b";
         return `
-      <div class="score-dim">
-        <div class="score-dim-header">
-          <div class="score-dim-label">${d.icon} ${d.label}</div>
-          <div class="score-dim-value">${d.value}%</div>
+      <div class="dim-row">
+        <div class="dim-head">
+          <div class="dim-name">${d.label}</div>
+          <div class="dim-val">${d.value}%</div>
         </div>
-        <div class="score-dim-track">
-          <div class="score-dim-fill" style="width:${d.value}%;background:${barColor}"></div>
+        <div class="dim-track">
+          <div class="dim-fill" style="width:${d.value}%;background:${c}"></div>
         </div>
       </div>`;
       }).join("")}
     </div>
   </div>
-</div>` : ""}
+</div>
+` : ""}
 
-<!-- SUMMARY -->
+<!-- 4. RESUMO EXECUTIVO -->
 ${meeting.summary ? `
-<div class="section">
-  <div class="section-header">
-    <div class="icon" style="background:linear-gradient(135deg,#0f172a,#334155)">📝</div>
-    Resumo Executivo
-  </div>
-  <div class="summary-box">${meeting.summary}</div>
-</div>` : ""}
+<h2><span class="num">${insights.length > 0 || tasks.length > 0 || risks.length > 0 ? "4" : "3"}.</span> Resumo Executivo</h2>
+<div class="summary-block">${meeting.summary}</div>
+` : ""}
 
-<!-- INSIGHTS -->
+<!-- 5. INSIGHTS -->
 ${insights.length > 0 ? `
-<div class="section">
-  <div class="section-header">
-    <div class="icon" style="background:linear-gradient(135deg,#2563eb,#6366f1)">💡</div>
-    Insights Detalhados
-    <div class="count">${insights.length} insights</div>
+<div class="page-break"></div>
+<h2><span class="num">${meeting.summary ? "5" : "4"}.</span> Insights Detalhados</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  Foram identificados <strong>${insights.length} insights</strong> durante a análise desta reunião, classificados por tipo e nível de impacto.
+</p>
+${insights.map((ins: any, idx: number) => {
+  const bgColor = INSIGHT_COLORS[ins.insight_type] || "#7f8c8d";
+  return `
+<div class="item-entry">
+  <div class="item-meta">
+    <span style="font-size:9pt;font-weight:700;color:#7f8c8d;font-family:'Segoe UI',sans-serif;min-width:20px">${idx + 1}.</span>
+    <span class="tag tag-insight" style="background:${bgColor}">${INSIGHT_LABELS[ins.insight_type] || ins.insight_type}</span>
+    ${ins.impact_level ? `<span class="tag tag-${ins.impact_level}">Impacto ${PRIORITY_LABELS[ins.impact_level] || ins.impact_level}</span>` : ""}
+    ${ins.department ? `<span class="tag tag-dept">${ins.department}</span>` : ""}
   </div>
-  ${insights.map((ins: any) => {
-    const borderColor = INSIGHT_COLORS[ins.insight_type] || "#6b7280";
-    return `
-  <div class="item-card" style="border-left-color:${borderColor}">
-    <div class="item-card-header">
-      <span style="font-size:14px">${INSIGHT_ICONS[ins.insight_type] || "💡"}</span>
-      <span class="badge badge-${ins.impact_level || "medium"}">${INSIGHT_LABELS[ins.insight_type] || ins.insight_type}</span>
-      ${ins.department ? `<span class="badge badge-dept">${ins.department}</span>` : ""}
-      ${ins.impact_level ? `<span class="badge badge-${ins.impact_level}">Impacto ${PRIORITY_LABELS[ins.impact_level] || ins.impact_level}</span>` : ""}
-    </div>
-    <div class="item-card-title">${ins.title}</div>
-    ${ins.description ? `<div class="item-card-desc">${ins.description}</div>` : ""}
-  </div>`;
-  }).join("")}
-</div>` : ""}
+  <div class="item-title">${ins.title}</div>
+  ${ins.description ? `<div class="item-desc">${ins.description}</div>` : ""}
+</div>`;
+}).join("")}
+` : ""}
 
-<!-- TASKS -->
+<!-- 6. TAREFAS -->
 ${tasks.length > 0 ? `
-<div class="section">
-  <div class="section-header">
-    <div class="icon" style="background:linear-gradient(135deg,#16a34a,#22c55e)">✅</div>
-    Tarefas Identificadas
-    <div class="count">${tasks.length} tarefas</div>
-  </div>
-  ${tasks.map((task: any) => {
-    const statusColor = task.status === "done" ? "#16a34a" : task.status === "in_progress" ? "#2563eb" : "#eab308";
-    return `
-  <div class="item-card" style="border-left-color:${statusColor}">
-    <div class="item-card-header">
-      <span class="badge badge-${task.status || "pending"}">${TASK_STATUS_LABELS[task.status] || "Pendente"}</span>
-      ${task.priority ? `<span class="badge badge-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>` : ""}
-      ${task.department ? `<span class="badge badge-dept">${task.department}</span>` : ""}
-      ${task.assigned_to ? `<span style="font-size:10px;color:#64748b;margin-left:auto">👤 ${task.assigned_to}</span>` : ""}
-    </div>
-    <div class="item-card-title">${task.task}</div>
-  </div>`;
-  }).join("")}
-</div>` : ""}
+<h2><span class="num">${(meeting.summary ? 5 : 4) + (insights.length > 0 ? 1 : 0)}.</span> Tarefas Identificadas</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  Foram extraídas <strong>${tasks.length} tarefas</strong> a partir dos pontos discutidos na reunião.
+</p>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th style="width:5%">N.</th>
+      <th>Tarefa</th>
+      <th style="width:14%">Status</th>
+      <th style="width:12%">Prioridade</th>
+      <th style="width:15%">Departamento</th>
+    </tr>
+  </thead>
+  <tbody>
+  ${tasks.map((task: any, idx: number) => `
+    <tr>
+      <td style="font-weight:700;color:#7f8c8d">${idx + 1}</td>
+      <td style="font-weight:600">${task.task}</td>
+      <td><span class="tag tag-${task.status || "pending"}">${TASK_STATUS_LABELS[task.status] || "Pendente"}</span></td>
+      <td>${task.priority ? `<span class="tag tag-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>` : "—"}</td>
+      <td>${task.department || "—"}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+<div class="table-label">${tab()} — Lista completa de tarefas com status e prioridade</div>
+` : ""}
 
-<!-- RISKS -->
+<!-- 7. RISCOS -->
 ${risks.length > 0 ? `
-<div class="section">
-  <div class="section-header">
-    <div class="icon" style="background:linear-gradient(135deg,#dc2626,#f97316)">⚠️</div>
-    Riscos Identificados
-    <div class="count">${risks.length} riscos</div>
+<h2><span class="num">${(meeting.summary ? 5 : 4) + (insights.length > 0 ? 1 : 0) + (tasks.length > 0 ? 1 : 0)}.</span> Riscos Identificados</h2>
+<p style="font-size:10pt;color:#5d6d7e;margin-bottom:14px;">
+  A análise identificou <strong>${risks.length} riscos</strong> que requerem acompanhamento e mitigação.
+</p>
+${risks.map((risk: any, idx: number) => {
+  const riskColor = RISK_COLORS[risk.risk_level] || "#f1c40f";
+  return `
+<div class="item-entry">
+  <div class="item-meta">
+    <span style="font-size:9pt;font-weight:700;color:#7f8c8d;font-family:'Segoe UI',sans-serif;min-width:20px">${idx + 1}.</span>
+    <span class="sev-dot" style="background:${riskColor}"></span>
+    <span class="tag tag-${risk.risk_level || "medium"}">${RISK_LABELS[risk.risk_level] || risk.risk_level}</span>
+    ${risk.department ? `<span class="tag tag-dept">${risk.department}</span>` : ""}
+    ${risk.probability ? `<span style="font-size:8pt;color:#7f8c8d;font-family:'Segoe UI',sans-serif">Prob. ${risk.probability}%</span>` : ""}
   </div>
-  ${risks.map((risk: any) => {
-    const riskColor = RISK_COLORS[risk.risk_level] || "#eab308";
-    return `
-  <div class="item-card" style="border-left-color:${riskColor}">
-    <div class="item-card-header">
-      <span class="badge badge-${risk.risk_level || "medium"}">${RISK_LABELS[risk.risk_level] || risk.risk_level}</span>
-      ${risk.department ? `<span class="badge badge-dept">${risk.department}</span>` : ""}
-      ${risk.probability ? `<span style="font-size:10px;color:#64748b">Probabilidade: ${risk.probability}%</span>` : ""}
-    </div>
-    <div class="item-card-title">${risk.title}</div>
-    ${risk.description ? `<div class="item-card-desc">${risk.description}</div>` : ""}
-    ${risk.recommended_action ? `
-    <div class="item-card-action">
-      💡 <em>Ação recomendada:</em> ${risk.recommended_action}
-    </div>` : ""}
-  </div>`;
-  }).join("")}
-</div>` : ""}
+  <div class="item-title">${risk.title}</div>
+  ${risk.description ? `<div class="item-desc">${risk.description}</div>` : ""}
+  ${risk.recommended_action ? `
+  <div class="item-action">
+    <strong>Ação recomendada:</strong> ${risk.recommended_action}
+  </div>` : ""}
+</div>`;
+}).join("")}
+` : ""}
 
 <!-- FOOTER -->
 <div class="footer">
-  <div class="footer-brand">BI MASTER</div>
-  <div class="footer-info">
-    <div class="footer-line">
-      <span>Relatório gerado automaticamente com Inteligência Artificial</span>
-      <span>•</span>
-      <span>${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}</span>
-    </div>
-    <div style="margin-top:4px;color:#cbd5e1">Documento confidencial — uso interno</div>
+  <div class="footer-left">
+    Relatório gerado automaticamente por análise de Inteligência Artificial<br>
+    ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}
   </div>
+  <div class="footer-right">BI MASTER</div>
 </div>
+<div class="footer-conf">Documento confidencial — Distribuição restrita</div>
 
 </body>
 </html>`);
