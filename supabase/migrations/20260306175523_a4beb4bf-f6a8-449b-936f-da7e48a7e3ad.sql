@@ -1,0 +1,1 @@
+UPDATE public.meetings SET status = 'draft' WHERE status IN ('error', 'transcribing');
