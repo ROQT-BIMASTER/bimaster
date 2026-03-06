@@ -24,7 +24,7 @@ import { MeetingTranscription } from "@/components/meetings/MeetingTranscription
 import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
 import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
-import { chunkAudioFromUrl } from "@/lib/utils/audio-chunker";
+// audio-chunker no longer used — audio is fetched server-side
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 
 const riskColors: Record<string, string> = {
@@ -166,97 +166,49 @@ export default function ReuniaoDetalhe() {
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
 
-        const chunks = await chunkAudioFromUrl(signedUrl);
-        await supabase.from("meetings").update({ progress: 5, progress_detail: `✓ Áudio enviado\n⟳ Transcrevendo trecho 1 de ${chunks.length}...` } as any).eq("id", id);
+        await supabase.from("meetings").update({ progress: 5, progress_detail: "⟳ Enviando áudio para transcrição..." } as any).eq("id", id);
 
-        // Process chunks in parallel batches of 3 for speed
-        const BATCH_SIZE = 1;
+        // Send signed URL to Edge Function — server fetches the audio directly (no client-side chunking)
         const MAX_RETRIES = 3;
-        const partialTranscriptions: (string | null)[] = new Array(chunks.length).fill(null);
-        let completedChunks = 0;
-        let failedChunks = 0;
+        let transcribeResult: string | null = null;
 
-        for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
-          const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
-
-          const batchResults = await Promise.allSettled(
-            batch.map(async (chunk) => {
-              let lastError: any = null;
-              for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-                if (attempt > 0) {
-                  await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s, 6s backoff
-                }
-                try {
-                  const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
-                    body: {
-                      meetingId: id,
-                      audioBase64: chunk.base64,
-                      mimeType: chunk.mimeType,
-                      chunkIndex: chunk.chunkIndex,
-                      totalChunks: chunk.totalChunks,
-                      startSeconds: chunk.startSeconds ?? 0,
-                      endSeconds: chunk.endSeconds ?? 0,
-                    },
-                  });
-                  if (transcribeError) { lastError = transcribeError; continue; }
-                  if (transcribeData?.error) { lastError = new Error(transcribeData.error); continue; }
-                  return { index: chunk.chunkIndex, text: transcribeData.transcription };
-                } catch (err) {
-                  lastError = err;
-                  console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} failed:`, err);
-                }
-              }
-              // All retries exhausted — return placeholder instead of aborting
-              console.error(`[chunk ${chunk.chunkIndex}] all retries failed:`, lastError);
-              return { index: chunk.chunkIndex, text: null };
-            })
-          );
-
-          for (const result of batchResults) {
-            if (result.status === "fulfilled" && result.value.text) {
-              partialTranscriptions[result.value.index] = result.value.text;
-              completedChunks++;
-            } else if (result.status === "fulfilled" && !result.value.text) {
-              partialTranscriptions[result.value.index] = "[... trecho inaudível ...]";
-              failedChunks++;
-              completedChunks++;
-            } else {
-              failedChunks++;
-              completedChunks++;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 3000 * attempt));
+          }
+          try {
+            const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
+              body: {
+                meetingId: id,
+                audioUrl: signedUrl,
+              },
+            });
+            if (transcribeError) {
+              console.warn(`[transcribe] attempt ${attempt + 1} failed:`, transcribeError);
+              continue;
             }
-          }
-
-          // Save partial transcription to DB after each batch (incremental save)
-          const partialText = partialTranscriptions.filter(Boolean).join("\n\n---\n\n");
-          if (partialText.length > 0) {
-            await supabase.from("meetings").update({
-              transcription: partialText,
-              progress: Math.round(5 + (completedChunks / chunks.length) * 80),
-              progress_detail: completedChunks < chunks.length
-                ? `✓ Áudio enviado\n⟳ Transcrevendo trecho ${completedChunks + 1} de ${chunks.length}...`
-                : `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...`,
-            } as any).eq("id", id);
-          }
-
-          // Delay between batches — larger chunks need more breathing room
-          if (batchStart + BATCH_SIZE < chunks.length) {
-            await new Promise(r => setTimeout(r, 2000));
+            if (transcribeData?.error) {
+              console.warn(`[transcribe] attempt ${attempt + 1} error:`, transcribeData.error);
+              continue;
+            }
+            transcribeResult = transcribeData.transcription;
+            break;
+          } catch (err) {
+            console.warn(`[transcribe] attempt ${attempt + 1} exception:`, err);
           }
         }
 
-        await supabase.from("meetings").update({ progress: 85, progress_detail: `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...` } as any).eq("id", id);
-
-        if (failedChunks > 0) {
-          toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
+        if (!transcribeResult) {
+          throw new Error("Não foi possível transcrever o áudio após múltiplas tentativas");
         }
 
-        // If ALL chunks failed, abort
-        const successfulChunks = partialTranscriptions.filter(t => t && t !== "[... trecho inaudível ...]");
-        if (successfulChunks.length === 0) {
-          throw new Error("Não foi possível transcrever nenhum trecho do áudio");
-        }
+        transcription = transcribeResult;
 
-        transcription = partialTranscriptions.filter(Boolean).join("\n\n");
+        await supabase.from("meetings").update({
+          transcription,
+          progress: 85,
+          progress_detail: "✓ Transcrição concluída\n⟳ Analisando reunião...",
+        } as any).eq("id", id);
 
         // Save the full transcription
         await supabase.from("meetings").update({

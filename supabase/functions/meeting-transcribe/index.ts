@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,8 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks, startSeconds, endSeconds } = await req.json();
+    const body = await req.json();
+    const { meetingId, audioUrl, audioBase64, mimeType, chunkIndex, totalChunks, startSeconds, endSeconds } = body;
 
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
@@ -40,30 +42,64 @@ serve(async (req) => {
       });
     }
 
-    if (!audioBase64) {
-      return new Response(JSON.stringify({ error: "audioBase64 é obrigatório" }), {
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    let finalBase64: string;
+    let finalMimeType: string;
+
+    if (audioUrl) {
+      // NEW PATH: Download audio from Storage via signed URL (server-side)
+      console.log(`[meeting-transcribe] Fetching audio from URL, meetingId: ${meetingId}`);
+      
+      await supabaseAdmin.from("meetings").update({
+        status: "transcribing",
+        progress: 10,
+        progress_detail: "Baixando áudio do servidor...",
+      }).eq("id", meetingId);
+
+      const audioResponse = await fetch(audioUrl);
+      if (!audioResponse.ok) {
+        throw new Error(`Erro ao baixar áudio: ${audioResponse.status}`);
+      }
+
+      const audioBuffer = await audioResponse.arrayBuffer();
+      const audioBytes = new Uint8Array(audioBuffer);
+      finalBase64 = base64Encode(audioBytes);
+      finalMimeType = audioResponse.headers.get("content-type") || mimeType || "audio/webm";
+
+      const audioMB = (audioBytes.length / 1024 / 1024).toFixed(1);
+      const base64MB = (finalBase64.length / 1024 / 1024).toFixed(1);
+      console.log(`[meeting-transcribe] Downloaded ${audioMB}MB, base64: ${base64MB}MB, mime: ${finalMimeType}`);
+
+      await supabaseAdmin.from("meetings").update({
+        progress: 20,
+        progress_detail: "Transcrevendo áudio completo...",
+      }).eq("id", meetingId);
+
+    } else if (audioBase64) {
+      // LEGACY PATH: Direct base64 from client (kept for backward compat)
+      finalBase64 = audioBase64;
+      finalMimeType = mimeType || "audio/webm";
+      
+      const idx = chunkIndex || 0;
+      const chunks = totalChunks || 1;
+      console.log(`[meeting-transcribe] Legacy path: chunk ${idx + 1}/${chunks}, base64 length: ${finalBase64.length}`);
+      
+      const progressPct = Math.round(5 + ((idx) / chunks) * 80);
+      await supabaseAdmin.from("meetings").update({
+        status: "transcribing",
+        progress: progressPct,
+        progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
+      }).eq("id", meetingId);
+    } else {
+      return new Response(JSON.stringify({ error: "audioUrl ou audioBase64 é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const resolvedMimeType = mimeType || "audio/webm";
-    const chunks = totalChunks || 1;
-    const idx = chunkIndex || 0;
+    // Build temporal context for prompt
     const chunkStart = startSeconds || 0;
     const chunkEnd = endSeconds || 0;
-
-    console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}, time: ${chunkStart.toFixed(0)}s-${chunkEnd.toFixed(0)}s`);
-
-    // Update progress in DB
-    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const progressPct = Math.round(5 + ((idx) / chunks) * 80);
-    await supabaseAdmin.from("meetings").update({
-      status: "transcribing",
-      progress: progressPct,
-      progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
-    }).eq("id", meetingId);
-
-    // Format temporal offset for the prompt
     const startMin = Math.floor(chunkStart / 60);
     const startSec = Math.floor(chunkStart % 60);
     const endMin = Math.floor(chunkEnd / 60);
@@ -83,7 +119,7 @@ REGRAS OBRIGATÓRIAS:
 6. Se houver silêncio ou ruído, indique brevemente: [silêncio] ou [ruído de fundo]${timeRange}`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
+    const timeout = setTimeout(() => controller.abort(), 180000); // 3 min timeout for full audio
 
     let transcribeResponse: Response;
     try {
@@ -101,8 +137,8 @@ REGRAS OBRIGATÓRIAS:
             {
               role: "user",
               content: [
-                { type: "text", text: "Transcreva este áudio/vídeo." },
-                { type: "image_url", image_url: { url: `data:${resolvedMimeType};base64,${audioBase64}` } },
+                { type: "text", text: "Transcreva este áudio/vídeo completo, do início ao fim." },
+                { type: "image_url", image_url: { url: `data:${finalMimeType};base64,${finalBase64}` } },
               ],
             },
           ],
@@ -140,12 +176,12 @@ REGRAS OBRIGATÓRIAS:
     console.log("[meeting-transcribe] Transcription length:", transcription?.length || 0);
 
     if (!transcription || transcription.length < 5) {
-      return new Response(JSON.stringify({ error: "Não foi possível transcrever este trecho de áudio." }), {
+      return new Response(JSON.stringify({ error: "Não foi possível transcrever o áudio." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ transcription, chunkIndex: idx, success: true }), {
+    return new Response(JSON.stringify({ transcription, chunkIndex: chunkIndex || 0, success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
