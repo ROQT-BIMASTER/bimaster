@@ -158,29 +158,27 @@ export default function ReuniaoDetalhe() {
     try {
       let transcription = existingTranscription;
 
-      // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
+      // STEP 1: Transcribe if needed — server-side via ElevenLabs Scribe v2
       if (!transcription && meeting?.audio_url) {
-        // Update DB progress so realtime picks it up
-        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "✓ Áudio enviado\n⟳ Baixando e dividindo áudio..." } as any).eq("id", id);
+        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "⟳ Iniciando transcrição com IA..." } as any).eq("id", id);
 
-        const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
-        if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
+        // Extract storage path for server-side signed URL (faster)
+        const parsed = parseBucketAndPath(meeting.audio_url);
+        const storagePath = parsed?.path || null;
 
-        await supabase.from("meetings").update({ progress: 5, progress_detail: "⟳ Enviando áudio para transcrição..." } as any).eq("id", id);
+        // Also resolve a client-side signed URL as fallback
+        const { signedUrl } = await resolveStorageUrl(meeting.audio_url);
 
-        // Send signed URL to Edge Function — server fetches the audio directly (no client-side chunking)
-        const MAX_RETRIES = 3;
+        const MAX_RETRIES = 2;
         let transcribeResult: string | null = null;
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-          if (attempt > 0) {
-            await new Promise(r => setTimeout(r, 3000 * attempt));
-          }
+          if (attempt > 0) await new Promise(r => setTimeout(r, 5000));
           try {
             const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
               body: {
                 meetingId: id,
-                audioUrl: signedUrl,
+                ...(storagePath ? { storagePath } : { audioUrl: signedUrl }),
               },
             });
             if (transcribeError) {
@@ -203,20 +201,6 @@ export default function ReuniaoDetalhe() {
         }
 
         transcription = transcribeResult;
-
-        await supabase.from("meetings").update({
-          transcription,
-          progress: 85,
-          progress_detail: "✓ Transcrição concluída\n⟳ Analisando reunião...",
-        } as any).eq("id", id);
-
-        // Save the full transcription
-        await supabase.from("meetings").update({
-          transcription,
-          status: "transcribed",
-          updated_at: new Date().toISOString(),
-        }).eq("id", id);
-        queryClient.invalidateQueries({ queryKey: ["meeting", id] });
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
