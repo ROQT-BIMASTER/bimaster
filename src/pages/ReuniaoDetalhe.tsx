@@ -47,6 +47,7 @@ export default function ReuniaoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState({ step: "", percent: 0, detail: "" });
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
