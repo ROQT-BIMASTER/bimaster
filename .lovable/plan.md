@@ -1,34 +1,56 @@
 
 
-## Diagnóstico: IA transcrevendo apenas 3 minutos de 11 minutos
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Causa Raiz
+### O que muda
 
-O problema está no modelo usado para transcrição: **`google/gemini-2.5-flash-lite`** (linha 80 do `meeting-transcribe/index.ts`).
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-Este é o modelo mais leve e barato da família Gemini. Ele tem limitações significativas no processamento de áudio longo — tipicamente processa apenas os primeiros ~3 minutos de áudio inline via base64, ignorando o restante silenciosamente (sem erro).
+### Implementação
 
-Além disso, o **timeout de 50 segundos** (linha 68) pode estar cortando a transcrição antes do modelo terminar de processar todo o áudio.
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### Solução
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-Duas mudanças na Edge Function `meeting-transcribe`:
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-1. **Trocar o modelo de transcrição** de `google/gemini-2.5-flash-lite` para **`google/gemini-2.5-flash`** — modelo intermediário que suporta áudio longo com boa velocidade e custo razoável, mantendo capacidade multimodal completa.
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-2. **Aumentar o timeout** de 50s para **120s** para dar tempo ao modelo de processar áudios de 10-15 minutos por chunk.
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-3. **Reforçar o prompt** para instruir explicitamente a transcrever do início ao fim, incluindo timestamps periódicos para garantir cobertura completa.
+### Visual esperado
 
-### Arquivos Alterados
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
 
-| Arquivo | Alteração |
-|---|---|
-| `supabase/functions/meeting-transcribe/index.ts` | Modelo → `gemini-2.5-flash`, timeout → 120s, prompt reforçado |
-
-### Impacto
-
-- Nenhuma alteração no frontend ou no fluxo de chunking
-- Nenhuma alteração na análise (`meeting-analyze` já usa `gemini-2.5-pro`)
-- Custo por transcrição ligeiramente maior (flash vs flash-lite), mas com resultado completo
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

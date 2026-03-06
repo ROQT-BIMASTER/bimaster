@@ -61,11 +61,18 @@ serve(async (req) => {
       progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
     }).eq("id", meetingId);
 
-    // Simplified prompt — just transcribe, diarization moves to analysis step
-    const systemPrompt = `Transcreva o áudio/vídeo completo em português do Brasil, palavra por palavra. Identifique falantes quando possível (use nomes mencionados ou "Falante 1", "Falante 2"). Retorne APENAS a transcrição, sem resumos ou comentários.`;
+    const systemPrompt = `Você é um transcritor profissional. Transcreva o áudio/vídeo COMPLETO em português do Brasil, do início ao fim, sem omitir nenhuma parte.
+
+REGRAS OBRIGATÓRIAS:
+1. Transcreva TODAS as falas, do primeiro ao último segundo do áudio
+2. Identifique falantes quando possível (use nomes mencionados ou "Falante 1", "Falante 2")
+3. Inclua timestamps aproximados a cada 2-3 minutos no formato [MM:SS]
+4. NÃO pare no meio — continue até o final absoluto do áudio
+5. Retorne APENAS a transcrição completa, sem resumos, comentários ou análises
+6. Se houver silêncio ou ruído, indique brevemente: [silêncio] ou [ruído de fundo]`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
 
     let transcribeResponse: Response;
     try {
@@ -77,7 +84,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             {
