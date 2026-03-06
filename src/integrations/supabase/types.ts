@@ -12677,6 +12677,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          ata: string | null
           audio_url: string | null
           created_at: string
           created_by: string
@@ -12685,6 +12686,7 @@ export type Database = {
           id: string
           meeting_date: string
           mermaid_mindmap: string | null
+          participants: Json | null
           status: string
           summary: string | null
           title: string
@@ -12692,6 +12694,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ata?: string | null
           audio_url?: string | null
           created_at?: string
           created_by: string
@@ -12700,6 +12703,7 @@ export type Database = {
           id?: string
           meeting_date?: string
           mermaid_mindmap?: string | null
+          participants?: Json | null
           status?: string
           summary?: string | null
           title: string
@@ -12707,6 +12711,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ata?: string | null
           audio_url?: string | null
           created_at?: string
           created_by?: string
@@ -12715,6 +12720,7 @@ export type Database = {
           id?: string
           meeting_date?: string
           mermaid_mindmap?: string | null
+          participants?: Json | null
           status?: string
           summary?: string | null
           title?: string
