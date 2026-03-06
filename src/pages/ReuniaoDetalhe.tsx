@@ -207,7 +207,7 @@ export default function ReuniaoDetalhe() {
         }
 
 
-        setAnalyzeProgress({ step: "Transcrevendo", percent: 85, detail: `${chunks.length}/${chunks.length} trechos concluídos` });
+        await supabase.from("meetings").update({ progress: 85, progress_detail: `${chunks.length}/${chunks.length} trechos concluídos` } as any).eq("id", id);
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
