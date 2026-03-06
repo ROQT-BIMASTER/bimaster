@@ -211,9 +211,21 @@ export default function ReuniaoDetalhe() {
             }
           }
 
-          // Small delay between batches to avoid rate limiting
+          // Save partial transcription to DB after each batch (incremental save)
+          const partialText = partialTranscriptions.filter(Boolean).join("\n\n---\n\n");
+          if (partialText.length > 0) {
+            await supabase.from("meetings").update({
+              transcription: partialText,
+              progress: Math.round(5 + (completedChunks / chunks.length) * 80),
+              progress_detail: completedChunks < chunks.length
+                ? `✓ Áudio enviado\n⟳ Transcrevendo trecho ${completedChunks + 1} de ${chunks.length}...`
+                : `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...`,
+            } as any).eq("id", id);
+          }
+
+          // Delay between batches — larger chunks need more breathing room
           if (batchStart + BATCH_SIZE < chunks.length) {
-            await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 5000));
           }
         }
 
