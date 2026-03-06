@@ -1,56 +1,38 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Análise Consolidada de Segurança — bimaster.online
 
-### O que muda
+### Resumo de Todos os Scans
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+| Scan | Score | Vulnerabilidades |
+|------|-------|-----------------|
+| **SSLyze** | 1,000/1,000 ✅ | 0 |
+| **Nmap UDP** | 1,000/1,000 ✅ | 0 |
+| **Nmap TCP** | 5/1,000 ⚠️ | 2 Médias (portas 8080, 8443) + 2 Baixas |
+| **Nuclei** | 1,000/1,000 ✅ | 0 |
+| **OWASP ZAP Passiva** | — ⚠️ | 1 Média (4 instâncias) |
 
-### Implementação
+### Nova Vulnerabilidade: Anti-Clickjacking (ZAP)
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+**Severidade**: Média
+**CWE**: 1021 | **WASC**: 15
+**Problema**: O header `X-Frame-Options` está configurado no `vite.config.ts` (dev server), mas **não é servido em produção** pelo Lovable/Cloudflare. A resposta HTTP capturada pelo ZAP confirma que `X-Frame-Options` está **ausente**.
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+**Por quê?** Os headers no `vite.config.ts` só funcionam no servidor de desenvolvimento do Vite. Em produção (Lovable deploy via Cloudflare), esses headers não são injetados.
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### Solução
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+Adicionar meta tags de Content-Security-Policy diretamente no `index.html`, que é a única forma de controlar headers quando não se tem acesso ao servidor de produção:
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+**Arquivo**: `index.html`
+- Adicionar `<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">`
+- Isso substitui a funcionalidade do `X-Frame-Options: SAMEORIGIN` e é suportado por todos os navegadores modernos
 
-### Visual esperado
+### O que será feito
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+| Ação | Arquivo | Detalhe |
+|------|---------|---------|
+| Editar | `index.html` | Adicionar meta CSP com `frame-ancestors 'self'` |
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+Isso resolve a vulnerabilidade CWE-1021 reportada pelo OWASP ZAP, impedindo que o site seja embutido em iframes de terceiros (proteção contra clickjacking).
 
