@@ -133,7 +133,7 @@ serve(async (req) => {
       : Math.max(5, Math.round(analysisTranscription.length / 650));
     const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
 
-    console.log(`[meeting-analyze] Estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
+    console.log(`[meeting-analyze] Starting 2-phase analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
 
     const phase1Messages = [
       {
