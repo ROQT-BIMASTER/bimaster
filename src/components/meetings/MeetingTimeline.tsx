@@ -70,7 +70,8 @@ export function MeetingTimeline({ audioUrl, durationSeconds, highlights, searchR
   }, [mediaRef, onTimeUpdate]);
 
   const seekTo = useCallback((seconds: number) => {
-    const el = mediaRef.current;
+    // Try ref first, then fallback to DOM query for reliability
+    const el = mediaRef.current || document.querySelector("audio, video") as HTMLMediaElement | null;
     if (el) {
       el.currentTime = seconds;
       el.play().catch(() => {});
