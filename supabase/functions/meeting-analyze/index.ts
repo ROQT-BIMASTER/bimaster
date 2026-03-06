@@ -286,7 +286,7 @@ Não adicione interpretações, resumos ou comentários. Apenas a transcrição 
                     },
                   },
                 },
-                required: ["summary", "mermaid_mindmap", "insights", "tasks", "risks"],
+                required: ["summary", "mindmap_data", "insights", "tasks", "risks"],
                 additionalProperties: false,
               },
             },
