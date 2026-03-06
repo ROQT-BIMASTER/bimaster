@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   BarChart3, TrendingUp, Calendar, AlertTriangle, ListTodo,
   Brain, Clock, PieChart as PieChartIcon, ChevronDown, ChevronUp,
-  Zap, Target, Activity, Flame,
+  Zap, Target, Activity, Flame, Printer,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
