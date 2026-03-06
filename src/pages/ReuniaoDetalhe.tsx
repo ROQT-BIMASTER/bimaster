@@ -157,7 +157,7 @@ export default function ReuniaoDetalhe() {
         await supabase.from("meetings").update({ progress: 5, progress_detail: `0/${chunks.length} trechos` } as any).eq("id", id);
 
         // Process chunks in parallel batches of 3 for speed
-        const BATCH_SIZE = 2;
+        const BATCH_SIZE = 1;
         const MAX_RETRIES = 3;
         const partialTranscriptions: (string | null)[] = new Array(chunks.length).fill(null);
         let completedChunks = 0;
