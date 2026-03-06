@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   BarChart3, TrendingUp, Calendar, AlertTriangle, ListTodo,
   Brain, Clock, PieChart as PieChartIcon, ChevronDown, ChevronUp,
-  Zap, Target, Activity, Flame,
+  Zap, Target, Activity, Flame, Printer,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -105,6 +105,38 @@ const KpiCard = ({ icon: Icon, label, value, trend, color }: {
 
 export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExecutiveDashboardProps) {
   const [expanded, setExpanded] = useState(true);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintDashboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const content = dashboardRef.current;
+    if (!content) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const clone = content.cloneNode(true) as HTMLElement;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html><head>
+        <title>Relatório Executivo Consolidado - Reuniões</title>
+        <style>
+          @page { size: A4 landscape; margin: 12mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a2e; background: white; }
+          .print-header { background: linear-gradient(135deg, #1e40af, #7c3aed); color: white; padding: 20px 24px; border-radius: 10px; margin-bottom: 16px; }
+          .print-header h1 { font-size: 18px; font-weight: 700; }
+          .print-header p { font-size: 11px; opacity: 0.85; margin-top: 4px; }
+        </style>
+      </head><body>
+        <div class="print-header">
+          <h1>📊 Relatório Executivo Consolidado — Reuniões</h1>
+          <p>Gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+        </div>
+        ${clone.innerHTML}
+      </body></html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 800);
+  };
 
   const monthlyData = useMemo(() => {
     const months = eachMonthOfInterval({ start: subMonths(new Date(), 5), end: new Date() });
@@ -264,6 +296,10 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
                 <p className="text-[10px] text-muted-foreground">riscos abertos</p>
               </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handlePrintDashboard} className="gap-2 h-8 rounded-xl">
+              <Printer className="h-3.5 w-3.5" />
+              PDF
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
@@ -272,7 +308,7 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
       </CardHeader>
 
       {expanded && (
-        <CardContent className="pt-0 space-y-6 pb-6">
+        <CardContent ref={dashboardRef} className="pt-0 space-y-6 pb-6">
           {/* KPI Cards Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard icon={Activity} label="Total Reuniões" value={meetings.length} color="hsl(221, 83%, 53%)" />

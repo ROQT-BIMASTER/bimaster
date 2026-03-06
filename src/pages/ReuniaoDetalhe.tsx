@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, Brain, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio, Download, Mic, Sparkles
+  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio, Download, Mic, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import { MeetingAta } from "@/components/meetings/MeetingAta";
 import { MeetingTranscription } from "@/components/meetings/MeetingTranscription";
 import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
+import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
 import { chunkAudioFromUrl } from "@/lib/utils/audio-chunker";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 
@@ -350,10 +351,20 @@ export default function ReuniaoDetalhe() {
               {meeting.duration_seconds && ` • ${Math.floor(meeting.duration_seconds / 60)}min`}
             </p>
           </div>
-          <Button onClick={handleAnalyze} disabled={analyzing} className="gap-2">
-            {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-            Analisar com IA
-          </Button>
+          <div className="flex items-center gap-2">
+            {meeting.status === "analyzed" && insights && tasks && risks && (
+              <MeetingPrintReport
+                meeting={meeting}
+                insights={insights || []}
+                tasks={tasks || []}
+                risks={risks || []}
+              />
+            )}
+            <Button onClick={handleAnalyze} disabled={analyzing} className="gap-2">
+              {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+              Analisar com IA
+            </Button>
+          </div>
         </div>
 
         {/* Progress bar — shows during analysis OR when meeting is in-progress (realtime from DB) */}
