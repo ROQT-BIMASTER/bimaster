@@ -148,13 +148,13 @@ export default function ReuniaoDetalhe() {
       // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
         // Update DB progress so realtime picks it up
-        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "Baixando e dividindo áudio..." } as any).eq("id", id);
+        await supabase.from("meetings").update({ status: "transcribing", progress: 2, progress_detail: "✓ Áudio enviado\n⟳ Baixando e dividindo áudio..." } as any).eq("id", id);
 
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
 
         const chunks = await chunkAudioFromUrl(signedUrl);
-        await supabase.from("meetings").update({ progress: 5, progress_detail: `0/${chunks.length} trechos` } as any).eq("id", id);
+        await supabase.from("meetings").update({ progress: 5, progress_detail: `✓ Áudio enviado\n⟳ Transcrevendo trecho 1 de ${chunks.length}...` } as any).eq("id", id);
 
         // Process chunks in parallel batches of 3 for speed
         const BATCH_SIZE = 1;
