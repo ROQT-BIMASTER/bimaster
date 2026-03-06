@@ -4,7 +4,7 @@
  * then base64-encodes each chunk for sending to edge functions.
  */
 
-const CHUNK_SIZE_BYTES = 800 * 1024; // ~800KB per chunk — optimized for 2h recordings, fast Gemini processing
+const CHUNK_SIZE_BYTES = 4 * 1024 * 1024; // ~4MB per chunk — fewer chunks, avoids invalid container fragments
 
 export interface AudioChunk {
   base64: string;
