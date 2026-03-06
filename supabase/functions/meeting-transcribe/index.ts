@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks } = await req.json();
+    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks, startSeconds, endSeconds } = await req.json();
 
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
