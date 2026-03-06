@@ -1,33 +1,56 @@
 
 
-## Problema Identificado
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-A transcrição com ElevenLabs Scribe v2 está funcionando perfeitamente (70.973 caracteres). O problema é na **etapa de análise** (`meeting-analyze`):
+### O que muda
 
-1. **Timeout de 50s é curto demais** — O Gemini 2.5 Pro precisa de mais tempo para analisar 70K chars e gerar análise detalhada com mapa mental, ata, insights, tarefas e riscos. Ele está apressando a resposta e gerando menos itens.
-2. **Para áudios de 1 hora** (~400K+ chars de transcrição), o limite de truncamento de 80K chars vai perder a maior parte do conteúdo.
-3. **O prompt não exige quantidade mínima** de insights/tarefas/riscos, então o modelo gera poucos.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Plano de Correção
+### Implementação
 
-### 1. `meeting-analyze/index.ts` — Otimizar análise
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-| Alteração | Detalhe |
-|---|---|
-| Aumentar timeout | 50s → 120s para dar tempo ao Gemini processar toda a transcrição |
-| Aumentar limite de truncamento | 80K → 200K chars (Gemini 2.5 Pro suporta ~1M tokens de contexto) |
-| Reforçar prompt | Exigir no mínimo 8-15 insights, 5-10 tarefas, 3-5 riscos. Instruir a ser **exaustivo** e não omitir nenhum tema discutido |
-| Dividir análise para transcrições gigantes | Se > 200K chars, dividir em 2 chamadas (primeira e segunda metade) e consolidar resultados |
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-### 2. Detalhes do prompt reforçado
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-Adicionar ao system prompt:
-- "Extraia **TODOS** os insights, não apenas os mais óbvios. Mínimo de 8 insights, 5 tarefas e 3 riscos."
-- "Cada decisão mencionada deve virar um insight do tipo 'decisao'"
-- "Cada ação mencionada deve virar uma tarefa com responsável e departamento"
-- "Analise o texto INTEIRO, não apenas o início"
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-### Arquivos alterados
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-- `supabase/functions/meeting-analyze/index.ts`
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
