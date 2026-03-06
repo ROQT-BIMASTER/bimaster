@@ -230,7 +230,7 @@ export default function ReuniaoDetalhe() {
         }
 
 
-        await supabase.from("meetings").update({ progress: 85, progress_detail: `${chunks.length}/${chunks.length} trechos concluídos` } as any).eq("id", id);
+        await supabase.from("meetings").update({ progress: 85, progress_detail: `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...` } as any).eq("id", id);
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
