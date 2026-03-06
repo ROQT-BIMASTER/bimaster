@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
+import { MeetingExecutiveDashboard } from "@/components/meetings/MeetingExecutiveDashboard";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   draft: { label: "Rascunho", variant: "secondary", icon: FileText },
@@ -40,6 +41,26 @@ export default function Reunioes() {
         .from("meetings")
         .select("*, meeting_risks(count), meeting_tasks(count), meeting_insights(count)")
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: allRisks } = useQuery({
+    queryKey: ["all-meeting-risks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("meeting_risks").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: allTasks } = useQuery({
+    queryKey: ["all-meeting-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("meeting_tasks").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -168,6 +189,15 @@ export default function Reunioes() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Executive Dashboard */}
+        {meetings && meetings.length > 0 && (
+          <MeetingExecutiveDashboard
+            meetings={meetings as any}
+            risks={allRisks || []}
+            tasks={allTasks || []}
+          />
+        )}
 
         {/* List */}
         {isLoading ? (
