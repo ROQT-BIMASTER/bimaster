@@ -1,56 +1,26 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Problem
 
-### O que muda
+The edge function `meeting-transcribe` was **never redeployed** after the code was updated. The logs prove this conclusively — they show the OLD behavior:
+- "Generating signed URL for meeting-recordings/..."
+- "Downloading and encoding audio, mimeType: audio/webm"
+- "File size: 10.8MB"
+- "Memory limit exceeded"
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+None of these log messages exist in the current code (which accepts `audioBase64` from the client). The frontend chunking code is already correct and ready.
 
-### Implementação
+## Plan
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+Two actions needed:
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
+1. **Redeploy `meeting-transcribe`** — Force deploy the edge function so the new chunk-accepting code goes live. This is the only fix needed.
+
+2. **Reset meeting status** — Run a SQL update to set the stuck meeting back to `draft` so the "Analisar com IA" button works again:
+   ```sql
+   UPDATE public.meetings SET status = 'draft' 
+   WHERE id = '5e2b53cc-23a3-46ae-8664-168175ce3412';
    ```
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+No code changes are needed — the frontend (`ReuniaoDetalhe.tsx`) and edge function (`meeting-transcribe/index.ts`) code are already correct. The issue is purely a deployment problem.
 
