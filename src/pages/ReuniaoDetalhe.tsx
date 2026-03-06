@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  ArrowLeft, Brain, Mic, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ShieldAlert, Target, Loader2, FileText, ListTodo, Clipboard, ScrollText
+  ArrowLeft, Brain, Clock, AlertTriangle, CheckCircle2,
+  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,8 @@ import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 import { MeetingMindMap } from "@/components/meetings/MeetingMindMap";
 import { MeetingAta } from "@/components/meetings/MeetingAta";
 import { MeetingTranscription } from "@/components/meetings/MeetingTranscription";
+import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
+import { MeetingSearch } from "@/components/meetings/MeetingSearch";
 
 const riskColors: Record<string, string> = {
   low: "bg-green-100 text-green-700 border-green-200",
@@ -43,6 +45,8 @@ export default function ReuniaoDetalhe() {
   const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
   const [manualTranscription, setManualTranscription] = useState("");
+  const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
+  const timelineSeekRef = useRef<((s: number) => void) | null>(null);
 
   const { data: meeting, isLoading } = useQuery({
     queryKey: ["meeting", id],
@@ -86,29 +90,21 @@ export default function ReuniaoDetalhe() {
 
   const handleAnalyze = async () => {
     const transcription = meeting?.transcription || manualTranscription.trim() || null;
-    
     if (!transcription && !meeting?.audio_url) {
       toast.error("Grave o áudio, envie um vídeo ou cole a transcrição antes de analisar");
       return;
     }
-
     setAnalyzing(true);
     try {
       if (!transcription && meeting?.audio_url) {
         toast.info("Transcrevendo mídia com IA... isso pode levar alguns segundos");
       }
-
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      const msg = data.transcribed
-        ? `Mídia transcrita e analisada! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`
-        : `Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`;
-      toast.success(msg);
-
+      toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
@@ -133,6 +129,15 @@ export default function ReuniaoDetalhe() {
       toast.error("Erro ao salvar transcrição");
     }
   };
+
+  const handleSeekTo = useCallback((seconds: number) => {
+    // Try to find and control the audio/video element
+    const media = document.querySelector("audio, video") as HTMLMediaElement | null;
+    if (media) {
+      media.currentTime = seconds;
+      media.play().catch(() => {});
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -162,8 +167,8 @@ export default function ReuniaoDetalhe() {
     urgent: "bg-red-100 text-red-700",
   };
 
-  // Parse participants from meeting data
   const participants = meeting.participants ? (typeof meeting.participants === "string" ? JSON.parse(meeting.participants) : meeting.participants) : null;
+  const highlights: Highlight[] = meeting.highlights ? (typeof meeting.highlights === "string" ? JSON.parse(meeting.highlights) : meeting.highlights) : [];
 
   return (
     <DashboardLayout>
@@ -191,12 +196,10 @@ export default function ReuniaoDetalhe() {
         {meeting.status !== "analyzed" && (
           <MeetingRecorder
             meetingId={meeting.id}
-            onRecordingComplete={(audioUrl: string, durationSeconds: number) => {
-              queryClient.invalidateQueries({ queryKey: ["meeting", id] });
-            }}
+            onRecordingComplete={() => queryClient.invalidateQueries({ queryKey: ["meeting", id] })}
             onUploadComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["meeting", id] });
-              toast.success("Mídia salva! Agora clique em 'Analisar com IA' ou cole a transcrição.");
+              toast.success("Mídia salva! Agora clique em 'Analisar com IA'.");
             }}
           />
         )}
@@ -214,22 +217,24 @@ export default function ReuniaoDetalhe() {
               <Textarea
                 value={manualTranscription}
                 onChange={(e) => setManualTranscription(e.target.value)}
-                placeholder="Cole aqui a transcrição da reunião ou grave/envie o arquivo acima..."
+                placeholder="Cole aqui a transcrição da reunião..."
                 rows={8}
               />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleSaveTranscription} disabled={!manualTranscription.trim()}>
-                  Salvar Transcrição
-                </Button>
-              </div>
+              <Button variant="outline" onClick={handleSaveTranscription} disabled={!manualTranscription.trim()}>
+                Salvar Transcrição
+              </Button>
             </CardContent>
           </Card>
         )}
 
         {/* Analysis results */}
         {meeting.status === "analyzed" && (
-          <Tabs defaultValue="resumo" className="space-y-4">
+          <Tabs defaultValue="gravacao" className="space-y-4">
             <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="gravacao" className="gap-1">
+                <Radio className="h-3.5 w-3.5" />
+                Gravação
+              </TabsTrigger>
               <TabsTrigger value="resumo">Resumo</TabsTrigger>
               <TabsTrigger value="ata" className="gap-1">
                 <ScrollText className="h-3.5 w-3.5" />
@@ -241,6 +246,36 @@ export default function ReuniaoDetalhe() {
               <TabsTrigger value="riscos">Riscos ({risks?.length || 0})</TabsTrigger>
               <TabsTrigger value="transcricao">Transcrição</TabsTrigger>
             </TabsList>
+
+            {/* Recording + Timeline + AI Search tab */}
+            <TabsContent value="gravacao">
+              <div className="space-y-4">
+                {/* AI Search */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <SearchIcon className="h-4 w-4" />
+                      Buscar na Reunião com IA
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MeetingSearch
+                      meetingId={meeting.id}
+                      onSeekTo={handleSeekTo}
+                      onSearchResults={setSearchResults}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Timeline with highlights */}
+                <MeetingTimeline
+                  audioUrl={meeting.audio_url}
+                  durationSeconds={meeting.duration_seconds || 0}
+                  highlights={highlights}
+                  searchResults={searchResults}
+                />
+              </div>
+            </TabsContent>
 
             <TabsContent value="resumo">
               <Card>
