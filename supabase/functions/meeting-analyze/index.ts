@@ -6,11 +6,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000) {
+async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000, model = "google/gemini-2.5-pro", temperature?: number) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const body: any = {
+      model,
+      messages,
+      tools,
+      tool_choice: { type: "function", function: { name: toolName } },
+    };
+    if (temperature !== undefined) body.temperature = temperature;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       signal: controller.signal,
@@ -18,12 +26,7 @@ async function callAI(lovableApiKey: string, messages: any[], tools: any[], tool
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages,
-        tools,
-        tool_choice: { type: "function", function: { name: toolName } },
-      }),
+      body: JSON.stringify(body),
     });
     clearTimeout(timeout);
     return response;
@@ -104,7 +107,7 @@ serve(async (req) => {
       });
     }
 
-    console.log("[meeting-analyze] Starting 2-phase analysis, transcription length:", transcription.length);
+    console.log("[meeting-analyze] Starting 2-phase analysis, transcription length:", transcription.length, "estimated minutes:", Math.max(5, Math.round(transcription.length / 120)));
 
     // Support up to ~1h of audio transcription (200K chars)
     const MAX_TRANSCRIPTION_CHARS = 200000;
@@ -125,15 +128,24 @@ serve(async (req) => {
     // ========================================================================
     await supabaseAdmin.from("meetings").update({ progress: 88, progress_detail: "Fase 1: Gerando ata e mapa mental..." }).eq("id", meetingId);
 
+    // Estimate meeting duration from transcription length (~120 chars/min of speech)
+    const estimatedMinutes = Math.max(5, Math.round(analysisTranscription.length / 120));
+    const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
+
     const phase1Messages = [
       {
         role: "system",
-        content: `Você é um analista de reuniões corporativas. Gere uma ata formal COMPLETA e um mapa mental PROFUNDO da reunião. Analise a transcrição INTEIRA do início ao fim. Responda SEMPRE em português do Brasil.
+        content: `Você é um analista sênior de reuniões corporativas. Gere uma ata formal COMPLETA e um mapa mental PROFUNDO da reunião. Analise a transcrição INTEIRA do início ao fim. Responda SEMPRE em português do Brasil.
 
-IMPORTANTE para a ATA:
+DURAÇÃO ESTIMADA DA REUNIÃO: ~${estimatedMinutes} minutos.
+
+IMPORTANTE para a ATA (MÍNIMO ${minAtaWords} palavras):
 - Formato profissional de ata corporativa em Markdown
-- Inclua: Data, Participantes, Pauta, Discussões detalhadas (cubra TODOS os assuntos discutidos), Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
-- A ata deve ser LONGA e DETALHADA — cubra cada tema discutido com pelo menos 2-3 parágrafos
+- Inclua: Data, Participantes, Pauta, Discussões detalhadas, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
+- Cada tema discutido deve ter 3-5 PARÁGRAFOS de detalhamento — não resuma em uma frase
+- Cite falas específicas dos participantes quando relevante
+- A ata deve cobrir TODOS os assuntos discutidos, do início ao fim da transcrição
+- Para cada 5 minutos de reunião, deve haver pelo menos 500 palavras na ata
 
 IMPORTANTE para o MAPA MENTAL:
 - Crie uma hierarquia PROFUNDA com 3-4 níveis de profundidade
@@ -141,16 +153,17 @@ IMPORTANTE para o MAPA MENTAL:
 - Cada ramo deve ter 2-5 sub-itens detalhados
 - Labels devem ser descritivos (frases curtas, não apenas uma palavra)
 - Inclua TODOS os temas discutidos na reunião
+- Para reuniões de ${estimatedMinutes}min, espera-se pelo menos ${Math.max(4, Math.round(estimatedMinutes / 3))} ramos principais
 
 IMPORTANTE para PARTICIPANTES:
 - Identifique TODOS os participantes mencionados na transcrição
 - Infira o cargo/papel de cada um com base no contexto
 
-ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutidos até o final da transcrição.`,
+INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifique se cobriu cada tópico. NÃO produza uma ata superficial.`,
       },
       {
         role: "user",
-        content: `Analise esta transcrição de reunião e gere a ata completa, resumo, participantes e mapa mental:\n\n${analysisTranscription}`,
+        content: `Analise esta transcrição de reunião (~${estimatedMinutes} minutos) e gere a ata completa (mínimo ${minAtaWords} palavras), resumo executivo, participantes e mapa mental profundo:\n\n${analysisTranscription}`,
       },
     ];
 
@@ -281,48 +294,55 @@ ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutido
     // ========================================================================
     // PHASE 2: Exhaustive Extraction (insights, tasks, risks, highlights)
     // ========================================================================
+    // Proportional targets based on meeting duration
+    const targetInsights = Math.max(15, Math.round(estimatedMinutes * 1.5)); // ~1.5 per minute
+    const targetTasks = Math.max(10, Math.round(estimatedMinutes * 1)); // ~1 per minute
+    const targetRisks = Math.max(6, Math.round(estimatedMinutes * 0.6)); // ~0.6 per minute
+    const targetHighlights = Math.max(12, Math.round(estimatedMinutes * 1.2)); // ~1.2 per minute
+
     const phase2Messages = [
       {
         role: "system",
-        content: `Você é um analista especializado em extrair TODOS os insights, tarefas, riscos e momentos-chave de reuniões corporativas. Sua tarefa é ser EXAUSTIVO — analise a transcrição INTEIRA do início ao fim e extraia ABSOLUTAMENTE TUDO que for relevante.
+        content: `Você é um analista sênior especializado em extrair EXAUSTIVAMENTE todos os insights, tarefas, riscos e momentos-chave de reuniões corporativas.
 
+DURAÇÃO ESTIMADA DA REUNIÃO: ~${estimatedMinutes} minutos.
 Departamentos disponíveis: ${deptNames}
 
-REGRAS OBRIGATÓRIAS — NÃO GERE MENOS QUE OS MÍNIMOS:
+🎯 METAS PROPORCIONAIS (baseadas na duração — NÃO pare antes de atingir):
 
-📊 INSIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
-- Cada decisão tomada na reunião → insight tipo "decisao"
-- Cada problema discutido → insight tipo "problema"  
-- Cada oportunidade mencionada → insight tipo "oportunidade"
-- Cada bloqueio ou impedimento → insight tipo "bloqueio"
-- Cada risco identificado → insight tipo "risco"
-- INCLUA insights sobre: processos, pessoas, tecnologia, finanças, clientes, mercado, operações
+📊 INSIGHTS — META: ${targetInsights}+ itens
+- Extraia ~1 insight para cada 1-2 minutos de reunião
+- Tipos: "decisao", "problema", "oportunidade", "bloqueio", "risco"
+- Cada decisão tomada → insight. Cada problema discutido → insight. Cada oportunidade → insight.
+- INCLUA insights granulares: processos internos, pessoas, tecnologia, finanças, clientes, mercado, operações, cultura
+- Prefira MUITOS insights específicos a POUCOS insights genéricos
 - Atribua departamento, impacto e urgência para CADA insight
 
-📋 TAREFAS (extraia 8-15, MÍNIMO ABSOLUTO: 8):
-- Cada ação mencionada ou comprometimento → tarefa
-- Cada "vamos fazer", "precisamos", "alguém precisa" → tarefa
-- Cada follow-up mencionado → tarefa
-- Cada entrega ou deadline mencionado → tarefa
-- Atribua departamento e prioridade para CADA tarefa
+📋 TAREFAS — META: ${targetTasks}+ itens
+- Extraia ~1 tarefa para cada 1-2 minutos de reunião
+- Cada ação comprometida, cada "vamos fazer", "precisamos", "alguém precisa", cada follow-up, cada deadline → tarefa SEPARADA
+- Desmembre tarefas compostas em sub-tarefas individuais
+- Atribua departamento e prioridade
 
-⚠️ RISCOS (extraia 5-8, MÍNIMO ABSOLUTO: 5):
-- Cada preocupação expressa por participantes → risco
-- Cada desafio ou obstáculo → risco  
-- Cada incerteza ou dependência externa → risco
-- Cada potencial problema futuro → risco
+⚠️ RISCOS — META: ${targetRisks}+ itens
+- Cada preocupação, desafio, obstáculo, incerteza, dependência externa, potencial problema futuro → risco INDIVIDUAL
+- Inclua riscos implícitos (o que pode dar errado mesmo que não dito explicitamente)
 - Inclua ação recomendada para CADA risco
 
-🔖 HIGHLIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
-- Decisões importantes, conflitos, ideias novas, problemas críticos, mudanças de direção
-- Estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
-- Se não houver timestamps explícitos, distribua proporcionalmente ao longo do texto
+🔖 HIGHLIGHTS — META: ${targetHighlights}+ itens
+- Decisões, conflitos, ideias novas, problemas críticos, mudanças de direção, compromissos
+- Estime timestamp em segundos; distribua proporcionalmente se não houver timestamps
 
-ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights, tarefas ou riscos. Não pule nenhuma seção.`,
+⚠️ INSTRUÇÃO ANTI-PREGUIÇA — LEIA COM ATENÇÃO:
+1. NÃO pare após gerar os primeiros 10 itens de cada tipo. Continue até ESGOTAR o conteúdo.
+2. Releia CADA parágrafo da transcrição e pergunte-se: "Extraí tudo daqui?"
+3. Se um parágrafo contém uma decisão E um risco E uma tarefa, gere os 3 itens separados.
+4. Prefira 30 itens granulares a 10 itens genéricos.
+5. Ao terminar, revise mentalmente: "Cobri o início, meio e fim da transcrição?"`,
       },
       {
         role: "user",
-        content: `Extraia TODOS os insights, tarefas, riscos e highlights desta transcrição. Seja EXAUSTIVO:\n\n${analysisTranscription}`,
+        content: `Esta reunião tem ~${estimatedMinutes} minutos. Extraia EXAUSTIVAMENTE todos os insights (meta: ${targetInsights}+), tarefas (meta: ${targetTasks}+), riscos (meta: ${targetRisks}+) e highlights (meta: ${targetHighlights}+). NÃO pare nos primeiros itens — continue até esgotar o conteúdo:\n\n${analysisTranscription}`,
       },
     ];
 
@@ -331,13 +351,13 @@ ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights,
         type: "function",
         function: {
           name: "phase2_extraction",
-          description: "Extrai exaustivamente insights, tarefas, riscos e highlights da reunião.",
+          description: `Extrai exaustivamente insights (${targetInsights}+), tarefas (${targetTasks}+), riscos (${targetRisks}+) e highlights (${targetHighlights}+) da reunião de ~${estimatedMinutes} minutos.`,
           parameters: {
             type: "object",
             properties: {
               insights: {
                 type: "array",
-                description: "10-20 insights extraídos da reunião (MÍNIMO 10)",
+                description: `${targetInsights}+ insights extraídos exaustivamente da reunião`,
                 items: {
                   type: "object",
                   properties: {
@@ -353,7 +373,7 @@ ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights,
               },
               tasks: {
                 type: "array",
-                description: "8-15 tarefas extraídas da reunião (MÍNIMO 8)",
+                description: `${targetTasks}+ tarefas extraídas exaustivamente da reunião`,
                 items: {
                   type: "object",
                   properties: {
@@ -367,7 +387,7 @@ ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights,
               },
               risks: {
                 type: "array",
-                description: "5-8 riscos identificados na reunião (MÍNIMO 5)",
+                description: `${targetRisks}+ riscos identificados exaustivamente na reunião`,
                 items: {
                   type: "object",
                   properties: {
@@ -384,7 +404,7 @@ ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights,
               },
               highlights: {
                 type: "array",
-                description: "10-20 momentos-chave da reunião com timestamps (MÍNIMO 10)",
+                description: `${targetHighlights}+ momentos-chave da reunião com timestamps`,
                 items: {
                   type: "object",
                   properties: {
@@ -406,7 +426,7 @@ ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights,
 
     let phase2Response: Response;
     try {
-      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000);
+      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000, "google/gemini-2.5-flash", 0.3);
     } catch (abortErr) {
       console.error("[meeting-analyze] Phase 2 timeout:", abortErr);
       // Phase 1 already saved — mark as partially analyzed

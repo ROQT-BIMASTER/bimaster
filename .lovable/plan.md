@@ -1,55 +1,56 @@
 
 
-## Diagnóstico Real
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-Os logs mostram que a análise **completa sem erro**, mas gera exatamente os **mínimos** definidos no prompt (10 insights, 8 tasks, 5 risks, 10 highlights). O Gemini está tratando os mínimos como **metas**, não como pisos. A ata com 5.931 caracteres para uma reunião de 11 minutos também é rasa.
+### O que muda
 
-O problema NÃO é timeout — as duas fases completam em ~100s total. O problema é que o modelo **para de gerar** quando atinge os números mínimos.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Solução: Prompt Engineering + Modelo mais agressivo
+### Implementação
 
-### Alterações em `supabase/functions/meeting-analyze/index.ts`
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-**1. Mudar a estratégia de prompt — remover mínimos fixos, usar proporção**
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-Em vez de "MÍNIMO 10 insights", usar:
-- "Extraia 1 insight para cada 2-3 minutos de reunião"  
-- "Uma reunião de 11 minutos deve gerar 15-25 insights, 10-15 tarefas, 5-10 riscos"
-- "Gere insights até esgotar todo o conteúdo da transcrição"
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-**2. Adicionar instrução anti-lazy ao prompt**
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-Instruir explicitamente:
-- "NÃO pare nos primeiros 10 itens. Continue extraindo até que não haja mais nada relevante."
-- "Releia cada parágrafo da transcrição e verifique se extraiu tudo."
-- "Prefira MAIS itens com granularidade fina do que MENOS itens genéricos."
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-**3. Usar `google/gemini-2.5-flash` para Phase 2**
+### Visual esperado
 
-O Gemini 2.5 Pro é mais "conservador" e tende a parar cedo. O Flash é mais barato e mais rápido, permitindo:
-- Aumentar o `max_tokens` implícito (gasta menos por token)
-- Potencialmente gerar mais conteúdo no mesmo tempo
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
 
-**4. Adicionar `temperature: 0.3` para mais variação**
-
-Atualmente não há temperature definido, o que usa o default (provavelmente 1.0 ou 0.7). Baixar para 0.3 faz o modelo ser mais determinístico e completo.
-
-**5. Fase 1: Exigir ata proporcional**
-
-Para a ata, adicionar:
-- "A ata deve ter no MÍNIMO 500 palavras por cada 5 minutos de reunião"
-- "Cada tema discutido deve ter 3-5 parágrafos de detalhamento"
-
-### Resumo das alterações
-
-| O que | De | Para |
-|---|---|---|
-| Prompt Fase 2 | "MÍNIMO 10 insights" | "1 insight por cada 1-2 min, extraia ATÉ ESGOTAR" |
-| Modelo Fase 2 | `gemini-2.5-pro` | `gemini-2.5-flash` (mais rápido, gera mais) |
-| Temperature | default | `0.3` |
-| Prompt Fase 1 | "ata LONGA e DETALHADA" | "mínimo 500 palavras/5min, 3-5 parágrafos por tema" |
-| Anti-lazy | ausente | "NÃO pare nos primeiros itens, continue até esgotar" |
-
-### Arquivo alterado
-- `supabase/functions/meeting-analyze/index.ts`
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
