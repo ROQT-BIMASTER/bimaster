@@ -109,6 +109,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.meeting-search]
     verify_jwt = false
+  [functions.meeting-transcribe]
+    verify_jwt = false
   [functions.marketing-insights]
     verify_jwt = true
   [functions.n8n-contas-receber]

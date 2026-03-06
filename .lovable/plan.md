@@ -1,44 +1,56 @@
 
 
-## Problema Identificado
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-Os logs mostram claramente: **"Memory limit exceeded"**. A função `meeting-analyze` baixa o arquivo inteiro para memória, converte para base64 (que aumenta ~33% o tamanho), e envia tudo para o Gemini. Uma gravação de 11 minutos excede o limite de memória da Edge Function (~150MB).
+### O que muda
 
-**Sua gravação está segura** — ela foi salva no storage com sucesso. O problema é apenas na análise.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Solução: Transcrição em 2 Etapas com Chunking
+### Implementação
 
-### 1. Nova Edge Function `meeting-transcribe` (etapa separada)
-- Em vez de baixar o arquivo inteiro para memória, **envia a URL pública diretamente** para o Gemini (que aceita URLs de mídia)
-- Se a URL não for pública, gera uma signed URL temporária e passa como URL para o modelo
-- Gemini aceita `file_url` no content — evita carregar base64 na memória
-- Salva a transcrição no campo `transcription` do meeting
-- Retorna imediatamente após a transcrição
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### 2. Refatorar `meeting-analyze` 
-- **Remove toda a lógica de download/base64** de áudio
-- Passa a trabalhar APENAS com texto (transcrição já pronta)
-- Muito mais leve em memória — apenas texto puro
-- Se não houver transcrição, chama `meeting-transcribe` primeiro
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-### 3. Frontend: Fluxo em 2 passos no `handleAnalyze`
-- **Passo 1**: Chama `meeting-transcribe` → toast "Transcrevendo áudio..."
-- **Passo 2**: Chama `meeting-analyze` com a transcrição retornada → toast "Analisando..."
-- Polling do status do meeting para feedback em tempo real
-- Se a transcrição já existir, pula direto para análise
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-### 4. Fallback: URL direta para Gemini
-- O Gemini 2.5 Flash suporta receber mídia via URL diretamente no campo `image_url`
-- Em vez de `data:audio/webm;base64,<ENORME>`, usar a signed URL do storage
-- Isso elimina completamente o problema de memória
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-## Arquivos Impactados
-- `supabase/functions/meeting-analyze/index.ts` — remover download/base64, usar só texto
-- `supabase/functions/meeting-transcribe/index.ts` — nova função leve que envia URL para Gemini
-- `src/pages/ReuniaoDetalhe.tsx` — fluxo em 2 passos
-- `supabase/config.toml` — registrar nova função
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-## Resultado
-- A gravação de 11 minutos será analisada sem erro de memória
-- Nenhum dado será perdido — a gravação continua no storage
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
