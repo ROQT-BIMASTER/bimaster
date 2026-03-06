@@ -404,7 +404,7 @@ Departamentos disponíveis: ${deptNames}
               },
               highlights: {
                 type: "array",
-                description: "10-20 momentos-chave da reunião com timestamps (MÍNIMO 10)",
+                description: `${targetHighlights}+ momentos-chave da reunião com timestamps`,
                 items: {
                   type: "object",
                   properties: {
