@@ -12493,6 +12493,236 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_insights: {
+        Row: {
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          impact_level: string | null
+          insight_type: string
+          meeting_id: string
+          title: string
+          urgency_level: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_type: string
+          meeting_id: string
+          title: string
+          urgency_level?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          insight_type?: string
+          meeting_id?: string
+          title?: string
+          urgency_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_insights_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_participants: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_risks: {
+        Row: {
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          impact_level: string | null
+          meeting_id: string
+          recommended_action: string | null
+          resolved_at: string | null
+          responsible_user_id: string | null
+          risk_level: Database["public"]["Enums"]["meeting_risk_level"]
+          status: string
+          title: string
+          updated_at: string
+          urgency_level: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          meeting_id: string
+          recommended_action?: string | null
+          resolved_at?: string | null
+          responsible_user_id?: string | null
+          risk_level?: Database["public"]["Enums"]["meeting_risk_level"]
+          status?: string
+          title: string
+          updated_at?: string
+          urgency_level?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          meeting_id?: string
+          recommended_action?: string | null
+          resolved_at?: string | null
+          responsible_user_id?: string | null
+          risk_level?: Database["public"]["Enums"]["meeting_risk_level"]
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_risks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_tasks: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          department: string | null
+          id: string
+          meeting_id: string
+          priority: string
+          responsible_user_id: string | null
+          status: string
+          task: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          department?: string | null
+          id?: string
+          meeting_id: string
+          priority?: string
+          responsible_user_id?: string | null
+          status?: string
+          task: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          department?: string | null
+          id?: string
+          meeting_id?: string
+          priority?: string
+          responsible_user_id?: string | null
+          status?: string
+          task?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_tasks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          meeting_date: string
+          mermaid_mindmap: string | null
+          status: string
+          summary: string | null
+          title: string
+          transcription: string | null
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          meeting_date?: string
+          mermaid_mindmap?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          meeting_date?: string
+          mermaid_mindmap?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          transcription?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mensagens: {
         Row: {
           conteudo: string
@@ -21238,6 +21468,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_access_meeting: {
+        Args: { _meeting_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_notas_fiscais: {
         Args: { viewer_id: string }
         Returns: boolean
@@ -21947,6 +22181,7 @@ export type Database = {
         | "cliente"
         | "gerente"
       client_category: "A" | "B" | "C" | "D"
+      meeting_risk_level: "low" | "medium" | "high" | "critical"
       prospect_status:
         | "novo"
         | "em_contato"
@@ -22105,6 +22340,7 @@ export const Constants = {
         "gerente",
       ],
       client_category: ["A", "B", "C", "D"],
+      meeting_risk_level: ["low", "medium", "high", "critical"],
       prospect_status: [
         "novo",
         "em_contato",
