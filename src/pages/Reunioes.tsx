@@ -47,6 +47,26 @@ export default function Reunioes() {
     enabled: !!session,
   });
 
+  const { data: allRisks } = useQuery({
+    queryKey: ["all-meeting-risks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("meeting_risks").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: allTasks } = useQuery({
+    queryKey: ["all-meeting-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("meeting_tasks").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
   const handleCreate = async () => {
     if (!newTitle.trim()) { toast.error("Informe o título da reunião"); return; }
     setCreating(true);
