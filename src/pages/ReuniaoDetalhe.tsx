@@ -89,16 +89,31 @@ export default function ReuniaoDetalhe() {
   });
 
   const handleAnalyze = async () => {
-    const transcription = meeting?.transcription || manualTranscription.trim() || null;
-    if (!transcription && !meeting?.audio_url) {
+    const existingTranscription = meeting?.transcription || manualTranscription.trim() || null;
+    if (!existingTranscription && !meeting?.audio_url) {
       toast.error("Grave o áudio, envie um vídeo ou cole a transcrição antes de analisar");
       return;
     }
     setAnalyzing(true);
     try {
+      let transcription = existingTranscription;
+
+      // STEP 1: Transcribe if needed (separate function — no memory issues)
       if (!transcription && meeting?.audio_url) {
-        toast.info("Transcrevendo mídia com IA... isso pode levar alguns segundos");
+        toast.info("⏳ Etapa 1/2: Transcrevendo mídia com IA... pode levar até 2 minutos");
+        const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
+          body: { meetingId: id },
+        });
+        if (transcribeError) throw transcribeError;
+        if (transcribeData?.error) throw new Error(transcribeData.error);
+        transcription = transcribeData.transcription;
+        toast.success("✅ Transcrição concluída!");
+        // Refresh meeting data to show transcription
+        queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
+
+      // STEP 2: Analyze transcription (text only — lightweight)
+      toast.info("🧠 Etapa 2/2: Analisando com IA...");
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
