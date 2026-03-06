@@ -387,7 +387,7 @@ Departamentos disponíveis: ${deptNames}
               },
               risks: {
                 type: "array",
-                description: "5-8 riscos identificados na reunião (MÍNIMO 5)",
+                description: `${targetRisks}+ riscos identificados exaustivamente na reunião`,
                 items: {
                   type: "object",
                   properties: {
