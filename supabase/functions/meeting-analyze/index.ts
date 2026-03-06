@@ -60,8 +60,8 @@ serve(async (req) => {
     // ============ ANALYZE TRANSCRIPTION (TEXT ONLY — no audio/video in memory) ============
     console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
 
-    // Truncate very long transcriptions to avoid timeouts (keep first + last parts for context)
-    const MAX_TRANSCRIPTION_CHARS = 80000;
+    // Support up to ~1h of audio transcription (200K chars ≈ 50K tokens for Gemini)
+    const MAX_TRANSCRIPTION_CHARS = 200000;
     let analysisTranscription = transcription;
     if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
       const halfLimit = Math.floor(MAX_TRANSCRIPTION_CHARS / 2);
@@ -74,9 +74,9 @@ serve(async (req) => {
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    // AbortController to enforce 50s timeout
+    // AbortController to enforce 120s timeout (Gemini 2.5 Pro needs time for large transcriptions)
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
 
     let aiResponse: Response;
     try {
