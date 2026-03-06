@@ -6,6 +6,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// =====================================================
+// ALLOWLIST DE TABELAS PERMITIDAS
+// =====================================================
+const ALLOWED_DIMENSIONS = new Set([
+  'municipios',
+  'prospects',
+  'stores',
+  'profiles',
+  'competitors',
+  'trade_chart_of_accounts',
+  'trade_campaigns',
+]);
+
+const ALLOWED_FACTS = new Set([
+  'atividades',
+  'visits',
+  'gondola_audits',
+  'shelf_share',
+  'trade_investments',
+  'trade_financial_entries',
+  'trade_bank_transactions',
+  'sales',
+  'kpis_tracking',
+]);
+
+const ALLOWED_AGGREGATIONS = new Set([
+  'mv_sales_performance',
+  'mv_conversion_funnel',
+  'mv_trade_performance',
+  'agg_daily_kpis',
+]);
+
+const ALLOWED_CUSTOM_QUERY = new Set([
+  ...ALLOWED_DIMENSIONS,
+  ...ALLOWED_FACTS,
+  ...ALLOWED_AGGREGATIONS,
+  'etl_changelog',
+]);
+
+function isTableAllowed(table: string, allowedSet: Set<string>): boolean {
+  return allowedSet.has(table);
+}
+
 interface QueryParams {
   table: string;
   filters?: Record<string, any>;
