@@ -447,6 +447,10 @@ function AppContent() {
              <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoInbox /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+
+            {/* Módulo de Reuniões */}
+            <Route path="/dashboard/reunioes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><Reunioes /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/reunioes/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><ReuniaoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={
