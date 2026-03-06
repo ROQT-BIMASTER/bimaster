@@ -306,7 +306,6 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
                       required: ["title", "description", "risk_level"],
                     },
                   },
-                },
                   highlights: {
                     type: "array",
                     description: "5-15 momentos-chave da reunião com timestamps estimados",
