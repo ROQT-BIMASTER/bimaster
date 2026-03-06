@@ -949,7 +949,34 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         </SidebarGroup>
         )}
 
-        {/* Módulo de Tabelas de Preços */}
+        {/* Módulo de Reuniões */}
+        {hasModulePermission("reunioes") && showModule("reunioes") && (
+        <SidebarGroup className="py-2 px-2">
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger className="w-full">
+              <div className={cn(
+                "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                "bg-teal-50 dark:bg-teal-950/30",
+                "hover:bg-teal-100 dark:hover:bg-teal-900/40"
+              )}>
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500">
+                  <Mic className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-semibold text-sm flex-1 text-teal-600 dark:text-teal-400">Reuniões</span>
+                <ChevronDown className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="mt-1">
+                <SidebarMenu className="space-y-0.5 ps-2">
+                  <MenuItemLink to="/dashboard/reunioes" icon={Mic} title="Reuniões" end />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+        )}
+
         {hasModulePermission("precos") && showModule("precos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
