@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks } = await req.json();
+    const { meetingId, audioBase64, mimeType, chunkIndex, totalChunks, startSeconds, endSeconds } = await req.json();
 
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
@@ -49,8 +49,10 @@ serve(async (req) => {
     const resolvedMimeType = mimeType || "audio/webm";
     const chunks = totalChunks || 1;
     const idx = chunkIndex || 0;
+    const chunkStart = startSeconds || 0;
+    const chunkEnd = endSeconds || 0;
 
-    console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}`);
+    console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}, time: ${chunkStart.toFixed(0)}s-${chunkEnd.toFixed(0)}s`);
 
     // Update progress in DB
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -61,6 +63,15 @@ serve(async (req) => {
       progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
     }).eq("id", meetingId);
 
+    // Format temporal offset for the prompt
+    const startMin = Math.floor(chunkStart / 60);
+    const startSec = Math.floor(chunkStart % 60);
+    const endMin = Math.floor(chunkEnd / 60);
+    const endSec = Math.floor(chunkEnd % 60);
+    const timeRange = chunkEnd > 0
+      ? `\n\nEste trecho corresponde ao período de ${String(startMin).padStart(2, "0")}:${String(startSec).padStart(2, "0")} até ${String(endMin).padStart(2, "0")}:${String(endSec).padStart(2, "0")} da gravação original. Use esses timestamps como referência.`
+      : "";
+
     const systemPrompt = `Você é um transcritor profissional. Transcreva o áudio/vídeo COMPLETO em português do Brasil, do início ao fim, sem omitir nenhuma parte.
 
 REGRAS OBRIGATÓRIAS:
@@ -69,7 +80,7 @@ REGRAS OBRIGATÓRIAS:
 3. Inclua timestamps aproximados a cada 2-3 minutos no formato [MM:SS]
 4. NÃO pare no meio — continue até o final absoluto do áudio
 5. Retorne APENAS a transcrição completa, sem resumos, comentários ou análises
-6. Se houver silêncio ou ruído, indique brevemente: [silêncio] ou [ruído de fundo]`;
+6. Se houver silêncio ou ruído, indique brevemente: [silêncio] ou [ruído de fundo]${timeRange}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);

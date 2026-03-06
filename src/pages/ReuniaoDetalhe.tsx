@@ -194,6 +194,8 @@ export default function ReuniaoDetalhe() {
                       mimeType: chunk.mimeType,
                       chunkIndex: chunk.chunkIndex,
                       totalChunks: chunk.totalChunks,
+                      startSeconds: chunk.startSeconds ?? 0,
+                      endSeconds: chunk.endSeconds ?? 0,
                     },
                   });
                   if (transcribeError) { lastError = transcribeError; continue; }
