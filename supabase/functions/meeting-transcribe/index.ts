@@ -54,11 +54,14 @@ serve(async (req) => {
 
     console.log(`[meeting-transcribe] Processing chunk ${idx + 1}/${chunks}, base64 length: ${audioBase64.length}, mime: ${resolvedMimeType}`);
 
-    // Update status on first chunk
-    if (isFirstChunk) {
-      const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      await supabaseAdmin.from("meetings").update({ status: "transcribing" }).eq("id", meetingId);
-    }
+    // Update progress in DB for realtime tracking
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const progressPct = Math.round(5 + ((idx) / chunks) * 80);
+    await supabaseAdmin.from("meetings").update({
+      status: "transcribing",
+      progress: progressPct,
+      progress_detail: `Transcrevendo trecho ${idx + 1} de ${chunks}...`,
+    }).eq("id", meetingId);
 
     // Build system prompt with chunk context
     let systemPrompt = `Você é um transcritor profissional de áudio/vídeo com capacidade de DIARIZAÇÃO (identificação de falantes).
