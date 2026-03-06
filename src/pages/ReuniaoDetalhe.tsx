@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import DashboardLayout from "@/components/DashboardLayout";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 import { MeetingMindMap } from "@/components/meetings/MeetingMindMap";
 

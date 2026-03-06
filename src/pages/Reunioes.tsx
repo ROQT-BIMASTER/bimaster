@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import DashboardLayout from "@/components/DashboardLayout";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MeetingRecorder } from "@/components/meetings/MeetingRecorder";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
