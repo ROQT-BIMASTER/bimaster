@@ -7,10 +7,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, Brain, Clock, AlertTriangle, CheckCircle2,
-  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio, Download
+  Lightbulb, ShieldAlert, Loader2, ListTodo, Clipboard, ScrollText, Search as SearchIcon, Radio, Download, Mic, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +47,7 @@ export default function ReuniaoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState({ step: "", percent: 0, detail: "" });
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
@@ -97,20 +99,20 @@ export default function ReuniaoDetalhe() {
       return;
     }
     setAnalyzing(true);
+    setAnalyzeProgress({ step: "Preparando", percent: 0, detail: "" });
     try {
       let transcription = existingTranscription;
 
       // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
-        toast.info("⏳ Etapa 1/2: Preparando áudio para transcrição...");
-
+        setAnalyzeProgress({ step: "Preparando áudio", percent: 2, detail: "Baixando e dividindo áudio..." });
         // Get a working URL for the audio
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
 
         // Download and chunk in the browser
         const chunks = await chunkAudioFromUrl(signedUrl);
-        toast.info(`⏳ Transcrevendo ${chunks.length} trecho(s) com IA...`);
+        setAnalyzeProgress({ step: "Transcrevendo", percent: 5, detail: `0/${chunks.length} trechos` });
 
         // Process chunks in parallel batches of 3 for speed
         const BATCH_SIZE = 3;
@@ -121,8 +123,13 @@ export default function ReuniaoDetalhe() {
 
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
           const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
-          const pct = Math.round((completedChunks / chunks.length) * 100);
-          toast.info(`⏳ Transcrevendo... ${pct}% (partes ${batchStart + 1}-${Math.min(batchStart + BATCH_SIZE, chunks.length)} de ${chunks.length})`, { id: "transcribe-progress" });
+          // Progress: transcription is 5-85% of total
+          const transcribePct = 5 + Math.round((completedChunks / chunks.length) * 80);
+          setAnalyzeProgress({
+            step: "Transcrevendo",
+            percent: transcribePct,
+            detail: `${completedChunks}/${chunks.length} trechos concluídos`,
+          });
 
           const batchResults = await Promise.allSettled(
             batch.map(async (chunk) => {
@@ -175,7 +182,8 @@ export default function ReuniaoDetalhe() {
           }
         }
 
-        toast.dismiss("transcribe-progress");
+
+        setAnalyzeProgress({ step: "Transcrevendo", percent: 85, detail: `${chunks.length}/${chunks.length} trechos concluídos` });
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
@@ -196,17 +204,18 @@ export default function ReuniaoDetalhe() {
           updated_at: new Date().toISOString(),
         }).eq("id", id);
 
-        toast.success("✅ Transcrição concluída!");
+        setAnalyzeProgress({ step: "Salvando transcrição", percent: 88, detail: "" });
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
       // STEP 2: Analyze transcription (text only — lightweight)
-      toast.info("🧠 Etapa 2/2: Analisando com IA...");
+      setAnalyzeProgress({ step: "Analisando com IA", percent: 90, detail: "Extraindo insights, tarefas e riscos..." });
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      setAnalyzeProgress({ step: "Concluído!", percent: 100, detail: `${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos` });
       toast.success(`Análise concluída! ${data.insights_count} insights, ${data.tasks_count} tarefas, ${data.risks_count} riscos`);
       queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
@@ -294,6 +303,41 @@ export default function ReuniaoDetalhe() {
             Analisar com IA
           </Button>
         </div>
+
+        {/* Progress bar during analysis */}
+        {analyzing && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-5 pb-4 space-y-3">
+              <div className="flex items-center gap-3">
+                {analyzeProgress.percent < 100 ? (
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    {analyzeProgress.step === "Transcrevendo" ? (
+                      <Mic className="h-4 w-4 text-primary animate-pulse" />
+                    ) : analyzeProgress.step === "Analisando com IA" ? (
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    ) : (
+                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-medium">{analyzeProgress.step}</p>
+                    <span className="text-xs font-mono text-muted-foreground">{analyzeProgress.percent}%</span>
+                  </div>
+                  <Progress value={analyzeProgress.percent} className="h-2" />
+                  {analyzeProgress.detail && (
+                    <p className="text-xs text-muted-foreground mt-1.5">{analyzeProgress.detail}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recorder (if not analyzed) */}
         {meeting.status !== "analyzed" && (
