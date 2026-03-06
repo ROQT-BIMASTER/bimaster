@@ -334,7 +334,10 @@ Departamentos disponíveis: ${deptNames}
 
 🔖 HIGHLIGHTS — META: ${targetHighlights}+ itens
 - Decisões, conflitos, ideias novas, problemas críticos, mudanças de direção, compromissos
-- Estime timestamp em segundos; distribua proporcionalmente se não houver timestamps
+- DURAÇÃO TOTAL DA REUNIÃO: ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos
+- Os timestamps DEVEM ser distribuídos UNIFORMEMENTE ao longo de toda a duração (de 0 até ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos)
+- NÃO concentre timestamps no início. Garanta que haja highlights no primeiro terço, terço do meio e terço final da reunião
+- Se a transcrição tem timestamps [MM:SS], use-os. Senão, distribua proporcionalmente
 
 ⚠️ INSTRUÇÃO ANTI-PREGUIÇA — LEIA COM ATENÇÃO:
 1. NÃO pare após gerar os primeiros 10 itens de cada tipo. Continue até ESGOTAR o conteúdo.
