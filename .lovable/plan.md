@@ -1,56 +1,25 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Diagnóstico
 
-### O que muda
+A análise dos 11 minutos **está funcionando** — os logs confirmam 20 insights, 14 tasks, 9 risks. O problema visível é um **log enganoso** na linha 110 que mostra "estimated minutes: 591" (fórmula antiga `length/120`), enquanto a estimativa real correta (linha 138) mostra "12 min". Isso gera confusão.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+Para suportar reuniões de **até 1 hora**, há 3 ajustes necessários:
 
-### Implementação
+## Alterações em `supabase/functions/meeting-analyze/index.ts`
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+### 1. Corrigir o log enganoso (linha 110)
+Usar `estimatedMinutes` real em vez de `transcription.length / 120`. Mover o log para depois do cálculo correto na linha 138.
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+### 2. Aumentar timeouts para 1 hora de áudio
+- Phase 1 timeout: `120s → 180s` (ata de 1h é muito maior)
+- Phase 2 timeout: `120s → 180s` (mais itens para extrair)
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### 3. Aumentar limite de transcrição
+- `MAX_TRANSCRIPTION_CHARS`: `200000 → 350000` (~1h de áudio diarizado gera ~40K-60K chars, com margem)
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+### 4. Adicionar log de duração estimada no início
+Para que fique claro nos logs quantos minutos estão sendo processados desde o primeiro momento.
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+**Arquivo alterado:** `supabase/functions/meeting-analyze/index.ts`
 
