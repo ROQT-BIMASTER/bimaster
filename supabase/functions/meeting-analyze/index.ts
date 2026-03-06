@@ -294,48 +294,55 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
     // ========================================================================
     // PHASE 2: Exhaustive Extraction (insights, tasks, risks, highlights)
     // ========================================================================
+    // Proportional targets based on meeting duration
+    const targetInsights = Math.max(15, Math.round(estimatedMinutes * 1.5)); // ~1.5 per minute
+    const targetTasks = Math.max(10, Math.round(estimatedMinutes * 1)); // ~1 per minute
+    const targetRisks = Math.max(6, Math.round(estimatedMinutes * 0.6)); // ~0.6 per minute
+    const targetHighlights = Math.max(12, Math.round(estimatedMinutes * 1.2)); // ~1.2 per minute
+
     const phase2Messages = [
       {
         role: "system",
-        content: `Você é um analista especializado em extrair TODOS os insights, tarefas, riscos e momentos-chave de reuniões corporativas. Sua tarefa é ser EXAUSTIVO — analise a transcrição INTEIRA do início ao fim e extraia ABSOLUTAMENTE TUDO que for relevante.
+        content: `Você é um analista sênior especializado em extrair EXAUSTIVAMENTE todos os insights, tarefas, riscos e momentos-chave de reuniões corporativas.
 
+DURAÇÃO ESTIMADA DA REUNIÃO: ~${estimatedMinutes} minutos.
 Departamentos disponíveis: ${deptNames}
 
-REGRAS OBRIGATÓRIAS — NÃO GERE MENOS QUE OS MÍNIMOS:
+🎯 METAS PROPORCIONAIS (baseadas na duração — NÃO pare antes de atingir):
 
-📊 INSIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
-- Cada decisão tomada na reunião → insight tipo "decisao"
-- Cada problema discutido → insight tipo "problema"  
-- Cada oportunidade mencionada → insight tipo "oportunidade"
-- Cada bloqueio ou impedimento → insight tipo "bloqueio"
-- Cada risco identificado → insight tipo "risco"
-- INCLUA insights sobre: processos, pessoas, tecnologia, finanças, clientes, mercado, operações
+📊 INSIGHTS — META: ${targetInsights}+ itens
+- Extraia ~1 insight para cada 1-2 minutos de reunião
+- Tipos: "decisao", "problema", "oportunidade", "bloqueio", "risco"
+- Cada decisão tomada → insight. Cada problema discutido → insight. Cada oportunidade → insight.
+- INCLUA insights granulares: processos internos, pessoas, tecnologia, finanças, clientes, mercado, operações, cultura
+- Prefira MUITOS insights específicos a POUCOS insights genéricos
 - Atribua departamento, impacto e urgência para CADA insight
 
-📋 TAREFAS (extraia 8-15, MÍNIMO ABSOLUTO: 8):
-- Cada ação mencionada ou comprometimento → tarefa
-- Cada "vamos fazer", "precisamos", "alguém precisa" → tarefa
-- Cada follow-up mencionado → tarefa
-- Cada entrega ou deadline mencionado → tarefa
-- Atribua departamento e prioridade para CADA tarefa
+📋 TAREFAS — META: ${targetTasks}+ itens
+- Extraia ~1 tarefa para cada 1-2 minutos de reunião
+- Cada ação comprometida, cada "vamos fazer", "precisamos", "alguém precisa", cada follow-up, cada deadline → tarefa SEPARADA
+- Desmembre tarefas compostas em sub-tarefas individuais
+- Atribua departamento e prioridade
 
-⚠️ RISCOS (extraia 5-8, MÍNIMO ABSOLUTO: 5):
-- Cada preocupação expressa por participantes → risco
-- Cada desafio ou obstáculo → risco  
-- Cada incerteza ou dependência externa → risco
-- Cada potencial problema futuro → risco
+⚠️ RISCOS — META: ${targetRisks}+ itens
+- Cada preocupação, desafio, obstáculo, incerteza, dependência externa, potencial problema futuro → risco INDIVIDUAL
+- Inclua riscos implícitos (o que pode dar errado mesmo que não dito explicitamente)
 - Inclua ação recomendada para CADA risco
 
-🔖 HIGHLIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
-- Decisões importantes, conflitos, ideias novas, problemas críticos, mudanças de direção
-- Estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
-- Se não houver timestamps explícitos, distribua proporcionalmente ao longo do texto
+🔖 HIGHLIGHTS — META: ${targetHighlights}+ itens
+- Decisões, conflitos, ideias novas, problemas críticos, mudanças de direção, compromissos
+- Estime timestamp em segundos; distribua proporcionalmente se não houver timestamps
 
-ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights, tarefas ou riscos. Não pule nenhuma seção.`,
+⚠️ INSTRUÇÃO ANTI-PREGUIÇA — LEIA COM ATENÇÃO:
+1. NÃO pare após gerar os primeiros 10 itens de cada tipo. Continue até ESGOTAR o conteúdo.
+2. Releia CADA parágrafo da transcrição e pergunte-se: "Extraí tudo daqui?"
+3. Se um parágrafo contém uma decisão E um risco E uma tarefa, gere os 3 itens separados.
+4. Prefira 30 itens granulares a 10 itens genéricos.
+5. Ao terminar, revise mentalmente: "Cobri o início, meio e fim da transcrição?"`,
       },
       {
         role: "user",
-        content: `Extraia TODOS os insights, tarefas, riscos e highlights desta transcrição. Seja EXAUSTIVO:\n\n${analysisTranscription}`,
+        content: `Esta reunião tem ~${estimatedMinutes} minutos. Extraia EXAUSTIVAMENTE todos os insights (meta: ${targetInsights}+), tarefas (meta: ${targetTasks}+), riscos (meta: ${targetRisks}+) e highlights (meta: ${targetHighlights}+). NÃO pare nos primeiros itens — continue até esgotar o conteúdo:\n\n${analysisTranscription}`,
       },
     ];
 
