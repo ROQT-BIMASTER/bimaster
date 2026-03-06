@@ -1,56 +1,18 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Problem
 
-### O que muda
+The `meeting-transcribe` Edge Function uses `google/gemini-2.5-flash` for audio transcription. The logs show it consistently crashes/shuts down around chunk 3, likely because Flash is not powerful enough for reliable audio-to-text transcription of these chunks. The `meeting-analyze` function also uses Flash for the analysis phase.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+## Solution
 
-### Implementação
+Upgrade both functions to use `google/gemini-2.5-pro` — the most powerful model available for multimodal (audio+text) tasks. Pro has significantly better audio understanding and handles larger/complex inputs more reliably.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+| File | Change |
+|---|---|
+| `supabase/functions/meeting-transcribe/index.ts` | Change model from `gemini-2.5-flash` to `google/gemini-2.5-pro` (line 100) |
+| `supabase/functions/meeting-analyze/index.ts` | Change model from `gemini-2.5-flash` to `google/gemini-2.5-pro` (line 91) |
+| SQL migration | Reset stuck meeting back to `draft` |
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
-
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+Both functions will be redeployed after the model change.
 
