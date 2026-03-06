@@ -204,7 +204,7 @@ export default function ReuniaoDetalhe() {
           updated_at: new Date().toISOString(),
         }).eq("id", id);
 
-        toast.success("✅ Transcrição concluída!");
+        setAnalyzeProgress({ step: "Salvando transcrição", percent: 88, detail: "" });
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
