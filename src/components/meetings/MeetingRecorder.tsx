@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Mic, Square, Pause, Play, Upload, Loader2 } from "lucide-react";
+import { Mic, Square, Pause, Play, Upload, Loader2, Video, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,11 +18,13 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
   const [isUploading, setIsUploading] = useState(false);
   const [duration, setDuration] = useState(0);
   const [hasRecording, setHasRecording] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -54,7 +56,7 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
         setHasRecording(true);
       };
 
-      mediaRecorder.start(1000); // collect every second
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setIsPaused(false);
       setDuration(0);
@@ -63,7 +65,6 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
         setDuration((d) => d + 1);
       }, 1000);
 
-      // Update meeting status
       await supabase.from("meetings").update({ status: "recording" }).eq("id", meetingId);
     } catch (err: any) {
       toast.error("Erro ao acessar microfone: " + (err.message || "Permissão negada"));
@@ -109,67 +110,89 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
     setIsUploading(true);
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      console.log("[MeetingRecorder] Blob size:", blob.size, "bytes, chunks:", chunksRef.current.length);
-      
       if (blob.size < 100) {
         toast.error("Gravação muito curta. Tente novamente.");
         return;
       }
 
       const fileName = `${session!.user.id}/${meetingId}_${Date.now()}.webm`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("meeting-recordings")
-        .upload(fileName, blob, { 
-          contentType: "audio/webm",
-          upsert: true,
-          cacheControl: "3600",
-        });
-      
-      if (uploadError) {
-        console.error("[MeetingRecorder] Upload error:", uploadError);
-        throw new Error(`Erro no upload: ${uploadError.message}`);
-      }
-      
-      console.log("[MeetingRecorder] Upload OK:", uploadData?.path);
+        .upload(fileName, blob, { contentType: "audio/webm", upsert: true, cacheControl: "3600" });
+      if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
 
-      // Get signed URL (1 year)
       const { data: urlData, error: urlError } = await supabase.storage
         .from("meeting-recordings")
         .createSignedUrl(fileName, 31536000);
-      
-      if (urlError) {
-        console.error("[MeetingRecorder] SignedUrl error:", urlError);
-        throw new Error("Erro ao gerar URL do áudio");
-      }
-      
-      const audioUrl = urlData?.signedUrl || "";
-      console.log("[MeetingRecorder] Audio URL obtained:", audioUrl ? "OK" : "EMPTY");
+      if (urlError) throw new Error("Erro ao gerar URL do áudio");
 
-      // Update meeting record
-      const { error: updateError } = await supabase.from("meetings").update({
+      const audioUrl = urlData?.signedUrl || "";
+      await supabase.from("meetings").update({
         audio_url: audioUrl,
         duration_seconds: duration,
         status: "draft",
         updated_at: new Date().toISOString(),
       }).eq("id", meetingId);
 
-      if (updateError) {
-        console.error("[MeetingRecorder] Update error:", updateError);
-        throw new Error(`Erro ao atualizar reunião: ${updateError.message}`);
-      }
-
       onRecordingComplete(audioUrl, duration);
       onUploadComplete?.();
       toast.success("Áudio salvo com sucesso!");
       setHasRecording(false);
     } catch (err: any) {
-      console.error("[MeetingRecorder] Error:", err);
       toast.error("Erro ao salvar áudio: " + (err.message || "Erro desconhecido"));
     } finally {
       setIsUploading(false);
     }
   }, [meetingId, session, duration, onRecordingComplete, onUploadComplete]);
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isVideo = file.type.startsWith("video/");
+    const isAudio = file.type.startsWith("audio/");
+    if (!isVideo && !isAudio) {
+      toast.error("Formato não suportado. Envie um arquivo de vídeo ou áudio.");
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 100MB.");
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "webm");
+      const fileName = `${session!.user.id}/${meetingId}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("meeting-recordings")
+        .upload(fileName, file, { contentType: file.type, upsert: true, cacheControl: "3600" });
+      if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
+
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("meeting-recordings")
+        .createSignedUrl(fileName, 31536000);
+      if (urlError) throw new Error("Erro ao gerar URL");
+
+      const mediaUrl = urlData?.signedUrl || "";
+      await supabase.from("meetings").update({
+        audio_url: mediaUrl,
+        status: "draft",
+        updated_at: new Date().toISOString(),
+      }).eq("id", meetingId);
+
+      onRecordingComplete(mediaUrl, 0);
+      onUploadComplete?.();
+      toast.success(`${isVideo ? "Vídeo" : "Áudio"} enviado com sucesso!`);
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + (err.message || "Erro desconhecido"));
+    } finally {
+      setIsUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [meetingId, session, onRecordingComplete, onUploadComplete]);
 
   return (
     <div className="flex flex-col items-center gap-4 p-6 rounded-xl border bg-card">
@@ -196,12 +219,39 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
       )}
 
       {/* Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap justify-center">
         {!isRecording && !hasRecording && (
-          <Button onClick={startRecording} size="lg" className="gap-2 bg-red-500 hover:bg-red-600">
-            <Mic className="h-5 w-5" />
-            Iniciar Gravação
-          </Button>
+          <>
+            <Button onClick={startRecording} size="lg" className="gap-2 bg-red-500 hover:bg-red-600">
+              <Mic className="h-5 w-5" />
+              Iniciar Gravação
+            </Button>
+
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*,audio/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload-input"
+              />
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingFile}
+              >
+                {isUploadingFile ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <FileUp className="h-5 w-5" />
+                )}
+                Enviar Gravação
+              </Button>
+            </div>
+          </>
         )}
 
         {isRecording && (
@@ -237,6 +287,10 @@ export function MeetingRecorder({ meetingId, onRecordingComplete, onUploadComple
           </div>
         )}
       </div>
+
+      {isUploadingFile && (
+        <p className="text-sm text-muted-foreground animate-pulse">Enviando arquivo...</p>
+      )}
     </div>
   );
 }

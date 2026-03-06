@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle, Lightbulb, CheckCircle2, ListTodo, ShieldAlert,
-  ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2,
+  ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ===== Types =====
 interface MindMapNode {
   label: string;
-  type?: "problema" | "oportunidade" | "decisao" | "tarefa" | "risco" | "root" | "category";
+  type?: "problema" | "oportunidade" | "decisao" | "tarefa" | "risco" | "root" | "category" | "processo";
   children?: MindMapNode[];
 }
 
@@ -42,6 +42,7 @@ const NODE_STYLES: Record<string, { bg: string; border: string; text: string; ic
   decisao: { bg: "bg-primary/10", border: "border-primary/40", text: "text-primary", icon: CheckCircle2, glow: "shadow-[0_0_12px_hsl(var(--primary)/0.15)]" },
   tarefa: { bg: "bg-warning/10", border: "border-warning/40", text: "text-warning", icon: ListTodo, glow: "shadow-[0_0_12px_hsl(var(--warning)/0.15)]" },
   risco: { bg: "bg-orange-500/10", border: "border-orange-500/40", text: "text-orange-600", icon: ShieldAlert, glow: "shadow-[0_0_12px_rgba(249,115,22,0.15)]" },
+  processo: { bg: "bg-accent", border: "border-accent-foreground/20", text: "text-accent-foreground", icon: GitBranch, glow: "" },
   category: { bg: "bg-muted", border: "border-border", text: "text-foreground", icon: null, glow: "" },
 };
 
@@ -52,14 +53,31 @@ const STROKE_COLORS: Record<string, string> = {
   decisao: "hsl(var(--primary))",
   tarefa: "hsl(var(--warning))",
   risco: "#f97316",
+  processo: "hsl(var(--accent-foreground))",
   category: "hsl(var(--border))",
 };
 
+// ===== Dynamic node sizing =====
+function measureNodeWidth(label: string): number {
+  const charW = 7;
+  const minW = 160;
+  const maxW = 320;
+  const padding = 48; // icon + padding
+  const textW = label.length * charW + padding;
+  return Math.max(minW, Math.min(maxW, textW));
+}
+
+function measureNodeHeight(label: string, width: number): number {
+  const charsPerLine = Math.floor((width - 48) / 7);
+  const lines = Math.ceil(label.length / Math.max(charsPerLine, 1));
+  const minH = 44;
+  const lineH = 18;
+  return Math.max(minH, lines * lineH + 20);
+}
+
 // ===== Layout calculation =====
-const NODE_W = 180;
-const NODE_H = 48;
 const H_GAP = 60;
-const V_GAP = 24;
+const V_GAP = 20;
 
 function layoutTree(data: MindMapData): { nodes: PositionedNode[]; width: number; height: number } {
   const nodes: PositionedNode[] = [];
@@ -75,19 +93,22 @@ function layoutTree(data: MindMapData): { nodes: PositionedNode[]; width: number
     const id = `n${idCounter++}`;
     const children = node.children || [];
     const leafCount = measure(node, depth);
-    const totalHeight = leafCount * (NODE_H + V_GAP) - V_GAP;
-    const x = depth * (NODE_W + H_GAP);
-    const y = yStart + totalHeight / 2 - NODE_H / 2;
+    const nodeW = depth === 0 ? 220 : measureNodeWidth(node.label);
+    const nodeH = depth === 0 ? 52 : measureNodeHeight(node.label, nodeW);
+    const totalHeight = leafCount * (nodeH + V_GAP) - V_GAP;
+    const x = depth * (260 + H_GAP);
+    const y = yStart + totalHeight / 2 - nodeH / 2;
 
     nodes.push({
       id, label: node.label, type: node.type || (depth === 0 ? "root" : "category"),
-      x, y, width: NODE_W, height: NODE_H, parentId, depth,
+      x, y, width: nodeW, height: nodeH, parentId, depth,
     });
 
     let childY = yStart;
     for (const child of children) {
       const childLeafCount = measure(child, depth + 1);
-      const childTotalHeight = childLeafCount * (NODE_H + V_GAP) - V_GAP;
+      const childNodeH = measureNodeHeight(child.label, measureNodeWidth(child.label));
+      const childTotalHeight = childLeafCount * (childNodeH + V_GAP) - V_GAP;
       place(child, depth + 1, childY, id);
       childY += childTotalHeight + V_GAP;
     }
@@ -98,9 +119,9 @@ function layoutTree(data: MindMapData): { nodes: PositionedNode[]; width: number
   const rootNode: MindMapNode = { label: data.root, type: "root", children: data.children };
   const totalHeight = place(rootNode, 0, 0);
   const maxDepth = Math.max(...nodes.map((n) => n.depth));
-  const totalWidth = (maxDepth + 1) * (NODE_W + H_GAP);
+  const totalWidth = (maxDepth + 1) * (260 + H_GAP);
 
-  return { nodes, width: totalWidth, height: totalHeight + NODE_H };
+  return { nodes, width: totalWidth, height: totalHeight + 60 };
 }
 
 // ===== Parse input =====
@@ -127,7 +148,7 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
   const data = useMemo(() => parseData(mermaidCode), [mermaidCode]);
   const layout = useMemo(() => (data ? layoutTree(data) : null), [data]);
 
-  // Fit to container on mount
+  // Fit to container
   useEffect(() => {
     if (!layout || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -135,7 +156,7 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
     const scaleX = (rect.width - padding) / (layout.width + padding);
     const scaleY = (rect.height - padding) / (layout.height + padding);
     const fitScale = Math.min(scaleX, scaleY, 1);
-    setScale(Math.max(fitScale, 0.3));
+    setScale(Math.max(fitScale, 0.2));
     setTranslate({
       x: (rect.width - layout.width * fitScale) / 2,
       y: (rect.height - layout.height * fitScale) / 2,
@@ -144,7 +165,7 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    setScale((s) => Math.min(Math.max(s - e.deltaY * 0.001, 0.2), 2));
+    setScale((s) => Math.min(Math.max(s - e.deltaY * 0.001, 0.15), 2.5));
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -171,7 +192,7 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
     const scaleX = (rect.width - padding) / (layout.width + padding);
     const scaleY = (rect.height - padding) / (layout.height + padding);
     const fitScale = Math.min(scaleX, scaleY, 1);
-    setScale(Math.max(fitScale, 0.3));
+    setScale(Math.max(fitScale, 0.2));
     setTranslate({
       x: (rect.width - layout.width * fitScale) / 2,
       y: (rect.height - layout.height * fitScale) / 2,
@@ -179,7 +200,6 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
   }, [layout]);
 
   if (!data || !layout) {
-    // Fallback for legacy mermaid or empty
     if (mermaidCode) {
       return (
         <div className="overflow-auto max-h-[500px]">
@@ -199,13 +219,13 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
     : "relative rounded-xl border border-border bg-muted/30 overflow-hidden";
 
   return (
-    <div className={wrapperClass} style={{ height: fullscreen ? "100vh" : 500 }}>
+    <div className={wrapperClass} style={{ height: fullscreen ? "100vh" : 520 }}>
       {/* Controls */}
       <div className="absolute top-3 right-3 z-10 flex gap-1.5">
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-card/80 backdrop-blur-sm" onClick={() => setScale((s) => Math.min(s + 0.15, 2))}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-card/80 backdrop-blur-sm" onClick={() => setScale((s) => Math.min(s + 0.15, 2.5))}>
           <ZoomIn className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="icon" className="h-8 w-8 bg-card/80 backdrop-blur-sm" onClick={() => setScale((s) => Math.max(s - 0.15, 0.2))}>
+        <Button variant="outline" size="icon" className="h-8 w-8 bg-card/80 backdrop-blur-sm" onClick={() => setScale((s) => Math.max(s - 0.15, 0.15))}>
           <ZoomOut className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8 bg-card/80 backdrop-blur-sm" onClick={resetView}>
@@ -229,8 +249,8 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
         <div style={{ transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`, transformOrigin: "0 0", position: "relative" }}>
           {/* SVG connections */}
           <svg
-            width={layout.width + 100}
-            height={layout.height + 100}
+            width={layout.width + 200}
+            height={layout.height + 200}
             className="absolute top-0 left-0 pointer-events-none"
             style={{ overflow: "visible" }}
           >
@@ -255,7 +275,7 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
                     strokeOpacity={0.5}
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.6, delay: node.depth * 0.15 }}
+                    transition={{ duration: 0.6, delay: node.depth * 0.12 }}
                   />
                 );
               })}
@@ -270,19 +290,19 @@ export function MeetingMindMap({ mermaidCode }: MeetingMindMapProps) {
             return (
               <motion.div
                 key={node.id}
-                className={`absolute flex items-center gap-2 px-3 rounded-xl border-2 ${style.bg} ${style.border} ${style.glow} ${isRoot ? "font-bold" : "font-medium"}`}
+                className={`absolute flex items-start gap-2 px-3 py-2 rounded-xl border-2 ${style.bg} ${style.border} ${style.glow} ${isRoot ? "font-bold" : "font-medium"}`}
                 style={{
                   left: node.x,
                   top: node.y,
                   width: node.width,
-                  height: node.height,
+                  minHeight: node.height,
                 }}
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.35, delay: i * 0.04 }}
+                transition={{ duration: 0.35, delay: i * 0.03 }}
               >
-                {IconComp && <IconComp className={`h-4 w-4 shrink-0 ${style.text}`} />}
-                <span className={`text-xs leading-tight truncate ${isRoot ? "text-primary-foreground" : style.text}`}>
+                {IconComp && <IconComp className={`h-4 w-4 shrink-0 mt-0.5 ${style.text}`} />}
+                <span className={`text-xs leading-snug ${isRoot ? "text-primary-foreground" : style.text}`} style={{ wordBreak: "break-word" }}>
                   {node.label}
                 </span>
               </motion.div>
