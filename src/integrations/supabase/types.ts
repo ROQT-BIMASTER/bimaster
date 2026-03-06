@@ -11490,6 +11490,30 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip_address: string | null
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       market_coverage_snapshot: {
         Row: {
           cobertura_percentual: number
@@ -21236,6 +21260,7 @@ export type Database = {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
       }
+      check_account_lockout: { Args: { p_email: string }; Returns: Json }
       check_user_access: {
         Args: { _module_code?: string; _user_id: string }
         Returns: boolean
@@ -21250,6 +21275,7 @@ export type Database = {
       }
       cleanup_audit_logs_daily: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
+      cleanup_old_login_attempts: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
           p_duration_ms?: number
@@ -21782,6 +21808,10 @@ export type Database = {
       pis_cofins_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       pis_cofins_tipo_credito: { Args: { p_cst: string }; Returns: string }
       recalculate_contas_pagar_status: { Args: never; Returns: Json }
+      record_login_attempt: {
+        Args: { p_email: string; p_ip?: string; p_success: boolean }
+        Returns: undefined
+      }
       refresh_all_materialized_views: { Args: never; Returns: undefined }
       refresh_analise_departamentos: { Args: never; Returns: undefined }
       refresh_daily_kpis: { Args: { target_date?: string }; Returns: undefined }
