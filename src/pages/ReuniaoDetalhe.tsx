@@ -504,7 +504,7 @@ export default function ReuniaoDetalhe() {
 
                 {/* Timeline with highlights */}
                 <MeetingTimeline
-                  audioUrl={meeting.audio_url}
+                  audioUrl={resolvedAudioUrl}
                   durationSeconds={meeting.duration_seconds || 0}
                   highlights={highlights}
                   searchResults={searchResults}
