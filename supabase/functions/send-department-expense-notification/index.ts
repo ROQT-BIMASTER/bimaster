@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { renderAsync } from "https://esm.sh/@react-email/components@0.0.22";
 import React from "https://esm.sh/react@18.3.1";
