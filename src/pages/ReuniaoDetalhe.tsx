@@ -112,57 +112,82 @@ export default function ReuniaoDetalhe() {
         const chunks = await chunkAudioFromUrl(signedUrl);
         toast.info(`⏳ Transcrevendo ${chunks.length} trecho(s) com IA...`);
 
-        const partialTranscriptions: string[] = [];
+        // Process chunks in parallel batches of 3 for speed
+        const BATCH_SIZE = 3;
+        const MAX_RETRIES = 3;
+        const partialTranscriptions: (string | null)[] = new Array(chunks.length).fill(null);
+        let completedChunks = 0;
+        let failedChunks = 0;
 
-        for (const chunk of chunks) {
-          toast.info(`⏳ Transcrevendo parte ${chunk.chunkIndex + 1}/${chunk.totalChunks}...`);
-          
-          let lastError: any = null;
-          let success = false;
-          
-          for (let attempt = 0; attempt < 3; attempt++) {
-            if (attempt > 0) {
-              toast.info(`🔄 Tentativa ${attempt + 1}/3 para parte ${chunk.chunkIndex + 1}...`);
-              await new Promise(r => setTimeout(r, 2000 * attempt));
-            }
-            
-            try {
-              const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
-                body: {
-                  meetingId: id,
-                  audioBase64: chunk.base64,
-                  mimeType: chunk.mimeType,
-                  chunkIndex: chunk.chunkIndex,
-                  totalChunks: chunk.totalChunks,
-                },
-              });
-              
-              if (transcribeError) {
-                lastError = transcribeError;
-                console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} error:`, transcribeError);
-                continue;
+        for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
+          const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
+          const pct = Math.round((completedChunks / chunks.length) * 100);
+          toast.info(`⏳ Transcrevendo... ${pct}% (partes ${batchStart + 1}-${Math.min(batchStart + BATCH_SIZE, chunks.length)} de ${chunks.length})`, { id: "transcribe-progress" });
+
+          const batchResults = await Promise.allSettled(
+            batch.map(async (chunk) => {
+              let lastError: any = null;
+              for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                if (attempt > 0) {
+                  await new Promise(r => setTimeout(r, 3000 * attempt)); // 3s, 6s, 9s backoff
+                }
+                try {
+                  const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
+                    body: {
+                      meetingId: id,
+                      audioBase64: chunk.base64,
+                      mimeType: chunk.mimeType,
+                      chunkIndex: chunk.chunkIndex,
+                      totalChunks: chunk.totalChunks,
+                    },
+                  });
+                  if (transcribeError) { lastError = transcribeError; continue; }
+                  if (transcribeData?.error) { lastError = new Error(transcribeData.error); continue; }
+                  return { index: chunk.chunkIndex, text: transcribeData.transcription };
+                } catch (err) {
+                  lastError = err;
+                  console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} failed:`, err);
+                }
               }
-              if (transcribeData?.error) {
-                lastError = new Error(transcribeData.error);
-                console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} data error:`, transcribeData.error);
-                continue;
-              }
-              
-              partialTranscriptions.push(transcribeData.transcription);
-              success = true;
-              break;
-            } catch (err) {
-              lastError = err;
-              console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} exception:`, err);
+              // All retries exhausted — return placeholder instead of aborting
+              console.error(`[chunk ${chunk.chunkIndex}] all retries failed:`, lastError);
+              return { index: chunk.chunkIndex, text: null };
+            })
+          );
+
+          for (const result of batchResults) {
+            if (result.status === "fulfilled" && result.value.text) {
+              partialTranscriptions[result.value.index] = result.value.text;
+              completedChunks++;
+            } else if (result.status === "fulfilled" && !result.value.text) {
+              partialTranscriptions[result.value.index] = "[... trecho inaudível ...]";
+              failedChunks++;
+              completedChunks++;
+            } else {
+              failedChunks++;
+              completedChunks++;
             }
           }
-          
-          if (!success) {
-            throw lastError || new Error(`Falha ao transcrever parte ${chunk.chunkIndex + 1}`);
+
+          // Small delay between batches to avoid rate limiting
+          if (batchStart + BATCH_SIZE < chunks.length) {
+            await new Promise(r => setTimeout(r, 1000));
           }
         }
 
-        transcription = partialTranscriptions.join("\n\n");
+        toast.dismiss("transcribe-progress");
+
+        if (failedChunks > 0) {
+          toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
+        }
+
+        // If ALL chunks failed, abort
+        const successfulChunks = partialTranscriptions.filter(t => t && t !== "[... trecho inaudível ...]");
+        if (successfulChunks.length === 0) {
+          throw new Error("Não foi possível transcrever nenhum trecho do áudio");
+        }
+
+        transcription = partialTranscriptions.filter(Boolean).join("\n\n");
 
         // Save the full transcription
         await supabase.from("meetings").update({

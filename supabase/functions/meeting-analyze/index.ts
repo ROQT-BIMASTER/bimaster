@@ -60,11 +60,29 @@ serve(async (req) => {
     // ============ ANALYZE TRANSCRIPTION (TEXT ONLY — no audio/video in memory) ============
     console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
 
+    // Truncate very long transcriptions to avoid timeouts (keep first + last parts for context)
+    const MAX_TRANSCRIPTION_CHARS = 80000;
+    let analysisTranscription = transcription;
+    if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
+      const halfLimit = Math.floor(MAX_TRANSCRIPTION_CHARS / 2);
+      analysisTranscription = transcription.substring(0, halfLimit)
+        + "\n\n[... parte central da transcrição omitida por tamanho — total: " + transcription.length + " caracteres ...]\n\n"
+        + transcription.substring(transcription.length - halfLimit);
+      console.log(`[meeting-analyze] Transcription truncated: ${transcription.length} → ${analysisTranscription.length} chars`);
+    }
+
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // AbortController to enforce 50s timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000);
+
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
@@ -95,7 +113,7 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
           },
           {
             role: "user",
-            content: `Analise esta transcrição de reunião:\n\n${transcription}`,
+            content: `Analise esta transcrição de reunião:\n\n${analysisTranscription}`,
           },
         ],
         tools: [
@@ -235,6 +253,15 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
         tool_choice: { type: "function", function: { name: "analyze_meeting" } },
       }),
     });
+    } catch (abortErr) {
+      clearTimeout(timeout);
+      console.error("[meeting-analyze] Request aborted/timeout:", abortErr);
+      await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
+      return new Response(JSON.stringify({ error: "Timeout na análise. A transcrição pode ser muito longa. Tente novamente." }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    clearTimeout(timeout);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();

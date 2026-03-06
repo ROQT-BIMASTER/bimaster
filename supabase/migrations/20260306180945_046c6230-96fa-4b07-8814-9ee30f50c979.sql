@@ -1,0 +1,1 @@
+UPDATE public.meetings SET status = 'draft' WHERE id = '5e2b53cc-23a3-46ae-8664-168175ce3412' AND status != 'draft';
