@@ -126,9 +126,11 @@ interface MeetingAnalysisProgressProps {
   progress: number;
   detail: string;
   status: string;
+  durationSeconds?: number | null;
 }
 
-export function MeetingAnalysisProgress({ progress, detail, status }: MeetingAnalysisProgressProps) {
+export function MeetingAnalysisProgress({ progress, detail, status, durationSeconds }: MeetingAnalysisProgressProps) {
+  const durationMinutes = durationSeconds ? Math.round(durationSeconds / 60) : null;
   const isTranscribing = status === "transcribing";
   const isProcessing = status === "processing";
   const isDone = progress >= 100;
