@@ -253,6 +253,15 @@ IMPORTANTE para HIGHLIGHTS (momentos importantes):
         tool_choice: { type: "function", function: { name: "analyze_meeting" } },
       }),
     });
+    } catch (abortErr) {
+      clearTimeout(timeout);
+      console.error("[meeting-analyze] Request aborted/timeout:", abortErr);
+      await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
+      return new Response(JSON.stringify({ error: "Timeout na análise. A transcrição pode ser muito longa. Tente novamente." }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    clearTimeout(timeout);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
