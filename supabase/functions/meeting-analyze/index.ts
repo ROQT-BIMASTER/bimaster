@@ -6,6 +6,54 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
+        messages,
+        tools,
+        tool_choice: { type: "function", function: { name: toolName } },
+      }),
+    });
+    clearTimeout(timeout);
+    return response;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+function parseToolCallResult(aiData: any): any {
+  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    let argsStr = toolCall.function.arguments;
+    if (typeof argsStr === "string") {
+      argsStr = argsStr.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      return JSON.parse(argsStr);
+    }
+    return argsStr;
+  }
+  const content = aiData.choices?.[0]?.message?.content;
+  if (content) {
+    let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const jsonStart = cleaned.search(/[\{\[]/);
+    const jsonEnd = cleaned.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+    return JSON.parse(cleaned);
+  }
+  throw new Error("IA não retornou dados estruturados");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -41,13 +89,12 @@ serve(async (req) => {
       });
     }
 
-    await supabaseAdmin.from("meetings").update({ status: "processing", progress: 90, progress_detail: "Analisando com IA..." }).eq("id", meetingId);
+    await supabaseAdmin.from("meetings").update({ status: "processing", progress: 85, progress_detail: "Preparando análise..." }).eq("id", meetingId);
 
     const { data: meetingData, error: meetingError } = await supabaseAdmin
       .from("meetings").select("*").eq("id", meetingId).single();
     if (meetingError || !meetingData) throw new Error("Reunião não encontrada");
 
-    // Use provided transcription, or existing one from DB
     const transcription = providedTranscription || meetingData.transcription;
 
     if (!transcription) {
@@ -57,10 +104,9 @@ serve(async (req) => {
       });
     }
 
-    // ============ ANALYZE TRANSCRIPTION (TEXT ONLY — no audio/video in memory) ============
-    console.log("[meeting-analyze] Starting analysis, transcription length:", transcription.length);
+    console.log("[meeting-analyze] Starting 2-phase analysis, transcription length:", transcription.length);
 
-    // Support up to ~1h of audio transcription (200K chars ≈ 50K tokens for Gemini)
+    // Support up to ~1h of audio transcription (200K chars)
     const MAX_TRANSCRIPTION_CHARS = 200000;
     let analysisTranscription = transcription;
     if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
@@ -74,31 +120,20 @@ serve(async (req) => {
     const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
     const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
 
-    // AbortController to enforce 120s timeout (Gemini 2.5 Pro needs time for large transcriptions)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
+    // ========================================================================
+    // PHASE 1: Structural Analysis (summary, ata, participants, mindmap)
+    // ========================================================================
+    await supabaseAdmin.from("meetings").update({ progress: 88, progress_detail: "Fase 1: Gerando ata e mapa mental..." }).eq("id", meetingId);
 
-    let aiResponse: Response;
-    try {
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um analista de reuniões corporativas especializado em gerar análises EXAUSTIVAS e atas formais completas. Analise a transcrição INTEIRA do início ao fim e extraia TODAS as informações estruturadas — NÃO omita nenhum tema discutido. Use os departamentos: ${deptNames}. Responda SEMPRE em português do Brasil.
+    const phase1Messages = [
+      {
+        role: "system",
+        content: `Você é um analista de reuniões corporativas. Gere uma ata formal COMPLETA e um mapa mental PROFUNDO da reunião. Analise a transcrição INTEIRA do início ao fim. Responda SEMPRE em português do Brasil.
 
-REGRAS OBRIGATÓRIAS DE QUANTIDADE MÍNIMA:
-- Insights: MÍNIMO de 8 insights (extraia 8-20). Cada decisão mencionada → insight tipo "decisao". Cada problema → insight tipo "problema". Cada oportunidade → insight tipo "oportunidade".
-- Tarefas: MÍNIMO de 5 tarefas (extraia 5-15). Cada ação mencionada ou comprometimento de participante → tarefa com responsável e departamento.
-- Riscos: MÍNIMO de 3 riscos (extraia 3-8). Cada preocupação, desafio ou impedimento mencionado → risco.
-- Highlights: MÍNIMO de 8 momentos-chave (extraia 8-20).
+IMPORTANTE para a ATA:
+- Formato profissional de ata corporativa em Markdown
+- Inclua: Data, Participantes, Pauta, Discussões detalhadas (cubra TODOS os assuntos discutidos), Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
+- A ata deve ser LONGA e DETALHADA — cubra cada tema discutido com pelo menos 2-3 parágrafos
 
 IMPORTANTE para o MAPA MENTAL:
 - Crie uma hierarquia PROFUNDA com 3-4 níveis de profundidade
@@ -107,226 +142,319 @@ IMPORTANTE para o MAPA MENTAL:
 - Labels devem ser descritivos (frases curtas, não apenas uma palavra)
 - Inclua TODOS os temas discutidos na reunião
 
-IMPORTANTE para a ATA:
-- Formato profissional de ata corporativa em Markdown
-- Inclua: Data, Participantes, Pauta, Discussões detalhadas (cubra TODOS os assuntos), Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
-
-IMPORTANTE para HIGHLIGHTS (momentos importantes):
-- Identifique 8-20 momentos-chave da reunião (decisões, conflitos, ideias, problemas levantados)
-- Para cada momento, estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
-- Se não houver timestamps, distribua proporcionalmente ao longo do texto
-- Cada highlight deve ter: label descritivo, timestamp em segundos, tipo e falante
+IMPORTANTE para PARTICIPANTES:
+- Identifique TODOS os participantes mencionados na transcrição
+- Infira o cargo/papel de cada um com base no contexto
 
 ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutidos até o final da transcrição.`,
-          },
-          {
-            role: "user",
-            content: `Analise esta transcrição de reunião:\n\n${analysisTranscription}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "analyze_meeting",
-              description: "Analisa reunião e retorna dados estruturados completos incluindo ata formal e mapa mental profundo.",
-              parameters: {
+      },
+      {
+        role: "user",
+        content: `Analise esta transcrição de reunião e gere a ata completa, resumo, participantes e mapa mental:\n\n${analysisTranscription}`,
+      },
+    ];
+
+    const phase1Tools = [
+      {
+        type: "function",
+        function: {
+          name: "phase1_analysis",
+          description: "Retorna ata formal, resumo executivo, participantes e mapa mental profundo da reunião.",
+          parameters: {
+            type: "object",
+            properties: {
+              summary: {
+                type: "string",
+                description: "Resumo executivo da reunião em 3-5 parágrafos detalhados",
+              },
+              ata: {
+                type: "string",
+                description: "Ata formal COMPLETA da reunião em formato Markdown com seções: ## Participantes, ## Pauta, ## Discussões (detalhadas para cada tema), ## Deliberações, ## Encaminhamentos (com responsáveis e prazos), ## Próximos Passos",
+              },
+              participants: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", description: "Nome do participante identificado" },
+                    role: { type: "string", description: "Cargo ou papel na reunião" },
+                  },
+                  required: ["name"],
+                },
+              },
+              mindmap_data: {
                 type: "object",
+                description: "Mapa mental profundo com 3-4 níveis.",
                 properties: {
-                  summary: {
-                    type: "string",
-                    description: "Resumo executivo da reunião em 2-4 parágrafos",
-                  },
-                  ata: {
-                    type: "string",
-                    description: "Ata formal da reunião em formato Markdown com seções: ## Participantes, ## Pauta, ## Discussões, ## Deliberações, ## Encaminhamentos (com responsáveis e prazos), ## Próximos Passos",
-                  },
-                  participants: {
+                  root: { type: "string", description: "Tema central da reunião" },
+                  children: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        name: { type: "string", description: "Nome do participante identificado" },
-                        role: { type: "string", description: "Cargo ou papel na reunião, se identificável" },
-                      },
-                      required: ["name"],
-                    },
-                    description: "Lista de participantes identificados na reunião",
-                  },
-                  mindmap_data: {
-                    type: "object",
-                    description: "Mapa mental profundo com 3-4 níveis.",
-                    properties: {
-                      root: { type: "string", description: "Tema central da reunião" },
-                      children: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            label: { type: "string" },
-                            type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
-                            children: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                properties: {
-                                  label: { type: "string" },
-                                  type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
-                                  children: {
-                                    type: "array",
-                                    items: {
-                                      type: "object",
-                                      properties: {
-                                        label: { type: "string" },
-                                        type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
-                                      },
-                                      required: ["label", "type"],
-                                    },
+                        label: { type: "string" },
+                        type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
+                        children: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              label: { type: "string" },
+                              type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
+                              children: {
+                                type: "array",
+                                items: {
+                                  type: "object",
+                                  properties: {
+                                    label: { type: "string" },
+                                    type: { type: "string", enum: ["problema", "oportunidade", "decisao", "tarefa", "risco", "processo"] },
                                   },
+                                  required: ["label", "type"],
                                 },
-                                required: ["label", "type"],
                               },
                             },
+                            required: ["label", "type"],
                           },
-                          required: ["label", "type"],
                         },
                       },
-                    },
-                    required: ["root", "children"],
-                  },
-                  insights: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        insight_type: { type: "string", enum: ["risco", "oportunidade", "decisao", "bloqueio", "problema"] },
-                        title: { type: "string" },
-                        description: { type: "string" },
-                        department: { type: "string" },
-                        impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
-                        urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
-                      },
-                      required: ["insight_type", "title", "description"],
-                    },
-                  },
-                  tasks: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        task: { type: "string" },
-                        department: { type: "string" },
-                        priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
-                      },
-                      required: ["task"],
-                    },
-                  },
-                  risks: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        description: { type: "string" },
-                        department: { type: "string" },
-                        risk_level: { type: "string", enum: ["low", "medium", "high", "critical"] },
-                        impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
-                        urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
-                        recommended_action: { type: "string" },
-                      },
-                      required: ["title", "description", "risk_level"],
-                    },
-                  },
-                  highlights: {
-                    type: "array",
-                    description: "5-15 momentos-chave da reunião com timestamps estimados",
-                    items: {
-                      type: "object",
-                      properties: {
-                        label: { type: "string", description: "Descrição curta do momento importante" },
-                        timestamp_seconds: { type: "number", description: "Posição estimada em segundos no áudio/vídeo" },
-                        type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
-                        speaker: { type: "string", description: "Quem estava falando neste momento" },
-                      },
-                      required: ["label", "timestamp_seconds", "type"],
+                      required: ["label", "type"],
                     },
                   },
                 },
-                required: ["summary", "ata", "participants", "mindmap_data", "insights", "tasks", "risks", "highlights"],
-                additionalProperties: false,
+                required: ["root", "children"],
               },
             },
+            required: ["summary", "ata", "participants", "mindmap_data"],
+            additionalProperties: false,
           },
-        ],
-        tool_choice: { type: "function", function: { name: "analyze_meeting" } },
-      }),
-    });
+        },
+      },
+    ];
+
+    let phase1Response: Response;
+    try {
+      phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 120000);
     } catch (abortErr) {
-      clearTimeout(timeout);
-      console.error("[meeting-analyze] Request aborted/timeout:", abortErr);
+      console.error("[meeting-analyze] Phase 1 timeout:", abortErr);
       await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-      return new Response(JSON.stringify({ error: "Timeout na análise. A transcrição pode ser muito longa. Tente novamente." }), {
+      return new Response(JSON.stringify({ error: "Timeout na Fase 1 da análise. Tente novamente." }), {
         status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    clearTimeout(timeout);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("[meeting-analyze] AI Gateway error:", aiResponse.status, errorText);
-      if (aiResponse.status === 429) {
+    if (!phase1Response.ok) {
+      const errorText = await phase1Response.text();
+      console.error("[meeting-analyze] Phase 1 AI error:", phase1Response.status, errorText);
+      if (phase1Response.status === 429) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      if (aiResponse.status === 402) {
+      if (phase1Response.status === 402) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      throw new Error(`AI error: ${aiResponse.status}`);
+      throw new Error(`Phase 1 AI error: ${phase1Response.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    let analysis: any;
+    const phase1Data = await phase1Response.json();
+    const phase1Result = parseToolCallResult(phase1Data);
 
-    if (toolCall?.function?.arguments) {
-      let argsStr = toolCall.function.arguments;
-      if (typeof argsStr === "string") {
-        argsStr = argsStr.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-        analysis = JSON.parse(argsStr);
-      } else {
-        analysis = argsStr;
-      }
-    } else {
-      const content = aiData.choices?.[0]?.message?.content;
-      if (content) {
-        let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-        const jsonStart = cleaned.search(/[\{\[]/);
-        const jsonEnd = cleaned.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-        analysis = JSON.parse(cleaned);
-      } else {
-        throw new Error("IA não retornou dados estruturados");
-      }
-    }
-
-    console.log("[meeting-analyze] Analysis parsed OK:", {
-      summary: !!analysis.summary, ata: !!analysis.ata,
-      participants: analysis.participants?.length,
-      insights: analysis.insights?.length, tasks: analysis.tasks?.length, risks: analysis.risks?.length,
+    console.log("[meeting-analyze] Phase 1 OK:", {
+      summary: !!phase1Result.summary,
+      ata: !!phase1Result.ata,
+      ataLength: phase1Result.ata?.length || 0,
+      participants: phase1Result.participants?.length,
+      mindmapChildren: phase1Result.mindmap_data?.children?.length,
     });
 
-    // ============ SAVE RESULTS ============
+    // Save Phase 1 results immediately (so user sees progress)
     await supabaseAdmin.from("meetings").update({
-      summary: analysis.summary,
-      ata: analysis.ata || null,
-      participants: analysis.participants || null,
-      highlights: analysis.highlights || null,
-      mermaid_mindmap: JSON.stringify(analysis.mindmap_data),
+      summary: phase1Result.summary,
+      ata: phase1Result.ata || null,
+      participants: phase1Result.participants || null,
+      mermaid_mindmap: JSON.stringify(phase1Result.mindmap_data),
+      progress: 92,
+      progress_detail: "Fase 2: Extraindo insights, tarefas e riscos...",
+      updated_at: new Date().toISOString(),
+    }).eq("id", meetingId);
+
+    // ========================================================================
+    // PHASE 2: Exhaustive Extraction (insights, tasks, risks, highlights)
+    // ========================================================================
+    const phase2Messages = [
+      {
+        role: "system",
+        content: `Você é um analista especializado em extrair TODOS os insights, tarefas, riscos e momentos-chave de reuniões corporativas. Sua tarefa é ser EXAUSTIVO — analise a transcrição INTEIRA do início ao fim e extraia ABSOLUTAMENTE TUDO que for relevante.
+
+Departamentos disponíveis: ${deptNames}
+
+REGRAS OBRIGATÓRIAS — NÃO GERE MENOS QUE OS MÍNIMOS:
+
+📊 INSIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
+- Cada decisão tomada na reunião → insight tipo "decisao"
+- Cada problema discutido → insight tipo "problema"  
+- Cada oportunidade mencionada → insight tipo "oportunidade"
+- Cada bloqueio ou impedimento → insight tipo "bloqueio"
+- Cada risco identificado → insight tipo "risco"
+- INCLUA insights sobre: processos, pessoas, tecnologia, finanças, clientes, mercado, operações
+- Atribua departamento, impacto e urgência para CADA insight
+
+📋 TAREFAS (extraia 8-15, MÍNIMO ABSOLUTO: 8):
+- Cada ação mencionada ou comprometimento → tarefa
+- Cada "vamos fazer", "precisamos", "alguém precisa" → tarefa
+- Cada follow-up mencionado → tarefa
+- Cada entrega ou deadline mencionado → tarefa
+- Atribua departamento e prioridade para CADA tarefa
+
+⚠️ RISCOS (extraia 5-8, MÍNIMO ABSOLUTO: 5):
+- Cada preocupação expressa por participantes → risco
+- Cada desafio ou obstáculo → risco  
+- Cada incerteza ou dependência externa → risco
+- Cada potencial problema futuro → risco
+- Inclua ação recomendada para CADA risco
+
+🔖 HIGHLIGHTS (extraia 10-20, MÍNIMO ABSOLUTO: 10):
+- Decisões importantes, conflitos, ideias novas, problemas críticos, mudanças de direção
+- Estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
+- Se não houver timestamps explícitos, distribua proporcionalmente ao longo do texto
+
+ANALISE O TEXTO INTEIRO DO INÍCIO AO FIM. Cada parágrafo pode conter insights, tarefas ou riscos. Não pule nenhuma seção.`,
+      },
+      {
+        role: "user",
+        content: `Extraia TODOS os insights, tarefas, riscos e highlights desta transcrição. Seja EXAUSTIVO:\n\n${analysisTranscription}`,
+      },
+    ];
+
+    const phase2Tools = [
+      {
+        type: "function",
+        function: {
+          name: "phase2_extraction",
+          description: "Extrai exaustivamente insights, tarefas, riscos e highlights da reunião.",
+          parameters: {
+            type: "object",
+            properties: {
+              insights: {
+                type: "array",
+                description: "10-20 insights extraídos da reunião (MÍNIMO 10)",
+                items: {
+                  type: "object",
+                  properties: {
+                    insight_type: { type: "string", enum: ["risco", "oportunidade", "decisao", "bloqueio", "problema"] },
+                    title: { type: "string", description: "Título conciso do insight" },
+                    description: { type: "string", description: "Descrição detalhada do insight em 2-3 frases" },
+                    department: { type: "string", description: "Departamento relacionado" },
+                    impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
+                    urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
+                  },
+                  required: ["insight_type", "title", "description", "department", "impact_level", "urgency_level"],
+                },
+              },
+              tasks: {
+                type: "array",
+                description: "8-15 tarefas extraídas da reunião (MÍNIMO 8)",
+                items: {
+                  type: "object",
+                  properties: {
+                    task: { type: "string", description: "Descrição clara da tarefa/ação" },
+                    department: { type: "string", description: "Departamento responsável" },
+                    priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
+                    responsible: { type: "string", description: "Pessoa responsável, se mencionada" },
+                  },
+                  required: ["task", "department", "priority"],
+                },
+              },
+              risks: {
+                type: "array",
+                description: "5-8 riscos identificados na reunião (MÍNIMO 5)",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    description: { type: "string", description: "Descrição detalhada do risco" },
+                    department: { type: "string" },
+                    risk_level: { type: "string", enum: ["low", "medium", "high", "critical"] },
+                    impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
+                    urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
+                    recommended_action: { type: "string", description: "Ação recomendada para mitigar o risco" },
+                  },
+                  required: ["title", "description", "department", "risk_level", "recommended_action"],
+                },
+              },
+              highlights: {
+                type: "array",
+                description: "10-20 momentos-chave da reunião com timestamps (MÍNIMO 10)",
+                items: {
+                  type: "object",
+                  properties: {
+                    label: { type: "string", description: "Descrição do momento importante" },
+                    timestamp_seconds: { type: "number", description: "Posição estimada em segundos" },
+                    type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
+                    speaker: { type: "string", description: "Quem estava falando" },
+                  },
+                  required: ["label", "timestamp_seconds", "type"],
+                },
+              },
+            },
+            required: ["insights", "tasks", "risks", "highlights"],
+            additionalProperties: false,
+          },
+        },
+      },
+    ];
+
+    let phase2Response: Response;
+    try {
+      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000);
+    } catch (abortErr) {
+      console.error("[meeting-analyze] Phase 2 timeout:", abortErr);
+      // Phase 1 already saved — mark as partially analyzed
+      await supabaseAdmin.from("meetings").update({ 
+        status: "analyzed", progress: 100, 
+        progress_detail: "Análise parcial (ata e mapa mental OK, extração de insights incompleta)" 
+      }).eq("id", meetingId);
+      return new Response(JSON.stringify({ 
+        success: true, partial: true,
+        summary: phase1Result.summary,
+        insights_count: 0, tasks_count: 0, risks_count: 0, high_risks_count: 0,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (!phase2Response.ok) {
+      const errorText = await phase2Response.text();
+      console.error("[meeting-analyze] Phase 2 AI error:", phase2Response.status, errorText);
+      if (phase2Response.status === 429 || phase2Response.status === 402) {
+        // Phase 1 saved — return partial success
+        await supabaseAdmin.from("meetings").update({ 
+          status: "analyzed", progress: 100, 
+          progress_detail: "Análise parcial concluída" 
+        }).eq("id", meetingId);
+        return new Response(JSON.stringify({ 
+          success: true, partial: true,
+          error: phase2Response.status === 429 ? "Limite excedido na Fase 2" : "Créditos insuficientes na Fase 2",
+          summary: phase1Result.summary,
+          insights_count: 0, tasks_count: 0, risks_count: 0, high_risks_count: 0,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      throw new Error(`Phase 2 AI error: ${phase2Response.status}`);
+    }
+
+    const phase2Data = await phase2Response.json();
+    const phase2Result = parseToolCallResult(phase2Data);
+
+    console.log("[meeting-analyze] Phase 2 OK:", {
+      insights: phase2Result.insights?.length,
+      tasks: phase2Result.tasks?.length,
+      risks: phase2Result.risks?.length,
+      highlights: phase2Result.highlights?.length,
+    });
+
+    // ========================================================================
+    // SAVE PHASE 2 RESULTS
+    // ========================================================================
+    await supabaseAdmin.from("meetings").update({
+      highlights: phase2Result.highlights || null,
       status: "analyzed",
       progress: 100,
       progress_detail: "Análise concluída!",
@@ -340,9 +468,9 @@ ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutido
       supabaseAdmin.from("meeting_risks").delete().eq("meeting_id", meetingId),
     ]);
 
-    if (analysis.insights?.length > 0) {
+    if (phase2Result.insights?.length > 0) {
       await supabaseAdmin.from("meeting_insights").insert(
-        analysis.insights.map((i: any) => ({
+        phase2Result.insights.map((i: any) => ({
           meeting_id: meetingId, insight_type: i.insight_type, title: i.title,
           description: i.description, department: i.department || null,
           impact_level: i.impact_level || null, urgency_level: i.urgency_level || null,
@@ -350,17 +478,17 @@ ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutido
       );
     }
 
-    if (analysis.tasks?.length > 0) {
+    if (phase2Result.tasks?.length > 0) {
       await supabaseAdmin.from("meeting_tasks").insert(
-        analysis.tasks.map((t: any) => ({
+        phase2Result.tasks.map((t: any) => ({
           meeting_id: meetingId, task: t.task, department: t.department || null, priority: t.priority || "medium",
         }))
       );
     }
 
-    if (analysis.risks?.length > 0) {
+    if (phase2Result.risks?.length > 0) {
       await supabaseAdmin.from("meeting_risks").insert(
-        analysis.risks.map((r: any) => ({
+        phase2Result.risks.map((r: any) => ({
           meeting_id: meetingId, title: r.title, description: r.description,
           department: r.department || null, risk_level: r.risk_level || "medium",
           impact_level: r.impact_level || null, urgency_level: r.urgency_level || null,
@@ -370,7 +498,7 @@ ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutido
     }
 
     // Notify about HIGH/CRITICAL risks
-    const highRisks = (analysis.risks || []).filter((r: any) => r.risk_level === "high" || r.risk_level === "critical");
+    const highRisks = (phase2Result.risks || []).filter((r: any) => r.risk_level === "high" || r.risk_level === "critical");
     if (highRisks.length > 0) {
       await supabaseAdmin.from("notifications").insert({
         user_id: user.id, type: "meeting_risk",
@@ -382,10 +510,11 @@ ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutido
 
     return new Response(JSON.stringify({
       success: true,
-      summary: analysis.summary,
-      insights_count: analysis.insights?.length || 0,
-      tasks_count: analysis.tasks?.length || 0,
-      risks_count: analysis.risks?.length || 0,
+      summary: phase1Result.summary,
+      insights_count: phase2Result.insights?.length || 0,
+      tasks_count: phase2Result.tasks?.length || 0,
+      risks_count: phase2Result.risks?.length || 0,
+      highlights_count: phase2Result.highlights?.length || 0,
       high_risks_count: highRisks.length,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
