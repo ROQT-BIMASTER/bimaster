@@ -1,56 +1,35 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Problem Analysis
 
-### O que muda
+The logs show the function works but generates only the bare minimum (8 insights, 5 tasks, 3 risks). Two root causes:
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+1. **Single massive tool call** — The schema demands summary + ata + participants + mindmap (3-4 levels deep) + insights + tasks + risks + highlights ALL in one response. Gemini rushes through to fit everything, producing shallow results.
 
-### Implementação
+2. **Edge Function wall-clock limit** — The function took ~68 seconds. Supabase Edge Functions have soft limits that can cause premature termination. For 1-hour audio (~400K chars), this will be worse.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+## Solution: Split Analysis into Two Phases
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+Split the single Gemini call into **two sequential calls**, each focused on a subset of the output:
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### Phase 1: Content Analysis (summary, ata, participants, mindmap)
+- Focused prompt for narrative/structural content
+- Smaller tool schema → faster, more detailed response
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+### Phase 2: Extraction (insights, tasks, risks, highlights)  
+- Focused prompt demanding exhaustive extraction
+- With minimums enforced: 10-20 insights, 8-15 tasks, 5-8 risks, 10-20 highlights
+- Separate tool schema → model has full token budget for quantity
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+### Implementation Details
 
-### Visual esperado
+| File | Change |
+|---|---|
+| `supabase/functions/meeting-analyze/index.ts` | Split into two sequential Gemini calls. Phase 1 generates summary/ata/mindmap/participants. Phase 2 generates insights/tasks/risks/highlights. Each has its own focused prompt and smaller tool schema. Progress updates between phases (90% → 95% → 100%). Increase minimum requirements in Phase 2 prompt. |
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Why This Works
+- Each call has a simpler schema → Gemini spends tokens on content depth, not structure breadth
+- Phase 2 prompt can be very aggressive about quantity since it's not also generating ata/mindmap
+- Total time increases slightly but each individual call stays well within limits
+- For very long transcriptions, each phase gets the full 120s timeout independently
 
