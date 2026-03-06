@@ -123,8 +123,13 @@ export default function ReuniaoDetalhe() {
 
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
           const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
-          const pct = Math.round((completedChunks / chunks.length) * 100);
-          toast.info(`⏳ Transcrevendo... ${pct}% (partes ${batchStart + 1}-${Math.min(batchStart + BATCH_SIZE, chunks.length)} de ${chunks.length})`, { id: "transcribe-progress" });
+          // Progress: transcription is 5-85% of total
+          const transcribePct = 5 + Math.round((completedChunks / chunks.length) * 80);
+          setAnalyzeProgress({
+            step: "Transcrevendo",
+            percent: transcribePct,
+            detail: `${completedChunks}/${chunks.length} trechos concluídos`,
+          });
 
           const batchResults = await Promise.allSettled(
             batch.map(async (chunk) => {
