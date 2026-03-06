@@ -314,6 +314,7 @@ export default function ReuniaoDetalhe() {
                 progress={liveProgress.progress}
                 detail={liveProgress.detail}
                 status={liveProgress.status}
+                durationSeconds={meeting?.duration_seconds}
               />
             </CardContent>
           </Card>
