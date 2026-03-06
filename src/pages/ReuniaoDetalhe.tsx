@@ -112,7 +112,7 @@ export default function ReuniaoDetalhe() {
 
         // Download and chunk in the browser
         const chunks = await chunkAudioFromUrl(signedUrl);
-        toast.info(`⏳ Transcrevendo ${chunks.length} trecho(s) com IA...`);
+        setAnalyzeProgress({ step: "Transcrevendo", percent: 5, detail: `0/${chunks.length} trechos` });
 
         // Process chunks in parallel batches of 3 for speed
         const BATCH_SIZE = 3;
