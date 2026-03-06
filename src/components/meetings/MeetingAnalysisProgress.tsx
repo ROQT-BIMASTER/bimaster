@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, Mic, Sparkles, FileText, Brain, ListTodo, ShieldAlert, Lightbulb } from "lucide-react";
+import { CheckCircle2, Loader2, Mic, Sparkles, FileText, Brain, ListTodo, ShieldAlert, Lightbulb, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
