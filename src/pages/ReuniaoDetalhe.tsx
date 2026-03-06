@@ -99,13 +99,13 @@ export default function ReuniaoDetalhe() {
       return;
     }
     setAnalyzing(true);
+    setAnalyzeProgress({ step: "Preparando", percent: 0, detail: "" });
     try {
       let transcription = existingTranscription;
 
       // STEP 1: Transcribe if needed — chunked client-side to avoid memory limits
       if (!transcription && meeting?.audio_url) {
-        toast.info("⏳ Etapa 1/2: Preparando áudio para transcrição...");
-
+        setAnalyzeProgress({ step: "Preparando áudio", percent: 2, detail: "Baixando e dividindo áudio..." });
         // Get a working URL for the audio
         const { signedUrl, error: urlError } = await resolveStorageUrl(meeting.audio_url);
         if (urlError || !signedUrl) throw new Error(urlError || "Não foi possível acessar o áudio");
