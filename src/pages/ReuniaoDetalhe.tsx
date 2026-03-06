@@ -24,6 +24,7 @@ import { MeetingTranscription } from "@/components/meetings/MeetingTranscription
 import { MeetingTimeline, type Highlight } from "@/components/meetings/MeetingTimeline";
 import { MeetingSearch } from "@/components/meetings/MeetingSearch";
 import { MeetingPrintReport } from "@/components/meetings/MeetingPrintReport";
+import { MeetingAnalysisProgress } from "@/components/meetings/MeetingAnalysisProgress";
 // audio-chunker no longer used — audio is fetched server-side
 import { resolveStorageUrl, parseBucketAndPath } from "@/lib/utils/storage-url";
 
