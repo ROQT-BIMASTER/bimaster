@@ -12688,6 +12688,8 @@ export type Database = {
           meeting_date: string
           mermaid_mindmap: string | null
           participants: Json | null
+          progress: number | null
+          progress_detail: string | null
           status: string
           summary: string | null
           title: string
@@ -12706,6 +12708,8 @@ export type Database = {
           meeting_date?: string
           mermaid_mindmap?: string | null
           participants?: Json | null
+          progress?: number | null
+          progress_detail?: string | null
           status?: string
           summary?: string | null
           title: string
@@ -12724,6 +12728,8 @@ export type Database = {
           meeting_date?: string
           mermaid_mindmap?: string | null
           participants?: Json | null
+          progress?: number | null
+          progress_detail?: string | null
           status?: string
           summary?: string | null
           title?: string
