@@ -153,6 +153,22 @@ export function MeetingExecutiveDashboard({ meetings, risks, tasks }: MeetingExe
       }));
   }, [risks]);
 
+  // Risks grouped by department with severity breakdown
+  const risksByDepartment = useMemo(() => {
+    const deptMap: Record<string, { critical: number; high: number; medium: number; low: number; total: number }> = {};
+    risks.forEach((r) => {
+      const dept = r.department || "Não definido";
+      if (!deptMap[dept]) deptMap[dept] = { critical: 0, high: 0, medium: 0, low: 0, total: 0 };
+      const level = r.risk_level || "medium";
+      deptMap[dept][level as keyof typeof deptMap[string]] = (deptMap[dept][level as keyof typeof deptMap[string]] as number) + 1;
+      deptMap[dept].total += 1;
+    });
+    return Object.entries(deptMap)
+      .map(([dept, counts]) => ({ department: dept, ...counts }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  }, [risks]);
+
   const tasksByStatus = useMemo(() => {
     const counts: Record<string, number> = {};
     tasks.forEach((t) => {
