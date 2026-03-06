@@ -92,7 +92,13 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Você é um analista de reuniões corporativas especializado em gerar análises profundas e atas formais. Analise a transcrição e extraia TODAS as informações estruturadas. Use os departamentos: ${deptNames}. Responda SEMPRE em português do Brasil.
+            content: `Você é um analista de reuniões corporativas especializado em gerar análises EXAUSTIVAS e atas formais completas. Analise a transcrição INTEIRA do início ao fim e extraia TODAS as informações estruturadas — NÃO omita nenhum tema discutido. Use os departamentos: ${deptNames}. Responda SEMPRE em português do Brasil.
+
+REGRAS OBRIGATÓRIAS DE QUANTIDADE MÍNIMA:
+- Insights: MÍNIMO de 8 insights (extraia 8-20). Cada decisão mencionada → insight tipo "decisao". Cada problema → insight tipo "problema". Cada oportunidade → insight tipo "oportunidade".
+- Tarefas: MÍNIMO de 5 tarefas (extraia 5-15). Cada ação mencionada ou comprometimento de participante → tarefa com responsável e departamento.
+- Riscos: MÍNIMO de 3 riscos (extraia 3-8). Cada preocupação, desafio ou impedimento mencionado → risco.
+- Highlights: MÍNIMO de 8 momentos-chave (extraia 8-20).
 
 IMPORTANTE para o MAPA MENTAL:
 - Crie uma hierarquia PROFUNDA com 3-4 níveis de profundidade
@@ -103,13 +109,15 @@ IMPORTANTE para o MAPA MENTAL:
 
 IMPORTANTE para a ATA:
 - Formato profissional de ata corporativa em Markdown
-- Inclua: Data, Participantes, Pauta, Discussões, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
+- Inclua: Data, Participantes, Pauta, Discussões detalhadas (cubra TODOS os assuntos), Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
 
 IMPORTANTE para HIGHLIGHTS (momentos importantes):
-- Identifique 5-15 momentos-chave da reunião (decisões, conflitos, ideias, problemas levantados)
+- Identifique 8-20 momentos-chave da reunião (decisões, conflitos, ideias, problemas levantados)
 - Para cada momento, estime o timestamp em segundos baseado nos timestamps [MM:SS] da transcrição
 - Se não houver timestamps, distribua proporcionalmente ao longo do texto
-- Cada highlight deve ter: label descritivo, timestamp em segundos, tipo e falante`,
+- Cada highlight deve ter: label descritivo, timestamp em segundos, tipo e falante
+
+ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutidos até o final da transcrição.`,
           },
           {
             role: "user",
