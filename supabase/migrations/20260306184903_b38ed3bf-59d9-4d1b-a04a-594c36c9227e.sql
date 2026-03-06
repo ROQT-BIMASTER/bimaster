@@ -1,0 +1,1 @@
+UPDATE public.meetings SET status = 'draft', progress = 0, progress_detail = NULL, transcription = NULL WHERE status IN ('transcribing', 'analyzing') OR (status = 'draft' AND progress > 0);
