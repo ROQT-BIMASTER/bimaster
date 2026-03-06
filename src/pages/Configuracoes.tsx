@@ -302,6 +302,7 @@ function Configuracoes() {
                   <Button onClick={handleResetPassword}>Redefinir Senha</Button>
                 </CardContent>
               </Card>
+              <MFASettings />
             </TabsContent>
 
             {isAdmin && (
