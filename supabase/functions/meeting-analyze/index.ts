@@ -128,15 +128,24 @@ serve(async (req) => {
     // ========================================================================
     await supabaseAdmin.from("meetings").update({ progress: 88, progress_detail: "Fase 1: Gerando ata e mapa mental..." }).eq("id", meetingId);
 
+    // Estimate meeting duration from transcription length (~120 chars/min of speech)
+    const estimatedMinutes = Math.max(5, Math.round(analysisTranscription.length / 120));
+    const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
+
     const phase1Messages = [
       {
         role: "system",
-        content: `Você é um analista de reuniões corporativas. Gere uma ata formal COMPLETA e um mapa mental PROFUNDO da reunião. Analise a transcrição INTEIRA do início ao fim. Responda SEMPRE em português do Brasil.
+        content: `Você é um analista sênior de reuniões corporativas. Gere uma ata formal COMPLETA e um mapa mental PROFUNDO da reunião. Analise a transcrição INTEIRA do início ao fim. Responda SEMPRE em português do Brasil.
 
-IMPORTANTE para a ATA:
+DURAÇÃO ESTIMADA DA REUNIÃO: ~${estimatedMinutes} minutos.
+
+IMPORTANTE para a ATA (MÍNIMO ${minAtaWords} palavras):
 - Formato profissional de ata corporativa em Markdown
-- Inclua: Data, Participantes, Pauta, Discussões detalhadas (cubra TODOS os assuntos discutidos), Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
-- A ata deve ser LONGA e DETALHADA — cubra cada tema discutido com pelo menos 2-3 parágrafos
+- Inclua: Data, Participantes, Pauta, Discussões detalhadas, Deliberações, Encaminhamentos (com responsáveis), Próximos Passos
+- Cada tema discutido deve ter 3-5 PARÁGRAFOS de detalhamento — não resuma em uma frase
+- Cite falas específicas dos participantes quando relevante
+- A ata deve cobrir TODOS os assuntos discutidos, do início ao fim da transcrição
+- Para cada 5 minutos de reunião, deve haver pelo menos 500 palavras na ata
 
 IMPORTANTE para o MAPA MENTAL:
 - Crie uma hierarquia PROFUNDA com 3-4 níveis de profundidade
@@ -144,16 +153,17 @@ IMPORTANTE para o MAPA MENTAL:
 - Cada ramo deve ter 2-5 sub-itens detalhados
 - Labels devem ser descritivos (frases curtas, não apenas uma palavra)
 - Inclua TODOS os temas discutidos na reunião
+- Para reuniões de ${estimatedMinutes}min, espera-se pelo menos ${Math.max(4, Math.round(estimatedMinutes / 3))} ramos principais
 
 IMPORTANTE para PARTICIPANTES:
 - Identifique TODOS os participantes mencionados na transcrição
 - Infira o cargo/papel de cada um com base no contexto
 
-ANALISE O TEXTO INTEIRO. Não pare no início. Cubra todos os tópicos discutidos até o final da transcrição.`,
+INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifique se cobriu cada tópico. NÃO produza uma ata superficial.`,
       },
       {
         role: "user",
-        content: `Analise esta transcrição de reunião e gere a ata completa, resumo, participantes e mapa mental:\n\n${analysisTranscription}`,
+        content: `Analise esta transcrição de reunião (~${estimatedMinutes} minutos) e gere a ata completa (mínimo ${minAtaWords} palavras), resumo executivo, participantes e mapa mental profundo:\n\n${analysisTranscription}`,
       },
     ];
 
