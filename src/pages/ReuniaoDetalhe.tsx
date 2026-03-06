@@ -124,6 +124,17 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  // When user returns to a page with an in-progress analysis, sync local state from DB
+  useEffect(() => {
+    if (meeting) {
+      const m = meeting as any;
+      if (m.status === "transcribing" || m.status === "processing") {
+        setAnalyzing(true);
+        setLiveProgress({ progress: m.progress || 0, detail: m.progress_detail || "", status: m.status });
+      }
+    }
+  }, [meeting]);
+
   const handleAnalyze = async () => {
     const existingTranscription = meeting?.transcription || manualTranscription.trim() || null;
     if (!existingTranscription && !meeting?.audio_url) {
