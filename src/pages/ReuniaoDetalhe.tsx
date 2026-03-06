@@ -182,7 +182,8 @@ export default function ReuniaoDetalhe() {
           }
         }
 
-        toast.dismiss("transcribe-progress");
+
+        setAnalyzeProgress({ step: "Transcrevendo", percent: 85, detail: `${chunks.length}/${chunks.length} trechos concluídos` });
 
         if (failedChunks > 0) {
           toast.warning(`⚠️ ${failedChunks} trecho(s) não puderam ser transcritos`);
