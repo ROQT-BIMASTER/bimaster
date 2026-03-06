@@ -116,18 +116,50 @@ export default function ReuniaoDetalhe() {
 
         for (const chunk of chunks) {
           toast.info(`⏳ Transcrevendo parte ${chunk.chunkIndex + 1}/${chunk.totalChunks}...`);
-          const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
-            body: {
-              meetingId: id,
-              audioBase64: chunk.base64,
-              mimeType: chunk.mimeType,
-              chunkIndex: chunk.chunkIndex,
-              totalChunks: chunk.totalChunks,
-            },
-          });
-          if (transcribeError) throw transcribeError;
-          if (transcribeData?.error) throw new Error(transcribeData.error);
-          partialTranscriptions.push(transcribeData.transcription);
+          
+          let lastError: any = null;
+          let success = false;
+          
+          for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) {
+              toast.info(`🔄 Tentativa ${attempt + 1}/3 para parte ${chunk.chunkIndex + 1}...`);
+              await new Promise(r => setTimeout(r, 2000 * attempt));
+            }
+            
+            try {
+              const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke("meeting-transcribe", {
+                body: {
+                  meetingId: id,
+                  audioBase64: chunk.base64,
+                  mimeType: chunk.mimeType,
+                  chunkIndex: chunk.chunkIndex,
+                  totalChunks: chunk.totalChunks,
+                },
+              });
+              
+              if (transcribeError) {
+                lastError = transcribeError;
+                console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} error:`, transcribeError);
+                continue;
+              }
+              if (transcribeData?.error) {
+                lastError = new Error(transcribeData.error);
+                console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} data error:`, transcribeData.error);
+                continue;
+              }
+              
+              partialTranscriptions.push(transcribeData.transcription);
+              success = true;
+              break;
+            } catch (err) {
+              lastError = err;
+              console.warn(`[chunk ${chunk.chunkIndex}] attempt ${attempt + 1} exception:`, err);
+            }
+          }
+          
+          if (!success) {
+            throw lastError || new Error(`Falha ao transcrever parte ${chunk.chunkIndex + 1}`);
+          }
         }
 
         transcription = partialTranscriptions.join("\n\n");
