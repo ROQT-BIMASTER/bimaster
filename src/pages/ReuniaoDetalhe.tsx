@@ -228,18 +228,6 @@ export default function ReuniaoDetalhe() {
             await new Promise(r => setTimeout(r, 2000));
           }
         }
-  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
-
-  // Resolve storage path to signed URL for media playback
-  useEffect(() => {
-    if (!meeting?.audio_url) { setResolvedAudioUrl(null); return; }
-    let cancelled = false;
-    resolveStorageUrl(meeting.audio_url).then(({ signedUrl }) => {
-      if (!cancelled) setResolvedAudioUrl(signedUrl || null);
-    });
-    return () => { cancelled = true; };
-  }, [meeting?.audio_url]);
-
 
         await supabase.from("meetings").update({ progress: 85, progress_detail: `✓ Áudio enviado\n✓ Transcrição concluída\n⟳ Analisando reunião...` } as any).eq("id", id);
 
