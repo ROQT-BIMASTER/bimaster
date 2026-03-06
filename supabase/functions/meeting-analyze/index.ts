@@ -107,10 +107,8 @@ serve(async (req) => {
       });
     }
 
-    console.log("[meeting-analyze] Starting 2-phase analysis, transcription length:", transcription.length, "estimated minutes:", Math.max(5, Math.round(transcription.length / 120)));
-
-    // Support up to ~1h of audio transcription (200K chars)
-    const MAX_TRANSCRIPTION_CHARS = 200000;
+    // Support up to ~1h of audio transcription (350K chars for diarized text)
+    const MAX_TRANSCRIPTION_CHARS = 350000;
     let analysisTranscription = transcription;
     if (transcription.length > MAX_TRANSCRIPTION_CHARS) {
       const halfLimit = Math.floor(MAX_TRANSCRIPTION_CHARS / 2);
@@ -135,7 +133,7 @@ serve(async (req) => {
       : Math.max(5, Math.round(analysisTranscription.length / 650));
     const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
 
-    console.log(`[meeting-analyze] Estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
+    console.log(`[meeting-analyze] Starting 2-phase analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
 
     const phase1Messages = [
       {
@@ -251,7 +249,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
 
     let phase1Response: Response;
     try {
-      phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 120000);
+      phase1Response = await callAI(lovableApiKey, phase1Messages, phase1Tools, "phase1_analysis", 180000);
     } catch (abortErr) {
       console.error("[meeting-analyze] Phase 1 timeout:", abortErr);
       await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
@@ -431,7 +429,7 @@ Departamentos disponíveis: ${deptNames}
 
     let phase2Response: Response;
     try {
-      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000, "google/gemini-2.5-flash", 0.3);
+      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 180000, "google/gemini-2.5-flash", 0.3);
     } catch (abortErr) {
       console.error("[meeting-analyze] Phase 2 timeout:", abortErr);
       // Phase 1 already saved — mark as partially analyzed
