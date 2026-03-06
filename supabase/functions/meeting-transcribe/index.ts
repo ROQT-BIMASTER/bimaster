@@ -80,27 +80,42 @@ Maria: Obrigada João, eu queria falar sobre...`;
       systemPrompt += `\n\nIMPORTANTE: Este é o trecho ${idx + 1} de ${chunks} de uma gravação longa. Transcreva apenas o conteúdo audível deste trecho. Não repita conteúdo de trechos anteriores.`;
     }
 
-    const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: `Transcreva completamente este trecho de áudio/vídeo (parte ${idx + 1} de ${chunks}). Retorne APENAS a transcrição.` },
-              { type: "image_url", image_url: { url: `data:${resolvedMimeType};base64,${audioBase64}` } },
-            ],
-          },
-        ],
-        temperature: 0.1,
-      }),
-    });
+    // Use AbortController to enforce a 50s timeout (edge functions timeout at 55s)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000);
+
+    let transcribeResponse: Response;
+    try {
+      transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: `Transcreva completamente este trecho de áudio/vídeo (parte ${idx + 1} de ${chunks}). Retorne APENAS a transcrição.` },
+                { type: "image_url", image_url: { url: `data:${resolvedMimeType};base64,${audioBase64}` } },
+              ],
+            },
+          ],
+          temperature: 0.1,
+        }),
+      });
+    } catch (abortErr) {
+      clearTimeout(timeout);
+      console.error("[meeting-transcribe] Request aborted/timeout:", abortErr);
+      return new Response(JSON.stringify({ error: "Timeout na transcrição. Tente novamente." }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    clearTimeout(timeout);
 
     if (!transcribeResponse.ok) {
       const errText = await transcribeResponse.text();
