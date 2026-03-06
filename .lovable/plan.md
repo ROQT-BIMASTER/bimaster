@@ -1,56 +1,40 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Análise do Relatório OpenVAS — bimaster.online
 
-### O que muda
+### Resultado do Scan
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+O relatório OpenVAS (HostedScan Security, 06/03/2026) escaneou o alvo `https://bimaster.online/auth/login` e encontrou:
 
-### Implementação
+| Critical | High | Medium | Low | Total |
+|----------|------|--------|-----|-------|
+| 0 | 0 | 0 | 1 | **1** |
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+### Única Vulnerabilidade Encontrada
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+**TCP Timestamps Information Disclosure**
+- **CVSS Score:** 2.6 (Low)
+- **Descrição:** O servidor responde com TCP timestamps (RFC 1323/7323), o que permite a um atacante estimar o uptime do servidor.
+- **Risco real:** Muito baixo — é uma divulgação informacional, não permite acesso ou execução de código.
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### Diagnóstico
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+**Não há ação de código possível.** Esta configuração é do kernel do servidor (parâmetro `net.ipv4.tcp_timestamps` no Linux). Como o bimaster.online é hospedado no Lovable Cloud (Cloudflare), não temos acesso ao sistema operacional para desabilitar TCP timestamps.
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+**Recomendação:** Aceitar como risco de infraestrutura (assim como as portas 8080/8443 do Cloudflare já aceitas anteriormente).
 
-### Visual esperado
+### Score Atualizado
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+| Área | Score |
+|------|-------|
+| OpenVAS (Network) | 999/1000 (1 finding Low) |
+| SSL/TLS | 100% |
+| Headers de segurança | ~90% |
+| **Geral** | **~96/100** |
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Conclusão
+
+O scan OpenVAS confirma que a aplicação está **excelente** — zero vulnerabilidades Critical, High ou Medium. O único achado (TCP Timestamps, CVSS 2.6) é uma limitação da infraestrutura de hospedagem e não requer nenhuma alteração no código.
+
+Não há implementação necessária para este relatório.
 
