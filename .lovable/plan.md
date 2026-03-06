@@ -1,56 +1,29 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Correção: Atributo de Integridade de Subrecurso Ausente (CWE-345)
 
-### O que muda
+### Problema
+O ZAP detectou que os links para Google Fonts no `index.html` não possuem o atributo `integrity` (SRI — Subresource Integrity), permitindo que um atacante com acesso ao servidor externo injete conteúdo malicioso.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+### Limitação Importante
+Google Fonts **não suporta SRI** porque o conteúdo CSS retornado varia conforme o User-Agent do navegador (fontes diferentes para Chrome, Firefox, Safari). Isso significa que o hash muda a cada requisição, tornando SRI inviável.
 
-### Implementação
+### Solução Recomendada
+Hospedar as fontes localmente em vez de carregá-las de um CDN externo. Isso:
+1. Elimina a dependência de servidor externo (resolve CWE-345)
+2. Melhora performance (sem DNS lookup extra)
+3. Melhora privacidade (sem requests para Google)
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+### O que será feito
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+| Ação | Detalhe |
+|------|---------|
+| Baixar fontes | Inter (300-700) e Plus Jakarta Sans (400-800) em formato woff2 |
+| Criar CSS local | `src/styles/fonts.css` com `@font-face` declarations |
+| Adicionar arquivos | Fontes em `public/fonts/` |
+| Editar `index.html` | Remover links para `fonts.googleapis.com` e `fonts.gstatic.com` |
+| Editar CSP | Remover `fonts.googleapis.com` e `fonts.gstatic.com` das diretivas CSP |
+| Importar CSS | Importar `fonts.css` no `main.tsx` ou `index.css` |
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+Isso resolve completamente a vulnerabilidade CWE-345 nas 3 instâncias reportadas.
 
