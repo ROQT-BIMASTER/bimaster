@@ -1,56 +1,50 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Problem
 
-### O que muda
+The transcription is **not stuck due to Google payments** — you don't need to pay anything extra. Lovable AI handles billing automatically.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+The real issue: **Edge Function shutdowns** during chunk processing. The logs show chunks 1-3 succeed but chunks 4-6 trigger shutdowns. Two causes:
 
-### Implementação
+1. **`gemini-2.5-pro` is too slow for audio** — Pro takes 20-40s per chunk vs Flash's 5-10s. Combined with the 50s timeout, many chunks timeout.
+2. **Batch of 3 parallel calls** overwhelms the Edge Function memory/concurrency limits — sending 3 × 1MB base64 payloads simultaneously causes crashes.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+## Solution
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+### 1. Switch to `google/gemini-2.5-flash` for transcription only
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+Flash is actually **better suited for audio transcription** — it's fast and accurate for speech-to-text. Keep Pro only for `meeting-analyze` where complex reasoning matters.
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+**File:** `supabase/functions/meeting-transcribe/index.ts`
+- Change model back to `google/gemini-2.5-flash` (line 100)
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+### 2. Reduce parallel batch size from 3 to 2
 
-### Visual esperado
+Less concurrent calls = less memory pressure = fewer shutdowns.
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+**File:** `src/pages/ReuniaoDetalhe.tsx`
+- Change `BATCH_SIZE` from 3 to 2 (line 160)
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### 3. Add 2s delay between batches
+
+More breathing room between batches to prevent rate limiting and function crashes.
+
+**File:** `src/pages/ReuniaoDetalhe.tsx`  
+- Increase inter-batch delay from 1000ms to 2000ms (line 216)
+
+### 4. Reset stuck meetings
+
+SQL migration to reset any meetings stuck in transcribing/analyzing state.
+
+### Summary
+
+| Change | File |
+|---|---|
+| Use `gemini-2.5-flash` for transcription (faster, reliable for audio) | `meeting-transcribe/index.ts` |
+| Keep `gemini-2.5-pro` for analysis (complex reasoning) | No change needed |
+| Reduce batch size to 2 | `ReuniaoDetalhe.tsx` |
+| Increase inter-batch delay to 2s | `ReuniaoDetalhe.tsx` |
+| Reset stuck meetings | SQL migration |
+
+**Important:** You do NOT need to pay anything to Google. The Lovable AI gateway handles all billing. The issue is purely technical — the functions are crashing from overload.
 
