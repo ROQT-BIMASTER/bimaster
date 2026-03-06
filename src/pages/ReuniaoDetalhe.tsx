@@ -208,7 +208,7 @@ export default function ReuniaoDetalhe() {
       // STEP 2: Analyze transcription (text only — lightweight)
       // progress is updated by the edge function via DB
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
-        body: { meetingId: id, transcription },
+        body: { meetingId: id, transcription, duration_seconds: meeting?.duration_seconds || null },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

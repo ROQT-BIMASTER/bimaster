@@ -108,8 +108,8 @@ serve(async (req) => {
     audioBytes = new Uint8Array(0);
 
     const scribeController = new AbortController();
-    // Scribe v2 is fast: 1h audio ≈ 10-30s. Set 120s timeout as safety margin.
-    const scribeTimeout = setTimeout(() => scribeController.abort(), 120000);
+    // Scribe v2: 1h audio ≈ 10-60s. Set 300s timeout for large files (1h+).
+    const scribeTimeout = setTimeout(() => scribeController.abort(), 300000);
 
     console.log(`[meeting-transcribe] Calling ElevenLabs Scribe v2...`);
     const scribeStart = Date.now();
