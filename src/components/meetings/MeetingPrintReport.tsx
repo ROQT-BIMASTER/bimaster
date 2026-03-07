@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Printer, FileSpreadsheet, ChevronDown, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
