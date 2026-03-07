@@ -989,6 +989,12 @@ ${responsiblePages}
             <FileSpreadsheet className="h-4 w-4" />
             Exportar Excel
           </DropdownMenuItem>
+          {uniqueResponsibles.length > 0 && (
+            <DropdownMenuItem onClick={() => { setSelectedResponsibles(new Set(uniqueResponsibles)); setIndividualDialogOpen(true); }} className="gap-2 cursor-pointer">
+              <User className="h-4 w-4" />
+              Relatório Individual
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
