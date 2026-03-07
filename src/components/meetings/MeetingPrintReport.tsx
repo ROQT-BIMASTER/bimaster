@@ -956,6 +956,46 @@ ${responsiblePages}
       applyBorders(ws);
     }
 
+    // === POR RESPONSÁVEL ===
+    if (uniqueResponsibles.length > 0) {
+      const ws = wb.addWorksheet("Por Responsável");
+      ws.columns = [
+        { header: "Responsável", key: "responsavel", width: 25 },
+        { header: "Tarefa", key: "tarefa", width: 40 },
+        { header: "Prioridade", key: "prioridade", width: 12 },
+        { header: "Departamento", key: "departamento", width: 18 },
+        { header: "Status", key: "status", width: 15 },
+      ];
+      uniqueResponsibles.forEach((name) => {
+        tasks.filter((t: any) => (t.responsible_name?.trim() || "") === name).forEach((task: any) => {
+          ws.addRow({
+            responsavel: name,
+            tarefa: task.task || "",
+            prioridade: PRIORITY_LABELS[task.priority] || task.priority || "",
+            departamento: task.department || "",
+            status: TASK_STATUS_LABELS[task.status] || "Pendente",
+          });
+        });
+      });
+      // Tasks without responsible
+      const unassigned = tasks.filter((t: any) => !t.responsible_name?.trim());
+      if (unassigned.length > 0) {
+        unassigned.forEach((task: any) => {
+          ws.addRow({
+            responsavel: "Sem Responsável Definido",
+            tarefa: task.task || "",
+            prioridade: PRIORITY_LABELS[task.priority] || task.priority || "",
+            departamento: task.department || "",
+            status: TASK_STATUS_LABELS[task.status] || "Pendente",
+          });
+        });
+      }
+      applyHeaderStyle(ws);
+      applyBorders(ws);
+      applyAlternatingRows(ws);
+      ws.autoFilter = "A1:E1";
+    }
+
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
