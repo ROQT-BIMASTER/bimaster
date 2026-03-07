@@ -1061,6 +1061,69 @@ ${responsiblePages}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={individualDialogOpen} onOpenChange={setIndividualDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Relatório Individual por Responsável</DialogTitle>
+            <DialogDescription>
+              Selecione os responsáveis para gerar relatórios individuais de tarefas com campo de assinatura.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="flex gap-3 mb-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedResponsibles(new Set(uniqueResponsibles))} className="text-xs h-7 px-2">
+                Selecionar Todos
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedResponsibles(new Set())} className="text-xs h-7 px-2">
+                Limpar Seleção
+              </Button>
+            </div>
+
+            {uniqueResponsibles.map((name) => {
+              const count = tasks.filter((t: any) => (t.responsible_name?.trim() || "") === name).length;
+              return (
+                <label
+                  key={name}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1.5 transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedResponsibles.has(name)}
+                    onCheckedChange={() => toggleResponsible(name)}
+                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{name}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{count} tarefa{count !== 1 ? "s" : ""}</span>
+                  </div>
+                </label>
+              );
+            })}
+
+            {uniqueResponsibles.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum responsável identificado nas tarefas desta reunião.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setIndividualDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleIndividualPrint}
+              disabled={selectedResponsibles.size === 0}
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir ({selectedResponsibles.size})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
