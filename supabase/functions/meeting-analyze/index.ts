@@ -510,6 +510,7 @@ Departamentos disponíveis: ${deptNames}
       await supabaseAdmin.from("meeting_tasks").insert(
         phase2Result.tasks.map((t: any) => ({
           meeting_id: meetingId, task: t.task, department: t.department || null, priority: t.priority || "medium",
+          responsible_name: t.responsible || null,
         }))
       );
     }

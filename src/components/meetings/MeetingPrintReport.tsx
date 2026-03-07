@@ -98,10 +98,30 @@ const HEADER_FONT_ARGB = "FFFFFFFF";
 
 export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingPrintReportProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [exportMode, setExportMode] = useState<"pdf" | "excel">("pdf");
   const [selectedSections, setSelectedSections] = useState<Set<SectionKey>>(
     () => new Set(SECTION_KEYS)
   );
+  const [selectedResponsibles, setSelectedResponsibles] = useState<Set<string>>(new Set());
+
+  const uniqueResponsibles = useMemo(() => {
+    const names = new Set<string>();
+    tasks.forEach((t: any) => {
+      const name = t.responsible_name?.trim();
+      if (name) names.add(name);
+    });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const toggleResponsible = (name: string) => {
+    setSelectedResponsibles((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const toggleSection = (key: SectionKey) => {
     setSelectedSections((prev) => {
