@@ -12636,6 +12636,7 @@ export type Database = {
           id: string
           meeting_id: string
           priority: string
+          responsible_name: string | null
           responsible_user_id: string | null
           status: string
           task: string
@@ -12648,6 +12649,7 @@ export type Database = {
           id?: string
           meeting_id: string
           priority?: string
+          responsible_name?: string | null
           responsible_user_id?: string | null
           status?: string
           task: string
@@ -12660,6 +12662,7 @@ export type Database = {
           id?: string
           meeting_id?: string
           priority?: string
+          responsible_name?: string | null
           responsible_user_id?: string | null
           status?: string
           task?: string

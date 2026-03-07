@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { Printer, FileSpreadsheet, ChevronDown, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -98,10 +98,30 @@ const HEADER_FONT_ARGB = "FFFFFFFF";
 
 export function MeetingPrintReport({ meeting, insights, tasks, risks }: MeetingPrintReportProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [individualDialogOpen, setIndividualDialogOpen] = useState(false);
   const [exportMode, setExportMode] = useState<"pdf" | "excel">("pdf");
   const [selectedSections, setSelectedSections] = useState<Set<SectionKey>>(
     () => new Set(SECTION_KEYS)
   );
+  const [selectedResponsibles, setSelectedResponsibles] = useState<Set<string>>(new Set());
+
+  const uniqueResponsibles = useMemo(() => {
+    const names = new Set<string>();
+    tasks.forEach((t: any) => {
+      const name = t.responsible_name?.trim();
+      if (name) names.add(name);
+    });
+    return Array.from(names).sort();
+  }, [tasks]);
+
+  const toggleResponsible = (name: string) => {
+    setSelectedResponsibles((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const toggleSection = (key: SectionKey) => {
     setSelectedSections((prev) => {
@@ -572,6 +592,165 @@ ${risks.map((risk: any, idx: number) => {
     setDialogOpen(false);
   };
 
+  // ─── INDIVIDUAL PRINT ───
+  const handleIndividualPrint = () => {
+    if (selectedResponsibles.size === 0) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const responsiblePages = Array.from(selectedResponsibles).map((name, pageIdx) => {
+      const personTasks = tasks.filter((t: any) => (t.responsible_name?.trim() || "") === name);
+      return `
+${pageIdx > 0 ? '<div class="page-break"></div>' : ''}
+<div class="header">
+  <div class="header-left">
+    <h1>Relatório de Tarefas</h1>
+    <div class="subtitle">${name}</div>
+  </div>
+  <div class="header-right">
+    <div class="brand">BI MASTER</div>
+    <div>${format(new Date(meeting.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</div>
+    <div>Reunião: ${meeting.title}</div>
+    <div>Duração: ${durationText}</div>
+  </div>
+</div>
+
+<table class="data-table">
+  <thead><tr>
+    <th style="width:5%">N.</th><th>Tarefa</th>
+    <th style="width:12%">Prioridade</th><th style="width:15%">Departamento</th>
+    <th style="width:14%">Prazo</th>
+  </tr></thead>
+  <tbody>
+  ${personTasks.map((task: any, idx: number) => `
+    <tr>
+      <td style="font-weight:700;color:#7f8c8d">${idx + 1}</td>
+      <td style="font-weight:600">${task.task}</td>
+      <td>${task.priority ? `<span class="tag tag-${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span>` : "—"}</td>
+      <td>${task.department || "—"}</td>
+      <td>${task.deadline ? format(new Date(task.deadline), "dd/MM/yyyy") : "—"}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+
+<div class="signature-block">
+  <p>Recebi e me comprometo com o cumprimento das tarefas acima listadas.</p>
+  <div class="signature-grid">
+    <div>
+      <div class="signature-line"></div>
+      <div class="signature-label">Assinatura — ${name}</div>
+    </div>
+    <div>
+      <div class="signature-line"></div>
+      <div class="signature-label">Data</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    Relatório individual gerado automaticamente<br>
+    ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}
+  </div>
+  <div class="footer-right">BI MASTER</div>
+</div>
+<div class="footer-conf">Documento confidencial — Distribuição restrita</div>
+`;
+    }).join("");
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Individual de Tarefas</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm 18mm; }
+  @media print { .no-print { display: none !important; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #2c3e50; line-height: 1.65; background: #fff; font-size: 10.5pt;
+    max-width: 174mm; margin: 0 auto;
+  }
+  .header {
+    border-bottom: 3px solid #1a5276;
+    padding-bottom: 18px; margin-bottom: 24px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .header-left h1 {
+    font-size: 18pt; font-weight: 700; color: #1a5276;
+    line-height: 1.2; margin-bottom: 4px; font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .header-left .subtitle {
+    font-size: 14pt; color: #2980b9; font-weight: 600;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .header-right {
+    text-align: right; font-size: 8.5pt; color: #5d6d7e;
+    font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.7;
+  }
+  .header-right .brand {
+    font-size: 11pt; font-weight: 800; color: #1a5276;
+    letter-spacing: 1.5px; font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; font-family: 'Segoe UI', Arial, sans-serif; margin-bottom: 30px; }
+  .data-table th {
+    text-align: left; font-weight: 700; color: #fff; background: #1a5276;
+    padding: 6px 8px; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .data-table td { padding: 6px 8px; border-bottom: 1px solid #eaecee; color: #2c3e50; }
+  .data-table tr:nth-child(even) td { background: #f8f9f9; }
+  .tag {
+    display: inline-block; padding: 1px 7px; font-size: 7pt;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+    font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid;
+  }
+  .tag-critical { color: #c0392b; border-color: #e6b0aa; background: #fdedec; }
+  .tag-high { color: #e67e22; border-color: #f5cba7; background: #fef5e7; }
+  .tag-medium { color: #b7950b; border-color: #f9e79f; background: #fef9e7; }
+  .tag-low { color: #1e8449; border-color: #a9dfbf; background: #eafaf1; }
+  .tag-urgent { color: #c0392b; border-color: #e6b0aa; background: #fdedec; }
+  .signature-block {
+    margin-top: 50px; padding: 20px; border: 1px solid #d5dbdb;
+    page-break-inside: avoid;
+  }
+  .signature-block p {
+    font-size: 9.5pt; color: #2c3e50; margin-bottom: 30px;
+    font-style: italic; text-align: center;
+  }
+  .signature-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+    margin-top: 20px;
+  }
+  .signature-line {
+    border-bottom: 1px solid #2c3e50; margin-bottom: 6px; height: 40px;
+  }
+  .signature-label {
+    font-size: 8pt; color: #7f8c8d; text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .footer {
+    margin-top: 28px; padding-top: 10px;
+    border-top: 2px solid #1a5276;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .footer-left { font-size: 7.5pt; color: #7f8c8d; }
+  .footer-right { font-size: 9pt; font-weight: 800; color: #1a5276; letter-spacing: 1px; }
+  .footer-conf { font-size: 6.5pt; color: #aab7b8; text-align: center; margin-top: 5px; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+${responsiblePages}
+</body>
+</html>`);
+
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 400);
+    setIndividualDialogOpen(false);
+  };
+
   // ─── EXCEL EXPORT ───
   const handleExcelExport = async () => {
     const wb = new ExcelJS.Workbook();
@@ -777,6 +956,46 @@ ${risks.map((risk: any, idx: number) => {
       applyBorders(ws);
     }
 
+    // === POR RESPONSÁVEL ===
+    if (uniqueResponsibles.length > 0) {
+      const ws = wb.addWorksheet("Por Responsável");
+      ws.columns = [
+        { header: "Responsável", key: "responsavel", width: 25 },
+        { header: "Tarefa", key: "tarefa", width: 40 },
+        { header: "Prioridade", key: "prioridade", width: 12 },
+        { header: "Departamento", key: "departamento", width: 18 },
+        { header: "Status", key: "status", width: 15 },
+      ];
+      uniqueResponsibles.forEach((name) => {
+        tasks.filter((t: any) => (t.responsible_name?.trim() || "") === name).forEach((task: any) => {
+          ws.addRow({
+            responsavel: name,
+            tarefa: task.task || "",
+            prioridade: PRIORITY_LABELS[task.priority] || task.priority || "",
+            departamento: task.department || "",
+            status: TASK_STATUS_LABELS[task.status] || "Pendente",
+          });
+        });
+      });
+      // Tasks without responsible
+      const unassigned = tasks.filter((t: any) => !t.responsible_name?.trim());
+      if (unassigned.length > 0) {
+        unassigned.forEach((task: any) => {
+          ws.addRow({
+            responsavel: "Sem Responsável Definido",
+            tarefa: task.task || "",
+            prioridade: PRIORITY_LABELS[task.priority] || task.priority || "",
+            departamento: task.department || "",
+            status: TASK_STATUS_LABELS[task.status] || "Pendente",
+          });
+        });
+      }
+      applyHeaderStyle(ws);
+      applyBorders(ws);
+      applyAlternatingRows(ws);
+      ws.autoFilter = "A1:E1";
+    }
+
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -810,6 +1029,12 @@ ${risks.map((risk: any, idx: number) => {
             <FileSpreadsheet className="h-4 w-4" />
             Exportar Excel
           </DropdownMenuItem>
+          {uniqueResponsibles.length > 0 && (
+            <DropdownMenuItem onClick={() => { setSelectedResponsibles(new Set(uniqueResponsibles)); setIndividualDialogOpen(true); }} className="gap-2 cursor-pointer">
+              <User className="h-4 w-4" />
+              Relatório Individual
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -873,6 +1098,69 @@ ${risks.map((risk: any, idx: number) => {
                 Exportar Excel
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={individualDialogOpen} onOpenChange={setIndividualDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Relatório Individual por Responsável</DialogTitle>
+            <DialogDescription>
+              Selecione os responsáveis para gerar relatórios individuais de tarefas com campo de assinatura.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="flex gap-3 mb-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedResponsibles(new Set(uniqueResponsibles))} className="text-xs h-7 px-2">
+                Selecionar Todos
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedResponsibles(new Set())} className="text-xs h-7 px-2">
+                Limpar Seleção
+              </Button>
+            </div>
+
+            {uniqueResponsibles.map((name) => {
+              const count = tasks.filter((t: any) => (t.responsible_name?.trim() || "") === name).length;
+              return (
+                <label
+                  key={name}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-accent/50 rounded-md px-2 py-1.5 transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedResponsibles.has(name)}
+                    onCheckedChange={() => toggleResponsible(name)}
+                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{name}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{count} tarefa{count !== 1 ? "s" : ""}</span>
+                  </div>
+                </label>
+              );
+            })}
+
+            {uniqueResponsibles.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum responsável identificado nas tarefas desta reunião.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setIndividualDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleIndividualPrint}
+              disabled={selectedResponsibles.size === 0}
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir ({selectedResponsibles.size})
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

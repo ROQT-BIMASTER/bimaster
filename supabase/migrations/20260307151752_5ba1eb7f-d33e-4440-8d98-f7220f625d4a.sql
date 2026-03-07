@@ -1,0 +1,1 @@
+ALTER TABLE public.meeting_tasks ADD COLUMN responsible_name text;
