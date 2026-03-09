@@ -70,6 +70,9 @@ export function EnviarFinanceiroDialog({
     installment_number: number | null; 
     installment_total: number | null; 
     boleto_barcode: string | null;
+    payment_queue_id: string | null;
+    supplier_name: string | null;
+    supplier_document: string | null;
   } | null>(null);
 
   const [formData, setFormData] = useState({
