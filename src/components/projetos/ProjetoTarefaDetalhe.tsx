@@ -719,6 +719,16 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
                 <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
 
+                {/* Histórico de Alterações */}
+                <Separator />
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Histórico de Alterações
+                  </h3>
+                  <ProjetoAtividadesLog tarefaId={tarefa.id} />
+                </div>
+
                 <Separator />
 
                 {/* Marcos/Metas */}
