@@ -29,6 +29,7 @@ import {
   formatCutoffTime,
 } from "@/hooks/useFinancialPaymentPolicies";
 import { SupplierPaymentExceptionsTab } from "./SupplierPaymentExceptionsTab";
+import { CorrectionRulesTab } from "./CorrectionRulesTab";
 import {
   Loader2,
   Calendar,
