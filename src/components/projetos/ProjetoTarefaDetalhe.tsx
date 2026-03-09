@@ -31,6 +31,7 @@ import {
   Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
+import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
