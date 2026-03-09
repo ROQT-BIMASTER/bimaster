@@ -29,7 +29,7 @@ interface PaymentReviewDialogProps {
   onOpenChange: (open: boolean) => void;
   item: PaymentQueueItem | null;
   onAccept: (id: string, notes?: string) => void;
-  onReject: (id: string, notes: string) => void;
+  onReject: (id: string, notes: string, rejectionCategory?: string, rejectionFields?: string[]) => void;
   onMarkPaid: (id: string, paymentMethod: string, paymentDetails: Record<string, string>, notes?: string) => void;
   onReopen?: (id: string) => void;
   isProcessing: boolean;
