@@ -383,8 +383,12 @@ export function EnviarFinanceiroDepDialog({
             </div>
 
             {/* Supplier payment info */}
-            {(fornecedorId || isCorrection) && formData.supplier_name && (
-              <FornecedorPaymentInfo fornecedorId={fornecedorId || ""} />
+            {(fornecedorId || (isCorrection && formData.supplier_name)) && (
+              <FornecedorPaymentInfo 
+                fornecedorId={fornecedorId || undefined}
+                supplierName={formData.supplier_name}
+                supplierDocument={formData.supplier_document}
+              />
             )}
           </div>
 
