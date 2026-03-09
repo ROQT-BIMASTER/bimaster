@@ -293,8 +293,36 @@ export function PaymentReviewDialog({
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-muted-foreground text-xs">Valor</Label>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(item.amount)}</p>
+                  {editMode ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editForm.amount}
+                      onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) || 0 })}
+                      className="text-xl font-bold w-48 mt-1"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(item.amount)}</p>
+                  )}
                 </div>
+                {!editMode && !isPaid && (
+                  <Button variant="outline" size="sm" onClick={startEdit} className="gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                )}
+                {editMode && (
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" onClick={cancelEdit} disabled={isSavingEdit}>
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={handleSaveEdit} disabled={isSavingEdit}>
+                      {isSavingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -302,36 +330,87 @@ export function PaymentReviewDialog({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-muted-foreground text-xs">Vencimento</Label>
-                  <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
-                    {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                    {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
-                  </p>
+                  {editMode ? (
+                    <Input
+                      type="date"
+                      value={editForm.due_date}
+                      onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
+                      {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Tipo Documento</Label>
-                  <p className="font-medium">{item.document_type || "-"}</p>
+                  {editMode ? (
+                    <Select value={editForm.document_type} onValueChange={(v) => setEditForm({ ...editForm, document_type: v })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["nfse", "nfe", "boleto", "recibo", "contrato", "orcamento", "outros"].map((t) => (
+                          <SelectItem key={t} value={t}>{t.toUpperCase()}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="font-medium">{item.document_type || "-"}</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Nº Documento</Label>
-                  <p className="font-medium">{item.document_number || "-"}</p>
+                  {editMode ? (
+                    <Input
+                      value={editForm.document_number}
+                      onChange={(e) => setEditForm({ ...editForm, document_number: e.target.value })}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="font-medium">{item.document_number || "-"}</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Portador</Label>
-                  <p className="font-medium">{item.portador || "-"}</p>
+                  {editMode ? (
+                    <Select value={editForm.portador} onValueChange={(v) => setEditForm({ ...editForm, portador: v })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["PIX", "Boleto", "TED", "DOC", "Cartão", "Dinheiro", "Cheque", "Depósito"].map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="font-medium">{item.portador || "-"}</p>
+                  )}
                 </div>
               </div>
 
-              {item.description && (
+              {(item.description || editMode) && (
                 <>
                   <Separator />
                   <div>
                     <Label className="text-muted-foreground text-xs">Descrição</Label>
-                    <p className="text-sm">{item.description}</p>
+                    {editMode ? (
+                      <Input
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-sm">{item.description}</p>
+                    )}
                   </div>
                 </>
               )}
 
-              {item.notes && (
+              {item.notes && !editMode && (
                 <div>
                   <Label className="text-muted-foreground text-xs">Observações</Label>
                   <p className="text-sm">{item.notes}</p>
