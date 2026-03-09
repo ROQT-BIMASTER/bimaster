@@ -369,9 +369,19 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
       
+      // Send rejection notification to requester
+      if (variables.financial_status === 'rejected' && data) {
+        sendRejectionNotification({
+          requested_by: data.requested_by,
+          code: data.code,
+          supplier_name: data.supplier_name,
+          financial_notes: variables.financial_notes || null,
+        });
+      }
+
       const statusMessages: Record<PaymentQueueStatus, string> = {
         pending: 'Status atualizado',
         accepted: 'Pagamento aceito com sucesso',

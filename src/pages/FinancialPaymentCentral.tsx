@@ -384,6 +384,7 @@ export default function FinancialPaymentCentral() {
           onAccept={handleAccept}
           onReject={handleReject}
           onMarkPaid={handleMarkPaid}
+          onReopen={handleReopen}
           isProcessing={isAccepting || isUpdating}
           onRefresh={refetch}
         />

@@ -458,6 +458,24 @@ export function PaymentReviewDialog({
               Marcar como Pago
             </Button>
           )}
+
+          {isRejected && onReopen && (
+            <Button
+              variant="default"
+              onClick={() => {
+                onReopen(item.id);
+                handleClose();
+              }}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RotateCcw className="h-4 w-4 mr-2" />
+              )}
+              Reabrir para Reanálise
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
