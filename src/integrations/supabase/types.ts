@@ -9661,6 +9661,47 @@ export type Database = {
           },
         ]
       }
+      financial_payment_queue_history: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          changed_by_name: string | null
+          changes: Json | null
+          id: string
+          payment_queue_id: string
+          snapshot: Json
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changes?: Json | null
+          id?: string
+          payment_queue_id: string
+          snapshot?: Json
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changes?: Json | null
+          id?: string
+          payment_queue_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_payment_queue_history_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null
