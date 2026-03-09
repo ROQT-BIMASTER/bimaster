@@ -41,15 +41,26 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
           <h1 className={`text-xl font-bold ${textColor || "text-foreground"}`}>{projeto.nome}</h1>
           {projeto.descricao && <p className={`text-sm ${textMuted}`}>{projeto.descricao}</p>}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
-          onClick={() => setResumoOpen(true)}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Resumo IA
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setMembrosOpen(true)}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Membros
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setResumoOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Resumo IA
+          </Button>
+        </div>
       </div>
 
       {/* Health Panel */}
