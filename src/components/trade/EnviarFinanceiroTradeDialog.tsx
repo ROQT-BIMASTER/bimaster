@@ -82,6 +82,7 @@ export function EnviarFinanceiroTradeDialog({
   const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
   const isInstallment = entry?.installment_number && entry?.installment_total;
   const hasBoleto = entry?.boleto_barcode;
+  const isCorrection = !!entry?.payment_queue_id;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {

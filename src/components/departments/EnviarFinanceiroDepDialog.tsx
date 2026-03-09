@@ -81,6 +81,18 @@ export function EnviarFinanceiroDepDialog({
   const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const boletoBarcode = (expense as any).boleto_barcode;
+  const isCorrection = !!(expense as any).payment_queue_id;
+
+  // Pre-fill supplier data when correcting a rejected payment
+  useEffect(() => {
+    if (isCorrection && (expense as any).supplier_name) {
+      setFormData((prev) => ({
+        ...prev,
+        supplier_name: (expense as any).supplier_name || prev.supplier_name,
+        supplier_document: (expense as any).supplier_document || prev.supplier_document,
+      }));
+    }
+  }, [isCorrection, (expense as any).supplier_name]);
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
