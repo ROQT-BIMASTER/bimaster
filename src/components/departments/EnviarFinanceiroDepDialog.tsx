@@ -85,6 +85,7 @@ export function EnviarFinanceiroDepDialog({
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const boletoBarcode = (expense as any).boleto_barcode;
   const isCorrection = !!(expense as any).payment_queue_id;
+  const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
   // Pre-fill supplier data when correcting a rejected payment
   useEffect(() => {
