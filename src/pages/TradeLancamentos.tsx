@@ -651,6 +651,19 @@ export default function TradeLancamentos() {
                                   </DropdownMenuItem>
                                 </>
                               )}
+                              {isFinancialRejected && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => toggleRejectionRow(entry.id)}>
+                                    <AlertTriangle className="mr-2 h-4 w-4" />
+                                    Ver Motivo da Rejeição
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSendFinancialClick(entry)}>
+                                    <DollarSign className="mr-2 h-4 w-4" />
+                                    Reenviar ao Financeiro
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && !entry.payment_queue_id && (
                                 <DropdownMenuItem disabled>
                                   <Eye className="mr-2 h-4 w-4" />
