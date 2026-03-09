@@ -80,9 +80,105 @@ export function PaymentReviewDialog({
   const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
   const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
   const [rejeicaoOpen, setRejeicaoOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    document_type: "",
+    document_number: "",
+    due_date: "",
+    portador: "",
+    amount: 0,
+    description: "",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
-  const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
+  const startEdit = () => {
+    if (!item) return;
+    setEditForm({
+      document_type: item.document_type || "",
+      document_number: item.document_number || "",
+      due_date: item.due_date || "",
+      portador: item.portador || "",
+      amount: item.amount,
+      description: item.description || "",
+    });
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordConfirmed = async (justificativa: string, userInfo: { id: string; email: string; nome: string }) => {
+    setEditMode(true);
+    // Store userInfo for later save
+    (window as any).__editUserInfo = userInfo;
+    (window as any).__editJustificativa = justificativa;
+  };
+
+  const handleSaveEdit = async () => {
+    if (!item) return;
+    setIsSavingEdit(true);
+    const userInfo = (window as any).__editUserInfo;
+    const justificativa = (window as any).__editJustificativa;
+
+    try {
+      // Build snapshot of old values
+      const oldSnapshot: Record<string, any> = {
+        document_type: item.document_type,
+        document_number: item.document_number,
+        due_date: item.due_date,
+        portador: item.portador,
+        amount: item.amount,
+        description: item.description,
+      };
+
+      // Update record
+      const { error } = await supabase
+        .from("financial_payment_queue")
+        .update({
+          document_type: editForm.document_type,
+          document_number: editForm.document_number,
+          due_date: editForm.due_date,
+          portador: editForm.portador,
+          amount: editForm.amount,
+          description: editForm.description,
+        })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      // Log history
+      const changes: Record<string, { old: any; new: any }> = {};
+      for (const key of Object.keys(editForm) as (keyof typeof editForm)[]) {
+        if (String(editForm[key]) !== String(oldSnapshot[key])) {
+          changes[key] = { old: oldSnapshot[key], new: editForm[key] };
+        }
+      }
+
+      await supabase.from("financial_payment_queue_history").insert({
+        payment_queue_id: item.id,
+        changed_by: userInfo?.id || null,
+        changed_by_name: userInfo?.nome || null,
+        action: "edited_by_financial",
+        snapshot: { ...editForm, justificativa },
+        changes,
+      });
+
+      toast.success("Documento atualizado com sucesso");
+      setEditMode(false);
+      delete (window as any).__editUserInfo;
+      delete (window as any).__editJustificativa;
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error("Erro ao salvar alterações: " + (err.message || ""));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditMode(false);
+    delete (window as any).__editUserInfo;
+    delete (window as any).__editJustificativa;
+  };
     if (!item) return;
     
     if (actionType === 'paid') {
