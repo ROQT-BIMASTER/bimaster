@@ -1,56 +1,43 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Plano: Tarefas Financeiras com Método de Pagamento (PIX, Boleto, TED...)
 
-### O que muda
+### Objetivo
+Quando o financeiro clicar em **"Marcar como Pago"**, abrir um dialog intermediário (similar ao `AlterarCustoDialog` da fábrica) onde ele seleciona o **método de pagamento** e preenche campos específicos daquele método antes de confirmar.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+### 1. Migração de Banco de Dados
+Adicionar coluna `payment_method` na tabela `financial_payment_queue`:
 
-### Implementação
-
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
-
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
-
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
+```sql
+ALTER TABLE public.financial_payment_queue 
+ADD COLUMN payment_method text,
+ADD COLUMN payment_details jsonb DEFAULT '{}';
 ```
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+- `payment_method`: PIX, Boleto, TED, DOC, Débito Automático, Cartão
+- `payment_details`: JSON com campos específicos (chave PIX, comprovante, etc.)
+
+### 2. Novo Componente: `MarcarPagoDialog`
+Criar `src/components/financeiro/payments/MarcarPagoDialog.tsx`:
+
+- **Select** com métodos de pagamento predefinidos
+- **Campos condicionais** por método:
+  - **PIX**: Chave PIX (tipo + valor), ID da transação
+  - **Boleto**: Linha digitável, data de pagamento
+  - **TED/DOC**: Banco destino, agência, conta, ID da transação
+  - **Débito Automático**: Referência
+  - **Cartão**: Últimos 4 dígitos, bandeira
+- Campo de **observações** (textarea)
+- Resumo do pagamento (fornecedor, valor, vencimento) no topo — similar ao card de resumo do `AlterarCustoDialog`
+
+### 3. Integração no `PaymentReviewDialog`
+- O botão **"Marcar como Pago"** deixa de chamar `handleAction('paid')` diretamente
+- Passa a abrir o `MarcarPagoDialog`
+- O dialog coleta método + detalhes e chama `onMarkPaid` com os dados extras
+
+### 4. Atualização do `handleMarkPaid`
+Em `FinancialPaymentCentral.tsx`, o handler passará `payment_method` e `payment_details` junto com o update de status para `paid`.
+
+### 5. Exibição dos Dados
+No `PaymentReviewDialog`, quando o item já estiver pago, exibir um card com o método de pagamento e os detalhes preenchidos (chave PIX, ID transação, etc.).
 
