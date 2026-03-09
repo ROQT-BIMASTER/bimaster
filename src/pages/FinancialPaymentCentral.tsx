@@ -56,7 +56,7 @@ const presetLabels: Record<DatePreset, string> = {
 
 function UnreadChatBadge() {
   const { data: conversations } = useAllPaymentConversations();
-  const totalUnread = conversations?.reduce((sum, c) => sum + (c.unreadCount || 0), 0) || 0;
+  const totalUnread = conversations?.reduce((sum, c) => sum + (c.unread || 0), 0) || 0;
   if (totalUnread === 0) return null;
   return (
     <Badge variant="destructive" className="text-[10px] h-4 min-w-[16px] px-1 justify-center ml-1" style={{ animation: "blink-unread 1.2s ease-in-out infinite" }}>
