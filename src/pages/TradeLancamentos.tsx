@@ -114,6 +114,7 @@ export default function TradeLancamentos() {
     });
   };
 
+  useEffect(() => {
     getCurrentUser();
   }, []);
 
