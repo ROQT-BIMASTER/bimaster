@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";

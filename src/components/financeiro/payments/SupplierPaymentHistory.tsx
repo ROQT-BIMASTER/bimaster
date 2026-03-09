@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { History, Loader2, CheckCircle2, XCircle, Clock, Wallet, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Eye, Target, Calendar, Loader2, Building, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, PaymentQueueStatus, SourceType } from "@/hooks/useFinancialPaymentQueue";
 import { usePaymentMessageCounts } from "@/hooks/usePaymentMessages";

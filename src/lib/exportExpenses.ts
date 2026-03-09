@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import type { DepartmentExpense } from "@/hooks/useDepartmentExpenses";
 import type { PaymentQueueItem } from "@/hooks/useFinancialPaymentQueue";
 

@@ -67,6 +67,7 @@ import {
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
