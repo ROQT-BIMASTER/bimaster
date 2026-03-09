@@ -646,6 +646,9 @@ export function PaymentReviewDialog({
         </Tabs>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 mr-auto">
+            <PaymentBankPrintSummary item={item} />
+          </div>
           <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
             Fechar
           </Button>
