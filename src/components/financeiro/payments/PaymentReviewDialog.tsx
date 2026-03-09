@@ -30,6 +30,7 @@ import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 import { PaymentBankPrintSummary } from "./PaymentBankPrintSummary";
+import { QuickDueDateChange } from "./QuickDueDateChange";
 
 interface PaymentReviewDialogProps {
   open: boolean;
