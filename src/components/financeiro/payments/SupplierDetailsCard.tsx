@@ -457,14 +457,10 @@ export function SupplierDetailsCard({
                   variant="outline"
                   size="sm"
                   className="shrink-0 text-xs gap-1"
-                  onClick={() => {
-                    const btn = document.querySelector('[data-action="atualizar-cadastro-fornecedor"]') as HTMLButtonElement;
-                    if (btn) btn.click();
-                    else toast.info("Use o botão 'Atualizar Cadastro' acima para editar os dados bancários.");
-                  }}
+                  onClick={handleEnrich}
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  Cadastrar
+                  <RefreshCw className="h-3 w-3" />
+                  Consultar e Atualizar
                 </Button>
               </AlertDescription>
             </Alert>
@@ -513,12 +509,11 @@ export function SupplierDetailsCard({
               variant="ghost"
               size="sm"
               className="text-xs gap-1"
-              onClick={() => {
-                window.open(`/dashboard/financeiro`, "_blank");
-              }}
+              onClick={handleEnrich}
+              disabled={loading}
             >
-              <ExternalLink className="h-3 w-3" />
-              Abrir Cadastro
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Atualizar Cadastro
             </Button>
           )}
         </div>
