@@ -664,7 +664,7 @@ export default function TradeLancamentos() {
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && !entry.payment_queue_id && (
+                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !isFinancialRejected && !entry.boleto_barcode && !entry.payment_queue_id && (
                                 <DropdownMenuItem disabled>
                                   <Eye className="mr-2 h-4 w-4" />
                                   Sem ações disponíveis
