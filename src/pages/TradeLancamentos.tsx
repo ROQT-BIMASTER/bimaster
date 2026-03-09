@@ -76,7 +76,9 @@ import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPol
 import { ExpenseAIChatFloat } from "@/components/ai/ExpenseAIChatFloat";
 import { PaymentChatPanel } from "@/components/financeiro/payments/PaymentChatPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, ChevronUp } from "lucide-react";
+import { useExpenseFinancialStatus } from "@/hooks/useExpenseFinancialStatus";
+import { FinancialRejectionBanner } from "@/components/shared/FinancialRejectionBanner";
 
 export default function TradeLancamentos() {
   const navigate = useNavigate();
@@ -92,6 +94,25 @@ export default function TradeLancamentos() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [chatEntry, setChatEntry] = useState<any>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [rejectionExpandedRows, setRejectionExpandedRows] = useState<Set<string>>(new Set());
+
+  // Fetch financial rejection status for entries with payment_queue_id
+  const paymentQueueIds = entries.map(e => e.payment_queue_id);
+  const { data: financialStatusMap } = useExpenseFinancialStatus(paymentQueueIds);
+
+  const getFinancialInfo = (entry: any) => {
+    if (!entry.payment_queue_id || !financialStatusMap) return null;
+    return financialStatusMap.get(entry.payment_queue_id) || null;
+  };
+
+  const toggleRejectionRow = (id: string) => {
+    setRejectionExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     getCurrentUser();
@@ -438,10 +459,13 @@ export default function TradeLancamentos() {
                       const attachments = Array.isArray(entry.attachments) ? entry.attachments : [];
                       const hasAttachments = attachments.length > 0;
                       const isExpanded = expandedRows.has(entry.id);
+                      const financialInfo = getFinancialInfo(entry);
+                      const isFinancialRejected = financialInfo?.financial_status === "rejected";
+                      const isRejectionExpanded = rejectionExpandedRows.has(entry.id);
 
                       return (
                         <React.Fragment key={entry.id}>
-                        <TableRow className="hover:bg-muted/50">
+                        <TableRow className={`hover:bg-muted/50 ${isFinancialRejected ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}>
                           <TableCell className="w-10 px-2">
                             {hasAttachments ? (
                               <Button
@@ -563,7 +587,15 @@ export default function TradeLancamentos() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}
+                            {isFinancialRejected ? (
+                              <Badge variant="destructive" className="gap-1 cursor-pointer" onClick={() => toggleRejectionRow(entry.id)}>
+                                <XCircle className="h-3 w-3" />
+                                Rejeitado Financeiro
+                                {isRejectionExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              </Badge>
+                            ) : (
+                              getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)
+                            )}
                             {entry.document_type === "orcamento" && (
                               <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 w-fit text-[10px]">
                                 <AlertTriangle className="h-2.5 w-2.5" />
@@ -619,7 +651,20 @@ export default function TradeLancamentos() {
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !entry.boleto_barcode && !entry.payment_queue_id && (
+                              {isFinancialRejected && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => toggleRejectionRow(entry.id)}>
+                                    <AlertTriangle className="mr-2 h-4 w-4" />
+                                    Ver Motivo da Rejeição
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleSendFinancialClick(entry)}>
+                                    <DollarSign className="mr-2 h-4 w-4" />
+                                    Reenviar ao Financeiro
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {!canEdit(entry) && !canAddEvidence(entry) && !canSendToFinancial(entry) && !isFinancialRejected && !entry.boleto_barcode && !entry.payment_queue_id && (
                                 <DropdownMenuItem disabled>
                                   <Eye className="mr-2 h-4 w-4" />
                                   Sem ações disponíveis
@@ -629,6 +674,19 @@ export default function TradeLancamentos() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
+
+
+                      {/* Financial rejection expanded row */}
+                      {isFinancialRejected && isRejectionExpanded && (
+                        <TableRow>
+                          <TableCell colSpan={11} className="p-3 bg-destructive/5">
+                            <FinancialRejectionBanner 
+                              info={financialInfo} 
+                              onResubmit={() => handleSendFinancialClick(entry)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
 
                       {/* Expanded attachments row */}
                       {isExpanded && hasAttachments && (
