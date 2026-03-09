@@ -459,6 +459,9 @@ export default function TradeLancamentos() {
                       const attachments = Array.isArray(entry.attachments) ? entry.attachments : [];
                       const hasAttachments = attachments.length > 0;
                       const isExpanded = expandedRows.has(entry.id);
+                      const financialInfo = getFinancialInfo(entry);
+                      const isFinancialRejected = financialInfo?.financial_status === "rejected";
+                      const isRejectionExpanded = rejectionExpandedRows.has(entry.id);
 
                       return (
                         <React.Fragment key={entry.id}>
