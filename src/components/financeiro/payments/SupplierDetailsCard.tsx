@@ -514,7 +514,7 @@ export function SupplierDetailsCard({
               size="sm"
               className="text-xs gap-1"
               onClick={() => {
-                window.open(`/dashboard/fabrica/materias-primas`, "_blank");
+                window.open(`/dashboard/financeiro`, "_blank");
               }}
             >
               <ExternalLink className="h-3 w-3" />
