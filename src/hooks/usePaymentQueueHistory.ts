@@ -18,6 +18,7 @@ const ACTION_LABELS: Record<string, string> = {
   rejected: "Rejeitado pelo Financeiro",
   approved: "Aprovado pelo Financeiro",
   paid: "Pagamento Realizado",
+  edited_by_financial: "Editado pelo Financeiro",
 };
 
 export function getActionLabel(action: string): string {
