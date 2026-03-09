@@ -169,7 +169,7 @@ export function PaymentChatPanel({ paymentQueueId, userType, className, compact 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
+        const file = new (globalThis as any).File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
         
         setIsUploading(true);
         const result = await uploadFile(file);
