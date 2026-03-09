@@ -35,6 +35,7 @@ import { usePortadores } from "@/hooks/useEventExpenses";
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, SplitSquareVertical, CalendarCheck, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
 import { cn } from "@/lib/utils";
@@ -372,6 +373,11 @@ export function EnviarFinanceiroDepDialog({
                 className="bg-muted/50"
               />
             </div>
+
+            {/* Supplier payment info */}
+            {(fornecedorId || isCorrection) && formData.supplier_name && (
+              <FornecedorPaymentInfo fornecedorId={fornecedorId || ""} />
+            )}
           </div>
 
           {/* Dados do Documento */}
