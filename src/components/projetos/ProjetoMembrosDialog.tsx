@@ -27,7 +27,7 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes } = useProjetoMembros(projetoId);
   const [search, setSearch] = useState("");
-  const [expandedMembro, setExpandedMembro] = useState<string | null>(null);
+  
 
   // Fetch project sections
   const { data: secoes = [] } = useQuery({
