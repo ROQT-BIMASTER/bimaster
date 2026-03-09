@@ -587,7 +587,15 @@ export default function TradeLancamentos() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)}
+                            {isFinancialRejected ? (
+                              <Badge variant="destructive" className="gap-1 cursor-pointer" onClick={() => toggleRejectionRow(entry.id)}>
+                                <XCircle className="h-3 w-3" />
+                                Rejeitado Financeiro
+                                {isRejectionExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              </Badge>
+                            ) : (
+                              getStatusBadge(entry.status === "pending_financial" ? "pending_financial" : entry.approval_status)
+                            )}
                             {entry.document_type === "orcamento" && (
                               <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 w-fit text-[10px]">
                                 <AlertTriangle className="h-2.5 w-2.5" />
