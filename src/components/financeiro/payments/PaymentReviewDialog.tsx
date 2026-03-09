@@ -4,18 +4,21 @@ import { MarcarPagoDialog } from "./MarcarPagoDialog";
 import { RejeicaoFinanceiraDialog, REJECTION_CATEGORY_LABELS, type RejectionData } from "./RejeicaoFinanceiraDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { PaymentQueueItem, SourceType, PaymentQueueStatus } from "@/hooks/useFinancialPaymentQueue";
 import { AttachmentAcknowledgement } from "./AttachmentAcknowledgement";
 import { SupplierDetailsCard } from "./SupplierDetailsCard";
@@ -24,6 +27,7 @@ import { ReceiptUploadSection } from "./ReceiptUploadSection";
 import { PaymentChatPanel } from "./PaymentChatPanel";
 import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
+import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -76,7 +80,105 @@ export function PaymentReviewDialog({
   const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
   const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
   const [rejeicaoOpen, setRejeicaoOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    document_type: "",
+    document_number: "",
+    due_date: "",
+    portador: "",
+    amount: 0,
+    description: "",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
+
+  const startEdit = () => {
+    if (!item) return;
+    setEditForm({
+      document_type: item.document_type || "",
+      document_number: item.document_number || "",
+      due_date: item.due_date || "",
+      portador: item.portador || "",
+      amount: item.amount,
+      description: item.description || "",
+    });
+    setPasswordDialogOpen(true);
+  };
+
+  const handlePasswordConfirmed = async (justificativa: string, userInfo: { id: string; email: string; nome: string }) => {
+    setEditMode(true);
+    // Store userInfo for later save
+    (window as any).__editUserInfo = userInfo;
+    (window as any).__editJustificativa = justificativa;
+  };
+
+  const handleSaveEdit = async () => {
+    if (!item) return;
+    setIsSavingEdit(true);
+    const userInfo = (window as any).__editUserInfo;
+    const justificativa = (window as any).__editJustificativa;
+
+    try {
+      // Build snapshot of old values
+      const oldSnapshot: Record<string, any> = {
+        document_type: item.document_type,
+        document_number: item.document_number,
+        due_date: item.due_date,
+        portador: item.portador,
+        amount: item.amount,
+        description: item.description,
+      };
+
+      // Update record
+      const { error } = await supabase
+        .from("financial_payment_queue")
+        .update({
+          document_type: editForm.document_type,
+          document_number: editForm.document_number,
+          due_date: editForm.due_date,
+          portador: editForm.portador,
+          amount: editForm.amount,
+          description: editForm.description,
+        })
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      // Log history
+      const changes: Record<string, { old: any; new: any }> = {};
+      for (const key of Object.keys(editForm) as (keyof typeof editForm)[]) {
+        if (String(editForm[key]) !== String(oldSnapshot[key])) {
+          changes[key] = { old: oldSnapshot[key], new: editForm[key] };
+        }
+      }
+
+      await supabase.from("financial_payment_queue_history").insert({
+        payment_queue_id: item.id,
+        changed_by: userInfo?.id || null,
+        changed_by_name: userInfo?.nome || null,
+        action: "edited_by_financial",
+        snapshot: { ...editForm, justificativa },
+        changes,
+      });
+
+      toast.success("Documento atualizado com sucesso");
+      setEditMode(false);
+      delete (window as any).__editUserInfo;
+      delete (window as any).__editJustificativa;
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error("Erro ao salvar alterações: " + (err.message || ""));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditMode(false);
+    delete (window as any).__editUserInfo;
+    delete (window as any).__editJustificativa;
+  };
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
     if (!item) return;
@@ -119,6 +221,7 @@ export function PaymentReviewDialog({
     setNotes("");
     setAction(null);
     setAllAttachmentsAcknowledged(false);
+    setEditMode(false);
     onOpenChange(false);
   };
 
@@ -191,8 +294,36 @@ export function PaymentReviewDialog({
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-muted-foreground text-xs">Valor</Label>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(item.amount)}</p>
+                  {editMode ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editForm.amount}
+                      onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) || 0 })}
+                      className="text-xl font-bold w-48 mt-1"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(item.amount)}</p>
+                  )}
                 </div>
+                {!editMode && !isPaid && (
+                  <Button variant="outline" size="sm" onClick={startEdit} className="gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                )}
+                {editMode && (
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" onClick={cancelEdit} disabled={isSavingEdit}>
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={handleSaveEdit} disabled={isSavingEdit}>
+                      {isSavingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -200,36 +331,87 @@ export function PaymentReviewDialog({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <Label className="text-muted-foreground text-xs">Vencimento</Label>
-                  <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
-                    {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                    {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
-                  </p>
+                  {editMode ? (
+                    <Input
+                      type="date"
+                      value={editForm.due_date}
+                      onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
+                      {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Tipo Documento</Label>
-                  <p className="font-medium">{item.document_type || "-"}</p>
+                  {editMode ? (
+                    <Select value={editForm.document_type} onValueChange={(v) => setEditForm({ ...editForm, document_type: v })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["nfse", "nfe", "boleto", "recibo", "contrato", "orcamento", "outros"].map((t) => (
+                          <SelectItem key={t} value={t}>{t.toUpperCase()}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="font-medium">{item.document_type || "-"}</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Nº Documento</Label>
-                  <p className="font-medium">{item.document_number || "-"}</p>
+                  {editMode ? (
+                    <Input
+                      value={editForm.document_number}
+                      onChange={(e) => setEditForm({ ...editForm, document_number: e.target.value })}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <p className="font-medium">{item.document_number || "-"}</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Portador</Label>
-                  <p className="font-medium">{item.portador || "-"}</p>
+                  {editMode ? (
+                    <Select value={editForm.portador} onValueChange={(v) => setEditForm({ ...editForm, portador: v })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["PIX", "Boleto", "TED", "DOC", "Cartão", "Dinheiro", "Cheque", "Depósito"].map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="font-medium">{item.portador || "-"}</p>
+                  )}
                 </div>
               </div>
 
-              {item.description && (
+              {(item.description || editMode) && (
                 <>
                   <Separator />
                   <div>
                     <Label className="text-muted-foreground text-xs">Descrição</Label>
-                    <p className="text-sm">{item.description}</p>
+                    {editMode ? (
+                      <Input
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="text-sm">{item.description}</p>
+                    )}
                   </div>
                 </>
               )}
 
-              {item.notes && (
+              {item.notes && !editMode && (
                 <div>
                   <Label className="text-muted-foreground text-xs">Observações</Label>
                   <p className="text-sm">{item.notes}</p>
@@ -550,6 +732,14 @@ export function PaymentReviewDialog({
             code={item.code}
             onConfirmar={handleConfirmarRejeicao}
             isProcessing={isProcessing}
+          />
+          <PasswordConfirmDialog
+            open={passwordDialogOpen}
+            onOpenChange={setPasswordDialogOpen}
+            onConfirm={handlePasswordConfirmed}
+            title="Editar Dados do Documento"
+            description="Para editar os dados do documento, confirme sua senha e forneça uma justificativa para auditoria."
+            actionLabel="Desbloquear Edição"
           />
         </>
       )}
