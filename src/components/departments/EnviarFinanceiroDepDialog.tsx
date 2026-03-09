@@ -418,6 +418,7 @@ export function EnviarFinanceiroDepDialog({
                   id="document_number"
                   value={formData.document_number}
                   onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                  disabled={isCorrection && locks?.document_number}
                   placeholder="Ex: 12345"
                   required
                 />
