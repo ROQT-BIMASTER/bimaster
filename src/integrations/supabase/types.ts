@@ -9506,6 +9506,8 @@ export type Database = {
           portador: string | null
           receipt_sent_at: string | null
           receipt_url: string | null
+          rejection_category: string | null
+          rejection_fields: Json | null
           requested_at: string
           requested_by: string | null
           reviewed_at: string | null
@@ -9541,6 +9543,8 @@ export type Database = {
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
+          rejection_category?: string | null
+          rejection_fields?: Json | null
           requested_at?: string
           requested_by?: string | null
           reviewed_at?: string | null
@@ -9576,6 +9580,8 @@ export type Database = {
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
+          rejection_category?: string | null
+          rejection_fields?: Json | null
           requested_at?: string
           requested_by?: string | null
           reviewed_at?: string | null
