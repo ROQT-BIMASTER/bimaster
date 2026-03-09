@@ -169,7 +169,7 @@ export function EnviarFinanceiroTradeDialog({
     }
 
     if (
-      !fornecedorId ||
+      (!fornecedorId && !isCorrection) ||
       !formData.document_type ||
       !formData.document_number ||
       !formData.due_date
