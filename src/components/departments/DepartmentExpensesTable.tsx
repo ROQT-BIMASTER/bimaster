@@ -79,6 +79,25 @@ export function DepartmentExpensesTable({
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [chatExpense, setChatExpense] = useState<DepartmentExpense | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<DepartmentExpense | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // Fetch financial status for expenses with payment_queue_id
+  const paymentQueueIds = expenses.map((e: any) => e.payment_queue_id);
+  const { data: financialStatusMap } = useExpenseFinancialStatus(paymentQueueIds);
+
+  const isFinanciallyRejected = (expense: any): boolean => {
+    const info = expense.payment_queue_id ? financialStatusMap?.get(expense.payment_queue_id) : null;
+    return info?.financial_status === "rejected";
+  };
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const filteredExpenses = expenses.filter(expense =>
     expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
