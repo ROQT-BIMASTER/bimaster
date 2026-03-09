@@ -22,6 +22,7 @@ import { SupplierDetailsCard } from "./SupplierDetailsCard";
 import { SupplierPaymentHistory } from "./SupplierPaymentHistory";
 import { ReceiptUploadSection } from "./ReceiptUploadSection";
 import { PaymentChatPanel } from "./PaymentChatPanel";
+import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 
 interface PaymentReviewDialogProps {
@@ -328,7 +329,12 @@ export function PaymentReviewDialog({
             </CardContent>
           </Card>
 
-          {/* Attachment */}
+          {/* Histórico de Alterações */}
+          <Card>
+            <CardContent className="p-4">
+              <PaymentQueueHistory paymentQueueId={item.id} />
+            </CardContent>
+          </Card>
           {item.attachment_url && (
             <Card>
               <CardContent className="p-4">
