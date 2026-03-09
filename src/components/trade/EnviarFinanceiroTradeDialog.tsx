@@ -86,6 +86,7 @@ export function EnviarFinanceiroTradeDialog({
   const isInstallment = entry?.installment_number && entry?.installment_total;
   const hasBoleto = entry?.boleto_barcode;
   const isCorrection = !!entry?.payment_queue_id;
+  const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
