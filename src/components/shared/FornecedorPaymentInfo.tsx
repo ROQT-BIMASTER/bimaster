@@ -30,7 +30,9 @@ import {
 } from "lucide-react";
 
 interface FornecedorPaymentInfoProps {
-  fornecedorId: string;
+  fornecedorId?: string;
+  supplierName?: string;
+  supplierDocument?: string;
 }
 
 interface PaymentData {
@@ -44,11 +46,12 @@ interface PaymentData {
   linha_digitavel: string;
 }
 
-export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoProps) {
+export function FornecedorPaymentInfo({ fornecedorId, supplierName, supplierDocument }: FornecedorPaymentInfoProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resolvedId, setResolvedId] = useState<string | null>(fornecedorId || null);
   const [data, setData] = useState<PaymentData>({
     banco: "",
     agencia: "",
@@ -60,13 +63,41 @@ export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoPro
     linha_digitavel: "",
   });
 
+  // Resolve fornecedor ID by name/CNPJ when not directly provided
   useEffect(() => {
-    if (!fornecedorId || !isOpen) return;
+    if (fornecedorId) {
+      setResolvedId(fornecedorId);
+      return;
+    }
+    if (!supplierName && !supplierDocument) return;
+
+    const lookup = async () => {
+      let query = supabase
+        .from("fabrica_fornecedores")
+        .select("id")
+        .limit(1);
+
+      if (supplierDocument) {
+        query = query.eq("cnpj", supplierDocument);
+      } else if (supplierName) {
+        query = query.eq("razao_social", supplierName);
+      }
+
+      const { data: rows } = await query;
+      if (rows && rows.length > 0) {
+        setResolvedId(rows[0].id);
+      }
+    };
+    lookup();
+  }, [fornecedorId, supplierName, supplierDocument]);
+
+  useEffect(() => {
+    if (!resolvedId || !isOpen) return;
     setLoading(true);
     supabase
       .from("fabrica_fornecedores")
       .select("banco, agencia, conta, tipo_conta, favorecido, pix_tipo, pix_chave, linha_digitavel")
-      .eq("id", fornecedorId)
+      .eq("id", resolvedId)
       .single()
       .then(({ data: row }) => {
         if (row) {
@@ -83,11 +114,16 @@ export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoPro
         }
         setLoading(false);
       });
-  }, [fornecedorId, isOpen]);
+  }, [resolvedId, isOpen]);
 
   const hasAnyData = data.pix_chave || data.banco || data.linha_digitavel;
 
   const handleSave = async () => {
+    if (!resolvedId) {
+      toast.error("Fornecedor não encontrado no cadastro");
+      return;
+    }
+
     // PIX validation
     if (data.pix_chave.trim() && !data.pix_tipo) {
       toast.error("Selecione o tipo da chave PIX");
@@ -112,7 +148,7 @@ export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoPro
           pix_chave: data.pix_chave.trim() || null,
           linha_digitavel: data.linha_digitavel.trim() || null,
         })
-        .eq("id", fornecedorId);
+        .eq("id", resolvedId);
 
       if (error) throw error;
       toast.success("Dados de pagamento do fornecedor atualizados!");
@@ -123,6 +159,8 @@ export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoPro
       setSaving(false);
     }
   };
+
+  if (!resolvedId && !supplierName) return null;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -150,6 +188,12 @@ export function FornecedorPaymentInfo({ fornecedorId }: FornecedorPaymentInfoPro
         {loading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : !resolvedId ? (
+          <div className="border rounded-lg p-3 mt-1 bg-muted/30">
+            <p className="text-xs text-muted-foreground italic">
+              Fornecedor não encontrado no cadastro. Não é possível editar dados de pagamento.
+            </p>
           </div>
         ) : (
           <div className="border rounded-lg p-3 mt-1 space-y-3 bg-muted/30">

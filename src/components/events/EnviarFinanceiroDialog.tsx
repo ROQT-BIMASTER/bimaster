@@ -76,6 +76,11 @@ export function EnviarFinanceiroDialog({
     payment_queue_id: string | null;
     supplier_name: string | null;
     supplier_document: string | null;
+    document_type: string | null;
+    document_number: string | null;
+    due_date: string | null;
+    portador: string | null;
+    payment_notes: string | null;
   } | null>(null);
 
   const [formData, setFormData] = useState({
@@ -96,16 +101,21 @@ export function EnviarFinanceiroDialog({
   const isCorrection = !!expenseInfo?.payment_queue_id;
   const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
-  // Pre-fill supplier data when correcting a rejected payment
+  // Pre-fill ALL form data when correcting a rejected payment
   useEffect(() => {
-    if (isCorrection && expenseInfo?.supplier_name) {
+    if (isCorrection && expenseInfo) {
       setFormData((prev) => ({
         ...prev,
         supplier_name: expenseInfo.supplier_name || prev.supplier_name,
         supplier_document: expenseInfo.supplier_document || prev.supplier_document,
+        document_type: expenseInfo.document_type || prev.document_type,
+        document_number: expenseInfo.document_number || prev.document_number,
+        due_date: expenseInfo.due_date || prev.due_date,
+        portador: expenseInfo.portador || prev.portador,
+        payment_notes: expenseInfo.payment_notes || prev.payment_notes,
       }));
     }
-  }, [isCorrection, expenseInfo?.supplier_name, expenseInfo?.supplier_document]);
+  }, [isCorrection, expenseInfo]);
 
   // Fetch suppliers + expense info when dialog opens
   useEffect(() => {
@@ -119,7 +129,7 @@ export function EnviarFinanceiroDialog({
 
       supabase
         .from("corporate_event_expenses")
-        .select("status, attachments, installment_number, installment_total, boleto_barcode, payment_queue_id, supplier_name, supplier_document")
+        .select("status, attachments, installment_number, installment_total, boleto_barcode, payment_queue_id, supplier_name, supplier_document, document_type, document_number, due_date, portador, payment_notes")
         .eq("id", expenseId)
         .single()
         .then(({ data }) => {
@@ -133,6 +143,11 @@ export function EnviarFinanceiroDialog({
               payment_queue_id: (data as any).payment_queue_id || null,
               supplier_name: (data as any).supplier_name || null,
               supplier_document: (data as any).supplier_document || null,
+              document_type: (data as any).document_type || null,
+              document_number: (data as any).document_number || null,
+              due_date: (data as any).due_date || null,
+              portador: (data as any).portador || null,
+              payment_notes: (data as any).payment_notes || null,
             });
           }
         });
@@ -409,8 +424,12 @@ export function EnviarFinanceiroDialog({
             </div>
 
             {/* Supplier payment info */}
-            {(fornecedorId || isCorrection) && formData.supplier_name && (
-              <FornecedorPaymentInfo fornecedorId={fornecedorId || ""} />
+            {(fornecedorId || (isCorrection && formData.supplier_name)) && (
+              <FornecedorPaymentInfo 
+                fornecedorId={fornecedorId || undefined} 
+                supplierName={formData.supplier_name}
+                supplierDocument={formData.supplier_document}
+              />
             )}
           </div>
 
