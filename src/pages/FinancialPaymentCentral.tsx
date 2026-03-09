@@ -231,9 +231,10 @@ export default function FinancialPaymentCentral() {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="comunicacao" className="gap-2">
+            <TabsTrigger value="comunicacao" className="gap-2 relative">
               <MessageSquare className="h-4 w-4" />
               Comunicação
+              <UnreadChatBadge />
             </TabsTrigger>
           </TabsList>
 
