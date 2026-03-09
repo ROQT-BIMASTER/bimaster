@@ -28,6 +28,7 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
   const navigate = useNavigate();
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
+  const [membrosOpen, setMembrosOpen] = useState(false);
 
   return (
     <div className="space-y-4">
