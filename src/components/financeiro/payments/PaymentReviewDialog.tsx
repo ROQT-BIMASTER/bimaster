@@ -329,7 +329,12 @@ export function PaymentReviewDialog({
             </CardContent>
           </Card>
 
-          {/* Attachment */}
+          {/* Histórico de Alterações */}
+          <Card>
+            <CardContent className="p-4">
+              <PaymentQueueHistory paymentQueueId={item.id} />
+            </CardContent>
+          </Card>
           {item.attachment_url && (
             <Card>
               <CardContent className="p-4">
