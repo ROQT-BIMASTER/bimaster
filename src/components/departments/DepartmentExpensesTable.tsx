@@ -204,6 +204,7 @@ export function DepartmentExpensesTable({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
@@ -219,141 +220,141 @@ export function DepartmentExpensesTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExpenses.map((expense: any) => (
-                  <TableRow key={expense.id}>
-                    <TableCell className="font-mono text-sm">{expense.code}</TableCell>
-                    <TableCell>
-                      {getCategoryLabel(expense.category)}
-                      {expense.document_type === "orcamento" && expense.status !== "rejected" && (
-                        <Badge variant="outline" className="ml-2 text-xs border-amber-500 text-amber-600">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Pendente NF
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {expense.description || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {expense.installment_number && expense.installment_total ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {expense.installment_number}/{expense.installment_total}
-                        </Badge>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {expense.empresa_nome || expense.empresa?.nome ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Building className="h-3 w-3 text-muted-foreground" />
-                          <span>{expense.empresa_nome || expense.empresa?.nome}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      R$ {(expense.valor_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>
-                      R$ {(expense.valor_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(expense.status)}</TableCell>
-                    <TableCell>
-                      {expense.boleto_barcode ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => copyBarcode(expense.boleto_barcode)}
-                            >
-                              <Barcode className="h-4 w-4 text-primary" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="font-mono text-xs break-all">{expense.boleto_barcode}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Clique para copiar</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleOpenAttachments(expense)}
-                        className="gap-1"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        {expense.attachments?.length || 0}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      {(expense as any).payment_queue_id ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setChatExpense(expense)}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenAttachments(expense)}>
-                            <Paperclip className="mr-2 h-4 w-4" />
-                            Ver Anexos
-                          </DropdownMenuItem>
+                {filteredExpenses.map((expense: any) => {
+                  const hasRejection = isFinanciallyRejected(expense);
+                  const isExpanded = expandedRows.has(expense.id);
+                  const financialInfo = expense.payment_queue_id ? financialStatusMap?.get(expense.payment_queue_id) : null;
 
-                          {expense.boleto_barcode && (
-                            <DropdownMenuItem onClick={() => copyBarcode(expense.boleto_barcode)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copiar Linha Digitável
-                            </DropdownMenuItem>
+                  return (
+                    <>
+                      <TableRow key={expense.id} className={hasRejection ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}>
+                        <TableCell className="w-[40px] px-2">
+                          {hasRejection && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleRow(expense.id)}>
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </Button>
                           )}
-                          
-                          {(expense as any).payment_queue_id && (
-                            <DropdownMenuItem onClick={() => setChatExpense(expense)}>
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              Comunicação Financeiro
-                            </DropdownMenuItem>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{expense.code}</TableCell>
+                        <TableCell>
+                          {getCategoryLabel(expense.category)}
+                          {expense.document_type === "orcamento" && expense.status !== "rejected" && (
+                            <Badge variant="outline" className="ml-2 text-xs border-amber-500 text-amber-600">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Pendente NF
+                            </Badge>
                           )}
-                          
-                          {isManager && expense.status === "pending" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleAprovar(expense)}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Aprovar / Rejeitar
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{expense.description || "-"}</TableCell>
+                        <TableCell>
+                          {expense.installment_number && expense.installment_total ? (
+                            <Badge variant="secondary" className="text-xs">{expense.installment_number}/{expense.installment_total}</Badge>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {expense.empresa_nome || expense.empresa?.nome ? (
+                            <div className="flex items-center gap-1 text-sm">
+                              <Building className="h-3 w-3 text-muted-foreground" />
+                              <span>{expense.empresa_nome || expense.empresa?.nome}</span>
+                            </div>
+                          ) : <span className="text-muted-foreground text-xs">-</span>}
+                        </TableCell>
+                        <TableCell>R$ {(expense.valor_previsto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>R$ {(expense.valor_realizado || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{getStatusBadge(expense.status, expense.payment_queue_id)}</TableCell>
+                        <TableCell>
+                          {expense.boleto_barcode ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyBarcode(expense.boleto_barcode)}>
+                                  <Barcode className="h-4 w-4 text-primary" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="font-mono text-xs break-all">{expense.boleto_barcode}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Clique para copiar</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenAttachments(expense)} className="gap-1">
+                            <Paperclip className="h-4 w-4" />
+                            {expense.attachments?.length || 0}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          {(expense as any).payment_queue_id ? (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setChatExpense(expense)}>
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          ) : <span className="text-muted-foreground text-xs">-</span>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenAttachments(expense)}>
+                                <Paperclip className="mr-2 h-4 w-4" />Ver Anexos
                               </DropdownMenuItem>
-                            </>
-                          )}
-                          
-                          {isManager && expense.status === "approved" && !expense.send_to_financial && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleEnviarFinanceiro(expense)}>
-                                <Send className="mr-2 h-4 w-4" />
-                                Enviar ao Financeiro
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                              {expense.boleto_barcode && (
+                                <DropdownMenuItem onClick={() => copyBarcode(expense.boleto_barcode)}>
+                                  <Copy className="mr-2 h-4 w-4" />Copiar Linha Digitável
+                                </DropdownMenuItem>
+                              )}
+                              {(expense as any).payment_queue_id && (
+                                <DropdownMenuItem onClick={() => setChatExpense(expense)}>
+                                  <MessageCircle className="mr-2 h-4 w-4" />Comunicação Financeiro
+                                </DropdownMenuItem>
+                              )}
+                              {hasRejection && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => toggleRow(expense.id)}>
+                                    <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />Ver Motivo da Rejeição
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEnviarFinanceiro(expense)}>
+                                    <Send className="mr-2 h-4 w-4" />Corrigir e Reenviar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {isManager && expense.status === "pending" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleAprovar(expense)}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />Aprovar / Rejeitar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {isManager && expense.status === "approved" && !expense.send_to_financial && !hasRejection && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleEnviarFinanceiro(expense)}>
+                                    <Send className="mr-2 h-4 w-4" />Enviar ao Financeiro
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                      {hasRejection && isExpanded && financialInfo && (
+                        <TableRow key={`${expense.id}-rejection`}>
+                          <TableCell colSpan={13} className="bg-destructive/5 p-0">
+                            <div className="px-6 py-3">
+                              <FinancialRejectionBanner
+                                info={financialInfo}
+                                onResubmit={() => handleEnviarFinanceiro(expense)}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -368,14 +369,12 @@ export function DepartmentExpensesTable({
             open={enviarFinanceiroOpen}
             onOpenChange={setEnviarFinanceiroOpen}
           />
-          
           <AprovarDespesaDepartamentoDialog
             expense={selectedExpense}
             open={aprovarOpen}
             onOpenChange={setAprovarOpen}
             allExpenses={expenses}
           />
-          
           <DepartmentExpenseAttachments
             expense={selectedExpense}
             open={attachmentsOpen}
