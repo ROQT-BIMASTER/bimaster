@@ -105,14 +105,18 @@ export function PaymentPolicyConfigDialog({
         </DialogHeader>
 
         <Tabs defaultValue="geral" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="geral" className="gap-2">
               <Calendar className="h-4 w-4" />
               Política Geral
             </TabsTrigger>
             <TabsTrigger value="fornecedor" className="gap-2">
               <Building2 className="h-4 w-4" />
-              Exceções por Fornecedor
+              Exceções Fornecedor
+            </TabsTrigger>
+            <TabsTrigger value="correcao" className="gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Regras de Correção
             </TabsTrigger>
           </TabsList>
 
