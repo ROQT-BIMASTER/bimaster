@@ -17,11 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Search, Download, Filter, Tag } from "lucide-react";
+import { FileText, Search, Download, Filter, Tag, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { exportArrayToExcel } from "@/lib/excel-utils";
+import { useExpenseFinancialStatus } from "@/hooks/useExpenseFinancialStatus";
+import { FinancialRejectionBanner } from "@/components/shared/FinancialRejectionBanner";
 
 interface Despesa {
   id: string;
@@ -31,6 +33,7 @@ interface Despesa {
   valorRealizado: number;
   status: string;
   data: string;
+  payment_queue_id?: string | null;
 }
 
 interface DeptDespesasTableProps {
@@ -41,6 +44,11 @@ interface DeptDespesasTableProps {
 export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // Fetch financial rejection status
+  const paymentQueueIds = despesas.map(d => d.payment_queue_id);
+  const { data: financialStatusMap } = useExpenseFinancialStatus(paymentQueueIds);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -49,7 +57,19 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
     }).format(value);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getFinancialInfo = (despesa: Despesa) => {
+    if (!despesa.payment_queue_id || !financialStatusMap) return null;
+    return financialStatusMap.get(despesa.payment_queue_id) || null;
+  };
+
+  const getStatusBadge = (despesa: Despesa) => {
+    const financialInfo = getFinancialInfo(despesa);
+    
+    if (financialInfo?.financial_status === "rejected") {
+      return <Badge variant="destructive">Rejeitado Financeiro</Badge>;
+    }
+
+    const status = despesa.status;
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending: { label: "Pendente", variant: "outline" },
       pending_financial: { label: "No Financeiro", variant: "secondary" },
@@ -62,6 +82,15 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
 
     const config = statusMap[status?.toLowerCase()] || { label: status, variant: "outline" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const filteredDespesas = despesas.filter(d => {
@@ -130,6 +159,7 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8"></TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="text-right">Valor Realizado</TableHead>
@@ -140,33 +170,63 @@ export function DeptDespesasTable({ despesas, departmentName }: DeptDespesasTabl
             <TableBody>
               {filteredDespesas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhuma despesa encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredDespesas.map((despesa) => (
-                  <TableRow key={despesa.id}>
-                    <TableCell>
-                      <Badge variant="outline" className="gap-1">
-                        <Tag className="h-3 w-3" />
-                        {despesa.categoria}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">{despesa.descricao}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">
-                        {formatCurrency(despesa.valorRealizado)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(despesa.status)}</TableCell>
-                    <TableCell>
-                      {despesa.data 
-                        ? format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR }) 
-                        : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredDespesas.map((despesa) => {
+                  const financialInfo = getFinancialInfo(despesa);
+                  const isRejected = financialInfo?.financial_status === "rejected";
+                  const isExpanded = expandedRows.has(despesa.id);
+
+                  return (
+                    <>
+                      <TableRow 
+                        key={despesa.id}
+                        className={isRejected ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}
+                      >
+                        <TableCell className="w-8 p-1">
+                          {isRejected && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => toggleRow(despesa.id)}
+                            >
+                              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1">
+                            <Tag className="h-3 w-3" />
+                            {despesa.categoria}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{despesa.descricao}</TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded">
+                            {formatCurrency(despesa.valorRealizado)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(despesa)}</TableCell>
+                        <TableCell>
+                          {despesa.data 
+                            ? format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR }) 
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                      {isRejected && isExpanded && (
+                        <TableRow key={`${despesa.id}-rejection`}>
+                          <TableCell colSpan={6} className="p-3 bg-destructive/5">
+                            <FinancialRejectionBanner info={financialInfo} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })
               )}
             </TableBody>
           </Table>
