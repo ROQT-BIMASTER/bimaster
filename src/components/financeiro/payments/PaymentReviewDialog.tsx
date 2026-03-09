@@ -85,16 +85,26 @@ export function PaymentReviewDialog({
       return;
     }
 
+    if (actionType === 'reject') {
+      setRejeicaoOpen(true);
+      return;
+    }
+
     setAction(actionType);
     
     if (actionType === 'accept') {
       onAccept(item.id, notes);
-    } else if (actionType === 'reject') {
-      if (!notes.trim()) {
-        return;
-      }
-      onReject(item.id, notes);
     }
+  };
+
+  const handleConfirmarRejeicao = (data: RejectionData) => {
+    if (!item) return;
+    const formattedNotes = data.notes
+      ? `${REJECTION_CATEGORY_LABELS[data.category] || data.category}: ${data.notes}`
+      : REJECTION_CATEGORY_LABELS[data.category] || data.category;
+    setAction('reject');
+    onReject(item.id, formattedNotes, data.category, data.fields);
+    setRejeicaoOpen(false);
   };
 
   const handleConfirmarPago = (paymentMethod: string, paymentDetails: Record<string, string>, observacoes: string) => {
