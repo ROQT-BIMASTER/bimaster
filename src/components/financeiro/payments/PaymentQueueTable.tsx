@@ -188,7 +188,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                 const sourceConfig = sourceTypeConfig[item.source_type];
                 const status = statusConfig[item.financial_status];
                 const parsedDueDate = parseLocalDate(item.due_date);
-                const isOverdue = parsedDueDate ? parsedDueDate < new Date() : false && item.financial_status === 'pending';
+                const isOverdue = (parsedDueDate ? parsedDueDate < new Date() : false) && item.financial_status === 'pending';
 
                 return (
                   <TableRow key={item.id} className={cn(isOverdue && "bg-destructive/10")}>
