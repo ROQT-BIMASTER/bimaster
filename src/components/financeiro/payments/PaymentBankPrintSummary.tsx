@@ -65,10 +65,10 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
   </table>
   ` : ""}
 
-  ${item.boleto_barcode ? `
+  ${(item as any).boleto_barcode ? `
   <p class="section-title">Linha Digitável</p>
   <table>
-    <tr><td style="font-family: monospace; letter-spacing: 1px;">${item.boleto_barcode}</td></tr>
+    <tr><td style="font-family: monospace; letter-spacing: 1px;">${(item as any).boleto_barcode}</td></tr>
   </table>
   ` : ""}
 
