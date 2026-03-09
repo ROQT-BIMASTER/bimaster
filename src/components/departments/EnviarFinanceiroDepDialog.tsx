@@ -87,16 +87,21 @@ export function EnviarFinanceiroDepDialog({
   const isCorrection = !!(expense as any).payment_queue_id;
   const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
-  // Pre-fill supplier data when correcting a rejected payment
+  // Pre-fill ALL form data when correcting a rejected payment
   useEffect(() => {
-    if (isCorrection && (expense as any).supplier_name) {
+    if (isCorrection) {
       setFormData((prev) => ({
         ...prev,
         supplier_name: (expense as any).supplier_name || prev.supplier_name,
         supplier_document: (expense as any).supplier_document || prev.supplier_document,
+        document_type: (expense as any).document_type || prev.document_type,
+        document_number: (expense as any).document_number || prev.document_number,
+        due_date: (expense as any).due_date || prev.due_date,
+        portador: (expense as any).portador || prev.portador,
+        payment_notes: (expense as any).payment_notes || prev.payment_notes,
       }));
     }
-  }, [isCorrection, (expense as any).supplier_name]);
+  }, [isCorrection, expense]);
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
