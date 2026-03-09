@@ -64,6 +64,7 @@ export function PaymentReviewDialog({
   onAccept,
   onReject,
   onMarkPaid,
+  onReopen,
   isProcessing,
   onRefresh,
 }: PaymentReviewDialogProps) {
