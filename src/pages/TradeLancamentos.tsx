@@ -675,6 +675,19 @@ export default function TradeLancamentos() {
                         </TableCell>
                       </TableRow>
 
+
+                      {/* Financial rejection expanded row */}
+                      {isFinancialRejected && isRejectionExpanded && (
+                        <TableRow>
+                          <TableCell colSpan={11} className="p-3 bg-destructive/5">
+                            <FinancialRejectionBanner 
+                              info={financialInfo} 
+                              onResubmit={() => handleSendFinancialClick(entry)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+
                       {/* Expanded attachments row */}
                       {isExpanded && hasAttachments && (
                         <TableRow className="bg-muted/30 hover:bg-muted/40">
