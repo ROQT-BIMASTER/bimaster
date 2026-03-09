@@ -287,7 +287,7 @@ export function EnviarFinanceiroDepDialog({
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Building2 className="h-4 w-4" />
               Dados do Fornecedor
-              {isCorrection && (
+              {isCorrection && locks?.supplier_name && (
                 <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
               )}
             </div>
