@@ -339,7 +339,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
   // Update payment status
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, financial_status, financial_notes }: UpdatePaymentStatusInput) => {
+    mutationFn: async ({ id, financial_status, financial_notes, payment_method, payment_details }: UpdatePaymentStatusInput) => {
       const { data: userData } = await supabase.auth.getUser();
       
       const updateData: Record<string, unknown> = {
@@ -351,6 +351,8 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (financial_status === 'paid') {
         updateData.paid_at = new Date().toISOString();
+        if (payment_method) updateData.payment_method = payment_method;
+        if (payment_details) updateData.payment_details = payment_details;
       }
 
       const { data, error } = await supabase
