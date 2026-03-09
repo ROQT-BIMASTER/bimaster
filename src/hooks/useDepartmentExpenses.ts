@@ -81,6 +81,7 @@ export interface SendToFinancialInput {
   due_date: string;
   portador: string;
   payment_notes?: string;
+  payment_queue_id?: string | null;
 }
 
 export const DEPARTMENT_EXPENSE_CATEGORIES = [
