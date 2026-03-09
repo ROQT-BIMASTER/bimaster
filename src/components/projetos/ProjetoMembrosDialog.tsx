@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProjetoMembros, ProjetoMembro } from "@/hooks/useProjetoMembros";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Search, UserPlus, Trash2, ChevronDown, ChevronRight, Shield, User } from "lucide-react";
+import { Search, UserPlus, Trash2, Shield, User } from "lucide-react";
 
 interface ProjetoMembrosDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes } = useProjetoMembros(projetoId);
   const [search, setSearch] = useState("");
-  const [expandedMembro, setExpandedMembro] = useState<string | null>(null);
+  
 
   // Fetch project sections
   const { data: secoes = [] } = useQuery({
@@ -140,20 +140,18 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoM
 
           {/* Members list */}
           <ScrollArea className="flex-1">
-            <div className="space-y-1">
+            <div className="space-y-3">
               {membros.map((membro) => {
-                const isExpanded = expandedMembro === membro.id;
                 const isCoordenador = membro.papel === "coordenador";
 
                 return (
                   <div key={membro.id} className="border rounded-md">
-                    <div
-                      className="flex items-center gap-2 p-3 cursor-pointer hover:bg-muted/50"
-                      onClick={() => setExpandedMembro(isExpanded ? null : membro.id)}
-                    >
-                      {!isCoordenador ? (
-                        isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      ) : <Shield className="h-4 w-4 text-primary" />}
+                    <div className="flex items-center gap-2 p-3">
+                      {isCoordenador ? (
+                        <Shield className="h-4 w-4 text-primary" />
+                      ) : (
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      )}
 
                       <Avatar className="h-7 w-7">
                         <AvatarImage src={membro.profile?.avatar_url || undefined} />
@@ -171,48 +169,31 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoM
                         {isCoordenador ? "Coordenador" : "Membro"}
                       </Badge>
 
-                      {!isCoordenador && (
-                        <Badge variant="outline" className="text-[10px]">
-                          {membro.secoes_ids?.length || 0}/{secoes.length} seções
-                        </Badge>
-                      )}
-
                       {isCoordinator && !isCoordenador && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeMembro.mutate(membro.id);
-                          }}
+                          onClick={() => removeMembro.mutate(membro.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
 
-                    {/* Section checkboxes (only for non-coordinators) */}
-                    {isExpanded && !isCoordenador && (
+                    {/* Section checkboxes - always visible for members */}
+                    {!isCoordenador && secoes.length > 0 && (
                       <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-medium text-muted-foreground">Seções visíveis</p>
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Seções visíveis ({membro.secoes_ids?.length || 0}/{secoes.length})
+                          </p>
                           {isCoordinator && (
                             <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 text-[10px] px-2"
-                                onClick={() => handleSelectAllSecoes(membro)}
-                              >
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => handleSelectAllSecoes(membro)}>
                                 Todas
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 text-[10px] px-2"
-                                onClick={() => handleDeselectAllSecoes(membro)}
-                              >
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => handleDeselectAllSecoes(membro)}>
                                 Nenhuma
                               </Button>
                             </div>
@@ -220,10 +201,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoM
                         </div>
                         <div className="grid grid-cols-2 gap-1.5">
                           {secoes.map((secao) => (
-                            <label
-                              key={secao.id}
-                              className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-background cursor-pointer"
-                            >
+                            <label key={secao.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-background cursor-pointer">
                               <Checkbox
                                 checked={membro.secoes_ids?.includes(secao.id) || false}
                                 onCheckedChange={() => handleToggleSecao(membro, secao.id)}
@@ -236,8 +214,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId }: ProjetoM
                       </div>
                     )}
 
-                    {/* Coordinator: show "all sections" info */}
-                    {isExpanded && isCoordenador && (
+                    {isCoordenador && (
                       <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
                         <p className="text-xs text-muted-foreground">
                           Coordenadores visualizam todas as seções automaticamente.
