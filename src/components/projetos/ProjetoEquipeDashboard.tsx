@@ -81,7 +81,7 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
   const textMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const cardBg = darkBg ? "bg-white/5 border-white/10" : "";
 
-  const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+  
 
   return (
     <div className="space-y-6">
