@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ interface PaymentReviewDialogProps {
   onAccept: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid: (id: string, notes?: string) => void;
+  onReopen?: (id: string) => void;
   isProcessing: boolean;
   onRefresh?: () => void;
 }
@@ -63,6 +64,7 @@ export function PaymentReviewDialog({
   onAccept,
   onReject,
   onMarkPaid,
+  onReopen,
   isProcessing,
   onRefresh,
 }: PaymentReviewDialogProps) {
@@ -101,6 +103,7 @@ export function PaymentReviewDialog({
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
   const isPaid = item.financial_status === 'paid';
+  const isRejected = item.financial_status === 'rejected';
   const status = statusConfig[item.financial_status];
   const hasAttachments = item.attachments && item.attachments.length > 0;
   const canAccept = !hasAttachments || allAttachmentsAcknowledged;
@@ -453,6 +456,24 @@ export function PaymentReviewDialog({
                 <Wallet className="h-4 w-4 mr-2" />
               )}
               Marcar como Pago
+            </Button>
+          )}
+
+          {isRejected && onReopen && (
+            <Button
+              variant="default"
+              onClick={() => {
+                onReopen(item.id);
+                handleClose();
+              }}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RotateCcw className="h-4 w-4 mr-2" />
+              )}
+              Reabrir para Reanálise
             </Button>
           )}
         </DialogFooter>

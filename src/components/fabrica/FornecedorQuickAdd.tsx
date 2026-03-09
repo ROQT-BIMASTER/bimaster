@@ -70,6 +70,16 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
       return;
     }
 
+    // Validação PIX: se preencheu um, deve preencher o outro
+    if (pixChave.trim() && !pixTipo) {
+      toast.error("Selecione o tipo da chave PIX");
+      return;
+    }
+    if (pixTipo && !pixChave.trim()) {
+      toast.error("Informe a chave PIX");
+      return;
+    }
+
     setSaving(true);
     try {
       const { data, error } = await supabase
@@ -91,12 +101,15 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
           // Boleto
           linha_digitavel: linhaDigitavel.trim() || null,
         })
-        .select("id, razao_social, cnpj")
+        .select("id, razao_social, cnpj, pix_tipo, pix_chave")
         .single();
 
       if (error) throw error;
 
-      toast.success("Fornecedor cadastrado!");
+      const msgs = ["Fornecedor cadastrado!"];
+      if (data.pix_chave) msgs.push(`PIX ${data.pix_tipo}: ${data.pix_chave}`);
+      toast.success(msgs.join(" • "));
+
       onFornecedorCriado({ 
         id: data.id, 
         nome: data.razao_social,

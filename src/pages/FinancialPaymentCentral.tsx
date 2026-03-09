@@ -147,6 +147,16 @@ export default function FinancialPaymentCentral() {
     });
   };
 
+  const handleReopen = (id: string) => {
+    updateStatus({ id, financial_status: 'pending', financial_notes: 'Reaberto para reanálise' }, {
+      onSuccess: () => {
+        setReviewDialogOpen(false);
+        setSelectedItem(null);
+        toast.success("Solicitação reaberta para reanálise");
+      },
+    });
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -374,6 +384,7 @@ export default function FinancialPaymentCentral() {
           onAccept={handleAccept}
           onReject={handleReject}
           onMarkPaid={handleMarkPaid}
+          onReopen={handleReopen}
           isProcessing={isAccepting || isUpdating}
           onRefresh={refetch}
         />

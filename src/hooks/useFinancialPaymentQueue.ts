@@ -96,6 +96,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
         paid: 'paid',
         rejected: 'rejected',
         cancelled: 'cancelled',
+        pending: 'pending',
       };
       const newStatus = statusMap[item.financial_status];
       if (!newStatus) return;
@@ -115,6 +116,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
         paid: 'paid',
         rejected: 'rejected',
         cancelled: 'cancelled',
+        pending: 'pending',
       };
       const newStatus = statusMap[item.financial_status];
       if (!newStatus) return;
@@ -134,6 +136,7 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
         paid: 'paid',
         rejected: 'rejected',
         cancelled: 'cancelled',
+        pending: 'pending',
       };
       const newStatus = statusMap[item.financial_status];
       if (!newStatus) return;
@@ -150,6 +153,28 @@ async function syncStatusToSource(item: { source_type: string; source_id: string
     }
   } catch (err) {
     console.error('Error syncing status to source:', err);
+  }
+}
+
+// Helper to send rejection notification to the requester
+async function sendRejectionNotification(item: {
+  requested_by: string | null;
+  code: string;
+  supplier_name: string;
+  financial_notes: string | null;
+}) {
+  if (!item.requested_by) return;
+  try {
+    const motivo = item.financial_notes ? `Motivo: ${item.financial_notes}` : 'Sem motivo informado.';
+    await supabase.from('notifications').insert({
+      user_id: item.requested_by,
+      type: 'payment_rejected',
+      title: 'Pagamento Rejeitado',
+      message: `Sua solicitação ${item.code} para ${item.supplier_name} foi rejeitada pelo financeiro. ${motivo}`,
+      action_url: '/financeiro/pagamentos',
+    });
+  } catch (err) {
+    console.error('Error sending rejection notification:', err);
   }
 }
 
@@ -344,9 +369,19 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
       
+      // Send rejection notification to requester
+      if (variables.financial_status === 'rejected' && data) {
+        sendRejectionNotification({
+          requested_by: data.requested_by,
+          code: data.code,
+          supplier_name: data.supplier_name,
+          financial_notes: variables.financial_notes || null,
+        });
+      }
+
       const statusMessages: Record<PaymentQueueStatus, string> = {
         pending: 'Status atualizado',
         accepted: 'Pagamento aceito com sucesso',
