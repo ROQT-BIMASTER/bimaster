@@ -14254,6 +14254,47 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_aprovacoes: {
+        Row: {
+          aprovador_id: string | null
+          created_at: string | null
+          etapa: string
+          id: string
+          observacoes: string | null
+          status: string
+          tarefa_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          aprovador_id?: string | null
+          created_at?: string | null
+          etapa: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tarefa_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          aprovador_id?: string | null
+          created_at?: string | null
+          etapa?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tarefa_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_aprovacoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_colaboradores: {
         Row: {
           created_at: string | null
@@ -14579,6 +14620,7 @@ export type Database = {
           dias_alerta_antes: number
           estagio: string | null
           id: string
+          motivo_retrabalho: string | null
           ordem: number | null
           parent_tarefa_id: string | null
           prioridade: string | null
@@ -14588,6 +14630,7 @@ export type Database = {
           secao_id: string
           status: string | null
           tem_briefing: boolean
+          tipo_tarefa: string | null
           titulo: string
           updated_at: string | null
           validacao_status: string | null
@@ -14604,6 +14647,7 @@ export type Database = {
           dias_alerta_antes?: number
           estagio?: string | null
           id?: string
+          motivo_retrabalho?: string | null
           ordem?: number | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
@@ -14613,6 +14657,7 @@ export type Database = {
           secao_id: string
           status?: string | null
           tem_briefing?: boolean
+          tipo_tarefa?: string | null
           titulo: string
           updated_at?: string | null
           validacao_status?: string | null
@@ -14629,6 +14674,7 @@ export type Database = {
           dias_alerta_antes?: number
           estagio?: string | null
           id?: string
+          motivo_retrabalho?: string | null
           ordem?: number | null
           parent_tarefa_id?: string | null
           prioridade?: string | null
@@ -14638,6 +14684,7 @@ export type Database = {
           secao_id?: string
           status?: string | null
           tem_briefing?: boolean
+          tipo_tarefa?: string | null
           titulo?: string
           updated_at?: string | null
           validacao_status?: string | null

@@ -3,7 +3,7 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
@@ -87,6 +87,9 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
             </TabsTrigger>
             <TabsTrigger value="briefings" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <FileSpreadsheet className="h-4 w-4" /> Briefings
+            </TabsTrigger>
+            <TabsTrigger value="equipe" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+              <UsersRound className="h-4 w-4" /> Equipe
             </TabsTrigger>
             <TabsTrigger value="arquivos" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
               <FileText className="h-4 w-4" /> Arquivos

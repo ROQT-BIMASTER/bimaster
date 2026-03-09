@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
@@ -166,6 +166,12 @@ export function ProjetoTarefaRow({
             diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
             compact
           />
+          {(tarefa as any).tipo_tarefa === "retrabalho" && (
+            <Badge className="text-[9px] px-1.5 py-0 h-4 gap-0.5 bg-amber-500/15 text-amber-500 border-0 flex-shrink-0">
+              <RotateCcw className="h-2.5 w-2.5" />
+              Retrabalho
+            </Badge>
+          )}
         </div>
 
         {/* Produto vinculado */}
