@@ -471,7 +471,7 @@ export function EnviarFinanceiroDepDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={sendToFinancial.isPending || !fornecedorId || !hasAttachments || !isApproved}
+              disabled={sendToFinancial.isPending || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}
             >
               {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
