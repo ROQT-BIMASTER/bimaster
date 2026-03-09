@@ -316,18 +316,9 @@ export function SupplierPaymentExceptionsTab() {
                 />
               </div>
               {selectedSupplier && (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-xs gap-1"
-                   onClick={() => {
-                    window.open(`/dashboard/financeiro`, "_blank");
-                   }}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Abrir cadastro do fornecedor
-                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Fornecedor selecionado — dados bancários disponíveis na revisão de pagamento.
+                </span>
               )}
             </div>
 
