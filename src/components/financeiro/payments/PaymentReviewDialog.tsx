@@ -72,6 +72,7 @@ export function PaymentReviewDialog({
   const [notes, setNotes] = useState("");
   const [action, setAction] = useState<'accept' | 'reject' | 'paid' | null>(null);
   const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
+  const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
