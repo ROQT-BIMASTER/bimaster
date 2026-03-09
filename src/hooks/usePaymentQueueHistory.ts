@@ -35,7 +35,7 @@ export function usePaymentQueueHistory(paymentQueueId?: string | null) {
         .order("changed_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as PaymentQueueHistoryEntry[];
+      return (data || []) as unknown as PaymentQueueHistoryEntry[];
     },
     enabled: !!paymentQueueId,
     staleTime: 30_000,
