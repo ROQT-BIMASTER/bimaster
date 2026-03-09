@@ -8,6 +8,8 @@ export interface FinancialQueueInfo {
   reviewed_at: string | null;
   reviewed_by: string | null;
   reviewer_name?: string;
+  rejection_category?: string | null;
+  rejection_fields?: string[] | null;
 }
 
 /**
@@ -24,7 +26,7 @@ export function useExpenseFinancialStatus(paymentQueueIds: (string | null | unde
 
       const { data, error } = await supabase
         .from("financial_payment_queue")
-        .select("id, financial_status, financial_notes, reviewed_at, reviewed_by")
+        .select("id, financial_status, financial_notes, reviewed_at, reviewed_by, rejection_category, rejection_fields")
         .in("id", validIds);
 
       if (error) throw error;
@@ -46,6 +48,7 @@ export function useExpenseFinancialStatus(paymentQueueIds: (string | null | unde
       for (const item of data || []) {
         result.set(item.id, {
           ...item,
+          rejection_fields: Array.isArray(item.rejection_fields) ? item.rejection_fields as string[] : [],
           reviewer_name: item.reviewed_by ? nameMap.get(item.reviewed_by) : undefined,
         });
       }

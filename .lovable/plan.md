@@ -1,79 +1,56 @@
 
 
-## Plano: Dialog Estruturado de Rejeição Financeira
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema
-Atualmente, ao rejeitar uma conta, o financeiro apenas preenche um campo de texto livre. Isso não guia o solicitante sobre **qual campo corrigir** no sistema.
+### O que muda
 
-### Solução
-Criar um `RejeicaoFinanceiraDialog` (similar ao `MarcarPagoDialog` e ao `AlterarCustoDialog` da fábrica) que estrutura a rejeição com:
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-1. **Categoria do problema** (Select obrigatório):
-   - Dados de PIX incorretos
-   - Boleto inválido / vencido
-   - NF ausente ou inválida
-   - Valor divergente
-   - Fornecedor incorreto
-   - Dados bancários incompletos (TED/DOC)
-   - Documento ilegível
-   - Duplicidade de lançamento
-   - Outro
+### Implementação
 
-2. **Campos afetados** (multi-select, condicional por categoria):
-   - PIX → Chave PIX, Tipo de Chave, ID Transação
-   - Boleto → Linha Digitável, Data de Vencimento
-   - NF → Número NF, Anexo da NF
-   - Valor → Valor do Lançamento, Parcela
-   - Fornecedor → Nome, CNPJ
-   - TED/DOC → Banco, Agência, Conta
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-3. **Instruções ao solicitante** (textarea): texto livre complementar
-
-4. **Resumo** no topo com dados da conta (código, fornecedor, valor)
-
-### Banco de Dados
-Adicionar coluna `rejection_category` (text) e `rejection_fields` (jsonb) na tabela `financial_payment_queue` para persistir a categoria e os campos afetados.
-
-### Alterações em Código
-
-1. **Novo componente**: `src/components/financeiro/payments/RejeicaoFinanceiraDialog.tsx`
-   - Select de categoria, checkboxes de campos afetados, textarea de instruções
-   - Padrão visual idêntico ao `MarcarPagoDialog`
-
-2. **`PaymentReviewDialog.tsx`**:
-   - Botão "Rejeitar" abre o `RejeicaoFinanceiraDialog` em vez de usar o campo de notas
-   - O `onReject` passa category + fields + notes estruturados
-   - Exibir dados da rejeição estruturada quando item já rejeitado (card com categoria, campos, instruções)
-
-3. **`FinancialPaymentCentral.tsx`**:
-   - Atualizar `handleReject` para salvar `rejection_category` e `rejection_fields`
-
-4. **`FinancialRejectionBanner.tsx`**:
-   - Exibir categoria e campos afetados de forma clara para o solicitante, indicando exatamente o que corrigir
-
-5. **Migração SQL**:
-   ```sql
-   ALTER TABLE public.financial_payment_queue
-   ADD COLUMN rejection_category text,
-   ADD COLUMN rejection_fields jsonb DEFAULT '[]';
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
    ```
 
-### Fluxo do Usuário
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
 
 ```text
-Financeiro clica "Rejeitar"
-    → Abre RejeicaoFinanceiraDialog
-    → Seleciona categoria (ex: "Dados de PIX incorretos")
-    → Marca campos afetados (ex: "Chave PIX", "Tipo de Chave")
-    → Escreve instrução: "A chave PIX informada não confere com o CNPJ"
-    → Confirma
-
-Solicitante vê no banner:
-    ┌─────────────────────────────────────────────┐
-    │ ⚠ Rejeitado - Dados de PIX incorretos       │
-    │ Campos a corrigir: Chave PIX, Tipo de Chave │
-    │ Instrução: A chave PIX informada não...      │
-    │ [Corrigir e Reenviar]                        │
-    └─────────────────────────────────────────────┘
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

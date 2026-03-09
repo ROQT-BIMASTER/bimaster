@@ -79,6 +79,8 @@ interface UpdatePaymentStatusInput {
   financial_notes?: string;
   payment_method?: string;
   payment_details?: Record<string, string>;
+  rejection_category?: string;
+  rejection_fields?: string[];
 }
 
 interface PaymentQueueFilters {
@@ -341,7 +343,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
   // Update payment status
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, financial_status, financial_notes, payment_method, payment_details }: UpdatePaymentStatusInput) => {
+    mutationFn: async ({ id, financial_status, financial_notes, payment_method, payment_details, rejection_category, rejection_fields }: UpdatePaymentStatusInput) => {
       const { data: userData } = await supabase.auth.getUser();
       
       const updateData: Record<string, unknown> = {
@@ -350,6 +352,11 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         reviewed_by: userData.user?.id,
         reviewed_at: new Date().toISOString(),
       };
+
+      if (financial_status === 'rejected') {
+        updateData.rejection_category = rejection_category || null;
+        updateData.rejection_fields = rejection_fields || [];
+      }
 
       if (financial_status === 'paid') {
         updateData.paid_at = new Date().toISOString();

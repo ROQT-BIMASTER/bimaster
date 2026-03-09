@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MarcarPagoDialog } from "./MarcarPagoDialog";
+import { RejeicaoFinanceiraDialog, REJECTION_CATEGORY_LABELS, type RejectionData } from "./RejeicaoFinanceiraDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ interface PaymentReviewDialogProps {
   onOpenChange: (open: boolean) => void;
   item: PaymentQueueItem | null;
   onAccept: (id: string, notes?: string) => void;
-  onReject: (id: string, notes: string) => void;
+  onReject: (id: string, notes: string, rejectionCategory?: string, rejectionFields?: string[]) => void;
   onMarkPaid: (id: string, paymentMethod: string, paymentDetails: Record<string, string>, notes?: string) => void;
   onReopen?: (id: string) => void;
   isProcessing: boolean;
@@ -73,6 +74,7 @@ export function PaymentReviewDialog({
   const [action, setAction] = useState<'accept' | 'reject' | 'paid' | null>(null);
   const [allAttachmentsAcknowledged, setAllAttachmentsAcknowledged] = useState(false);
   const [marcarPagoOpen, setMarcarPagoOpen] = useState(false);
+  const [rejeicaoOpen, setRejeicaoOpen] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
@@ -83,16 +85,26 @@ export function PaymentReviewDialog({
       return;
     }
 
+    if (actionType === 'reject') {
+      setRejeicaoOpen(true);
+      return;
+    }
+
     setAction(actionType);
     
     if (actionType === 'accept') {
       onAccept(item.id, notes);
-    } else if (actionType === 'reject') {
-      if (!notes.trim()) {
-        return;
-      }
-      onReject(item.id, notes);
     }
+  };
+
+  const handleConfirmarRejeicao = (data: RejectionData) => {
+    if (!item) return;
+    const formattedNotes = data.notes
+      ? `${REJECTION_CATEGORY_LABELS[data.category] || data.category}: ${data.notes}`
+      : REJECTION_CATEGORY_LABELS[data.category] || data.category;
+    setAction('reject');
+    onReject(item.id, formattedNotes, data.category, data.fields);
+    setRejeicaoOpen(false);
   };
 
   const handleConfirmarPago = (paymentMethod: string, paymentDetails: Record<string, string>, observacoes: string) => {
@@ -452,7 +464,7 @@ export function PaymentReviewDialog({
               <Button
                 variant="destructive"
                 onClick={() => handleAction('reject')}
-                disabled={isProcessing || !notes.trim()}
+                disabled={isProcessing}
               >
                 {isProcessing && action === 'reject' ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -513,16 +525,27 @@ export function PaymentReviewDialog({
       </DialogContent>
 
       {item && (
-        <MarcarPagoDialog
-          open={marcarPagoOpen}
-          onOpenChange={setMarcarPagoOpen}
-          supplierName={item.supplier_name}
-          amount={item.amount}
-          dueDate={item.due_date}
-          code={item.code}
-          onConfirmar={handleConfirmarPago}
-          isProcessing={isProcessing}
-        />
+        <>
+          <MarcarPagoDialog
+            open={marcarPagoOpen}
+            onOpenChange={setMarcarPagoOpen}
+            supplierName={item.supplier_name}
+            amount={item.amount}
+            dueDate={item.due_date}
+            code={item.code}
+            onConfirmar={handleConfirmarPago}
+            isProcessing={isProcessing}
+          />
+          <RejeicaoFinanceiraDialog
+            open={rejeicaoOpen}
+            onOpenChange={setRejeicaoOpen}
+            supplierName={item.supplier_name}
+            amount={item.amount}
+            code={item.code}
+            onConfirmar={handleConfirmarRejeicao}
+            isProcessing={isProcessing}
+          />
+        </>
       )}
     </Dialog>
   );
