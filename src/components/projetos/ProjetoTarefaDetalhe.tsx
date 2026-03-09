@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
+import { ProjetoAtividadesLog } from "./ProjetoAtividadesLog";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
