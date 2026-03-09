@@ -1,7 +1,9 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
 import { formatLocalDate } from "@/utils/dateUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { PaymentQueueItem } from "@/hooks/useFinancialPaymentQueue";
 
 interface PaymentBankPrintSummaryProps {
@@ -12,9 +14,57 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) {
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank", "width=700,height=500");
-    if (!printWindow) return;
+  const [loading, setLoading] = useState(false);
+
+  const handlePrint = async () => {
+    setLoading(true);
+
+    // Fetch supplier bank/PIX data
+    let pixChave = "";
+    let pixTipo = "";
+    let banco = "";
+    let agencia = "";
+    let conta = "";
+    let tipoConta = "";
+    let favorecido = "";
+    let linhaDigitavel = "";
+
+    try {
+      const cnpjClean = item.supplier_document?.replace(/\D/g, "") || "";
+      if (cnpjClean.length >= 11) {
+        const { data } = await supabase
+          .from("fabrica_fornecedores")
+          .select("pix_chave, pix_tipo, banco, agencia, conta, tipo_conta, favorecido, linha_digitavel")
+          .eq("cnpj", cnpjClean)
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (data) {
+          pixChave = data.pix_chave || "";
+          pixTipo = data.pix_tipo || "";
+          banco = data.banco || "";
+          agencia = data.agencia || "";
+          conta = data.conta || "";
+          tipoConta = data.tipo_conta || "";
+          favorecido = data.favorecido || "";
+          linhaDigitavel = data.linha_digitavel || "";
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao buscar dados bancários:", err);
+    }
+
+    setLoading(false);
+
+    const printWindow = window.open("", "_blank", "width=700,height=600");
+    if (!printWindow) {
+      toast.error("Não foi possível abrir a janela de impressão. Verifique o bloqueador de pop-ups.");
+      return;
+    }
+
+    const hasBankData = banco || agencia || conta;
+    const hasPixData = pixChave;
+    const boletoBarcode = (item as any).boleto_barcode || linhaDigitavel;
 
     const html = `
 <!DOCTYPE html>
@@ -32,6 +82,7 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
     th { background: #f0f0f0; font-size: 11px; text-transform: uppercase; color: #555; width: 140px; }
     td { font-size: 13px; }
     .amount { font-size: 18px; font-weight: bold; color: #d97706; }
+    .pix-highlight { background: #fffbeb; font-weight: bold; font-family: monospace; letter-spacing: 0.5px; }
     .section-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #333; margin: 12px 0 6px; padding: 4px 0; border-bottom: 1px solid #ddd; }
     .footer { margin-top: 24px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; }
     .sig-area { margin-top: 40px; display: flex; justify-content: space-between; }
@@ -47,7 +98,27 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
   <table>
     <tr><th>Razão Social</th><td>${item.supplier_name}</td></tr>
     <tr><th>CNPJ / CPF</th><td>${item.supplier_document || "—"}</td></tr>
+    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
   </table>
+
+  ${hasPixData ? `
+  <p class="section-title">🔑 Dados PIX para Pagamento</p>
+  <table>
+    <tr><th>Tipo da Chave</th><td>${pixTipo || "—"}</td></tr>
+    <tr><th>Chave PIX</th><td class="pix-highlight">${pixChave}</td></tr>
+    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
+  </table>
+  ` : ""}
+
+  ${hasBankData ? `
+  <p class="section-title">Dados Bancários</p>
+  <table>
+    ${banco ? `<tr><th>Banco</th><td>${banco}</td></tr>` : ""}
+    ${agencia ? `<tr><th>Agência</th><td>${agencia}</td></tr>` : ""}
+    ${conta ? `<tr><th>Conta</th><td>${conta}${tipoConta ? ` (${tipoConta})` : ""}</td></tr>` : ""}
+    ${favorecido ? `<tr><th>Favorecido</th><td>${favorecido}</td></tr>` : ""}
+  </table>
+  ` : ""}
 
   <p class="section-title">Dados do Pagamento</p>
   <table>
@@ -65,10 +136,10 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
   </table>
   ` : ""}
 
-  ${(item as any).boleto_barcode ? `
+  ${boletoBarcode ? `
   <p class="section-title">Linha Digitável</p>
   <table>
-    <tr><td style="font-family: monospace; letter-spacing: 1px;">${(item as any).boleto_barcode}</td></tr>
+    <tr><td style="font-family: monospace; letter-spacing: 1px;">${boletoBarcode}</td></tr>
   </table>
   ` : ""}
 
@@ -88,8 +159,8 @@ export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) 
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
-      <Printer className="h-3.5 w-3.5" />
+    <Button variant="outline" size="sm" onClick={handlePrint} disabled={loading} className="gap-1.5">
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
       Imprimir p/ Banco
     </Button>
   );
