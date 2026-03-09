@@ -103,6 +103,7 @@ export function PaymentReviewDialog({
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
   const isPaid = item.financial_status === 'paid';
+  const isRejected = item.financial_status === 'rejected';
   const status = statusConfig[item.financial_status];
   const hasAttachments = item.attachments && item.attachments.length > 0;
   const canAccept = !hasAttachments || allAttachmentsAcknowledged;
