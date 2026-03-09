@@ -490,6 +490,19 @@ export function PaymentReviewDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {item && (
+        <MarcarPagoDialog
+          open={marcarPagoOpen}
+          onOpenChange={setMarcarPagoOpen}
+          supplierName={item.supplier_name}
+          amount={item.amount}
+          dueDate={item.due_date}
+          code={item.code}
+          onConfirmar={handleConfirmarPago}
+          isProcessing={isProcessing}
+        />
+      )}
     </Dialog>
   );
 }
