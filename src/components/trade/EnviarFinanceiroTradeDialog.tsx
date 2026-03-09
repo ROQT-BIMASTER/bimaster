@@ -181,7 +181,8 @@ export function EnviarFinanceiroTradeDialog({
       (!fornecedorId && !isCorrection) ||
       !formData.document_type ||
       !formData.document_number ||
-      !formData.due_date
+      !formData.due_date ||
+      !formData.portador
     ) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
