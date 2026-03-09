@@ -462,6 +462,7 @@ export function EnviarFinanceiroTradeDialog({
                   onValueChange={(value) =>
                     setFormData({ ...formData, document_type: value })
                   }
+                  disabled={isCorrection && locks?.document_type}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
