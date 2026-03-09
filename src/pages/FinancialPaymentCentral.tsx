@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays, Settings2, MessageSquare } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
+import { useAllPaymentConversations } from "@/hooks/usePaymentMessages";
 import { PaymentPolicyConfigDialog } from "@/components/financeiro/payments/PaymentPolicyConfigDialog";
 import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPolicyBanner";
 import { PaymentQueueKPIs } from "@/components/financeiro/payments/PaymentQueueKPIs";
@@ -51,6 +53,17 @@ const presetLabels: Record<DatePreset, string> = {
   this_year: "Este ano",
   custom: "Personalizado",
 };
+
+function UnreadChatBadge() {
+  const { data: conversations } = useAllPaymentConversations();
+  const totalUnread = conversations?.reduce((sum, c) => sum + (c.unread || 0), 0) || 0;
+  if (totalUnread === 0) return null;
+  return (
+    <Badge variant="destructive" className="text-[10px] h-4 min-w-[16px] px-1 justify-center ml-1" style={{ animation: "blink-unread 1.2s ease-in-out infinite" }}>
+      {totalUnread}
+    </Badge>
+  );
+}
 
 export default function FinancialPaymentCentral() {
   const navigate = useNavigate();
@@ -229,9 +242,10 @@ export default function FinancialPaymentCentral() {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="comunicacao" className="gap-2">
+            <TabsTrigger value="comunicacao" className="gap-2 relative">
               <MessageSquare className="h-4 w-4" />
               Comunicação
+              <UnreadChatBadge />
             </TabsTrigger>
           </TabsList>
 
