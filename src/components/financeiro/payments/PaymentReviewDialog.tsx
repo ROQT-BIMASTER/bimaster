@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
