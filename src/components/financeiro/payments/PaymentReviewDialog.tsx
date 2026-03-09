@@ -221,6 +221,7 @@ export function PaymentReviewDialog({
     setNotes("");
     setAction(null);
     setAllAttachmentsAcknowledged(false);
+    setEditMode(false);
     onOpenChange(false);
   };
 
