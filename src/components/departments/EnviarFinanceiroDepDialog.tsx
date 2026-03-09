@@ -81,6 +81,18 @@ export function EnviarFinanceiroDepDialog({
   const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const boletoBarcode = (expense as any).boleto_barcode;
+  const isCorrection = !!(expense as any).payment_queue_id;
+
+  // Pre-fill supplier data when correcting a rejected payment
+  useEffect(() => {
+    if (isCorrection && (expense as any).supplier_name) {
+      setFormData((prev) => ({
+        ...prev,
+        supplier_name: (expense as any).supplier_name || prev.supplier_name,
+        supplier_document: (expense as any).supplier_document || prev.supplier_document,
+      }));
+    }
+  }, [isCorrection, (expense as any).supplier_name]);
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
@@ -155,7 +167,7 @@ export function EnviarFinanceiroDepDialog({
       return;
     }
 
-    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+    if ((!fornecedorId && !isCorrection) || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -271,68 +283,81 @@ export function EnviarFinanceiroDepDialog({
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Building2 className="h-4 w-4" />
               Dados do Fornecedor
+              {isCorrection && (
+                <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
+              )}
             </div>
             
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
               <div className="flex gap-2">
-                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openCombobox}
-                      className="flex-1 justify-between font-normal"
-                    >
-                      {selectedFornecedor ? (
-                        <span className="truncate">
-                          {selectedFornecedor.razao_social}
-                          {selectedFornecedor.cnpj && (
-                            <span className="text-muted-foreground ml-2">
-                              - {selectedFornecedor.cnpj}
+                {isCorrection ? (
+                  <Input
+                    value={formData.supplier_name}
+                    disabled
+                    className="flex-1 bg-muted/50 cursor-not-allowed"
+                  />
+                ) : (
+                  <>
+                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCombobox}
+                          className="flex-1 justify-between font-normal"
+                        >
+                          {selectedFornecedor ? (
+                            <span className="truncate">
+                              {selectedFornecedor.razao_social}
+                              {selectedFornecedor.cnpj && (
+                                <span className="text-muted-foreground ml-2">
+                                  - {selectedFornecedor.cnpj}
+                                </span>
+                              )}
                             </span>
+                          ) : (
+                            <span className="text-muted-foreground">Selecione um fornecedor...</span>
                           )}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Selecione um fornecedor...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar fornecedor..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
-                        <CommandGroup>
-                          {fornecedores.map((fornecedor) => (
-                            <CommandItem
-                              key={fornecedor.id}
-                              value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
-                              onSelect={() => handleSelectFornecedor(fornecedor.id)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  fornecedorId === fornecedor.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span>{fornecedor.razao_social}</span>
-                                {fornecedor.cnpj && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {fornecedor.cnpj}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar fornecedor..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {fornecedores.map((fornecedor) => (
+                                <CommandItem
+                                  key={fornecedor.id}
+                                  value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
+                                  onSelect={() => handleSelectFornecedor(fornecedor.id)}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      fornecedorId === fornecedor.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{fornecedor.razao_social}</span>
+                                    {fornecedor.cnpj && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {fornecedor.cnpj}
+                                      </span>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
+                  </>
+                )}
               </div>
             </div>
 
@@ -342,6 +367,7 @@ export function EnviarFinanceiroDepDialog({
                 id="supplier_document"
                 value={formData.supplier_document}
                 onChange={(e) => setFormData({ ...formData, supplier_document: e.target.value })}
+                disabled={isCorrection}
                 placeholder="Preenchido automaticamente"
                 className="bg-muted/50"
               />
@@ -445,7 +471,7 @@ export function EnviarFinanceiroDepDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={sendToFinancial.isPending || !fornecedorId || !hasAttachments || !isApproved}
+              disabled={sendToFinancial.isPending || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}
             >
               {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
