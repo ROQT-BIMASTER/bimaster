@@ -167,7 +167,7 @@ export function EnviarFinanceiroDepDialog({
       return;
     }
 
-    if (!fornecedorId || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
+    if ((!fornecedorId && !isCorrection) || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
