@@ -465,7 +465,7 @@ export default function TradeLancamentos() {
 
                       return (
                         <React.Fragment key={entry.id}>
-                        <TableRow className="hover:bg-muted/50">
+                        <TableRow className={`hover:bg-muted/50 ${isFinancialRejected ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}`}>
                           <TableCell className="w-10 px-2">
                             {hasAttachments ? (
                               <Button
