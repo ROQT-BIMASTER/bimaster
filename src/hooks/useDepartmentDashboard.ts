@@ -103,7 +103,8 @@ export function useDepartmentDashboard(departmentId: string, dateRange?: DateRan
           valor_realizado,
           status,
           expense_date,
-          created_at
+          created_at,
+          payment_queue_id
         `)
         .eq("department_id", departmentId)
         .gte("created_at", startDateStr)
