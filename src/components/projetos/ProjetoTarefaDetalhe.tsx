@@ -28,7 +28,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";

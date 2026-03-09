@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { getTarefaRisk } from "@/utils/tarefaRiskUtils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
-import { AlertTriangle, Clock, CheckCircle2, Target } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2, Target, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProjetoHealthPanelProps {
