@@ -78,18 +78,28 @@ export function PaymentReviewDialog({
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
     if (!item) return;
     
+    if (actionType === 'paid') {
+      setMarcarPagoOpen(true);
+      return;
+    }
+
     setAction(actionType);
     
     if (actionType === 'accept') {
       onAccept(item.id, notes);
     } else if (actionType === 'reject') {
       if (!notes.trim()) {
-        return; // Require notes for rejection
+        return;
       }
       onReject(item.id, notes);
-    } else if (actionType === 'paid') {
-      onMarkPaid(item.id, notes);
     }
+  };
+
+  const handleConfirmarPago = (paymentMethod: string, paymentDetails: Record<string, string>, observacoes: string) => {
+    if (!item) return;
+    setAction('paid');
+    onMarkPaid(item.id, paymentMethod, paymentDetails, observacoes || notes);
+    setMarcarPagoOpen(false);
   };
 
   const handleClose = () => {
