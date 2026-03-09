@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
 interface Notification {
   id: string;
@@ -11,12 +12,31 @@ interface Notification {
   created_at: string;
 }
 
+// Notification types that require specific module access
+const MODULE_RESTRICTED_TYPES: Record<string, string> = {
+  meeting_risk: "reunioes",
+  meeting_reminder: "reunioes",
+  meeting_completed: "reunioes",
+};
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { hasModulePermission, loading: permissionsLoading } = usePermissions();
+
+  // Filter notifications based on module permissions
+  const filterByPermission = (notifs: Notification[]): Notification[] => {
+    return notifs.filter(n => {
+      const requiredModule = MODULE_RESTRICTED_TYPES[n.type];
+      if (!requiredModule) return true; // No restriction
+      return hasModulePermission(requiredModule);
+    });
+  };
 
   useEffect(() => {
+    if (permissionsLoading) return;
+    
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const setupSubscription = async () => {
@@ -50,7 +70,7 @@ export const useNotifications = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, []);
+  }, [permissionsLoading]);
 
   const fetchNotifications = async () => {
     try {
@@ -66,8 +86,9 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.read).length || 0);
+      const filtered = filterByPermission(data || []);
+      setNotifications(filtered);
+      setUnreadCount(filtered.filter(n => !n.read).length || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
