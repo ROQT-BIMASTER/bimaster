@@ -326,7 +326,7 @@ export function EnviarFinanceiroDialog({
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
               <div className="flex gap-2">
-                {isCorrection ? (
+                {isCorrection && locks?.supplier_name ? (
                   <Input
                     value={formData.supplier_name}
                     disabled
