@@ -179,6 +179,8 @@ export function PaymentReviewDialog({
     delete (window as any).__editUserInfo;
     delete (window as any).__editJustificativa;
   };
+
+  const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
     if (!item) return;
     
     if (actionType === 'paid') {
