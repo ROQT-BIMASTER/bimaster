@@ -379,7 +379,28 @@ export function PaymentReviewDialog({
             />
           )}
 
-          {/* Financial Review Notes */}
+          {/* Payment Method Details - for paid items */}
+          {isPaid && (item as any).payment_method && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <Label className="font-medium">Dados do Pagamento</Label>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p><strong>Método:</strong> {(item as any).payment_method}</p>
+                  {(item as any).payment_details && Object.entries((item as any).payment_details as Record<string, string>).map(([key, value]) => 
+                    value ? (
+                      <p key={key}>
+                        <strong>{key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:</strong> {value}
+                      </p>
+                    ) : null
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {item.financial_notes && !isPending && (
             <Card className="border-primary/30">
               <CardContent className="p-4">
