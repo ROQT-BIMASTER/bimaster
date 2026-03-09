@@ -244,6 +244,7 @@ export function useEventsDashboard(dateRange?: DateRangeFilter) {
     status: d.status || 'pending',
     data: d.expense_date || d.created_at?.split('T')[0] || '',
     event_id: d.event_id,
+    payment_queue_id: d.payment_queue_id || null,
   })) || [];
 
   // Despesas por evento

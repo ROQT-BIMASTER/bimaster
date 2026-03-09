@@ -202,6 +202,7 @@ export function useDepartmentDashboard(departmentId: string, dateRange?: DateRan
     valorRealizado: parseFloat(String(d.valor_realizado)) || 0,
     status: d.status || 'pending',
     data: d.expense_date || d.created_at?.split('T')[0] || '',
+    payment_queue_id: d.payment_queue_id || null,
   })) || [];
 
   // Despesas por categoria
