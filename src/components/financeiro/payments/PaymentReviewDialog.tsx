@@ -29,6 +29,7 @@ import { PaymentChatPanel } from "./PaymentChatPanel";
 import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
+import { PaymentBankPrintSummary } from "./PaymentBankPrintSummary";
 
 interface PaymentReviewDialogProps {
   open: boolean;
