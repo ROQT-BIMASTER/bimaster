@@ -26,11 +26,11 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
     return { onTrack, atRisk, overdue, completed, noDeadline, total: tarefas.filter(t => !t.parent_tarefa_id).length };
   }, [tarefas]);
 
-  if (stats.total === 0) return null;
-
   const retrabalhoCount = useMemo(() => {
     return tarefas.filter(t => !t.parent_tarefa_id && (t as any).tipo_tarefa === "retrabalho").length;
   }, [tarefas]);
+
+  if (stats.total === 0) return null;
 
   const items = [
     { icon: CheckCircle2, label: "Concluídas", count: stats.completed, color: "text-emerald-400", bg: darkBg ? "bg-emerald-500/20" : "bg-emerald-500/10" },
