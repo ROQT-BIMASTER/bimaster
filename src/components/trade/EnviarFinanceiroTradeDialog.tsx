@@ -485,6 +485,7 @@ export function EnviarFinanceiroTradeDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, document_number: e.target.value })
                   }
+                  disabled={isCorrection && locks?.document_number}
                   placeholder="Ex: 12345"
                   required
                 />
