@@ -475,6 +475,7 @@ export function EnviarFinanceiroDialog({
                   value={formData.portador}
                   onValueChange={(value) => setFormData({ ...formData, portador: value })}
                   required
+                  disabled={isCorrection && locks?.portador}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
