@@ -35,6 +35,7 @@ import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck, SplitSquareVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
+import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
 import { cn } from "@/lib/utils";
