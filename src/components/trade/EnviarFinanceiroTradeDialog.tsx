@@ -38,6 +38,7 @@ import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
+import { useActiveCorrectionRule, getCorrectionLocks } from "@/hooks/useFinancialCorrectionRules";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
@@ -62,6 +63,7 @@ export function EnviarFinanceiroTradeDialog({
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
   const { data: activePolicy } = useActivePaymentPolicy();
+  const { data: correctionRule } = useActiveCorrectionRule();
   const { data: portadores } = usePortadores();
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -84,6 +86,7 @@ export function EnviarFinanceiroTradeDialog({
   const isInstallment = entry?.installment_number && entry?.installment_total;
   const hasBoleto = entry?.boleto_barcode;
   const isCorrection = !!entry?.payment_queue_id;
+  const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
   // Fetch suppliers when dialog opens
   useEffect(() => {
@@ -340,7 +343,7 @@ export function EnviarFinanceiroTradeDialog({
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Building2 className="h-4 w-4" />
               Dados do Fornecedor
-              {isCorrection && (
+              {isCorrection && locks?.supplier_name && (
                 <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
               )}
             </div>
@@ -348,7 +351,7 @@ export function EnviarFinanceiroTradeDialog({
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
               <div className="flex gap-2">
-                {isCorrection ? (
+                {isCorrection && locks?.supplier_name ? (
                   <Input
                     value={formData.supplier_name}
                     disabled
@@ -432,7 +435,7 @@ export function EnviarFinanceiroTradeDialog({
                 onChange={(e) =>
                   setFormData({ ...formData, supplier_document: e.target.value })
                 }
-                disabled={isCorrection}
+                disabled={isCorrection && locks?.supplier_document}
                 placeholder="Preenchido automaticamente"
                 className="bg-muted/50"
               />
@@ -459,6 +462,7 @@ export function EnviarFinanceiroTradeDialog({
                   onValueChange={(value) =>
                     setFormData({ ...formData, document_type: value })
                   }
+                  disabled={isCorrection && locks?.document_type}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -481,6 +485,7 @@ export function EnviarFinanceiroTradeDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, document_number: e.target.value })
                   }
+                  disabled={isCorrection && locks?.document_number}
                   placeholder="Ex: 12345"
                   required
                 />
@@ -497,6 +502,7 @@ export function EnviarFinanceiroTradeDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, due_date: e.target.value })
                   }
+                  disabled={isCorrection && locks?.due_date}
                   required
                 />
               </div>
@@ -508,6 +514,7 @@ export function EnviarFinanceiroTradeDialog({
                   onValueChange={(value) =>
                     setFormData({ ...formData, portador: value })
                   }
+                  disabled={isCorrection && locks?.portador}
                   required
                 >
                   <SelectTrigger>

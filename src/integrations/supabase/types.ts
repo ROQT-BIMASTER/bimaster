@@ -9392,6 +9392,57 @@ export type Database = {
           },
         ]
       }
+      financial_correction_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          lock_attachments: boolean
+          lock_document_number: boolean
+          lock_document_type: boolean
+          lock_due_date: boolean
+          lock_portador: boolean
+          lock_supplier_document: boolean
+          lock_supplier_name: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lock_attachments?: boolean
+          lock_document_number?: boolean
+          lock_document_type?: boolean
+          lock_due_date?: boolean
+          lock_portador?: boolean
+          lock_supplier_document?: boolean
+          lock_supplier_name?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lock_attachments?: boolean
+          lock_document_number?: boolean
+          lock_document_type?: boolean
+          lock_due_date?: boolean
+          lock_portador?: boolean
+          lock_supplier_document?: boolean
+          lock_supplier_name?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       financial_payment_messages: {
         Row: {
           anexos: Json | null

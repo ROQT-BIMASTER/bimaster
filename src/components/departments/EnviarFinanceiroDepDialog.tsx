@@ -38,6 +38,7 @@ import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
+import { useActiveCorrectionRule, getCorrectionLocks } from "@/hooks/useFinancialCorrectionRules";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -62,6 +63,7 @@ export function EnviarFinanceiroDepDialog({
   const { sendToFinancial } = useDepartmentExpenses(expense.department_id);
   const { data: portadores } = usePortadores();
   const { data: activePolicy } = useActivePaymentPolicy();
+  const { data: correctionRule } = useActiveCorrectionRule();
 
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
@@ -83,6 +85,7 @@ export function EnviarFinanceiroDepDialog({
   const isInstallment = !!(expense as any).installment_number && !!(expense as any).installment_total;
   const boletoBarcode = (expense as any).boleto_barcode;
   const isCorrection = !!(expense as any).payment_queue_id;
+  const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
   // Pre-fill supplier data when correcting a rejected payment
   useEffect(() => {
@@ -284,7 +287,7 @@ export function EnviarFinanceiroDepDialog({
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Building2 className="h-4 w-4" />
               Dados do Fornecedor
-              {isCorrection && (
+              {isCorrection && locks?.supplier_name && (
                 <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
               )}
             </div>
@@ -292,7 +295,7 @@ export function EnviarFinanceiroDepDialog({
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
               <div className="flex gap-2">
-                {isCorrection ? (
+                {isCorrection && locks?.supplier_name ? (
                   <Input
                     value={formData.supplier_name}
                     disabled
@@ -368,7 +371,7 @@ export function EnviarFinanceiroDepDialog({
                 id="supplier_document"
                 value={formData.supplier_document}
                 onChange={(e) => setFormData({ ...formData, supplier_document: e.target.value })}
-                disabled={isCorrection}
+                disabled={isCorrection && locks?.supplier_document}
                 placeholder="Preenchido automaticamente"
                 className="bg-muted/50"
               />
@@ -394,6 +397,7 @@ export function EnviarFinanceiroDepDialog({
                   value={formData.document_type}
                   onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                   required
+                  disabled={isCorrection && locks?.document_type}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -414,6 +418,7 @@ export function EnviarFinanceiroDepDialog({
                   id="document_number"
                   value={formData.document_number}
                   onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                  disabled={isCorrection && locks?.document_number}
                   placeholder="Ex: 12345"
                   required
                 />
@@ -428,6 +433,7 @@ export function EnviarFinanceiroDepDialog({
                   type="date"
                   value={formData.due_date}
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  disabled={isCorrection && locks?.due_date}
                   required
                 />
               </div>
@@ -438,6 +444,7 @@ export function EnviarFinanceiroDepDialog({
                   value={formData.portador}
                   onValueChange={(value) => setFormData({ ...formData, portador: value })}
                   required
+                  disabled={isCorrection && locks?.portador}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
