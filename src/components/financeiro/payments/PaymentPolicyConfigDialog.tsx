@@ -371,6 +371,11 @@ export function PaymentPolicyConfigDialog({
           <TabsContent value="fornecedor" className="mt-4">
             <SupplierPaymentExceptionsTab />
           </TabsContent>
+
+          {/* ────── ABA: REGRAS DE CORREÇÃO ────── */}
+          <TabsContent value="correcao" className="mt-4">
+            <CorrectionRulesTab />
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
