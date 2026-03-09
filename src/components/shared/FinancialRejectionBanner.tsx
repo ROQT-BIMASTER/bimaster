@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { REJECTION_CATEGORY_LABELS } from "@/components/financeiro/payments/RejeicaoFinanceiraDialog";
 import type { FinancialQueueInfo } from "@/hooks/useExpenseFinancialStatus";
+import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 
 interface FinancialRejectionBannerProps {
   info: FinancialQueueInfo;
@@ -75,6 +76,10 @@ export function FinancialRejectionBanner({ info, onResubmit, isResubmitting }: F
             </span>
           )}
         </div>
+
+        {/* History timeline */}
+        <PaymentQueueHistory paymentQueueId={info.id} />
+
         {onResubmit && (
           <Button
             size="sm"

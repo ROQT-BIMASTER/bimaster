@@ -195,44 +195,91 @@ export function EnviarFinanceiroTradeDialog({
       if (!user) throw new Error("Usuário não autenticado");
 
       const code = `TRD-${Date.now()}`;
+      const existingQueueId = entry.payment_queue_id;
 
-      const { data: queueEntry, error: queueError } = await supabase
-        .from("financial_payment_queue")
-        .insert({
-          code,
-          source_type: "trade_entry",
-          source_id: entry.id,
-          source_code: entry.account?.code || null,
-          supplier_name: formData.supplier_name,
-          supplier_document: formData.supplier_document || null,
-          document_type: formData.document_type,
-          document_number: formData.document_number,
-          amount: parseFloat(entry.amount),
-          due_date: formData.due_date,
-          portador: formData.portador,
-          description: entry.description || null,
-          notes: [
-            formData.payment_notes,
-            hasBoleto ? `Linha digitável: ${entry.boleto_barcode}` : null,
-            isInstallment ? `Parcela ${entry.installment_number}/${entry.installment_total}` : null,
-          ].filter(Boolean).join(" | ") || null,
-          department_name: "Trade Marketing",
-          requested_by: user.id,
-          attachments: entry.attachments || null,
-          empresa_id: entry.empresa_id || null,
-          empresa_nome: entry.empresa_nome || null,
-        })
-        .select("id")
-        .single();
+      // Get user name for history
+      let userName = "Usuário";
+      const { data: profile } = await supabase.from("profiles").select("nome").eq("id", user.id).single();
+      if (profile?.nome) userName = profile.nome;
 
-      if (queueError) throw queueError;
+      const queuePayload = {
+        source_type: "trade_entry" as const,
+        source_id: entry.id,
+        source_code: entry.account?.code || null,
+        supplier_name: formData.supplier_name,
+        supplier_document: formData.supplier_document || null,
+        document_type: formData.document_type,
+        document_number: formData.document_number,
+        amount: parseFloat(entry.amount),
+        due_date: formData.due_date,
+        portador: formData.portador,
+        description: entry.description || null,
+        notes: [
+          formData.payment_notes,
+          hasBoleto ? `Linha digitável: ${entry.boleto_barcode}` : null,
+          isInstallment ? `Parcela ${entry.installment_number}/${entry.installment_total}` : null,
+        ].filter(Boolean).join(" | ") || null,
+        department_name: "Trade Marketing",
+        requested_by: user.id,
+        attachments: entry.attachments || null,
+        empresa_id: entry.empresa_id || null,
+        empresa_nome: entry.empresa_nome || null,
+      };
+
+      let finalQueueId = existingQueueId;
+
+      if (existingQueueId) {
+        // CORRECTION: Update existing record
+        const { error: updateQueueError } = await supabase
+          .from("financial_payment_queue")
+          .update({
+            ...queuePayload,
+            financial_status: 'pending',
+            financial_notes: null,
+            reviewed_at: null,
+            reviewed_by: null,
+            rejection_category: null,
+            rejection_fields: null,
+          })
+          .eq("id", existingQueueId);
+
+        if (updateQueueError) throw updateQueueError;
+
+        await supabase.from("financial_payment_queue_history" as any).insert({
+          payment_queue_id: existingQueueId,
+          changed_by: user.id,
+          changed_by_name: userName,
+          action: 'corrected',
+          snapshot: queuePayload,
+        });
+
+        finalQueueId = existingQueueId;
+      } else {
+        // FIRST SUBMISSION
+        const { data: queueEntry, error: queueError } = await supabase
+          .from("financial_payment_queue")
+          .insert({ code, ...queuePayload })
+          .select("id")
+          .single();
+
+        if (queueError) throw queueError;
+        finalQueueId = queueEntry.id;
+
+        await supabase.from("financial_payment_queue_history" as any).insert({
+          payment_queue_id: queueEntry.id,
+          changed_by: user.id,
+          changed_by_name: userName,
+          action: 'submitted',
+          snapshot: queuePayload,
+        });
+      }
 
       const { error: updateError } = await supabase
         .from("trade_financial_entries")
         .update({
           send_to_financial: true,
           status: "pending_financial",
-          payment_queue_id: queueEntry.id,
+          payment_queue_id: finalQueueId,
           document_type: formData.document_type,
           document_number: formData.document_number,
           due_date: formData.due_date,
