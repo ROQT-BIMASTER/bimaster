@@ -655,6 +655,50 @@ export function ProjetoTarefaDetalhe({
                   )}
                 </div>
 
+                {/* Retrabalho toggle */}
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium flex items-center gap-1.5">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Retrabalho
+                    </h3>
+                    <Button
+                      variant={(tarefa as any).tipo_tarefa === "retrabalho" ? "destructive" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => {
+                        const isRetrabalho = (tarefa as any).tipo_tarefa === "retrabalho";
+                        onUpdate(tarefa.id, {
+                          tipo_tarefa: isRetrabalho ? "padrao" : "retrabalho",
+                          motivo_retrabalho: isRetrabalho ? null : (tarefa as any).motivo_retrabalho,
+                        } as any);
+                      }}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      {(tarefa as any).tipo_tarefa === "retrabalho" ? "Remover retrabalho" : "Marcar como retrabalho"}
+                    </Button>
+                  </div>
+                  {(tarefa as any).tipo_tarefa === "retrabalho" && (
+                    <Select
+                      value={(tarefa as any).motivo_retrabalho || ""}
+                      onValueChange={v => onUpdate(tarefa.id, { motivo_retrabalho: v } as any)}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Motivo do retrabalho..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="erro_fabril">Erro fabril</SelectItem>
+                        <SelectItem value="mudanca_regulatoria">Mudança regulatória</SelectItem>
+                        <SelectItem value="revisao_arte">Revisão de arte</SelectItem>
+                        <SelectItem value="ajuste_embalagem">Ajuste de embalagem</SelectItem>
+                        <SelectItem value="feedback_cliente">Feedback do cliente</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
                 {/* Approval Panel */}
                 {(tarefa as any).validacao_status === "pendente_validacao" && (
                   <>
@@ -668,6 +712,10 @@ export function ProjetoTarefaDetalhe({
                     />
                   </>
                 )}
+
+                {/* Workflow de Aprovação Multi-Etapa */}
+                <Separator />
+                <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
 
                 <Separator />
 
