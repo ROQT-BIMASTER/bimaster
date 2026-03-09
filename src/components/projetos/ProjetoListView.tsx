@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
@@ -7,6 +7,7 @@ import { CriarTarefasIADialog } from "./CriarTarefasIADialog";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
+import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 
 // Grid template matching ProjetoTarefaRow columns
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_100px_80px_64px_100px_80px_90px_90px]";
@@ -14,9 +15,11 @@ export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_100px_80px_64px_100px_80
 interface ProjetoListViewProps {
   projetoId: string;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
-export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
@@ -26,6 +29,24 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, loading: iaLoading } = useProjetoIA();
+
+  const isFiltering = hasActiveFilters(filters);
+
+  // Memoize filtered tarefas per section
+  const filteredTarefasPorSecao = useMemo(() => {
+    const result: Record<string, ProjetoTarefa[]> = {};
+    for (const secao of secoes) {
+      let secTarefas = tarefasPorSecao(secao.id);
+      if (isFiltering) {
+        secTarefas = applyFilters(secTarefas, filters);
+      }
+      if (sort.field !== "created_at" || sort.direction !== "asc") {
+        secTarefas = applySort(secTarefas, sort);
+      }
+      result[secao.id] = secTarefas;
+    }
+    return result;
+  }, [secoes, tarefas, filters, sort, isFiltering]);
 
   if (secoesLoading || tarefasLoading) {
     return (
@@ -68,7 +89,6 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
 
   const handleMoveTarefa = (tarefaId: string, secaoOrigemId: string, secaoDestinoId: string) => {
     moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
-    // Update selected tarefa if it's the one being moved
     if (selectedTarefa?.id === tarefaId) {
       setSelectedTarefa(prev => prev ? { ...prev, secao_id: secaoDestinoId } : null);
     }
@@ -76,19 +96,13 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
 
   const handleCreateIATasks = (tasks: any[]) => {
     for (const task of tasks) {
-      createTarefa.mutate({
-        titulo: task.titulo,
-        secao_id: task.secao_id,
-      });
+      createTarefa.mutate({ titulo: task.titulo, secao_id: task.secao_id });
     }
   };
 
   const handleCreateBriefingTasks = (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => {
     for (const task of tasks) {
-      createTarefa.mutate({
-        titulo: task.titulo,
-        secao_id: task.secao_id,
-      }, {
+      createTarefa.mutate({ titulo: task.titulo, secao_id: task.secao_id }, {
         onSuccess: (data: any) => {
           if (data?.id) {
             updateTarefa.mutate({ id: data.id, descricao: task.descricao, prioridade: task.prioridade } as any);
@@ -122,8 +136,8 @@ export function ProjetoListView({ projetoId, darkBg = false }: ProjetoListViewPr
             nome={secao.nome}
             secaoId={secao.id}
             projetoId={projetoId}
-            tarefas={tarefasPorSecao(secao.id)}
-            ghosts={ghostsPorSecao(secao.id)}
+            tarefas={filteredTarefasPorSecao[secao.id] || []}
+            ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
             allSecoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
             selectedTarefaId={selectedTarefa?.id}

@@ -11,7 +11,9 @@ import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaVi
 import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioView";
 import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel";
 import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
+import { ProjetoArquivosView } from "@/components/projetos/ProjetoArquivosView";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
+import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -32,7 +34,9 @@ export default function ProjetoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
-  const { tarefas } = useProjetoTarefas(id);
+  const { tarefas, secoes, teamMembers, createTarefa } = useProjetoTarefas(id);
+  const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
 
   const { data: projeto, isLoading } = useQuery({
     queryKey: ["projeto", id],
@@ -54,6 +58,10 @@ export default function ProjetoDetalhe() {
     queryClient.setQueryData(["projeto", id], (old: Projeto | undefined) =>
       old ? { ...old, bg_cor: cor } : old
     );
+  };
+
+  const handleAddTarefa = (titulo: string, secaoId: string) => {
+    createTarefa.mutate({ titulo, secao_id: secaoId });
   };
 
   const customBg = !!projeto?.bg_cor;
@@ -108,21 +116,31 @@ export default function ProjetoDetalhe() {
               <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 
-            <ProjetoHeader projeto={projeto} activeTab={activeTab} onTabChange={setActiveTab} tarefas={tarefas} customBg={customBg} darkBg={darkBg} />
+            <ProjetoHeader
+              projeto={projeto}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              tarefas={tarefas}
+              customBg={customBg}
+              darkBg={darkBg}
+              filters={filters}
+              onFiltersChange={setFilters}
+              sort={sort}
+              onSortChange={setSort}
+              teamMembers={teamMembers}
+              secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
+              onAddTarefa={handleAddTarefa}
+            />
 
             {/* Tab content */}
-            {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} />}
+            {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
             {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "painel" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
             {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "arquivos" && (
-              <div className={`flex items-center justify-center py-20 ${darkBg ? "text-white" : customBg ? "text-black" : "text-muted-foreground"}`}>
-                <p>Arquivos — Em breve</p>
-              </div>
-            )}
+            {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
           </div>
         </main>
       </div>
