@@ -343,10 +343,20 @@ export function PaymentReviewDialog({
                       className="mt-1"
                     />
                   ) : (
-                    <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
-                      {formatLocalDate(item.due_date, "dd/MM/yyyy")}
-                      {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
-                    </p>
+                    <div className="flex items-center gap-1">
+                      <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
+                        {formatLocalDate(item.due_date, "dd/MM/yyyy")}
+                        {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
+                      </p>
+                      {!isPaid && (
+                        <QuickDueDateChange
+                          paymentQueueId={item.id}
+                          currentDueDate={item.due_date}
+                          code={item.code}
+                          onChanged={() => onRefresh?.()}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
