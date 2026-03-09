@@ -1,56 +1,59 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Problema
 
-### O que muda
+Ao reenviar uma despesa rejeitada ("Corrigir e Reenviar"), os três módulos (Eventos, Departamentos e Trade) **sempre fazem `INSERT`** na tabela `financial_payment_queue`, criando um registro duplicado. O `payment_queue_id` no registro de origem é sobrescrito pelo novo ID, mas o registro antigo permanece na fila financeira e nos dashboards.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+## Solução
 
-### Implementação
+Alterar a lógica de reenvio para que, quando já exista um `payment_queue_id` (modo correção), o sistema faça **`UPDATE`** no registro existente da fila financeira ao invés de criar um novo. Adicionalmente, criar uma tabela de histórico de alterações para rastreabilidade.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+## Plano Técnico
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+### 1. Criar tabela de histórico de correções (migração)
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+```sql
+CREATE TABLE financial_payment_queue_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_queue_id uuid REFERENCES financial_payment_queue(id) ON DELETE CASCADE NOT NULL,
+  changed_by uuid REFERENCES auth.users(id),
+  changed_by_name text,
+  changed_at timestamptz DEFAULT now(),
+  action text NOT NULL, -- 'submitted', 'rejected', 'corrected', 'approved', 'paid'
+  snapshot jsonb NOT NULL, -- snapshot completo dos campos no momento da ação
+  changes jsonb -- diff dos campos alterados (old/new)
+);
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
+ALTER TABLE financial_payment_queue_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated users can view history" ON financial_payment_queue_history FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can insert history" ON financial_payment_queue_history FOR INSERT TO authenticated WITH CHECK (true);
 ```
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### 2. Alterar hooks de Eventos e Departamentos (`useEventExpenses.ts`, `useDepartmentExpenses.ts`)
+
+Na mutation `sendToFinancial`:
+- Verificar se o registro de origem já possui `payment_queue_id`
+- Se **sim** (correção): fazer `UPDATE` no registro existente da `financial_payment_queue` (atualizar campos editáveis, resetar `financial_status` para `pending`) e salvar snapshot no histórico
+- Se **não** (primeiro envio): manter o `INSERT` atual e salvar snapshot inicial no histórico
+
+### 3. Alterar dialog de Trade (`EnviarFinanceiroTradeDialog.tsx`)
+
+Mesma lógica: verificar se `entry.payment_queue_id` já existe:
+- Se sim: `UPDATE` no registro existente + histórico
+- Se não: `INSERT` novo + histórico
+
+### 4. Componente de timeline de histórico
+
+Criar `PaymentQueueHistory.tsx` — componente que exibe a timeline de alterações de um registro, mostrando quem alterou, quando e quais campos mudaram. Será exibido nos dialogs de revisão financeira e nos banners de rejeição.
+
+### Arquivos a criar/editar
+
+| Arquivo | Ação |
+|---------|------|
+| Migração SQL | Criar tabela `financial_payment_queue_history` |
+| `src/hooks/useEventExpenses.ts` | Lógica upsert na mutation `sendToFinancial` |
+| `src/hooks/useDepartmentExpenses.ts` | Lógica upsert na mutation `sendToFinancial` |
+| `src/components/trade/EnviarFinanceiroTradeDialog.tsx` | Lógica upsert no `handleSubmit` |
+| `src/components/shared/PaymentQueueHistory.tsx` | Novo componente de timeline |
+| `src/hooks/usePaymentQueueHistory.ts` | Hook para buscar/inserir histórico |
 
