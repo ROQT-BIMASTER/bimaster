@@ -3,12 +3,14 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
 import { ProjetoHealthPanel } from "./ProjetoHealthPanel";
 import { ProjetoMembrosDialog } from "./ProjetoMembrosDialog";
+import { FilterButton, SortButton, ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -17,9 +19,22 @@ interface ProjetoHeaderProps {
   tarefas?: ProjetoTarefa[];
   customBg?: boolean;
   darkBg?: boolean;
+  // Filter/sort
+  filters?: ProjetoFilters;
+  onFiltersChange?: (filters: ProjetoFilters) => void;
+  sort?: ProjetoSort;
+  onSortChange?: (sort: ProjetoSort) => void;
+  teamMembers?: { id: string; nome: string; avatar_url: string | null }[];
+  // Quick add
+  secoes?: { id: string; nome: string }[];
+  onAddTarefa?: (titulo: string, secaoId: string) => void;
 }
 
-export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false }: ProjetoHeaderProps) {
+export function ProjetoHeader({
+  projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false,
+  filters = EMPTY_FILTERS, onFiltersChange, sort = DEFAULT_SORT, onSortChange,
+  teamMembers = [], secoes = [], onAddTarefa,
+}: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
   const borderColor = darkBg ? "border-white/20" : customBg ? "border-black/20" : "border-border/50";
@@ -29,6 +44,7 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
   const [membrosOpen, setMembrosOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -104,13 +120,18 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
         </Tabs>
 
         <div className="flex items-center gap-2 pb-3">
-          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${btnHover}`}>
-            <Filter className="h-3.5 w-3.5" /> Filtrar
-          </Button>
-          <Button variant="ghost" size="sm" className={`h-8 text-xs gap-1.5 ${btnHover}`}>
-            <ArrowUpDown className="h-3.5 w-3.5" /> Ordenar
-          </Button>
-          <Button size="sm" className="h-8 text-xs gap-1.5">
+          <FilterButton
+            filters={filters}
+            onFiltersChange={onFiltersChange || (() => {})}
+            teamMembers={teamMembers}
+            btnClassName={btnHover}
+          />
+          <SortButton
+            sort={sort}
+            onSortChange={onSortChange || (() => {})}
+            btnClassName={btnHover}
+          />
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setQuickAddOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Adicionar tarefa
           </Button>
         </div>
@@ -129,6 +150,15 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
         onOpenChange={setMembrosOpen}
         projetoId={projeto.id}
       />
+
+      {secoes.length > 0 && onAddTarefa && (
+        <QuickAddTaskDialog
+          open={quickAddOpen}
+          onOpenChange={setQuickAddOpen}
+          secoes={secoes}
+          onAddTarefa={onAddTarefa}
+        />
+      )}
     </div>
   );
 }

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
+import { ProjetoAtividadesLog } from "./ProjetoAtividadesLog";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
@@ -717,6 +718,16 @@ export function ProjetoTarefaDetalhe({
                 {/* Workflow de Aprovação Multi-Etapa */}
                 <Separator />
                 <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
+
+                {/* Histórico de Alterações */}
+                <Separator />
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Histórico de Alterações
+                  </h3>
+                  <ProjetoAtividadesLog tarefaId={tarefa.id} />
+                </div>
 
                 <Separator />
 
