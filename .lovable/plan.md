@@ -1,22 +1,56 @@
 
 
-## Analysis: Standardization of Financial Submission Rules
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-After comparing the three modules side-by-side, the implementation is already **95% consistent**. Payment policy banners, correction locks, upsert logic, and history tracking all follow the same pattern across Events, Departments, and Trade.
+### O que muda
 
-### Issue Found
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-**Trade dialog missing `portador` validation**: The Trade dialog (`EnviarFinanceiroTradeDialog.tsx` line 180-188) does NOT validate that `portador` is filled before submission, while Events (line 219) and Departments (line 179) both require it.
+### Implementação
+
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
 
 ```text
-Trade (line 180):     (!fornecedorId && !isCorrection) || !formData.document_type || !formData.document_number || !formData.due_date
-Events (line 219):    (!fornecedorId && !isCorrection) || !formData.document_type || !formData.document_number || !formData.due_date || !formData.portador
-Departments (line 179): same as Events ✓
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-### Plan
-
-**Single fix**: Add `|| !formData.portador` to the Trade dialog validation check on line 184, matching Events and Departments.
-
-That is the only discrepancy. Everything else — payment policy banners, correction locks (supplier_name, supplier_document, document_type, document_number, due_date, portador), pre-fill on correction, upsert logic with history, attachment validation, approval validation — is already standardized across all three modules.
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
