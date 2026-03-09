@@ -464,6 +464,7 @@ export function EnviarFinanceiroDialog({
                   type="date"
                   value={formData.due_date}
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  disabled={isCorrection && locks?.due_date}
                   required
                 />
               </div>
