@@ -63,6 +63,7 @@ export function EnviarFinanceiroTradeDialog({
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
   const { data: activePolicy } = useActivePaymentPolicy();
+  const { data: correctionRule } = useActiveCorrectionRule();
   const { data: portadores } = usePortadores();
   const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
