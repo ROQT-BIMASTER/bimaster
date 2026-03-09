@@ -105,7 +105,18 @@ export function DepartmentExpensesTable({
     expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, paymentQueueId?: string | null) => {
+    // Check if financial team rejected this expense
+    const financialInfo = paymentQueueId ? financialStatusMap?.get(paymentQueueId) : null;
+    if (financialInfo?.financial_status === "rejected") {
+      return (
+        <Badge variant="destructive" className="gap-1">
+          <XCircle className="h-3 w-3" />
+          Rejeitado Financeiro
+        </Badge>
+      );
+    }
+
     const config: Record<string, { variant: any; label: string; icon: any }> = {
       pending: { variant: "secondary", label: "Pendente", icon: Clock },
       approved: { variant: "default", label: "Aprovado", icon: CheckCircle },
