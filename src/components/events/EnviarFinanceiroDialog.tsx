@@ -314,68 +314,81 @@ export function EnviarFinanceiroDialog({
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Building2 className="h-4 w-4" />
               Dados do Fornecedor
+              {isCorrection && (
+                <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
+              )}
             </div>
             
             <div className="space-y-2">
               <Label>Fornecedor *</Label>
               <div className="flex gap-2">
-                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openCombobox}
-                      className="flex-1 justify-between font-normal"
-                    >
-                      {selectedFornecedor ? (
-                        <span className="truncate">
-                          {selectedFornecedor.razao_social}
-                          {selectedFornecedor.cnpj && (
-                            <span className="text-muted-foreground ml-2">
-                              - {selectedFornecedor.cnpj}
+                {isCorrection ? (
+                  <Input
+                    value={formData.supplier_name}
+                    disabled
+                    className="flex-1 bg-muted/50 cursor-not-allowed"
+                  />
+                ) : (
+                  <>
+                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCombobox}
+                          className="flex-1 justify-between font-normal"
+                        >
+                          {selectedFornecedor ? (
+                            <span className="truncate">
+                              {selectedFornecedor.razao_social}
+                              {selectedFornecedor.cnpj && (
+                                <span className="text-muted-foreground ml-2">
+                                  - {selectedFornecedor.cnpj}
+                                </span>
+                              )}
                             </span>
+                          ) : (
+                            <span className="text-muted-foreground">Selecione um fornecedor...</span>
                           )}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Selecione um fornecedor...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Buscar fornecedor..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
-                        <CommandGroup>
-                          {fornecedores.map((fornecedor) => (
-                            <CommandItem
-                              key={fornecedor.id}
-                              value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
-                              onSelect={() => handleSelectFornecedor(fornecedor.id)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  fornecedorId === fornecedor.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span>{fornecedor.razao_social}</span>
-                                {fornecedor.cnpj && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {fornecedor.cnpj}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar fornecedor..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {fornecedores.map((fornecedor) => (
+                                <CommandItem
+                                  key={fornecedor.id}
+                                  value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
+                                  onSelect={() => handleSelectFornecedor(fornecedor.id)}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      fornecedorId === fornecedor.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{fornecedor.razao_social}</span>
+                                    {fornecedor.cnpj && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {fornecedor.cnpj}
+                                      </span>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
+                  </>
+                )}
               </div>
             </div>
 
@@ -385,6 +398,7 @@ export function EnviarFinanceiroDialog({
                 id="supplier_document"
                 value={formData.supplier_document}
                 onChange={(e) => setFormData({ ...formData, supplier_document: e.target.value })}
+                disabled={isCorrection}
                 placeholder="Preenchido automaticamente"
                 className="bg-muted/50"
               />
