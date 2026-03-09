@@ -34,14 +34,14 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
 
   // Memoize filtered tarefas per section
   const filteredTarefasPorSecao = useMemo(() => {
-    const result: Record<string, ProjetoTarefa[]> = {};
+    const result: Record<string, ReturnType<typeof tarefasPorSecao>> = {};
     for (const secao of secoes) {
       let secTarefas = tarefasPorSecao(secao.id);
       if (isFiltering) {
-        secTarefas = applyFilters(secTarefas, filters);
+        secTarefas = applyFilters(secTarefas, filters) as typeof secTarefas;
       }
       if (sort.field !== "created_at" || sort.direction !== "asc") {
-        secTarefas = applySort(secTarefas, sort);
+        secTarefas = applySort(secTarefas, sort) as typeof secTarefas;
       }
       result[secao.id] = secTarefas;
     }
