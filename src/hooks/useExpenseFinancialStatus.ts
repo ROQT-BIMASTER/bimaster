@@ -8,6 +8,8 @@ export interface FinancialQueueInfo {
   reviewed_at: string | null;
   reviewed_by: string | null;
   reviewer_name?: string;
+  rejection_category?: string | null;
+  rejection_fields?: string[] | null;
 }
 
 /**
