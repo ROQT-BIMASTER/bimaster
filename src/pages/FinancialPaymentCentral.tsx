@@ -151,8 +151,8 @@ export default function FinancialPaymentCentral() {
     });
   };
 
-  const handleMarkPaid = (id: string, notes?: string) => {
-    updateStatus({ id, financial_status: 'paid', financial_notes: notes }, {
+  const handleMarkPaid = (id: string, paymentMethod: string, paymentDetails: Record<string, string>, notes?: string) => {
+    updateStatus({ id, financial_status: 'paid', financial_notes: notes, payment_method: paymentMethod, payment_details: paymentDetails }, {
       onSuccess: () => {
         setReviewDialogOpen(false);
         setSelectedItem(null);
