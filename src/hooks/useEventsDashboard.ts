@@ -145,6 +145,7 @@ export function useEventsDashboard(dateRange?: DateRangeFilter) {
           status,
           expense_date,
           created_at,
+          payment_queue_id,
           event:corporate_events(name, budget_id)
         `)
         .gte("created_at", startDateStr)
