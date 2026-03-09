@@ -48,6 +48,7 @@ export function useExpenseFinancialStatus(paymentQueueIds: (string | null | unde
       for (const item of data || []) {
         result.set(item.id, {
           ...item,
+          rejection_fields: Array.isArray(item.rejection_fields) ? item.rejection_fields as string[] : [],
           reviewer_name: item.reviewed_by ? nameMap.get(item.reviewed_by) : undefined,
         });
       }
