@@ -464,7 +464,7 @@ export function PaymentReviewDialog({
               <Button
                 variant="destructive"
                 onClick={() => handleAction('reject')}
-                disabled={isProcessing || !notes.trim()}
+                disabled={isProcessing}
               >
                 {isProcessing && action === 'reject' ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
