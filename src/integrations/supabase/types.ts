@@ -9501,6 +9501,8 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          payment_details: Json | null
+          payment_method: string | null
           portador: string | null
           receipt_sent_at: string | null
           receipt_url: string | null
@@ -9534,6 +9536,8 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_details?: Json | null
+          payment_method?: string | null
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
@@ -9567,6 +9571,8 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          payment_details?: Json | null
+          payment_method?: string | null
           portador?: string | null
           receipt_sent_at?: string | null
           receipt_url?: string | null
