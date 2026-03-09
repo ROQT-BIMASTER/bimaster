@@ -39,6 +39,7 @@ import {
   Trash2,
   Power,
   Building2,
+  ShieldCheck,
 } from "lucide-react";
 
 interface PaymentPolicyConfigDialogProps {
