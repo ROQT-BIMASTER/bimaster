@@ -3,11 +3,12 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
 import { ProjetoHealthPanel } from "./ProjetoHealthPanel";
+import { ProjetoMembrosDialog } from "./ProjetoMembrosDialog";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -27,6 +28,7 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
   const navigate = useNavigate();
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
+  const [membrosOpen, setMembrosOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -39,15 +41,26 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
           <h1 className={`text-xl font-bold ${textColor || "text-foreground"}`}>{projeto.nome}</h1>
           {projeto.descricao && <p className={`text-sm ${textMuted}`}>{projeto.descricao}</p>}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
-          onClick={() => setResumoOpen(true)}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Resumo IA
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setMembrosOpen(true)}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Membros
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setResumoOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Resumo IA
+          </Button>
+        </div>
       </div>
 
       {/* Health Panel */}
@@ -106,6 +119,12 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
         projetoId={projeto.id}
         getProjectSummary={getProjectSummary}
         loading={loading === "project_summary"}
+      />
+
+      <ProjetoMembrosDialog
+        open={membrosOpen}
+        onOpenChange={setMembrosOpen}
+        projetoId={projeto.id}
       />
     </div>
   );
