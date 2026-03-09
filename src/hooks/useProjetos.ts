@@ -47,6 +47,11 @@ export function useProjetos() {
         .single();
       if (error) throw error;
 
+      // Auto-insert creator as coordinator
+      await supabase
+        .from("projeto_membros")
+        .insert({ projeto_id: data.id, user_id: user.id, papel: "coordenador" });
+
       const sections = TEMPLATES[template || "generico"].secoes;
       
       const { error: secError } = await supabase
