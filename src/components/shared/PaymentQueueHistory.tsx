@@ -19,6 +19,7 @@ const ACTION_ICON: Record<string, React.ReactNode> = {
   rejected: <XCircle className="h-3.5 w-3.5 text-destructive" />,
   approved: <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />,
   paid: <DollarSign className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />,
+  edited_by_financial: <Send className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />,
 };
 
 const ACTION_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
