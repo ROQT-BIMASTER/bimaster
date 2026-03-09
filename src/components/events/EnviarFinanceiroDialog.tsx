@@ -402,7 +402,7 @@ export function EnviarFinanceiroDialog({
                 id="supplier_document"
                 value={formData.supplier_document}
                 onChange={(e) => setFormData({ ...formData, supplier_document: e.target.value })}
-                disabled={isCorrection}
+                disabled={isCorrection && locks?.supplier_document}
                 placeholder="Preenchido automaticamente"
                 className="bg-muted/50"
               />
