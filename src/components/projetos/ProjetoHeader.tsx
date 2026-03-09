@@ -3,7 +3,7 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, Filter, ArrowUpDown, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
