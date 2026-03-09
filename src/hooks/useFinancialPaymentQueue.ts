@@ -79,6 +79,8 @@ interface UpdatePaymentStatusInput {
   financial_notes?: string;
   payment_method?: string;
   payment_details?: Record<string, string>;
+  rejection_category?: string;
+  rejection_fields?: string[];
 }
 
 interface PaymentQueueFilters {
