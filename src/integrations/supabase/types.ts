@@ -14063,6 +14063,71 @@ export type Database = {
           },
         ]
       }
+      projeto_membro_secoes: {
+        Row: {
+          id: string
+          membro_id: string
+          secao_id: string
+        }
+        Insert: {
+          id?: string
+          membro_id: string
+          secao_id: string
+        }
+        Update: {
+          id?: string
+          membro_id?: string
+          secao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_membro_secoes_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_membros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_membro_secoes_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_membros: {
+        Row: {
+          created_at: string
+          id: string
+          papel: string
+          projeto_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          papel?: string
+          projeto_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          papel?: string
+          projeto_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_membros_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_planos_acao: {
         Row: {
           created_at: string
@@ -22240,6 +22305,14 @@ export type Database = {
           _tabela_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      user_can_access_projeto: {
+        Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_access_secao: {
+        Args: { _secao_id: string; _user_id: string }
         Returns: boolean
       }
       user_can_approve_price_table: {
