@@ -75,6 +75,8 @@ interface UpdatePaymentStatusInput {
   id: string;
   financial_status: PaymentQueueStatus;
   financial_notes?: string;
+  payment_method?: string;
+  payment_details?: Record<string, string>;
 }
 
 interface PaymentQueueFilters {
