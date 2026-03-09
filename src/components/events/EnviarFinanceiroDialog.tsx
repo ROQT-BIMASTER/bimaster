@@ -404,6 +404,11 @@ export function EnviarFinanceiroDialog({
                 className="bg-muted/50"
               />
             </div>
+
+            {/* Supplier payment info */}
+            {(fornecedorId || isCorrection) && formData.supplier_name && (
+              <FornecedorPaymentInfo fornecedorId={fornecedorId || ""} />
+            )}
           </div>
 
           {/* Dados do Documento */}
