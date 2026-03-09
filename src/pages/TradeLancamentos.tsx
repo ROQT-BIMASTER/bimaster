@@ -94,8 +94,26 @@ export default function TradeLancamentos() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [chatEntry, setChatEntry] = useState<any>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [rejectionExpandedRows, setRejectionExpandedRows] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  // Fetch financial rejection status for entries with payment_queue_id
+  const paymentQueueIds = entries.map(e => e.payment_queue_id);
+  const { data: financialStatusMap } = useExpenseFinancialStatus(paymentQueueIds);
+
+  const getFinancialInfo = (entry: any) => {
+    if (!entry.payment_queue_id || !financialStatusMap) return null;
+    return financialStatusMap.get(entry.payment_queue_id) || null;
+  };
+
+  const toggleRejectionRow = (id: string) => {
+    setRejectionExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
     getCurrentUser();
   }, []);
 
