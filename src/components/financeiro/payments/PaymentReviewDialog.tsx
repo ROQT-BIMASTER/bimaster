@@ -227,7 +227,8 @@ export function PaymentReviewDialog({
 
   if (!item) return null;
 
-  const isOverdue = new Date(item.due_date) < new Date();
+  const parsedDueDate = parseLocalDate(item.due_date);
+  const isOverdue = parsedDueDate ? parsedDueDate < new Date() : false;
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
   const isPaid = item.financial_status === 'paid';
