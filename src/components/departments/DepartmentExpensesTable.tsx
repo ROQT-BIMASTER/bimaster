@@ -36,6 +36,8 @@ import { EnviarFinanceiroDepDialog } from "@/components/departments/EnviarFinanc
 import { AprovarDespesaDepartamentoDialog } from "@/components/departments/AprovarDespesaDepartamentoDialog";
 import { DepartmentExpenseAttachments } from "@/components/departments/DepartmentExpenseAttachments";
 import { PaymentChatPanel } from "@/components/financeiro/payments/PaymentChatPanel";
+import { FinancialRejectionBanner } from "@/components/shared/FinancialRejectionBanner";
+import { useExpenseFinancialStatus } from "@/hooks/useExpenseFinancialStatus";
 import { toast } from "sonner";
 import { 
   Search, 
@@ -52,6 +54,8 @@ import {
   Copy,
   AlertTriangle,
   MessageCircle,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 interface DepartmentExpensesTableProps {
