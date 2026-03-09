@@ -536,7 +536,7 @@ export default function TradeLancamentos() {
                           </div>
                           {entry.due_date && (
                             <span className="text-[10px] text-muted-foreground block mt-0.5">
-                              Venc: {format(new Date(entry.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                              Venc: {formatLocalDate(entry.due_date, "dd/MM/yyyy")}
                             </span>
                           )}
                         </TableCell>

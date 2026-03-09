@@ -167,7 +167,7 @@ export function SupplierPaymentHistory({
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <Label className="text-muted-foreground text-xs">Vencimento</Label>
-                  <p className="font-medium">{format(new Date(selectedItem.due_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p className="font-medium">{formatLocalDate(selectedItem.due_date, "dd/MM/yyyy")}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Tipo Documento</Label>

@@ -341,7 +341,7 @@ export function PaymentReviewDialog({
                     />
                   ) : (
                     <p className={cn("font-medium", isOverdue && isPending && "text-destructive")}>
-                      {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {formatLocalDate(item.due_date, "dd/MM/yyyy")}
                       {isOverdue && isPending && <span className="text-xs block">Vencido</span>}
                     </p>
                   )}

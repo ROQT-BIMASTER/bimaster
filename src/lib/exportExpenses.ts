@@ -160,7 +160,7 @@ export async function exportPaymentQueueToExcel(
       doc_type: item.document_type || "-",
       doc_number: item.document_number || "-",
       amount: item.amount,
-      due_date: format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR }),
+      due_date: formatLocalDate(item.due_date, "dd/MM/yyyy"),
       status: STATUS_LABELS[item.financial_status] || item.financial_status,
       requested_at: format(new Date(item.requested_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
     });

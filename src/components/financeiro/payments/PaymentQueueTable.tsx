@@ -232,7 +232,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                     </TableCell>
                     <TableCell>
                       <span className={cn(isOverdue && "text-destructive font-medium")}>
-                        {format(new Date(item.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {formatLocalDate(item.due_date, "dd/MM/yyyy")}
                       </span>
                       {isOverdue && (
                         <span className="text-xs text-destructive block">Vencido</span>
