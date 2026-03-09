@@ -397,6 +397,7 @@ export function EnviarFinanceiroDepDialog({
                   value={formData.document_type}
                   onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                   required
+                  disabled={isCorrection && locks?.document_type}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
