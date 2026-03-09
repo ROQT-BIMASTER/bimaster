@@ -546,7 +546,7 @@ export function EnviarFinanceiroTradeDialog({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || !fornecedorId || !hasAttachments || !isApproved}>
+            <Button type="submit" disabled={loading || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
               Enviar ao Financeiro
