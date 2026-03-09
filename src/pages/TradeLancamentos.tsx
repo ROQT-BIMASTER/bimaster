@@ -76,7 +76,9 @@ import { PaymentPolicyBanner } from "@/components/financeiro/payments/PaymentPol
 import { ExpenseAIChatFloat } from "@/components/ai/ExpenseAIChatFloat";
 import { PaymentChatPanel } from "@/components/financeiro/payments/PaymentChatPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, ChevronUp } from "lucide-react";
+import { useExpenseFinancialStatus } from "@/hooks/useExpenseFinancialStatus";
+import { FinancialRejectionBanner } from "@/components/shared/FinancialRejectionBanner";
 
 export default function TradeLancamentos() {
   const navigate = useNavigate();
