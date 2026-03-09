@@ -197,6 +197,7 @@ export function EnviarFinanceiroDepDialog({
       due_date: formData.due_date,
       portador: formData.portador,
       payment_notes: notes,
+      payment_queue_id: (expense as any).payment_queue_id || null,
     });
 
     onOpenChange(false);
