@@ -252,7 +252,7 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                           >
                             <MessageCircle className="h-4 w-4" />
                             {counts && counts.unread > 0 && (
-                              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center" style={{ animation: "blink-unread 1.2s ease-in-out infinite" }}>
                                 {counts.unread}
                               </span>
                             )}

@@ -135,7 +135,7 @@ export function PaymentChatConsolidado() {
             <Inbox className="h-4 w-4 text-primary" />
             <span className="font-semibold text-sm">Conversas</span>
             {totalUnread > 0 && (
-              <Badge variant="destructive" className="text-[10px] h-5 min-w-[20px] justify-center">{totalUnread}</Badge>
+              <Badge variant="destructive" className="text-[10px] h-5 min-w-[20px] justify-center" style={{ animation: "blink-unread 1.2s ease-in-out infinite" }}>{totalUnread}</Badge>
             )}
           </div>
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setDialogOpen(true)}>
