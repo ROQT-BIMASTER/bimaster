@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X } from "lucide-react";
+import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
@@ -29,6 +29,7 @@ import { PaymentChatPanel } from "./PaymentChatPanel";
 import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
+import { PaymentBankPrintSummary } from "./PaymentBankPrintSummary";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -645,6 +646,9 @@ export function PaymentReviewDialog({
         </Tabs>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 mr-auto">
+            <PaymentBankPrintSummary item={item} />
+          </div>
           <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
             Fechar
           </Button>
