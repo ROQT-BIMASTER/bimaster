@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
+import { formatLocalDate, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { resolveStorageUrl } from "@/lib/utils/storage-url";
 import { toast } from "sonner";
@@ -231,7 +231,8 @@ export function PaymentReviewDialog({
   if (!item) return null;
 
   const parsedDueDate = parseLocalDate(item.due_date);
-  const isOverdue = parsedDueDate ? parsedDueDate < new Date() : false;
+  const today = getToday();
+  const isOverdue = parsedDueDate ? parsedDueDate < today : false;
   const isPending = item.financial_status === 'pending';
   const isAccepted = item.financial_status === 'accepted';
   const isPaid = item.financial_status === 'paid';

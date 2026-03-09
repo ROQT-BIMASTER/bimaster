@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Search, Eye, Target, Calendar, Loader2, Building, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatLocalDate, parseLocalDate } from "@/utils/dateUtils";
+import { formatLocalDate, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, PaymentQueueStatus, SourceType } from "@/hooks/useFinancialPaymentQueue";
 import { usePaymentMessageCounts } from "@/hooks/usePaymentMessages";
@@ -188,7 +188,8 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                 const sourceConfig = sourceTypeConfig[item.source_type];
                 const status = statusConfig[item.financial_status];
                 const parsedDueDate = parseLocalDate(item.due_date);
-                const isOverdue = (parsedDueDate ? parsedDueDate < new Date() : false) && item.financial_status === 'pending';
+                const today = getToday();
+                const isOverdue = (parsedDueDate ? parsedDueDate < today : false) && item.financial_status === 'pending';
 
                 return (
                   <TableRow key={item.id} className={cn(isOverdue && "bg-destructive/10")}>
