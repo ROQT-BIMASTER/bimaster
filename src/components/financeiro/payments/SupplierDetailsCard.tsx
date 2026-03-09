@@ -457,14 +457,10 @@ export function SupplierDetailsCard({
                   variant="outline"
                   size="sm"
                   className="shrink-0 text-xs gap-1"
-                  onClick={() => {
-                    const btn = document.querySelector('[data-action="atualizar-cadastro-fornecedor"]') as HTMLButtonElement;
-                    if (btn) btn.click();
-                    else toast.info("Use o botão 'Atualizar Cadastro' acima para editar os dados bancários.");
-                  }}
+                  onClick={fetchEnrichedData}
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  Cadastrar
+                  <RefreshCw className="h-3 w-3" />
+                  Consultar e Atualizar
                 </Button>
               </AlertDescription>
             </Alert>
