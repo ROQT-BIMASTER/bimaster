@@ -29,6 +29,7 @@ interface PaymentReviewDialogProps {
   onAccept: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid: (id: string, notes?: string) => void;
+  onReopen?: (id: string) => void;
   isProcessing: boolean;
   onRefresh?: () => void;
 }
