@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProjetoMembros, ProjetoMembro } from "@/hooks/useProjetoMembros";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Search, UserPlus, Trash2, ChevronDown, ChevronRight, Shield, User } from "lucide-react";
+import { Search, UserPlus, Trash2, Shield, User } from "lucide-react";
 
 interface ProjetoMembrosDialogProps {
   open: boolean;
