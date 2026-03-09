@@ -122,7 +122,7 @@ export function SupplierPaymentHistory({
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(item.due_date), "dd/MM/yy", { locale: ptBR })}
+                      {formatLocalDate(item.due_date, "dd/MM/yy")}
                     </span>
                     <span className="font-medium text-xs">
                       {formatCurrency(Number(item.amount))}
