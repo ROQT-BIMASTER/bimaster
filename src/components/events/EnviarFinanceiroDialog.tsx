@@ -76,6 +76,11 @@ export function EnviarFinanceiroDialog({
     payment_queue_id: string | null;
     supplier_name: string | null;
     supplier_document: string | null;
+    document_type: string | null;
+    document_number: string | null;
+    due_date: string | null;
+    portador: string | null;
+    payment_notes: string | null;
   } | null>(null);
 
   const [formData, setFormData] = useState({
