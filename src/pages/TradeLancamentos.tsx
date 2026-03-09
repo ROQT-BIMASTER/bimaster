@@ -67,6 +67,7 @@ import {
 import { TRADE_EXPENSE_CATEGORIES } from "@/components/trade/tradeExpenseCategories";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/utils/dateUtils";
 import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 import { AdicionarEvidenciaDialog } from "@/components/trade/AdicionarEvidenciaDialog";
 import { NovoLancamentoDialog } from "@/components/trade/NovoLancamentoDialog";
@@ -536,7 +537,7 @@ export default function TradeLancamentos() {
                           </div>
                           {entry.due_date && (
                             <span className="text-[10px] text-muted-foreground block mt-0.5">
-                              Venc: {format(new Date(entry.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                              Venc: {formatLocalDate(entry.due_date, "dd/MM/yyyy")}
                             </span>
                           )}
                         </TableCell>
