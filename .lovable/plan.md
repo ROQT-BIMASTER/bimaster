@@ -1,56 +1,31 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Análise: A funcionalidade já existe
 
-### O que muda
+Olhando o código atual, a funcionalidade de **definir quais membros visualizam cada seção** já está implementada:
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+- **Tabelas no banco**: `projeto_membros` e `projeto_membro_secoes` já existem com RLS configurado
+- **Hook**: `useProjetoMembros` já tem `updateSecoes` para gerenciar visibilidade
+- **Dialog**: `ProjetoMembrosDialog` já exibe checkboxes de seções ao expandir um membro
 
-### Implementação
+## Como funciona hoje
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+1. Clique no botão **"Membros"** no header do projeto
+2. Na lista de membros, **clique na linha de um membro** (não coordenador) para expandi-la
+3. As **checkboxes de seções** aparecem abaixo, permitindo marcar/desmarcar quais seções o membro pode ver
+4. Botões "Todas" e "Nenhuma" para seleção rápida
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+## Possível problema
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+A interação de **expandir clicando na linha** pode não estar óbvia visualmente. O chevron (seta ›) é pequeno e discreto.
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+## Proposta de melhoria de UX
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+Se o problema é que a funcionalidade não está visível o suficiente, posso:
 
-### Visual esperado
+1. **Mostrar as seções sempre visíveis** (sem precisar expandir) para cada membro
+2. **Adicionar um botão explícito** "Configurar seções" em vez de depender do clique na linha
+3. **Reorganizar o layout** para que as checkboxes de seção fiquem mais proeminentes
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+Se a funcionalidade está de fato funcionando e o problema é apenas UX, posso ajustar o dialog para mostrar as seções de forma mais clara. Se há um erro impedindo o funcionamento (ex: as tabelas não foram criadas), preciso verificar os logs.
 
