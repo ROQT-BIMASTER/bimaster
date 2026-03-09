@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { isPast } from "date-fns";
 import { AlertTriangle, CheckCircle2, Clock, Target, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
   const textMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const cardBg = darkBg ? "bg-white/5 border-white/10" : "";
 
-  const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+  
 
   return (
     <div className="space-y-6">
