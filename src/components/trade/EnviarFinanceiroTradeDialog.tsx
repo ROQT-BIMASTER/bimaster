@@ -98,12 +98,17 @@ export function EnviarFinanceiroTradeDialog({
         .order("razao_social")
         .then(({ data }) => setFornecedores(data || []));
 
-      // Pre-fill supplier if entry already has one
-      if (entry?.supplier_name) {
+      // Pre-fill ALL fields if entry already has data (correction or re-send)
+      if (entry) {
         setFormData((prev) => ({
           ...prev,
-          supplier_name: entry.supplier_name || "",
-          supplier_document: entry.supplier_document || "",
+          supplier_name: entry.supplier_name || prev.supplier_name,
+          supplier_document: entry.supplier_document || prev.supplier_document,
+          document_type: entry.document_type || prev.document_type,
+          document_number: entry.document_number || prev.document_number,
+          due_date: entry.due_date || prev.due_date,
+          portador: entry.portador || prev.portador,
+          payment_notes: entry.payment_notes || prev.payment_notes,
         }));
       }
     }
