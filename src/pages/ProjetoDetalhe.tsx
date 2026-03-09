@@ -10,6 +10,7 @@ import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
 import { ProjetoCronogramaView } from "@/components/projetos/ProjetoCronogramaView";
 import { ProjetoCalendarioView } from "@/components/projetos/ProjetoCalendarioView";
 import { ProjetoBriefingPanel } from "@/components/projetos/ProjetoBriefingPanel";
+import { ProjetoEquipeDashboard } from "@/components/projetos/ProjetoEquipeDashboard";
 import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
