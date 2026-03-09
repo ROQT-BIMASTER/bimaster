@@ -120,6 +120,12 @@ export function ProjetoHeader({ projeto, activeTab, onTabChange, tarefas = [], c
         getProjectSummary={getProjectSummary}
         loading={loading === "project_summary"}
       />
+
+      <ProjetoMembrosDialog
+        open={membrosOpen}
+        onOpenChange={setMembrosOpen}
+        projetoId={projeto.id}
+      />
     </div>
   );
 }
