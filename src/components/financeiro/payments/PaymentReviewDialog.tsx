@@ -732,6 +732,14 @@ export function PaymentReviewDialog({
             onConfirmar={handleConfirmarRejeicao}
             isProcessing={isProcessing}
           />
+          <PasswordConfirmDialog
+            open={passwordDialogOpen}
+            onOpenChange={setPasswordDialogOpen}
+            onConfirm={handlePasswordConfirmed}
+            title="Editar Dados do Documento"
+            description="Para editar os dados do documento, confirme sua senha e forneça uma justificativa para auditoria."
+            actionLabel="Desbloquear Edição"
+          />
         </>
       )}
     </Dialog>
