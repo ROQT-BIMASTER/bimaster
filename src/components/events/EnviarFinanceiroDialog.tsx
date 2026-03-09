@@ -62,6 +62,7 @@ export function EnviarFinanceiroDialog({
   const { sendToFinancial } = useEventExpenses();
   const { data: portadores } = usePortadores();
   const { data: activePolicy } = useActivePaymentPolicy();
+  const { data: correctionRule } = useActiveCorrectionRule();
 
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
