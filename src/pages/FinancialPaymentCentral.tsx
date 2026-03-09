@@ -147,6 +147,16 @@ export default function FinancialPaymentCentral() {
     });
   };
 
+  const handleReopen = (id: string) => {
+    updateStatus({ id, financial_status: 'pending', financial_notes: 'Reaberto para reanálise' }, {
+      onSuccess: () => {
+        setReviewDialogOpen(false);
+        setSelectedItem(null);
+        toast.success("Solicitação reaberta para reanálise");
+      },
+    });
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
