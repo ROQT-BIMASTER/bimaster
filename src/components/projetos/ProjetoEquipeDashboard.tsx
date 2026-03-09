@@ -1,13 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { isPast } from "date-fns";
-import { AlertTriangle, CheckCircle2, Clock, Target, RotateCcw } from "lucide-react";
+import { isPast, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { AlertTriangle, CheckCircle2, Clock, Target, RotateCcw, Download, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Workbook } from "exceljs";
+import { saveAs } from "file-saver";
 
 interface ProjetoEquipeDashboardProps {
   projetoId: string;
@@ -28,7 +32,7 @@ interface MemberStats {
 }
 
 export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEquipeDashboardProps) {
-  const { tarefas, teamMembers } = useProjetoTarefas(projetoId);
+  const { tarefas, teamMembers, secoes } = useProjetoTarefas(projetoId);
 
   const parentTarefas = useMemo(() => tarefas.filter(t => !t.parent_tarefa_id), [tarefas]);
 
@@ -75,42 +79,93 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
     atrasadas: m.atrasadas,
   }));
 
-  const semResponsavel = parentTarefas.filter(t => !t.responsavel_id).length;
+  const unassignedTarefas = useMemo(() => parentTarefas.filter(t => !t.responsavel_id), [parentTarefas]);
+
+  const handleExport = useCallback(async () => {
+    const wb = new Workbook();
+    const ws = wb.addWorksheet("Relatório de Tarefas");
+
+    ws.columns = [
+      { header: "Código", key: "codigo", width: 12 },
+      { header: "Tarefa", key: "titulo", width: 40 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Prioridade", key: "prioridade", width: 12 },
+      { header: "Estágio", key: "estagio", width: 15 },
+      { header: "Responsável", key: "responsavel", width: 20 },
+      { header: "Prazo", key: "data_prazo", width: 14 },
+      { header: "Conclusão", key: "data_conclusao", width: 14 },
+      { header: "Tipo", key: "tipo", width: 12 },
+      { header: "Seção", key: "secao", width: 20 },
+    ];
+
+    const secaoMap = Object.fromEntries(secoes.map(s => [s.id, s.nome]));
+
+    for (const t of parentTarefas) {
+      ws.addRow({
+        codigo: t.codigo || "",
+        titulo: t.titulo,
+        status: t.status,
+        prioridade: t.prioridade,
+        estagio: t.estagio || "",
+        responsavel: t.responsavel?.nome || "Sem responsável",
+        data_prazo: t.data_prazo ? format(new Date(t.data_prazo), "dd/MM/yyyy") : "",
+        data_conclusao: t.data_conclusao ? format(new Date(t.data_conclusao), "dd/MM/yyyy") : "",
+        tipo: (t as any).tipo_tarefa === "retrabalho" ? "Retrabalho" : "Padrão",
+        secao: secaoMap[t.secao_id] || "",
+      });
+    }
+
+    // Style header
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4472C4" } };
+    ws.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+    const buffer = await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `relatorio-projeto-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  }, [parentTarefas, secoes]);
 
   const textColor = darkBg ? "text-white" : "";
   const textMuted = darkBg ? "text-white/60" : "text-muted-foreground";
   const cardBg = darkBg ? "bg-white/5 border-white/10" : "";
 
-  
-
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard
-          icon={<Target className="h-4 w-4 text-blue-400" />}
-          label="Total de Tarefas"
-          value={parentTarefas.length}
-          darkBg={darkBg}
-        />
-        <SummaryCard
-          icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-          label="Concluídas"
-          value={parentTarefas.filter(t => t.status === "concluida").length}
-          darkBg={darkBg}
-        />
-        <SummaryCard
-          icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
-          label="Atrasadas"
-          value={parentTarefas.filter(t => t.data_prazo && isPast(new Date(t.data_prazo)) && t.status !== "concluida").length}
-          darkBg={darkBg}
-        />
-        <SummaryCard
-          icon={<RotateCcw className="h-4 w-4 text-amber-400" />}
-          label="Retrabalhos"
-          value={parentTarefas.filter(t => (t as any).tipo_tarefa === "retrabalho").length}
-          darkBg={darkBg}
-        />
+      {/* Summary cards + export */}
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+          <SummaryCard
+            icon={<Target className="h-4 w-4 text-blue-400" />}
+            label="Total de Tarefas"
+            value={parentTarefas.length}
+            darkBg={darkBg}
+          />
+          <SummaryCard
+            icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+            label="Concluídas"
+            value={parentTarefas.filter(t => t.status === "concluida").length}
+            darkBg={darkBg}
+          />
+          <SummaryCard
+            icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
+            label="Atrasadas"
+            value={parentTarefas.filter(t => t.data_prazo && isPast(new Date(t.data_prazo)) && t.status !== "concluida").length}
+            darkBg={darkBg}
+          />
+          <SummaryCard
+            icon={<RotateCcw className="h-4 w-4 text-amber-400" />}
+            label="Retrabalhos"
+            value={parentTarefas.filter(t => (t as any).tipo_tarefa === "retrabalho").length}
+            darkBg={darkBg}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn("ml-4 gap-1.5 text-xs flex-shrink-0", darkBg && "border-white/20 text-white hover:bg-white/10")}
+          onClick={handleExport}
+        >
+          <Download className="h-3.5 w-3.5" /> Exportar Excel
+        </Button>
       </div>
 
       {/* Chart */}
@@ -204,12 +259,34 @@ export function ProjetoEquipeDashboard({ projetoId, darkBg = false }: ProjetoEqu
         ))}
       </div>
 
-      {/* Unassigned warning */}
-      {semResponsavel > 0 && (
-        <div className={cn("text-xs flex items-center gap-2 px-3 py-2 rounded-lg", darkBg ? "bg-amber-500/10 text-amber-300" : "bg-amber-500/10 text-amber-600")}>
-          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-          {semResponsavel} tarefa{semResponsavel !== 1 ? "s" : ""} sem responsável atribuído
-        </div>
+      {/* Unassigned tasks card */}
+      {unassignedTarefas.length > 0 && (
+        <Card className={cardBg}>
+          <CardHeader className="pb-2">
+            <CardTitle className={cn("text-sm flex items-center gap-2", textColor)}>
+              <UserX className="h-4 w-4 text-amber-400" />
+              Tarefas sem responsável ({unassignedTarefas.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {unassignedTarefas.slice(0, 10).map(t => {
+                const isOverdue = t.data_prazo && isPast(new Date(t.data_prazo)) && t.status !== "concluida";
+                return (
+                  <div key={t.id} className={cn("flex items-center gap-2 text-xs px-2 py-1.5 rounded", darkBg ? "bg-white/5" : "bg-muted/30")}>
+                    {t.codigo && <span className={cn("font-mono text-[10px]", textMuted)}>{t.codigo}</span>}
+                    <span className={cn("flex-1 truncate", textColor)}>{t.titulo}</span>
+                    {isOverdue && <Badge variant="destructive" className="text-[9px] h-4 px-1">Atrasada</Badge>}
+                    <Badge variant="outline" className="text-[9px] h-4 px-1">{t.status}</Badge>
+                  </div>
+                );
+              })}
+              {unassignedTarefas.length > 10 && (
+                <p className={cn("text-[10px] px-2", textMuted)}>+{unassignedTarefas.length - 10} mais tarefas sem responsável</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
