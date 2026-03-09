@@ -457,7 +457,7 @@ export function SupplierDetailsCard({
                   variant="outline"
                   size="sm"
                   className="shrink-0 text-xs gap-1"
-                  onClick={fetchEnrichedData}
+                  onClick={handleEnrich}
                 >
                   <RefreshCw className="h-3 w-3" />
                   Consultar e Atualizar
