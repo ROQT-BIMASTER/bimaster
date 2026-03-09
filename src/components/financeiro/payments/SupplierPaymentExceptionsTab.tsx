@@ -321,9 +321,9 @@ export function SupplierPaymentExceptionsTab() {
                   variant="link"
                   size="sm"
                   className="h-auto p-0 text-xs gap-1"
-                  onClick={() => {
-                    window.open(`/dashboard/fabrica/materias-primas?fornecedor=${selectedSupplier.id}`, "_blank");
-                  }}
+                   onClick={() => {
+                    window.open(`/dashboard/financeiro/contas-a-pagar`, "_blank");
+                   }}
                 >
                   <ExternalLink className="h-3 w-3" />
                   Abrir cadastro do fornecedor
