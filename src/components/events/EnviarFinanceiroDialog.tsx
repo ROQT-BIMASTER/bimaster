@@ -38,6 +38,7 @@ import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
 import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
 import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
 import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
+import { useActiveCorrectionRule, getCorrectionLocks } from "@/hooks/useFinancialCorrectionRules";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
