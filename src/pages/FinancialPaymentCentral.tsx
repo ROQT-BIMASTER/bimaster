@@ -142,8 +142,8 @@ export default function FinancialPaymentCentral() {
     });
   };
 
-  const handleReject = (id: string, notes: string) => {
-    updateStatus({ id, financial_status: 'rejected', financial_notes: notes }, {
+  const handleReject = (id: string, notes: string, rejectionCategory?: string, rejectionFields?: string[]) => {
+    updateStatus({ id, financial_status: 'rejected', financial_notes: notes, rejection_category: rejectionCategory, rejection_fields: rejectionFields }, {
       onSuccess: () => {
         setReviewDialogOpen(false);
         setSelectedItem(null);

@@ -26,7 +26,7 @@ export function useExpenseFinancialStatus(paymentQueueIds: (string | null | unde
 
       const { data, error } = await supabase
         .from("financial_payment_queue")
-        .select("id, financial_status, financial_notes, reviewed_at, reviewed_by")
+        .select("id, financial_status, financial_notes, reviewed_at, reviewed_by, rejection_category, rejection_fields")
         .in("id", validIds);
 
       if (error) throw error;

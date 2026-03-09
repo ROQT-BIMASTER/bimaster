@@ -525,16 +525,27 @@ export function PaymentReviewDialog({
       </DialogContent>
 
       {item && (
-        <MarcarPagoDialog
-          open={marcarPagoOpen}
-          onOpenChange={setMarcarPagoOpen}
-          supplierName={item.supplier_name}
-          amount={item.amount}
-          dueDate={item.due_date}
-          code={item.code}
-          onConfirmar={handleConfirmarPago}
-          isProcessing={isProcessing}
-        />
+        <>
+          <MarcarPagoDialog
+            open={marcarPagoOpen}
+            onOpenChange={setMarcarPagoOpen}
+            supplierName={item.supplier_name}
+            amount={item.amount}
+            dueDate={item.due_date}
+            code={item.code}
+            onConfirmar={handleConfirmarPago}
+            isProcessing={isProcessing}
+          />
+          <RejeicaoFinanceiraDialog
+            open={rejeicaoOpen}
+            onOpenChange={setRejeicaoOpen}
+            supplierName={item.supplier_name}
+            amount={item.amount}
+            code={item.code}
+            onConfirmar={handleConfirmarRejeicao}
+            isProcessing={isProcessing}
+          />
+        </>
       )}
     </Dialog>
   );
