@@ -22,6 +22,7 @@ import { SupplierDetailsCard } from "./SupplierDetailsCard";
 import { SupplierPaymentHistory } from "./SupplierPaymentHistory";
 import { ReceiptUploadSection } from "./ReceiptUploadSection";
 import { PaymentChatPanel } from "./PaymentChatPanel";
+import { PaymentQueueHistory } from "@/components/shared/PaymentQueueHistory";
 import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 
 interface PaymentReviewDialogProps {
