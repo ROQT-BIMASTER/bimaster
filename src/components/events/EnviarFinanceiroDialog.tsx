@@ -129,7 +129,7 @@ export function EnviarFinanceiroDialog({
 
       supabase
         .from("corporate_event_expenses")
-        .select("status, attachments, installment_number, installment_total, boleto_barcode, payment_queue_id, supplier_name, supplier_document")
+        .select("status, attachments, installment_number, installment_total, boleto_barcode, payment_queue_id, supplier_name, supplier_document, document_type, document_number, due_date, portador, payment_notes")
         .eq("id", expenseId)
         .single()
         .then(({ data }) => {
@@ -143,6 +143,11 @@ export function EnviarFinanceiroDialog({
               payment_queue_id: (data as any).payment_queue_id || null,
               supplier_name: (data as any).supplier_name || null,
               supplier_document: (data as any).supplier_document || null,
+              document_type: (data as any).document_type || null,
+              document_number: (data as any).document_number || null,
+              due_date: (data as any).due_date || null,
+              portador: (data as any).portador || null,
+              payment_notes: (data as any).payment_notes || null,
             });
           }
         });
