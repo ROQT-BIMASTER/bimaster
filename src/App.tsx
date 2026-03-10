@@ -403,6 +403,11 @@ function AppContent() {
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
 
+            {/* Módulo Fábrica China */}
+            <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ChinaFabrica /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ChinaRecebimentos /></ProtectedRoute>} />
+
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/comercial/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
