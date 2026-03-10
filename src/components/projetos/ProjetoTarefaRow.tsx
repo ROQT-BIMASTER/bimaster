@@ -287,6 +287,7 @@ export function ProjetoTarefaRow({
             </button>
           )}
         </div>
+      </div>
 
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
