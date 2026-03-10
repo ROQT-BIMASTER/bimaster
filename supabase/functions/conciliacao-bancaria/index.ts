@@ -48,11 +48,14 @@ async function pluggyFetch(apiKey: string, path: string, options: RequestInit = 
 }
 
 async function handleConnect(supabase: any, userId: string): Promise<Response> {
+  console.log("🔌 handleConnect called for userId:", userId);
   const apiKey = await getPluggyApiKey();
+  console.log("📡 Calling Pluggy /connect_token...");
   const data = await pluggyFetch(apiKey, "/connect_token", {
     method: "POST",
     body: JSON.stringify({ clientUserId: userId }),
   });
+  console.log("✅ Connect token obtained, accessToken length:", data.accessToken?.length);
 
   return new Response(JSON.stringify({ accessToken: data.accessToken }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
