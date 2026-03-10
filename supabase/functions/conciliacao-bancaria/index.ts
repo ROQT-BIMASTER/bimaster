@@ -164,7 +164,7 @@ async function handleSyncTransactions(
           (c: any) =>
             c.numero_documento &&
             c.numero_documento === txDoc &&
-            Math.abs(parseFloat(c.valor_aberto || c.valor) - txValue) < 0.01
+            Math.abs(parseFloat(c.valor_aberto || c.valor_original) - txValue) < 0.01
         );
         if (matchedContaPagar) confianca = "alta";
       }
