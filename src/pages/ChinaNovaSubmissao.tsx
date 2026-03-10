@@ -10,6 +10,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
+import { ChinaDataValidationDialog } from "@/components/china/ChinaDataValidationDialog";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib/china-document-types";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
