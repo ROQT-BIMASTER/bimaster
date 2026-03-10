@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Package, Loader2, AlertTriangle, Clock } from "lucide-react";
+import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ export default function ChinaRecebimentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("china_produto_submissoes" as any)
-        .select("*")
+        .select("*, cores:china_produto_cores(codigo_barras_ean)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
@@ -158,11 +158,34 @@ export default function ChinaRecebimentos() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{sub.produto_nome}</p>
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(sub.created_at).toLocaleDateString("pt-BR")}
-                        {sub.qty_total && ` · ${sub.qty_total.toLocaleString()} un`}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(sub.created_at).toLocaleDateString("pt-BR")}
+                          {sub.qty_total && ` · ${sub.qty_total.toLocaleString()} un`}
+                        </p>
+                        {/* EAN Coverage Indicator */}
+                        {(() => {
+                          const hasDisplay = !!sub.ean_display;
+                          const hasMaster = !!sub.ean_caixa_master;
+                          const skuEans = (sub.cores || []).filter((c: any) => !!c.codigo_barras_ean).length;
+                          const totalSkus = (sub.cores || []).length;
+                          const hasAnyEan = hasDisplay || hasMaster || skuEans > 0;
+                          const allComplete = hasDisplay && hasMaster && (totalSkus === 0 || skuEans === totalSkus);
+
+                          return hasAnyEan ? (
+                            <Badge variant={allComplete ? "default" : "outline"} className={`text-[9px] gap-0.5 px-1.5 py-0 ${allComplete ? "bg-success text-success-foreground" : "text-warning border-warning/40"}`}>
+                              <Barcode className="h-2.5 w-2.5" />
+                              EAN {allComplete ? "✓" : `${[hasDisplay && "D", hasMaster && "M", totalSkus > 0 && `${skuEans}/${totalSkus}`].filter(Boolean).join(" ")}`}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] gap-0.5 px-1.5 py-0 text-muted-foreground border-muted-foreground/30">
+                              <Barcode className="h-2.5 w-2.5" />
+                              Sem EAN
+                            </Badge>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <Badge variant={statusInfo.variant} className="shrink-0 text-[10px]">
                       {statusInfo.pt} {statusInfo.cn}

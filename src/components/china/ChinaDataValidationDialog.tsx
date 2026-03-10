@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BilingualLabel } from "./BilingualLabel";
-import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box, Camera, Upload, X } from "lucide-react";
+import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box, Camera, Upload, X, Barcode } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // Photo fields from the spreadsheet
 const PHOTO_FIELDS = [
@@ -124,8 +125,72 @@ export function ChinaDataValidationDialog({
     setPhotoPreviews(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
   };
 
-  const handleConfirm = () => {
+  const [eanDuplicates, setEanDuplicates] = useState<Record<string, string>>({});
+  const [checkingEan, setCheckingEan] = useState(false);
+
+  // Validate EAN uniqueness against DB
+  const checkEanUniqueness = useCallback(async () => {
+    const eansToCheck: { ean: string; label: string }[] = [];
+    if (data.ean_display?.trim()) eansToCheck.push({ ean: data.ean_display.trim(), label: "EAN Display" });
+    if (data.ean_caixa_master?.trim()) eansToCheck.push({ ean: data.ean_caixa_master.trim(), label: "EAN Caixa Master" });
+    cores.forEach((c, i) => {
+      if (c.codigo_barras_ean?.trim()) {
+        eansToCheck.push({ ean: c.codigo_barras_ean.trim(), label: `EAN SKU ${c.cor_nome || `#${i + 1}`}` });
+      }
+    });
+
+    if (eansToCheck.length === 0) return true;
+
+    setCheckingEan(true);
+    const duplicates: Record<string, string> = {};
+
+    try {
+      const allEans = eansToCheck.map(e => e.ean);
+
+      // Check in china_produto_submissoes (ean_display, ean_caixa_master)
+      const { data: subMatches } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("id, produto_codigo, ean_display, ean_caixa_master")
+        .or(`ean_display.in.(${allEans.join(",")}),ean_caixa_master.in.(${allEans.join(",")})`) as any;
+
+      // Check in china_produto_cores (codigo_barras_ean)
+      const { data: corMatches } = await supabase
+        .from("china_produto_cores" as any)
+        .select("submissao_id, cor_nome, codigo_barras_ean")
+        .in("codigo_barras_ean", allEans) as any;
+
+      for (const item of eansToCheck) {
+        const subMatch = (subMatches || []).find(
+          (s: any) => (s.ean_display === item.ean || s.ean_caixa_master === item.ean)
+        );
+        if (subMatch) {
+          duplicates[item.ean] = `${item.label} já usado no produto ${subMatch.produto_codigo}`;
+        }
+
+        const corMatch = (corMatches || []).find((c: any) => c.codigo_barras_ean === item.ean);
+        if (corMatch && !duplicates[item.ean]) {
+          duplicates[item.ean] = `${item.label} já usado em outro SKU`;
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao verificar EAN:", err);
+    }
+
+    setCheckingEan(false);
+    setEanDuplicates(duplicates);
+    return Object.keys(duplicates).length === 0;
+  }, [data.ean_display, data.ean_caixa_master, cores]);
+
+  const handleConfirm = async () => {
     if (!accepted) return;
+
+    // Check EAN uniqueness before confirming
+    const isUnique = await checkEanUniqueness();
+    if (!isUnique) {
+      toast.error("EAN duplicado detectado! Corrija antes de confirmar. EAN重复！请在确认前更正。");
+      return;
+    }
+
     const finalData = { ...data, cores };
     onConfirm(finalData, photos);
     onOpenChange(false);
@@ -186,25 +251,35 @@ export function ChinaDataValidationDialog({
           <section className="space-y-3">
             <BilingualLabel pt="Códigos EAN (Código de Barras)" cn="EAN条形码" size="md" className="border-b border-border pb-1" />
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-accent/5 rounded-lg border border-accent/20">
+              <div className={`p-3 rounded-lg border ${eanDuplicates[data.ean_display?.trim() || ""] ? "bg-destructive/10 border-destructive/40" : "bg-accent/5 border-accent/20"}`}>
                 <Label className="text-xs font-semibold">EAN Display 展示EAN</Label>
                 <Input
                   value={data.ean_display || ""}
-                  onChange={e => updateField("ean_display", e.target.value)}
+                  onChange={e => { updateField("ean_display", e.target.value); setEanDuplicates(d => { const n = { ...d }; delete n[data.ean_display?.trim() || ""]; return n; }); }}
                   className="h-9 font-mono mt-1"
                   placeholder="7898..."
                   maxLength={20}
                 />
+                {eanDuplicates[data.ean_display?.trim() || ""] && (
+                  <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {eanDuplicates[data.ean_display?.trim() || ""]}
+                  </p>
+                )}
               </div>
-              <div className="p-3 bg-warning/5 rounded-lg border border-warning/20">
+              <div className={`p-3 rounded-lg border ${eanDuplicates[data.ean_caixa_master?.trim() || ""] ? "bg-destructive/10 border-destructive/40" : "bg-warning/5 border-warning/20"}`}>
                 <Label className="text-xs font-semibold">EAN Caixa Master 主箱EAN</Label>
                 <Input
                   value={data.ean_caixa_master || ""}
-                  onChange={e => updateField("ean_caixa_master", e.target.value)}
+                  onChange={e => { updateField("ean_caixa_master", e.target.value); setEanDuplicates(d => { const n = { ...d }; delete n[data.ean_caixa_master?.trim() || ""]; return n; }); }}
                   className="h-9 font-mono mt-1"
                   placeholder="7898..."
                   maxLength={20}
                 />
+                {eanDuplicates[data.ean_caixa_master?.trim() || ""] && (
+                  <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {eanDuplicates[data.ean_caixa_master?.trim() || ""]}
+                  </p>
+                )}
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
@@ -472,9 +547,9 @@ export function ChinaDataValidationDialog({
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar 取消</Button>
-            <Button onClick={handleConfirm} disabled={!accepted} className="gap-2">
-              <Check className="h-4 w-4" />
-              {mode === "edit" ? "Salvar Alterações 保存更改" : "Confirmar Dados 确认数据"}
+            <Button onClick={handleConfirm} disabled={!accepted || checkingEan} className="gap-2">
+              {checkingEan ? <Barcode className="h-4 w-4 animate-pulse" /> : <Check className="h-4 w-4" />}
+              {checkingEan ? "Verificando EAN..." : mode === "edit" ? "Salvar Alterações 保存更改" : "Confirmar Dados 确认数据"}
             </Button>
           </div>
         </DialogFooter>
