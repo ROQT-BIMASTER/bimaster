@@ -181,6 +181,46 @@ export function ChinaDataValidationDialog({
             </div>
           </section>
 
+          {/* EAN Codes */}
+          <section className="space-y-3">
+            <BilingualLabel pt="Códigos EAN (Código de Barras)" cn="EAN条形码" size="md" className="border-b border-border pb-1" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="p-3 bg-accent/5 rounded-lg border border-accent/20">
+                <Label className="text-xs font-semibold">EAN Display 展示EAN</Label>
+                <Input
+                  value={data.ean_display || ""}
+                  onChange={e => updateField("ean_display", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label className="text-xs font-semibold">EAN Unidade 单品EAN</Label>
+                <Input
+                  value={data.ean_unidade || ""}
+                  onChange={e => updateField("ean_unidade", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+              <div className="p-3 bg-warning/5 rounded-lg border border-warning/20">
+                <Label className="text-xs font-semibold">EAN Caixa Master 主箱EAN</Label>
+                <Input
+                  value={data.ean_caixa_master || ""}
+                  onChange={e => updateField("ean_caixa_master", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              O EAN por cor/SKU pode ser preenchido na grade abaixo. 每个颜色/SKU的EAN可在下方颜色网格中填写。
+            </p>
+          </section>
+
           {/* Quantities & Display */}
           <section className="space-y-3">
             <BilingualLabel pt="Quantidades e Display" cn="数量和展示" size="md" className="border-b border-border pb-1" />
