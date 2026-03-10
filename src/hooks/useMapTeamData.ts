@@ -41,7 +41,8 @@ export function useMapTeamData() {
         const { data: profiles, error } = await (supabase
           .from("profiles")
           .select("id, nome, email, supervisor_id") as any)
-          .eq("status", "ativo");
+          .eq("status", "ativo")
+          .neq("departamento_id", "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130");
 
         if (error) throw error;
         allProfiles = profiles || [];

@@ -48,7 +48,8 @@ export const TeamPerformanceChart = () => {
         const { data: profiles } = await (supabase
           .from("profiles")
           .select("id") as any)
-          .eq("status", "ativo");
+          .eq("status", "ativo")
+          .neq("departamento_id", "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130");
         teamMemberIds = profiles?.map((p: any) => p.id) || [];
       } else if (roleData?.role === 'supervisor') {
         const { data: subordinados } = await supabase
