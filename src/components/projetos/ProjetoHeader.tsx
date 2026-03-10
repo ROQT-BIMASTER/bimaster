@@ -29,6 +29,10 @@ interface ProjetoHeaderProps {
   // Quick add
   secoes?: { id: string; nome: string }[];
   onAddTarefa?: (titulo: string, secaoId: string) => void;
+  // Lixeira
+  tarefasExcluidas?: { id: string; titulo: string; excluida_em: string }[];
+  tarefasExcluidasLoading?: boolean;
+  onRestaurarTarefa?: (tarefaId: string) => void;
 }
 
 export function ProjetoHeader({
