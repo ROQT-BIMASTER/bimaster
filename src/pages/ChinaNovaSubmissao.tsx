@@ -930,7 +930,7 @@ export default function ChinaNovaSubmissao() {
                           config={config}
                           status={worstStatus as any}
                           files={typeFiles.map((f, i) => ({ id: `local-${i}`, name: f.fileName, status: f.status }))}
-                          onUpload={(file) => handleDocUpload(config.tipo, file)}
+                          onUpload={isReadOnly ? undefined : (file) => handleDocUpload(config.tipo, file)}
                         />
                       );
                     })}
