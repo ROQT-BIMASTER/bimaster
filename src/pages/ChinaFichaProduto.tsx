@@ -251,13 +251,24 @@ export default function ChinaFichaProduto() {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => navigate(`/dashboard/fabrica-china/nova/${id}`)}
-                className="gap-2 shrink-0"
-              >
-                <PenLine className="h-4 w-4" />
-                Editar / Ajustar 编辑/调整
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => navigate(`/dashboard/fabrica-china/nova/${id}`)}
+                  className="gap-2 shrink-0"
+                >
+                  <PenLine className="h-4 w-4" />
+                  Editar / Ajustar 编辑/调整
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="default"
+                  className="gap-2 shrink-0"
+                  onClick={() => { setDeleteConfirmed(false); setDeleteDialogOpen(true); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Excluir 删除
+                </Button>
+              </div>
             </div>
           </Card>
         )}
