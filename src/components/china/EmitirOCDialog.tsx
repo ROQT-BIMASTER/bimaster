@@ -100,6 +100,16 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
           </div>
 
           <div className="space-y-2">
+            <BilingualLabel pt="EAN Caixa Master" cn="主箱EAN" size="sm" />
+            <Input
+              value={eanCaixaMaster}
+              onChange={(e) => setEanCaixaMaster(e.target.value)}
+              placeholder="Ex: 7898000000000"
+              className="font-mono"
+            />
+          </div>
+
+          <div className="space-y-2">
             <BilingualLabel pt="Observações" cn="备注" size="sm" />
             <Textarea
               value={observacoes}

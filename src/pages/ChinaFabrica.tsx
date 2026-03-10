@@ -25,6 +25,7 @@ export default function ChinaFabrica() {
         em_revisao: items.filter((s: any) => s.status === "em_revisao").length,
         aprovado: items.filter((s: any) => s.status === "aprovado").length,
         rejeitado: items.filter((s: any) => s.status === "rejeitado").length,
+        arte_enviada: items.filter((s: any) => s.status === "arte_enviada").length,
       };
     },
   });
