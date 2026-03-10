@@ -145,12 +145,11 @@ export function TarefaFocusMode({
     enabled: !!tarefa?.id,
   });
 
-  // Use mock data as fallback when real data is empty
-  const displayAnexos = useMemo(() => anexos.length > 0 ? anexos : MOCK_ANEXOS, [anexos]);
-  const cofreDocs = useMemo(() => cofreDocsReal.length > 0 ? cofreDocsReal : MOCK_COFRE_DOCS, [cofreDocsReal]);
-  const displayComentarios = useMemo(() => comentarios.length > 0 ? comentarios : MOCK_COMENTARIOS, [comentarios]);
-  const displayMessages = useMemo(() => messages.length > 0 ? messages : MOCK_MESSAGES, [messages]);
-  const displayMetas = useMemo(() => metas.length > 0 ? metas : MOCK_METAS as any[], [metas]);
+  const displayAnexos = anexos;
+  const cofreDocs = cofreDocsReal;
+  const displayComentarios = comentarios;
+  const displayMessages = messages;
+  const displayMetas = metas;
 
   // Identify which annexes are NOT in the cofre
   const anexosNoCofre = useMemo(() => {
