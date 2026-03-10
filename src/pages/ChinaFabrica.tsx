@@ -29,6 +29,21 @@ export default function ChinaFabrica() {
     },
   });
 
+  const { data: ocStats } = useQuery({
+    queryKey: ["china-oc-stats"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_ordens_compra" as any)
+        .select("status");
+      const items = (data || []) as any[];
+      return {
+        total: items.length,
+        ativas: items.filter((s: any) => ["emitida", "em_producao", "parcial"].includes(s.status)).length,
+        concluidas: items.filter((s: any) => s.status === "concluida").length,
+      };
+    },
+  });
+
   const cards = [
     {
       icon: <Plus className="h-10 w-10 text-primary" />,
