@@ -1,56 +1,31 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Corrigir tela "Minha Equipe — Projetos"
 
-### O que muda
+## Problemas identificados
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+1. **77 membros exibidos** — o hook `useProjetosTeamData` busca TODOS os perfis aprovados para admin, sem filtrar por departamento
+2. **Sem botão de voltar** na página
 
-### Implementação
+## Solução
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+### 1. Filtrar apenas equipe de Projetos no hook
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+No `src/hooks/useProjetosTeamData.ts`, na branch `isAdmin` (linha 35-39), adicionar filtro pelo departamento "Projetos" (`departamento_id = '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130'`). Aplicar o mesmo filtro para gerente/supervisor.
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### 2. Botão de voltar na página
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+No `src/components/projetos/ProjetosMinhaEquipe.tsx`, adicionar um `<Button variant="ghost">` com ícone `ArrowLeft` que navega para `/dashboard/projetos`.
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+### 3. Habilitar permissão do módulo projetos para todos os usuários cadastrados no departamento
 
-### Visual esperado
+Conceder acesso ao módulo "projetos" para todos os perfis vinculados ao departamento Projetos via migration SQL (inserir em `role_permissoes_modulos` ou similar, conforme padrão existente).
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+### Arquivos impactados
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+| Arquivo | Mudança |
+|---------|---------|
+| `src/hooks/useProjetosTeamData.ts` | Filtrar por `departamento_id` do dept Projetos |
+| `src/pages/ProjetosMinhaEquipe.tsx` | Adicionar botão voltar |
+| Migration SQL | Habilitar módulo projetos para usuários do departamento |
 
