@@ -104,6 +104,9 @@ export default function ChinaNovaSubmissao() {
     },
   });
 
+  // Determine if read-only (non-draft status)
+  const isReadOnly = !!(existingSubmissao && existingSubmissao.status !== "rascunho");
+
   // Hydrate state from existing data when resuming
   useEffect(() => {
     if (existingSubmissao && editId) {
