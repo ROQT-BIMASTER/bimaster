@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { TEMPLATES } from "@/components/projetos/NovoProjetoDialog";
 
-const TAREFAS_POR_SECAO: Record<string, { pt: string; cn: string }[]> = {
+export const TAREFAS_POR_SECAO: Record<string, { pt: string; cn: string }[]> = {
   "Criação / Identidade": [
     { pt: "Definir identidade visual do produto", cn: "定义产品视觉标识" },
     { pt: "Criar conceito de marca para o produto", cn: "创建产品品牌概念" },
