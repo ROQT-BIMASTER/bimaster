@@ -40,6 +40,9 @@ export interface ProjetoTarefa {
   produto_tipo?: string | null;
   produto_nome?: string | null;
   linked_produtos?: { id: string; nome: string; foto_url: string | null; codigo: string | null }[];
+  tipo_tarefa?: string | null;
+  motivo_retrabalho?: string | null;
+  dias_alerta_antes?: number | null;
 }
 
 export function useProjetoTarefas(projetoId: string | undefined) {
