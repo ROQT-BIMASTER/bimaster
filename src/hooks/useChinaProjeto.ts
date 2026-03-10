@@ -138,7 +138,7 @@ export function useCriarProjetoChina() {
           tarefasToInsert.push({
             projeto_id: projeto.id,
             secao_id: secaoId,
-            titulo: `${t.pt} ${t.cn}`,
+            titulo: t.pt,
             status: "pendente",
             prioridade: "media",
             ordem: i,
