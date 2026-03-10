@@ -24,6 +24,9 @@ export default function ChinaRecebimentos() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
+  const [eanCaixaMaster, setEanCaixaMaster] = useState("");
+  const [arteFile, setArteFile] = useState<File | null>(null);
+  const [sendingArte, setSendingArte] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
