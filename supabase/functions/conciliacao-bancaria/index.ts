@@ -11,18 +11,23 @@ const PLUGGY_API_URL = "https://api.pluggy.ai";
 async function getPluggyApiKey(): Promise<string> {
   const clientId = Deno.env.get("PLUGGY_CLIENT_ID");
   const clientSecret = Deno.env.get("PLUGGY_CLIENT_SECRET");
+  console.log("🔑 Pluggy auth: clientId exists?", !!clientId, "clientSecret exists?", !!clientSecret);
   if (!clientId || !clientSecret) throw new Error("Pluggy credentials not configured");
 
+  console.log("📡 Calling Pluggy /auth...");
   const res = await fetch(`${PLUGGY_API_URL}/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, clientSecret }),
   });
+  console.log("📡 Pluggy /auth response status:", res.status);
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Pluggy auth failed: ${err}`);
+    console.error("❌ Pluggy auth error:", err);
+    throw new Error(`Pluggy auth failed (${res.status}): ${err}`);
   }
   const data = await res.json();
+  console.log("✅ Pluggy apiKey obtained, length:", data.apiKey?.length);
   return data.apiKey;
 }
 
@@ -43,11 +48,14 @@ async function pluggyFetch(apiKey: string, path: string, options: RequestInit = 
 }
 
 async function handleConnect(supabase: any, userId: string): Promise<Response> {
+  console.log("🔌 handleConnect called for userId:", userId);
   const apiKey = await getPluggyApiKey();
+  console.log("📡 Calling Pluggy /connect_token...");
   const data = await pluggyFetch(apiKey, "/connect_token", {
     method: "POST",
     body: JSON.stringify({ clientUserId: userId }),
   });
+  console.log("✅ Connect token obtained, accessToken length:", data.accessToken?.length);
 
   return new Response(JSON.stringify({ accessToken: data.accessToken }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
