@@ -29,20 +29,37 @@ function mapPaymentMethod(method: string | null): string {
   return map[key] || method;
 }
 
-// Build clean payload without internal codes
+// Clean CNPJ/CPF to numbers only
+function cleanDocument(doc: string | null): string | null {
+  if (!doc) return null;
+  return doc.replace(/[^\d]/g, "");
+}
+
+// Build professional payload with grouped objects
 function buildCleanPayload(item: Record<string, unknown>) {
+  const doc = item.supplier_document as string | null;
   return {
+    api_version: "1.0",
+    generated_at: new Date().toISOString(),
     id: item.id,
     empresa_id: item.empresa_id || 1,
-    fornecedor_nome: item.supplier_name || null,
-    fornecedor_documento: item.supplier_document || null,
-    tipo_documento: item.document_type || null,
-    numero_documento: item.document_number || null,
-    valor: item.amount || 0,
-    data_vencimento: item.due_date || null,
-    data_pagamento: item.paid_at || null,
-    metodo_pagamento: mapPaymentMethod(item.payment_method as string),
-    portador: item.portador || null,
+    fornecedor: {
+      nome: item.supplier_name || null,
+      documento: cleanDocument(doc),
+      documento_formatado: doc || null,
+    },
+    documento: {
+      tipo: item.document_type || null,
+      numero: item.document_number || null,
+    },
+    pagamento: {
+      valor: Number(item.amount) || 0,
+      moeda: "BRL",
+      data_vencimento: item.due_date || null,
+      data_pagamento: item.paid_at || null,
+      metodo: mapPaymentMethod(item.payment_method as string),
+      portador: item.portador || null,
+    },
     departamento: item.department_name || null,
     descricao: item.description || null,
     status: "Pago",

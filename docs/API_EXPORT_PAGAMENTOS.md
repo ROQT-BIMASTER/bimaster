@@ -43,17 +43,27 @@ curl -H "x-api-key: SUA_CHAVE" \
 {
   "data": [
     {
+      "api_version": "1.0",
+      "generated_at": "2026-03-10T14:30:00.000Z",
       "id": "uuid-do-pagamento",
       "empresa_id": 1,
-      "fornecedor_nome": "Fornecedor ABC Ltda",
-      "fornecedor_documento": "12.345.678/0001-90",
-      "tipo_documento": "NF",
-      "numero_documento": "12345",
-      "valor": 1500.00,
-      "data_vencimento": "2026-03-15",
-      "data_pagamento": "2026-03-10T14:30:00Z",
-      "metodo_pagamento": "PIX",
-      "portador": "Banco Itaú",
+      "fornecedor": {
+        "nome": "Fornecedor ABC Ltda",
+        "documento": "12345678000190",
+        "documento_formatado": "12.345.678/0001-90"
+      },
+      "documento": {
+        "tipo": "NF",
+        "numero": "12345"
+      },
+      "pagamento": {
+        "valor": 1500.00,
+        "moeda": "BRL",
+        "data_vencimento": "2026-03-15",
+        "data_pagamento": "2026-03-10T14:30:00Z",
+        "metodo": "PIX",
+        "portador": "Banco Itaú"
+      },
       "departamento": "Compras",
       "descricao": "Compra de materiais",
       "status": "Pago"
@@ -119,24 +129,28 @@ GET /contas-pagar-export-api/status
 3. **Confirmar** os IDs processados: `POST /confirm`
 4. **Monitorar** via `GET /status`
 
-## Campos do Payload
+## Estrutura do Payload
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
+| `api_version` | string | Versão da API (`"1.0"`) |
+| `generated_at` | ISO 8601 | Timestamp de geração do registro |
 | `id` | UUID | Identificador único do pagamento |
 | `empresa_id` | number | ID da empresa |
-| `fornecedor_nome` | string | Nome do fornecedor |
-| `fornecedor_documento` | string | CNPJ/CPF do fornecedor |
-| `tipo_documento` | string | Tipo (NF, Boleto, etc.) |
-| `numero_documento` | string | Número do documento |
-| `valor` | number | Valor do pagamento |
-| `data_vencimento` | date | Data de vencimento |
-| `data_pagamento` | datetime | Data/hora do pagamento |
-| `metodo_pagamento` | string | Método descritivo (PIX, TED, Boleto, etc.) |
-| `portador` | string | Portador/banco |
+| `fornecedor.nome` | string | Nome do fornecedor |
+| `fornecedor.documento` | string | CNPJ/CPF (apenas números) |
+| `fornecedor.documento_formatado` | string | CNPJ/CPF formatado |
+| `documento.tipo` | string | Tipo (NF, Boleto, etc.) |
+| `documento.numero` | string | Número do documento |
+| `pagamento.valor` | decimal | Valor do pagamento |
+| `pagamento.moeda` | string | Moeda (`"BRL"`) |
+| `pagamento.data_vencimento` | date | Data de vencimento (YYYY-MM-DD) |
+| `pagamento.data_pagamento` | ISO 8601 | Data/hora do pagamento |
+| `pagamento.metodo` | string | Método descritivo (PIX, TED, Boleto, etc.) |
+| `pagamento.portador` | string | Portador/banco |
 | `departamento` | string | Departamento responsável |
 | `descricao` | string | Descrição/observações |
-| `status` | string | Sempre "Pago" |
+| `status` | string | Sempre `"Pago"` |
 
 ## Códigos de Erro
 
