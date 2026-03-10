@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BilingualLabel } from "./BilingualLabel";
-import { Package, Palette, FlaskConical, Scale } from "lucide-react";
+import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
+import { Package, Palette, FlaskConical, Scale, Lock } from "lucide-react";
 
 interface ExcelData {
   produto_codigo?: string;
@@ -16,6 +21,8 @@ interface ExcelData {
 
 interface ChinaExcelPreviewProps {
   data: ExcelData;
+  editable?: boolean;
+  onUpdate?: (data: ExcelData) => void;
 }
 
 export function ChinaExcelPreview({ data }: ChinaExcelPreviewProps) {
