@@ -473,6 +473,214 @@ async function handleGenerateReport(eventId: string, authHeader: string) {
   return { report: result.choices?.[0]?.message?.content || "Erro ao gerar relatório." };
 }
 
+// ────────── ACTION: audit_document ──────────
+async function handleAuditDocument(params: {
+  attachmentUrl: string;
+  supplierName?: string;
+  supplierDocument?: string;
+  amount?: number;
+  documentNumber?: string;
+  documentType?: string;
+}) {
+  const admin = getSupabaseAdmin();
+
+  // Download the file from Storage to base64
+  let fileBase64: string;
+  let mimeType = "image/jpeg";
+
+  try {
+    // Extract bucket and path from the URL or path
+    const url = params.attachmentUrl;
+    let bucket = "";
+    let filePath = "";
+
+    // Handle different URL formats
+    if (url.includes("/storage/v1/object/")) {
+      // Full Supabase URL
+      const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?.*)?$/);
+      if (match) {
+        bucket = match[1];
+        filePath = decodeURIComponent(match[2]);
+      }
+    } else if (url.includes("/")) {
+      // Assume "bucket/path" format
+      const parts = url.split("/");
+      bucket = parts[0];
+      filePath = parts.slice(1).join("/");
+    }
+
+    if (!bucket || !filePath) {
+      throw new Error("Could not parse attachment URL");
+    }
+
+    // Determine mime type from extension
+    const ext = filePath.split(".").pop()?.toLowerCase();
+    if (ext === "pdf") mimeType = "application/pdf";
+    else if (ext === "png") mimeType = "image/png";
+    else if (ext === "webp") mimeType = "image/webp";
+
+    const { data: fileData, error: dlError } = await admin.storage
+      .from(bucket)
+      .download(filePath);
+
+    if (dlError || !fileData) throw dlError || new Error("Download failed");
+
+    const arrayBuffer = await fileData.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    fileBase64 = btoa(binary);
+  } catch (err) {
+    console.error("[audit_document] download error:", err);
+    throw new Error("Não foi possível baixar o documento anexado para auditoria.");
+  }
+
+  // Build the expected data for comparison
+  const expectedData = {
+    cnpj: params.supplierDocument || "",
+    supplier_name: params.supplierName || "",
+    amount: params.amount || 0,
+    document_number: params.documentNumber || "",
+  };
+
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: "audit_document_result",
+        description: "Retorna os dados extraídos do documento fiscal para confronto.",
+        parameters: {
+          type: "object",
+          properties: {
+            extracted_cnpj: { type: "string", description: "CNPJ/CPF encontrado no documento" },
+            extracted_name: { type: "string", description: "Nome/razão social do emitente no documento" },
+            extracted_amount: { type: "number", description: "Valor total encontrado no documento" },
+            extracted_document_number: { type: "string", description: "Número do documento fiscal" },
+            confidence: { type: "number", description: "Confiança na extração, de 0 a 1" },
+          },
+          required: ["extracted_cnpj", "extracted_name", "extracted_amount", "confidence"],
+          additionalProperties: false,
+        },
+      },
+    },
+  ];
+
+  const contentParts: any[] = [
+    {
+      type: "text",
+      text: `Analise este documento fiscal e extraia os seguintes dados com precisão:
+- CNPJ ou CPF do emitente/fornecedor
+- Nome ou Razão Social do emitente/fornecedor
+- Valor total do documento
+- Número do documento fiscal
+
+Estes dados serão usados para confrontar com o lançamento no sistema.`,
+    },
+  ];
+
+  if (mimeType === "application/pdf") {
+    contentParts.push({
+      type: "file",
+      file: { filename: "documento.pdf", file_data: `data:application/pdf;base64,${fileBase64}` },
+    });
+  } else {
+    contentParts.push({
+      type: "image_url",
+      image_url: { url: `data:${mimeType};base64,${fileBase64}` },
+    });
+  }
+
+  const result = await callAI(
+    [
+      {
+        role: "system",
+        content: "Você é um auditor fiscal especializado. Extraia com máxima precisão os dados do documento. Foque em CNPJ, nome do emitente, valor total e número do documento.",
+      },
+      { role: "user", content: contentParts },
+    ],
+    tools,
+    { type: "function", function: { name: "audit_document_result" } },
+    "google/gemini-2.5-flash"
+  );
+
+  const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("Não foi possível extrair dados do documento.");
+
+  const extracted = JSON.parse(toolCall.function.arguments);
+
+  // Compare extracted vs expected
+  const divergences: { field: string; expected: string; found: string; severity: "low" | "medium" | "high" }[] = [];
+
+  // CNPJ comparison (high severity)
+  if (expectedData.cnpj && extracted.extracted_cnpj) {
+    const normExpected = expectedData.cnpj.replace(/\D/g, "");
+    const normFound = extracted.extracted_cnpj.replace(/\D/g, "");
+    if (normExpected && normFound && normExpected !== normFound) {
+      divergences.push({
+        field: "cnpj",
+        expected: expectedData.cnpj,
+        found: extracted.extracted_cnpj,
+        severity: "high",
+      });
+    }
+  }
+
+  // Supplier name comparison (medium severity)
+  if (expectedData.supplier_name && extracted.extracted_name) {
+    const normExp = expectedData.supplier_name.toLowerCase().trim();
+    const normFound = extracted.extracted_name.toLowerCase().trim();
+    // Fuzzy: if neither contains the other and they differ significantly
+    if (!normExp.includes(normFound) && !normFound.includes(normExp) && normExp !== normFound) {
+      divergences.push({
+        field: "supplier_name",
+        expected: expectedData.supplier_name,
+        found: extracted.extracted_name,
+        severity: "medium",
+      });
+    }
+  }
+
+  // Amount comparison (high severity)
+  if (expectedData.amount && extracted.extracted_amount) {
+    const diff = Math.abs(expectedData.amount - extracted.extracted_amount);
+    const threshold = expectedData.amount * 0.02; // 2% tolerance
+    if (diff > threshold && diff > 1) {
+      divergences.push({
+        field: "amount",
+        expected: `R$ ${expectedData.amount.toFixed(2)}`,
+        found: `R$ ${extracted.extracted_amount.toFixed(2)}`,
+        severity: diff / expectedData.amount > 0.1 ? "high" : "medium",
+      });
+    }
+  }
+
+  // Document number comparison (low severity)
+  if (expectedData.document_number && extracted.extracted_document_number) {
+    const normExp = expectedData.document_number.replace(/\D/g, "");
+    const normFound = extracted.extracted_document_number.replace(/\D/g, "");
+    if (normExp && normFound && normExp !== normFound) {
+      divergences.push({
+        field: "document_number",
+        expected: expectedData.document_number,
+        found: extracted.extracted_document_number,
+        severity: "low",
+      });
+    }
+  }
+
+  return {
+    matches: divergences.length === 0,
+    divergences,
+    confidence: extracted.confidence || 0,
+    extracted_cnpj: extracted.extracted_cnpj,
+    extracted_name: extracted.extracted_name,
+    extracted_amount: extracted.extracted_amount,
+    extracted_document_number: extracted.extracted_document_number,
+  };
+}
+
 // ────────── MAIN HANDLER ──────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
