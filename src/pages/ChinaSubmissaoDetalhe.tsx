@@ -110,13 +110,35 @@ export default function ChinaSubmissaoDetalhe() {
                   Baixar Arte Final 下载终稿
                 </Button>
               )}
-              {submissao.ean_caixa_master && (
-                <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
-                  <Barcode className="h-6 w-6 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">EAN Caixa Master 主箱EAN</p>
-                    <p className="text-xl font-mono font-bold text-foreground">{submissao.ean_caixa_master}</p>
-                  </div>
+              {(submissao.ean_display || submissao.ean_unidade || submissao.ean_caixa_master) && (
+                <div className="flex flex-wrap gap-3">
+                  {submissao.ean_display && (
+                    <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
+                      <Barcode className="h-6 w-6 text-accent" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">EAN Display 展示EAN</p>
+                        <p className="text-xl font-mono font-bold text-foreground">{(submissao as any).ean_display}</p>
+                      </div>
+                    </div>
+                  )}
+                  {submissao.ean_unidade && (
+                    <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
+                      <Barcode className="h-6 w-6 text-primary" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">EAN Unidade 单品EAN</p>
+                        <p className="text-xl font-mono font-bold text-foreground">{(submissao as any).ean_unidade}</p>
+                      </div>
+                    </div>
+                  )}
+                  {submissao.ean_caixa_master && (
+                    <div className="flex items-center gap-3 p-4 bg-background rounded-xl border">
+                      <Barcode className="h-6 w-6 text-warning" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">EAN Caixa Master 主箱EAN</p>
+                        <p className="text-xl font-mono font-bold text-foreground">{submissao.ean_caixa_master}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
