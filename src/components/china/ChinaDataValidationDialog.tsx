@@ -487,13 +487,20 @@ export function ChinaDataValidationDialog({
             </div>
            </section>
 
-          {/* Photo Uploads */}
+          {/* Document/Photo Uploads → Cofre do Produto */}
           {showPhotoUpload && (
             <section className="space-y-3">
-              <BilingualLabel pt="Fotos da Planilha (Campos com Imagem)" cn="表格照片（图片字段）" size="md" className="border-b border-border pb-1" />
-              <p className="text-xs text-muted-foreground">
-                Suba as fotos correspondentes aos campos da planilha chinesa. 上传与中国表格字段对应的照片。
-              </p>
+              <div className="flex items-center gap-2 border-b border-border pb-1">
+                <FolderOpen className="h-4 w-4 text-primary" />
+                <BilingualLabel pt="Anexos para o Cofre do Produto" cn="产品保险库附件" size="md" />
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+                <Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
+                <p className="text-[10px] text-muted-foreground">
+                  Fotos e documentos enviados aqui vão para o <strong className="text-foreground">Cofre do Produto</strong> com status <Badge variant="warning" className="text-[9px] px-1 py-0 inline">Pendente</Badge> para aprovação do Brasil.
+                  上传的照片和文件将进入<strong>产品保险库</strong>，等待巴西审批。
+                </p>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {PHOTO_FIELDS.map(field => {
                   const previews = photoPreviews[field.key] || [];
@@ -524,11 +531,12 @@ export function ChinaDataValidationDialog({
                         )}
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*,application/pdf,.doc,.docx"
                           multiple
                           className="absolute inset-0 opacity-0 cursor-pointer"
                           onChange={e => handlePhotoUpload(field.key, e.target.files)}
                         />
+                        <span className="text-[8px] text-muted-foreground">Fotos/PDF</span>
                       </div>
                     </div>
                   );
