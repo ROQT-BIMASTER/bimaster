@@ -1,4 +1,4 @@
-import { FileText, Scissors, Box, TestTube, Tag, Image, Video, FileSpreadsheet, Beaker, ShieldCheck, Camera, Palette } from "lucide-react";
+import { FileText, Scissors, Box, TestTube, Tag, Image, Video, FileSpreadsheet, Beaker, ShieldCheck, Camera, Palette, Package } from "lucide-react";
 import { createElement } from "react";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 
@@ -18,10 +18,16 @@ export const CHINA_DOCUMENT_TYPES: DocumentSlotConfig[] = [
   { tipo: "amostra_foto", labelPt: "Amostra Embalagem (Fotos)", labelCn: "包装样品（照片）", icon: createElement(Image, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
   { tipo: "amostra_video", labelPt: "Amostra Embalagem (Vídeos)", labelCn: "包装样品（视频）", icon: createElement(Video, { className: "h-5 w-5 text-warning" }), accept: "video/*" },
   { tipo: "planilha_excel", labelPt: "Planilha Excel", labelCn: "Excel表格", icon: createElement(FileSpreadsheet, { className: "h-5 w-5 text-success" }), accept: ".xlsx,.xls" },
-  // Imagens 图片
-  { tipo: "foto_produto", labelPt: "Foto do Produto", labelCn: "产品照片", icon: createElement(Camera, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
-  { tipo: "foto_embalagem", labelPt: "Foto da Embalagem", labelCn: "包装照片", icon: createElement(Camera, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
-  { tipo: "foto_display", labelPt: "Foto do Display", labelCn: "展示照片", icon: createElement(Camera, { className: "h-5 w-5 text-warning" }), accept: "image/*", multiple: true },
+  // Fotos da Planilha (campos com imagem da planilha China) 表格照片
+  { tipo: "foto_confirmed_item", labelPt: "Produto Confirmado (已确认产品)", labelCn: "已确认产品照片", icon: createElement(Camera, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
+  { tipo: "foto_cores_todas", labelPt: "Todas as Cores (颜色照片)", labelCn: "所有颜色照片", icon: createElement(Palette, { className: "h-5 w-5 text-accent" }), accept: "image/*", multiple: true },
+  { tipo: "foto_garrafa", labelPt: "Garrafa/Frasco (瓶子)", labelCn: "瓶子照片", icon: createElement(Package, { className: "h-5 w-5 text-warning" }), accept: "image/*", multiple: true },
+  { tipo: "foto_garrafa_design", labelPt: "Design da Garrafa (瓶子设计)", labelCn: "瓶子设计照片", icon: createElement(Package, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
+  { tipo: "foto_cores_produto", labelPt: "Cores do Produto (Colors)", labelCn: "产品颜色照片", icon: createElement(Palette, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
+  { tipo: "foto_embalagem_ref", labelPt: "Embalagem (Referência)", labelCn: "包装参考照片", icon: createElement(Camera, { className: "h-5 w-5 text-accent" }), accept: "image/*", multiple: true },
+  { tipo: "foto_produto_individual", labelPt: "Foto Produto Individual", labelCn: "单个产品照片", icon: createElement(Camera, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
+  { tipo: "foto_cores_pesos", labelPt: "Cores (Seção Pesos)", labelCn: "颜色照片（重量部分）", icon: createElement(Palette, { className: "h-5 w-5 text-warning" }), accept: "image/*", multiple: true },
+  // Imagens gerais 通用图片
   { tipo: "foto_rotulo", labelPt: "Foto do Rótulo", labelCn: "标签照片", icon: createElement(Palette, { className: "h-5 w-5 text-accent" }), accept: "image/*", multiple: true },
   { tipo: "foto_arte", labelPt: "Foto da Arte/Layout", labelCn: "设计/排版照片", icon: createElement(Palette, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
 ];
@@ -34,10 +40,16 @@ export const DOCUMENT_CATEGORIES = [
     tipos: ["planilha_excel"],
   },
   {
-    key: "imagens",
-    labelPt: "Imagens do Produto",
-    labelCn: "产品图片",
-    tipos: ["foto_produto", "foto_embalagem", "foto_display", "foto_rotulo", "foto_arte"],
+    key: "fotos_planilha",
+    labelPt: "Fotos da Planilha (Campos com Imagem)",
+    labelCn: "表格照片（图片字段）",
+    tipos: ["foto_confirmed_item", "foto_cores_todas", "foto_garrafa", "foto_garrafa_design", "foto_cores_produto", "foto_embalagem_ref", "foto_produto_individual", "foto_cores_pesos"],
+  },
+  {
+    key: "imagens_gerais",
+    labelPt: "Imagens Gerais",
+    labelCn: "通用图片",
+    tipos: ["foto_rotulo", "foto_arte"],
   },
   {
     key: "rotulagem",
