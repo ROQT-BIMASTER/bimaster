@@ -37,6 +37,7 @@ export default function ProjetoDetalhe() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
   const { tarefas, secoes, teamMembers, createTarefa } = useProjetoTarefas(id);
+  const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
 
