@@ -3,7 +3,7 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
@@ -11,6 +11,7 @@ import { ProjetoHealthPanel } from "./ProjetoHealthPanel";
 import { ProjetoMembrosDialog } from "./ProjetoMembrosDialog";
 import { FilterButton, SortButton, ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
+import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
