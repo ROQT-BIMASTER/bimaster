@@ -251,25 +251,35 @@ export function ChinaDataValidationDialog({
           <section className="space-y-3">
             <BilingualLabel pt="Códigos EAN (Código de Barras)" cn="EAN条形码" size="md" className="border-b border-border pb-1" />
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-accent/5 rounded-lg border border-accent/20">
+              <div className={`p-3 rounded-lg border ${eanDuplicates[data.ean_display?.trim() || ""] ? "bg-destructive/10 border-destructive/40" : "bg-accent/5 border-accent/20"}`}>
                 <Label className="text-xs font-semibold">EAN Display 展示EAN</Label>
                 <Input
                   value={data.ean_display || ""}
-                  onChange={e => updateField("ean_display", e.target.value)}
+                  onChange={e => { updateField("ean_display", e.target.value); setEanDuplicates(d => { const n = { ...d }; delete n[data.ean_display?.trim() || ""]; return n; }); }}
                   className="h-9 font-mono mt-1"
                   placeholder="7898..."
                   maxLength={20}
                 />
+                {eanDuplicates[data.ean_display?.trim() || ""] && (
+                  <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {eanDuplicates[data.ean_display?.trim() || ""]}
+                  </p>
+                )}
               </div>
-              <div className="p-3 bg-warning/5 rounded-lg border border-warning/20">
+              <div className={`p-3 rounded-lg border ${eanDuplicates[data.ean_caixa_master?.trim() || ""] ? "bg-destructive/10 border-destructive/40" : "bg-warning/5 border-warning/20"}`}>
                 <Label className="text-xs font-semibold">EAN Caixa Master 主箱EAN</Label>
                 <Input
                   value={data.ean_caixa_master || ""}
-                  onChange={e => updateField("ean_caixa_master", e.target.value)}
+                  onChange={e => { updateField("ean_caixa_master", e.target.value); setEanDuplicates(d => { const n = { ...d }; delete n[data.ean_caixa_master?.trim() || ""]; return n; }); }}
                   className="h-9 font-mono mt-1"
                   placeholder="7898..."
                   maxLength={20}
                 />
+                {eanDuplicates[data.ean_caixa_master?.trim() || ""] && (
+                  <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {eanDuplicates[data.ean_caixa_master?.trim() || ""]}
+                  </p>
+                )}
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
