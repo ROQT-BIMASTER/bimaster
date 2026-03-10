@@ -15162,6 +15162,8 @@ export type Database = {
           descricao: string | null
           dias_alerta_antes: number
           estagio: string | null
+          excluida_em: string | null
+          excluida_por: string | null
           id: string
           motivo_retrabalho: string | null
           ordem: number | null
@@ -15189,6 +15191,8 @@ export type Database = {
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null
+          excluida_em?: string | null
+          excluida_por?: string | null
           id?: string
           motivo_retrabalho?: string | null
           ordem?: number | null
@@ -15216,6 +15220,8 @@ export type Database = {
           descricao?: string | null
           dias_alerta_antes?: number
           estagio?: string | null
+          excluida_em?: string | null
+          excluida_por?: string | null
           id?: string
           motivo_retrabalho?: string | null
           ordem?: number | null

@@ -174,7 +174,7 @@ export function useCriarProjetoChina() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["china-projetos-vinculados"] });
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
-      toast.success("Projeto de desenvolvimento criado! 开发项目已创建！");
+      toast.success("Projeto de desenvolvimento criado!");
     },
     onError: (err: Error) => {
       toast.error("Erro ao criar projeto: " + err.message);
