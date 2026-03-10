@@ -116,6 +116,16 @@ export default function ProjetoDetalhe() {
               >
                 <ArrowLeft className="h-4 w-4" /> Projetos
               </Button>
+              {chinaVinculo && (
+                <Badge
+                  variant="outline"
+                  className={`cursor-pointer gap-1.5 ${darkBg ? "border-white/30 text-white hover:bg-white/10" : ""}`}
+                  onClick={() => navigate(`/dashboard/fabrica-china/ficha/${chinaVinculo.id}`)}
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Produto China: {chinaVinculo.produto_codigo}
+                </Badge>
+              )}
               <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 
