@@ -1133,6 +1133,148 @@ export type Database = {
           },
         ]
       }
+      china_produto_cores: {
+        Row: {
+          cor_nome: string
+          grupo: string
+          id: string
+          quantidade: number
+          submissao_id: string
+        }
+        Insert: {
+          cor_nome: string
+          grupo: string
+          id?: string
+          quantidade?: number
+          submissao_id: string
+        }
+        Update: {
+          cor_nome?: string
+          grupo?: string
+          id?: string
+          quantidade?: number
+          submissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_produto_cores_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_produto_documentos: {
+        Row: {
+          arquivo_path: string | null
+          arquivo_url: string | null
+          created_at: string
+          id: string
+          nome_arquivo: string | null
+          observacao: string | null
+          status: string
+          submissao_id: string
+          tipo_documento: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          status?: string
+          submissao_id: string
+          tipo_documento: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          status?: string
+          submissao_id?: string
+          tipo_documento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_produto_documentos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_produto_submissoes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dados_excel: Json | null
+          formula_codigo: string | null
+          id: string
+          medidas_display: Json | null
+          numero_item: string | null
+          numero_ordem: string | null
+          observacoes_brasil: string | null
+          observacoes_china: string | null
+          peso_bruto_g: number | null
+          peso_liquido_g: number | null
+          peso_tester_g: number | null
+          produto_codigo: string
+          produto_nome: string
+          qty_total: number | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dados_excel?: Json | null
+          formula_codigo?: string | null
+          id?: string
+          medidas_display?: Json | null
+          numero_item?: string | null
+          numero_ordem?: string | null
+          observacoes_brasil?: string | null
+          observacoes_china?: string | null
+          peso_bruto_g?: number | null
+          peso_liquido_g?: number | null
+          peso_tester_g?: number | null
+          produto_codigo: string
+          produto_nome: string
+          qty_total?: number | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dados_excel?: Json | null
+          formula_codigo?: string | null
+          id?: string
+          medidas_display?: Json | null
+          numero_item?: string | null
+          numero_ordem?: string | null
+          observacoes_brasil?: string | null
+          observacoes_china?: string | null
+          peso_bruto_g?: number | null
+          peso_liquido_g?: number | null
+          peso_tester_g?: number | null
+          produto_codigo?: string
+          produto_nome?: string
+          qty_total?: number | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           bairro: string | null
