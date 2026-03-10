@@ -529,7 +529,7 @@ export default function ChinaNovaSubmissao() {
           <Card className="p-4 border-warning/30 bg-warning/5">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
-                <Lock className="h-5 w-5 text-warning" />
+                <LockKeyhole className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="font-semibold text-warning text-sm">
