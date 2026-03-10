@@ -273,6 +273,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [comercialOpen, setComercialOpen] = useState(true);
+  const [chinaOpen, setChinaOpen] = useState(true);
   const [eventosOpen, setEventosOpen] = useState(true);
   const [departamentosOpen, setDepartamentosOpen] = useState(true); // Mantido para compatibilidade futura
   const [precosOpen, setPrecosOpen] = useState(true);
