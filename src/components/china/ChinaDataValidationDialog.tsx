@@ -98,7 +98,7 @@ export function ChinaDataValidationDialog({
   };
 
   const addColor = () => {
-    setCores(prev => [...prev, { grupo: "G1", cor_nome: "", quantidade: 0 }]);
+    setCores(prev => [...prev, { grupo: "G1", cor_nome: "", quantidade: 0, codigo_barras_ean: "" }]);
   };
 
   const removeColor = (index: number) => {
