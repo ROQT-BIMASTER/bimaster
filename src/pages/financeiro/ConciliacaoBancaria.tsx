@@ -48,15 +48,28 @@ export default function ConciliacaoBancaria() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filter, setFilter] = useState("all");
+  const pluggyPopupRef = useRef<Window | null>(null);
 
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
+      // Open popup immediately on user gesture (before async) to avoid blocker
+      const popup = window.open("about:blank", "pluggy_connect", "width=450,height=700,left=200,top=100,scrollbars=yes");
+      pluggyPopupRef.current = popup;
+
       const token = await getConnectToken();
-      setConnectToken(token);
-      setShowPluggyConnect(true);
+      
+      if (popup && !popup.closed) {
+        // Navigate the already-opened popup to Pluggy
+        popup.location.href = `https://connect.pluggy.ai/?connect_token=${token}`;
+        setConnectToken(token);
+        setShowPluggyConnect(true);
+      } else {
+        toast.error("Popup bloqueado pelo navegador. Permita popups para este site.");
+      }
     } catch {
       // error handled in hook
+      pluggyPopupRef.current?.close();
     } finally {
       setIsConnecting(false);
     }
