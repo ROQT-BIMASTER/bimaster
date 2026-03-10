@@ -115,7 +115,7 @@ export default function ChinaFabrica() {
       desc: `${ocStats?.ativas || 0} ativas 活跃 · ${ocStats?.concluidas || 0} concluídas 已完成`,
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
-      brasilOnly: true,
+      brasilOnly: false,
       badge: null,
     },
     {
