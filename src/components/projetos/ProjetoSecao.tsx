@@ -35,6 +35,7 @@ interface ProjetoSecaoProps {
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
   onUpdateTarefa?: (id: string, updates: Record<string, any>) => void;
+  onDeleteTarefa?: (tarefaId: string) => void;
   onToggleBriefing?: (secaoId: string, value: boolean) => void;
   onCreateBriefingTasks?: (tasks: { titulo: string; descricao: string; prioridade: string; secao_id: string }[]) => void;
   teamMembers?: TeamMember[];
@@ -45,7 +46,7 @@ interface ProjetoSecaoProps {
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
-  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing, onCreateBriefingTasks,
+  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -149,6 +150,7 @@ export function ProjetoSecao({
               onToggle={onToggleTarefa}
               onSelect={onSelectTarefa}
               onUpdate={onUpdateTarefa}
+              onDelete={onDeleteTarefa}
               teamMembers={teamMembers}
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}

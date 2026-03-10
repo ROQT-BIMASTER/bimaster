@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
@@ -89,6 +89,7 @@ interface ProjetoTarefaRowProps {
   onToggle: (tarefa: ProjetoTarefa) => void;
   onSelect?: (tarefa: ProjetoTarefa) => void;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
+  onDelete?: (tarefaId: string) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
@@ -97,7 +98,7 @@ interface ProjetoTarefaRowProps {
 
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
-  onToggle, onSelect, onUpdate,
+  onToggle, onSelect, onUpdate, onDelete,
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -267,7 +268,7 @@ export function ProjetoTarefaRow({
         </div>
 
         {/* Estágio */}
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-1">
           <InlineSelector
             value={tarefa.estagio || ""}
             options={ESTAGIO_OPTIONS}
@@ -276,6 +277,15 @@ export function ProjetoTarefaRow({
             onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
             placeholder="—"
           />
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(tarefa.id); }}
+              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 ${darkBg ? "text-red-400 hover:text-red-300" : "text-destructive/60 hover:text-destructive"}`}
+              title="Excluir tarefa"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -283,7 +293,7 @@ export function ProjetoTarefaRow({
       {expanded && tarefa.subtarefas?.map(st => (
         <ProjetoTarefaRow
           key={st.id} tarefa={st} indented
-          onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate}
+          onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} onDelete={onDelete}
           teamMembers={teamMembers}
           onAddColaborador={onAddColaborador}
           onRemoveColaborador={onRemoveColaborador}

@@ -70,6 +70,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .from("projeto_tarefas")
         .select("*")
         .eq("projeto_id", projetoId!)
+        .is("excluida_em", null)
         .order("ordem", { ascending: true });
       if (error) throw error;
       
@@ -390,6 +391,54 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     enabled: !!user,
   });
 
+  // Soft delete
+  const softDeleteTarefa = useMutation({
+    mutationFn: async (tarefaId: string) => {
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({ excluida_em: new Date().toISOString(), excluida_por: user?.id || null } as any)
+        .eq("id", tarefaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      toast.success("Tarefa movida para a lixeira");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const restaurarTarefa = useMutation({
+    mutationFn: async (tarefaId: string) => {
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({ excluida_em: null, excluida_por: null } as any)
+        .eq("id", tarefaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-tarefas-excluidas", projetoId] });
+      toast.success("Tarefa restaurada!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const { data: tarefasExcluidas = [], isLoading: tarefasExcluidasLoading } = useQuery({
+    queryKey: ["projeto-tarefas-excluidas", projetoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_tarefas")
+        .select("*")
+        .eq("projeto_id", projetoId!)
+        .not("excluida_em", "is", null)
+        .order("excluida_em" as any, { ascending: false });
+      if (error) throw error;
+      return data as (ProjetoTarefa & { excluida_em: string })[];
+    },
+    enabled: !!projetoId && !!user,
+  });
+
   return {
     secoes,
     tarefas,
@@ -406,5 +455,9 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     addColaborador,
     removeColaborador,
     teamMembers,
+    softDeleteTarefa,
+    restaurarTarefa,
+    tarefasExcluidas,
+    tarefasExcluidasLoading,
   };
 }

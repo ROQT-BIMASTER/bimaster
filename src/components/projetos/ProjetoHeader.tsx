@@ -3,7 +3,7 @@ import { Projeto } from "@/hooks/useProjetos";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound } from "lucide-react";
+import { Plus, List, LayoutGrid, Calendar, CalendarDays, BarChart3, FileText, FileSpreadsheet, ShieldCheck, Sparkles, Users, UsersRound, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { ResumoIADialog } from "./ResumoIADialog";
@@ -11,6 +11,7 @@ import { ProjetoHealthPanel } from "./ProjetoHealthPanel";
 import { ProjetoMembrosDialog } from "./ProjetoMembrosDialog";
 import { FilterButton, SortButton, ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { QuickAddTaskDialog } from "./QuickAddTaskDialog";
+import { ProjetoLixeiraDialog } from "./ProjetoLixeiraDialog";
 
 interface ProjetoHeaderProps {
   projeto: Projeto;
@@ -28,12 +29,17 @@ interface ProjetoHeaderProps {
   // Quick add
   secoes?: { id: string; nome: string }[];
   onAddTarefa?: (titulo: string, secaoId: string) => void;
+  // Lixeira
+  tarefasExcluidas?: { id: string; titulo: string; excluida_em: string }[];
+  tarefasExcluidasLoading?: boolean;
+  onRestaurarTarefa?: (tarefaId: string) => void;
 }
 
 export function ProjetoHeader({
   projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false,
   filters = EMPTY_FILTERS, onFiltersChange, sort = DEFAULT_SORT, onSortChange,
   teamMembers = [], secoes = [], onAddTarefa,
+  tarefasExcluidas = [], tarefasExcluidasLoading, onRestaurarTarefa,
 }: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
@@ -45,7 +51,7 @@ export function ProjetoHeader({
   const [resumoOpen, setResumoOpen] = useState(false);
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
   return (
     <div className="space-y-4">
       {/* Project title */}
@@ -75,6 +81,20 @@ export function ProjetoHeader({
           >
             <Sparkles className="h-3.5 w-3.5" />
             Resumo IA
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs relative ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setLixeiraOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Lixeira
+            {tarefasExcluidas.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+                {tarefasExcluidas.length}
+              </span>
+            )}
           </Button>
         </div>
       </div>
@@ -159,6 +179,14 @@ export function ProjetoHeader({
           onAddTarefa={onAddTarefa}
         />
       )}
+
+      <ProjetoLixeiraDialog
+        open={lixeiraOpen}
+        onOpenChange={setLixeiraOpen}
+        tarefas={tarefasExcluidas}
+        loading={tarefasExcluidasLoading}
+        onRestaurar={(id) => onRestaurarTarefa?.(id)}
+      />
     </div>
   );
 }
