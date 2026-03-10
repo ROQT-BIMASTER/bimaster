@@ -1400,6 +1400,45 @@ WHERE cp.DATA_EMISSAO >= @dataInicio
 ORDER BY cp.CONTA, cp.PARCELA
 OFFSET @offset ROWS;`;
 
+  const exportPayloadExample = `{
+  "api_version": "1.0",
+  "generated_at": "2026-03-10T14:30:00.000Z",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "empresa_id": 1,
+  "fornecedor": {
+    "nome": "Fornecedor ABC Ltda",
+    "documento": "12345678000190",
+    "documento_formatado": "12.345.678/0001-90"
+  },
+  "documento": {
+    "tipo": "NF",
+    "numero": "12345"
+  },
+  "pagamento": {
+    "valor": 1500.00,
+    "moeda": "BRL",
+    "data_vencimento": "2026-03-15",
+    "data_pagamento": "2026-03-10T14:30:00Z",
+    "metodo": "PIX",
+    "portador": "Banco Itaú"
+  },
+  "departamento": "Compras",
+  "descricao": "Compra de materiais",
+  "status": "Pago"
+}`;
+
+  const curlPullPaid = `curl -H "x-api-key: SUA_CHAVE" \\
+  "${SUPABASE_URL}/contas-pagar-export-api/paid?limit=50"`;
+
+  const curlPullConfirm = `curl -X POST \\
+  -H "x-api-key: SUA_CHAVE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"ids": ["uuid-1", "uuid-2"]}' \\
+  "${SUPABASE_URL}/contas-pagar-export-api/confirm"`;
+
+  const curlPullStatus = `curl -H "x-api-key: SUA_CHAVE" \\
+  "${SUPABASE_URL}/contas-pagar-export-api/status"`;
+
   const secrets = [
     { name: "N8N_API_KEY", description: "Chave de autenticação para requisições N8N", required: true },
     { name: "ERP_SQL_SERVER", description: "Host:Porta do SQL Server do ERP", required: false },
