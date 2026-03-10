@@ -254,8 +254,57 @@ export default function ChinaOrdemDetalhe() {
           />
         </Card>
 
-        {/* Production Form — only while production is not complete */}
-        {isActiveOrder && !isProductionComplete && (
+        {/* Approval Card — Brasil only, when status is rascunho */}
+        {isBrasilUser && ordem.status === "rascunho" && (
+          <Card className="p-5 border-2 border-dashed border-warning/40 bg-warning/5">
+            <BilingualLabel pt="⏳ Aguardando Aprovação" cn="⏳ 等待审批" size="md" className="mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">
+              Esta OC está em rascunho. Aprove para enviar à fábrica na China ou rejeite com observação.
+            </p>
+            {!showRejeitar ? (
+              <div className="flex gap-2">
+                <Button onClick={handleAprovar} disabled={approvalLoading} className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Aprovar OC
+                </Button>
+                <Button variant="destructive" onClick={() => setShowRejeitar(true)} disabled={approvalLoading} className="gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Rejeitar
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Textarea
+                  value={motivoRejeicao}
+                  onChange={(e) => setMotivoRejeicao(e.target.value)}
+                  placeholder="Motivo da rejeição..."
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button variant="destructive" onClick={handleRejeitar} disabled={approvalLoading}>
+                    Confirmar Rejeição
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowRejeitar(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Rejected info */}
+        {ordem.status === "rejeitada" && (
+          <Card className="p-5 border-2 border-destructive/30 bg-destructive/5">
+            <BilingualLabel pt="❌ OC Rejeitada" cn="❌ 采购单已拒绝" size="md" className="mb-2" />
+            {ordem.motivo_rejeicao && (
+              <p className="text-sm text-muted-foreground">Motivo: {ordem.motivo_rejeicao}</p>
+            )}
+          </Card>
+        )}
+
+        {/* Production Form — only when approved and production not complete */}
+        {isActiveOrder && isApproved && !isProductionComplete && (
           <ChinaApontamentoForm
             ordemId={ordem.id}
             cores={coreNames}
