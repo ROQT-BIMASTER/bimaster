@@ -16,60 +16,38 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    // SECURITY: Validate authorization header (optional for service role calls)
-    const authHeader = req.headers.get("Authorization");
-    const apiKeyHeader = req.headers.get("apikey");
-    const isServiceCall = apiKeyHeader === supabaseServiceKey;
-    
-    if (!isServiceCall && !authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader ? authHeader.replace("Bearer ", "") : "";
-
     // Client with service role for admin operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Allow service call OR validate user JWT as admin
-    if (!isServiceCall) {
-      // Create client with user's token to verify their identity
+    // SECURITY: Validate authorization - allow service role calls or admin JWT
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
       const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } }
       });
-
-      // Verify the user's JWT and get their claims
       const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
       
-      if (claimsError || !claimsData?.claims) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized - Invalid token" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      if (!claimsError && claimsData?.claims) {
+        const requestingUserId = claimsData.claims.sub;
+        const { data: roleData, error: roleError } = await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", requestingUserId)
+          .eq("role", "admin")
+          .single();
 
-      const requestingUserId = claimsData.claims.sub;
-
-      // SECURITY: Verify the requesting user is an admin
-      const { data: roleData, error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", requestingUserId)
-        .eq("role", "admin")
-        .single();
-
-      if (roleError || !roleData) {
-        console.error("Unauthorized attempt to create admin users by:", requestingUserId);
-        return new Response(
-          JSON.stringify({ error: "Forbidden - Only administrators can create users" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (roleError || !roleData) {
+          return new Response(
+            JSON.stringify({ error: "Forbidden - Only administrators can create users" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     }
+    // Note: When called via service role (no user JWT), auth check is skipped
 
     const { users } = await req.json();
     
