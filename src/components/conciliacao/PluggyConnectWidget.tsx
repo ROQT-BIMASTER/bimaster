@@ -1,4 +1,5 @@
-import { PluggyConnect } from "react-pluggy-connect";
+import { useEffect } from "react";
+import PluggyConnect from "pluggy-connect-sdk";
 
 interface PluggyConnectWidgetProps {
   connectToken: string;
@@ -15,24 +16,32 @@ export function PluggyConnectWidget({
   onError,
   onClose,
 }: PluggyConnectWidgetProps) {
-  return (
-    <div style={{ minHeight: 500 }}>
-      <PluggyConnect
-        connectToken={connectToken}
-        includeSandbox={includeSandbox}
-        onSuccess={(data) => {
-          console.log("✅ Pluggy onSuccess", data);
-          onSuccess(data);
-        }}
-        onError={(error) => {
-          console.error("❌ Pluggy onError:", error);
-          onError?.(error);
-        }}
-        onClose={() => {
-          console.log("Pluggy closed");
-          onClose?.();
-        }}
-      />
-    </div>
-  );
+  useEffect(() => {
+    const pluggyConnect = new PluggyConnect({
+      connectToken,
+      includeSandbox,
+      onSuccess: (data: any) => {
+        console.log("✅ Pluggy onSuccess", data);
+        onSuccess(data);
+      },
+      onError: (error: any) => {
+        console.error("❌ Pluggy onError:", error);
+        onError?.(error);
+      },
+      onClose: () => {
+        console.log("Pluggy closed");
+        onClose?.();
+      },
+    });
+
+    pluggyConnect.init();
+
+    return () => {
+      try {
+        pluggyConnect.destroy();
+      } catch {}
+    };
+  }, [connectToken]);
+
+  return null;
 }
