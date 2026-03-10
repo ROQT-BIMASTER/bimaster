@@ -1,56 +1,36 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Isolamento de Equipes: Projetos não aparece no Trade Marketing
 
-### O que muda
+## Problema
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+Quando admin ou usuários com visão total acessam o Trade Marketing (Minha Equipe, Mapa, Performance), o sistema busca **todos os perfis ativos** sem filtrar por departamento. Ao cadastrar as 12 usuárias de Projetos, elas apareceriam indevidamente no painel do Trade.
 
-### Implementação
+## Solução
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+Filtrar por `departamento_id` nos hooks e componentes do Trade Marketing, excluindo usuários do departamento "Projetos". A abordagem mais robusta é criar uma lista de departamentos excluídos (ou incluídos) para cada módulo.
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+### Estratégia de filtragem
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
+Nos 3 pontos onde o admin/full-visibility busca "todos os perfis", adicionar um filtro que exclui profiles cujo `departamento_id` pertence ao departamento "Projetos":
 
 ```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
+Query atual:   .from("profiles").select("...").eq("status", "ativo")
+Query nova:    .from("profiles").select("...").eq("status", "ativo")
+               .not("departamento_id", "eq", PROJETOS_DEPT_ID)
 ```
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Arquivos impactados
 
+| Arquivo | Mudança |
+|---------|---------|
+| Migration SQL | Criar departamento "Projetos" + inserir as 12 usuárias |
+| `src/hooks/useTradeSupervisorDashboard.ts` | Excluir dept Projetos na query admin (linha ~84-88) |
+| `src/hooks/useMapTeamData.ts` | Excluir dept Projetos na query admin (linha ~41-44) |
+| `src/components/trade/TeamHierarchyFilter.tsx` | Excluir dept Projetos na query admin (linha ~50-54) |
+| `src/components/trade/TeamPerformanceChart.tsx` | Excluir dept Projetos na query admin |
+
+### Cadastro das 12 usuárias
+
+Após criar o departamento "Projetos", chamar a edge function `create-admin-users` em batch:
+- **Luana** (l.bazilio) → role
