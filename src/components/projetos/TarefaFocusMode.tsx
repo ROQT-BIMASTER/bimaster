@@ -62,47 +62,6 @@ const COFRE_CATEGORIAS = [
   "briefing", "arte_final", "rotulo", "ficha_tecnica", "laudo", "certificado", "orcamento", "nota_fiscal", "art", "outro"
 ];
 
-// ── Mock data for testing/demo ──────────────────────────────────────────
-const now = new Date();
-const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000).toISOString();
-
-const MOCK_ANEXOS: any[] = [
-  { id: "mock-a1", nome: "Briefing_HB-L6532.pdf", tipo_arquivo: "application/pdf", tamanho: 2516582, storage_path: "mock/briefing.pdf", created_at: daysAgo(28), tarefa_id: "mock", user_id: "mock" },
-  { id: "mock-a2", nome: "Rotulo_frente_v3.png", tipo_arquivo: "image/png", tamanho: 1153434, storage_path: "mock/rotulo.png", created_at: daysAgo(22), tarefa_id: "mock", user_id: "mock" },
-  { id: "mock-a3", nome: "Ficha_Tecnica_final.pdf", tipo_arquivo: "application/pdf", tamanho: 911360, storage_path: "mock/ficha.pdf", created_at: daysAgo(18), tarefa_id: "mock", user_id: "mock" },
-  { id: "mock-a4", nome: "Arte_embalagem.ai", tipo_arquivo: "application/illustrator", tamanho: 5452595, storage_path: "mock/arte.ai", created_at: daysAgo(14), tarefa_id: "mock", user_id: "mock" },
-  { id: "mock-a5", nome: "Laudo_estabilidade.pdf", tipo_arquivo: "application/pdf", tamanho: 327680, storage_path: "mock/laudo.pdf", created_at: daysAgo(8), tarefa_id: "mock", user_id: "mock" },
-  { id: "mock-a6", nome: "Foto_amostra_01.jpg", tipo_arquivo: "image/jpeg", tamanho: 3984588, storage_path: "mock/foto.jpg", created_at: daysAgo(3), tarefa_id: "mock", user_id: "mock" },
-];
-
-const MOCK_COFRE_DOCS = [
-  { id: "mock-cd1", nome_arquivo: "Briefing_HB-L6532.pdf", tipo_arquivo: "application/pdf", categoria: "briefing", status: "aprovado", visivel_fabrica: false, created_at: daysAgo(26) },
-  { id: "mock-cd2", nome_arquivo: "Ficha_Tecnica_final.pdf", tipo_arquivo: "application/pdf", categoria: "ficha_tecnica", status: "ativo", visivel_fabrica: false, created_at: daysAgo(16) },
-  { id: "mock-cd3", nome_arquivo: "Laudo_estabilidade.pdf", tipo_arquivo: "application/pdf", categoria: "laudo", status: "ativo", visivel_fabrica: true, created_at: daysAgo(6) },
-];
-
-const MOCK_MESSAGES: any[] = [
-  { id: "mock-m1", conteudo: "Pessoal, acabei de subir o briefing atualizado. Podem revisar?", user_id: "u1", created_at: daysAgo(27), autor: { nome: "Ana Costa", avatar_url: null } },
-  { id: "mock-m2", conteudo: "Revisado! Faltou o campo de registro ANVISA, @Ana pode completar?", user_id: "u2", created_at: daysAgo(25), autor: { nome: "Carlos Silva", avatar_url: null } },
-  { id: "mock-m3", conteudo: "Feito! Já atualizei o briefing e subi a ficha técnica também.", user_id: "u1", created_at: daysAgo(17), autor: { nome: "Ana Costa", avatar_url: null } },
-  { id: "mock-m4", conteudo: "A arte da embalagem ficou ótima. Vou enviar para aprovação do cliente.", user_id: "u3", created_at: daysAgo(10), autor: { nome: "Mariana Souza", avatar_url: null } },
-  { id: "mock-m5", conteudo: "Cliente aprovou a arte! Podemos seguir para produção. 🎉", user_id: "u3", created_at: daysAgo(5), autor: { nome: "Mariana Souza", avatar_url: null } },
-];
-
-const MOCK_COMENTARIOS: any[] = [
-  { id: "mock-c1", conteudo: "Briefing revisado e aprovado. @Carlos pode iniciar a arte.", created_at: daysAgo(24), autor: { nome: "Ana Costa", avatar_url: null } },
-  { id: "mock-c2", conteudo: "Arte finalizada. Enviei o arquivo .AI para revisão do time de qualidade.", created_at: daysAgo(12), autor: { nome: "Carlos Silva", avatar_url: null } },
-  { id: "mock-c3", conteudo: "Laudo de estabilidade recebido do laboratório. Tudo dentro dos parâmetros.", created_at: daysAgo(4), autor: { nome: "Mariana Souza", avatar_url: null } },
-];
-
-const MOCK_METAS = [
-  { id: "mock-mt1", descricao: "Briefing aprovado pelo gerente de produto", concluida: true, created_at: daysAgo(26), data_meta: daysAgo(26) },
-  { id: "mock-mt2", descricao: "Arte da embalagem finalizada", concluida: true, created_at: daysAgo(14), data_meta: daysAgo(14) },
-  { id: "mock-mt3", descricao: "Ficha técnica validada pelo regulatório", concluida: true, created_at: daysAgo(10), data_meta: daysAgo(10) },
-  { id: "mock-mt4", descricao: "Aprovação final do cliente", concluida: false, created_at: daysAgo(5), data_meta: null },
-  { id: "mock-mt5", descricao: "Envio para linha de produção", concluida: false, created_at: daysAgo(2), data_meta: null },
-];
-// ── End mock data ───────────────────────────────────────────────────────
 
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   briefing: "Briefing", arte_final: "Arte Final", rotulo: "Rótulo", ficha_tecnica: "Ficha Técnica",
@@ -186,12 +145,11 @@ export function TarefaFocusMode({
     enabled: !!tarefa?.id,
   });
 
-  // Use mock data as fallback when real data is empty
-  const displayAnexos = useMemo(() => anexos.length > 0 ? anexos : MOCK_ANEXOS, [anexos]);
-  const cofreDocs = useMemo(() => cofreDocsReal.length > 0 ? cofreDocsReal : MOCK_COFRE_DOCS, [cofreDocsReal]);
-  const displayComentarios = useMemo(() => comentarios.length > 0 ? comentarios : MOCK_COMENTARIOS, [comentarios]);
-  const displayMessages = useMemo(() => messages.length > 0 ? messages : MOCK_MESSAGES, [messages]);
-  const displayMetas = useMemo(() => metas.length > 0 ? metas : MOCK_METAS as any[], [metas]);
+  const displayAnexos = anexos;
+  const cofreDocs = cofreDocsReal;
+  const displayComentarios = comentarios;
+  const displayMessages = messages;
+  const displayMetas = metas;
 
   // Identify which annexes are NOT in the cofre
   const anexosNoCofre = useMemo(() => {

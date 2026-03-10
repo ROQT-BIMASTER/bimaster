@@ -1,24 +1,56 @@
 
 
-## Remover Dados Mock do Focus Mode de Tarefas
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema
-O componente `TarefaFocusMode.tsx` usa dados mock (simulados) como fallback quando não há dados reais. Isso faz com que apareçam anexos, documentos, mensagens, comentários e metas fictícias dentro das tarefas do projeto BiMaster.
+### O que muda
 
-### Solução
-Remover todos os dados mock e os fallbacks no arquivo `src/components/projetos/TarefaFocusMode.tsx`:
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-1. **Deletar as constantes mock** (linhas 65-105): `MOCK_ANEXOS`, `MOCK_COFRE_DOCS`, `MOCK_MESSAGES`, `MOCK_COMENTARIOS`, `MOCK_METAS`
+### Implementação
 
-2. **Remover os fallbacks** (linhas 189-194): Substituir por uso direto dos dados reais:
-   - `displayAnexos` → usar `anexos` diretamente
-   - `cofreDocs` → usar `cofreDocsReal` diretamente
-   - `displayComentarios` → usar `comentarios` diretamente
-   - `displayMessages` → usar `messages` diretamente
-   - `displayMetas` → usar `metas` diretamente
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### Arquivo a Modificar
-| Arquivo | Alteração |
-|---|---|
-| `src/components/projetos/TarefaFocusMode.tsx` | Remover ~45 linhas de mock data e 5 linhas de fallback |
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
