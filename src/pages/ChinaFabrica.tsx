@@ -120,7 +120,6 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
       brasilOnly: false,
-      badge: null,
     },
     {
       icon: <Send className="h-10 w-10 text-success" />,
