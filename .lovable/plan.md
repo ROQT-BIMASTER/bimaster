@@ -1,30 +1,56 @@
 
 
-# Correção: Visibilidade das Ordens de Compra para China
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-## Problema
+### O que muda
 
-O card "Ordens de Compra" no dashboard está marcado como `brasilOnly: true`, impedindo a China de ver as OCs. Mas a China **precisa** acessar as OCs para:
-- Saber o que produzir (quantidades, cores, prazo)
-- Registrar apontamentos de produção
-- Preencher dados de embarque quando a produção termina
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-O fluxo correto é: **Brasil emite a OC** (isso já está certo — o botão "Emitir OC" é `isBrasilUser` only), mas **ambos os lados visualizam** a OC e seu progresso.
+### Implementação
 
-## Alterações
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### 1. `src/pages/ChinaFabrica.tsx`
-- Mudar o card "Ordens de Compra" de `brasilOnly: true` para `brasilOnly: false`
-- Ajustar a descrição para China: mostrar quantas OCs estão ativas para produção
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-### 2. `src/pages/ChinaOrdemDetalhe.tsx`
-- Adicionar `useChinaUserContext` para controle de permissões
-- **China**: vê resumo da OC, registra apontamentos de produção, preenche embarque — tudo já funcional
-- **Brasil**: adicionalmente vê botões de gestão (ex: cancelar OC, editar prazo) — futuro, mas a base de permissão fica pronta
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-### 3. `src/pages/ChinaOrdens.tsx`
-- Sem mudanças de lógica — a lista já funciona para ambos
-- Ajustar navegação do card: ao clicar, ir para `/dashboard/fabrica-china/ordens/${oc.id}` (detalhe da OC) em vez de redirecionar para a ficha do produto
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-Impacto mínimo: apenas 2 linhas no dashboard e 1 linha na navegação.
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

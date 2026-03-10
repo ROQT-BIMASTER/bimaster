@@ -66,7 +66,7 @@ export default function ChinaOrdens() {
                 <Card
                   key={oc.id}
                   className="p-5 cursor-pointer hover:shadow-lg transition-all"
-                  onClick={() => navigate(`/dashboard/fabrica-china/produto/${oc.submissao_id}`)}
+                  onClick={() => navigate(`/dashboard/fabrica-china/ordens/${oc.id}`)}
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
