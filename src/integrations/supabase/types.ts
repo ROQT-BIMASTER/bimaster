@@ -1133,6 +1133,58 @@ export type Database = {
           },
         ]
       }
+      china_documento_tarefa_vinculos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          documento_id: string
+          id: string
+          projeto_id: string
+          secao_id: string | null
+          tarefa_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          documento_id: string
+          id?: string
+          projeto_id: string
+          secao_id?: string | null
+          tarefa_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          documento_id?: string
+          id?: string
+          projeto_id?: string
+          secao_id?: string | null
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_documento_tarefa_vinculos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_documento_tarefa_vinculos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_documento_tarefa_vinculos_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_embarque_documentos: {
         Row: {
           arquivo_path: string | null

@@ -1,70 +1,56 @@
 
 
-## Vincular Documentos China a Tarefas/Seções + Visualizar Documentos e Grade
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Contexto
-A tela `ProjetoVincularChina` já vincula submissões a tarefas/seções, mas não permite vincular **documentos individuais** da China (da tabela `china_produto_documentos`) a tarefas específicas. O usuário quer:
-1. Ao selecionar uma submissão, ver os **documentos categorizados** (usando `DOCUMENT_CATEGORIES`) e poder vinculá-los a tarefas
-2. **Visualizar documentos** (preview de imagens/PDFs) diretamente na tela
-3. **Visualizar a Grade** (cores/quantidades) do produto selecionado
+### O que muda
 
-### Alterações
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-#### 1. Nova tabela: `china_documento_tarefa_vinculos`
-Mapeia documentos individuais da China a tarefas do projeto.
+### Implementação
 
-```sql
-CREATE TABLE china_documento_tarefa_vinculos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  documento_id UUID NOT NULL REFERENCES china_produto_documentos(id) ON DELETE CASCADE,
-  tarefa_id UUID NOT NULL,
-  secao_id UUID REFERENCES projeto_secoes(id) ON DELETE CASCADE,
-  projeto_id UUID NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(documento_id, tarefa_id)
-);
--- RLS
-ALTER TABLE china_documento_tarefa_vinculos ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "auth_manage" ON china_documento_tarefa_vinculos FOR ALL TO authenticated USING (true) WITH CHECK (true);
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-#### 2. Expandir `ProjetoVincularChina.tsx`
-Adicionar uma **terceira seção** abaixo dos dois painéis atuais (ou como aba/accordion dentro do painel direito):
-
-- **Painel de Documentos da Submissão**: Quando uma submissão é selecionada, exibir os documentos agrupados por `DOCUMENT_CATEGORIES`. Cada documento tem:
-  - Nome + tipo + status (badge)
-  - Botão **"Visualizar"** (abre preview em Dialog/Sheet — imagens inline, PDFs via iframe, outros via download)
-  - **Checkbox para vincular** à tarefa selecionada no painel direito
-
-- **Botão "Ver Grade"**: Quando submissão selecionada, exibir botão que abre um Dialog com `ChinaGradeView` mostrando cores, quantidades, pesos do produto (busca `china_produto_cores` da submissão)
-
-#### 3. Hook: `useChinaDocumentoVinculos`
-- `useDocumentosDaSubmissao(submissaoId)` — busca `china_produto_documentos` da submissão
-- `useCoresDaSubmissao(submissaoId)` — busca `china_produto_cores` para a grade
-- `useCreateDocVinculo()` / `useDeleteDocVinculo()` — CRUD na nova tabela
-- `useDocVinculosExistentes(projetoId)` — lista vínculos doc↔tarefa
-
-#### 4. Componente `ChinaDocPreviewDialog`
-Dialog reutilizável que recebe `arquivo_url` e `tipo_documento`:
-- Imagens: `<img>` com zoom
-- PDFs: `<iframe>`
-- Outros: link de download
-- Usa signed URL do storage `china-documentos`
-
-#### 5. Fluxo do usuário
-1. Seleciona submissão China (esquerda)
-2. Vê documentos categorizados + botão "Ver Grade" (centro/abaixo)
-3. Seleciona projeto e tarefas (direita)
-4. Vincula documentos específicos a tarefas específicas
-5. Pode visualizar qualquer documento ou a grade sem sair da tela
-
-### Arquivos a criar/modificar
-
-| Arquivo | Ação |
-|---|---|
-| Migration SQL | Nova tabela `china_documento_tarefa_vinculos` |
-| `src/hooks/useChinaDocumentoVinculos.ts` | Novo hook para docs + cores + CRUD vínculos |
-| `src/components/china/ChinaDocPreviewDialog.tsx` | Novo dialog de preview |
-| `src/pages/ProjetoVincularChina.tsx` | Expandir com seção de documentos + grade |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
