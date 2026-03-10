@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
