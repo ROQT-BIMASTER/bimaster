@@ -166,7 +166,7 @@ export default function ChinaRecebimentos() {
                      <p className="text-muted-foreground">{selected.produto_nome}</p>
                    </div>
                    <div className="flex gap-2 flex-wrap justify-end">
-                     {selected.status === "aprovado" && (
+                     {selected.status === "arte_enviada" && (
                        <Button
                          size="sm"
                          variant="default"
@@ -175,12 +175,19 @@ export default function ChinaRecebimentos() {
                          <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
                        </Button>
                      )}
-                     {selected.status !== "aprovado" && (
+                     {selected.status !== "aprovado" && selected.status !== "arte_enviada" && (
                        <>
                          <Button
                            size="sm"
                            variant="success"
-                           onClick={() => updateSubStatus.mutate({ id: selected.id, status: "aprovado" })}
+                           onClick={() => {
+                             const missingMandatory = MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo));
+                             if (missingMandatory) {
+                               toast.error("Foto e vídeo da amostra são obrigatórios! 照片和视频样品是必需的！");
+                               return;
+                             }
+                             updateSubStatus.mutate({ id: selected.id, status: "aprovado" });
+                           }}
                          >
                            <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar 批准
                          </Button>
