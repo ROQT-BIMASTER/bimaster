@@ -15,7 +15,7 @@ interface PluggyConnectWidgetProps {
   onOpen?: () => void;
 }
 
-const PLUGGY_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pluggy-proxy`;
+const PLUGGY_SCRIPT_URL = "/pluggy-connect.js";
 
 export function PluggyConnectWidget({
   connectToken,
