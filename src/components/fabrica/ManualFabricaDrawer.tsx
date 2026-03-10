@@ -21,7 +21,13 @@ export type ManualScreen =
   | "fiscal"
   | "tabelas-preco"
   | "ficha-custos"
-  | "comunicacao";
+  | "comunicacao"
+  | "china-painel"
+  | "china-submissoes"
+  | "china-nova-submissao"
+  | "china-ficha-produto"
+  | "china-ordens"
+  | "china-ordem-detalhe";
 
 interface ManualFabricaDrawerProps {
   screen: ManualScreen;
