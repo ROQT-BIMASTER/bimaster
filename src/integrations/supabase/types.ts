@@ -1475,6 +1475,8 @@ export type Database = {
           created_by: string | null
           dados_excel: Json | null
           ean_caixa_master: string | null
+          ean_display: string | null
+          ean_unidade: string | null
           formula_codigo: string | null
           id: string
           medidas_display: Json | null
@@ -1500,6 +1502,8 @@ export type Database = {
           created_by?: string | null
           dados_excel?: Json | null
           ean_caixa_master?: string | null
+          ean_display?: string | null
+          ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
           medidas_display?: Json | null
@@ -1525,6 +1529,8 @@ export type Database = {
           created_by?: string | null
           dados_excel?: Json | null
           ean_caixa_master?: string | null
+          ean_display?: string | null
+          ean_unidade?: string | null
           formula_codigo?: string | null
           id?: string
           medidas_display?: Json | null
