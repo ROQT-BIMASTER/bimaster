@@ -715,8 +715,9 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const totais = v.snapshot_totais || {};
                         const isCurrent = v.id === ficha.id;
                         const prevVersion = historicoVersoes.find((h: any) => h.versao === v.versao - 1);
-                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal;
-                        const variacaoTotal = prevTotal ? ((totais.custoTotal - prevTotal) / prevTotal * 100) : null;
+                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal ?? prevVersion?.snapshot_totais?.custoFinalTotal;
+                        const curTotal = totais.custoTotal ?? totais.custoFinalTotal ?? 0;
+                        const variacaoTotal = prevTotal ? ((curTotal - prevTotal) / prevTotal * 100) : null;
                         return (
                           <div key={v.id} className={`p-3 border rounded-lg flex items-center justify-between ${isCurrent ? "border-primary bg-primary/5" : ""}`}>
                             <div>
