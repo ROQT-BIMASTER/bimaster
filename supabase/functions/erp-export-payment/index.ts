@@ -58,8 +58,19 @@ serve(async (req) => {
   }
 });
 
+function mapPaymentMethod(method: string | null): string {
+  if (!method) return "Não informado";
+  const map: Record<string, string> = {
+    pix: "PIX", pix_code: "PIX", "2": "PIX",
+    ted: "TED", transferencia: "Transferência Bancária", transfer: "Transferência Bancária",
+    boleto: "Boleto", "1": "Boleto", cartao: "Cartão",
+    credit_card: "Cartão de Crédito", debit_card: "Cartão de Débito",
+    dinheiro: "Dinheiro", cash: "Dinheiro", cheque: "Cheque",
+  };
+  return map[method.toLowerCase().trim()] || method;
+}
+
 async function handleExport(supabase: any, paymentQueueId: string, channel: string | undefined, userId: string) {
-  // Fetch the payment queue item
   const { data: item, error: fetchErr } = await supabase
     .from("financial_payment_queue")
     .select("*")
@@ -70,10 +81,8 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
     return jsonResponse({ error: "Item não encontrado" }, 404);
   }
 
-  // Determine channel: use provided or default to n8n
   const exportChannel = channel || "n8n";
 
-  // Build clean ERP payload (no internal codes)
   const payload = {
     empresa_id: item.empresa_id || 1,
     fornecedor_nome: item.supplier_name,
@@ -89,18 +98,6 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
     portador: item.portador,
     departamento: item.department_name,
   };
-
-function mapPaymentMethod(method: string | null): string {
-  if (!method) return "Não informado";
-  const map: Record<string, string> = {
-    pix: "PIX", pix_code: "PIX", "2": "PIX",
-    ted: "TED", transferencia: "Transferência Bancária", transfer: "Transferência Bancária",
-    boleto: "Boleto", "1": "Boleto", cartao: "Cartão",
-    credit_card: "Cartão de Crédito", debit_card: "Cartão de Débito",
-    dinheiro: "Dinheiro", cash: "Dinheiro", cheque: "Cheque",
-  };
-  return map[method.toLowerCase().trim()] || method;
-}
 
   // Create export queue record
   const { data: exportRecord, error: insertErr } = await supabase
