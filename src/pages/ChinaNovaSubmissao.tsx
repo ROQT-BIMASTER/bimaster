@@ -96,7 +96,6 @@ export default function ChinaNovaSubmissao() {
           peso_bruto_g: validatedData.peso_bruto_g || null,
           peso_liquido_g: validatedData.peso_liquido_g || null,
           ean_display: validatedData.ean_display || null,
-          ean_unidade: validatedData.ean_unidade || null,
           ean_caixa_master: validatedData.ean_caixa_master || null,
           dados_excel: validatedData,
           created_by: session.user.id,
