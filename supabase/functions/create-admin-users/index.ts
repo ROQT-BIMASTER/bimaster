@@ -64,11 +64,12 @@ serve(async (req) => {
       const { email, password, nome, role, departamento_id, tela_ids, modulo_id } = user;
 
       try {
+        console.log("Creating user:", email, "with service key present:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
         // Create user in auth
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email,
           password,
-          email_confirm: true, // Auto-confirm email
+          email_confirm: true,
           user_metadata: {
             nome,
             tipo_usuario: role
