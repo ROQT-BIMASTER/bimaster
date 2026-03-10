@@ -1247,23 +1247,41 @@ export type Database = {
       }
       china_produto_cores: {
         Row: {
+          codigo_barras_ean: string | null
+          codigo_produto: string | null
+          cor_hex: string | null
           cor_nome: string
+          cor_numero: string | null
+          foto_url: string | null
           grupo: string
           id: string
+          ordem: number | null
           quantidade: number
           submissao_id: string
         }
         Insert: {
+          codigo_barras_ean?: string | null
+          codigo_produto?: string | null
+          cor_hex?: string | null
           cor_nome: string
+          cor_numero?: string | null
+          foto_url?: string | null
           grupo: string
           id?: string
+          ordem?: number | null
           quantidade?: number
           submissao_id: string
         }
         Update: {
+          codigo_barras_ean?: string | null
+          codigo_produto?: string | null
+          cor_hex?: string | null
           cor_nome?: string
+          cor_numero?: string | null
+          foto_url?: string | null
           grupo?: string
           id?: string
+          ordem?: number | null
           quantidade?: number
           submissao_id?: string
         }
