@@ -222,13 +222,34 @@ export default function ChinaRecebimentos() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge variant={statusInfo.variant} className="text-[10px]">
-                        {statusInfo.pt} {statusInfo.cn}
-                      </Badge>
-                      {isDraft && (
-                        <span className="text-[10px] text-primary font-medium">
-                          ▶ Continuar 继续
-                        </span>
+                      {showTrash ? (
+                        <>
+                          <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">
+                            <Trash2 className="h-3 w-3 mr-0.5" /> Excluído 已删除
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] gap-1"
+                            onClick={(e) => handleRestore(sub.id, e)}
+                          >
+                            <RotateCcw className="h-3 w-3" /> Restaurar 恢复
+                          </Button>
+                          <span className="text-[9px] text-muted-foreground">
+                            {sub.deleted_at && `Excluído em ${new Date(sub.deleted_at).toLocaleDateString("pt-BR")}`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Badge variant={statusInfo.variant} className="text-[10px]">
+                            {statusInfo.pt} {statusInfo.cn}
+                          </Badge>
+                          {isDraft && (
+                            <span className="text-[10px] text-primary font-medium">
+                              ▶ Continuar 继续
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
