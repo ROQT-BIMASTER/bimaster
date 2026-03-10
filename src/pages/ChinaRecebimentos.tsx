@@ -13,6 +13,8 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { SubmissionManual } from "@/components/china/SubmissionManual";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
