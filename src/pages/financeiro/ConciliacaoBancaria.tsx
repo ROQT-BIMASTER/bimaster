@@ -24,7 +24,7 @@ import {
 import { useConciliacaoBancaria } from "@/hooks/useConciliacaoBancaria";
 import { DashboardConciliacao } from "@/components/conciliacao/DashboardConciliacao";
 import { TabelaPendentes } from "@/components/conciliacao/TabelaPendentes";
-import { PluggyConnect } from "react-pluggy-connect";
+import { PluggyConnectWidget } from "@/components/conciliacao/PluggyConnectWidget";
 import { toast } from "sonner";
 
 export default function ConciliacaoBancaria() {
