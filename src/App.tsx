@@ -194,6 +194,9 @@ const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
 const FormularioEquipe = lazyWithRetry(() => import("./pages/FormularioEquipe"));
 const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
+const ChinaFabrica = lazyWithRetry(() => import("./pages/ChinaFabrica"));
+const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissao"));
+const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
@@ -399,6 +402,11 @@ function AppContent() {
             <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
+
+            {/* Módulo Fábrica China */}
+            <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ChinaFabrica /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ChinaRecebimentos /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
