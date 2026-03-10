@@ -26,7 +26,7 @@ export default function ChinaRecebimentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("china_produto_submissoes" as any)
-        .select("*")
+        .select("*, cores:china_produto_cores(codigo_barras_ean)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
