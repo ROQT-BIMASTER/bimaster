@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
+import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { CHINA_DOCUMENT_TYPES, STATUS_LABELS } from "@/lib/china-document-types";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
