@@ -74,9 +74,21 @@ export default function ChinaRecebimentos() {
     return true;
   });
 
-  const pendingCount = submissoes.filter(
+  const pendingCount = activeSubmissoes.filter(
     (s: any) => s.status === "rejeitado" || (rejectedDocsMap as any)[s.id] > 0
   ).length;
+
+  // Restore from trash
+  const handleRestore = async (subId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await supabase
+      .from("china_produto_submissoes" as any)
+      .update({ deleted_at: null, deleted_by: null, delete_reason: null } as any)
+      .eq("id", subId);
+    toast.success("Submissão restaurada! 提交已恢复！");
+    // refetch
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
