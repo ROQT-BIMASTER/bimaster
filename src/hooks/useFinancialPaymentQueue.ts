@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
+import { exportPaymentToErp } from "@/hooks/useErpExport";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense' | 'department_expense';
@@ -392,6 +393,17 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           code: data.code,
           supplier_name: data.supplier_name,
           financial_notes: variables.financial_notes || null,
+        });
+      }
+
+      // Auto-export to ERP when marked as paid
+      if (variables.financial_status === 'paid' && data) {
+        exportPaymentToErp(data.id).then((result) => {
+          if (result.success) {
+            console.log(`ERP export success for ${data.code}`);
+          } else {
+            console.warn(`ERP export failed for ${data.code}: ${result.message}`);
+          }
         });
       }
 

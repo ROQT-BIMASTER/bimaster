@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Wallet, Target, Calendar, Building2, FileText, ExternalLink, Loader2, AlertTriangle, Paperclip, UserCircle, ShieldCheck, MessageCircle, RotateCcw, Pencil, Save, X, Printer } from "lucide-react";
+import { ErpExportStatusBadge } from "./ErpExportStatusBadge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatLocalDate, parseLocalDate, getToday } from "@/utils/dateUtils";
@@ -252,7 +253,10 @@ export function PaymentReviewDialog({
               <FileText className="h-5 w-5" />
               Revisão de Pagamento
             </DialogTitle>
-            <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
+              {isPaid && <ErpExportStatusBadge paymentQueueId={item.id} />}
+            </div>
           </div>
           <DialogDescription>
             {item.code} • {sourceTypeLabels[item.source_type]}
