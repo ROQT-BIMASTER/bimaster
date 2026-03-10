@@ -478,7 +478,7 @@ export default function ChinaFichaProduto() {
         )}
 
         {/* Projetos Vinculados */}
-        <ChinaProjetosVinculadosSection submissao={submissao} />
+        {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
 
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (
