@@ -124,12 +124,12 @@ export default function ChinaRecebimentos() {
                 variant={filter === "all" ? "default" : "outline"}
                 onClick={() => setFilter("all")}
               >
-                Todas 全部 ({submissoes.length})
+                Todas 全部 ({activeSubmissoes.length})
               </Button>
               <Button
                 size="sm"
                 variant={filter === "pending_action" ? "destructive" : "outline"}
-                onClick={() => setFilter("pending_action")}
+                onClick={() => { setFilter("pending_action"); setShowTrash(false); }}
                 className="gap-1"
               >
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -137,6 +137,15 @@ export default function ChinaRecebimentos() {
               </Button>
             </div>
           )}
+          <Button
+            size="sm"
+            variant={showTrash ? "destructive" : "outline"}
+            onClick={() => setShowTrash(!showTrash)}
+            className="gap-1 ml-auto"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Lixeira 回收站 {trashedSubmissoes.length > 0 && `(${trashedSubmissoes.length})`}
+          </Button>
         </div>
 
         {/* List */}
