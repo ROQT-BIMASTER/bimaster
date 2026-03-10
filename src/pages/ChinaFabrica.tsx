@@ -78,6 +78,14 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
     },
+    {
+      icon: <Send className="h-10 w-10 text-success" />,
+      labelPt: "Arte Enviada",
+      labelCn: "终稿已发送",
+      desc: `${stats?.arte_enviada || 0} artes enviadas 终稿已发送`,
+      onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
+      color: "bg-success/5 hover:bg-success/10 border-success/20",
+    },
   ];
 
   return (
