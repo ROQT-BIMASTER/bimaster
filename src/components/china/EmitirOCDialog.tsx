@@ -18,6 +18,7 @@ interface EmitirOCDialogProps {
 export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: EmitirOCDialogProps) {
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [eanCaixaMaster, setEanCaixaMaster] = useState(submissao?.ean_caixa_master || "");
   const [loading, setLoading] = useState(false);
 
   const qtyTotal = submissao?.qty_total || 0;
