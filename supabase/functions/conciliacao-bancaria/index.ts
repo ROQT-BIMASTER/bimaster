@@ -180,7 +180,7 @@ async function handleSyncTransactions(
           );
           return (
             diffDays <= 3 &&
-            Math.abs(parseFloat(c.valor_aberto || c.valor) - txValue) < 0.01
+            Math.abs(parseFloat(c.valor_aberto || c.valor_original) - txValue) < 0.01
           );
         });
         if (matchedContaPagar) confianca = "media";
@@ -189,9 +189,9 @@ async function handleSyncTransactions(
       // Tier 3: fornecedor + valor ±5%
       if (!matchedContaPagar) {
         matchedContaPagar = contasPagar.find((c: any) => {
-          if (!c.fornecedor) return false;
-          const fornecedorUpper = c.fornecedor.toUpperCase();
-          const valorRef = parseFloat(c.valor_aberto || c.valor);
+          if (!c.fornecedor_nome) return false;
+          const fornecedorUpper = c.fornecedor_nome.toUpperCase();
+          const valorRef = parseFloat(c.valor_aberto || c.valor_original);
           const diff = Math.abs(valorRef - txValue) / valorRef;
           return txDesc.includes(fornecedorUpper) && diff <= 0.05;
         });

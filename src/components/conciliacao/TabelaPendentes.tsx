@@ -151,7 +151,7 @@ export function TabelaPendentes({ conciliacoes, onMatch, isMatching, filter = "a
                             />
                           </div>
                           <div className="max-h-60 overflow-auto space-y-1">
-                            {contasPagar?.map((cp) => (
+                            {contasPagar?.map((cp: any) => (
                               <div
                                 key={cp.id}
                                 className="flex items-center justify-between p-2 rounded hover:bg-muted cursor-pointer border"
@@ -161,7 +161,7 @@ export function TabelaPendentes({ conciliacoes, onMatch, isMatching, filter = "a
                                 }}
                               >
                                 <div>
-                                  <p className="text-sm font-medium">{cp.fornecedor}</p>
+                                  <p className="text-sm font-medium">{cp.fornecedor_nome}</p>
                                   <p className="text-xs text-muted-foreground">
                                     Doc: {cp.numero_documento || "—"} | Venc:{" "}
                                     {cp.data_vencimento
@@ -170,7 +170,7 @@ export function TabelaPendentes({ conciliacoes, onMatch, isMatching, filter = "a
                                   </p>
                                 </div>
                                 <span className="text-sm font-medium">
-                                  {formatCurrency(parseFloat(cp.valor_aberto || cp.valor))}
+                                  {formatCurrency(parseFloat(cp.valor_aberto || cp.valor_original))}
                                 </span>
                               </div>
                             ))}
