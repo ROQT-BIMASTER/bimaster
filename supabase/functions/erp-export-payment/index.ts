@@ -83,20 +83,33 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
 
   const exportChannel = channel || "n8n";
 
+  const doc = item.supplier_document as string | null;
+  const cleanDoc = doc ? doc.replace(/[^\d]/g, "") : null;
+
   const payload = {
+    api_version: "1.0",
+    generated_at: new Date().toISOString(),
     empresa_id: item.empresa_id || 1,
-    fornecedor_nome: item.supplier_name,
-    fornecedor_documento: item.supplier_document,
-    tipo_documento: item.document_type,
-    numero_documento: item.document_number,
-    valor: item.amount,
-    data_vencimento: item.due_date,
-    data_pagamento: item.paid_at,
-    metodo_pagamento: mapPaymentMethod(item.payment_method),
-    status: "Pago",
-    observacoes: item.description,
-    portador: item.portador,
+    fornecedor: {
+      nome: item.supplier_name,
+      documento: cleanDoc,
+      documento_formatado: doc,
+    },
+    documento: {
+      tipo: item.document_type,
+      numero: item.document_number,
+    },
+    pagamento: {
+      valor: Number(item.amount) || 0,
+      moeda: "BRL",
+      data_vencimento: item.due_date,
+      data_pagamento: item.paid_at,
+      metodo: mapPaymentMethod(item.payment_method),
+      portador: item.portador,
+    },
     departamento: item.department_name,
+    descricao: item.description,
+    status: "Pago",
   };
 
   // Create export queue record
