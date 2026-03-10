@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
@@ -25,6 +25,7 @@ export default function ChinaFabrica() {
         em_revisao: items.filter((s: any) => s.status === "em_revisao").length,
         aprovado: items.filter((s: any) => s.status === "aprovado").length,
         rejeitado: items.filter((s: any) => s.status === "rejeitado").length,
+        arte_enviada: items.filter((s: any) => s.status === "arte_enviada").length,
       };
     },
   });
@@ -76,6 +77,14 @@ export default function ChinaFabrica() {
       desc: `${ocStats?.ativas || 0} ativas 活跃 · ${ocStats?.concluidas || 0} concluídas 已完成`,
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
+    },
+    {
+      icon: <Send className="h-10 w-10 text-success" />,
+      labelPt: "Arte Enviada",
+      labelCn: "终稿已发送",
+      desc: `${stats?.arte_enviada || 0} artes enviadas 终稿已发送`,
+      onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
+      color: "bg-success/5 hover:bg-success/10 border-success/20",
     },
   ];
 

@@ -9,7 +9,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
-import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib/china-document-types";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
@@ -288,17 +288,34 @@ export default function ChinaNovaSubmissao() {
         {step === 1 && (
           <Card className="p-6 space-y-6">
             <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {CHINA_DOCUMENT_TYPES.filter(d => d.tipo !== "planilha_excel").map((config) => (
-                <ChinaDocumentSlot
-                  key={config.tipo}
-                  config={config}
-                  status={docs[config.tipo]?.status || "none"}
-                  fileName={docs[config.tipo]?.fileName}
-                  onUpload={(file) => handleDocUpload(config.tipo, file)}
-                />
-              ))}
-            </div>
+
+            {/* Grouped by category */}
+            {DOCUMENT_CATEGORIES.map((cat) => {
+              const catDocs = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo));
+              return (
+                <div key={cat.key} className="space-y-3">
+                  <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {catDocs.map((config) => (
+                      <ChinaDocumentSlot
+                        key={config.tipo}
+                        config={config}
+                        status={docs[config.tipo]?.status || "none"}
+                        fileName={docs[config.tipo]?.fileName}
+                        onUpload={(file) => handleDocUpload(config.tipo, file)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Mandatory docs warning */}
+            {MANDATORY_DOCS.some(tipo => !docs[tipo]) && (
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
+                ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
+              </div>
+            )}
 
             {/* Grade Editor */}
             <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />

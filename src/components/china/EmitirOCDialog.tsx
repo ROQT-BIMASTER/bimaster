@@ -18,6 +18,7 @@ interface EmitirOCDialogProps {
 export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: EmitirOCDialogProps) {
   const [dataEntrega, setDataEntrega] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [eanCaixaMaster, setEanCaixaMaster] = useState(submissao?.ean_caixa_master || "");
   const [loading, setLoading] = useState(false);
 
   const qtyTotal = submissao?.qty_total || 0;
@@ -49,6 +50,7 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
           qty_total: qtyTotal,
           data_entrega_prevista: dataEntrega,
           observacoes,
+          ean_caixa_master: eanCaixaMaster || null,
           created_by: user?.id,
         } as any);
 
@@ -95,6 +97,16 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
                 className="pl-10"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <BilingualLabel pt="EAN Caixa Master" cn="主箱EAN" size="sm" />
+            <Input
+              value={eanCaixaMaster}
+              onChange={(e) => setEanCaixaMaster(e.target.value)}
+              placeholder="Ex: 7898000000000"
+              className="font-mono"
+            />
           </div>
 
           <div className="space-y-2">

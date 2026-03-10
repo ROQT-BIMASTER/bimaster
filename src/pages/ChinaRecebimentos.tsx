@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart, Upload, Barcode, Send } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
-import { CHINA_DOCUMENT_TYPES, STATUS_LABELS } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +24,9 @@ export default function ChinaRecebimentos() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
+  const [eanCaixaMaster, setEanCaixaMaster] = useState("");
+  const [arteFile, setArteFile] = useState<File | null>(null);
+  const [sendingArte, setSendingArte] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
@@ -161,7 +166,7 @@ export default function ChinaRecebimentos() {
                      <p className="text-muted-foreground">{selected.produto_nome}</p>
                    </div>
                    <div className="flex gap-2 flex-wrap justify-end">
-                     {selected.status === "aprovado" && (
+                     {selected.status === "arte_enviada" && (
                        <Button
                          size="sm"
                          variant="default"
@@ -170,12 +175,19 @@ export default function ChinaRecebimentos() {
                          <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
                        </Button>
                      )}
-                     {selected.status !== "aprovado" && (
+                     {selected.status !== "aprovado" && selected.status !== "arte_enviada" && (
                        <>
                          <Button
                            size="sm"
                            variant="success"
-                           onClick={() => updateSubStatus.mutate({ id: selected.id, status: "aprovado" })}
+                           onClick={() => {
+                             const missingMandatory = MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo));
+                             if (missingMandatory) {
+                               toast.error("Foto e vídeo da amostra são obrigatórios! 照片和视频样品是必需的！");
+                               return;
+                             }
+                             updateSubStatus.mutate({ id: selected.id, status: "aprovado" });
+                           }}
                          >
                            <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar 批准
                          </Button>
@@ -230,58 +242,130 @@ export default function ChinaRecebimentos() {
                   </div>
                 </div>
 
-                {/* Documents Grid */}
-                <div>
-                  <BilingualLabel pt="Documentos" cn="文件" size="md" className="mb-3" />
-                  <div className="space-y-2">
-                    {CHINA_DOCUMENT_TYPES.map((config) => {
-                      const doc = documentos.find((d: any) => d.tipo_documento === config.tipo);
-                      return (
-                        <div key={config.tipo} className="flex items-center gap-3 p-3 bg-card border rounded-lg">
-                          <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                            {config.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <BilingualLabel pt={config.labelPt} cn={config.labelCn} size="sm" />
-                            {doc?.nome_arquivo && (
-                              <p className="text-xs text-muted-foreground truncate">{doc.nome_arquivo}</p>
-                            )}
-                          </div>
-                          {doc ? (
-                            <div className="flex items-center gap-1">
-                              <Button size="sm" variant="ghost" onClick={() => handleViewDoc(doc)}>
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => updateDocStatus.mutate({ docId: doc.id, status: "aprovado" })}
-                                className="text-success"
-                              >
-                                <CheckCircle2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setObsDialog({ docId: doc.id, obs: "" })}
-                                className="text-destructive"
-                              >
-                                <XCircle className="h-3 w-3" />
-                              </Button>
-                              <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "rejeitado" ? "destructive" : "warning"} className="text-[10px]">
-                                {doc.status === "aprovado" ? "✓" : doc.status === "rejeitado" ? "✗" : "●"}
-                              </Badge>
+                {/* Documents Grid - Grouped by Category */}
+                {DOCUMENT_CATEGORIES.map((cat) => {
+                  const catDocTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo));
+                  return (
+                    <div key={cat.key}>
+                      <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="mb-3 border-b border-border pb-2" />
+                      <div className="space-y-2">
+                        {catDocTypes.map((config) => {
+                          const doc = documentos.find((d: any) => d.tipo_documento === config.tipo);
+                          return (
+                            <div key={config.tipo} className="flex items-center gap-3 p-3 bg-card border rounded-lg">
+                              <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                                {config.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <BilingualLabel pt={config.labelPt} cn={config.labelCn} size="sm" />
+                                {doc?.nome_arquivo && (
+                                  <p className="text-xs text-muted-foreground truncate">{doc.nome_arquivo}</p>
+                                )}
+                              </div>
+                              {doc ? (
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost" onClick={() => handleViewDoc(doc)}>
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => updateDocStatus.mutate({ docId: doc.id, status: "aprovado" })}
+                                    className="text-success"
+                                  >
+                                    <CheckCircle2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setObsDialog({ docId: doc.id, obs: "" })}
+                                    className="text-destructive"
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                  </Button>
+                                  <Badge variant={doc.status === "aprovado" ? "success" : doc.status === "rejeitado" ? "destructive" : "warning"} className="text-[10px]">
+                                    {doc.status === "aprovado" ? "✓" : doc.status === "rejeitado" ? "✗" : "●"}
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  <Clock className="h-3 w-3 mr-1" /> Aguardando 待上传
+                                </Badge>
+                              )}
                             </div>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px]">
-                              <Clock className="h-3 w-3 mr-1" /> Aguardando 待上传
-                            </Badge>
-                          )}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Resposta Brasil - Arte Final + EAN */}
+                {selected.status === "aprovado" && (
+                  <Card className="p-5 border-primary/30 bg-primary/5 space-y-4">
+                    <BilingualLabel pt="Resposta Brasil — Arte Final + EAN" cn="巴西回复 — 终稿 + EAN" size="md" />
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-foreground">Arte Final 终稿</label>
+                        <div className="mt-1">
+                          <input
+                            type="file"
+                            onChange={(e) => setArteFile(e.target.files?.[0] || null)}
+                            className="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:font-medium file:cursor-pointer"
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <Barcode className="h-4 w-4" /> EAN Caixa Master 主箱EAN
+                        </label>
+                        <Input
+                          value={eanCaixaMaster}
+                          onChange={(e) => setEanCaixaMaster(e.target.value)}
+                          placeholder="Ex: 7898000000000"
+                          className="mt-1 font-mono"
+                        />
+                      </div>
+                      <Button
+                        onClick={async () => {
+                          if (!arteFile) {
+                            toast.error("Selecione o arquivo da arte final 请选择终稿文件");
+                            return;
+                          }
+                          setSendingArte(true);
+                          try {
+                            const path = `${selected.id}/arte_final/${arteFile.name}`;
+                            const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, arteFile);
+                            if (error) throw error;
+                            await supabase
+                              .from("china_produto_submissoes" as any)
+                              .update({
+                                arte_final_url: signedUrl,
+                                arte_final_path: path,
+                                arte_final_enviada_em: new Date().toISOString(),
+                                ean_caixa_master: eanCaixaMaster || null,
+                                status: "arte_enviada",
+                              } as any)
+                              .eq("id", selected.id);
+                            queryClient.invalidateQueries({ queryKey: ["china-submissoes"] });
+                            toast.success("Arte final enviada com sucesso! 终稿已发送！");
+                            setArteFile(null);
+                            setEanCaixaMaster("");
+                          } catch (err: any) {
+                            toast.error(err.message || "Erro ao enviar arte");
+                          } finally {
+                            setSendingArte(false);
+                          }
+                        }}
+                        disabled={sendingArte}
+                        className="gap-2"
+                      >
+                        {sendingArte ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        Enviar Arte + EAN 发送终稿和EAN
+                      </Button>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Observations */}
                 {selected.observacoes_china && (
