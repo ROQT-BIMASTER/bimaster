@@ -422,7 +422,7 @@ export default function ChinaFichaProduto() {
         })}
 
         {/* Arte Final + EAN Section */}
-        {showArteSection && (
+        {isBrasilUser && showArteSection && (
           <Card className="p-6 border-primary/30 bg-primary/5 space-y-4">
             <BilingualLabel pt="Resposta Brasil — Arte Final + EAN" cn="巴西回复 — 终稿 + EAN" size="md" />
             <div className="space-y-3">
