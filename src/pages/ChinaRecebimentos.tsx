@@ -132,10 +132,10 @@ export default function ChinaRecebimentos() {
               submissoes.map((sub: any) => {
                 const statusInfo = STATUS_LABELS[sub.status] || STATUS_LABELS.rascunho;
                 return (
-                  <Card
+                    <Card
                     key={sub.id}
                     className={`p-4 cursor-pointer transition-all ${selectedId === sub.id ? "ring-2 ring-primary" : "hover:shadow-md"}`}
-                    onClick={() => setSelectedId(sub.id)}
+                    onClick={() => navigate(`/dashboard/fabrica-china/produto/${sub.id}`)}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
