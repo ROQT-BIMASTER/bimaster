@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
