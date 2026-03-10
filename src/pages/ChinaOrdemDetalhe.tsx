@@ -20,6 +20,10 @@ export default function ChinaOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isBrasilUser } = useChinaUserContext();
+  const [motivoRejeicao, setMotivoRejeicao] = useState("");
+  const [showRejeitar, setShowRejeitar] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["china-ordem", id],
