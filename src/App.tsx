@@ -466,6 +466,7 @@ function AppContent() {
              <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoInbox /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/minha-equipe" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetosMinhaEquipe /></ModuleProtectedRoute></ProtectedRoute>} />
+             <Route path="/dashboard/projetos/vincular-china" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoVincularChina /></ModuleProtectedRoute></ProtectedRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo de Reuniões */}
