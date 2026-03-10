@@ -267,6 +267,22 @@ export default function Financeiro() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Contas a Pagar e Receber</h2>
           <div className="grid gap-4 md:grid-cols-4">
+            <Link to="/dashboard/financeiro/conciliacao-bancaria">
+              <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Conciliação Bancária</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">
+                    Conciliação automática via Pluggy
+                  </p>
+                  <div className="mt-2 flex items-center text-xs text-primary">
+                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
             <Link to="/dashboard/financeiro/contas-a-pagar">
               <Card className="hover:border-primary cursor-pointer transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
