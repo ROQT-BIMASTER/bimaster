@@ -984,7 +984,7 @@ export default function ChinaNovaSubmissao() {
                 <BilingualLabel pt="Medidas do Display" cn="展示尺寸" size="md" />
                 <div>
                   <Label className="text-sm">Largura (cm) 宽度</Label>
-                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" />
+                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Altura (cm) 高度</Label>
