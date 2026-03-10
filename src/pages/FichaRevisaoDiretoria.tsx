@@ -433,7 +433,7 @@ export default function FichaRevisaoDiretoria() {
                             <TableCell className="font-mono">{ficha.produto?.codigo}</TableCell>
                             <TableCell><Badge variant="outline">v{ficha.versao}</Badge></TableCell>
                             <TableCell>{new Date(ficha.submetido_em).toLocaleDateString("pt-BR")}</TableCell>
-                            <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal || 0)}</TableCell>
+                            <TableCell className="font-semibold">{formatarMoeda(ficha.snapshot_totais?.custoTotal ?? ficha.snapshot_totais?.custoFinalTotal ?? 0)}</TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant={fichaAberta?.id === ficha.id ? "default" : "outline"} onClick={() => setFichaAberta(fichaAberta?.id === ficha.id ? null : ficha)}>
                                 <Eye className="h-4 w-4 mr-1" /> {fichaAberta?.id === ficha.id ? "Fechar" : "Analisar"}

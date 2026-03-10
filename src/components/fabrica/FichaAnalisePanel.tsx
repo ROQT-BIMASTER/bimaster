@@ -364,7 +364,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               </div>
               <div className="p-3 bg-primary/10 rounded text-center border-2 border-primary">
                 <p className="text-xs text-muted-foreground">Custo Total</p>
-                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal || 0)}</p>
+                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal ?? snapshotTotais.custoFinalTotal ?? 0)}</p>
               </div>
             </div>
 

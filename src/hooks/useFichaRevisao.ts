@@ -170,7 +170,7 @@ export function useFichaRevisao(produtoId: string | undefined, configId: string 
       .insert({
         config_id: cfgId, produto_id: prodId, status: "pendente",
         snapshot_insumos: insumosArr as any, snapshot_config: configObj as any,
-        snapshot_totais: { ...totaisObj, alteracoes_pendentes: alteracoesPendentes } as any,
+        snapshot_totais: { ...totaisObj, custoTotal: totaisObj.custoTotal ?? totaisObj.custoFinalTotal ?? 0, alteracoes_pendentes: alteracoesPendentes } as any,
         submetido_por: userId, versao: novaVersao,
       })
       .select().single();

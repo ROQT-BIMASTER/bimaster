@@ -160,7 +160,8 @@ export default function FabricaProdutosAcabados() {
     revisoes.forEach((r: any) => {
       if (!map.has(r.produto_id) && r.snapshot_totais) {
         const totais = typeof r.snapshot_totais === 'string' ? JSON.parse(r.snapshot_totais) : r.snapshot_totais;
-        if (totais?.custoTotal) map.set(r.produto_id, Number(totais.custoTotal));
+        const custo = totais?.custoTotal ?? totais?.custoFinalTotal;
+        if (custo) map.set(r.produto_id, Number(custo));
       }
     });
     return map;
