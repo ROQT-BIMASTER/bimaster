@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,9 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -24,10 +27,11 @@ const STEPS = [
 
 export default function ChinaNovaSubmissao() {
   const navigate = useNavigate();
+  const { submissaoId: editId } = useParams<{ submissaoId: string }>();
   const [step, setStep] = useState(0);
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
-  const [submissaoId, setSubmissaoId] = useState<string | null>(null);
+  const [submissaoId, setSubmissaoId] = useState<string | null>(editId || null);
   const [docs, setDocs] = useState<Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }[]>>({});
   const [weights, setWeights] = useState({
     peso_bruto_g: "",
@@ -54,15 +58,156 @@ export default function ChinaNovaSubmissao() {
   const [validationOpen, setValidationOpen] = useState(false);
   const [pendingAiData, setPendingAiData] = useState<any>(null);
   const [pendingSourceFile, setPendingSourceFile] = useState<{ file: File; type: string } | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [showProductPreview, setShowProductPreview] = useState(true);
+  const [showFinalReview, setShowFinalReview] = useState(false);
 
-  // Process AI response - now opens validation dialog instead of saving immediately
+  // Load existing submission for resume/edit
+  const { data: existingSubmissao, isLoading: loadingExisting } = useQuery({
+    queryKey: ["china-edit-submissao", editId],
+    enabled: !!editId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("*")
+        .eq("id", editId)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  // Load existing docs for resume
+  const { data: existingDocs } = useQuery({
+    queryKey: ["china-edit-docs", editId],
+    enabled: !!editId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_produto_documentos" as any)
+        .select("*")
+        .eq("submissao_id", editId);
+      return (data || []) as any[];
+    },
+  });
+
+  // Load existing cores for resume
+  const { data: existingCores } = useQuery({
+    queryKey: ["china-edit-cores", editId],
+    enabled: !!editId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_produto_cores" as any)
+        .select("*")
+        .eq("submissao_id", editId)
+        .order("ordem" as any);
+      return (data || []) as any[];
+    },
+  });
+
+  // Hydrate state from existing data when resuming
+  useEffect(() => {
+    if (existingSubmissao && editId) {
+      setParsedData(existingSubmissao.dados_excel || { produto_codigo: existingSubmissao.produto_codigo, produto_nome: existingSubmissao.produto_nome });
+      setWeights({
+        peso_bruto_g: existingSubmissao.peso_bruto_g?.toString() || "",
+        peso_liquido_g: existingSubmissao.peso_liquido_g?.toString() || "",
+        peso_tester_g: existingSubmissao.peso_tester_g?.toString() || "",
+        display_largura: existingSubmissao.medidas_display?.largura?.toString() || "",
+        display_altura: existingSubmissao.medidas_display?.altura?.toString() || "",
+        display_profundidade: existingSubmissao.medidas_display?.profundidade?.toString() || "",
+      });
+      if (existingSubmissao.produto_codigo) setStep(1);
+    }
+  }, [existingSubmissao, editId]);
+
+  // Hydrate docs
+  useEffect(() => {
+    if (existingDocs?.length) {
+      const grouped: Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }[]> = {};
+      existingDocs.forEach((d: any) => {
+        if (!grouped[d.tipo_documento]) grouped[d.tipo_documento] = [];
+        grouped[d.tipo_documento].push({ fileName: d.nome_arquivo || "arquivo", status: d.status || "pendente" });
+      });
+      setDocs(grouped);
+    }
+  }, [existingDocs]);
+
+  // Hydrate cores
+  useEffect(() => {
+    if (existingCores?.length) {
+      setGradeItems(existingCores.map((c: any) => ({
+        id: c.id || crypto.randomUUID(),
+        cor_nome: c.cor_nome,
+        cor_hex: c.cor_hex || "",
+        cor_numero: c.cor_numero || "",
+        codigo_produto: c.codigo_produto || "",
+        codigo_barras_ean: c.codigo_barras_ean || "",
+        quantidade: c.quantidade,
+        grupo: c.grupo || "A",
+      })));
+    }
+  }, [existingCores]);
+
+  // Product info for preview (from parsedData or existingSubmissao)
+  const productInfo = parsedData || existingSubmissao || null;
+
+  // Save draft at any step
+  const handleSaveDraft = useCallback(async () => {
+    if (!submissaoId) {
+      toast.info("Preencha os dados do produto primeiro 请先填写产品数据");
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      // Save grade items
+      if (gradeItems.length > 0) {
+        await supabase.from("china_produto_cores" as any).delete().eq("submissao_id", submissaoId);
+        await supabase.from("china_produto_cores" as any).insert(
+          gradeItems.map((item, i) => ({
+            submissao_id: submissaoId,
+            grupo: item.grupo || "A",
+            cor_nome: item.cor_nome,
+            cor_hex: item.cor_hex || null,
+            cor_numero: item.cor_numero || null,
+            codigo_produto: item.codigo_produto || null,
+            codigo_barras_ean: item.codigo_barras_ean || null,
+            quantidade: item.quantidade,
+            ordem: i,
+          }))
+        );
+      }
+
+      // Save weights
+      await supabase
+        .from("china_produto_submissoes" as any)
+        .update({
+          peso_bruto_g: weights.peso_bruto_g ? parseFloat(weights.peso_bruto_g) : null,
+          peso_liquido_g: weights.peso_liquido_g ? parseFloat(weights.peso_liquido_g) : null,
+          peso_tester_g: weights.peso_tester_g ? parseFloat(weights.peso_tester_g) : null,
+          medidas_display: {
+            largura: weights.display_largura ? parseFloat(weights.display_largura) : null,
+            altura: weights.display_altura ? parseFloat(weights.display_altura) : null,
+            profundidade: weights.display_profundidade ? parseFloat(weights.display_profundidade) : null,
+          },
+          status: "rascunho",
+        } as any)
+        .eq("id", submissaoId);
+
+      toast.success("Rascunho salvo! Você pode continuar depois. 草稿已保存！您可以稍后继续。");
+      navigate("/dashboard/fabrica-china/recebimentos");
+    } catch (err: any) {
+      toast.error("Erro ao salvar rascunho 保存草稿失败");
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [submissaoId, weights, gradeItems, navigate]);
+
+  // Process AI response
   const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
     if (data.error) {
       toast.error(data.error);
       return;
     }
-
-    // Store AI data and open validation dialog
     setPendingAiData(data);
     setAiExtracted(!!data._ai_extracted);
     if (sourceFile && sourceType) {
@@ -74,13 +219,11 @@ export default function ChinaNovaSubmissao() {
   // Called when user confirms data in validation dialog
   const handleValidationConfirm = useCallback(async (validatedData: any, photoFiles: Record<string, File[]>) => {
     try {
-      // Pre-fill weights
       if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
       if (validatedData.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(validatedData.peso_liquido_g) }));
 
       setParsedData(validatedData);
 
-      // Create submission record with validated data
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
@@ -107,7 +250,6 @@ export default function ChinaNovaSubmissao() {
       if (error) throw error;
       setSubmissaoId((sub as any).id);
 
-      // Populate grade items from validated cores
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
           id: crypto.randomUUID(),
@@ -122,7 +264,6 @@ export default function ChinaNovaSubmissao() {
         setGradeItems(parsed);
       }
 
-      // Upload source file as document
       if (pendingSourceFile) {
         const { file, type } = pendingSourceFile;
         const path = `${(sub as any).id}/${type}/${file.name}`;
@@ -139,7 +280,6 @@ export default function ChinaNovaSubmissao() {
         setPendingSourceFile(null);
       }
 
-      // Upload photo files from validation dialog
       if (photoFiles && Object.keys(photoFiles).length > 0) {
         const subId = (sub as any).id;
         for (const [tipo, files] of Object.entries(photoFiles)) {
@@ -189,24 +329,15 @@ export default function ChinaNovaSubmissao() {
         }
       );
 
-      if (resp.status === 429) {
-        toast.error("Limite de requisições excedido. Tente novamente. 请求限制已超过");
-        return;
-      }
-      if (resp.status === 402) {
-        toast.error("Créditos de IA esgotados. AI积分已用完");
-        return;
-      }
+      if (resp.status === 429) { toast.error("Limite de requisições excedido. 请求限制已超过"); return; }
+      if (resp.status === 402) { toast.error("Créditos de IA esgotados. AI积分已用完"); return; }
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         throw new Error(errData.error || "Failed to parse");
       }
 
       const data = await resp.json();
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
+      if (data.error) { toast.error(data.error); return; }
       await processAiResponse(data, file, "planilha_excel");
       toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
@@ -221,16 +352,9 @@ export default function ChinaNovaSubmissao() {
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Envie apenas imagens (PNG, JPG, WEBP). 仅上传图片");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máx 10MB). 图片太大");
-      return;
-    }
+    if (!file.type.startsWith("image/")) { toast.error("Envie apenas imagens. 仅上传图片"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Imagem muito grande (máx 10MB). 图片太大"); return; }
 
-    // Show preview
     const reader = new FileReader();
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
@@ -248,22 +372,13 @@ export default function ChinaNovaSubmissao() {
           `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ imageBase64: base64, imageMimeType: mimeType }),
           }
         );
 
-        if (resp.status === 429) {
-          toast.error("Limite de requisições excedido. 请求限制已超过");
-          return;
-        }
-        if (resp.status === 402) {
-          toast.error("Créditos de IA esgotados. AI积分已用完");
-          return;
-        }
+        if (resp.status === 429) { toast.error("Limite de requisições excedido. 请求限制已超过"); return; }
+        if (resp.status === 402) { toast.error("Créditos de IA esgotados. AI积分已用完"); return; }
         if (!resp.ok) throw new Error("Failed to parse image");
 
         const data = await resp.json();
@@ -323,10 +438,7 @@ export default function ChinaNovaSubmissao() {
     if (!submissaoId) return;
     const path = `${submissaoId}/${tipo}/${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
-    if (error) {
-      toast.error("Erro no upload 上传错误");
-      return;
-    }
+    if (error) { toast.error("Erro no upload 上传错误"); return; }
     await supabase.from("china_produto_documentos" as any).insert({
       submissao_id: submissaoId,
       tipo_documento: tipo,
@@ -339,16 +451,18 @@ export default function ChinaNovaSubmissao() {
     toast.success("Arquivo enviado! 文件已上传！");
   }, [submissaoId]);
 
-  // Step 3: Submit
-  const handleSubmit = useCallback(async () => {
+  // Final submit — opens review dialog
+  const handleOpenFinalReview = useCallback(() => {
+    setShowFinalReview(true);
+  }, []);
+
+  // Confirm send to Brazil
+  const handleConfirmSend = useCallback(async () => {
     if (!submissaoId) return;
     setSubmitting(true);
     try {
-      // Save grade items to DB
       if (gradeItems.length > 0) {
-        // Delete old cores
         await supabase.from("china_produto_cores" as any).delete().eq("submissao_id", submissaoId);
-        // Insert updated ones
         await supabase.from("china_produto_cores" as any).insert(
           gradeItems.map((item, i) => ({
             submissao_id: submissaoId,
@@ -379,7 +493,8 @@ export default function ChinaNovaSubmissao() {
         } as any)
         .eq("id", submissaoId);
 
-      toast.success("Submissão enviada para aprovação! 提交已发送审批！");
+      toast.success("✅ Submissão enviada para o Brasil! 提交已发送至巴西！");
+      setShowFinalReview(false);
       navigate("/dashboard/fabrica-china/recebimentos");
     } catch (err: any) {
       toast.error("Erro ao enviar 发送错误");
@@ -387,6 +502,21 @@ export default function ChinaNovaSubmissao() {
       setSubmitting(false);
     }
   }, [submissaoId, weights, gradeItems, navigate]);
+
+  // Review checklist computation
+  const totalDocSlots = CHINA_DOCUMENT_TYPES.length;
+  const filledDocSlots = Object.keys(docs).filter(k => docs[k]?.length > 0).length;
+  const hasMandatoryDocs = MANDATORY_DOCS.every(tipo => docs[tipo]?.length > 0);
+  const hasWeights = !!(weights.peso_bruto_g || weights.peso_liquido_g);
+  const hasProductData = !!(productInfo?.produto_codigo);
+
+  if (loadingExisting && editId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -396,21 +526,49 @@ export default function ChinaNovaSubmissao() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <BilingualLabel pt="Nova Submissão" cn="新提交" size="lg" />
+          <div className="flex-1">
+            <BilingualLabel pt={editId ? "Continuar Submissão" : "Nova Submissão"} cn={editId ? "继续提交" : "新提交"} size="lg" />
+            {submissaoId && (
+              <Badge variant="secondary" className="mt-1 text-xs">
+                <Save className="h-3 w-3 mr-1" /> Rascunho 草稿
+              </Badge>
+            )}
+          </div>
+          {/* Save Draft button — always visible when we have a submissaoId */}
+          {submissaoId && (
+            <Button
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={savingDraft}
+              className="gap-2"
+            >
+              {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <span className="hidden md:inline">Salvar Rascunho</span>
+              <span className="md:hidden">Salvar</span>
+              <span className="text-xs text-muted-foreground ml-1 hidden lg:inline">保存草稿</span>
+            </Button>
+          )}
         </div>
 
         {/* Step Indicator */}
         <div className="flex items-center gap-2">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div
+              <button
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
                   i === step
                     ? "bg-primary text-primary-foreground shadow-md"
                     : i < step
-                    ? "bg-success/10 text-success"
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-success/10 text-success cursor-pointer hover:bg-success/20"
+                    : submissaoId
+                    ? "bg-muted text-muted-foreground cursor-pointer hover:bg-muted/80"
+                    : "bg-muted text-muted-foreground opacity-50"
                 }`}
+                onClick={() => {
+                  // Allow navigating to any step if we have a submission
+                  if (submissaoId || i <= step) setStep(i);
+                }}
+                disabled={!submissaoId && i > step}
               >
                 {i < step ? (
                   <Check className="h-4 w-4" />
@@ -418,11 +576,93 @@ export default function ChinaNovaSubmissao() {
                   <s.icon className="h-4 w-4" />
                 )}
                 <BilingualLabel pt={s.labelPt} cn={s.labelCn} size="sm" />
-              </div>
+              </button>
               {i < STEPS.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </div>
           ))}
         </div>
+
+        {/* Product Preview Card — visible on steps 1 and 2 */}
+        {productInfo && step > 0 && (
+          <Collapsible open={showProductPreview} onOpenChange={setShowProductPreview}>
+            <Card className="p-4 border-primary/20 bg-primary/5">
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-3 w-full text-left">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Package className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground truncate">
+                      {productInfo.produto_codigo || existingSubmissao?.produto_codigo}
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {productInfo.produto_nome || existingSubmissao?.produto_nome}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">
+                    {showProductPreview ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                    {showProductPreview ? "Ocultar 隐藏" : "Ver Produto 查看产品"}
+                  </Badge>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {(productInfo.numero_item || existingSubmissao?.numero_item) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Nº Item 项目号</p>
+                      <p className="text-sm font-semibold">{productInfo.numero_item || existingSubmissao?.numero_item}</p>
+                    </div>
+                  )}
+                  {(productInfo.numero_ordem || existingSubmissao?.numero_ordem) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Nº Ordem 订单号</p>
+                      <p className="text-sm font-semibold">{productInfo.numero_ordem || existingSubmissao?.numero_ordem}</p>
+                    </div>
+                  )}
+                  {(productInfo.formula_codigo || existingSubmissao?.formula_codigo) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Fórmula 配方</p>
+                      <p className="text-sm font-semibold">{productInfo.formula_codigo || existingSubmissao?.formula_codigo}</p>
+                    </div>
+                  )}
+                  {(productInfo.qty_total || existingSubmissao?.qty_total) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">Qty Total 总量</p>
+                      <p className="text-sm font-semibold">{(productInfo.qty_total || existingSubmissao?.qty_total)?.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {(productInfo.ean_display || existingSubmissao?.ean_display) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">EAN Display</p>
+                      <p className="text-sm font-mono font-semibold">{productInfo.ean_display || existingSubmissao?.ean_display}</p>
+                    </div>
+                  )}
+                  {(productInfo.ean_caixa_master || existingSubmissao?.ean_caixa_master) && (
+                    <div className="p-2 bg-background rounded-lg">
+                      <p className="text-[10px] text-muted-foreground">EAN Caixa Master</p>
+                      <p className="text-sm font-mono font-semibold">{productInfo.ean_caixa_master || existingSubmissao?.ean_caixa_master}</p>
+                    </div>
+                  )}
+                </div>
+                {gradeItems.length > 0 && (
+                  <div className="mt-3 p-2 bg-background rounded-lg">
+                    <p className="text-[10px] text-muted-foreground mb-1">Grade 色号 ({gradeItems.length} cores)</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {gradeItems.slice(0, 12).map((g) => (
+                        <div key={g.id} className="flex items-center gap-1 text-xs bg-secondary/50 rounded px-1.5 py-0.5">
+                          {g.cor_hex && <div className="h-3 w-3 rounded-full border" style={{ backgroundColor: g.cor_hex }} />}
+                          <span>{g.cor_nome}</span>
+                          <span className="text-muted-foreground">×{g.quantidade}</span>
+                        </div>
+                      ))}
+                      {gradeItems.length > 12 && <span className="text-xs text-muted-foreground">+{gradeItems.length - 12}</span>}
+                    </div>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         {/* Step 1: Excel or Image Upload */}
         {step === 0 && (
@@ -699,69 +939,30 @@ export default function ChinaNovaSubmissao() {
                 <BilingualLabel pt="Pesos do Produto" cn="产品重量" size="md" />
                 <div>
                   <Label className="text-sm">Peso Bruto (g) 毛重</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={weights.peso_bruto_g}
-                    onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))}
-                    placeholder="Ex: 23.85"
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.01" value={weights.peso_bruto_g} onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))} placeholder="Ex: 23.85" className="text-lg h-12" />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Líquido (g) 净重</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={weights.peso_liquido_g}
-                    onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))}
-                    placeholder="Ex: 6.68"
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.01" value={weights.peso_liquido_g} onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))} placeholder="Ex: 6.68" className="text-lg h-12" />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Tester (g) 试用装重量</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={weights.peso_tester_g}
-                    onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))}
-                    placeholder="Ex: 3.5"
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.01" value={weights.peso_tester_g} onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))} placeholder="Ex: 3.5" className="text-lg h-12" />
                 </div>
               </div>
               <div className="space-y-4">
                 <BilingualLabel pt="Medidas do Display" cn="展示尺寸" size="md" />
                 <div>
                   <Label className="text-sm">Largura (cm) 宽度</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={weights.display_largura}
-                    onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))}
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" />
                 </div>
                 <div>
                   <Label className="text-sm">Altura (cm) 高度</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={weights.display_altura}
-                    onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))}
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" />
                 </div>
                 <div>
                   <Label className="text-sm">Profundidade (cm) 深度</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={weights.display_profundidade}
-                    onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))}
-                    className="text-lg h-12"
-                  />
+                  <Input type="number" step="0.1" value={weights.display_profundidade} onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))} className="text-lg h-12" />
                 </div>
               </div>
             </div>
@@ -770,18 +971,69 @@ export default function ChinaNovaSubmissao() {
                 Voltar 返回
               </Button>
               <Button
-                onClick={handleSubmit}
+                onClick={handleOpenFinalReview}
                 disabled={submitting}
                 variant="gradient"
                 size="lg"
                 className="gap-2"
               >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Enviar para Aprovação 提交审批
+                <Send className="h-4 w-4" />
+                Revisar e Enviar 审核并发送
               </Button>
             </div>
           </Card>
         )}
+
+        {/* Final Review Dialog */}
+        <Dialog open={showFinalReview} onOpenChange={setShowFinalReview}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5 text-primary" />
+                <BilingualLabel pt="Revisão Final" cn="最终审核" size="lg" />
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 py-4">
+              <p className="text-sm text-muted-foreground">
+                Revise os itens abaixo antes de enviar ao Brasil. Após o envio, a submissão não poderá ser editada.
+                <br />
+                <span className="text-xs">发送前请检查以下项目。发送后将无法编辑。</span>
+              </p>
+
+              {/* Checklist */}
+              <div className="space-y-2">
+                <ChecklistItem ok={hasProductData} label="Dados do Produto 产品数据" />
+                <ChecklistItem ok={filledDocSlots > 0} label={`Documentos (${filledDocSlots}/${totalDocSlots} tipos) 文件`} />
+                <ChecklistItem ok={hasMandatoryDocs} label="Foto + Vídeo obrigatórios 必需照片+视频" warning={!hasMandatoryDocs} />
+                <ChecklistItem ok={hasWeights} label="Pesos informados 重量信息" />
+                <ChecklistItem ok={gradeItems.length > 0} label={`Grade de cores (${gradeItems.length} itens) 色号`} />
+              </div>
+
+              {!hasMandatoryDocs && (
+                <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>Documentos obrigatórios estão faltando. Você pode enviar assim mesmo, mas a aprovação poderá ser atrasada. 缺少必需文件，可能会延迟审批。</span>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowFinalReview(false)}>
+                Voltar ao Rascunho 返回草稿
+              </Button>
+              <Button
+                onClick={handleConfirmSend}
+                disabled={submitting || !hasProductData}
+                variant="gradient"
+                className="gap-2"
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Confirmar Envio 确认发送
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Validation Dialog */}
         {pendingAiData && (
@@ -797,6 +1049,21 @@ export default function ChinaNovaSubmissao() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+function ChecklistItem({ ok, label, warning }: { ok: boolean; label: string; warning?: boolean }) {
+  return (
+    <div className="flex items-center gap-3 p-2 rounded-lg bg-secondary/30">
+      {ok ? (
+        <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+      ) : warning ? (
+        <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+      ) : (
+        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+      )}
+      <span className={`text-sm ${ok ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
     </div>
   );
 }

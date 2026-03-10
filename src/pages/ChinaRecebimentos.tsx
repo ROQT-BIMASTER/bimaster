@@ -140,11 +140,16 @@ export default function ChinaRecebimentos() {
               const statusInfo = STATUS_LABELS[sub.status] || STATUS_LABELS.rascunho;
               const rejectedDocs = (rejectedDocsMap as any)[sub.id] || 0;
 
+              const isDraft = sub.status === "rascunho";
+
               return (
                 <Card
                   key={sub.id}
                   className="p-4 cursor-pointer transition-all hover:shadow-md hover:border-primary/30"
-                  onClick={() => navigate(`/dashboard/fabrica-china/produto/${sub.id}`)}
+                  onClick={() => isDraft
+                    ? navigate(`/dashboard/fabrica-china/nova/${sub.id}`)
+                    : navigate(`/dashboard/fabrica-china/produto/${sub.id}`)
+                  }
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -187,9 +192,16 @@ export default function ChinaRecebimentos() {
                         })()}
                       </div>
                     </div>
-                    <Badge variant={statusInfo.variant} className="shrink-0 text-[10px]">
-                      {statusInfo.pt} {statusInfo.cn}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge variant={statusInfo.variant} className="text-[10px]">
+                        {statusInfo.pt} {statusInfo.cn}
+                      </Badge>
+                      {isDraft && (
+                        <span className="text-[10px] text-primary font-medium">
+                          ▶ Continuar 继续
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Card>
               );
