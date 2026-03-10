@@ -7,8 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BilingualLabel } from "./BilingualLabel";
-import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box } from "lucide-react";
+import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box, Camera, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+
+// Photo fields from the spreadsheet
+const PHOTO_FIELDS = [
+  { key: "foto_confirmed_item", labelPt: "Produto Confirmado", labelCn: "已确认产品" },
+  { key: "foto_cores_todas", labelPt: "Todas as Cores", labelCn: "所有颜色照片" },
+  { key: "foto_garrafa", labelPt: "Garrafa/Frasco", labelCn: "瓶子" },
+  { key: "foto_garrafa_design", labelPt: "Design Garrafa", labelCn: "瓶子设计" },
+  { key: "foto_cores_produto", labelPt: "Cores do Produto", labelCn: "产品颜色" },
+  { key: "foto_embalagem_ref", labelPt: "Embalagem", labelCn: "包装" },
+  { key: "foto_produto_individual", labelPt: "Produto Individual", labelCn: "单个产品" },
+  { key: "foto_cores_pesos", labelPt: "Cores (Pesos)", labelCn: "颜色（重量部分）" },
+];
 
 interface ColorEntry {
   grupo: string;
@@ -41,8 +53,9 @@ interface ChinaDataValidationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData: ValidationData;
-  onConfirm: (data: ValidationData) => void;
+  onConfirm: (data: ValidationData, photos: Record<string, File[]>) => void;
   mode?: "new" | "edit";
+  showPhotoUpload?: boolean;
 }
 
 const EDIT_PASSWORD = "bimaster2026";
@@ -53,16 +66,21 @@ export function ChinaDataValidationDialog({
   initialData,
   onConfirm,
   mode = "new",
+  showPhotoUpload = true,
 }: ChinaDataValidationDialogProps) {
   const [data, setData] = useState<ValidationData>({ ...initialData });
   const [cores, setCores] = useState<ColorEntry[]>(initialData.cores?.length ? [...initialData.cores] : []);
   const [accepted, setAccepted] = useState(false);
+  const [photos, setPhotos] = useState<Record<string, File[]>>({});
+  const [photoPreviews, setPhotoPreviews] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (open) {
       setData({ ...initialData });
       setCores(initialData.cores?.length ? [...initialData.cores] : []);
       setAccepted(false);
+      setPhotos({});
+      setPhotoPreviews({});
     }
   }, [open, initialData]);
 
@@ -86,10 +104,29 @@ export function ChinaDataValidationDialog({
     setCores(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePhotoUpload = (key: string, files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setPhotos(prev => ({ ...prev, [key]: [...(prev[key] || []), ...newFiles] }));
+    // Create previews
+    newFiles.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreviews(prev => ({ ...prev, [key]: [...(prev[key] || []), e.target?.result as string] }));
+      };
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removePhoto = (key: string, index: number) => {
+    setPhotos(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
+    setPhotoPreviews(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
+  };
+
   const handleConfirm = () => {
     if (!accepted) return;
     const finalData = { ...data, cores };
-    onConfirm(finalData);
+    onConfirm(finalData, photos);
     onOpenChange(false);
   };
 
@@ -332,7 +369,57 @@ export function ChinaDataValidationDialog({
                 />
               </div>
             </div>
-          </section>
+           </section>
+
+          {/* Photo Uploads */}
+          {showPhotoUpload && (
+            <section className="space-y-3">
+              <BilingualLabel pt="Fotos da Planilha (Campos com Imagem)" cn="表格照片（图片字段）" size="md" className="border-b border-border pb-1" />
+              <p className="text-xs text-muted-foreground">
+                Suba as fotos correspondentes aos campos da planilha chinesa. 上传与中国表格字段对应的照片。
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {PHOTO_FIELDS.map(field => {
+                  const previews = photoPreviews[field.key] || [];
+                  return (
+                    <div key={field.key} className="space-y-1">
+                      <Label className="text-[10px] leading-tight block">
+                        {field.labelPt}
+                        <span className="text-muted-foreground ml-1">{field.labelCn}</span>
+                      </Label>
+                      <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-2 hover:border-primary/50 transition-colors min-h-[60px] flex flex-col items-center justify-center gap-1">
+                        {previews.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 w-full">
+                            {previews.map((src, i) => (
+                              <div key={i} className="relative w-12 h-12">
+                                <img src={src} alt="" className="w-12 h-12 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removePhoto(field.key, i)}
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Camera className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          onChange={e => handlePhotoUpload(field.key, e.target.files)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-3 pt-4 border-t">

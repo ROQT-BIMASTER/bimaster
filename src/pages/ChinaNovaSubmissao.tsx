@@ -72,7 +72,7 @@ export default function ChinaNovaSubmissao() {
   }, []);
 
   // Called when user confirms data in validation dialog
-  const handleValidationConfirm = useCallback(async (validatedData: any) => {
+  const handleValidationConfirm = useCallback(async (validatedData: any, photoFiles: Record<string, File[]>) => {
     try {
       // Pre-fill weights
       if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
@@ -135,6 +135,26 @@ export default function ChinaNovaSubmissao() {
         } as any);
         setDocs(d => ({ ...d, [type]: [...(d[type] || []), { fileName: file.name, status: "pendente" as const }] }));
         setPendingSourceFile(null);
+      }
+
+      // Upload photo files from validation dialog
+      if (photoFiles && Object.keys(photoFiles).length > 0) {
+        const subId = (sub as any).id;
+        for (const [tipo, files] of Object.entries(photoFiles)) {
+          for (const file of files) {
+            const path = `${subId}/${tipo}/${file.name}`;
+            const { signedUrl: photoUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
+            await supabase.from("china_produto_documentos" as any).insert({
+              submissao_id: subId,
+              tipo_documento: tipo,
+              arquivo_url: photoUrl,
+              arquivo_path: path,
+              nome_arquivo: file.name,
+              status: "pendente",
+            } as any);
+            setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
+          }
+        }
       }
 
       setPendingAiData(null);

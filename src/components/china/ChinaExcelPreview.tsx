@@ -40,7 +40,7 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
     setEditDialogOpen(true);
   };
 
-  const handleEditConfirm = (updatedData: ExcelData) => {
+  const handleEditConfirm = (updatedData: ExcelData, _photos: Record<string, File[]>) => {
     onUpdate?.(updatedData);
     setEditDialogOpen(false);
   };
