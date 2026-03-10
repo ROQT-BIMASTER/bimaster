@@ -25,7 +25,19 @@ interface ChinaExcelPreviewProps {
   onUpdate?: (data: ExcelData) => void;
 }
 
-export function ChinaExcelPreview({ data }: ChinaExcelPreviewProps) {
+export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExcelPreviewProps) {
+  const { showPasswordPrompt, setShowPasswordPrompt, password, setPassword, requestEdit, validatePassword } = usePasswordProtectedEdit();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handlePasswordSuccess = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleEditConfirm = (updatedData: ExcelData) => {
+    onUpdate?.(updatedData);
+    setEditDialogOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Product Info */}
