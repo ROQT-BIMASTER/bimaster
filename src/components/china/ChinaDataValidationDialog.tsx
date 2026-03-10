@@ -79,6 +79,8 @@ export function ChinaDataValidationDialog({
       setData({ ...initialData });
       setCores(initialData.cores?.length ? [...initialData.cores] : []);
       setAccepted(false);
+      setPhotos({});
+      setPhotoPreviews({});
     }
   }, [open, initialData]);
 
