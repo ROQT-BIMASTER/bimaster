@@ -242,7 +242,7 @@ export default function ChinaNovaSubmissao() {
       nome_arquivo: file.name,
       status: "pendente",
     } as any);
-    setDocs(d => ({ ...d, [tipo]: { fileName: file.name, status: "pendente" } }));
+    setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
     toast.success("Arquivo enviado! 文件已上传！");
   }, [submissaoId]);
 
