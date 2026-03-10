@@ -313,16 +313,25 @@ export function ChinaDataValidationDialog({
                             <Input value={c.grupo} onChange={e => updateColor(i, "grupo", e.target.value)} className="h-8 text-xs" />
                           </TableCell>
                           <TableCell className="p-1.5">
-                            <Input value={c.cor_nome} onChange={e => updateColor(i, "cor_nome", e.target.value)} className="h-8 text-xs" />
-                          </TableCell>
-                          <TableCell className="p-1.5">
-                            <Input
-                              type="number"
-                              value={c.quantidade}
-                              onChange={e => updateColor(i, "quantidade", parseInt(e.target.value) || 0)}
-                              className="h-8 text-xs font-mono"
-                            />
-                          </TableCell>
+                             <Input value={c.cor_nome} onChange={e => updateColor(i, "cor_nome", e.target.value)} className="h-8 text-xs" />
+                           </TableCell>
+                           <TableCell className="p-1.5">
+                             <Input
+                               value={(c as any).codigo_barras_ean || ""}
+                               onChange={e => updateColor(i, "codigo_barras_ean" as any, e.target.value)}
+                               className="h-8 text-xs font-mono"
+                               placeholder="EAN..."
+                               maxLength={20}
+                             />
+                           </TableCell>
+                           <TableCell className="p-1.5">
+                             <Input
+                               type="number"
+                               value={c.quantidade}
+                               onChange={e => updateColor(i, "quantidade", parseInt(e.target.value) || 0)}
+                               className="h-8 text-xs font-mono"
+                             />
+                           </TableCell>
                           <TableCell className="p-1.5">
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeColor(i)}>
                               <Trash2 className="h-3 w-3 text-destructive" />
