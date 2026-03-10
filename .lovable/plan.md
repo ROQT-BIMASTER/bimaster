@@ -1,56 +1,41 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Configurar Tipo de Projeto (Uso Comum vs Desenvolvimento de Produto)
 
-### O que muda
+### Problema
+O painel de "Vincular Produto", "Checklist Pré-Lançamento" e "Trilha de Auditoria" aparece em todas as tarefas de todos os projetos, mas só faz sentido para projetos de Desenvolvimento de Produto.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+### Solução
 
-### Implementação
+**1. Adicionar coluna `tipo` na tabela `projetos`**
+- Nova coluna `tipo TEXT DEFAULT 'generico'` com valores: `'generico'` ou `'desenvolvimento_produto'`
+- Migration SQL simples
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+**2. Salvar o tipo ao criar projeto** (`NovoProjetoDialog.tsx` + `useProjetos.ts`)
+- O template selecionado já indica o tipo — salvar o valor do template como `tipo` na tabela
+- Atualizar `createProjeto` para incluir `tipo` no insert
+- Atualizar interface `Projeto` para incluir `tipo`
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+**3. Propagar o tipo até o Focus Mode**
+- `ProjetoTarefaDetalhe.tsx` já recebe `projetoId` — buscar o projeto e passar `tipo` como prop para `TarefaFocusMode`
+- Alternativa mais simples: passar `projetoTipo` como prop no componente
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+**4. Ocultar `ProductLaunchPanel` condicionalmente** (`TarefaFocusMode.tsx`)
+- Adicionar prop `projetoTipo?: string` 
+- Renderizar `ProductLaunchPanel` apenas quando `projetoTipo === 'desenvolvimento_produto'`
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+### Arquivos a Modificar
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+| Arquivo | Alteração |
+|---|---|
+| **Migration SQL** | `ALTER TABLE projetos ADD COLUMN tipo TEXT DEFAULT 'generico'` |
+| `src/hooks/useProjetos.ts` | Adicionar `tipo` à interface `Projeto` e ao `createProjeto` (salvar template como tipo) |
+| `src/components/projetos/NovoProjetoDialog.tsx` | Passar `template` para ser salvo como `tipo` (já faz isso, só precisa persistir) |
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Propagar `projetoTipo` para `TarefaFocusMode` |
+| `src/components/projetos/TarefaFocusMode.tsx` | Aceitar prop `projetoTipo`, condicionar renderização do `ProductLaunchPanel` |
 
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Comportamento Final
+- **Projeto Genérico**: Não mostra vincular produto, checklist pré-lançamento nem trilha de auditoria
+- **Desenvolvimento de Produto**: Mostra tudo como hoje
+- Projetos existentes ficam como `generico` por padrão (sem impacto)
 
