@@ -1,4 +1,4 @@
-const PLUGGY_CDN_URL = "https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js";
+const PLUGGY_CDN_URL = "https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

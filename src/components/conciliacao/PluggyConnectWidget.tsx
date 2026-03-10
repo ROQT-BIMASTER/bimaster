@@ -15,7 +15,7 @@ interface PluggyConnectWidgetProps {
   onOpen?: () => void;
 }
 
-const PLUGGY_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pluggy-proxy`;
+const PLUGGY_SCRIPT_URL = "/pluggy-connect.js";
 
 export function PluggyConnectWidget({
   connectToken,
@@ -40,7 +40,7 @@ export function PluggyConnectWidget({
           console.log("📡 Loading Pluggy script via proxy...");
           await new Promise<void>((resolve, reject) => {
             const script = document.createElement("script");
-            script.src = PLUGGY_PROXY_URL;
+            script.src = PLUGGY_SCRIPT_URL;
             script.async = true;
             script.onload = () => {
               console.log("✅ Pluggy script loaded");
