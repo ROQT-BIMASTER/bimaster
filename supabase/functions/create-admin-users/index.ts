@@ -28,17 +28,15 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader ? authHeader.replace("Bearer ", "") : "";
 
     // Client with service role for admin operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Allow service_role key OR validate user JWT as admin
-    const isServiceRole = token === supabaseServiceKey;
-    
-    if (!isServiceRole) {
+    // Allow service call OR validate user JWT as admin
+    if (!isServiceCall) {
       // Create client with user's token to verify their identity
       const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } }
