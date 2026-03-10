@@ -484,7 +484,7 @@ export default function ChinaNovaSubmissao() {
             })}
 
             {/* Mandatory docs warning */}
-            {MANDATORY_DOCS.some(tipo => !docs[tipo]) && (
+            {MANDATORY_DOCS.some(tipo => !docs[tipo]?.length) && (
               <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
                 ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
               </div>
