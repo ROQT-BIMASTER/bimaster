@@ -17,6 +17,7 @@ import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

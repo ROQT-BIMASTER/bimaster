@@ -47,7 +47,7 @@ export default function ChinaFabrica() {
     },
   });
 
-  const cards = [
+  const allCards = [
     {
       icon: <Plus className="h-10 w-10 text-primary" />,
       labelPt: "Nova Submissão",
@@ -55,6 +55,7 @@ export default function ChinaFabrica() {
       desc: "Enviar novo produto 提交新产品",
       onClick: () => navigate("/dashboard/fabrica-china/nova"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
+      brasilOnly: false,
     },
     {
       icon: <List className="h-10 w-10 text-warning" />,
@@ -63,6 +64,7 @@ export default function ChinaFabrica() {
       desc: `${stats?.total || 0} submissões 提交`,
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-warning/5 hover:bg-warning/10 border-warning/20",
+      brasilOnly: false,
     },
     {
       icon: <CheckCircle className="h-10 w-10 text-success" />,
@@ -71,6 +73,7 @@ export default function ChinaFabrica() {
       desc: `${stats?.aprovado || 0} aprovados 已批准`,
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
+      brasilOnly: false,
     },
     {
       icon: <ShoppingCart className="h-10 w-10 text-primary" />,
@@ -79,6 +82,7 @@ export default function ChinaFabrica() {
       desc: `${ocStats?.ativas || 0} ativas 活跃 · ${ocStats?.concluidas || 0} concluídas 已完成`,
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
+      brasilOnly: true,
     },
     {
       icon: <Send className="h-10 w-10 text-success" />,
@@ -87,8 +91,11 @@ export default function ChinaFabrica() {
       desc: `${stats?.arte_enviada || 0} artes enviadas 终稿已发送`,
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
+      brasilOnly: true,
     },
   ];
+
+  const cards = allCards.filter(c => !c.brasilOnly || isBrasilUser);
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
