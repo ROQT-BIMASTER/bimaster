@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
@@ -15,7 +16,7 @@ import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
 
 const STEPS = [
-  { labelPt: "Planilha", labelCn: "表格", icon: FileSpreadsheet },
+  { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
   { labelPt: "Documentos", labelCn: "文件", icon: Upload },
   { labelPt: "Pesos e Medidas", labelCn: "重量和尺寸", icon: Scale },
 ];
