@@ -105,7 +105,7 @@ interface TarefaFocusModeProps {
 }
 
 export function TarefaFocusMode({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [],
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo,
 }: TarefaFocusModeProps) {
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
