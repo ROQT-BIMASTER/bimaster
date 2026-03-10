@@ -252,9 +252,24 @@ export default function ChinaRecebimentos() {
                             {statusInfo.pt} {statusInfo.cn}
                           </Badge>
                           {isDraft && (
-                            <span className="text-[10px] text-primary font-medium">
-                              ▶ Continuar 继续
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-primary font-medium">
+                                ▶ Continuar 继续
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmed(false);
+                                  setDeleteTarget(sub);
+                                }}
+                                title="Excluir 删除"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           )}
                         </>
                       )}
