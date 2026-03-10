@@ -41,7 +41,8 @@ export default function ChinaFabrica() {
       const items = (data || []) as any[];
       return {
         total: items.length,
-        ativas: items.filter((s: any) => ["emitida", "em_producao", "parcial"].includes(s.status)).length,
+        pendentes: items.filter((s: any) => s.status === "rascunho").length,
+        ativas: items.filter((s: any) => ["aprovada", "emitida", "em_producao", "parcial"].includes(s.status)).length,
         concluidas: items.filter((s: any) => s.status === "concluida").length,
       };
     },

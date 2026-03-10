@@ -64,7 +64,7 @@ export default function ChinaOrdens() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {ordens.map((oc: any) => {
+            {ordens.filter((oc: any) => !isChinaUser || !["rascunho", "rejeitada"].includes(oc.status)).map((oc: any) => {
               const pct = oc.qty_total > 0 ? Math.round((oc.qty_produzida / oc.qty_total) * 100) : 0;
               const statusInfo = OC_STATUS[oc.status] || OC_STATUS.emitida;
               return (

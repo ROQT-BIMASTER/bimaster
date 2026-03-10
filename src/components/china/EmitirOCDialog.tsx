@@ -52,11 +52,12 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
           observacoes,
           ean_caixa_master: eanCaixaMaster || null,
           created_by: user?.id,
+          status: "rascunho",
         } as any);
 
       if (error) throw error;
 
-      toast.success(`Ordem ${numeroOC} emitida com sucesso! 采购单已发出！`);
+      toast.success(`Ordem ${numeroOC} criada como rascunho — aguardando aprovação ✏️`);
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
