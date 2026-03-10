@@ -197,6 +197,8 @@ const CofreSharePage = lazyWithRetry(() => import("./pages/CofreSharePage"));
 const ChinaFabrica = lazyWithRetry(() => import("./pages/ChinaFabrica"));
 const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissao"));
 const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
+const ChinaOrdens = lazyWithRetry(() => import("./pages/ChinaOrdens"));
+const ChinaOrdemDetalhe = lazyWithRetry(() => import("./pages/ChinaOrdemDetalhe"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
