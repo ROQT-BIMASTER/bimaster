@@ -126,7 +126,7 @@ export default function ChinaFabrica() {
       labelPt: "Arte Enviada",
       labelCn: "终稿已发送",
       desc: `${stats?.arte_enviada || 0} artes enviadas 终稿已发送`,
-      onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
+      onClick: () => navigate("/dashboard/fabrica-china/recebimentos?status=arte_enviada"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
       brasilOnly: true,
       badge: null,
