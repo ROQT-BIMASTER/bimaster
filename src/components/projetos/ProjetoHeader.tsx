@@ -45,7 +45,7 @@ export function ProjetoHeader({
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
   const borderColor = darkBg ? "border-white/20" : customBg ? "border-black/20" : "border-border/50";
   const tabActive = darkBg ? "data-[state=active]:border-white" : customBg ? "data-[state=active]:border-black" : "data-[state=active]:border-primary";
-  const btnHover = darkBg ? "text-white hover:bg-white/10" : customBg ? "text-black hover:bg-black/10" : "";
+  const btnHover = darkBg ? "text-white border-white/30 hover:bg-white/10" : customBg ? "text-black border-black/20 hover:bg-black/10" : "";
   const navigate = useNavigate();
   const { getProjectSummary, loading } = useProjetoIA();
   const [resumoOpen, setResumoOpen] = useState(false);
