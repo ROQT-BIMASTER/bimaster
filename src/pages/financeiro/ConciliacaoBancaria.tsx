@@ -24,6 +24,8 @@ import {
 import { useConciliacaoBancaria } from "@/hooks/useConciliacaoBancaria";
 import { DashboardConciliacao } from "@/components/conciliacao/DashboardConciliacao";
 import { TabelaPendentes } from "@/components/conciliacao/TabelaPendentes";
+import { PluggyConnect } from "react-pluggy-connect";
+import { toast } from "sonner";
 
 export default function ConciliacaoBancaria() {
   const {
@@ -40,6 +42,8 @@ export default function ConciliacaoBancaria() {
   } = useConciliacaoBancaria();
 
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectToken, setConnectToken] = useState("");
+  const [showPluggyConnect, setShowPluggyConnect] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<string>("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -49,25 +53,8 @@ export default function ConciliacaoBancaria() {
     setIsConnecting(true);
     try {
       const token = await getConnectToken();
-      // Open Pluggy Connect widget
-      const pluggyUrl = `https://connect.pluggy.ai/?connect_token=${token}`;
-      const popup = window.open(pluggyUrl, "pluggy-connect", "width=500,height=700");
-
-      // Listen for postMessage from Pluggy widget
-      const handler = (event: MessageEvent) => {
-        if (event.data?.type === "pluggy-connect" && event.data?.item) {
-          const item = event.data.item;
-          saveConnection.mutate({
-            itemId: item.id,
-            banco: item.connector?.name || "desconhecido",
-            conta: item.accounts?.[0]?.number,
-            agencia: item.accounts?.[0]?.bankData?.branchNumber,
-          });
-          window.removeEventListener("message", handler);
-          popup?.close();
-        }
-      };
-      window.addEventListener("message", handler);
+      setConnectToken(token);
+      setShowPluggyConnect(true);
     } catch {
       // error handled in hook
     } finally {
@@ -83,6 +70,35 @@ export default function ConciliacaoBancaria() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Pluggy Connect Widget */}
+        {showPluggyConnect && connectToken && (
+          <PluggyConnect
+            connectToken={connectToken}
+            includeSandbox={true}
+            onSuccess={(itemData) => {
+              const item = itemData.item;
+              saveConnection.mutate({
+                itemId: item.id.toString(),
+                banco: item.connector?.name || "desconhecido",
+                conta: item.accounts?.[0]?.number,
+                agencia: item.accounts?.[0]?.bankData?.branchNumber,
+              });
+              setShowPluggyConnect(false);
+              setConnectToken("");
+            }}
+            onError={(error) => {
+              console.error("Pluggy Connect error", error);
+              toast.error("Erro na conexão bancária");
+              setShowPluggyConnect(false);
+              setConnectToken("");
+            }}
+            onClose={() => {
+              setShowPluggyConnect(false);
+              setConnectToken("");
+            }}
+          />
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
