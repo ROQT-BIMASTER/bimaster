@@ -89,6 +89,7 @@ interface ProjetoTarefaRowProps {
   onToggle: (tarefa: ProjetoTarefa) => void;
   onSelect?: (tarefa: ProjetoTarefa) => void;
   onUpdate?: (id: string, updates: Record<string, any>) => void;
+  onDelete?: (tarefaId: string) => void;
   teamMembers?: TeamMember[];
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
