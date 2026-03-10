@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import PluggyConnect from "pluggy-connect-sdk";
+import { PluggyConnect } from "pluggy-connect-sdk";
 
 interface PluggyConnectWidgetProps {
   connectToken: string;
