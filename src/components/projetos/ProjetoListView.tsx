@@ -243,9 +243,10 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
         onOpenChange={setIaDialogOpen}
         secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
         projetoId={projetoId}
-        onCreateTasks={handleCreateIATasks}
+        onCreateItems={handleCreateIAItems}
         createTasksWithAI={createTasksWithAI}
-        loading={iaLoading === "create_tasks"}
+        createFromFile={createFromFile}
+        loading={iaLoading === "create_tasks" || iaLoading === "create_from_file"}
       />
 
       <ProjetoTarefaDetalhe
