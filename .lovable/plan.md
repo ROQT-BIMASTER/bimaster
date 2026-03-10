@@ -1,56 +1,58 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Caixa de Validação de Dados da IA com Edição Protegida por Senha
 
-### O que muda
+## Problema
+Após a IA extrair os dados, o sistema exibe um preview estático sem validação formal. A quantidade total (777.600) aparece, mas as quantidades por cor/grupo não ficam claras para conferência. Não há aceite formal nem possibilidade de ajustar dados após a confirmação.
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+## Solução
 
-### Implementação
+### 1. Novo componente `ChinaDataValidationDialog`
+Dialog modal que abre automaticamente após a IA retornar os dados, contendo:
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+**Seção Dados Gerais** (editável antes do aceite):
+- Código, Nome, Fórmula, Item, Ordem em inputs
+- Quantidade Total com destaque visual
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+**Seção Grade de Cores** (tabela editável):
+- Tabela com colunas: Grupo | Cor | Quantidade | Ações
+- Soma automática das quantidades por grupo e total geral
+- Alerta visual se soma das cores divergir do `qty_total`
+- Botão para adicionar/remover linhas
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+**Seção Pesos**:
+- Peso bruto e líquido editáveis
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+**Rodapé**:
+- Checkbox de aceite: "Confirmo que revisei todos os dados extraídos pela IA"
+- Botão "Confirmar Dados" (habilitado só com aceite marcado)
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+### 2. Edição pós-aceite protegida por senha
+Após confirmar os dados e a submissão ser criada:
+- Os dados aparecem como read-only no preview (como hoje)
+- Botão "Editar Dados (Senha)" abre um prompt de senha
+- Senha configurável (hardcoded inicial: ex. `bimaster2026` ou via env)
+- Após autenticar, reabre o dialog de validação em modo edição
+- Alterações são salvas via UPDATE no registro existente
 
-### Visual esperado
+### 3. Fluxo alterado em `ChinaNovaSubmissao.tsx`
+- Após `processAiResponse` retornar dados, **não criar submissão imediatamente**
+- Abrir o `ChinaDataValidationDialog` com os dados extraídos
+- Só criar o registro no banco após o usuário confirmar no dialog
+- Mover a lógica de `insert` para o callback `onConfirm` do dialog
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+### 4. Melhoria no prompt da Edge Function
+Adicionar ao `SYSTEM_PROMPT` instrução para:
+- Extrair `qty_total` como quantidade total de peças (não caixas)
+- Garantir que cada cor tenha quantidade individual correta
+- Adicionar campo `ctn_total` (total de caixas/cartons) separado
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+## Arquivos Impactados
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/china/ChinaDataValidationDialog.tsx` | **Novo** - Dialog de validação com tabela de cores editável |
+| `src/pages/ChinaNovaSubmissao.tsx` | Abrir dialog após IA, mover insert para callback de confirmação |
+| `src/components/china/ChinaExcelPreview.tsx` | Adicionar botão "Editar (Senha)" quando em modo read-only |
+| `supabase/functions/parse-china-excel/index.ts` | Melhorar prompt para extrair qtd por cor corretamente |
 
