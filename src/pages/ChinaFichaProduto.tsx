@@ -268,12 +268,12 @@ export default function ChinaFichaProduto() {
 
               {/* Action buttons */}
               <div className="flex gap-2 flex-wrap">
-                {submissao.status === "arte_enviada" && (
+                {isBrasilUser && submissao.status === "arte_enviada" && (
                   <Button size="sm" onClick={() => setOcDialogOpen(true)}>
                     <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
                   </Button>
                 )}
-                {canApprove && (
+                {isBrasilUser && canApprove && (
                   <>
                     <Button
                       size="sm"
