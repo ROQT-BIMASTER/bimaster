@@ -196,9 +196,22 @@ export default function ChinaRecebimentos() {
                   <ChinaExcelPreview
                     data={{
                       ...selected.dados_excel,
-                      cores: cores.map((c: any) => ({ grupo: c.grupo, cor_nome: c.cor_nome, quantidade: c.quantidade })),
+                      cores: cores.map((c: any) => ({ grupo: c.grupo, cor_nome: c.cor_nome, quantidade: c.quantidade, cor_hex: c.cor_hex })),
                     }}
                   />
+                )}
+
+                {/* Grade View */}
+                {cores.length > 0 && (
+                  <ChinaGradeView items={cores.map((c: any) => ({
+                    cor_nome: c.cor_nome,
+                    cor_hex: c.cor_hex,
+                    cor_numero: c.cor_numero,
+                    codigo_produto: c.codigo_produto,
+                    codigo_barras_ean: c.codigo_barras_ean,
+                    quantidade: c.quantidade,
+                    grupo: c.grupo,
+                  }))} />
                 )}
 
                 {/* Weights */}

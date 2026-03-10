@@ -286,8 +286,8 @@ export default function ChinaNovaSubmissao() {
 
         {/* Step 2: Document Checklist */}
         {step === 1 && (
-          <Card className="p-6">
-            <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" className="mb-6" />
+          <Card className="p-6 space-y-6">
+            <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {CHINA_DOCUMENT_TYPES.filter(d => d.tipo !== "planilha_excel").map((config) => (
                 <ChinaDocumentSlot
@@ -299,7 +299,11 @@ export default function ChinaNovaSubmissao() {
                 />
               ))}
             </div>
-            <div className="flex justify-between mt-6">
+
+            {/* Grade Editor */}
+            <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+
+            <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(0)}>
                 Voltar 返回
               </Button>

@@ -79,7 +79,7 @@ export default function ChinaOrdemDetalhe() {
     const produzida = apontamentos
       .filter((a: any) => a.cor_nome === c.cor_nome)
       .reduce((sum: number, a: any) => sum + (a.quantidade || 0), 0);
-    return { cor_nome: c.cor_nome, qty_pedida: c.quantidade, qty_produzida: produzida };
+    return { cor_nome: c.cor_nome, qty_pedida: c.quantidade, qty_produzida: produzida, cor_hex: c.cor_hex || undefined };
   });
 
   const coreNames = cores.map((c: any) => c.cor_nome);
