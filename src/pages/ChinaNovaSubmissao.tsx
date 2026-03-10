@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
+import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
 import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
@@ -35,6 +36,7 @@ export default function ChinaNovaSubmissao() {
     display_profundidade: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
 
   // Step 1: Parse Excel
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,16 +92,19 @@ export default function ChinaNovaSubmissao() {
       if (error) throw error;
       setSubmissaoId((sub as any).id);
 
-      // Save colors
+      // Populate grade items from parsed data
       if (data.cores?.length > 0) {
-        await supabase.from("china_produto_cores" as any).insert(
-          data.cores.map((c: any) => ({
-            submissao_id: (sub as any).id,
-            grupo: c.grupo,
-            cor_nome: c.cor_nome,
-            quantidade: c.quantidade,
-          }))
-        );
+        const parsed: GradeItem[] = data.cores.map((c: any, i: number) => ({
+          id: crypto.randomUUID(),
+          cor_nome: c.cor_nome || "",
+          cor_hex: "",
+          cor_numero: "",
+          codigo_produto: "",
+          codigo_barras_ean: "",
+          quantidade: c.quantidade || 0,
+          grupo: c.grupo || "A",
+        }));
+        setGradeItems(parsed);
       }
 
       // Upload the Excel itself as a document
@@ -150,6 +155,26 @@ export default function ChinaNovaSubmissao() {
     if (!submissaoId) return;
     setSubmitting(true);
     try {
+      // Save grade items to DB
+      if (gradeItems.length > 0) {
+        // Delete old cores
+        await supabase.from("china_produto_cores" as any).delete().eq("submissao_id", submissaoId);
+        // Insert updated ones
+        await supabase.from("china_produto_cores" as any).insert(
+          gradeItems.map((item, i) => ({
+            submissao_id: submissaoId,
+            grupo: item.grupo || "A",
+            cor_nome: item.cor_nome,
+            cor_hex: item.cor_hex || null,
+            cor_numero: item.cor_numero || null,
+            codigo_produto: item.codigo_produto || null,
+            codigo_barras_ean: item.codigo_barras_ean || null,
+            quantidade: item.quantidade,
+            ordem: i,
+          }))
+        );
+      }
+
       await supabase
         .from("china_produto_submissoes" as any)
         .update({
@@ -172,7 +197,7 @@ export default function ChinaNovaSubmissao() {
     } finally {
       setSubmitting(false);
     }
-  }, [submissaoId, weights, navigate]);
+  }, [submissaoId, weights, gradeItems, navigate]);
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -261,8 +286,8 @@ export default function ChinaNovaSubmissao() {
 
         {/* Step 2: Document Checklist */}
         {step === 1 && (
-          <Card className="p-6">
-            <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" className="mb-6" />
+          <Card className="p-6 space-y-6">
+            <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {CHINA_DOCUMENT_TYPES.filter(d => d.tipo !== "planilha_excel").map((config) => (
                 <ChinaDocumentSlot
@@ -274,7 +299,11 @@ export default function ChinaNovaSubmissao() {
                 />
               ))}
             </div>
-            <div className="flex justify-between mt-6">
+
+            {/* Grade Editor */}
+            <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+
+            <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(0)}>
                 Voltar 返回
               </Button>

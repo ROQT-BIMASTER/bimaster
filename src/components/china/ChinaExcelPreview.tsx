@@ -11,7 +11,7 @@ interface ExcelData {
   qty_total?: number;
   peso_bruto_g?: number;
   peso_liquido_g?: number;
-  cores?: { grupo: string; cor_nome: string; quantidade: number }[];
+  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string }[];
 }
 
 interface ChinaExcelPreviewProps {
@@ -59,7 +59,11 @@ export function ChinaExcelPreview({ data }: ChinaExcelPreviewProps) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {data.cores.map((c, i) => (
               <div key={i} className="flex items-center gap-2 p-2 bg-card rounded-lg border">
-                <Palette className="h-4 w-4 text-muted-foreground shrink-0" />
+                {c.cor_hex ? (
+                  <div className="h-4 w-4 rounded-full border border-border shrink-0" style={{ backgroundColor: c.cor_hex }} />
+                ) : (
+                  <Palette className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
                 <div className="min-w-0">
                   <span className="text-xs font-medium text-foreground block truncate">{c.cor_nome}</span>
                   <span className="text-[10px] text-muted-foreground">{c.grupo} · {c.quantidade} pcs</span>
