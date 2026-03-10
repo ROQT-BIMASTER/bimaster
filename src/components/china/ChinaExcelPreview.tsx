@@ -23,7 +23,10 @@ interface ExcelData {
   peso_liquido_g?: number;
   peso_aluminio_g?: number;
   peso_plastico_g?: number;
-  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string }[];
+  ean_display?: string;
+  ean_unidade?: string;
+  ean_caixa_master?: string;
+  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string; codigo_barras_ean?: string }[];
 }
 
 interface ChinaExcelPreviewProps {
@@ -76,6 +79,27 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
       {data.produto_nome && (
         <div className="text-center p-3 bg-secondary/50 rounded-lg">
           <span className="text-lg font-bold text-foreground">{data.produto_nome}</span>
+        </div>
+      )}
+
+      {/* EAN Codes */}
+      {(data.ean_display || data.ean_unidade || data.ean_caixa_master) && (
+        <div className="flex flex-wrap gap-2">
+          {data.ean_display && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Display: {data.ean_display}
+            </Badge>
+          )}
+          {data.ean_unidade && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Unidade: {data.ean_unidade}
+            </Badge>
+          )}
+          {data.ean_caixa_master && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Master: {data.ean_caixa_master}
+            </Badge>
+          )}
         </div>
       )}
 

@@ -1,0 +1,3 @@
+ALTER TABLE public.china_produto_submissoes 
+ADD COLUMN IF NOT EXISTS ean_display VARCHAR(20) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS ean_unidade VARCHAR(20) DEFAULT NULL;

@@ -27,6 +27,7 @@ interface ColorEntry {
   cor_nome: string;
   quantidade: number;
   cor_hex?: string;
+  codigo_barras_ean?: string;
 }
 
 interface ValidationData {
@@ -97,7 +98,7 @@ export function ChinaDataValidationDialog({
   };
 
   const addColor = () => {
-    setCores(prev => [...prev, { grupo: "G1", cor_nome: "", quantidade: 0 }]);
+    setCores(prev => [...prev, { grupo: "G1", cor_nome: "", quantidade: 0, codigo_barras_ean: "" }]);
   };
 
   const removeColor = (index: number) => {
@@ -181,6 +182,46 @@ export function ChinaDataValidationDialog({
             </div>
           </section>
 
+          {/* EAN Codes */}
+          <section className="space-y-3">
+            <BilingualLabel pt="Códigos EAN (Código de Barras)" cn="EAN条形码" size="md" className="border-b border-border pb-1" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="p-3 bg-accent/5 rounded-lg border border-accent/20">
+                <Label className="text-xs font-semibold">EAN Display 展示EAN</Label>
+                <Input
+                  value={data.ean_display || ""}
+                  onChange={e => updateField("ean_display", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label className="text-xs font-semibold">EAN Unidade 单品EAN</Label>
+                <Input
+                  value={data.ean_unidade || ""}
+                  onChange={e => updateField("ean_unidade", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+              <div className="p-3 bg-warning/5 rounded-lg border border-warning/20">
+                <Label className="text-xs font-semibold">EAN Caixa Master 主箱EAN</Label>
+                <Input
+                  value={data.ean_caixa_master || ""}
+                  onChange={e => updateField("ean_caixa_master", e.target.value)}
+                  className="h-9 font-mono mt-1"
+                  placeholder="7898..."
+                  maxLength={20}
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              O EAN por cor/SKU pode ser preenchido na grade abaixo. 每个颜色/SKU的EAN可在下方颜色网格中填写。
+            </p>
+          </section>
+
           {/* Quantities & Display */}
           <section className="space-y-3">
             <BilingualLabel pt="Quantidades e Display" cn="数量和展示" size="md" className="border-b border-border pb-1" />
@@ -258,12 +299,13 @@ export function ChinaDataValidationDialog({
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/50">
+                     <TableRow className="bg-muted/50">
                         <TableHead className="w-20 text-xs">Grupo 组</TableHead>
-                        <TableHead className="text-xs">Cor 颜色</TableHead>
-                        <TableHead className="w-32 text-xs">Qtd (PCS) 数量</TableHead>
-                        <TableHead className="w-12" />
-                      </TableRow>
+                         <TableHead className="text-xs">Cor 颜色</TableHead>
+                         <TableHead className="w-36 text-xs">EAN (SKU)</TableHead>
+                         <TableHead className="w-32 text-xs">Qtd (PCS) 数量</TableHead>
+                         <TableHead className="w-12" />
+                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {cores.map((c, i) => (
@@ -272,16 +314,25 @@ export function ChinaDataValidationDialog({
                             <Input value={c.grupo} onChange={e => updateColor(i, "grupo", e.target.value)} className="h-8 text-xs" />
                           </TableCell>
                           <TableCell className="p-1.5">
-                            <Input value={c.cor_nome} onChange={e => updateColor(i, "cor_nome", e.target.value)} className="h-8 text-xs" />
-                          </TableCell>
-                          <TableCell className="p-1.5">
-                            <Input
-                              type="number"
-                              value={c.quantidade}
-                              onChange={e => updateColor(i, "quantidade", parseInt(e.target.value) || 0)}
-                              className="h-8 text-xs font-mono"
-                            />
-                          </TableCell>
+                             <Input value={c.cor_nome} onChange={e => updateColor(i, "cor_nome", e.target.value)} className="h-8 text-xs" />
+                           </TableCell>
+                           <TableCell className="p-1.5">
+                             <Input
+                               value={(c as any).codigo_barras_ean || ""}
+                               onChange={e => updateColor(i, "codigo_barras_ean" as any, e.target.value)}
+                               className="h-8 text-xs font-mono"
+                               placeholder="EAN..."
+                               maxLength={20}
+                             />
+                           </TableCell>
+                           <TableCell className="p-1.5">
+                             <Input
+                               type="number"
+                               value={c.quantidade}
+                               onChange={e => updateColor(i, "quantidade", parseInt(e.target.value) || 0)}
+                               className="h-8 text-xs font-mono"
+                             />
+                           </TableCell>
                           <TableCell className="p-1.5">
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeColor(i)}>
                               <Trash2 className="h-3 w-3 text-destructive" />

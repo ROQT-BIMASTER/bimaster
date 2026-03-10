@@ -95,6 +95,9 @@ export default function ChinaNovaSubmissao() {
           qty_total: validatedData.qty_total || null,
           peso_bruto_g: validatedData.peso_bruto_g || null,
           peso_liquido_g: validatedData.peso_liquido_g || null,
+          ean_display: validatedData.ean_display || null,
+          ean_unidade: validatedData.ean_unidade || null,
+          ean_caixa_master: validatedData.ean_caixa_master || null,
           dados_excel: validatedData,
           created_by: session.user.id,
           status: "rascunho",
@@ -113,7 +116,7 @@ export default function ChinaNovaSubmissao() {
           cor_hex: c.cor_hex || "",
           cor_numero: "",
           codigo_produto: "",
-          codigo_barras_ean: "",
+          codigo_barras_ean: c.codigo_barras_ean || "",
           quantidade: c.quantidade || 0,
           grupo: c.grupo || "A",
         }));
