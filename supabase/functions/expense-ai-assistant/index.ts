@@ -494,10 +494,15 @@ async function handleAuditDocument(params: {
     let bucket = "";
     let filePath = "";
 
+    console.log("[audit_document] parsing URL:", url.substring(0, 120));
+
     // Handle different URL formats
-    if (url.includes("/storage/v1/object/")) {
-      // Full Supabase URL
-      const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+?)(?:\?.*)?$/);
+    // Remove query params first for cleaner parsing
+    const urlWithoutQuery = url.split("?")[0];
+    
+    if (urlWithoutQuery.includes("/storage/v1/object/")) {
+      // Full Supabase URL: .../storage/v1/object/sign/BUCKET/PATH or .../storage/v1/object/public/BUCKET/PATH
+      const match = urlWithoutQuery.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/);
       if (match) {
         bucket = match[1];
         filePath = decodeURIComponent(match[2]);
@@ -509,8 +514,10 @@ async function handleAuditDocument(params: {
       filePath = parts.slice(1).join("/");
     }
 
+    console.log("[audit_document] bucket:", bucket, "filePath:", filePath);
+
     if (!bucket || !filePath) {
-      throw new Error("Could not parse attachment URL");
+      throw new Error(`Could not parse attachment URL: ${url.substring(0, 100)}`);
     }
 
     // Determine mime type from extension
