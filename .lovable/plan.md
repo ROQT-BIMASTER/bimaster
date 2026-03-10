@@ -1,56 +1,55 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Análise de Segurança dos Módulos Recentes
 
-### O que muda
+### Problemas Identificados
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+**1. `projeto_tarefa_documentos` — RLS permissiva demais**
 
-### Implementação
+A tabela usa `USING (true) WITH CHECK (true)` para ALL operations. Isso significa que **qualquer usuário autenticado pode ver, editar e deletar documentos de qualquer projeto**, inclusive de projetos aos quais não tem acesso.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+As outras tabelas do módulo (`projetos`, `projeto_secoes`, `projeto_tarefas`) já usam funções como `user_can_access_projeto()` e `user_can_access_secao()` para isolar dados. A `projeto_tarefa_documentos` deve seguir o mesmo padrão.
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+**Correção**: Substituir a política permissiva por uma que valide acesso à tarefa:
+```sql
+-- SELECT: só vê documentos de tarefas acessíveis
+USING (user_can_access_secao(auth.uid(), (SELECT secao_id FROM projeto_tarefas WHERE id = tarefa_id)))
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
-
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
-
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
+-- INSERT/UPDATE/DELETE: mesmo critério
+WITH CHECK (user_can_access_secao(auth.uid(), (SELECT secao_id FROM projeto_tarefas WHERE id = tarefa_id)))
 ```
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+**2. Storage bucket `projeto-documentos` — público e sem restrição de path**
+
+O bucket é marcado como `public = true`, permitindo que URLs sejam acessíveis sem autenticação. Além disso, a política de upload (`WITH CHECK (bucket_id = 'projeto-documentos')`) permite que qualquer usuário autenticado faça upload em qualquer path — incluindo sobrescrever arquivos de outros projetos.
+
+**Correção**:
+- Tornar o bucket **não-público** (`public = false`) para que URLs exijam token
+- Adicionar restrição de path para que uploads fiquem isolados por projeto
+
+**3. Edge Function `projeto-ia-assistant` — sem validação de JWT**
+
+A função não verifica o header `Authorization` nem extrai o usuário autenticado. Qualquer requisição com o anon key pode invocar ações de IA sem ser um usuário logado com permissão ao módulo "projetos".
+
+**Correção**: Adicionar validação de JWT no handler principal:
+```ts
+const authHeader = req.headers.get("Authorization");
+const token = authHeader?.replace("Bearer ", "");
+const { data: { user }, error } = await getSupabaseAdmin().auth.getUser(token);
+if (!user) throw new Error("Não autorizado");
+```
+
+### Plano de Implementação
+
+| Arquivo | Alteração |
+|---|---|
+| **Migration SQL** | Substituir RLS permissiva de `projeto_tarefa_documentos` por políticas baseadas em `user_can_access_secao`; tornar bucket privado |
+| `supabase/functions/projeto-ia-assistant/index.ts` | Adicionar validação de JWT no handler principal |
+| `src/components/projetos/ProjetoListView.tsx` | Usar URL assinada (`.createSignedUrl`) em vez de `.getPublicUrl` já que bucket será privado |
+
+### Itens já seguros (não requerem mudança)
+
+- **Rotas frontend**: Todas protegidas com `ModuleProtectedRoute moduleCode="projetos"` no `App.tsx`
+- **Sidebar**: Já filtra com `hasModulePermission("projetos")`
+- **Tabelas `projetos`, `projeto_secoes`, `projeto_tarefas`**: Usam funções `user_can_access_*` para SELECT e validação por `criador_id` para INSERT/DELETE
 
