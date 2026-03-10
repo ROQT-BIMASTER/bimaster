@@ -105,7 +105,7 @@ export default function ChinaNovaSubmissao() {
   });
 
   // Hydrate state from existing data when resuming
-  useState(() => {
+  useEffect(() => {
     if (existingSubmissao && editId) {
       setParsedData(existingSubmissao.dados_excel || { produto_codigo: existingSubmissao.produto_codigo, produto_nome: existingSubmissao.produto_nome });
       setWeights({
@@ -116,13 +116,12 @@ export default function ChinaNovaSubmissao() {
         display_altura: existingSubmissao.medidas_display?.altura?.toString() || "",
         display_profundidade: existingSubmissao.medidas_display?.profundidade?.toString() || "",
       });
-      // Skip step 0 if data already exists
       if (existingSubmissao.produto_codigo) setStep(1);
     }
-  });
+  }, [existingSubmissao, editId]);
 
   // Hydrate docs
-  useState(() => {
+  useEffect(() => {
     if (existingDocs?.length) {
       const grouped: Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }[]> = {};
       existingDocs.forEach((d: any) => {
@@ -131,10 +130,10 @@ export default function ChinaNovaSubmissao() {
       });
       setDocs(grouped);
     }
-  });
+  }, [existingDocs]);
 
   // Hydrate cores
-  useState(() => {
+  useEffect(() => {
     if (existingCores?.length) {
       setGradeItems(existingCores.map((c: any) => ({
         id: c.id || crypto.randomUUID(),
@@ -147,7 +146,7 @@ export default function ChinaNovaSubmissao() {
         grupo: c.grupo || "A",
       })));
     }
-  });
+  }, [existingCores]);
 
   // Product info for preview (from parsedData or existingSubmissao)
   const productInfo = parsedData || existingSubmissao || null;
