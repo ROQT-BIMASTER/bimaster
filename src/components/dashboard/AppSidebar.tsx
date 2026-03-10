@@ -758,7 +758,54 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
-        {/* Módulo Comercial */}
+        {/* Módulo Fábrica China */}
+        {showModule("china") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={chinaOpen} onOpenChange={setChinaOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Globe} 
+                  title="Fábrica China 中国工厂" 
+                  isOpen={chinaOpen} 
+                  colorKey="china" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china" 
+                      icon={Home} 
+                      title="Painel 面板" 
+                      colorKey="china"
+                      end 
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/nova" 
+                      icon={Upload} 
+                      title="Nova Submissão 新提交" 
+                      colorKey="china"
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/recebimentos" 
+                      icon={Package} 
+                      title="Submissões 提交" 
+                      colorKey="china"
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/ordens" 
+                      icon={ShoppingCart} 
+                      title="Ordens de Compra 采购订单" 
+                      colorKey="china"
+                    />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+
         {hasModulePermission("comercial") && showModule("comercial") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
