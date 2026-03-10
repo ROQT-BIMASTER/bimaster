@@ -49,6 +49,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = true
   [functions.cnpjbiz-consulta]
     verify_jwt = true
+  [functions.conciliacao-bancaria]
+    verify_jwt = false
   [functions.cobranca-automation-api]
     verify_jwt = false
   [functions.cobranca-whatsapp-webhook]
