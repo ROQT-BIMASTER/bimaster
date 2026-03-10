@@ -728,7 +728,7 @@ export function TarefaFocusMode({
                 responsavel: s.responsavel,
               })),
             }}
-          />
+          />}
 
           {/* Right column - Chat */}
           <div className="w-[380px] flex flex-col bg-muted/10 flex-shrink-0">

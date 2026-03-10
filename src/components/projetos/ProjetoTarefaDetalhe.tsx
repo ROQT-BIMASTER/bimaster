@@ -1246,6 +1246,7 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
           secoes={secoes}
+          projetoTipo={(tarefa as any)?.projeto_tipo}
         />
       )}
 
