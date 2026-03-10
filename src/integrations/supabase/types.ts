@@ -1097,6 +1097,45 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_connections: {
+        Row: {
+          agencia: string | null
+          banco: string
+          conta: string | null
+          created_at: string
+          id: string
+          last_sync: string | null
+          pluggy_item_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agencia?: string | null
+          banco: string
+          conta?: string | null
+          created_at?: string
+          id?: string
+          last_sync?: string | null
+          pluggy_item_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agencia?: string | null
+          banco?: string
+          conta?: string | null
+          created_at?: string
+          id?: string
+          last_sync?: string | null
+          pluggy_item_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categoria_departamento: {
         Row: {
           categoria_nome: string
@@ -2627,6 +2666,106 @@ export type Database = {
           threat_level?: string | null
         }
         Relationships: []
+      }
+      conciliacao_uploads: {
+        Row: {
+          bank_connection_id: string
+          conciliados: number | null
+          created_at: string
+          divergentes: number | null
+          duracao_ms: number | null
+          id: string
+          pendentes: number | null
+          status: string
+          total_transacoes: number | null
+          user_id: string | null
+        }
+        Insert: {
+          bank_connection_id: string
+          conciliados?: number | null
+          created_at?: string
+          divergentes?: number | null
+          duracao_ms?: number | null
+          id?: string
+          pendentes?: number | null
+          status?: string
+          total_transacoes?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          bank_connection_id?: string
+          conciliados?: number | null
+          created_at?: string
+          divergentes?: number | null
+          duracao_ms?: number | null
+          id?: string
+          pendentes?: number | null
+          status?: string
+          total_transacoes?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacao_uploads_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conciliacoes_bancarias: {
+        Row: {
+          bank_connection_id: string
+          confianca: string | null
+          conta_pagar_id: string | null
+          created_at: string
+          data_transacao: string
+          descricao: string | null
+          documento: string | null
+          id: string
+          pluggy_transaction_id: string | null
+          status_conciliacao: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          bank_connection_id: string
+          confianca?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string
+          data_transacao: string
+          descricao?: string | null
+          documento?: string | null
+          id?: string
+          pluggy_transaction_id?: string | null
+          status_conciliacao?: string
+          tipo?: string
+          valor: number
+        }
+        Update: {
+          bank_connection_id?: string
+          confianca?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string
+          data_transacao?: string
+          descricao?: string | null
+          documento?: string | null
+          id?: string
+          pluggy_transaction_id?: string | null
+          status_conciliacao?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacoes_bancarias_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       configuracoes_cobranca: {
         Row: {
