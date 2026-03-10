@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
+import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
@@ -16,7 +17,8 @@ import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -35,6 +37,7 @@ export default function ProjetoDetalhe() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
   const { tarefas, secoes, teamMembers, createTarefa } = useProjetoTarefas(id);
+  const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
 
@@ -113,6 +116,16 @@ export default function ProjetoDetalhe() {
               >
                 <ArrowLeft className="h-4 w-4" /> Projetos
               </Button>
+              {chinaVinculo && (
+                <Badge
+                  variant="outline"
+                  className={`cursor-pointer gap-1.5 ${darkBg ? "border-white/30 text-white hover:bg-white/10" : ""}`}
+                  onClick={() => navigate(`/dashboard/fabrica-china/ficha/${chinaVinculo.id}`)}
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Produto China: {chinaVinculo.produto_codigo}
+                </Badge>
+              )}
               <ProjetoBgColorPicker value={projeto.bg_cor ?? null} onChange={handleBgColorChange} />
             </div>
 

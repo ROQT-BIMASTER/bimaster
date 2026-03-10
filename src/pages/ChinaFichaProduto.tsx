@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen
+  FolderOpen, Briefcase, ExternalLink
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
+import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -474,6 +475,9 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
+        {/* Projetos Vinculados */}
+        <ChinaProjetosVinculadosSection submissao={submissao} />
+
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (
           <Card className="p-6 space-y-4">
@@ -576,5 +580,75 @@ export default function ChinaFichaProduto() {
         }}
       />
     </div>
+  );
+}
+
+/** Inline component for linked projects section */
+function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
+  const navigate = useNavigate();
+  const { data: projetos = [], isLoading } = useChinaProjetosVinculados(submissao?.id);
+  const criarProjeto = useCriarProjetoChina();
+
+  const handleCriar = async () => {
+    const projeto = await criarProjeto.mutateAsync({
+      id: submissao.id,
+      produto_codigo: submissao.produto_codigo,
+      produto_nome: submissao.produto_nome,
+    });
+    navigate(`/dashboard/projetos/${projeto.id}`);
+  };
+
+  return (
+    <Card className="p-6 space-y-4">
+      <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
+
+      {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+
+      {!isLoading && projetos.length === 0 && (
+        <div className="flex flex-col items-center py-6 text-center">
+          <Briefcase className="h-10 w-10 text-muted-foreground/30 mb-2" />
+          <p className="text-sm text-muted-foreground mb-3">
+            Nenhum projeto vinculado. 没有关联项目。
+          </p>
+          <Button onClick={handleCriar} disabled={criarProjeto.isPending} className="gap-2">
+            {criarProjeto.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+            Criar Projeto de Desenvolvimento 创建开发项目
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && projetos.length > 0 && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {projetos.map((p: any) => {
+              const pct = p.total_tarefas > 0 ? Math.round((p.tarefas_concluidas / p.total_tarefas) * 100) : 0;
+              return (
+                <div
+                  key={p.id}
+                  className="p-4 border rounded-xl bg-card cursor-pointer hover:shadow-md transition-all"
+                  onClick={() => navigate(`/dashboard/projetos/${p.id}`)}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.cor }}>
+                      <span className="text-white text-sm font-bold">{p.nome?.charAt(0)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm truncate">{p.nome}</p>
+                      <p className="text-xs text-muted-foreground">{p.tarefas_concluidas}/{p.total_tarefas} tarefas</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                  <Progress value={pct} gradient className="h-2" />
+                </div>
+              );
+            })}
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCriar} disabled={criarProjeto.isPending} className="gap-2">
+            {criarProjeto.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+            Criar outro projeto 创建其他项目
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }
