@@ -458,6 +458,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/central-pagamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleProtectedRoute></ProtectedRoute>} />
             <Route path="/dashboard/financeiro/consolidado" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FinanceiroConsolidadoDashboard /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ConciliacaoBancaria /></ModuleProtectedRoute></ProtectedRoute>} />
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleProtectedRoute></ProtectedRoute>} />
