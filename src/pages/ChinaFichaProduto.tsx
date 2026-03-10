@@ -146,14 +146,13 @@ export default function ChinaFichaProduto() {
 
   const handleDocUpload = async (tipo: string, file: File) => {
     if (!id) return;
-    const path = `${id}/${tipo}/${file.name}`;
+    const path = `${id}/${tipo}/${Date.now()}_${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
     if (error) {
       toast.error("Erro no upload 上传错误");
       return;
     }
-    // Upsert: remove old doc of same type then insert
-    await supabase.from("china_produto_documentos" as any).delete().eq("submissao_id", id).eq("tipo_documento", tipo);
+    // Insert without deleting — supports multiple files per type
     await supabase.from("china_produto_documentos" as any).insert({
       submissao_id: id,
       tipo_documento: tipo,

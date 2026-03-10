@@ -3,6 +3,8 @@ import { Upload, CheckCircle2, Clock, XCircle, FileText, Trash2, Loader2 } from 
 import { cn } from "@/lib/utils";
 import { BilingualLabel } from "./BilingualLabel";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface DocumentSlotConfig {
   tipo: string;
@@ -13,12 +15,25 @@ export interface DocumentSlotConfig {
   multiple?: boolean;
 }
 
+export interface SlotFile {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface ChinaDocumentSlotProps {
   config: DocumentSlotConfig;
+  /** Overall status — computed from files if not provided */
   status: "none" | "pendente" | "aprovado" | "rejeitado";
+  /** @deprecated Use `files` instead */
   fileName?: string;
+  /** Multiple files for this slot */
+  files?: SlotFile[];
   observacao?: string;
   onUpload: (file: File) => Promise<void>;
+  /** Remove a specific file by id */
+  onRemoveFile?: (fileId: string) => void;
+  /** @deprecated Use `onRemoveFile` */
   onRemove?: () => void;
   disabled?: boolean;
 }
@@ -34,20 +49,34 @@ export function ChinaDocumentSlot({
   config,
   status,
   fileName,
+  files,
   observacao,
   onUpload,
+  onRemoveFile,
   onRemove,
   disabled,
 }: ChinaDocumentSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const s = statusConfig[status];
 
-  const handleFile = useCallback(async (file: File) => {
+  // Determine effective status from files array
+  const effectiveStatus = files && files.length > 0
+    ? (files.some(f => f.status === "rejeitado") ? "rejeitado"
+      : files.some(f => f.status === "pendente") ? "pendente"
+      : files.every(f => f.status === "aprovado") ? "aprovado"
+      : status)
+    : status;
+
+  const s = statusConfig[effectiveStatus];
+  const fileCount = files?.length ?? (fileName ? 1 : 0);
+
+  const handleFiles = useCallback(async (fileList: FileList) => {
     setUploading(true);
     try {
-      await onUpload(file);
+      for (const file of Array.from(fileList)) {
+        await onUpload(file);
+      }
     } finally {
       setUploading(false);
     }
@@ -56,9 +85,9 @@ export function ChinaDocumentSlot({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles?.length) handleFiles(droppedFiles);
+  }, [handleFiles]);
 
   return (
     <div
@@ -80,8 +109,25 @@ export function ChinaDocumentSlot({
         <BilingualLabel pt={config.labelPt} cn={config.labelCn} size="sm" className="text-center" />
       </div>
 
-      {/* Upload area or file name */}
-      {fileName ? (
+      {/* File list (multi-file mode) */}
+      {files && files.length > 0 ? (
+        <ScrollArea className="w-full max-h-[72px]">
+          <div className="space-y-1 w-full">
+            {files.map((f) => (
+              <div key={f.id} className="flex items-center gap-1.5 text-xs text-foreground bg-background rounded-md px-2 py-0.5 max-w-full">
+                <FileText className="h-3 w-3 shrink-0" />
+                <span className="truncate flex-1 max-w-[100px]">{f.name}</span>
+                {onRemoveFile && f.status !== "aprovado" && (
+                  <button onClick={() => onRemoveFile(f.id)} className="text-destructive hover:text-destructive/80 shrink-0">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      ) : fileName ? (
+        /* Legacy single-file mode */
         <div className="flex items-center gap-2 text-xs text-foreground bg-background rounded-md px-2 py-1 max-w-full">
           <FileText className="h-3 w-3 shrink-0" />
           <span className="truncate max-w-[120px]">{fileName}</span>
@@ -91,23 +137,29 @@ export function ChinaDocumentSlot({
             </button>
           )}
         </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs gap-1"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-          Upload
-        </Button>
-      )}
+      ) : null}
 
-      {/* Status badge */}
+      {/* Upload button — always visible */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-xs gap-1"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+      >
+        {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+        Upload
+      </Button>
+
+      {/* Status badge + count */}
       <div className="flex items-center gap-1 text-[10px]">
         {s.icon}
         <span className="text-muted-foreground">{s.label}</span>
+        {fileCount > 0 && (
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 ml-1">
+            {fileCount}
+          </Badge>
+        )}
       </div>
 
       {/* Observation */}
@@ -120,9 +172,10 @@ export function ChinaDocumentSlot({
         type="file"
         className="hidden"
         accept={config.accept}
+        multiple
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFile(file);
+          const selectedFiles = e.target.files;
+          if (selectedFiles?.length) handleFiles(selectedFiles);
           e.target.value = "";
         }}
       />
