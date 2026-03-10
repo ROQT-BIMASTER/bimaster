@@ -21,6 +21,7 @@ export default function ChinaRecebimentos() {
   );
   const statusFilter = searchParams.get("status");
   const [search, setSearch] = useState("");
+  const [showTrash, setShowTrash] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
