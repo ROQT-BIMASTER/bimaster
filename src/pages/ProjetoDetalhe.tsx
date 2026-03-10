@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Projeto } from "@/hooks/useProjetos";
 import { useProjetoTarefas } from "@/hooks/useProjetoTarefas";
+import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ProjetoHeader } from "@/components/projetos/ProjetoHeader";
 import { ProjetoListView } from "@/components/projetos/ProjetoListView";
 import { ProjetoKanbanView } from "@/components/projetos/ProjetoKanbanView";
@@ -16,7 +17,8 @@ import { ProjetoBgColorPicker } from "@/components/projetos/ProjetoBgColorPicker
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/projetos/ProjetoFilterSort";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
