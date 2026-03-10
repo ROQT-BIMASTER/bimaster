@@ -29,6 +29,8 @@ export default function FichaCustoProduto() {
     loadingFilhos,
     importarCustosFilhos,
     carregarCustosFilhos,
+    isDisplayComKit,
+    todosInsumosKit,
   } = useFichaCustoProduto(id);
 
   const {
