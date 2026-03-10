@@ -1,49 +1,35 @@
 
 
-## Diagnóstico
+## Plano: Envio de Pagamentos para o ERP
 
-O token de conexão está sendo gerado com sucesso (892 chars). O widget do `react-pluggy-connect` renderiza o container (modal branco com spinner), mas o conteúdo interno (lista de bancos) nunca carrega. Isso indica que o iframe/zoid interno do SDK não está conseguindo carregar o conteúdo do Pluggy — provavelmente por restrições de CSP ou incompatibilidade do `zoid` com o ambiente de preview do Lovable.
+### Status: ✅ Implementado
 
-## Plano: Trocar para `pluggy-connect-sdk` (JS puro) com `init()`
+### O que foi feito
 
-Em vez do wrapper React (que depende de `zoid` + iframe embutido), usar o SDK JavaScript puro que abre o widget como um **modal overlay** diretamente no DOM — mais robusto e sem dependência de iframe embedding.
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-### 1. Reescrever `PluggyConnectWidget.tsx`
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-- Importar `PluggyConnect` de `pluggy-connect-sdk` (já disponível como dependência do `react-pluggy-connect`)
-- No `useEffect`, instanciar `new PluggyConnect({ connectToken, includeSandbox, onSuccess, onError, onClose })` e chamar `.init()` 
-- No cleanup do `useEffect`, chamar `.destroy()` para limpar
-- Remover o container div (o SDK cria o próprio modal)
+---
 
-### 2. Instalar `pluggy-connect-sdk` se necessário
+## Plano: API de Exportação Pull para o ERP
 
-- Verificar se já está como dependência transitiva; se não, adicionar explicitamente
+### Status: ✅ Implementado
 
-### 3. Manter callbacks no `ConciliacaoBancaria.tsx`
+### O que foi feito
 
-- Sem mudanças — os callbacks já estão corretos
-
-### Detalhes técnicos
-
-```tsx
-// PluggyConnectWidget.tsx
-import { useEffect } from "react";
-import PluggyConnect from "pluggy-connect-sdk";
-
-export function PluggyConnectWidget({ connectToken, includeSandbox, onSuccess, onError, onClose }) {
-  useEffect(() => {
-    const pluggyConnect = new PluggyConnect({
-      connectToken,
-      includeSandbox,
-      onSuccess: (data) => { console.log("✅ Pluggy success", data); onSuccess(data); },
-      onError: (error) => { console.error("❌ Pluggy error", error); onError?.(error); },
-      onClose: () => { console.log("Pluggy closed"); onClose?.(); },
-    });
-    pluggyConnect.init();
-    return () => { try { pluggyConnect.destroy(); } catch {} };
-  }, [connectToken]);
-
-  return null; // SDK creates its own modal overlay
-}
-```
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
