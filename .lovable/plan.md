@@ -1,35 +1,42 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Diagnóstico
 
-### Status: ✅ Implementado
+O problema é que o widget Pluggy Connect usa internamente a biblioteca `zoid` para renderizar um iframe cross-domain para `connect.pluggy.ai`. O script local (`public/pluggy-connect.js`) carrega corretamente, mas o `zoid` falha silenciosamente ao tentar renderizar o iframe — o `init()` nunca resolve e o `onOpen` nunca dispara, resultando no loading infinito.
 
-### O que foi feito
+Sua conta Pluggy está funcional (o `connectToken` é gerado com sucesso pelo backend). O problema é puramente no widget frontend.
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+## Solução: Iframe Direto
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+Substituir o widget `zoid` por um iframe direto apontando para a URL do Pluggy Connect. A URL oficial é:
 
----
+```
+https://connect.pluggy.ai/?connect_token=TOKEN
+```
 
-## Plano: API de Exportação Pull para o ERP
+O iframe se comunica via `window.postMessage`, que podemos escutar para capturar eventos de sucesso, erro e fechamento.
 
-### Status: ✅ Implementado
+## Mudanças
 
-### O que foi feito
+### 1. Reescrever `PluggyConnectWidget.tsx`
+- Remover carregamento do script `pluggy-connect.js`
+- Renderizar um `<iframe>` apontando para `https://connect.pluggy.ai/?connect_token={token}`
+- Escutar `window.addEventListener("message", ...)` para capturar eventos do Pluggy (`onSuccess`, `onError`, `onClose`)
+- Mostrar o iframe em um modal/overlay com botão de fechar
+- Manter loading state enquanto iframe carrega (`onLoad` do iframe)
 
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+### 2. Remover `public/pluggy-connect.js`
+- Arquivo de 5328 linhas não será mais necessário
+
+### 3. Atualizar `ConciliacaoBancaria.tsx`
+- Ajustar handlers para o novo formato de dados recebidos via postMessage
+
+## Detalhes Técnicos
+
+O Pluggy Connect envia mensagens via `postMessage` com formato:
+```json
+{ "type": "PLUGGY_CONNECT_SUCCESS", "item": { "id": "...", "connector": {...}, "accounts": [...] } }
+```
+
+O iframe será renderizado como overlay fullscreen com z-index alto, similar ao comportamento original do widget.
+
