@@ -1,5 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { PluggyClient } from "npm:pluggy-sdk";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,18 +6,50 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function getPluggyClient(): PluggyClient {
+const PLUGGY_API_URL = "https://api.pluggy.ai";
+
+async function getPluggyApiKey(): Promise<string> {
   const clientId = Deno.env.get("PLUGGY_CLIENT_ID");
   const clientSecret = Deno.env.get("PLUGGY_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("Pluggy credentials not configured");
-  return new PluggyClient({ clientId, clientSecret });
+
+  const res = await fetch(`${PLUGGY_API_URL}/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId, clientSecret }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Pluggy auth failed: ${err}`);
+  }
+  const data = await res.json();
+  return data.apiKey;
+}
+
+async function pluggyFetch(apiKey: string, path: string, options: RequestInit = {}) {
+  const res = await fetch(`${PLUGGY_API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": apiKey,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Pluggy API error (${res.status}): ${err}`);
+  }
+  return res.json();
 }
 
 async function handleConnect(supabase: any, userId: string): Promise<Response> {
-  const pluggy = getPluggyClient();
-  const connectToken = await pluggy.createConnectToken({ clientUserId: userId });
+  const apiKey = await getPluggyApiKey();
+  const data = await pluggyFetch(apiKey, "/connect_token", {
+    method: "POST",
+    body: JSON.stringify({ clientUserId: userId }),
+  });
 
-  return new Response(JSON.stringify({ accessToken: connectToken.accessToken }), {
+  return new Response(JSON.stringify({ accessToken: data.accessToken }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
@@ -80,10 +111,10 @@ async function handleSyncTransactions(
     .select()
     .single();
 
-  const pluggy = getPluggyClient();
+  const apiKey = await getPluggyApiKey();
 
   // Fetch accounts for this item
-  const accountsData = await pluggy.fetchAccounts(conn.pluggy_item_id);
+  const accountsData = await pluggyFetch(apiKey, `/items/${conn.pluggy_item_id}/accounts`);
 
   let allTransactions: any[] = [];
 
@@ -91,12 +122,10 @@ async function handleSyncTransactions(
     let page = 1;
     let hasMore = true;
     while (hasMore) {
-      const txData = await pluggy.fetchTransactions(account.id, {
-        from: dateFrom || undefined,
-        to: dateTo || undefined,
-        page,
-        pageSize: 500,
-      });
+      const params = new URLSearchParams({ page: String(page), pageSize: "500" });
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const txData = await pluggyFetch(apiKey, `/accounts/${account.id}/transactions?${params}`);
       allTransactions = allTransactions.concat(txData.results || []);
       hasMore = (txData.results?.length || 0) === 500;
       page++;
