@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { PluggyClient } from "npm:pluggy-sdk";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,40 +7,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PLUGGY_BASE_URL = "https://api.pluggy.ai";
-
-async function getPluggyApiKey(): Promise<string> {
+function getPluggyClient(): PluggyClient {
   const clientId = Deno.env.get("PLUGGY_CLIENT_ID");
   const clientSecret = Deno.env.get("PLUGGY_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("Pluggy credentials not configured");
-
-  const res = await fetch(`${PLUGGY_BASE_URL}/auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId, clientSecret }),
-  });
-  if (!res.ok) throw new Error(`Pluggy auth failed: ${await res.text()}`);
-  const data = await res.json();
-  return data.apiKey;
+  return new PluggyClient({ clientId, clientSecret });
 }
 
 async function handleConnect(supabase: any, userId: string): Promise<Response> {
-  const apiKey = await getPluggyApiKey();
+  const pluggy = getPluggyClient();
+  const connectToken = await pluggy.createConnectToken({ clientUserId: userId });
 
-  const res = await fetch(`${PLUGGY_BASE_URL}/connect_token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": apiKey,
-    },
-    body: JSON.stringify({
-      clientUserId: userId,
-    }),
-  });
-  if (!res.ok) throw new Error(`Connect token failed: ${await res.text()}`);
-  const data = await res.json();
-
-  return new Response(JSON.stringify({ accessToken: data.accessToken }), {
+  return new Response(JSON.stringify({ accessToken: connectToken.accessToken }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
