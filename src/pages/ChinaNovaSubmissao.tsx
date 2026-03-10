@@ -27,7 +27,7 @@ export default function ChinaNovaSubmissao() {
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
   const [submissaoId, setSubmissaoId] = useState<string | null>(null);
-  const [docs, setDocs] = useState<Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }>>({});
+  const [docs, setDocs] = useState<Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }[]>>({});
   const [weights, setWeights] = useState({
     peso_bruto_g: "",
     peso_liquido_g: "",
