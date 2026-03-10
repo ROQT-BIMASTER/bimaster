@@ -253,7 +253,10 @@ export function PaymentReviewDialog({
               <FileText className="h-5 w-5" />
               Revisão de Pagamento
             </DialogTitle>
-            <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
+              {isPaid && <ErpExportStatusBadge paymentQueueId={item.id} />}
+            </div>
           </div>
           <DialogDescription>
             {item.code} • {sourceTypeLabels[item.source_type]}
