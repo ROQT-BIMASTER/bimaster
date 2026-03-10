@@ -577,117 +577,121 @@ export function ProjetoTarefaDetalhe({
                     )}
                   </div>
 
-                  {/* Produto vinculado */}
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Package className="h-3.5 w-3.5" /> Produto
-                  </span>
-                  <div className="relative">
-                    {(tarefa as any).produto_id && !showProdutoSearch ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <ProductThumbnail src={linkedProduto?.foto_url} alt={linkedProduto?.nome} size="lg" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Badge variant="outline" className="text-xs gap-1">
-                                <Package className="h-3 w-3" />
-                                {linkedProduto ? linkedProduto.codigo : "..."}
-                              </Badge>
-                              {linkedProduto?.tipo === "DISPLAY" && (
-                                <Badge variant="default" className="text-[9px] px-1">Display</Badge>
-                              )}
-                              {linkedProduto?.tipo === "DISPLAY" && (
-                                <DisplayGradePopover
-                                  produtoId={(tarefa as any).produto_id}
-                                  produtoNome={linkedProduto?.nome}
-                                  produtoCodigo={linkedProduto?.codigo}
-                                />
-                              )}
-                              <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => {
-                                onUpdate(tarefa.id, { produto_id: null } as any);
-                              }}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <p className="text-xs text-foreground truncate mt-0.5">
-                              {linkedProduto?.nome || "Produto vinculado"}
-                            </p>
-                            {linkedProduto?.marca && (
-                              <p className="text-[10px] text-muted-foreground">{linkedProduto.marca}{linkedProduto.linha ? ` · ${linkedProduto.linha}` : ""}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
+                  {/* Produto vinculado - apenas para desenvolvimento de produto */}
+                  {projetoTipo === 'desenvolvimento_produto' && (
+                    <>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Package className="h-3.5 w-3.5" /> Produto
+                      </span>
                       <div className="relative">
-                        <div className="relative">
-                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                          <Input
-                            value={produtoSearch}
-                            onChange={e => handleProdutoSearch(e.target.value)}
-                            onFocus={handleProdutoFocus}
-                            placeholder="Buscar produto por nome ou código..."
-                            className="h-8 text-xs pl-7"
-                          />
-                        </div>
-                        {showProdutoSearch && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-auto">
-                            {produtoResults.length > 0 ? (
-                              produtoResults.map(p => (
-                                <div key={p.id}>
-                                  <button
-                                    onClick={() => handleSelectProduto(p)}
-                                    className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${p.tipo === "DISPLAY" ? "bg-primary/5 font-medium" : ""}`}
-                                  >
-                                    {p.foto_url ? (
-                                      <img src={p.foto_url} alt="" className="h-5 w-5 rounded object-cover flex-shrink-0" />
-                                    ) : (
-                                      <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                    )}
-                                    <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
-                                    <span className="truncate">{p.nome}</span>
-                                    {p.tipo === "DISPLAY" && <Badge variant="default" className="text-[9px] px-1 flex-shrink-0">Display</Badge>}
-                                    {p.marca && <Badge variant="outline" className="text-[9px] px-1 flex-shrink-0">{p.marca}</Badge>}
-                                  </button>
-                                  {/* Filhos do Display */}
-                                  {p.tipo === "DISPLAY" && p.filhos && p.filhos.length > 0 && (
-                                    <div className="border-l-2 border-primary/30 ml-5">
-                                      {p.filhos.map(filho => (
-                                        <button
-                                          key={filho.id}
-                                          onClick={() => handleSelectProduto(filho)}
-                                          className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors pl-4"
-                                        >
-                                          <span className="text-primary">↳</span>
-                                          <span className="font-mono text-primary/70 flex-shrink-0 text-[10px]">{filho.codigo}</span>
-                                          <span className="truncate text-primary">{filho.nome}</span>
-                                        </button>
-                                      ))}
-                                    </div>
+                        {(tarefa as any).produto_id && !showProdutoSearch ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <ProductThumbnail src={linkedProduto?.foto_url} alt={linkedProduto?.nome} size="lg" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Badge variant="outline" className="text-xs gap-1">
+                                    <Package className="h-3 w-3" />
+                                    {linkedProduto ? linkedProduto.codigo : "..."}
+                                  </Badge>
+                                  {linkedProduto?.tipo === "DISPLAY" && (
+                                    <Badge variant="default" className="text-[9px] px-1">Display</Badge>
                                   )}
+                                  {linkedProduto?.tipo === "DISPLAY" && (
+                                    <DisplayGradePopover
+                                      produtoId={(tarefa as any).produto_id}
+                                      produtoNome={linkedProduto?.nome}
+                                      produtoCodigo={linkedProduto?.codigo}
+                                    />
+                                  )}
+                                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => {
+                                    onUpdate(tarefa.id, { produto_id: null } as any);
+                                  }}>
+                                    <X className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                              ))
-                            ) : (
-                              <div className="px-3 py-3 text-xs text-muted-foreground text-center">
-                                Nenhum produto encontrado
+                                <p className="text-xs text-foreground truncate mt-0.5">
+                                  {linkedProduto?.nome || "Produto vinculado"}
+                                </p>
+                                {linkedProduto?.marca && (
+                                  <p className="text-[10px] text-muted-foreground">{linkedProduto.marca}{linkedProduto.linha ? ` · ${linkedProduto.linha}` : ""}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <Input
+                                value={produtoSearch}
+                                onChange={e => handleProdutoSearch(e.target.value)}
+                                onFocus={handleProdutoFocus}
+                                placeholder="Buscar produto por nome ou código..."
+                                className="h-8 text-xs pl-7"
+                              />
+                            </div>
+                            {showProdutoSearch && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-auto">
+                                {produtoResults.length > 0 ? (
+                                  produtoResults.map(p => (
+                                    <div key={p.id}>
+                                      <button
+                                        onClick={() => handleSelectProduto(p)}
+                                        className={`flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/50 transition-colors ${p.tipo === "DISPLAY" ? "bg-primary/5 font-medium" : ""}`}
+                                      >
+                                        {p.foto_url ? (
+                                          <img src={p.foto_url} alt="" className="h-5 w-5 rounded object-cover flex-shrink-0" />
+                                        ) : (
+                                          <Package className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                        )}
+                                        <span className="font-mono text-muted-foreground flex-shrink-0">{p.codigo}</span>
+                                        <span className="truncate">{p.nome}</span>
+                                        {p.tipo === "DISPLAY" && <Badge variant="default" className="text-[9px] px-1 flex-shrink-0">Display</Badge>}
+                                        {p.marca && <Badge variant="outline" className="text-[9px] px-1 flex-shrink-0">{p.marca}</Badge>}
+                                      </button>
+                                      {/* Filhos do Display */}
+                                      {p.tipo === "DISPLAY" && p.filhos && p.filhos.length > 0 && (
+                                        <div className="border-l-2 border-primary/30 ml-5">
+                                          {p.filhos.map(filho => (
+                                            <button
+                                              key={filho.id}
+                                              onClick={() => handleSelectProduto(filho)}
+                                              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors pl-4"
+                                            >
+                                              <span className="text-primary">↳</span>
+                                              <span className="font-mono text-primary/70 flex-shrink-0 text-[10px]">{filho.codigo}</span>
+                                              <span className="truncate text-primary">{filho.nome}</span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                                    Nenhum produto encontrado
+                                  </div>
+                                )}
+                                <div className="border-t border-border/50">
+                                  <button
+                                    onClick={() => {
+                                      setShowProdutoSearch(false);
+                                      navigate("/dashboard/fabrica/produtos-acabados");
+                                    }}
+                                    className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-primary hover:bg-primary/5 transition-colors font-medium"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Cadastrar novo produto
+                                  </button>
+                                </div>
                               </div>
                             )}
-                            <div className="border-t border-border/50">
-                              <button
-                                onClick={() => {
-                                  setShowProdutoSearch(false);
-                                  navigate("/dashboard/fabrica/produtos-acabados");
-                                }}
-                                className="flex items-center gap-2 w-full px-3 py-2.5 text-xs text-primary hover:bg-primary/5 transition-colors font-medium"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                                Cadastrar novo produto
-                              </button>
-                            </div>
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
 
                   {/* Widget Produto China */}
                   {chinaVinculo && (
