@@ -350,8 +350,8 @@ export function ProjetoTarefaDetalhe({
                 {isCompleted ? "Concluída" : "Marcar como concluída"}
               </Button>
             )}
-            {/* Enviar para Validação - uses junction table, not produto_id */}
-            {isCompleted && !(tarefa as any).validacao_status && (
+            {/* Enviar para Validação (dev produto) ou Enviar ao Superior (genérico) */}
+            {isCompleted && !(tarefa as any).validacao_status && projetoTipo === 'desenvolvimento_produto' && (
               <Button
                 size="sm"
                 className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700"
@@ -359,6 +359,16 @@ export function ProjetoTarefaDetalhe({
               >
                 <ShieldCheck className="h-4 w-4" />
                 Enviar para Validação
+              </Button>
+            )}
+            {isCompleted && !(tarefa as any).validacao_status && projetoTipo !== 'desenvolvimento_produto' && (
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700"
+                onClick={() => handleEnviarAoSuperior()}
+              >
+                <Send className="h-4 w-4" />
+                Enviar ao Superior
               </Button>
             )}
             {(tarefa as any).validacao_status === "validada" && (
