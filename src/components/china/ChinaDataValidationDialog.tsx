@@ -503,6 +503,7 @@ export function ChinaDataValidationDialog({
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {PHOTO_FIELDS.map(field => {
+                  const fieldFiles = photos[field.key] || [];
                   const previews = photoPreviews[field.key] || [];
                   return (
                     <div key={field.key} className="space-y-1">
@@ -511,32 +512,46 @@ export function ChinaDataValidationDialog({
                         <span className="text-muted-foreground ml-1">{field.labelCn}</span>
                       </Label>
                       <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-2 hover:border-primary/50 transition-colors min-h-[60px] flex flex-col items-center justify-center gap-1">
-                        {previews.length > 0 ? (
+                        {fieldFiles.length > 0 ? (
                           <div className="flex flex-wrap gap-1 w-full">
-                            {previews.map((src, i) => (
-                              <div key={i} className="relative w-12 h-12">
-                                <img src={src} alt="" className="w-12 h-12 object-cover rounded border" />
-                                <button
-                                  type="button"
-                                  onClick={() => removePhoto(field.key, i)}
-                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
-                                >
-                                  <X className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            ))}
+                            {fieldFiles.map((file, i) => {
+                              const isImage = file.type.startsWith("image/");
+                              return (
+                                <div key={i} className="relative">
+                                  {isImage && previews[i] ? (
+                                    <img src={previews[i]} alt="" className="w-12 h-12 object-cover rounded border" />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded border bg-muted flex flex-col items-center justify-center">
+                                      <Paperclip className="h-3 w-3 text-muted-foreground" />
+                                      <span className="text-[6px] text-muted-foreground truncate max-w-[44px]">{file.name.split('.').pop()?.toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhoto(field.key, i)}
+                                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                                  >
+                                    <X className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <Camera className="h-5 w-5 text-muted-foreground" />
                         )}
                         <input
                           type="file"
-                          accept="image/*,application/pdf,.doc,.docx"
+                          accept="image/*,application/pdf,.doc,.docx,.xlsx,.xls"
                           multiple
                           className="absolute inset-0 opacity-0 cursor-pointer"
                           onChange={e => handlePhotoUpload(field.key, e.target.files)}
                         />
-                        <span className="text-[8px] text-muted-foreground">Fotos/PDF</span>
+                        {fieldFiles.length > 0 ? (
+                          <Badge variant="secondary" className="text-[8px] px-1 py-0">{fieldFiles.length} arquivo{fieldFiles.length > 1 ? "s" : ""}</Badge>
+                        ) : (
+                          <span className="text-[8px] text-muted-foreground">+ Anexar</span>
+                        )}
                       </div>
                     </div>
                   );
