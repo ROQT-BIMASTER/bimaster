@@ -185,22 +185,12 @@ export function ChinaDataValidationDialog({
           {/* EAN Codes */}
           <section className="space-y-3">
             <BilingualLabel pt="Códigos EAN (Código de Barras)" cn="EAN条形码" size="md" className="border-b border-border pb-1" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-accent/5 rounded-lg border border-accent/20">
                 <Label className="text-xs font-semibold">EAN Display 展示EAN</Label>
                 <Input
                   value={data.ean_display || ""}
                   onChange={e => updateField("ean_display", e.target.value)}
-                  className="h-9 font-mono mt-1"
-                  placeholder="7898..."
-                  maxLength={20}
-                />
-              </div>
-              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                <Label className="text-xs font-semibold">EAN Unidade 单品EAN</Label>
-                <Input
-                  value={data.ean_unidade || ""}
-                  onChange={e => updateField("ean_unidade", e.target.value)}
                   className="h-9 font-mono mt-1"
                   placeholder="7898..."
                   maxLength={20}

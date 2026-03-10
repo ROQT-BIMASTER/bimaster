@@ -494,12 +494,6 @@ export default function ChinaFichaProduto() {
                   Display: {(submissao as any).ean_display}
                 </div>
               )}
-              {(submissao as any).ean_unidade && (
-                <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
-                  <Barcode className="h-4 w-4 text-muted-foreground" />
-                  Unidade: {(submissao as any).ean_unidade}
-                </div>
-              )}
               {submissao.ean_caixa_master && (
                 <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
                   <Barcode className="h-5 w-5 text-muted-foreground" />
