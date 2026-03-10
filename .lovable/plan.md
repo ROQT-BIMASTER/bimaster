@@ -1,56 +1,39 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Suporte a Múltiplos Arquivos por Slot de Documento (China)
 
-### O que muda
+## Problema Atual
+Cada slot de documento aceita apenas **1 arquivo**. Ao fazer upload de um novo, o anterior é apagado (`DELETE` + `INSERT` no `ChinaFichaProduto`). Usuários precisam anexar vários arquivos por tipo (ex: múltiplas fotos de amostra, múltiplos PDFs de faca).
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+## Solução
 
-### Implementação
+### 1. Banco de Dados
+Nenhuma alteração de schema necessária -- a tabela `china_produto_documentos` já permite múltiplos registros por `(submissao_id, tipo_documento)`. O problema está no código que faz `DELETE` antes do `INSERT`.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+### 2. Componente `ChinaDocumentSlot` 
+Evoluir de arquivo único para lista de arquivos:
+- **Props**: trocar `fileName?: string` por `files?: {id: string, name: string, status: string}[]`
+- Exibir lista compacta de arquivos com scroll (max 3 visíveis, scroll para mais)
+- Cada arquivo tem botão de remover individual
+- Botão "Upload" sempre visível (não some após primeiro upload)
+- Badge com contagem de arquivos (ex: "3 arquivos")
+- Input com `multiple` habilitado para upload em lote
+- Status geral do slot = pior status entre os arquivos (se algum rejeitado, slot fica vermelho)
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+### 3. `ChinaFichaProduto.tsx`
+- Remover o `DELETE` antes do `INSERT` no `handleDocUpload` -- apenas inserir
+- Passar array de docs filtrados por tipo para cada slot
+- `onRemove` passa o `id` específico do documento a remover
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+### 4. `ChinaNovaSubmissao.tsx`
+- Ajustar para suportar múltiplos arquivos por tipo no estado local `docs`
+- Ao submeter, inserir todos os arquivos de cada tipo
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+## Arquivos Impactados
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
-
-### Visual esperado
-
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
-
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/china/ChinaDocumentSlot.tsx` | Suporte a múltiplos arquivos, upload em lote, lista com remoção individual |
+| `src/pages/ChinaFichaProduto.tsx` | Remover delete-before-insert, passar array de docs, remoção individual |
+| `src/pages/ChinaNovaSubmissao.tsx` | Estado multi-arquivo por tipo, upload em lote |
 
