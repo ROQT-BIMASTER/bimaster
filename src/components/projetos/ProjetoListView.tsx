@@ -29,7 +29,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
-  const { createTasksWithAI, loading: iaLoading } = useProjetoIA();
+  const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
 
   const isFiltering = hasActiveFilters(filters);
 
