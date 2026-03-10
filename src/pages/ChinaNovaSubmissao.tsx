@@ -143,14 +143,21 @@ export default function ChinaNovaSubmissao() {
         toast.error("Créditos de IA esgotados. AI积分已用完");
         return;
       }
-      if (!resp.ok) throw new Error("Failed to parse");
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to parse");
+      }
 
       const data = await resp.json();
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
       await processAiResponse(data, file, "planilha_excel");
       toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao processar 处理时出错");
+      console.error("Excel parse error:", err);
+      toast.error(err.message || "Erro ao processar 处理时出错");
     } finally {
       setParsing(false);
     }
