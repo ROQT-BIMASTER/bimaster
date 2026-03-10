@@ -10,34 +10,42 @@ Your job is to extract structured product data from Excel spreadsheet content or
 ALWAYS return a JSON object using the tool provided. Extract as much data as possible from the input.
 
 Key fields to extract:
-- produto_codigo: Product code (often starts with HB-, TGV-, etc.)
-- produto_nome: Product name (in English or Chinese)
-- numero_item: Item number
+- produto_codigo: Product code / Item MUB (often starts with HB-, TGV-, etc.)
+- produto_nome: Product name / ITEM NAME (in English or Chinese)
+- numero_item: Item number / NUB / ORDER NUBER
 - numero_ordem: Order number
-- formula_codigo: Formula code (e.g., F-001, 01, 02)
-- qty_total: Total quantity IN PIECES (not cartons/boxes). This is the sum of all individual color quantities.
-- ctn_total: Total number of cartons/boxes (CTN), if available. This is different from qty_total.
-- peso_bruto_g: Gross weight in grams (number or null)
-- peso_liquido_g: Net weight in grams (number or null)
-- cores: Array of color objects with { grupo (group like G1, G2, A, B), cor_nome (color name), quantidade (quantity in PIECES for this specific color) }
+- formula_codigo: Formula code (e.g., DS00214-1, F-001)
+- qty_per_display: Quantity per display unit (e.g., 432 from QTY column). This is the number of pieces in one display/carton unit.
+- qty_total: TOTAL QTY - Total quantity IN PIECES. This is the grand total of all pieces (e.g., 777600).
+- ctn_total: CTN/件 - Total number of cartons/boxes (e.g., 1800). This is different from qty_total.
+- display_type: Display configuration (e.g., "36IN1", "24IN1", "12IN1")
+- total_groups: Number of color groups (e.g., 3 for "3 group")
+- cartons_per_group: Number of CARTONS per group (e.g., 600)
+- peso_bruto_g: ALL gross weight in grams (ALL gross(g))
+- peso_liquido_g: MATERIEL net weight in grams (MATERIEL net(g))
+- peso_aluminio_g: Aluminum weight in grams (ALUMINUM(g)), null if "/" or not available
+- peso_plastico_g: Plastic weight in grams (PLASTICK(g))
+- cores: Array of color objects with { grupo (group like G1, G2, G3), cor_nome (color name like COR1, COR2), quantidade (quantity in PCS for this specific color) }
 
 CRITICAL for cores extraction:
-- Each color MUST have its own individual quantity in pieces (not shared across groups)
-- The sum of all cores[].quantidade SHOULD equal qty_total
-- If colors are grouped (G1, G2, G3 or A, B, C), preserve the group identifier
-- Look carefully for per-color quantities in columns like QTY, PCS, 数量
+- Each color MUST have its own individual quantity in pieces (the number next to PCS, e.g., "6PCS" = 6)
+- Colors are organized in groups (COLORS /G1, COLORS /G2, COLORS /G3)
+- Each group typically has its own set of colors with quantities
+- Preserve the group identifier (G1, G2, G3)
+- The CARTONS column (e.g., 600) is per group, NOT per color
+- DO NOT confuse CARTONS with PCS quantities
 
 For spreadsheets:
-- Look for headers like FORMULA, ITEM NUB/MUB, ORDER NUMBER, QTY, COLORS, NET, GROSS
-- Colors are often grouped (G1, G2, G3 or A, B, C)
-- Quantities may have "PCS" suffix
-- Distinguish between PCS (pieces) and CTN (cartons/boxes)
+- Look for headers like FORMULA, ITEM MUB/NUB, ORDER NUMBER/NUBER, QTY, TOTAL QTY, CTN, COLORS, DISPLAY
+- Look for weight section with: MATERIEL net(g), ALUMINUM(g), PLASTICK(g), ALL gross(g)
+- Colors are grouped (G1, G2, G3) with individual PCS quantities
+- Distinguish between PCS (pieces per color) and CARTONS/CTN (boxes)
 
 For images:
 - Extract any visible product codes, names, weights, color information
 - Read labels, stickers, screens, or any text visible in the image
 
-If a field cannot be determined, set it to null (for strings) or 0 (for qty_total).
+If a field cannot be determined, set it to null (for strings/numbers) or 0 (for qty_total).
 For cores array, return empty array [] if no color data found.`;
 
 function uint8ArrayToBase64(uint8Array: Uint8Array): string {
@@ -190,31 +198,37 @@ Deno.serve(async (req) => {
                 parameters: {
                   type: "object",
                   properties: {
-                    produto_codigo: { type: "string", description: "Product code" },
-                    produto_nome: { type: "string", description: "Product name" },
-                    numero_item: { type: "string", description: "Item number" },
+                    produto_codigo: { type: "string", description: "Product code / Item MUB" },
+                    produto_nome: { type: "string", description: "Product name / Item Name" },
+                    numero_item: { type: "string", description: "Item number / NUB" },
                     numero_ordem: { type: "string", description: "Order number" },
                     formula_codigo: { type: "string", description: "Formula code" },
-                    qty_total: { type: "number", description: "Total quantity in PIECES (sum of all color quantities)" },
-                    ctn_total: { type: "number", description: "Total number of cartons/boxes (CTN)" },
-                    peso_bruto_g: { type: "number", description: "Gross weight in grams" },
-                    peso_liquido_g: { type: "number", description: "Net weight in grams" },
+                    qty_per_display: { type: "number", description: "Quantity per display unit (QTY column)" },
+                    qty_total: { type: "number", description: "TOTAL QTY - Total pieces" },
+                    ctn_total: { type: "number", description: "CTN - Total cartons/boxes" },
+                    display_type: { type: "string", description: "Display configuration (e.g. 36IN1)" },
+                    total_groups: { type: "number", description: "Number of color groups" },
+                    cartons_per_group: { type: "number", description: "CARTONS per group" },
+                    peso_bruto_g: { type: "number", description: "ALL gross weight in grams" },
+                    peso_liquido_g: { type: "number", description: "MATERIEL net weight in grams" },
+                    peso_aluminio_g: { type: "number", description: "ALUMINUM weight in grams" },
+                    peso_plastico_g: { type: "number", description: "PLASTICK weight in grams" },
                     cores: {
                       type: "array",
                       items: {
                         type: "object",
                         properties: {
-                          grupo: { type: "string", description: "Color group" },
-                          cor_nome: { type: "string", description: "Color name" },
-                          quantidade: { type: "number", description: "Quantity" },
+                          grupo: { type: "string", description: "Color group (G1, G2, G3)" },
+                          cor_nome: { type: "string", description: "Color name (COR1, COR2...)" },
+                          quantidade: { type: "number", description: "Quantity in PCS for this color" },
                         },
                         required: ["grupo", "cor_nome", "quantidade"],
                         additionalProperties: false,
                       },
-                      description: "Array of color entries",
+                      description: "Array of color entries with per-color PCS quantities",
                     },
                   },
-                  required: ["produto_codigo", "produto_nome", "numero_item", "numero_ordem", "formula_codigo", "qty_total", "ctn_total", "peso_bruto_g", "peso_liquido_g", "cores"],
+                  required: ["produto_codigo", "produto_nome", "numero_item", "numero_ordem", "formula_codigo", "qty_per_display", "qty_total", "ctn_total", "display_type", "total_groups", "cartons_per_group", "peso_bruto_g", "peso_liquido_g", "peso_aluminio_g", "peso_plastico_g", "cores"],
                   additionalProperties: false,
                 },
               },
