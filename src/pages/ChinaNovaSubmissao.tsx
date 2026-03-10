@@ -92,16 +92,19 @@ export default function ChinaNovaSubmissao() {
       if (error) throw error;
       setSubmissaoId((sub as any).id);
 
-      // Save colors
+      // Populate grade items from parsed data
       if (data.cores?.length > 0) {
-        await supabase.from("china_produto_cores" as any).insert(
-          data.cores.map((c: any) => ({
-            submissao_id: (sub as any).id,
-            grupo: c.grupo,
-            cor_nome: c.cor_nome,
-            quantidade: c.quantidade,
-          }))
-        );
+        const parsed: GradeItem[] = data.cores.map((c: any, i: number) => ({
+          id: crypto.randomUUID(),
+          cor_nome: c.cor_nome || "",
+          cor_hex: "",
+          cor_numero: "",
+          codigo_produto: "",
+          codigo_barras_ean: "",
+          quantidade: c.quantidade || 0,
+          grupo: c.grupo || "A",
+        }));
+        setGradeItems(parsed);
       }
 
       // Upload the Excel itself as a document
