@@ -82,6 +82,27 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
         </div>
       )}
 
+      {/* EAN Codes */}
+      {(data.ean_display || data.ean_unidade || data.ean_caixa_master) && (
+        <div className="flex flex-wrap gap-2">
+          {data.ean_display && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Display: {data.ean_display}
+            </Badge>
+          )}
+          {data.ean_unidade && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Unidade: {data.ean_unidade}
+            </Badge>
+          )}
+          {data.ean_caixa_master && (
+            <Badge variant="outline" className="gap-1 font-mono text-xs">
+              EAN Master: {data.ean_caixa_master}
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* Quantities Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <InfoCard
