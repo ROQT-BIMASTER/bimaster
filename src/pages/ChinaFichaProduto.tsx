@@ -371,7 +371,7 @@ export default function ChinaFichaProduto() {
                         } : undefined}
                       />
                       {/* Inline approve/reject for Brasil */}
-                      {doc && doc.status === "pendente" && (
+                      {isBrasilUser && doc && doc.status === "pendente" && (
                         <div className="flex justify-center gap-1">
                           <Button
                             size="sm"
