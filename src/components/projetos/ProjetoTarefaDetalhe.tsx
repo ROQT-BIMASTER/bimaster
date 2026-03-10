@@ -197,6 +197,43 @@ export function ProjetoTarefaDetalhe({
     onUpdate(tarefa.id, {});
   };
 
+  const handleEnviarAoSuperior = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Usuário não autenticado."); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("supervisor_id, gerente_id")
+        .eq("id", user.id)
+        .single();
+
+      const superiorId = profile?.supervisor_id || profile?.gerente_id;
+      if (!superiorId) {
+        toast.error("Nenhum superior hierárquico encontrado no seu perfil.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("projeto_tarefas")
+        .update({
+          validacao_status: "pendente_validacao",
+          responsavel_id: superiorId,
+        } as any)
+        .eq("id", tarefa.id);
+
+      if (error) {
+        toast.error("Erro ao enviar ao superior: " + error.message);
+        return;
+      }
+
+      toast.success("Tarefa enviada ao superior para aprovação!");
+      onUpdate(tarefa.id, {});
+    } catch (err) {
+      toast.error("Erro inesperado ao enviar ao superior.");
+    }
+  };
+
   const handleTitleBlur = () => {
     setEditingTitle(false);
     if (titleValue.trim() && titleValue !== tarefa.titulo) {
