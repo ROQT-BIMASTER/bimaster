@@ -119,6 +119,13 @@ const moduleColors = {
     border: "border-[hsl(var(--module-departamentos,200_70%_45%))]",
     hover: "hover:bg-[hsl(var(--module-departamentos,200_70%_45%)/0.15)]",
   },
+  china: {
+    bg: "bg-[hsl(0_72%_51%)]",
+    bgLight: "bg-[hsl(0_72%_51%/0.1)]",
+    text: "text-[hsl(0_72%_51%)]",
+    border: "border-[hsl(0_72%_51%)]",
+    hover: "hover:bg-[hsl(0_72%_51%/0.15)]",
+  },
 };
 
 // Fábrica module grouped menus
