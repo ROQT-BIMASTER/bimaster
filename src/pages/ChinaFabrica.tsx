@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, Send } from "lucide-react";
+import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, Send, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
@@ -11,7 +11,7 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 export default function ChinaFabrica() {
   const navigate = useNavigate();
-  const { isBrasilUser } = useChinaUserContext();
+  const { isBrasilUser, isChinaUser } = useChinaUserContext();
 
   const { data: stats } = useQuery({
     queryKey: ["china-stats"],
@@ -47,6 +47,22 @@ export default function ChinaFabrica() {
     },
   });
 
+  // Pending actions count for China users
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ["china-pending-actions"],
+    enabled: isChinaUser,
+    queryFn: async () => {
+      const { data: rejDocs } = await supabase
+        .from("china_produto_documentos" as any)
+        .select("submissao_id")
+        .eq("status", "rejeitado");
+      const rejSubmIds = new Set((rejDocs || []).map((d: any) => d.submissao_id));
+      // Also count rejected submissions
+      const rejectedSubs = (stats?.rejeitado || 0);
+      return rejSubmIds.size + rejectedSubs;
+    },
+  });
+
   const allCards = [
     {
       icon: <Plus className="h-10 w-10 text-primary" />,
@@ -56,6 +72,7 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/nova"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
       brasilOnly: false,
+      badge: null,
     },
     {
       icon: <List className="h-10 w-10 text-warning" />,
@@ -65,7 +82,22 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-warning/5 hover:bg-warning/10 border-warning/20",
       brasilOnly: false,
+      badge: null,
     },
+    ...(isChinaUser && pendingCount > 0
+      ? [
+          {
+            icon: <AlertTriangle className="h-10 w-10 text-destructive" />,
+            labelPt: "Pendências",
+            labelCn: "待处理",
+            desc: `${pendingCount} item(ns) precisam da sua ação`,
+            onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
+            color: "bg-destructive/5 hover:bg-destructive/10 border-destructive/30 animate-pulse",
+            brasilOnly: false,
+            badge: pendingCount,
+          },
+        ]
+      : []),
     {
       icon: <CheckCircle className="h-10 w-10 text-success" />,
       labelPt: "Aprovados",
@@ -74,6 +106,7 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
       brasilOnly: false,
+      badge: null,
     },
     {
       icon: <ShoppingCart className="h-10 w-10 text-primary" />,
@@ -83,6 +116,7 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/ordens"),
       color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
       brasilOnly: true,
+      badge: null,
     },
     {
       icon: <Send className="h-10 w-10 text-success" />,
@@ -92,6 +126,7 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
       brasilOnly: true,
+      badge: null,
     },
   ];
 
@@ -121,9 +156,14 @@ export default function ChinaFabrica() {
           {cards.map((card, i) => (
             <Card
               key={i}
-              className={`cursor-pointer transition-all duration-200 p-8 flex flex-col items-center gap-4 text-center ${card.color}`}
+              className={`cursor-pointer transition-all duration-200 p-8 flex flex-col items-center gap-4 text-center relative ${card.color}`}
               onClick={card.onClick}
             >
+              {card.badge && (
+                <div className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shadow-lg">
+                  {card.badge}
+                </div>
+              )}
               <div className="h-20 w-20 rounded-2xl bg-background flex items-center justify-center shadow-sm">
                 {card.icon}
               </div>
