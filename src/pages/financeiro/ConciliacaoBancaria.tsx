@@ -87,7 +87,8 @@ export default function ConciliacaoBancaria() {
         {showPluggyConnect && connectToken && (
           <PluggyConnectWidget
             connectToken={connectToken}
-            includeSandbox={true}
+            popupRef={pluggyPopupRef}
+
             onSuccess={(data) => {
               const item = data.item;
               saveConnection.mutate({
