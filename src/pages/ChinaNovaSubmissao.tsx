@@ -36,6 +36,7 @@ export default function ChinaNovaSubmissao() {
     display_profundidade: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
 
   // Step 1: Parse Excel
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
