@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode } from "lucide-react";
+import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { SubmissionManual } from "@/components/china/SubmissionManual";
+import { toast } from "sonner";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function ChinaRecebimentos() {
   );
   const statusFilter = searchParams.get("status");
   const [search, setSearch] = useState("");
+  const [showTrash, setShowTrash] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
@@ -51,28 +53,43 @@ export default function ChinaRecebimentos() {
     },
   });
 
-  const filtered = submissoes.filter((sub: any) => {
-    // Search filter
+  // Separate active vs deleted
+  const activeSubmissoes = submissoes.filter((s: any) => !s.deleted_at);
+  const trashedSubmissoes = submissoes.filter((s: any) => !!s.deleted_at);
+
+  const baseList = showTrash ? trashedSubmissoes : activeSubmissoes;
+
+  const filtered = baseList.filter((sub: any) => {
     if (search) {
       const q = search.toLowerCase();
       if (!sub.produto_codigo?.toLowerCase().includes(q) && !sub.produto_nome?.toLowerCase().includes(q)) {
         return false;
       }
     }
-    // Status query param filter (from dashboard cards)
     if (statusFilter && sub.status !== statusFilter) {
       return false;
     }
-    // Pending action filter (for China): rejected docs or rejeitado status
-    if (filter === "pending_action") {
+    if (!showTrash && filter === "pending_action") {
       return sub.status === "rejeitado" || (rejectedDocsMap as any)[sub.id] > 0;
     }
     return true;
   });
 
-  const pendingCount = submissoes.filter(
+  const pendingCount = activeSubmissoes.filter(
     (s: any) => s.status === "rejeitado" || (rejectedDocsMap as any)[s.id] > 0
   ).length;
+
+  // Restore from trash
+  const handleRestore = async (subId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await supabase
+      .from("china_produto_submissoes" as any)
+      .update({ deleted_at: null, deleted_by: null, delete_reason: null } as any)
+      .eq("id", subId);
+    toast.success("Submissão restaurada! 提交已恢复！");
+    // refetch
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -107,12 +124,12 @@ export default function ChinaRecebimentos() {
                 variant={filter === "all" ? "default" : "outline"}
                 onClick={() => setFilter("all")}
               >
-                Todas 全部 ({submissoes.length})
+                Todas 全部 ({activeSubmissoes.length})
               </Button>
               <Button
                 size="sm"
                 variant={filter === "pending_action" ? "destructive" : "outline"}
-                onClick={() => setFilter("pending_action")}
+                onClick={() => { setFilter("pending_action"); setShowTrash(false); }}
                 className="gap-1"
               >
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -120,6 +137,15 @@ export default function ChinaRecebimentos() {
               </Button>
             </div>
           )}
+          <Button
+            size="sm"
+            variant={showTrash ? "destructive" : "outline"}
+            onClick={() => setShowTrash(!showTrash)}
+            className="gap-1 ml-auto"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Lixeira 回收站 {trashedSubmissoes.length > 0 && `(${trashedSubmissoes.length})`}
+          </Button>
         </div>
 
         {/* List */}
@@ -196,13 +222,34 @@ export default function ChinaRecebimentos() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <Badge variant={statusInfo.variant} className="text-[10px]">
-                        {statusInfo.pt} {statusInfo.cn}
-                      </Badge>
-                      {isDraft && (
-                        <span className="text-[10px] text-primary font-medium">
-                          ▶ Continuar 继续
-                        </span>
+                      {showTrash ? (
+                        <>
+                          <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">
+                            <Trash2 className="h-3 w-3 mr-0.5" /> Excluído 已删除
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] gap-1"
+                            onClick={(e) => handleRestore(sub.id, e)}
+                          >
+                            <RotateCcw className="h-3 w-3" /> Restaurar 恢复
+                          </Button>
+                          <span className="text-[9px] text-muted-foreground">
+                            {sub.deleted_at && `Excluído em ${new Date(sub.deleted_at).toLocaleDateString("pt-BR")}`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Badge variant={statusInfo.variant} className="text-[10px]">
+                            {statusInfo.pt} {statusInfo.cn}
+                          </Badge>
+                          {isDraft && (
+                            <span className="text-[10px] text-primary font-medium">
+                              ▶ Continuar 继续
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

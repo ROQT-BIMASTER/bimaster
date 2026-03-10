@@ -1474,6 +1474,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           dados_excel: Json | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           ean_caixa_master: string | null
           ean_display: string | null
           ean_unidade: string | null
@@ -1501,6 +1504,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           ean_caixa_master?: string | null
           ean_display?: string | null
           ean_unidade?: string | null
@@ -1528,6 +1534,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           ean_caixa_master?: string | null
           ean_display?: string | null
           ean_unidade?: string | null

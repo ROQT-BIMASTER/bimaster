@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getSignedUrl, uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,9 @@ export default function ChinaFichaProduto() {
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
   const [arteFile, setArteFile] = useState<File | null>(null);
   const [sendingArte, setSendingArte] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
@@ -248,13 +252,24 @@ export default function ChinaFichaProduto() {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => navigate(`/dashboard/fabrica-china/nova/${id}`)}
-                className="gap-2 shrink-0"
-              >
-                <PenLine className="h-4 w-4" />
-                Editar / Ajustar 编辑/调整
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => navigate(`/dashboard/fabrica-china/nova/${id}`)}
+                  className="gap-2 shrink-0"
+                >
+                  <PenLine className="h-4 w-4" />
+                  Editar / Ajustar 编辑/调整
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="default"
+                  className="gap-2 shrink-0"
+                  onClick={() => { setDeleteConfirmed(false); setDeleteDialogOpen(true); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Excluir 删除
+                </Button>
+              </div>
             </div>
           </Card>
         )}
@@ -628,6 +643,80 @@ export default function ChinaFichaProduto() {
               Rejeitar 拒绝
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Draft Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Excluir Submissão 删除提交
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-sm text-foreground space-y-2">
+              <p className="font-semibold">Termo de Exclusão 删除条款</p>
+              <p className="text-muted-foreground text-xs">
+                Ao excluir esta submissão, ela será movida para a <strong>Lixeira</strong> por 30 dias. 
+                Após esse período, será permanentemente removida do sistema junto com todos os documentos e dados associados.
+              </p>
+              <p className="text-muted-foreground text-xs">
+                删除此提交后，它将被移至<strong>回收站</strong>30天。之后，将与所有相关文档和数据一起从系统中永久删除。
+              </p>
+              <div className="mt-2 p-2 bg-muted rounded text-xs">
+                <strong>Produto 产品:</strong> {submissao?.produto_codigo} — {submissao?.produto_nome}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="delete-confirm"
+                checked={deleteConfirmed}
+                onCheckedChange={(checked) => setDeleteConfirmed(!!checked)}
+              />
+              <label htmlFor="delete-confirm" className="text-sm cursor-pointer leading-tight">
+                Confirmo que revisei os dados e desejo excluir esta submissão.
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  我确认已审查数据并希望删除此提交。
+                </span>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar 取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteConfirmed || deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  await supabase
+                    .from("china_produto_submissoes" as any)
+                    .update({
+                      deleted_at: new Date().toISOString(),
+                      deleted_by: user?.id || null,
+                      delete_reason: "Exclusão voluntária pelo usuário",
+                    } as any)
+                    .eq("id", id);
+                  toast.success("Submissão movida para a lixeira! 提交已移至回收站！");
+                  navigate("/dashboard/fabrica-china/recebimentos");
+                } catch (err: any) {
+                  toast.error("Erro ao excluir 删除失败");
+                } finally {
+                  setDeleting(false);
+                  setDeleteDialogOpen(false);
+                }
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Confirmar Exclusão 确认删除
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
