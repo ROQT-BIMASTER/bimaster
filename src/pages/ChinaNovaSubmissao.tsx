@@ -524,6 +524,33 @@ export default function ChinaNovaSubmissao() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Read-only lock banner */}
+        {isReadOnly && (
+          <Card className="p-4 border-warning/30 bg-warning/5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+                <Lock className="h-5 w-5 text-warning" />
+              </div>
+              <div>
+                <p className="font-semibold text-warning text-sm">
+                  Esta submissão já foi enviada e não pode ser alterada. 此提交已发送，无法更改。
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Para visualizar detalhes, acesse a ficha do produto. 要查看详细信息，请访问产品档案。
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => navigate(`/dashboard/fabrica-china/produto/${editId}`)}
+              >
+                Ver Ficha 查看档案
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
@@ -531,14 +558,14 @@ export default function ChinaNovaSubmissao() {
           </Button>
           <div className="flex-1">
             <BilingualLabel pt={editId ? "Continuar Submissão" : "Nova Submissão"} cn={editId ? "继续提交" : "新提交"} size="lg" />
-            {submissaoId && (
+            {submissaoId && !isReadOnly && (
               <Badge variant="secondary" className="mt-1 text-xs">
                 <Save className="h-3 w-3 mr-1" /> Rascunho 草稿
               </Badge>
             )}
           </div>
-          {/* Save Draft button — always visible when we have a submissaoId */}
-          {submissaoId && (
+          {/* Save Draft button — only when not read-only */}
+          {submissaoId && !isReadOnly && (
             <Button
               variant="outline"
               onClick={handleSaveDraft}
