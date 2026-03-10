@@ -50,6 +50,7 @@ export function EmitirOCDialog({ open, onOpenChange, submissao, onSuccess }: Emi
           qty_total: qtyTotal,
           data_entrega_prevista: dataEntrega,
           observacoes,
+          ean_caixa_master: eanCaixaMaster || null,
           created_by: user?.id,
         } as any);
 
