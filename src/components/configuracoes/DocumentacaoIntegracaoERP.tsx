@@ -1491,7 +1491,7 @@ OFFSET @offset ROWS;`;
       </Card>
 
       <Tabs defaultValue="contas-receber" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="contas-receber" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             <span className="hidden sm:inline">Contas a Receber</span>
@@ -1505,6 +1505,11 @@ OFFSET @offset ROWS;`;
           <TabsTrigger value="estoque" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Estoque
+          </TabsTrigger>
+          <TabsTrigger value="exportacao-erp" className="flex items-center gap-2">
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportação ERP</span>
+            <span className="sm:hidden">Export</span>
           </TabsTrigger>
           <TabsTrigger value="atencao" className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />

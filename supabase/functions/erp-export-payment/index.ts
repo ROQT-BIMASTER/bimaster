@@ -89,6 +89,7 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
   const payload = {
     api_version: "1.0",
     generated_at: new Date().toISOString(),
+    id: paymentQueueId,
     empresa_id: item.empresa_id || 1,
     fornecedor: {
       nome: item.supplier_name,
