@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Package, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,8 +13,12 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isChinaUser } = useChinaUserContext();
-  const [filter, setFilter] = useState<"all" | "pending_action">("all");
+  const [filter, setFilter] = useState<"all" | "pending_action">(
+    searchParams.get("status") ? "all" : "all"
+  );
+  const statusFilter = searchParams.get("status");
   const [search, setSearch] = useState("");
 
   const { data: submissoes = [], isLoading } = useQuery({
