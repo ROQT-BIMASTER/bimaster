@@ -7,8 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 const OC_STATUS: Record<string, { pt: string; cn: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
+  rascunho: { pt: "Rascunho", cn: "草稿", variant: "secondary" },
+  aprovada: { pt: "Aprovada", cn: "已批准", variant: "default" },
+  rejeitada: { pt: "Rejeitada", cn: "已拒绝", variant: "destructive" },
   emitida: { pt: "Emitida", cn: "已发出", variant: "default" },
   em_producao: { pt: "Em Produção", cn: "生产中", variant: "warning" },
   parcial: { pt: "Parcial", cn: "部分完成", variant: "warning" },
@@ -18,6 +22,7 @@ const OC_STATUS: Record<string, { pt: string; cn: string; variant: "default" | "
 
 export default function ChinaOrdens() {
   const navigate = useNavigate();
+  const { isChinaUser } = useChinaUserContext();
 
   const { data: ordens = [], isLoading } = useQuery({
     queryKey: ["china-ordens"],
