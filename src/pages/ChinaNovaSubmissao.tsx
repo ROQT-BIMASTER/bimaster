@@ -116,7 +116,7 @@ export default function ChinaNovaSubmissao() {
           cor_hex: c.cor_hex || "",
           cor_numero: "",
           codigo_produto: "",
-          codigo_barras_ean: "",
+          codigo_barras_ean: c.codigo_barras_ean || "",
           quantidade: c.quantidade || 0,
           grupo: c.grupo || "A",
         }));
