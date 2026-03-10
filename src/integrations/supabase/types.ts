@@ -1133,6 +1133,121 @@ export type Database = {
           },
         ]
       }
+      china_embarque_documentos: {
+        Row: {
+          arquivo_path: string | null
+          created_at: string
+          embarque_id: string
+          id: string
+          nome_arquivo: string | null
+          observacao: string | null
+          tipo: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          created_at?: string
+          embarque_id: string
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          tipo?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          created_at?: string
+          embarque_id?: string
+          id?: string
+          nome_arquivo?: string | null
+          observacao?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_embarque_documentos_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "china_embarques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_embarques: {
+        Row: {
+          booking_number: string | null
+          created_at: string
+          created_by: string | null
+          data_embarque: string | null
+          data_eta: string | null
+          id: string
+          modalidade: string | null
+          navio: string | null
+          numero_bl: string | null
+          numero_container: string | null
+          observacoes: string | null
+          ordem_compra_id: string
+          peso_total_kg: number | null
+          porto_destino: string | null
+          porto_origem: string | null
+          qtd_volumes: number | null
+          status: string
+          updated_at: string
+          valor_frete_usd: number | null
+          volume_cbm: number | null
+        }
+        Insert: {
+          booking_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_embarque?: string | null
+          data_eta?: string | null
+          id?: string
+          modalidade?: string | null
+          navio?: string | null
+          numero_bl?: string | null
+          numero_container?: string | null
+          observacoes?: string | null
+          ordem_compra_id: string
+          peso_total_kg?: number | null
+          porto_destino?: string | null
+          porto_origem?: string | null
+          qtd_volumes?: number | null
+          status?: string
+          updated_at?: string
+          valor_frete_usd?: number | null
+          volume_cbm?: number | null
+        }
+        Update: {
+          booking_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_embarque?: string | null
+          data_eta?: string | null
+          id?: string
+          modalidade?: string | null
+          navio?: string | null
+          numero_bl?: string | null
+          numero_container?: string | null
+          observacoes?: string | null
+          ordem_compra_id?: string
+          peso_total_kg?: number | null
+          porto_destino?: string | null
+          porto_origem?: string | null
+          qtd_volumes?: number | null
+          status?: string
+          updated_at?: string
+          valor_frete_usd?: number | null
+          volume_cbm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_embarques_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_ordens_compra: {
         Row: {
           created_at: string
