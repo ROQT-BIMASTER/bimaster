@@ -143,6 +143,14 @@ export function ProjetoTarefaDetalhe({
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
+  const { data: projetoTipo } = useQuery({
+    queryKey: ["projeto-tipo", projetoId],
+    queryFn: async () => {
+      const { data } = await supabase.from("projetos").select("tipo").eq("id", projetoId!).single();
+      return (data?.tipo as string) || "generico";
+    },
+    enabled: !!projetoId,
+  });
 
   useEffect(() => {
     if (tarefa) {
