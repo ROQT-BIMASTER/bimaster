@@ -268,7 +268,7 @@ export function ProjetoTarefaRow({
         </div>
 
         {/* Estágio */}
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-1">
           <InlineSelector
             value={tarefa.estagio || ""}
             options={ESTAGIO_OPTIONS}
@@ -277,8 +277,16 @@ export function ProjetoTarefaRow({
             onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
             placeholder="—"
           />
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(tarefa.id); }}
+              className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 ${darkBg ? "text-red-400 hover:text-red-300" : "text-destructive/60 hover:text-destructive"}`}
+              title="Excluir tarefa"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-      </div>
 
       {/* Subtarefas */}
       {expanded && tarefa.subtarefas?.map(st => (
