@@ -146,14 +146,13 @@ export default function ChinaFichaProduto() {
 
   const handleDocUpload = async (tipo: string, file: File) => {
     if (!id) return;
-    const path = `${id}/${tipo}/${file.name}`;
+    const path = `${id}/${tipo}/${Date.now()}_${file.name}`;
     const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
     if (error) {
       toast.error("Erro no upload 上传错误");
       return;
     }
-    // Upsert: remove old doc of same type then insert
-    await supabase.from("china_produto_documentos" as any).delete().eq("submissao_id", id).eq("tipo_documento", tipo);
+    // Insert without deleting — supports multiple files per type
     await supabase.from("china_produto_documentos" as any).insert({
       submissao_id: id,
       tipo_documento: tipo,
@@ -376,24 +375,30 @@ export default function ChinaFichaProduto() {
               <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {catDocTypes.map((config) => {
-                  const doc = documentos.find((d: any) => d.tipo_documento === config.tipo);
+                  const typeDocs = documentos.filter((d: any) => d.tipo_documento === config.tipo);
+                  const worstStatus = typeDocs.length === 0 ? "none"
+                    : typeDocs.some((d: any) => d.status === "rejeitado") ? "rejeitado"
+                    : typeDocs.some((d: any) => d.status === "pendente") ? "pendente"
+                    : typeDocs.every((d: any) => d.status === "aprovado") ? "aprovado"
+                    : "pendente";
                   return (
                     <div key={config.tipo} className="space-y-1">
                       <ChinaDocumentSlot
                         config={config}
-                        status={doc ? (doc.status as any) : "none"}
-                        fileName={doc?.nome_arquivo}
-                        observacao={doc?.observacao}
+                        status={worstStatus as any}
+                        files={typeDocs.map((d: any) => ({ id: d.id, name: d.nome_arquivo || "doc", status: d.status }))}
+                        observacao={typeDocs.find((d: any) => d.observacao)?.observacao}
                         onUpload={(file) => handleDocUpload(config.tipo, file)}
-                        onRemove={doc && doc.status !== "aprovado" ? async () => {
-                          await supabase.from("china_produto_documentos" as any).delete().eq("id", doc.id);
+                        onRemoveFile={async (fileId) => {
+                          await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
                           queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
                           toast.success("Documento removido 文件已删除");
-                        } : undefined}
+                        }}
                       />
-                      {/* Inline approve/reject for Brasil */}
-                      {isBrasilUser && doc && doc.status === "pendente" && (
-                        <div className="flex justify-center gap-1">
+                      {/* Inline approve/reject for Brasil — show for each pending doc */}
+                      {isBrasilUser && typeDocs.filter((d: any) => d.status === "pendente").map((doc: any) => (
+                        <div key={doc.id} className="flex justify-center gap-1">
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{doc.nome_arquivo}</span>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -419,14 +424,14 @@ export default function ChinaFichaProduto() {
                             <Eye className="h-3 w-3" />
                           </Button>
                         </div>
-                      )}
-                      {doc && doc.status !== "pendente" && (
-                        <div className="flex justify-center">
+                      ))}
+                      {isBrasilUser && typeDocs.some((d: any) => d.status !== "pendente") && typeDocs.filter((d: any) => d.status !== "pendente").map((doc: any) => (
+                        <div key={doc.id} className="flex justify-center">
                           <Button size="sm" variant="ghost" className="h-7" onClick={() => handleViewDoc(doc)}>
                             <Eye className="h-3 w-3 mr-1" /> Ver 查看
                           </Button>
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 })}

@@ -27,7 +27,7 @@ export default function ChinaNovaSubmissao() {
   const [parsing, setParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
   const [submissaoId, setSubmissaoId] = useState<string | null>(null);
-  const [docs, setDocs] = useState<Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }>>({});
+  const [docs, setDocs] = useState<Record<string, { fileName: string; status: "pendente" | "aprovado" | "rejeitado" }[]>>({});
   const [weights, setWeights] = useState({
     peso_bruto_g: "",
     peso_liquido_g: "",
@@ -109,7 +109,7 @@ export default function ChinaNovaSubmissao() {
         nome_arquivo: sourceFile.name,
         status: "pendente",
       } as any);
-      setDocs(d => ({ ...d, [tipo]: { fileName: sourceFile.name, status: "pendente" } }));
+      setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: sourceFile.name, status: "pendente" as const }] }));
     }
   }, []);
 
@@ -242,7 +242,7 @@ export default function ChinaNovaSubmissao() {
       nome_arquivo: file.name,
       status: "pendente",
     } as any);
-    setDocs(d => ({ ...d, [tipo]: { fileName: file.name, status: "pendente" } }));
+    setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
     toast.success("Arquivo enviado! 文件已上传！");
   }, [submissaoId]);
 
@@ -462,22 +462,29 @@ export default function ChinaNovaSubmissao() {
                 <div key={cat.key} className="space-y-3">
                   <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {catDocs.map((config) => (
-                      <ChinaDocumentSlot
-                        key={config.tipo}
-                        config={config}
-                        status={docs[config.tipo]?.status || "none"}
-                        fileName={docs[config.tipo]?.fileName}
-                        onUpload={(file) => handleDocUpload(config.tipo, file)}
-                      />
-                    ))}
+                    {catDocs.map((config) => {
+                      const typeFiles = docs[config.tipo] || [];
+                      const worstStatus = typeFiles.length === 0 ? "none"
+                        : typeFiles.some(f => f.status === "rejeitado") ? "rejeitado"
+                        : typeFiles.some(f => f.status === "pendente") ? "pendente"
+                        : "aprovado";
+                      return (
+                        <ChinaDocumentSlot
+                          key={config.tipo}
+                          config={config}
+                          status={worstStatus as any}
+                          files={typeFiles.map((f, i) => ({ id: `local-${i}`, name: f.fileName, status: f.status }))}
+                          onUpload={(file) => handleDocUpload(config.tipo, file)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
 
             {/* Mandatory docs warning */}
-            {MANDATORY_DOCS.some(tipo => !docs[tipo]) && (
+            {MANDATORY_DOCS.some(tipo => !docs[tipo]?.length) && (
               <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
                 ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
               </div>
