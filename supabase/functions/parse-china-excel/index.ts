@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
                       description: "Array of color entries",
                     },
                   },
-                  required: ["produto_codigo", "produto_nome", "numero_item", "numero_ordem", "formula_codigo", "qty_total", "peso_bruto_g", "peso_liquido_g", "cores"],
+                  required: ["produto_codigo", "produto_nome", "numero_item", "numero_ordem", "formula_codigo", "qty_total", "ctn_total", "peso_bruto_g", "peso_liquido_g", "cores"],
                   additionalProperties: false,
                 },
               },
