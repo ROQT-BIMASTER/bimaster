@@ -527,5 +527,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     loadingFilhos,
     importarCustosFilhos,
     carregarCustosFilhos,
+    isDisplayComKit,
+    todosInsumosKit,
   };
 }
