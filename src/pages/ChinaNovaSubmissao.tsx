@@ -996,21 +996,30 @@ export default function ChinaNovaSubmissao() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-between mt-8">
-              <Button variant="outline" onClick={() => setStep(1)}>
-                Voltar 返回
-              </Button>
-              <Button
-                onClick={handleOpenFinalReview}
-                disabled={submitting}
-                variant="gradient"
-                size="lg"
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Revisar e Enviar 审核并发送
-              </Button>
-            </div>
+            {!isReadOnly && (
+              <div className="flex justify-between mt-8">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Voltar 返回
+                </Button>
+                <Button
+                  onClick={handleOpenFinalReview}
+                  disabled={submitting}
+                  variant="gradient"
+                  size="lg"
+                  className="gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Revisar e Enviar 审核并发送
+                </Button>
+              </div>
+            )}
+            {isReadOnly && (
+              <div className="flex justify-between mt-8">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Voltar 返回
+                </Button>
+              </div>
+            )}
           </Card>
         )}
 
