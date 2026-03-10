@@ -104,10 +104,29 @@ export function ChinaDataValidationDialog({
     setCores(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePhotoUpload = (key: string, files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setPhotos(prev => ({ ...prev, [key]: [...(prev[key] || []), ...newFiles] }));
+    // Create previews
+    newFiles.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreviews(prev => ({ ...prev, [key]: [...(prev[key] || []), e.target?.result as string] }));
+      };
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removePhoto = (key: string, index: number) => {
+    setPhotos(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
+    setPhotoPreviews(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
+  };
+
   const handleConfirm = () => {
     if (!accepted) return;
     const finalData = { ...data, cores };
-    onConfirm(finalData);
+    onConfirm(finalData, photos);
     onOpenChange(false);
   };
 
