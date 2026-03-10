@@ -11,7 +11,7 @@ interface ExcelData {
   qty_total?: number;
   peso_bruto_g?: number;
   peso_liquido_g?: number;
-  cores?: { grupo: string; cor_nome: string; quantidade: number }[];
+  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string }[];
 }
 
 interface ChinaExcelPreviewProps {
