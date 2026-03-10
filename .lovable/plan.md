@@ -1,57 +1,56 @@
 
 
-# Separação de Permissões: Brasil vs China no Módulo Fábrica China
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-## Regra de Negócio
+### O que muda
 
-- **China** (departamento = "China"): só envia documentos, visualiza status e observações do Brasil. Não vê botões de aprovar/rejeitar, criar projeto, emitir OC, enviar arte.
-- **Brasil** (qualquer outro departamento ou admin): controle total — aprova, rejeita, cria projetos, emite OC, envia arte final + EAN.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Implementação
+### Implementação
 
-### 1. Hook `useChinaUserContext` (novo)
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-Cria um hook simples que consulta o perfil do usuário logado e verifica se o `departamento_id` corresponde ao departamento "China":
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-```typescript
-// Retorna { isChinaUser: boolean, isBrasilUser: boolean, loading: boolean }
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-Faz lookup do departamento pelo nome "China" na tabela `departamentos`, compara com o `departamento_id` do perfil. Admins são sempre tratados como Brasil.
-
-### 2. `ChinaFichaProduto.tsx` — Esconder ações do Brasil
-
-Usando o hook, esconder condicionalmente:
-- Botões **Aprovar/Rejeitar** submissão (linhas 274-298)
-- Botões **Aprovar/Rejeitar** documentos individuais (linhas 372-398) 
-- Seção **Arte Final + EAN** (linhas 422-453)
-- Botão **Emitir OC** (linhas 270-272)
-- Seção **Projetos Vinculados** com botão de criação (linha 479)
-
-China continua vendo:
-- Upload de documentos ✓
-- Status de cada documento ✓
-- Observações de rejeição do Brasil ✓
-- Download da arte final enviada ✓
-- Dados do produto e grade ✓
-
-### 3. `ChinaFabrica.tsx` — Dashboard adaptativo
-
-Para usuários China:
-- Esconder card "Ordens de Compra" e "Arte Enviada" (ações do Brasil)
-- Manter "Nova Submissão", "Minhas Submissões", "Aprovados" (visualização)
-
-### 4. `ChinaNovaSubmissao.tsx` — Sem mudanças
-
-A submissão é feita pela China, então permanece acessível normalmente.
-
----
-
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/hooks/useChinaUserContext.ts` | **Criar**: hook para detectar se usuário é do departamento China |
-| `src/pages/ChinaFichaProduto.tsx` | **Editar**: esconder ações Brasil com `isChinaUser` |
-| `src/pages/ChinaFabrica.tsx` | **Editar**: dashboard adaptativo por contexto |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

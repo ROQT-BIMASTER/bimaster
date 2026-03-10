@@ -17,6 +17,7 @@ import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isBrasilUser } = useChinaUserContext();
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
@@ -266,12 +268,12 @@ export default function ChinaFichaProduto() {
 
               {/* Action buttons */}
               <div className="flex gap-2 flex-wrap">
-                {submissao.status === "arte_enviada" && (
+                {isBrasilUser && submissao.status === "arte_enviada" && (
                   <Button size="sm" onClick={() => setOcDialogOpen(true)}>
                     <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
                   </Button>
                 )}
-                {canApprove && (
+                {isBrasilUser && canApprove && (
                   <>
                     <Button
                       size="sm"
@@ -369,7 +371,7 @@ export default function ChinaFichaProduto() {
                         } : undefined}
                       />
                       {/* Inline approve/reject for Brasil */}
-                      {doc && doc.status === "pendente" && (
+                      {isBrasilUser && doc && doc.status === "pendente" && (
                         <div className="flex justify-center gap-1">
                           <Button
                             size="sm"
@@ -420,7 +422,7 @@ export default function ChinaFichaProduto() {
         })}
 
         {/* Arte Final + EAN Section */}
-        {showArteSection && (
+        {isBrasilUser && showArteSection && (
           <Card className="p-6 border-primary/30 bg-primary/5 space-y-4">
             <BilingualLabel pt="Resposta Brasil — Arte Final + EAN" cn="巴西回复 — 终稿 + EAN" size="md" />
             <div className="space-y-3">
@@ -476,7 +478,7 @@ export default function ChinaFichaProduto() {
         )}
 
         {/* Projetos Vinculados */}
-        <ChinaProjetosVinculadosSection submissao={submissao} />
+        {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
 
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (
