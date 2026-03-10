@@ -369,7 +369,57 @@ export function ChinaDataValidationDialog({
                 />
               </div>
             </div>
-          </section>
+           </section>
+
+          {/* Photo Uploads */}
+          {showPhotoUpload && (
+            <section className="space-y-3">
+              <BilingualLabel pt="Fotos da Planilha (Campos com Imagem)" cn="表格照片（图片字段）" size="md" className="border-b border-border pb-1" />
+              <p className="text-xs text-muted-foreground">
+                Suba as fotos correspondentes aos campos da planilha chinesa. 上传与中国表格字段对应的照片。
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {PHOTO_FIELDS.map(field => {
+                  const previews = photoPreviews[field.key] || [];
+                  return (
+                    <div key={field.key} className="space-y-1">
+                      <Label className="text-[10px] leading-tight block">
+                        {field.labelPt}
+                        <span className="text-muted-foreground ml-1">{field.labelCn}</span>
+                      </Label>
+                      <div className="relative border-2 border-dashed border-muted-foreground/30 rounded-lg p-2 hover:border-primary/50 transition-colors min-h-[60px] flex flex-col items-center justify-center gap-1">
+                        {previews.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 w-full">
+                            {previews.map((src, i) => (
+                              <div key={i} className="relative w-12 h-12">
+                                <img src={src} alt="" className="w-12 h-12 object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removePhoto(field.key, i)}
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Camera className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          onChange={e => handlePhotoUpload(field.key, e.target.files)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-3 pt-4 border-t">

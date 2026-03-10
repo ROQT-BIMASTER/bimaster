@@ -72,7 +72,7 @@ export default function ChinaNovaSubmissao() {
   }, []);
 
   // Called when user confirms data in validation dialog
-  const handleValidationConfirm = useCallback(async (validatedData: any) => {
+  const handleValidationConfirm = useCallback(async (validatedData: any, photoFiles: Record<string, File[]>) => {
     try {
       // Pre-fill weights
       if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
