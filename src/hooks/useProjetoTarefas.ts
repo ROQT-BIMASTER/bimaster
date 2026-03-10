@@ -70,6 +70,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .from("projeto_tarefas")
         .select("*")
         .eq("projeto_id", projetoId!)
+        .is("excluida_em", null)
         .order("ordem", { ascending: true });
       if (error) throw error;
       
