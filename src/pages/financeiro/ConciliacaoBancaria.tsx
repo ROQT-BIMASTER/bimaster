@@ -87,12 +87,21 @@ export default function ConciliacaoBancaria() {
               setConnectToken("");
             }}
             onError={(error) => {
-              console.error("Pluggy Connect error", error);
-              toast.error("Erro na conexão bancária");
+              console.error("Pluggy Connect onError:", error);
+              toast.error("Erro na conexão bancária: " + (error?.message || "erro desconhecido"));
               setShowPluggyConnect(false);
               setConnectToken("");
             }}
             onClose={() => {
+              setShowPluggyConnect(false);
+              setConnectToken("");
+            }}
+            onOpen={() => {
+              console.log("✅ Pluggy Connect widget opened successfully");
+            }}
+            onLoadError={(error) => {
+              console.error("❌ Pluggy Connect load error:", error);
+              toast.error("Erro ao carregar widget Pluggy: " + (error?.message || "verifique sua conexão"));
               setShowPluggyConnect(false);
               setConnectToken("");
             }}
