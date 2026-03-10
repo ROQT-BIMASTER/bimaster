@@ -109,7 +109,7 @@ export default function ChinaNovaSubmissao() {
         nome_arquivo: sourceFile.name,
         status: "pendente",
       } as any);
-      setDocs(d => ({ ...d, [tipo]: { fileName: sourceFile.name, status: "pendente" } }));
+      setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: sourceFile.name, status: "pendente" as const }] }));
     }
   }, []);
 
