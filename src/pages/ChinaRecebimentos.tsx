@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart, Upload, Barcode, Send } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
