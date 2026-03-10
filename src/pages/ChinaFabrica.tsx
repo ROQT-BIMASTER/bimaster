@@ -69,6 +69,14 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
     },
+    {
+      icon: <ShoppingCart className="h-10 w-10 text-primary" />,
+      labelPt: "Ordens de Compra",
+      labelCn: "采购订单",
+      desc: `${ocStats?.ativas || 0} ativas 活跃 · ${ocStats?.concluidas || 0} concluídas 已完成`,
+      onClick: () => navigate("/dashboard/fabrica-china/ordens"),
+      color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
+    },
   ];
 
   return (
