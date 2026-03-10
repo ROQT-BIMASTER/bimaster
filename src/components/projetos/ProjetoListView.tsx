@@ -25,6 +25,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     secoesLoading, tarefasLoading,
     createTarefa, updateTarefa, toggleTarefaCompleta, moveTarefaToSecao, createSecao,
     toggleSecaoBriefing, addColaborador, removeColaborador, teamMembers,
+    softDeleteTarefa,
   } = useProjetoTarefas(projetoId);
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
