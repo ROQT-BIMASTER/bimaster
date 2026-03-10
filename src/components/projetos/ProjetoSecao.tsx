@@ -150,6 +150,7 @@ export function ProjetoSecao({
               onToggle={onToggleTarefa}
               onSelect={onSelectTarefa}
               onUpdate={onUpdateTarefa}
+              onDelete={onDeleteTarefa}
               teamMembers={teamMembers}
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}
