@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy } from "lucide-react";
+import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
 
@@ -134,6 +134,9 @@ export default function ProjetosMinhaEquipe() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/projetos")} className="shrink-0">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
           <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
         </div>
