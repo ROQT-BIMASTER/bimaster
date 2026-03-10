@@ -376,7 +376,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                     <Link2 className="h-3.5 w-3.5" /> Produtos Vinculados
                   </p>
                   {produtosVinculados.map((v: any) => {
-                    const custoVinc = v.snapshot_totais?.custoTotal || 0;
+                    const custoVinc = v.snapshot_totais?.custoTotal ?? v.snapshot_totais?.custoFinalTotal ?? 0;
                     const vincInsumos = (v.snapshot_insumos || []) as any[];
                     const isVincExpanded = expandedVinculado === v.id;
                     return (
