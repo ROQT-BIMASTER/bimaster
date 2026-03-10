@@ -1,56 +1,46 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+## Enviar ao Superior (Projetos Genéricos) vs Enviar para Validação (Desenvolvimento de Produto)
 
 ### O que muda
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+No detalhe da tarefa (`ProjetoTarefaDetalhe.tsx`), o comportamento será diferenciado pelo tipo do projeto:
+
+**Projeto Genérico:**
+- Ocultar o campo "Produto" (busca de produto vinculado)
+- Substituir o botão "Enviar para Validação" por "Enviar ao Superior"
+- Ao clicar, envia a tarefa ao superior hierárquico do usuário (via `supervisor_id` ou `gerente_id` do perfil)
+- Não exige produto vinculado
+
+**Desenvolvimento de Produto:**
+- Mantém tudo como está (Produto, Enviar para Validação, checklist, etc.)
 
 ### Implementação
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+**Arquivo**: `src/components/projetos/ProjetoTarefaDetalhe.tsx`
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+1. **Ocultar campo Produto** (linhas ~533-643): Envolver com `{projetoTipo === 'desenvolvimento_produto' && (...)}` para só mostrar quando for desenvolvimento
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+2. **Botão "Enviar para Validação"** (linhas ~316-326): Condicionar:
+   - Se `desenvolvimento_produto`: comportamento atual (valida produto vinculado, envia para validação)
+   - Se `genérico`: mostrar botão "Enviar ao Superior" que:
+     - Busca o `supervisor_id` ou `gerente_id` do usuário logado na tabela `profiles`
+     - Atualiza a tarefa com `responsavel_id` = ID do superior e `validacao_status` = `pendente_validacao`
+     - Se não encontrar superior, exibe toast de erro
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+3. **Nova função `handleEnviarAoSuperior`**: 
+   - Busca perfil do usuário logado para pegar `supervisor_id` / `gerente_id`
+   - Determina o superior (prioriza `supervisor_id`, fallback `gerente_id`)
+   - Atualiza a tarefa com status de pendente e registra atividade
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+4. **Ícone e label**: Usar `ArrowRightLeft` ou `Send` com texto "Enviar ao Superior"
 
-### Visual esperado
+### Arquivo a Modificar
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+| Arquivo | Alteração |
+|---|---|
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Condicionar Produto e botão de validação pelo `projetoTipo`; adicionar `handleEnviarAoSuperior` |
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+### Sem mudanças no banco
+Usa campos já existentes: `validacao_status`, `responsavel_id`, `supervisor_id`, `gerente_id`.
 
