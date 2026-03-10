@@ -125,8 +125,72 @@ export function ChinaDataValidationDialog({
     setPhotoPreviews(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== index) }));
   };
 
-  const handleConfirm = () => {
+  const [eanDuplicates, setEanDuplicates] = useState<Record<string, string>>({});
+  const [checkingEan, setCheckingEan] = useState(false);
+
+  // Validate EAN uniqueness against DB
+  const checkEanUniqueness = useCallback(async () => {
+    const eansToCheck: { ean: string; label: string }[] = [];
+    if (data.ean_display?.trim()) eansToCheck.push({ ean: data.ean_display.trim(), label: "EAN Display" });
+    if (data.ean_caixa_master?.trim()) eansToCheck.push({ ean: data.ean_caixa_master.trim(), label: "EAN Caixa Master" });
+    cores.forEach((c, i) => {
+      if (c.codigo_barras_ean?.trim()) {
+        eansToCheck.push({ ean: c.codigo_barras_ean.trim(), label: `EAN SKU ${c.cor_nome || `#${i + 1}`}` });
+      }
+    });
+
+    if (eansToCheck.length === 0) return true;
+
+    setCheckingEan(true);
+    const duplicates: Record<string, string> = {};
+
+    try {
+      const allEans = eansToCheck.map(e => e.ean);
+
+      // Check in china_produto_submissoes (ean_display, ean_caixa_master)
+      const { data: subMatches } = await supabase
+        .from("china_produto_submissoes" as any)
+        .select("id, produto_codigo, ean_display, ean_caixa_master")
+        .or(`ean_display.in.(${allEans.join(",")}),ean_caixa_master.in.(${allEans.join(",")})`) as any;
+
+      // Check in china_produto_cores (codigo_barras_ean)
+      const { data: corMatches } = await supabase
+        .from("china_produto_cores" as any)
+        .select("submissao_id, cor_nome, codigo_barras_ean")
+        .in("codigo_barras_ean", allEans) as any;
+
+      for (const item of eansToCheck) {
+        const subMatch = (subMatches || []).find(
+          (s: any) => (s.ean_display === item.ean || s.ean_caixa_master === item.ean)
+        );
+        if (subMatch) {
+          duplicates[item.ean] = `${item.label} já usado no produto ${subMatch.produto_codigo}`;
+        }
+
+        const corMatch = (corMatches || []).find((c: any) => c.codigo_barras_ean === item.ean);
+        if (corMatch && !duplicates[item.ean]) {
+          duplicates[item.ean] = `${item.label} já usado em outro SKU`;
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao verificar EAN:", err);
+    }
+
+    setCheckingEan(false);
+    setEanDuplicates(duplicates);
+    return Object.keys(duplicates).length === 0;
+  }, [data.ean_display, data.ean_caixa_master, cores]);
+
+  const handleConfirm = async () => {
     if (!accepted) return;
+
+    // Check EAN uniqueness before confirming
+    const isUnique = await checkEanUniqueness();
+    if (!isUnique) {
+      toast.error("EAN duplicado detectado! Corrija antes de confirmar. EAN重复！请在确认前更正。");
+      return;
+    }
+
     const finalData = { ...data, cores };
     onConfirm(finalData, photos);
     onOpenChange(false);
