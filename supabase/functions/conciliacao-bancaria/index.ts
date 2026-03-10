@@ -111,10 +111,10 @@ async function handleSyncTransactions(
     .select()
     .single();
 
-  const pluggy = getPluggyClient();
+  const apiKey = await getPluggyApiKey();
 
   // Fetch accounts for this item
-  const accountsData = await pluggy.fetchAccounts(conn.pluggy_item_id);
+  const accountsData = await pluggyFetch(apiKey, `/items/${conn.pluggy_item_id}/accounts`);
 
   let allTransactions: any[] = [];
 
@@ -122,12 +122,10 @@ async function handleSyncTransactions(
     let page = 1;
     let hasMore = true;
     while (hasMore) {
-      const txData = await pluggy.fetchTransactions(account.id, {
-        from: dateFrom || undefined,
-        to: dateTo || undefined,
-        page,
-        pageSize: 500,
-      });
+      const params = new URLSearchParams({ page: String(page), pageSize: "500" });
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const txData = await pluggyFetch(apiKey, `/accounts/${account.id}/transactions?${params}`);
       allTransactions = allTransactions.concat(txData.results || []);
       hasMore = (txData.results?.length || 0) === 500;
       page++;
