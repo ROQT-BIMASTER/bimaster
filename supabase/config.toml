@@ -69,6 +69,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.elevenlabs-tts]
     verify_jwt = false
+  [functions.erp-export-payment]
+    verify_jwt = false
   [functions.expense-ai-assistant]
     verify_jwt = false
   [functions.importar-briefing-ia]

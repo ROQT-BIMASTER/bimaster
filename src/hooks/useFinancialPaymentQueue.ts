@@ -396,6 +396,17 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         });
       }
 
+      // Auto-export to ERP when marked as paid
+      if (variables.financial_status === 'paid' && data) {
+        exportPaymentToErp(data.id).then((result) => {
+          if (result.success) {
+            console.log(`ERP export success for ${data.code}`);
+          } else {
+            console.warn(`ERP export failed for ${data.code}: ${result.message}`);
+          }
+        });
+      }
+
       const statusMessages: Record<PaymentQueueStatus, string> = {
         pending: 'Status atualizado',
         accepted: 'Pagamento aceito com sucesso',
