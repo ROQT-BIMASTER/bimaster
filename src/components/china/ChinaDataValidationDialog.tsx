@@ -547,9 +547,9 @@ export function ChinaDataValidationDialog({
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar 取消</Button>
-            <Button onClick={handleConfirm} disabled={!accepted} className="gap-2">
-              <Check className="h-4 w-4" />
-              {mode === "edit" ? "Salvar Alterações 保存更改" : "Confirmar Dados 确认数据"}
+            <Button onClick={handleConfirm} disabled={!accepted || checkingEan} className="gap-2">
+              {checkingEan ? <Barcode className="h-4 w-4 animate-pulse" /> : <Check className="h-4 w-4" />}
+              {checkingEan ? "Verificando EAN..." : mode === "edit" ? "Salvar Alterações 保存更改" : "Confirmar Dados 确认数据"}
             </Button>
           </div>
         </DialogFooter>
