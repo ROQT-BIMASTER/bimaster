@@ -133,6 +133,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = true
   [functions.padronizar-nome-cliente]
     verify_jwt = true
+  [functions.pluggy-webhook]
+    verify_jwt = false
   [functions.pollo-analyze-website]
     verify_jwt = true
   [functions.pollo-check-status]

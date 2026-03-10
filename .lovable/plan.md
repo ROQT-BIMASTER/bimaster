@@ -1,36 +1,35 @@
 
 
-## Plano: Criar Edge Function para Webhook da Pluggy
+## Plano: Envio de Pagamentos para o ERP
 
-### O que será feito
-Criar uma nova edge function `pluggy-webhook` dedicada a receber eventos de webhook da Pluggy (item/created, item/updated, item/error). O webhook é público (chamado pela Pluggy, sem JWT do usuário), então precisa responder rapidamente (< 5 segundos) com status 2XX.
+### Status: ✅ Implementado
 
-### Alterações
+### O que foi feito
 
-**1. `supabase/functions/pluggy-webhook/index.ts`** — Nova função:
-- Endpoint POST público que recebe eventos da Pluggy
-- Trata 3 tipos de evento:
-  - `item/created` → Registra log, opcionalmente busca dados da conexão via `pluggy-sdk`
-  - `item/updated` → Usa `pluggy-sdk` para buscar transações atualizadas do item e atualiza `bank_connections` com status e timestamp
-  - `item/error` → Atualiza `bank_connections` com status `error` e registra o erro
-- Responde imediatamente com `{ received: true }` (dentro do limite de 5s)
-- Processamento pesado feito de forma assíncrona (fire-and-forget com `.catch()`)
-- Sem autenticação JWT (webhook externo), mas valida estrutura do payload
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-**2. `supabase/config.toml`** — Adicionar:
-```toml
-[functions.pluggy-webhook]
-  verify_jwt = false
-```
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-### Segurança
-- Função pública (necessário para webhooks externos)
-- Credenciais Pluggy (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`) já configuradas como secrets e acessadas apenas server-side
-- Validação da estrutura do payload recebido
+---
 
-### URL do Webhook
-Após deploy, a URL para configurar no painel da Pluggy será:
-`https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/pluggy-webhook`
+## Plano: API de Exportação Pull para o ERP
 
-Você precisará registrar essa URL no [Dashboard da Pluggy](https://dashboard.pluggy.ai) em **Settings → Webhooks**.
+### Status: ✅ Implementado
 
+### O que foi feito
+
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
