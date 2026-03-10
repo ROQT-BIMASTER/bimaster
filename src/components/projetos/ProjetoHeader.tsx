@@ -179,6 +179,14 @@ export function ProjetoHeader({
           onAddTarefa={onAddTarefa}
         />
       )}
+
+      <ProjetoLixeiraDialog
+        open={lixeiraOpen}
+        onOpenChange={setLixeiraOpen}
+        tarefas={tarefasExcluidas}
+        loading={tarefasExcluidasLoading}
+        onRestaurar={(id) => onRestaurarTarefa?.(id)}
+      />
     </div>
   );
 }
