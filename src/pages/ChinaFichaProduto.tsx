@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -230,6 +230,34 @@ export default function ChinaFichaProduto() {
           </Button>
           <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" />
         </div>
+
+        {/* Draft Banner + Edit Button */}
+        {submissao.status === "rascunho" && (
+          <Card className="p-4 border-primary/30 bg-primary/5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <PenLine className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-primary text-sm">
+                    Rascunho — ainda pode ser editado 草稿 — 仍可编辑
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Ajuste os dados antes de enviar ao Brasil. 在发送到巴西之前调整数据。
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate(`/dashboard/fabrica-china/nova/${id}`)}
+                className="gap-2 shrink-0"
+              >
+                <PenLine className="h-4 w-4" />
+                Editar / Ajustar 编辑/调整
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Product Header Card */}
         <Card className="p-6">

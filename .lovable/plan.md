@@ -1,23 +1,56 @@
 
 
-## Plan: Draft Editing & Post-Send Lock
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### What changes
+### O que muda
 
-**1. `ChinaFichaProduto.tsx` — Add "Edit" button for drafts**
-- When `submissao.status === "rascunho"`, show a prominent "Editar / Ajustar 编辑/调整" button in the action buttons area that navigates to `/dashboard/fabrica-china/nova/${id}`.
-- Add a visual banner at the top indicating this is still a draft and can be edited.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-**2. `ChinaNovaSubmissao.tsx` — Read-only mode for non-draft submissions**
-- When resuming an existing submission (`editId`), check the loaded status.
-- If status is NOT `rascunho`, render all fields as disabled/read-only: inputs, file uploads, grade editor, and hide the "Save Draft" and "Send to Brazil" buttons.
-- Show a lock banner: "Esta submissão já foi enviada e não pode ser alterada. 此提交已发送，无法更改。"
-- This prevents any modifications after the submission leaves draft status.
+### Implementação
 
-**3. `ChinaRecebimentos.tsx` — Allow opening form for any status**
-- Currently drafts go to `/nova/:id` and others go to `/produto/:id`. Keep this behavior but also ensure the detail page (`ChinaFichaProduto`) has the edit shortcut for drafts.
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### Summary of behavior
-- **Rascunho (Draft)**: Full editing via the submission form. "Editar" button on the product detail page routes back to the form.
-- **Enviado or later**: All fields locked. User can only view data on the detail page. The submission form, if accessed directly, shows read-only mode with a lock banner.
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

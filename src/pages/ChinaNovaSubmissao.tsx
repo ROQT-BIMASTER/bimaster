@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -103,6 +103,9 @@ export default function ChinaNovaSubmissao() {
       return (data || []) as any[];
     },
   });
+
+  // Determine if read-only (non-draft status)
+  const isReadOnly = !!(existingSubmissao && existingSubmissao.status !== "rascunho");
 
   // Hydrate state from existing data when resuming
   useEffect(() => {
@@ -521,6 +524,33 @@ export default function ChinaNovaSubmissao() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Read-only lock banner */}
+        {isReadOnly && (
+          <Card className="p-4 border-warning/30 bg-warning/5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-warning/20 flex items-center justify-center shrink-0">
+                <LockKeyhole className="h-5 w-5 text-warning" />
+              </div>
+              <div>
+                <p className="font-semibold text-warning text-sm">
+                  Esta submissão já foi enviada e não pode ser alterada. 此提交已发送，无法更改。
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Para visualizar detalhes, acesse a ficha do produto. 要查看详细信息，请访问产品档案。
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => navigate(`/dashboard/fabrica-china/produto/${editId}`)}
+              >
+                Ver Ficha 查看档案
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
@@ -528,14 +558,14 @@ export default function ChinaNovaSubmissao() {
           </Button>
           <div className="flex-1">
             <BilingualLabel pt={editId ? "Continuar Submissão" : "Nova Submissão"} cn={editId ? "继续提交" : "新提交"} size="lg" />
-            {submissaoId && (
+            {submissaoId && !isReadOnly && (
               <Badge variant="secondary" className="mt-1 text-xs">
                 <Save className="h-3 w-3 mr-1" /> Rascunho 草稿
               </Badge>
             )}
           </div>
-          {/* Save Draft button — always visible when we have a submissaoId */}
-          {submissaoId && (
+          {/* Save Draft button — only when not read-only */}
+          {submissaoId && !isReadOnly && (
             <Button
               variant="outline"
               onClick={handleSaveDraft}
@@ -900,7 +930,7 @@ export default function ChinaNovaSubmissao() {
                           config={config}
                           status={worstStatus as any}
                           files={typeFiles.map((f, i) => ({ id: `local-${i}`, name: f.fileName, status: f.status }))}
-                          onUpload={(file) => handleDocUpload(config.tipo, file)}
+                          onUpload={isReadOnly ? undefined : (file) => handleDocUpload(config.tipo, file)}
                         />
                       );
                     })}
@@ -917,7 +947,13 @@ export default function ChinaNovaSubmissao() {
             )}
 
             {/* Grade Editor */}
-            <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+            {isReadOnly ? (
+              <div className="opacity-60 pointer-events-none">
+                <ChinaGradeEditor items={gradeItems} onChange={() => {}} />
+              </div>
+            ) : (
+              <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+            )}
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(0)}>
@@ -939,48 +975,57 @@ export default function ChinaNovaSubmissao() {
                 <BilingualLabel pt="Pesos do Produto" cn="产品重量" size="md" />
                 <div>
                   <Label className="text-sm">Peso Bruto (g) 毛重</Label>
-                  <Input type="number" step="0.01" value={weights.peso_bruto_g} onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))} placeholder="Ex: 23.85" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_bruto_g} onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))} placeholder="Ex: 23.85" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Líquido (g) 净重</Label>
-                  <Input type="number" step="0.01" value={weights.peso_liquido_g} onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))} placeholder="Ex: 6.68" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_liquido_g} onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))} placeholder="Ex: 6.68" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Tester (g) 试用装重量</Label>
-                  <Input type="number" step="0.01" value={weights.peso_tester_g} onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))} placeholder="Ex: 3.5" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_tester_g} onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))} placeholder="Ex: 3.5" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
               </div>
               <div className="space-y-4">
                 <BilingualLabel pt="Medidas do Display" cn="展示尺寸" size="md" />
                 <div>
                   <Label className="text-sm">Largura (cm) 宽度</Label>
-                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" />
+                  <Input type="number" step="0.1" value={weights.display_largura} onChange={(e) => setWeights(w => ({ ...w, display_largura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Altura (cm) 高度</Label>
-                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" />
+                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Profundidade (cm) 深度</Label>
-                  <Input type="number" step="0.1" value={weights.display_profundidade} onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))} className="text-lg h-12" />
+                  <Input type="number" step="0.1" value={weights.display_profundidade} onChange={(e) => setWeights(w => ({ ...w, display_profundidade: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
               </div>
             </div>
-            <div className="flex justify-between mt-8">
-              <Button variant="outline" onClick={() => setStep(1)}>
-                Voltar 返回
-              </Button>
-              <Button
-                onClick={handleOpenFinalReview}
-                disabled={submitting}
-                variant="gradient"
-                size="lg"
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Revisar e Enviar 审核并发送
-              </Button>
-            </div>
+            {!isReadOnly && (
+              <div className="flex justify-between mt-8">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Voltar 返回
+                </Button>
+                <Button
+                  onClick={handleOpenFinalReview}
+                  disabled={submitting}
+                  variant="gradient"
+                  size="lg"
+                  className="gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Revisar e Enviar 审核并发送
+                </Button>
+              </div>
+            )}
+            {isReadOnly && (
+              <div className="flex justify-between mt-8">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Voltar 返回
+                </Button>
+              </div>
+            )}
           </Card>
         )}
 
