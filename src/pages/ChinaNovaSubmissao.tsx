@@ -393,7 +393,7 @@ export default function ChinaNovaSubmissao() {
                 上传Excel表格或产品照片/截图。AI将自动提取所有信息。
               </p>
 
-              {!parsedData ? (
+               {!parsedData && !manualMode ? (
                 <div className="w-full max-w-lg space-y-4">
                   {/* Excel Upload */}
                   <div className="relative">
@@ -475,6 +475,99 @@ export default function ChinaNovaSubmissao() {
                       </div>
                     </Button>
                   )}
+
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">OU 或</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {/* Manual Entry */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-20 border-dashed border-2 gap-2"
+                    onClick={() => setManualMode(true)}
+                    disabled={parsing}
+                  >
+                    <PenLine className="h-6 w-6" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium">Lançamento Manual 手动输入</p>
+                      <p className="text-xs text-muted-foreground">Preencher dados manualmente 手动填写数据</p>
+                    </div>
+                  </Button>
+                </div>
+              ) : manualMode && !parsedData ? (
+                /* Manual entry form */
+                <div className="w-full max-w-lg space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm">Código do Produto 产品代码 *</Label>
+                      <Input
+                        value={manualData.produto_codigo}
+                        onChange={(e) => setManualData(d => ({ ...d, produto_codigo: e.target.value }))}
+                        placeholder="Ex: HB-9900"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Nº Item 项目号</Label>
+                      <Input
+                        value={manualData.numero_item}
+                        onChange={(e) => setManualData(d => ({ ...d, numero_item: e.target.value }))}
+                        placeholder="Ex: 001"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">Nome do Produto 产品名称 *</Label>
+                    <Input
+                      value={manualData.produto_nome}
+                      onChange={(e) => setManualData(d => ({ ...d, produto_nome: e.target.value }))}
+                      placeholder="Ex: Base Líquida HD Coverage"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm">Fórmula 配方</Label>
+                      <Input
+                        value={manualData.formula_codigo}
+                        onChange={(e) => setManualData(d => ({ ...d, formula_codigo: e.target.value }))}
+                        placeholder="Ex: F-1234"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Nº Ordem 订单号</Label>
+                      <Input
+                        value={manualData.numero_ordem}
+                        onChange={(e) => setManualData(d => ({ ...d, numero_ordem: e.target.value }))}
+                        placeholder="Ex: ORD-2026"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">Quantidade Total 总数量</Label>
+                    <Input
+                      type="number"
+                      value={manualData.qty_total}
+                      onChange={(e) => setManualData(d => ({ ...d, qty_total: e.target.value }))}
+                      placeholder="Ex: 15000"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <Button variant="outline" onClick={() => setManualMode(false)}>
+                      Voltar 返回
+                    </Button>
+                    <Button onClick={handleManualEntry} disabled={parsing} className="gap-2">
+                      {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Confirmar e Avançar 确认并继续
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="w-full space-y-4">
