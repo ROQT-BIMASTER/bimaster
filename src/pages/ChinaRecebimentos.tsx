@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode } from "lucide-react";
+import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
