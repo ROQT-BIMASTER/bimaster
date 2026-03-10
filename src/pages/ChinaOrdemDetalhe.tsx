@@ -140,11 +140,53 @@ export default function ChinaOrdemDetalhe() {
     if (signedUrl) window.open(signedUrl, "_blank");
   };
 
+  const handleAprovar = async () => {
+    setApprovalLoading(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { error } = await supabase
+        .from("china_ordens_compra" as any)
+        .update({ status: "aprovada", aprovado_por: user?.id, aprovado_em: new Date().toISOString() } as any)
+        .eq("id", ordem.id);
+      if (error) throw error;
+      toast.success("OC aprovada! A China agora pode iniciar a produção ✅");
+      handleRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao aprovar");
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleRejeitar = async () => {
+    if (!motivoRejeicao.trim()) {
+      toast.error("Informe o motivo da rejeição");
+      return;
+    }
+    setApprovalLoading(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { error } = await supabase
+        .from("china_ordens_compra" as any)
+        .update({ status: "rejeitada", aprovado_por: user?.id, aprovado_em: new Date().toISOString(), motivo_rejeicao: motivoRejeicao } as any)
+        .eq("id", ordem.id);
+      if (error) throw error;
+      toast.success("OC rejeitada");
+      setShowRejeitar(false);
+      handleRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao rejeitar");
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
   // Determine if production is complete (qty_produzida >= qty_total)
   const isProductionComplete = ordem && ordem.qty_total > 0 && ordem.qty_produzida >= ordem.qty_total;
   const showEmbarqueForm = isProductionComplete && (!embarque || embarque.status === "rascunho");
   const showEmbarqueInfo = embarque && embarque.status !== "rascunho";
   const isActiveOrder = ordem && ordem.status !== "concluida" && ordem.status !== "cancelada";
+  const isApproved = ordem && !["rascunho", "rejeitada"].includes(ordem.status);
 
   if (isLoading) {
     return (
