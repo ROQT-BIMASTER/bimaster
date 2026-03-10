@@ -8,95 +8,73 @@ interface PluggyConnectWidgetProps {
   onClose?: () => void;
 }
 
-// Load Pluggy Connect from CDN and open in a popup-like approach
 export function PluggyConnectWidget({
   connectToken,
-  includeSandbox = true,
   onSuccess,
   onError,
   onClose,
 }: PluggyConnectWidgetProps) {
-  const initialized = useRef(false);
+  const closedHandled = useRef(false);
 
   useEffect(() => {
-    if (initialized.current || !connectToken) return;
-    initialized.current = true;
+    if (!connectToken) return;
+    closedHandled.current = false;
 
-    console.log("[PluggyWidget] Initializing with token length:", connectToken.length);
-    console.log("[PluggyWidget] Token preview:", connectToken.substring(0, 30) + "...");
+    console.log("[PluggyWidget] Opening popup with token length:", connectToken.length);
 
-    // Load Pluggy Connect SDK from CDN
-    const script = document.createElement("script");
-    script.src = "https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js";
-    script.async = true;
+    const url = `https://connect.pluggy.ai/?connect_token=${connectToken}`;
+    const popup = window.open(
+      url,
+      "pluggy_connect",
+      "width=450,height=700,left=200,top=100,scrollbars=yes"
+    );
 
-    script.onload = () => {
-      console.log("[PluggyWidget] CDN script loaded");
-      const PluggyConnectClass = (window as any).PluggyConnect;
-      
-      if (!PluggyConnectClass) {
-        console.error("[PluggyWidget] PluggyConnect not found on window after script load");
-        onError?.({ message: "PluggyConnect SDK not loaded" });
-        return;
+    if (!popup) {
+      console.error("[PluggyWidget] Popup blocked by browser");
+      onError?.({ message: "Popup bloqueado pelo navegador. Permita popups para este site." });
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== "https://connect.pluggy.ai") return;
+
+      console.log("[PluggyWidget] postMessage received:", event.data);
+
+      if (event.data?.event === "onSuccess") {
+        console.log("✅ Pluggy onSuccess", event.data.data);
+        closedHandled.current = true;
+        onSuccess(event.data.data);
+        popup.close();
       }
-
-      try {
-        const pluggyConnect = new PluggyConnectClass({
-          connectToken,
-          includeSandbox,
-          onSuccess: (data: any) => {
-            console.log("✅ Pluggy onSuccess", data);
-            onSuccess(data);
-          },
-          onError: (error: any) => {
-            console.error("❌ Pluggy onError:", error);
-            onError?.(error);
-          },
-          onClose: () => {
-            console.log("[PluggyWidget] onClose fired");
-            onClose?.();
-          },
-          onOpen: () => {
-            console.log("[PluggyWidget] onOpen fired - widget opened");
-          },
-          onEvent: (payload: any) => {
-            console.log("[PluggyWidget] onEvent:", JSON.stringify(payload));
-          },
-        });
-
-        console.log("[PluggyWidget] Calling init()...");
-        pluggyConnect.init().then(() => {
-          console.log("[PluggyWidget] init() resolved - widget rendered");
-        }).catch((err: any) => {
-          console.error("[PluggyWidget] init() failed:", err);
-          onError?.(err);
-        });
-      } catch (err) {
-        console.error("[PluggyWidget] Error creating PluggyConnect:", err);
-        onError?.(err);
+      if (event.data?.event === "onError") {
+        console.error("❌ Pluggy onError:", event.data.data);
+        onError?.(event.data.data);
+      }
+      if (event.data?.event === "onClose") {
+        console.log("[PluggyWidget] onClose via postMessage");
+        closedHandled.current = true;
+        onClose?.();
       }
     };
 
-    script.onerror = (err) => {
-      console.error("[PluggyWidget] Failed to load CDN script:", err);
-      onError?.({ message: "Failed to load Pluggy Connect script" });
-    };
+    window.addEventListener("message", handleMessage);
 
-    document.head.appendChild(script);
+    // Detect manual close of popup
+    const timer = setInterval(() => {
+      if (popup.closed && !closedHandled.current) {
+        console.log("[PluggyWidget] Popup closed manually");
+        closedHandled.current = true;
+        onClose?.();
+        clearInterval(timer);
+      }
+    }, 500);
 
     return () => {
-      // Cleanup
-      try {
-        const existingScript = document.querySelector(
-          'script[src*="cdn.pluggy.ai"]'
-        );
-        if (existingScript) existingScript.remove();
-      } catch {}
-      // Remove any pluggy modal elements
-      document.querySelectorAll('[id*="pluggy"], [class*="pluggy"]').forEach(el => el.remove());
-      initialized.current = false;
+      window.removeEventListener("message", handleMessage);
+      clearInterval(timer);
+      if (!popup.closed) popup.close();
     };
   }, [connectToken]);
 
-  return null; // SDK creates its own modal overlay
+  return null;
 }
