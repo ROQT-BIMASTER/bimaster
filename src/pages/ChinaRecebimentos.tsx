@@ -99,7 +99,8 @@ export default function ChinaRecebimentos() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" />
+          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" className="flex-1" />
+          <ManualFabricaDrawer screen="china-submissoes" />
         </div>
         {/* Manual */}
         <SubmissionManual />

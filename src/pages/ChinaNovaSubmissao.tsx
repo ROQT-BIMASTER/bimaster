@@ -564,6 +564,7 @@ export default function ChinaNovaSubmissao() {
               </Badge>
             )}
           </div>
+          <ManualFabricaDrawer screen="china-nova-submissao" />
           {/* Save Draft button — only when not read-only */}
           {submissaoId && !isReadOnly && (
             <Button

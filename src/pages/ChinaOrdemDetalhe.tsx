@@ -216,10 +216,11 @@ export default function ChinaOrdemDetalhe() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/ordens")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{ordem.numero_oc}</h1>
             <p className="text-muted-foreground">{ordem.produto_codigo} — {ordem.produto_nome}</p>
           </div>
+          <ManualFabricaDrawer screen="china-ordem-detalhe" />
         </div>
 
         {/* OC Summary */}

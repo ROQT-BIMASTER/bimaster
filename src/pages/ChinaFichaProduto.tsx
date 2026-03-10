@@ -232,7 +232,8 @@ export default function ChinaFichaProduto() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/recebimentos")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" />
+          <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" className="flex-1" />
+          <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
         {/* Draft Banner + Edit Button */}
