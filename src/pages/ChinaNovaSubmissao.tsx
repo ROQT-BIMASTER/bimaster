@@ -41,6 +41,15 @@ export default function ChinaNovaSubmissao() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [aiExtracted, setAiExtracted] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualData, setManualData] = useState({
+    produto_codigo: "",
+    produto_nome: "",
+    formula_codigo: "",
+    numero_item: "",
+    numero_ordem: "",
+    qty_total: "",
+  });
 
   // Process AI response (shared between Excel and image)
   const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
