@@ -53,8 +53,9 @@ interface ChinaDataValidationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData: ValidationData;
-  onConfirm: (data: ValidationData) => void;
+  onConfirm: (data: ValidationData, photos: Record<string, File[]>) => void;
   mode?: "new" | "edit";
+  showPhotoUpload?: boolean;
 }
 
 const EDIT_PASSWORD = "bimaster2026";
