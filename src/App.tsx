@@ -189,6 +189,7 @@ const ContasReceberSyncPage = lazyWithRetry(() => import("./pages/financeiro/Con
 const ContasPagarSyncPage = lazyWithRetry(() => import("./pages/financeiro/ContasPagarSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
+const ConciliacaoBancaria = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoBancaria"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
