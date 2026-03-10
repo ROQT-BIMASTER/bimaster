@@ -39,6 +39,7 @@ export function ProjetoHeader({
   projeto, activeTab, onTabChange, tarefas = [], customBg = false, darkBg = false,
   filters = EMPTY_FILTERS, onFiltersChange, sort = DEFAULT_SORT, onSortChange,
   teamMembers = [], secoes = [], onAddTarefa,
+  tarefasExcluidas = [], tarefasExcluidasLoading, onRestaurarTarefa,
 }: ProjetoHeaderProps) {
   const textColor = darkBg ? "text-white" : customBg ? "text-black" : "";
   const textMuted = darkBg ? "text-white/70" : customBg ? "text-black/70" : "text-muted-foreground";
