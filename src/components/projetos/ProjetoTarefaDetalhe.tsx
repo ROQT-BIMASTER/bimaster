@@ -41,6 +41,8 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { BriefingImportDialog } from "./BriefingImportDialog";
 import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
+import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
+import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
