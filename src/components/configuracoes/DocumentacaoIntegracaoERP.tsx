@@ -1400,6 +1400,45 @@ WHERE cp.DATA_EMISSAO >= @dataInicio
 ORDER BY cp.CONTA, cp.PARCELA
 OFFSET @offset ROWS;`;
 
+  const exportPayloadExample = `{
+  "api_version": "1.0",
+  "generated_at": "2026-03-10T14:30:00.000Z",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "empresa_id": 1,
+  "fornecedor": {
+    "nome": "Fornecedor ABC Ltda",
+    "documento": "12345678000190",
+    "documento_formatado": "12.345.678/0001-90"
+  },
+  "documento": {
+    "tipo": "NF",
+    "numero": "12345"
+  },
+  "pagamento": {
+    "valor": 1500.00,
+    "moeda": "BRL",
+    "data_vencimento": "2026-03-15",
+    "data_pagamento": "2026-03-10T14:30:00Z",
+    "metodo": "PIX",
+    "portador": "Banco Itaú"
+  },
+  "departamento": "Compras",
+  "descricao": "Compra de materiais",
+  "status": "Pago"
+}`;
+
+  const curlPullPaid = `curl -H "x-api-key: SUA_CHAVE" \\
+  "${SUPABASE_URL}/contas-pagar-export-api/paid?limit=50"`;
+
+  const curlPullConfirm = `curl -X POST \\
+  -H "x-api-key: SUA_CHAVE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"ids": ["uuid-1", "uuid-2"]}' \\
+  "${SUPABASE_URL}/contas-pagar-export-api/confirm"`;
+
+  const curlPullStatus = `curl -H "x-api-key: SUA_CHAVE" \\
+  "${SUPABASE_URL}/contas-pagar-export-api/status"`;
+
   const secrets = [
     { name: "N8N_API_KEY", description: "Chave de autenticação para requisições N8N", required: true },
     { name: "ERP_SQL_SERVER", description: "Host:Porta do SQL Server do ERP", required: false },
@@ -1491,7 +1530,7 @@ OFFSET @offset ROWS;`;
       </Card>
 
       <Tabs defaultValue="contas-receber" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="contas-receber" className="flex items-center gap-2">
             <Receipt className="h-4 w-4" />
             <span className="hidden sm:inline">Contas a Receber</span>
@@ -1505,6 +1544,11 @@ OFFSET @offset ROWS;`;
           <TabsTrigger value="estoque" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Estoque
+          </TabsTrigger>
+          <TabsTrigger value="exportacao-erp" className="flex items-center gap-2">
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportação ERP</span>
+            <span className="sm:hidden">Export</span>
           </TabsTrigger>
           <TabsTrigger value="atencao" className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
@@ -2259,6 +2303,309 @@ OFFSET @offset ROWS;`;
               </Accordion>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Nova aba: Exportação ERP (CRM → ERP) */}
+        <TabsContent value="exportacao-erp">
+          <div className="space-y-6">
+            {/* Visão Geral */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ExternalLink className="h-5 w-5" />
+                  Exportação de Pagamentos — CRM → ERP
+                </CardTitle>
+                <CardDescription>
+                  API e Push automático para enviar pagamentos confirmados ao ERP. Dois modelos disponíveis: Pull (ERP consulta) e Push (notificação automática).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <Zap className="h-4 w-4" />
+                  <AlertTitle>Fluxo CRM → ERP</AlertTitle>
+                  <AlertDescription>
+                    Diferente das APIs de importação (ERP → CRM), esta seção documenta a <strong>exportação</strong> de pagamentos do CRM para o ERP. O payload é padronizado entre os dois modelos.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Download className="h-4 w-4 text-primary" />
+                      <h4 className="font-medium">Modelo Pull (Recomendado)</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">O ERP consulta os pagamentos pendentes e confirma o recebimento.</p>
+                    <Badge variant="outline">contas-pagar-export-api</Badge>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <h4 className="font-medium">Modelo Push (Automático)</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">Ao marcar um pagamento como "Pago", o CRM envia automaticamente ao ERP via webhook ou REST API.</p>
+                    <Badge variant="outline">erp-export-payment</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payload Padrão */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Payload Padrão (Pull e Push)
+                </CardTitle>
+                <CardDescription>Estrutura JSON idêntica em ambos os modelos. Campos agrupados por entidade.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 z-10"
+                    onClick={() => copyToClipboard(exportPayloadExample, "export-payload")}
+                  >
+                    {copiedSection === "export-payload" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                  <ScrollArea className="h-[420px]">
+                    <pre className="p-4 bg-muted rounded-lg text-xs font-mono whitespace-pre-wrap">{exportPayloadExample}</pre>
+                  </ScrollArea>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mapeamento de Campos */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Mapeamento de Campos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-medium">Campo</th>
+                        <th className="text-left p-2 font-medium">Tipo</th>
+                        <th className="text-left p-2 font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">api_version</td><td className="p-2">string</td><td className="p-2">Versão da API ("1.0")</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">generated_at</td><td className="p-2">ISO 8601</td><td className="p-2">Timestamp de geração</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">id</td><td className="p-2">UUID</td><td className="p-2">ID único do pagamento na fila</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">empresa_id</td><td className="p-2">number</td><td className="p-2">ID da empresa</td></tr>
+                      <tr className="border-b bg-muted/50"><td className="p-2 font-mono text-xs" colSpan={3}><strong>fornecedor</strong> (objeto)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">fornecedor.nome</td><td className="p-2">string</td><td className="p-2">Nome/Razão social</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">fornecedor.documento</td><td className="p-2">string</td><td className="p-2">CNPJ/CPF (somente números)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">fornecedor.documento_formatado</td><td className="p-2">string</td><td className="p-2">CNPJ/CPF formatado</td></tr>
+                      <tr className="border-b bg-muted/50"><td className="p-2 font-mono text-xs" colSpan={3}><strong>documento</strong> (objeto)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">documento.tipo</td><td className="p-2">string</td><td className="p-2">Tipo (NF, Boleto, etc.)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">documento.numero</td><td className="p-2">string</td><td className="p-2">Número do documento</td></tr>
+                      <tr className="border-b bg-muted/50"><td className="p-2 font-mono text-xs" colSpan={3}><strong>pagamento</strong> (objeto)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.valor</td><td className="p-2">decimal</td><td className="p-2">Valor (ex: 1500.00)</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.moeda</td><td className="p-2">string</td><td className="p-2">Sempre "BRL"</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.data_vencimento</td><td className="p-2">date</td><td className="p-2">YYYY-MM-DD</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.data_pagamento</td><td className="p-2">ISO 8601</td><td className="p-2">Data/hora do pagamento</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.metodo</td><td className="p-2">string</td><td className="p-2">PIX, TED, Boleto, Cartão, etc.</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs pl-6">pagamento.portador</td><td className="p-2">string</td><td className="p-2">Banco/portador</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">departamento</td><td className="p-2">string</td><td className="p-2">Departamento responsável</td></tr>
+                      <tr className="border-b"><td className="p-2 font-mono text-xs">descricao</td><td className="p-2">string</td><td className="p-2">Descrição/observações</td></tr>
+                      <tr><td className="p-2 font-mono text-xs">status</td><td className="p-2">string</td><td className="p-2">Sempre "Pago"</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* API Pull */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  API Pull — Endpoints
+                </CardTitle>
+                <CardDescription>O ERP consulta pagamentos pendentes e confirma recebimento. Autenticação via header <code className="text-xs bg-muted px-1 py-0.5 rounded">x-api-key</code>.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="pull-paid">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">GET</Badge>
+                        <span className="font-mono text-sm">/contas-pagar-export-api/paid</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Retorna pagamentos com status "Pago" que ainda não foram confirmados como exportados.</p>
+                      <div>
+                        <h5 className="text-xs font-medium mb-1">Query Parameters</h5>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p><code className="bg-muted px-1 rounded">limit</code> (number, default: 100) — Máximo de registros</p>
+                          <p><code className="bg-muted px-1 rounded">offset</code> (number, default: 0) — Paginação</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => copyToClipboard(curlPullPaid, "curl-pull-paid")}>
+                          {copiedSection === "curl-pull-paid" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                        <pre className="p-3 bg-muted rounded-lg text-xs font-mono whitespace-pre-wrap">{curlPullPaid}</pre>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="pull-confirm">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">POST</Badge>
+                        <span className="font-mono text-sm">/contas-pagar-export-api/confirm</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Após processar os pagamentos no ERP, confirme os IDs para que não apareçam novamente no <code>/paid</code>.</p>
+                      <div className="relative">
+                        <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => copyToClipboard(curlPullConfirm, "curl-pull-confirm")}>
+                          {copiedSection === "curl-pull-confirm" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                        <pre className="p-3 bg-muted rounded-lg text-xs font-mono whitespace-pre-wrap">{curlPullConfirm}</pre>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-medium mb-1">Resposta esperada</h5>
+                        <pre className="p-3 bg-muted rounded-lg text-xs font-mono">{`{
+  "confirmed": 2,
+  "message": "2 pagamento(s) confirmado(s) como exportado(s)"
+}`}</pre>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="pull-status">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">GET</Badge>
+                        <span className="font-mono text-sm">/contas-pagar-export-api/status</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Resumo da sincronização: total pagos, exportados e pendentes.</p>
+                      <div className="relative">
+                        <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => copyToClipboard(curlPullStatus, "curl-pull-status")}>
+                          {copiedSection === "curl-pull-status" ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                        <pre className="p-3 bg-muted rounded-lg text-xs font-mono whitespace-pre-wrap">{curlPullStatus}</pre>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-medium mb-1">Resposta esperada</h5>
+                        <pre className="p-3 bg-muted rounded-lg text-xs font-mono">{`{
+  "total_pagos": 150,
+  "total_exportados": 130,
+  "pendentes_exportacao": 20
+}`}</pre>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+
+            {/* Push Automático */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  Push Automático — Webhook/REST
+                </CardTitle>
+                <CardDescription>Ao marcar um pagamento como "Pago" no CRM, o sistema envia automaticamente o payload ao ERP. Autenticação via JWT do usuário logado.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Canais Disponíveis</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge>n8n</Badge>
+                        <Badge variant="outline" className="text-xs">Recomendado</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Envia para webhook N8N configurado na variável <code className="bg-muted px-1 rounded">N8N_ERP_EXPORT_WEBHOOK_URL</code></p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary">rest_api</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Envia via POST para <code className="bg-muted px-1 rounded">ERP_REST_API_URL</code> com Bearer token opcional</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline">sql_direct</Badge>
+                        <Badge variant="outline" className="text-xs">Em breve</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Inserção direta no SQL Server do ERP (em desenvolvimento)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="font-medium mb-2">Variáveis de Ambiente Necessárias</h4>
+                  <div className="p-3 bg-muted rounded-lg font-mono text-xs space-y-1">
+                    <p># Canal N8N</p>
+                    <p>N8N_ERP_EXPORT_WEBHOOK_URL=https://seu-n8n.com/webhook/erp-pagamento</p>
+                    <p></p>
+                    <p># Canal REST API</p>
+                    <p>ERP_REST_API_URL=https://erp.empresa.com/api/pagamentos</p>
+                    <p>ERP_REST_API_KEY=sua-chave-opcional</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="font-medium mb-2">Fluxo de Execução</h4>
+                  <div className="p-4 bg-muted rounded-lg text-sm space-y-2">
+                    <p>1️⃣ Usuário marca pagamento como <strong>"Pago"</strong> no CRM</p>
+                    <p>2️⃣ Sistema cria registro na fila de exportação (<code className="text-xs">erp_export_queue</code>)</p>
+                    <p>3️⃣ Payload é enviado ao canal configurado (N8N ou REST API)</p>
+                    <p>4️⃣ Resposta é registrada: <Badge variant="outline" className="text-xs">success</Badge> ou <Badge variant="destructive" className="text-xs">error</Badge></p>
+                    <p>5️⃣ Em caso de erro, é possível reenviar via <code className="text-xs">action: "retry"</code></p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Fluxo Recomendado Pull */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
+                  Fluxo Recomendado (Pull)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-muted rounded-lg font-mono text-sm space-y-3">
+                  <p>┌──────────────────────────────────────────────────────┐</p>
+                  <p>│  1. GET /paid          → Consultar pagamentos pagos  │</p>
+                  <p>│  2. Processar no ERP   → Inserir/atualizar registros │</p>
+                  <p>│  3. POST /confirm      → Confirmar IDs processados  │</p>
+                  <p>│  4. GET /status        → Monitorar pendentes        │</p>
+                  <p>│  5. Repetir ciclo      → Agendar via CRON/N8N       │</p>
+                  <p>└──────────────────────────────────────────────────────┘</p>
+                </div>
+                <div className="mt-4 p-3 border rounded-lg">
+                  <h4 className="font-medium mb-2 text-sm">Recomendações</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Frequência: a cada 5-15 minutos via CRON ou N8N Schedule</li>
+                    <li>• Limite por consulta: 50-100 registros</li>
+                    <li>• Sempre confirmar IDs após processamento para evitar duplicidades</li>
+                    <li>• Monitorar <code className="bg-muted px-1 rounded">pendentes_exportacao</code> para alertas</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Nova aba: Pontos de Atenção */}
