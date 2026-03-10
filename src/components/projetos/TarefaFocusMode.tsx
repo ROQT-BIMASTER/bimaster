@@ -101,6 +101,7 @@ interface TarefaFocusModeProps {
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
   secoes?: ProjetoSecaoType[];
+  projetoTipo?: string;
 }
 
 export function TarefaFocusMode({
