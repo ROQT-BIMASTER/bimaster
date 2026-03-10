@@ -23,7 +23,10 @@ interface ExcelData {
   peso_liquido_g?: number;
   peso_aluminio_g?: number;
   peso_plastico_g?: number;
-  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string }[];
+  ean_display?: string;
+  ean_unidade?: string;
+  ean_caixa_master?: string;
+  cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string; codigo_barras_ean?: string }[];
 }
 
 interface ChinaExcelPreviewProps {
