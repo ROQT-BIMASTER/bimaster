@@ -207,10 +207,7 @@ export default function ProjetoVincularChina() {
               <SelectContent>
                 {projetos.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>
-                    <span className="flex items-center gap-2">
-                      {p.codigo && <span className="text-xs font-mono text-muted-foreground">{p.codigo}</span>}
-                      {p.nome}
-                    </span>
+                    {p.nome}
                   </SelectItem>
                 ))
                 }
