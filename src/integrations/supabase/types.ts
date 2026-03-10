@@ -1133,6 +1133,118 @@ export type Database = {
           },
         ]
       }
+      china_ordens_compra: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_emissao: string
+          data_entrega_prevista: string | null
+          data_entrega_real: string | null
+          id: string
+          numero_oc: string
+          observacoes: string | null
+          produto_codigo: string
+          produto_nome: string
+          qty_produzida: number
+          qty_total: number
+          status: string
+          submissao_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          id?: string
+          numero_oc: string
+          observacoes?: string | null
+          produto_codigo: string
+          produto_nome: string
+          qty_produzida?: number
+          qty_total?: number
+          status?: string
+          submissao_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          data_entrega_prevista?: string | null
+          data_entrega_real?: string | null
+          id?: string
+          numero_oc?: string
+          observacoes?: string | null
+          produto_codigo?: string
+          produto_nome?: string
+          qty_produzida?: number
+          qty_total?: number
+          status?: string
+          submissao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_ordens_compra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_producao_apontamentos: {
+        Row: {
+          cor_nome: string
+          created_at: string
+          created_by: string | null
+          data_producao: string
+          foto_path: string | null
+          foto_url: string | null
+          id: string
+          lote: string | null
+          observacao: string | null
+          ordem_compra_id: string
+          quantidade: number
+        }
+        Insert: {
+          cor_nome: string
+          created_at?: string
+          created_by?: string | null
+          data_producao?: string
+          foto_path?: string | null
+          foto_url?: string | null
+          id?: string
+          lote?: string | null
+          observacao?: string | null
+          ordem_compra_id: string
+          quantidade?: number
+        }
+        Update: {
+          cor_nome?: string
+          created_at?: string
+          created_by?: string | null
+          data_producao?: string
+          foto_path?: string | null
+          foto_url?: string | null
+          id?: string
+          lote?: string | null
+          observacao?: string | null
+          ordem_compra_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_producao_apontamentos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "china_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_produto_cores: {
         Row: {
           cor_nome: string
