@@ -82,6 +82,20 @@ export function ProjetoHeader({
             <Sparkles className="h-3.5 w-3.5" />
             Resumo IA
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 text-xs relative ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            onClick={() => setLixeiraOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Lixeira
+            {tarefasExcluidas.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+                {tarefasExcluidas.length}
+              </span>
+            )}
+          </Button>
         </div>
       </div>
 
