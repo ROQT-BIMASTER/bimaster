@@ -194,6 +194,37 @@ export default function ProjetoAprovacaoCadastro() {
   const handleAddProduto = async (produtoId: string) => {
     if (!user || !selectedTarefa) return;
     try {
+      // Check if this product is a China submission and run AI audit
+      const { data: chinaSubmissao } = await supabase
+        .from("china_produto_submissoes")
+        .select("id, produto_codigo, produto_nome, status, formula_codigo, ean_unidade, ean_display, ean_caixa_master, peso_liquido_g, peso_bruto_g, qty_total, observacoes_brasil, observacoes_china")
+        .eq("id", produtoId)
+        .maybeSingle();
+
+      if (chinaSubmissao) {
+        // Run AI audit for China product link
+        const { data: auditData, error: auditError } = await supabase.functions.invoke("audit-china-vinculo", {
+          body: {
+            modo: "tarefa_produto",
+            tarefa: {
+              titulo: (selectedTarefa as any).titulo,
+              descricao: (selectedTarefa as any).descricao,
+              estagio: (selectedTarefa as any).estagio,
+              secao_nome: (selectedTarefa as any).secao_nome,
+              prioridade: (selectedTarefa as any).prioridade,
+            },
+            submissao: chinaSubmissao,
+          },
+        });
+
+        if (!auditError && auditData?.match === "baixo") {
+          toast.warning(`IA detectou incompatibilidade: ${auditData.motivo}`, { duration: 8000 });
+          // Don't block, but warn
+        } else if (!auditError && auditData?.match === "medio") {
+          toast.info(`IA: ${auditData.motivo}`, { duration: 5000 });
+        }
+      }
+
       const { error } = await supabase.from("projeto_tarefa_produtos" as any).insert({
         tarefa_id: selectedTarefa.id,
         produto_id: produtoId,
