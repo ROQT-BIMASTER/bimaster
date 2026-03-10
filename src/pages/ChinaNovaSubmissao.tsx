@@ -324,43 +324,113 @@ export default function ChinaNovaSubmissao() {
           ))}
         </div>
 
-        {/* Step 1: Excel Upload */}
+        {/* Step 1: Excel or Image Upload */}
         {step === 0 && (
           <Card className="p-8">
             <div className="flex flex-col items-center gap-6">
               <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <FileSpreadsheet className="h-12 w-12 text-primary" />
+                <Sparkles className="h-12 w-12 text-primary" />
               </div>
-              <BilingualLabel pt="Upload da Planilha do Produto" cn="上传产品表格" size="lg" className="text-center" />
+              <BilingualLabel pt="Importar Dados do Produto" cn="导入产品数据" size="lg" className="text-center" />
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                Envie a planilha Excel (.xlsx) com os dados do produto. O sistema irá extrair automaticamente as informações.
+                Envie a planilha Excel ou uma foto/print do produto. A IA irá extrair automaticamente todas as informações.
                 <br />
-                上传产品Excel表格(.xlsx)。系统将自动提取信息。
+                上传Excel表格或产品照片/截图。AI将自动提取所有信息。
               </p>
 
               {!parsedData ? (
-                <div className="relative w-full max-w-sm">
+                <div className="w-full max-w-lg space-y-4">
+                  {/* Excel Upload */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleExcelUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      disabled={parsing}
+                    />
+                    <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:border-primary/60 transition-colors">
+                      {parsing ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <p className="text-sm font-medium text-primary">🤖 IA analisando... AI分析中...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <FileSpreadsheet className="h-8 w-8 mx-auto text-primary mb-2" />
+                          <p className="text-sm font-medium">Planilha Excel 表格</p>
+                          <p className="text-xs text-muted-foreground">.xlsx, .xls</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">OU 或</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {/* Image Upload */}
                   <input
+                    ref={imageInputRef}
                     type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleExcelUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
                     disabled={parsing}
                   />
-                  <div className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center hover:border-primary/60 transition-colors">
-                    {parsing ? (
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    ) : (
-                      <>
-                        <Upload className="h-8 w-8 mx-auto text-primary mb-2" />
-                        <p className="text-sm font-medium">Clique ou arraste 点击或拖动</p>
-                        <p className="text-xs text-muted-foreground">.xlsx, .xls</p>
-                      </>
-                    )}
-                  </div>
+
+                  {imagePreview ? (
+                    <div className="relative border rounded-xl p-3 bg-muted/30">
+                      <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto rounded object-contain" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          setImagePreview(null);
+                          if (imageInputRef.current) imageInputRef.current.value = "";
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                      {parsing && (
+                        <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium text-primary">🤖 IA analisando imagem...</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-20 border-dashed border-2 gap-2"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={parsing}
+                    >
+                      <ImageIcon className="h-6 w-6" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium">Foto ou Print 照片或截图</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (máx 10MB)</p>
+                      </div>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="w-full space-y-4">
+                  {aiExtracted && (
+                    <div className="flex items-center gap-2 justify-center">
+                      <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary">
+                        <Sparkles className="h-3 w-3" />
+                        Dados extraídos por IA · AI提取的数据
+                      </Badge>
+                    </div>
+                  )}
                   <ChinaExcelPreview data={parsedData} />
                   <div className="flex justify-end">
                     <Button onClick={() => setStep(1)} className="gap-2">
