@@ -6,13 +6,24 @@ interface PluggyConnectWidgetProps {
   onSuccess: (data: any) => void;
   onError?: (error: any) => void;
   onClose?: () => void;
+  popupRef?: React.MutableRefObject<Window | null>;
 }
 
+/**
+ * This component doesn't open the popup itself (browser blocks non-user-gesture popups).
+ * Instead, it attaches postMessage listeners to an already-opened popup window.
+ * 
+ * Usage:
+ * 1. Parent opens popup via window.open() in click handler (user gesture)
+ * 2. Parent passes the popup ref to this component
+ * 3. This component listens for postMessage events and polls for close
+ */
 export function PluggyConnectWidget({
   connectToken,
   onSuccess,
   onError,
   onClose,
+  popupRef,
 }: PluggyConnectWidgetProps) {
   const closedHandled = useRef(false);
 
@@ -20,22 +31,16 @@ export function PluggyConnectWidget({
     if (!connectToken) return;
     closedHandled.current = false;
 
-    console.log("[PluggyWidget] Opening popup with token length:", connectToken.length);
-
-    const url = `https://connect.pluggy.ai/?connect_token=${connectToken}`;
-    const popup = window.open(
-      url,
-      "pluggy_connect",
-      "width=450,height=700,left=200,top=100,scrollbars=yes"
-    );
-
-    if (!popup) {
-      console.error("[PluggyWidget] Popup blocked by browser");
-      onError?.({ message: "Popup bloqueado pelo navegador. Permita popups para este site." });
+    const popup = popupRef?.current;
+    if (!popup || popup.closed) {
+      console.warn("[PluggyWidget] No popup reference available");
       return;
     }
 
+    console.log("[PluggyWidget] Attaching listeners to popup");
+
     const handleMessage = (event: MessageEvent) => {
+      // Accept messages from Pluggy
       if (event.origin !== "https://connect.pluggy.ai") return;
 
       console.log("[PluggyWidget] postMessage received:", event.data);
@@ -59,7 +64,7 @@ export function PluggyConnectWidget({
 
     window.addEventListener("message", handleMessage);
 
-    // Detect manual close of popup
+    // Poll to detect manual close
     const timer = setInterval(() => {
       if (popup.closed && !closedHandled.current) {
         console.log("[PluggyWidget] Popup closed manually");
