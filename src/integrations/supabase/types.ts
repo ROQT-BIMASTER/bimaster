@@ -3990,6 +3990,59 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_export_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          export_channel: string
+          export_status: string
+          exported_at: string | null
+          id: string
+          last_attempt_at: string | null
+          payload: Json | null
+          payment_queue_id: string
+          response: Json | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          export_channel?: string
+          export_status?: string
+          exported_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          payload?: Json | null
+          payment_queue_id: string
+          response?: Json | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          export_channel?: string
+          export_status?: string
+          exported_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          payload?: Json | null
+          payment_queue_id?: string
+          response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_export_queue_payment_queue_id_fkey"
+            columns: ["payment_queue_id"]
+            isOneToOne: false
+            referencedRelation: "financial_payment_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_distribuidoras: {
         Row: {
           ativo: boolean | null
