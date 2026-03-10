@@ -92,6 +92,11 @@ export default function ChinaRecebimentos() {
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-xs"
           />
+          {statusFilter && (
+            <Badge variant="outline" className="gap-1 cursor-pointer" onClick={() => setSearchParams({})}>
+              Filtro: {STATUS_LABELS[statusFilter]?.pt || statusFilter} ✕
+            </Badge>
+          )}
           {isChinaUser && (
             <div className="flex gap-2">
               <Button
