@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +143,14 @@ export function ProjetoTarefaDetalhe({
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
+  const { data: projetoTipo } = useQuery({
+    queryKey: ["projeto-tipo", projetoId],
+    queryFn: async () => {
+      const { data } = await supabase.from("projetos").select("tipo").eq("id", projetoId!).single();
+      return (data?.tipo as string) || "generico";
+    },
+    enabled: !!projetoId,
+  });
 
   useEffect(() => {
     if (tarefa) {
@@ -1246,6 +1255,7 @@ export function ProjetoTarefaDetalhe({
           onToggle={onToggle}
           onAddSubtarefa={onAddSubtarefa}
           secoes={secoes}
+          projetoTipo={projetoTipo}
         />
       )}
 

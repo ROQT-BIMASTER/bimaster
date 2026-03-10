@@ -15403,6 +15403,7 @@ export type Database = {
           id: string
           nome: string
           status: string | null
+          tipo: string
           updated_at: string | null
           visibilidade: string | null
         }
@@ -15416,6 +15417,7 @@ export type Database = {
           id?: string
           nome: string
           status?: string | null
+          tipo?: string
           updated_at?: string | null
           visibilidade?: string | null
         }
@@ -15429,6 +15431,7 @@ export type Database = {
           id?: string
           nome?: string
           status?: string | null
+          tipo?: string
           updated_at?: string | null
           visibilidade?: string | null
         }

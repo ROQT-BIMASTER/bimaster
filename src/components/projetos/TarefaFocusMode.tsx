@@ -101,10 +101,11 @@ interface TarefaFocusModeProps {
   onToggle: (tarefa: ProjetoTarefa) => void;
   onAddSubtarefa?: (titulo: string, parentId: string, secaoId: string) => void;
   secoes?: ProjetoSecaoType[];
+  projetoTipo?: string;
 }
 
 export function TarefaFocusMode({
-  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [],
+  tarefa, open, onOpenChange, onUpdate, onToggle, onAddSubtarefa, secoes = [], projetoTipo,
 }: TarefaFocusModeProps) {
   const {
     comentarios, addComentario, anexos, uploadAnexo, deleteAnexo, getAnexoUrl,
@@ -703,8 +704,8 @@ export function TarefaFocusMode({
             </div>
           </ScrollArea>
 
-          {/* Middle column - Product panel & checklist */}
-          <ProductLaunchPanel
+          {/* Middle column - Product panel & checklist (only for desenvolvimento_produto) */}
+          {projetoTipo === 'desenvolvimento_produto' && <ProductLaunchPanel
             linkedProduto={linkedProduto}
             cofreDocs={cofreDocs}
             metas={displayMetas}
@@ -727,7 +728,7 @@ export function TarefaFocusMode({
                 responsavel: s.responsavel,
               })),
             }}
-          />
+          />}
 
           {/* Right column - Chat */}
           <div className="w-[380px] flex flex-col bg-muted/10 flex-shrink-0">
