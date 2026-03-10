@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
-import { Package, Palette, FlaskConical, Scale, Lock } from "lucide-react";
+import { Package, Palette, FlaskConical, Scale, Lock, Box, Layers } from "lucide-react";
 
 interface ExcelData {
   produto_codigo?: string;
@@ -13,9 +13,16 @@ interface ExcelData {
   numero_item?: string;
   numero_ordem?: string;
   formula_codigo?: string;
+  qty_per_display?: number;
   qty_total?: number;
+  ctn_total?: number;
+  display_type?: string;
+  total_groups?: number;
+  cartons_per_group?: number;
   peso_bruto_g?: number;
   peso_liquido_g?: number;
+  peso_aluminio_g?: number;
+  peso_plastico_g?: number;
   cores?: { grupo: string; cor_nome: string; quantidade: number; cor_hex?: string }[];
 }
 
@@ -54,14 +61,14 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           value={data.formula_codigo || "—"}
         />
         <InfoCard
-          icon={<Scale className="h-5 w-5 text-success" />}
-          labelPt="Quantidade" labelCn="数量"
-          value={data.qty_total?.toString() || "—"}
+          icon={<Package className="h-5 w-5 text-warning" />}
+          labelPt="Item (NUB)" labelCn="项目号"
+          value={data.numero_item || "—"}
         />
         <InfoCard
-          icon={<Package className="h-5 w-5 text-warning" />}
-          labelPt="Item" labelCn="项目"
-          value={data.numero_item || "—"}
+          icon={<Layers className="h-5 w-5 text-info" />}
+          labelPt="Display" labelCn="展示"
+          value={data.display_type || "—"}
         />
       </div>
 
@@ -71,6 +78,30 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           <span className="text-lg font-bold text-foreground">{data.produto_nome}</span>
         </div>
       )}
+
+      {/* Quantities Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <InfoCard
+          icon={<Scale className="h-5 w-5 text-success" />}
+          labelPt="QTY/Display" labelCn="每展示数量"
+          value={data.qty_per_display?.toLocaleString() || "—"}
+        />
+        <InfoCard
+          icon={<Package className="h-5 w-5 text-primary" />}
+          labelPt="Total QTY" labelCn="总数量"
+          value={data.qty_total?.toLocaleString() || "—"}
+        />
+        <InfoCard
+          icon={<Box className="h-5 w-5 text-warning" />}
+          labelPt="CTN (caixas)" labelCn="纸箱"
+          value={data.ctn_total?.toLocaleString() || "—"}
+        />
+        <InfoCard
+          icon={<Layers className="h-5 w-5 text-accent" />}
+          labelPt="Grupos" labelCn="组数"
+          value={data.total_groups ? `${data.total_groups} (${data.cartons_per_group || "—"} CTN/grupo)` : "—"}
+        />
+      </div>
 
       {/* Colors Grid */}
       {data.cores && data.cores.length > 0 && (
@@ -95,15 +126,25 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
       )}
 
       {/* Weights */}
-      {(data.peso_bruto_g || data.peso_liquido_g) && (
-        <div className="flex gap-3">
-          {data.peso_liquido_g && (
+      {(data.peso_bruto_g || data.peso_liquido_g || data.peso_aluminio_g || data.peso_plastico_g) && (
+        <div className="flex flex-wrap gap-2">
+          {data.peso_liquido_g != null && (
             <Badge variant="secondary" className="gap-1">
               <Scale className="h-3 w-3" />
-              Líquido 净重: {data.peso_liquido_g}g
+              Net 净重: {data.peso_liquido_g}g
             </Badge>
           )}
-          {data.peso_bruto_g && (
+          {data.peso_aluminio_g != null && (
+            <Badge variant="secondary" className="gap-1">
+              Alumínio 铝: {data.peso_aluminio_g}g
+            </Badge>
+          )}
+          {data.peso_plastico_g != null && (
+            <Badge variant="secondary" className="gap-1">
+              Plástico 塑料: {data.peso_plastico_g}g
+            </Badge>
+          )}
+          {data.peso_bruto_g != null && (
             <Badge variant="secondary" className="gap-1">
               <Scale className="h-3 w-3" />
               Bruto 毛重: {data.peso_bruto_g}g

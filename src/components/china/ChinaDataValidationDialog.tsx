@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BilingualLabel } from "./BilingualLabel";
-import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale } from "lucide-react";
+import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box } from "lucide-react";
 import { toast } from "sonner";
 
 interface ColorEntry {
@@ -23,9 +23,16 @@ interface ValidationData {
   formula_codigo?: string;
   numero_item?: string;
   numero_ordem?: string;
+  qty_per_display?: number;
   qty_total?: number;
+  ctn_total?: number;
+  display_type?: string;
+  total_groups?: number;
+  cartons_per_group?: number;
   peso_bruto_g?: number;
   peso_liquido_g?: number;
+  peso_aluminio_g?: number;
+  peso_plastico_g?: number;
   cores?: ColorEntry[];
   [key: string]: any;
 }
@@ -51,7 +58,6 @@ export function ChinaDataValidationDialog({
   const [cores, setCores] = useState<ColorEntry[]>(initialData.cores?.length ? [...initialData.cores] : []);
   const [accepted, setAccepted] = useState(false);
 
-  // Reset state when dialog opens with new data
   useEffect(() => {
     if (open) {
       setData({ ...initialData });
@@ -73,7 +79,7 @@ export function ChinaDataValidationDialog({
   };
 
   const addColor = () => {
-    setCores(prev => [...prev, { grupo: "A", cor_nome: "", quantidade: 0 }]);
+    setCores(prev => [...prev, { grupo: "G1", cor_nome: "", quantidade: 0 }]);
   };
 
   const removeColor = (index: number) => {
@@ -82,12 +88,11 @@ export function ChinaDataValidationDialog({
 
   const handleConfirm = () => {
     if (!accepted) return;
-    const finalData = { ...data, cores, qty_total: data.qty_total };
+    const finalData = { ...data, cores };
     onConfirm(finalData);
     onOpenChange(false);
   };
 
-  // Group summary
   const groupSummary = useMemo(() => {
     const groups: Record<string, number> = {};
     cores.forEach(c => {
@@ -98,7 +103,7 @@ export function ChinaDataValidationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {mode === "edit" ? <Lock className="h-5 w-5 text-warning" /> : <Sparkles className="h-5 w-5 text-primary" />}
@@ -117,11 +122,11 @@ export function ChinaDataValidationDialog({
             <BilingualLabel pt="Dados Gerais" cn="基本数据" size="md" className="border-b border-border pb-1" />
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs">Código 编号</Label>
+                <Label className="text-xs">Código (Item MUB) 编号</Label>
                 <Input value={data.produto_codigo || ""} onChange={e => updateField("produto_codigo", e.target.value)} className="h-9" />
               </div>
               <div className="col-span-2 md:col-span-2">
-                <Label className="text-xs">Nome 名称</Label>
+                <Label className="text-xs">Nome (Item Name) 名称</Label>
                 <Input value={data.produto_nome || ""} onChange={e => updateField("produto_nome", e.target.value)} className="h-9" />
               </div>
               <div>
@@ -129,7 +134,7 @@ export function ChinaDataValidationDialog({
                 <Input value={data.formula_codigo || ""} onChange={e => updateField("formula_codigo", e.target.value)} className="h-9" />
               </div>
               <div>
-                <Label className="text-xs">Nº Item 项目号</Label>
+                <Label className="text-xs">Nº Item (NUB) 项目号</Label>
                 <Input value={data.numero_item || ""} onChange={e => updateField("numero_item", e.target.value)} className="h-9" />
               </div>
               <div>
@@ -137,15 +142,66 @@ export function ChinaDataValidationDialog({
                 <Input value={data.numero_ordem || ""} onChange={e => updateField("numero_ordem", e.target.value)} className="h-9" />
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-              <Scale className="h-5 w-5 text-primary shrink-0" />
-              <div className="flex-1">
-                <Label className="text-xs">Quantidade Total (pcs) 总数量</Label>
+          </section>
+
+          {/* Quantities & Display */}
+          <section className="space-y-3">
+            <BilingualLabel pt="Quantidades e Display" cn="数量和展示" size="md" className="border-b border-border pb-1" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label className="text-xs font-semibold">QTY por Display</Label>
+                <Input
+                  type="number"
+                  value={data.qty_per_display ?? ""}
+                  onChange={e => updateField("qty_per_display", e.target.value ? parseInt(e.target.value) : null)}
+                  className="h-9 text-lg font-bold mt-1"
+                  placeholder="432"
+                />
+              </div>
+              <div className="p-3 bg-success/5 rounded-lg border border-success/20">
+                <Label className="text-xs font-semibold">TOTAL QTY (pcs) 总数量</Label>
                 <Input
                   type="number"
                   value={data.qty_total ?? ""}
                   onChange={e => updateField("qty_total", e.target.value ? parseInt(e.target.value) : null)}
-                  className="h-9 text-lg font-bold"
+                  className="h-9 text-lg font-bold mt-1"
+                  placeholder="777600"
+                />
+              </div>
+              <div className="p-3 bg-warning/5 rounded-lg border border-warning/20">
+                <Label className="text-xs font-semibold">CTN/件 (caixas)</Label>
+                <Input
+                  type="number"
+                  value={data.ctn_total ?? ""}
+                  onChange={e => updateField("ctn_total", e.target.value ? parseInt(e.target.value) : null)}
+                  className="h-9 text-lg font-bold mt-1"
+                  placeholder="1800"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Display 展示</Label>
+                <Input value={data.display_type || ""} onChange={e => updateField("display_type", e.target.value)} className="h-9" placeholder="36IN1" />
+              </div>
+              <div>
+                <Label className="text-xs">Total Grupos 总组数</Label>
+                <Input
+                  type="number"
+                  value={data.total_groups ?? ""}
+                  onChange={e => updateField("total_groups", e.target.value ? parseInt(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="3"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Cartons/Grupo 每组纸箱</Label>
+                <Input
+                  type="number"
+                  value={data.cartons_per_group ?? ""}
+                  onChange={e => updateField("cartons_per_group", e.target.value ? parseInt(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="600"
                 />
               </div>
             </div>
@@ -168,7 +224,7 @@ export function ChinaDataValidationDialog({
                       <TableRow className="bg-muted/50">
                         <TableHead className="w-20 text-xs">Grupo 组</TableHead>
                         <TableHead className="text-xs">Cor 颜色</TableHead>
-                        <TableHead className="w-32 text-xs">Qtd 数量</TableHead>
+                        <TableHead className="w-32 text-xs">Qtd (PCS) 数量</TableHead>
                         <TableHead className="w-12" />
                       </TableRow>
                     </TableHeader>
@@ -230,25 +286,49 @@ export function ChinaDataValidationDialog({
           {/* Weights */}
           <section className="space-y-3">
             <BilingualLabel pt="Pesos" cn="重量" size="md" className="border-b border-border pb-1" />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <Label className="text-xs">Peso Bruto (g) 毛重</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={data.peso_bruto_g ?? ""}
-                  onChange={e => updateField("peso_bruto_g", e.target.value ? parseFloat(e.target.value) : null)}
-                  className="h-9"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Peso Líquido (g) 净重</Label>
+                <Label className="text-xs">Material Net (g) 净重</Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={data.peso_liquido_g ?? ""}
                   onChange={e => updateField("peso_liquido_g", e.target.value ? parseFloat(e.target.value) : null)}
                   className="h-9"
+                  placeholder="6.68"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Alumínio (g) 铝</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={data.peso_aluminio_g ?? ""}
+                  onChange={e => updateField("peso_aluminio_g", e.target.value ? parseFloat(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Plástico (g) 塑料</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={data.peso_plastico_g ?? ""}
+                  onChange={e => updateField("peso_plastico_g", e.target.value ? parseFloat(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="17.17"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Bruto Total (g) 毛重</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={data.peso_bruto_g ?? ""}
+                  onChange={e => updateField("peso_bruto_g", e.target.value ? parseFloat(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="23.85"
                 />
               </div>
             </div>
