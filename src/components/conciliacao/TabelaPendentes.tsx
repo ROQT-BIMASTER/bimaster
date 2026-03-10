@@ -43,13 +43,13 @@ export function TabelaPendentes({ conciliacoes, onMatch, isMatching, filter = "a
     queryFn: async () => {
       let query = supabase
         .from("contas_pagar")
-        .select("id, fornecedor, valor, valor_aberto, data_vencimento, numero_documento, status")
+        .select("id, fornecedor_nome, valor_original, valor_aberto, data_vencimento, numero_documento, status")
         .in("status", ["Pendente", "Vencido", "Parcial"])
         .limit(20);
 
       if (searchContaPagar) {
         query = query.or(
-          `fornecedor.ilike.%${searchContaPagar}%,numero_documento.ilike.%${searchContaPagar}%`
+          `fornecedor_nome.ilike.%${searchContaPagar}%,numero_documento.ilike.%${searchContaPagar}%`
         );
       }
       const { data } = await query;
