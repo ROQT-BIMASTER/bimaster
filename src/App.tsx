@@ -411,6 +411,7 @@ function AppContent() {
             {/* Módulo Fábrica China */}
             <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ChinaFabrica /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ChinaRecebimentos /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ChinaOrdens /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ChinaOrdemDetalhe /></ProtectedRoute>} />
