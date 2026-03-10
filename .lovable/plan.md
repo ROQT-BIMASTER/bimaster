@@ -1,44 +1,35 @@
 
 
-## Plano: Corrigir CORS e Garantir Funcionamento das APIs
+## Plano: Envio de Pagamentos para o ERP
 
-### Resultados dos Testes
+### Status: ✅ Implementado
 
-Ambas as Edge Functions estão **deployed e respondendo**:
-- **Pull API** (`contas-pagar-export-api`): Autenticação via `x-api-key` funcionando (401 para chaves inválidas/ausentes)
-- **Push** (`erp-export-payment`): Autenticação via JWT funcionando (401 sem Authorization header)
-- **Payloads**: Ambos usam o mesmo formato JSON agrupado profissional com `api_version`, `fornecedor`, `documento`, `pagamento`
-- **config.toml**: `verify_jwt = false` configurado corretamente para ambas
+### O que foi feito
 
-### Problema Encontrado
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-Os CORS headers de ambas as funções estão **incompletos**. O SDK do Supabase envia headers `x-supabase-client-*` que não estão listados, o que pode causar falhas de preflight no frontend.
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-| Função | Headers CORS Atuais | Problema |
-|--------|---------------------|----------|
-| `erp-export-payment` | `authorization, x-client-info, apikey, content-type` | Falta `x-supabase-client-*` |
-| `contas-pagar-export-api` | `authorization, x-client-info, apikey, content-type, x-api-key` | Falta `x-supabase-client-*` |
+---
 
-### Correção
+## Plano: API de Exportação Pull para o ERP
 
-Atualizar os CORS headers de ambas as funções para o padrão completo:
+### Status: ✅ Implementado
 
-```
-authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version
-```
+### O que foi feito
 
-### Arquivos
-
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/erp-export-payment/index.ts` | Atualizar CORS headers (linha 6) |
-| `supabase/functions/contas-pagar-export-api/index.ts` | Atualizar CORS headers (linha 6) |
-
-### Validação
-
-Após as correções, ambas as APIs estarão com:
-- Autenticação validada (Push via JWT, Pull via x-api-key)
-- CORS completo e compatível com o SDK
-- Payload profissional padronizado idêntico
-- Tratamento de erros em todas as rotas
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
