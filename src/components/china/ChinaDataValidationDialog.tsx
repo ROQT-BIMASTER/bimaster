@@ -27,6 +27,7 @@ interface ColorEntry {
   cor_nome: string;
   quantidade: number;
   cor_hex?: string;
+  codigo_barras_ean?: string;
 }
 
 interface ValidationData {
