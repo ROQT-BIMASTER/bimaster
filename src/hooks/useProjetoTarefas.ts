@@ -341,11 +341,32 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         .from("projeto_tarefa_colaboradores")
         .insert({ tarefa_id: tarefaId, user_id: userId });
       if (error) throw error;
+      return { tarefaId, userId };
     },
-    onSuccess: () => {
+    onMutate: async ({ tarefaId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: ["projeto-tarefas", projetoId] });
+      const previous = queryClient.getQueryData<ProjetoTarefa[]>(["projeto-tarefas", projetoId]);
+      const member = teamMembers.find(m => m.id === userId);
+      if (previous && member) {
+        queryClient.setQueryData<ProjetoTarefa[]>(["projeto-tarefas", projetoId], old =>
+          (old || []).map(t =>
+            t.id === tarefaId
+              ? { ...t, colaboradores: [...(t.colaboradores || []), { user_id: userId, nome: member.nome, avatar_url: member.avatar_url }] }
+              : t
+          )
+        );
+      }
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["projeto-tarefas", projetoId], context.previous);
+      }
+      toast.error(err.message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   const removeColaborador = useMutation({
