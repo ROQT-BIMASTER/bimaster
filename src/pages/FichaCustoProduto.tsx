@@ -29,6 +29,8 @@ export default function FichaCustoProduto() {
     loadingFilhos,
     importarCustosFilhos,
     carregarCustosFilhos,
+    isDisplayComKit,
+    todosInsumosKit,
   } = useFichaCustoProduto(id);
 
   const {
@@ -113,6 +115,8 @@ export default function FichaCustoProduto() {
           loadingFilhos={loadingFilhos}
           onImportarCustosFilhos={importarCustosFilhos}
           onRecarregarCustosFilhos={carregarCustosFilhos}
+          isDisplayComKit={isDisplayComKit}
+          todosInsumosKit={todosInsumosKit}
         />
       </div>
     </DashboardLayout>

@@ -1,47 +1,56 @@
 
 
-## Regra de M.O./Markup para Displays com Produtos Importados do Kit
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema Atual
-Quando um produto DISPLAY importa custos dos filhos via "Importar do Kit", o custo unitário do filho (`custoUnit`) **já inclui** M.O. NF, M.O. Serviço e Markup do produto filho (linhas 407-418 do hook). Porém, o Display ainda aplica **sua própria** M.O. e Markup por cima, gerando duplicidade.
+### O que muda
 
-No caso do HB-573: o custo importado R$ 38,3779 já contém M.O. e Markup do filho, mas o kit ainda soma M.O. NF=0,05 + M.O. Serviço=0,85, inflando o custo.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-### Solução
+### Implementação
 
-#### 1. Regra no cálculo de totais (`useFichaCustoProduto.ts`)
-No `useMemo` de `totais` (linha 157), quando o produto for DISPLAY e **todos** os insumos forem do tipo `importado_kit`, ignorar M.O. NF, M.O. Serviço e Markup do kit — pois já estão embutidos nos custos importados dos filhos.
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-Se houver insumos mistos (importado_kit + outros tipos como embalagem), aplicar M.O./Markup normalmente apenas sobre os insumos não-kit.
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-#### 2. Auto-zero na importação (`importarCustosFilhos`)
-Após importar os filhos, se **todos** os filhos tinham M.O./Markup preenchidos, auto-zerar `custo_mao_obra_nf`, `custo_mao_obra_servico` e `percentual_markup` da config do Display e salvar, com toast explicativo.
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-#### 3. Aviso visual no Editor (`FichaCustoProdutoEditor.tsx`)
-Na seção "Configuração", quando produto for DISPLAY e houver insumos `importado_kit`, exibir um alerta informativo:
-> "Para Displays com produtos importados do Kit, a M.O. e Markup já estão incluídos no custo de cada unidade. Valores de M.O. e Markup nesta configuração serão ignorados para insumos do Kit."
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-#### 4. Correção dos dados existentes (SQL migration)
-Zerar M.O. e Markup em fichas de DISPLAY que possuem insumos `importado_kit` e cujos filhos já têm M.O./Markup configurados:
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-```sql
-UPDATE fabrica_produto_custos_config SET
-  custo_mao_obra_nf = 0,
-  custo_mao_obra_servico = 0,
-  percentual_markup = 0
-WHERE produto_id IN (
-  SELECT DISTINCT pc.produto_id
-  FROM fabrica_produto_custos pc
-  JOIN fabrica_produtos p ON p.id = pc.produto_id
-  WHERE p.tipo = 'DISPLAY' AND pc.tipo_insumo = 'importado_kit'
-);
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-### Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---|---|
-| `src/hooks/useFichaCustoProduto.ts` | Regra no cálculo de totais + auto-zero na importação |
-| `src/components/fabrica/FichaCustoProdutoEditor.tsx` | Alerta visual na configuração |
-| Migration SQL | Corrigir dados existentes |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
