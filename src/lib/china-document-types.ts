@@ -1,4 +1,4 @@
-import { FileText, Scissors, Box, TestTube, Tag, Image, Video, FileSpreadsheet, Beaker, ShieldCheck } from "lucide-react";
+import { FileText, Scissors, Box, TestTube, Tag, Image, Video, FileSpreadsheet, Beaker, ShieldCheck, Camera, Palette } from "lucide-react";
 import { createElement } from "react";
 import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 
@@ -18,6 +18,12 @@ export const CHINA_DOCUMENT_TYPES: DocumentSlotConfig[] = [
   { tipo: "amostra_foto", labelPt: "Amostra Embalagem (Fotos)", labelCn: "包装样品（照片）", icon: createElement(Image, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
   { tipo: "amostra_video", labelPt: "Amostra Embalagem (Vídeos)", labelCn: "包装样品（视频）", icon: createElement(Video, { className: "h-5 w-5 text-warning" }), accept: "video/*" },
   { tipo: "planilha_excel", labelPt: "Planilha Excel", labelCn: "Excel表格", icon: createElement(FileSpreadsheet, { className: "h-5 w-5 text-success" }), accept: ".xlsx,.xls" },
+  // Imagens 图片
+  { tipo: "foto_produto", labelPt: "Foto do Produto", labelCn: "产品照片", icon: createElement(Camera, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
+  { tipo: "foto_embalagem", labelPt: "Foto da Embalagem", labelCn: "包装照片", icon: createElement(Camera, { className: "h-5 w-5 text-success" }), accept: "image/*", multiple: true },
+  { tipo: "foto_display", labelPt: "Foto do Display", labelCn: "展示照片", icon: createElement(Camera, { className: "h-5 w-5 text-warning" }), accept: "image/*", multiple: true },
+  { tipo: "foto_rotulo", labelPt: "Foto do Rótulo", labelCn: "标签照片", icon: createElement(Palette, { className: "h-5 w-5 text-accent" }), accept: "image/*", multiple: true },
+  { tipo: "foto_arte", labelPt: "Foto da Arte/Layout", labelCn: "设计/排版照片", icon: createElement(Palette, { className: "h-5 w-5 text-primary" }), accept: "image/*", multiple: true },
 ];
 
 export const DOCUMENT_CATEGORIES = [
@@ -26,6 +32,12 @@ export const DOCUMENT_CATEGORIES = [
     labelPt: "Dados Oficiais",
     labelCn: "官方数据",
     tipos: ["planilha_excel"],
+  },
+  {
+    key: "imagens",
+    labelPt: "Imagens do Produto",
+    labelCn: "产品图片",
+    tipos: ["foto_produto", "foto_embalagem", "foto_display", "foto_rotulo", "foto_arte"],
   },
   {
     key: "rotulagem",
