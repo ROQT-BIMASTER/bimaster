@@ -1,11 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, Clock, CalendarDays } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaOrdemProgress } from "@/components/china/ChinaOrdemProgress";
 import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
+import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
+import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -43,7 +45,6 @@ export default function ChinaOrdemDetalhe() {
     },
   });
 
-  // Fetch colors from the submission
   const { data: cores = [] } = useQuery({
     queryKey: ["china-cores-ordem", ordem?.submissao_id],
     enabled: !!ordem?.submissao_id,
@@ -52,6 +53,34 @@ export default function ChinaOrdemDetalhe() {
         .from("china_produto_cores" as any)
         .select("*")
         .eq("submissao_id", ordem.submissao_id);
+      return (data || []) as any[];
+    },
+  });
+
+  // Fetch embarque data
+  const { data: embarque } = useQuery({
+    queryKey: ["china-embarque", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_embarques" as any)
+        .select("*")
+        .eq("ordem_compra_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as any | null;
+    },
+  });
+
+  const { data: embarqueDocs = [] } = useQuery({
+    queryKey: ["china-embarque-docs", embarque?.id],
+    enabled: !!embarque?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_embarque_documentos" as any)
+        .select("*")
+        .eq("embarque_id", embarque.id);
       return (data || []) as any[];
     },
   });
@@ -70,11 +99,19 @@ export default function ChinaOrdemDetalhe() {
         queryClient.invalidateQueries({ queryKey: ["china-apontamentos", id] });
         queryClient.invalidateQueries({ queryKey: ["china-ordem", id] });
       })
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "china_embarques",
+        filter: `ordem_compra_id=eq.${id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["china-embarque", id] });
+        queryClient.invalidateQueries({ queryKey: ["china-ordem", id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
 
-  // Build per-color progress
   const coresProgress = cores.map((c: any) => {
     const produzida = apontamentos
       .filter((a: any) => a.cor_nome === c.cor_nome)
@@ -87,12 +124,20 @@ export default function ChinaOrdemDetalhe() {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["china-apontamentos", id] });
     queryClient.invalidateQueries({ queryKey: ["china-ordem", id] });
+    queryClient.invalidateQueries({ queryKey: ["china-embarque", id] });
+    queryClient.invalidateQueries({ queryKey: ["china-embarque-docs"] });
   };
 
   const handleViewPhoto = async (fotoPath: string) => {
     const { signedUrl } = await getSignedUrl("china-documentos", fotoPath);
     if (signedUrl) window.open(signedUrl, "_blank");
   };
+
+  // Determine if production is complete (qty_produzida >= qty_total)
+  const isProductionComplete = ordem && ordem.qty_total > 0 && ordem.qty_produzida >= ordem.qty_total;
+  const showEmbarqueForm = isProductionComplete && (!embarque || embarque.status === "rascunho");
+  const showEmbarqueInfo = embarque && embarque.status !== "rascunho";
+  const isActiveOrder = ordem && ordem.status !== "concluida" && ordem.status !== "cancelada";
 
   if (isLoading) {
     return (
@@ -160,13 +205,33 @@ export default function ChinaOrdemDetalhe() {
           />
         </Card>
 
-        {/* Production Form */}
-        {ordem.status !== "concluida" && ordem.status !== "cancelada" && (
+        {/* Production Form — only while production is not complete */}
+        {isActiveOrder && !isProductionComplete && (
           <ChinaApontamentoForm
             ordemId={ordem.id}
             cores={coreNames}
             onSuccess={handleRefresh}
           />
+        )}
+
+        {/* Embarque Section — appears when production is complete */}
+        {showEmbarqueInfo && (
+          <ChinaEmbarqueInfo embarque={embarque} documentos={embarqueDocs} />
+        )}
+
+        {showEmbarqueForm && (
+          <ChinaEmbarqueForm
+            ordemId={ordem.id}
+            existingEmbarque={embarque?.status === "rascunho" ? embarque : undefined}
+            onSuccess={handleRefresh}
+          />
+        )}
+
+        {/* Completed production banner prompting shipping */}
+        {isProductionComplete && !embarque && (
+          <Card className="p-5 border-2 border-dashed border-blue-400/40 bg-blue-50/30 dark:bg-blue-950/10 text-center">
+            <BilingualLabel pt="✅ Produção concluída! Preencha os dados de embarque abaixo." cn="✅ 生产完成！请填写以下装运信息。" size="md" />
+          </Card>
         )}
 
         {/* History */}
