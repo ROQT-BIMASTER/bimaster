@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaOrdemProgress } from "@/components/china/ChinaOrdemProgress";
 import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
@@ -10,13 +11,19 @@ import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { toast } from "sonner";
 
 export default function ChinaOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isBrasilUser } = useChinaUserContext();
+  const [motivoRejeicao, setMotivoRejeicao] = useState("");
+  const [showRejeitar, setShowRejeitar] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["china-ordem", id],
@@ -133,11 +140,53 @@ export default function ChinaOrdemDetalhe() {
     if (signedUrl) window.open(signedUrl, "_blank");
   };
 
+  const handleAprovar = async () => {
+    setApprovalLoading(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { error } = await supabase
+        .from("china_ordens_compra" as any)
+        .update({ status: "aprovada", aprovado_por: user?.id, aprovado_em: new Date().toISOString() } as any)
+        .eq("id", ordem.id);
+      if (error) throw error;
+      toast.success("OC aprovada! A China agora pode iniciar a produção ✅");
+      handleRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao aprovar");
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleRejeitar = async () => {
+    if (!motivoRejeicao.trim()) {
+      toast.error("Informe o motivo da rejeição");
+      return;
+    }
+    setApprovalLoading(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { error } = await supabase
+        .from("china_ordens_compra" as any)
+        .update({ status: "rejeitada", aprovado_por: user?.id, aprovado_em: new Date().toISOString(), motivo_rejeicao: motivoRejeicao } as any)
+        .eq("id", ordem.id);
+      if (error) throw error;
+      toast.success("OC rejeitada");
+      setShowRejeitar(false);
+      handleRefresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao rejeitar");
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
   // Determine if production is complete (qty_produzida >= qty_total)
   const isProductionComplete = ordem && ordem.qty_total > 0 && ordem.qty_produzida >= ordem.qty_total;
   const showEmbarqueForm = isProductionComplete && (!embarque || embarque.status === "rascunho");
   const showEmbarqueInfo = embarque && embarque.status !== "rascunho";
   const isActiveOrder = ordem && ordem.status !== "concluida" && ordem.status !== "cancelada";
+  const isApproved = ordem && !["rascunho", "rejeitada"].includes(ordem.status);
 
   if (isLoading) {
     return (
@@ -205,8 +254,57 @@ export default function ChinaOrdemDetalhe() {
           />
         </Card>
 
-        {/* Production Form — only while production is not complete */}
-        {isActiveOrder && !isProductionComplete && (
+        {/* Approval Card — Brasil only, when status is rascunho */}
+        {isBrasilUser && ordem.status === "rascunho" && (
+          <Card className="p-5 border-2 border-dashed border-warning/40 bg-warning/5">
+            <BilingualLabel pt="⏳ Aguardando Aprovação" cn="⏳ 等待审批" size="md" className="mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">
+              Esta OC está em rascunho. Aprove para enviar à fábrica na China ou rejeite com observação.
+            </p>
+            {!showRejeitar ? (
+              <div className="flex gap-2">
+                <Button onClick={handleAprovar} disabled={approvalLoading} className="gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Aprovar OC
+                </Button>
+                <Button variant="destructive" onClick={() => setShowRejeitar(true)} disabled={approvalLoading} className="gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Rejeitar
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Textarea
+                  value={motivoRejeicao}
+                  onChange={(e) => setMotivoRejeicao(e.target.value)}
+                  placeholder="Motivo da rejeição..."
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button variant="destructive" onClick={handleRejeitar} disabled={approvalLoading}>
+                    Confirmar Rejeição
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowRejeitar(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Rejected info */}
+        {ordem.status === "rejeitada" && (
+          <Card className="p-5 border-2 border-destructive/30 bg-destructive/5">
+            <BilingualLabel pt="❌ OC Rejeitada" cn="❌ 采购单已拒绝" size="md" className="mb-2" />
+            {ordem.motivo_rejeicao && (
+              <p className="text-sm text-muted-foreground">Motivo: {ordem.motivo_rejeicao}</p>
+            )}
+          </Card>
+        )}
+
+        {/* Production Form — only when approved and production not complete */}
+        {isActiveOrder && isApproved && !isProductionComplete && (
           <ChinaApontamentoForm
             ordemId={ordem.id}
             cores={coreNames}
