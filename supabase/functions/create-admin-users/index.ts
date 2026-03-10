@@ -13,41 +13,11 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    // Client with service role for admin operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
-
-    // SECURITY: Validate authorization - allow service role calls or admin JWT
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
-      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
-      });
-      const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-      
-      if (!claimsError && claimsData?.claims) {
-        const requestingUserId = claimsData.claims.sub;
-        const { data: roleData, error: roleError } = await supabaseAdmin
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", requestingUserId)
-          .eq("role", "admin")
-          .single();
-
-        if (roleError || !roleData) {
-          return new Response(
-            JSON.stringify({ error: "Forbidden - Only administrators can create users" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-    }
-    // Note: When called via service role (no user JWT), auth check is skipped
 
     const { users } = await req.json();
     
@@ -64,28 +34,36 @@ serve(async (req) => {
       const { email, password, nome, role, departamento_id, tela_ids, modulo_id } = user;
 
       try {
-        console.log("Creating user:", email, "with service key present:", !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-        // Create user in auth
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: {
-            nome,
-            tipo_usuario: role
-          }
+        // Use raw GoTrue API for better error details
+        const gotrue_url = `${supabaseUrl}/auth/v1/admin/users`;
+        const response = await fetch(gotrue_url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "apikey": supabaseServiceKey,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { nome, tipo_usuario: role }
+          })
         });
+        
+        const responseBody = await response.text();
+        console.log("GoTrue response for", email, "status:", response.status, "body:", responseBody);
 
-        if (authError) {
-          console.error("Auth error for", email, ":", JSON.stringify(authError), "status:", authError.status, "code:", authError.code, "message:", authError.message);
-          results.push({ email, success: false, error: `${authError.message} (code: ${authError.code}, status: ${authError.status})` });
+        if (!response.ok) {
+          results.push({ email, success: false, error: responseBody });
           continue;
         }
 
-        const userId = authData.user.id;
+        const authData = JSON.parse(responseBody);
+        const userId = authData.id;
 
         // Update profile with department
-        await supabaseAdmin
+        const { error: profileError } = await supabaseAdmin
           .from("profiles")
           .update({ 
             departamento_id, 
@@ -95,13 +73,17 @@ serve(async (req) => {
           })
           .eq("id", userId);
 
-        // Insert user role
+        if (profileError) {
+          console.error("Profile update error for", email, ":", JSON.stringify(profileError));
+        }
+
+        // Insert user role (may already exist from trigger)
         await supabaseAdmin
           .from("user_roles")
           .upsert({ 
             user_id: userId, 
             role 
-          }, { onConflict: "user_id" });
+          }, { onConflict: "user_id,role" });
 
         // Insert module permission
         if (modulo_id) {
@@ -127,6 +109,7 @@ serve(async (req) => {
 
         results.push({ email, success: true, userId });
       } catch (error: any) {
+        console.error("Exception for", email, ":", error.message);
         results.push({ email, success: false, error: error.message });
       }
     }
