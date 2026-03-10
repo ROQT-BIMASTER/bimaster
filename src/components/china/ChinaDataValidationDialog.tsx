@@ -7,8 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BilingualLabel } from "./BilingualLabel";
-import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box } from "lucide-react";
+import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box, Camera, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+
+// Photo fields from the spreadsheet
+const PHOTO_FIELDS = [
+  { key: "foto_confirmed_item", labelPt: "Produto Confirmado", labelCn: "已确认产品" },
+  { key: "foto_cores_todas", labelPt: "Todas as Cores", labelCn: "所有颜色照片" },
+  { key: "foto_garrafa", labelPt: "Garrafa/Frasco", labelCn: "瓶子" },
+  { key: "foto_garrafa_design", labelPt: "Design Garrafa", labelCn: "瓶子设计" },
+  { key: "foto_cores_produto", labelPt: "Cores do Produto", labelCn: "产品颜色" },
+  { key: "foto_embalagem_ref", labelPt: "Embalagem", labelCn: "包装" },
+  { key: "foto_produto_individual", labelPt: "Produto Individual", labelCn: "单个产品" },
+  { key: "foto_cores_pesos", labelPt: "Cores (Pesos)", labelCn: "颜色（重量部分）" },
+];
 
 interface ColorEntry {
   grupo: string;
