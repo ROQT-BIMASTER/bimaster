@@ -46,7 +46,7 @@ interface ProjetoSecaoProps {
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
-  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onToggleBriefing, onCreateBriefingTasks,
+  onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
