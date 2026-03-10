@@ -192,9 +192,16 @@ export default function ChinaRecebimentos() {
                         })()}
                       </div>
                     </div>
-                    <Badge variant={statusInfo.variant} className="shrink-0 text-[10px]">
-                      {statusInfo.pt} {statusInfo.cn}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Badge variant={statusInfo.variant} className="text-[10px]">
+                        {statusInfo.pt} {statusInfo.cn}
+                      </Badge>
+                      {isDraft && (
+                        <span className="text-[10px] text-primary font-medium">
+                          ▶ Continuar 继续
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Card>
               );
