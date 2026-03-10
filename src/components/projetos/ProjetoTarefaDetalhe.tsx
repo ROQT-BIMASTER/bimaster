@@ -633,6 +633,16 @@ export function ProjetoTarefaDetalhe({
                     )}
                   </div>
 
+                  {/* Widget Produto China */}
+                  {chinaVinculo && (
+                    <>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Ship className="h-3.5 w-3.5" /> Produto China
+                      </span>
+                      <ChinaProdutoWidget vinculo={chinaVinculo} />
+                    </>
+                  )}
+
                   {/* Mover para Seção */}
                   {secoes.length > 1 && onMoveTarefa && (
                     <>
