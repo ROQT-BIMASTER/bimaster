@@ -143,6 +143,9 @@ export default function ProjetoDetalhe() {
               teamMembers={teamMembers}
               secoes={secoes.map(s => ({ id: s.id, nome: s.nome }))}
               onAddTarefa={handleAddTarefa}
+              tarefasExcluidas={tarefasExcluidas as any}
+              tarefasExcluidasLoading={tarefasExcluidasLoading}
+              onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 
             {/* Tab content */}
