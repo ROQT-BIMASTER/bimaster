@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 declare global {
   interface Window {
@@ -15,7 +15,7 @@ interface PluggyConnectWidgetProps {
   onOpen?: () => void;
 }
 
-const PLUGGY_CDN_URL = "https://cdn.pluggy.ai/pluggy-connect/v2.12.0/pluggy-connect.js";
+const PLUGGY_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pluggy-proxy`;
 
 export function PluggyConnectWidget({
   connectToken,
@@ -25,52 +25,44 @@ export function PluggyConnectWidget({
   onClose,
   onOpen,
 }: PluggyConnectWidgetProps) {
-  const pluggyInstanceRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const loadScript = useCallback((): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      // Check if already loaded
-      if (window.PluggyConnect) {
-        resolve();
-        return;
-      }
-
-      const existing = document.querySelector(`script[src="${PLUGGY_CDN_URL}"]`);
-      if (existing) {
-        existing.addEventListener("load", () => resolve());
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = PLUGGY_CDN_URL;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Pluggy Connect script"));
-      document.head.appendChild(script);
-    });
-  }, []);
+  const initedRef = useRef(false);
 
   useEffect(() => {
+    if (initedRef.current) return;
+    initedRef.current = true;
+
     let mounted = true;
 
-    const initPluggy = async () => {
+    const loadAndInit = async () => {
       try {
-        await loadScript();
-        
-        if (!mounted || !window.PluggyConnect) {
-          console.error("PluggyConnect not available after script load");
-          onError?.({ message: "Widget não disponível" });
-          return;
+        // Load script via proxy if not already loaded
+        if (!window.PluggyConnect) {
+          console.log("📡 Loading Pluggy script via proxy...");
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = PLUGGY_PROXY_URL;
+            script.async = true;
+            script.onload = () => {
+              console.log("✅ Pluggy script loaded");
+              resolve();
+            };
+            script.onerror = () => reject(new Error("Failed to load Pluggy script via proxy"));
+            document.head.appendChild(script);
+          });
         }
 
-        console.log("✅ Pluggy script loaded, initializing widget...");
+        if (!mounted) return;
 
-        const pluggyConnect = new window.PluggyConnect({
+        if (!window.PluggyConnect) {
+          throw new Error("PluggyConnect not available after script load");
+        }
+
+        console.log("🔌 Initializing Pluggy Connect widget...");
+        const pluggy = new window.PluggyConnect({
           connectToken,
           includeSandbox,
           onSuccess: (data: any) => {
-            console.log("✅ Pluggy onSuccess:", data);
+            console.log("✅ Pluggy onSuccess");
             onSuccess(data);
           },
           onError: (error: any) => {
@@ -78,32 +70,29 @@ export function PluggyConnectWidget({
             onError?.(error);
           },
           onClose: () => {
-            console.log("Pluggy widget closed");
+            console.log("Pluggy closed");
             onClose?.();
           },
           onOpen: () => {
-            console.log("✅ Pluggy widget opened");
+            console.log("✅ Pluggy opened");
             onOpen?.();
           },
         });
 
-        pluggyInstanceRef.current = pluggyConnect;
-
-        // Init the widget - render as modal
-        pluggyConnect.init();
-        console.log("✅ Pluggy widget init() called");
+        pluggy.init();
+        console.log("✅ Pluggy init() called");
       } catch (err: any) {
-        console.error("❌ Failed to initialize Pluggy:", err);
-        onError?.(err);
+        console.error("❌ Pluggy init failed:", err);
+        if (mounted) onError?.(err);
       }
     };
 
-    initPluggy();
+    loadAndInit();
 
     return () => {
       mounted = false;
     };
   }, [connectToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div ref={containerRef} id="pluggy-connect-container" />;
+  return <div id="pluggy-connect-container" />;
 }
