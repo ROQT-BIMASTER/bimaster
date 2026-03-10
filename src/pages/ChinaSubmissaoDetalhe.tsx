@@ -98,6 +98,7 @@ export default function ChinaSubmissaoDetalhe() {
           <Badge variant={statusInfo.variant} className="text-sm px-3 py-1">
             {statusInfo.pt} {statusInfo.cn}
           </Badge>
+          <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
         {/* Arte Final + EAN Section */}
