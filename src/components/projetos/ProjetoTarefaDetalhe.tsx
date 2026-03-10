@@ -716,6 +716,10 @@ export function ProjetoTarefaDetalhe({
                   </>
                 )}
 
+                {/* Dependências */}
+                <Separator />
+                <ProjetoTarefaDependencias tarefaId={tarefa.id} projetoId={tarefa.projeto_id} />
+
                 {/* Workflow de Aprovação Multi-Etapa */}
                 <Separator />
                 <ProjetoAprovacaoWorkflow tarefaId={tarefa.id} />
