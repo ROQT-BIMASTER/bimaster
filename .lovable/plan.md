@@ -1,35 +1,39 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Plano: Testar, Padronizar e Documentar APIs de Exportação ERP em Configurações
 
-### Status: ✅ Implementado
+### Problemas Identificados
 
-### O que foi feito
+**1. Inconsistência de payload entre as duas Edge Functions:**
+- `contas-pagar-export-api` (Pull API): Inclui campo `id` no payload raiz. Correto.
+- `erp-export-payment` (Push): **Falta** o campo `id` no payload. O `paymentQueueId` não é incluído no JSON enviado ao ERP.
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+**2. Documentação da API de Exportação não existe em Configurações:**
+- A aba "Integrações ERP" (`DocumentacaoIntegracaoERP.tsx`) documenta apenas as APIs de **importação** (Contas a Receber, Contas a Pagar, Estoque — ERP → CRM).
+- Não há documentação da API de **exportação** de pagamentos (CRM → ERP), que é a `contas-pagar-export-api` (Pull) e `erp-export-payment` (Push).
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+### O que será feito
 
----
+**1. Corrigir payload do `erp-export-payment` (Push)**
+- Adicionar campo `id: paymentQueueId` ao payload para paridade com a Pull API.
 
-## Plano: API de Exportação Pull para o ERP
+**2. Adicionar nova aba "Exportação ERP" no `DocumentacaoIntegracaoERP.tsx`**
+- Expandir o grid de tabs de 6 para 7 colunas.
+- Nova aba `exportacao-erp` com documentação completa:
+  - **API Pull** (`contas-pagar-export-api`): Endpoints `GET /paid`, `POST /confirm`, `GET /status` com exemplos de payload e curl.
+  - **Push automático** (`erp-export-payment`): Explica o fluxo automático ao marcar como pago, canais disponíveis (N8N, REST API), e o payload enviado.
+  - **Payload padrão**: Exibir o JSON profissional agrupado (fornecedor, documento, pagamento) com botão de copiar.
+  - **Mapeamento de campos**: Tabela com todos os campos, tipos e descrições.
+  - **Fluxo recomendado**: Diagrama textual do ciclo Pull (consultar → processar → confirmar).
+  - **Autenticação**: `x-api-key` para Pull, JWT para Push.
 
-### Status: ✅ Implementado
+**3. Testar edge functions via `curl_edge_functions`**
+- Testar `contas-pagar-export-api` endpoints (`/paid`, `/status`) para garantir funcionamento.
 
-### O que foi feito
+### Arquivos
 
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/erp-export-payment/index.ts` | Adicionar `id` ao payload |
+| `src/components/configuracoes/DocumentacaoIntegracaoERP.tsx` | Adicionar aba "Exportação ERP" com documentação Pull + Push |
+
