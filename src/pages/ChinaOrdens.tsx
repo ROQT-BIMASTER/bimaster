@@ -8,6 +8,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 const OC_STATUS: Record<string, { pt: string; cn: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
   rascunho: { pt: "Rascunho", cn: "草稿", variant: "secondary" },
@@ -44,12 +45,13 @@ export default function ChinaOrdens() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
               <ShoppingCart className="h-8 w-8 text-primary" />
             </div>
             <BilingualLabel pt="Ordens de Compra" cn="采购订单" size="lg" />
           </div>
+          <ManualFabricaDrawer screen="china-ordens" />
         </div>
 
         {/* List */}

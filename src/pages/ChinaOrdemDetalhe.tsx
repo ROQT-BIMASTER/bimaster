@@ -8,6 +8,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaOrdemProgress } from "@/components/china/ChinaOrdemProgress";
 import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
 import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,10 +217,11 @@ export default function ChinaOrdemDetalhe() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/ordens")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{ordem.numero_oc}</h1>
             <p className="text-muted-foreground">{ordem.produto_codigo} — {ordem.produto_nome}</p>
           </div>
+          <ManualFabricaDrawer screen="china-ordem-detalhe" />
         </div>
 
         {/* OC Summary */}

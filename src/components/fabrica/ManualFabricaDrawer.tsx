@@ -21,7 +21,13 @@ export type ManualScreen =
   | "fiscal"
   | "tabelas-preco"
   | "ficha-custos"
-  | "comunicacao";
+  | "comunicacao"
+  | "china-painel"
+  | "china-submissoes"
+  | "china-nova-submissao"
+  | "china-ficha-produto"
+  | "china-ordens"
+  | "china-ordem-detalhe";
 
 interface ManualFabricaDrawerProps {
   screen: ManualScreen;
@@ -281,6 +287,116 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
       {
         heading: "Dicas",
         content: "• Use @menções para chamar atenção de colegas\n• Mensagens ficam vinculadas ao produto/ficha\n• Acompanhe fichas pendentes no Painel Administrativo",
+      },
+    ],
+  },
+  "china-painel": {
+    title: "📘 Painel Fábrica China 中国工厂面板",
+    sections: [
+      {
+        heading: "Visão Geral 概述",
+        content: "Painel central do módulo China. Mostra KPIs de submissões por status, acesso rápido a funcionalidades e resumo de pendências.\n中国模块中央面板。显示按状态分类的提交KPI、快速功能访问和待处理摘要。",
+      },
+      {
+        heading: "Cards de Status 状态卡片",
+        content: "• Rascunho 草稿 — Submissões ainda em edição\n• Enviado 已发送 — Aguardando revisão do Brasil\n• Aprovado 已批准 — Pronto para arte final / OC\n• Rejeitado 已拒绝 — Necessita correções da China",
+      },
+      {
+        heading: "Fluxo Recomendado 推荐流程",
+        content: "1️⃣ Crie uma Nova Submissão (dados + docs + pesos)\n2️⃣ Envie ao Brasil para revisão\n3️⃣ Brasil aprova e envia arte final\n4️⃣ Ordem de Compra é emitida\n5️⃣ Registre produção e embarque",
+      },
+    ],
+  },
+  "china-submissoes": {
+    title: "📘 Lista de Submissões 提交列表",
+    sections: [
+      {
+        heading: "O que é esta tela? 这是什么页面？",
+        content: "Lista todas as submissões de produtos da China. Permite filtrar por status, buscar por código/nome e acessar a lixeira de itens excluídos.\n列出所有中国产品提交。可按状态筛选、按代码/名称搜索并访问已删除项目的回收站。",
+      },
+      {
+        heading: "Filtros 筛选器",
+        content: "• Busca por código ou nome do produto\n• Filtro por status (via cards do painel)\n• Minha Ação — mostra apenas itens que precisam de atenção\n• Lixeira — itens excluídos (guardados por 30 dias)",
+      },
+      {
+        heading: "Ações 操作",
+        content: "• Clique em um rascunho para continuar a edição\n• Clique em submissão enviada para ver a ficha\n• Use a lixeira para restaurar itens excluídos",
+      },
+    ],
+  },
+  "china-nova-submissao": {
+    title: "📘 Nova Submissão 新提交",
+    sections: [
+      {
+        heading: "Etapa 1: Dados do Produto 产品数据",
+        content: "Três formas de entrada:\n• Upload de Excel — IA extrai dados automaticamente\n• Upload de Foto — IA lê a imagem e extrai campos\n• Manual — Preencha código, nome, fórmula, etc.\n\nApós extração, revise na Caixa de Validação antes de salvar.",
+      },
+      {
+        heading: "Etapa 2: Documentos 文件",
+        content: "Faça upload de fotos, vídeos e documentos organizados por categoria:\n• Dados Oficiais (planilha, certificados)\n• Fotos (amostra, referência, rótulo)\n• Rotulagem (arte, textos regulatórios)\n• Embalagem (caixa, display)\n\n⚠️ Foto e vídeo da amostra são obrigatórios.",
+      },
+      {
+        heading: "Etapa 3: Pesos e Medidas 重量和尺寸",
+        content: "• Peso Bruto/Líquido/Tester em gramas\n• Medidas do Display (L × A × P) em cm\n• Grade de Cores — adicione SKUs com EAN e quantidades",
+      },
+      {
+        heading: "Rascunho e Envio 草稿和发送",
+        content: "• Salvar Rascunho — retome a qualquer momento\n• Revisar e Enviar — checklist obrigatório antes do envio\n• Após envio, os dados ficam bloqueados para edição",
+      },
+    ],
+  },
+  "china-ficha-produto": {
+    title: "📘 Ficha do Produto 产品档案",
+    sections: [
+      {
+        heading: "Visão Geral 概述",
+        content: "Página unificada com todos os dados do produto: informações gerais, pesos, grade de cores, documentos e ordens de compra vinculadas.\n统一页面，包含产品所有数据：基本信息、重量、颜色网格、文件和关联采购订单。",
+      },
+      {
+        heading: "Rascunho 草稿",
+        content: "Se a submissão ainda está em rascunho:\n• Botão 'Editar/Ajustar' — volta ao formulário\n• Botão 'Excluir' — move para a lixeira (30 dias)\n• Dados podem ser alterados livremente",
+      },
+      {
+        heading: "Aprovação (Brasil) 审批",
+        content: "O Brasil pode:\n• Aprovar documentos individualmente\n• Rejeitar documentos com motivo\n• Aprovar/Rejeitar a submissão completa\n• Enviar Arte Final e EAN da caixa master\n• Emitir Ordens de Compra",
+      },
+      {
+        heading: "Reenvio (China) 重新提交",
+        content: "Se documentos foram rejeitados:\n• Banner vermelho indica pendências\n• Faça upload do arquivo corrigido no slot correspondente\n• O novo arquivo entra como 'Pendente' para reavaliação",
+      },
+    ],
+  },
+  "china-ordens": {
+    title: "📘 Ordens de Compra 采购订单",
+    sections: [
+      {
+        heading: "O que são OCs? 什么是采购订单？",
+        content: "Ordens de Compra são emitidas pelo Brasil após aprovação da submissão e envio da arte final. A China visualiza apenas OCs aprovadas.\n采购订单由巴西在提交获批并发送终稿后签发。中国仅能查看已批准的采购订单。",
+      },
+      {
+        heading: "Status 状态",
+        content: "• Aprovada 已批准 — Pronta para produção\n• Em Produção 生产中 — Apontamentos em andamento\n• Parcial 部分完成 — Produção parcialmente concluída\n• Concluída 已完成 — 100% produzido\n• Cancelada 已取消",
+      },
+      {
+        heading: "Produção 生产",
+        content: "A China registra apontamentos de produção por cor/lote.\nA barra de progresso mostra qtd produzida vs total.\nApós 100%, o embarque pode ser iniciado.",
+      },
+    ],
+  },
+  "china-ordem-detalhe": {
+    title: "📘 Detalhe da Ordem 订单详情",
+    sections: [
+      {
+        heading: "Informações 信息",
+        content: "Exibe todos os dados da OC: número, produto, quantidade, datas e status atual.\n显示采购订单所有数据：编号、产品、数量、日期和当前状态。",
+      },
+      {
+        heading: "Apontamentos de Produção 生产记录",
+        content: "• Registre quantidade produzida por cor\n• Adicione fotos de evidência\n• Acompanhe o progresso em tempo real\n• Histórico completo de lançamentos",
+      },
+      {
+        heading: "Embarque 装运",
+        content: "Após produção 100% concluída:\n• Informe dados logísticos (Container, BL, Navio)\n• Datas de embarque e ETA\n• Upload de documentos de embarque",
       },
     ],
   },

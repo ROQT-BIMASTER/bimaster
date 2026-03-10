@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { STATUS_LABELS } from "@/lib/china-document-types";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function ChinaFabrica() {
   const navigate = useNavigate();
@@ -143,7 +144,7 @@ export default function ChinaFabrica() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
               <Factory className="h-8 w-8 text-destructive" />
             </div>
@@ -152,6 +153,7 @@ export default function ChinaFabrica() {
               <p className="text-lg text-muted-foreground">中国工厂 · Portal de Submissão 提交门户</p>
             </div>
           </div>
+          <ManualFabricaDrawer screen="china-painel" />
         </div>
 
         {/* Main Actions Grid */}

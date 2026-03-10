@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { getSignedUrl, uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -232,7 +233,8 @@ export default function ChinaFichaProduto() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china/recebimentos")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" />
+          <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" className="flex-1" />
+          <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
         {/* Draft Banner + Edit Button */}

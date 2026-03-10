@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { SubmissionManual } from "@/components/china/SubmissionManual";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { toast } from "sonner";
 
 export default function ChinaRecebimentos() {
@@ -99,7 +100,8 @@ export default function ChinaRecebimentos() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/fabrica-china")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" />
+          <BilingualLabel pt="Submissões" cn="提交列表" size="lg" className="flex-1" />
+          <ManualFabricaDrawer screen="china-submissoes" />
         </div>
         {/* Manual */}
         <SubmissionManual />
