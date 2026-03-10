@@ -734,7 +734,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal || 0)}</p>
+                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal ?? totais.custoFinalTotal ?? 0)}</p>
                               {variacaoTotal !== null && (
                                 <span className={`text-xs font-medium ${variacaoTotal > 0 ? "text-destructive" : "text-green-600"}`}>
                                   {variacaoTotal > 0 ? "+" : ""}{variacaoTotal.toFixed(1)}% vs v{v.versao - 1}
