@@ -292,7 +292,7 @@ export function ProjetoTarefaRow({
       {expanded && tarefa.subtarefas?.map(st => (
         <ProjetoTarefaRow
           key={st.id} tarefa={st} indented
-          onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate}
+          onToggle={onToggle} onSelect={onSelect} onUpdate={onUpdate} onDelete={onDelete}
           teamMembers={teamMembers}
           onAddColaborador={onAddColaborador}
           onRemoveColaborador={onRemoveColaborador}
