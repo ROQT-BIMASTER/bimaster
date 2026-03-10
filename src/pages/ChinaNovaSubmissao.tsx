@@ -977,7 +977,7 @@ export default function ChinaNovaSubmissao() {
                 </div>
                 <div>
                   <Label className="text-sm">Peso Tester (g) 试用装重量</Label>
-                  <Input type="number" step="0.01" value={weights.peso_tester_g} onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))} placeholder="Ex: 3.5" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_tester_g} onChange={(e) => setWeights(w => ({ ...w, peso_tester_g: e.target.value }))} placeholder="Ex: 3.5" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
               </div>
               <div className="space-y-4">
