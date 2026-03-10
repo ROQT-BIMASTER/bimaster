@@ -988,7 +988,7 @@ export default function ChinaNovaSubmissao() {
                 </div>
                 <div>
                   <Label className="text-sm">Altura (cm) 高度</Label>
-                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" />
+                  <Input type="number" step="0.1" value={weights.display_altura} onChange={(e) => setWeights(w => ({ ...w, display_altura: e.target.value }))} className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Profundidade (cm) 深度</Label>
