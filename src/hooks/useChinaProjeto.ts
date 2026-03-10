@@ -148,7 +148,20 @@ export function useCriarProjetoChina() {
       }
 
       if (tarefasToInsert.length > 0) {
-        await supabase.from("projeto_tarefas" as any).insert(tarefasToInsert);
+        const { data: tarefasCriadas } = await supabase
+          .from("projeto_tarefas" as any)
+          .insert(tarefasToInsert)
+          .select("id");
+
+        // 4b. Link all tasks to the China product (produto_id = submissao.id for traceability)
+        if (tarefasCriadas && tarefasCriadas.length > 0) {
+          const links = (tarefasCriadas as any[]).map((t) => ({
+            tarefa_id: t.id,
+            produto_id: submissao.id,
+            created_by: user.id,
+          }));
+          await supabase.from("projeto_tarefa_produtos" as any).insert(links);
+        }
       }
 
       // 5. Create link

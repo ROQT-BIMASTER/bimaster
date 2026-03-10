@@ -28,7 +28,7 @@ export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isBrasilUser } = useChinaUserContext();
+  const { isBrasilUser, isChinaUser } = useChinaUserContext();
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
@@ -344,6 +344,27 @@ export default function ChinaFichaProduto() {
                 grupo: c.grupo,
               }))}
             />
+          </Card>
+        )}
+
+        {/* Rejected docs banner for China users */}
+        {isChinaUser && documentos.some((d: any) => d.status === "rejeitado") && (
+          <Card className="p-4 border-destructive/30 bg-destructive/5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
+                <XCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="font-semibold text-destructive text-sm">
+                  Ação necessária 需要操作
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {documentos.filter((d: any) => d.status === "rejeitado").length} documento(s) 
+                  rejeitado(s). Faça o reenvio abaixo. 
+                  被拒绝的文件，请重新上传。
+                </p>
+              </div>
+            </div>
           </Card>
         )}
 
