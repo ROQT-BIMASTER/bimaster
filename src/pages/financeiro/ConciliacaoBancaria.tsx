@@ -75,8 +75,8 @@ export default function ConciliacaoBancaria() {
           <PluggyConnectWidget
             connectToken={connectToken}
             includeSandbox={true}
-            onSuccess={(itemData) => {
-              const item = itemData.item;
+            onSuccess={(data) => {
+              const item = data.item;
               saveConnection.mutate({
                 itemId: item.id.toString(),
                 banco: item.connector?.name || "desconhecido",
