@@ -38,8 +38,82 @@ export default function ChinaNovaSubmissao() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [aiExtracted, setAiExtracted] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 1: Parse Excel
+  // Process AI response (shared between Excel and image)
+  const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
+    if (data.error) {
+      toast.error(data.error);
+      return;
+    }
+
+    setParsedData(data);
+    setAiExtracted(!!data._ai_extracted);
+
+    // Pre-fill weights
+    if (data.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(data.peso_bruto_g) }));
+    if (data.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(data.peso_liquido_g) }));
+
+    // Create submission record
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const { data: sub, error } = await supabase
+      .from("china_produto_submissoes" as any)
+      .insert({
+        produto_codigo: data.produto_codigo || "UNKNOWN",
+        produto_nome: data.produto_nome || "UNKNOWN",
+        numero_item: data.numero_item || null,
+        numero_ordem: data.numero_ordem || null,
+        formula_codigo: data.formula_codigo || null,
+        qty_total: data.qty_total || null,
+        peso_bruto_g: data.peso_bruto_g || null,
+        peso_liquido_g: data.peso_liquido_g || null,
+        dados_excel: data,
+        created_by: session.user.id,
+        status: "rascunho",
+      } as any)
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    setSubmissaoId((sub as any).id);
+
+    // Populate grade items
+    if (data.cores?.length > 0) {
+      const parsed: GradeItem[] = data.cores.map((c: any) => ({
+        id: crypto.randomUUID(),
+        cor_nome: c.cor_nome || "",
+        cor_hex: "",
+        cor_numero: "",
+        codigo_produto: "",
+        codigo_barras_ean: "",
+        quantidade: c.quantidade || 0,
+        grupo: c.grupo || "A",
+      }));
+      setGradeItems(parsed);
+    }
+
+    // Upload source file as document
+    if (sourceFile) {
+      const tipo = sourceType || "planilha_excel";
+      const path = `${(sub as any).id}/${tipo}/${sourceFile.name}`;
+      const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, sourceFile);
+      await supabase.from("china_produto_documentos" as any).insert({
+        submissao_id: (sub as any).id,
+        tipo_documento: tipo,
+        arquivo_url: signedUrl,
+        arquivo_path: path,
+        nome_arquivo: sourceFile.name,
+        status: "pendente",
+      } as any);
+      setDocs(d => ({ ...d, [tipo]: { fileName: sourceFile.name, status: "pendente" } }));
+    }
+  }, []);
+
+  // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -56,79 +130,93 @@ export default function ChinaNovaSubmissao() {
         `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
           body: formData,
         }
       );
 
-      if (!resp.ok) throw new Error("Failed to parse");
-      const data = await resp.json();
-      setParsedData(data);
-
-      // Pre-fill weights
-      if (data.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(data.peso_bruto_g) }));
-      if (data.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(data.peso_liquido_g) }));
-
-      // Create submission record
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: data.produto_codigo || "UNKNOWN",
-          produto_nome: data.produto_nome || "UNKNOWN",
-          numero_item: data.numero_item || null,
-          numero_ordem: data.numero_ordem || null,
-          formula_codigo: data.formula_codigo || null,
-          qty_total: data.qty_total || null,
-          peso_bruto_g: data.peso_bruto_g || null,
-          peso_liquido_g: data.peso_liquido_g || null,
-          dados_excel: data,
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
-
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
-
-      // Populate grade items from parsed data
-      if (data.cores?.length > 0) {
-        const parsed: GradeItem[] = data.cores.map((c: any, i: number) => ({
-          id: crypto.randomUUID(),
-          cor_nome: c.cor_nome || "",
-          cor_hex: "",
-          cor_numero: "",
-          codigo_produto: "",
-          codigo_barras_ean: "",
-          quantidade: c.quantidade || 0,
-          grupo: c.grupo || "A",
-        }));
-        setGradeItems(parsed);
+      if (resp.status === 429) {
+        toast.error("Limite de requisições excedido. Tente novamente. 请求限制已超过");
+        return;
       }
+      if (resp.status === 402) {
+        toast.error("Créditos de IA esgotados. AI积分已用完");
+        return;
+      }
+      if (!resp.ok) throw new Error("Failed to parse");
 
-      // Upload the Excel itself as a document
-      const path = `${(sub as any).id}/planilha_excel/${file.name}`;
-      const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
-      await supabase.from("china_produto_documentos" as any).insert({
-        submissao_id: (sub as any).id,
-        tipo_documento: "planilha_excel",
-        arquivo_url: signedUrl,
-        arquivo_path: path,
-        nome_arquivo: file.name,
-        status: "pendente",
-      } as any);
-      setDocs(d => ({ ...d, planilha_excel: { fileName: file.name, status: "pendente" } }));
-
-      toast.success("Planilha processada com sucesso! 表格处理成功！");
+      const data = await resp.json();
+      await processAiResponse(data, file, "planilha_excel");
+      toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
       console.error(err);
-      toast.error("Erro ao processar planilha 处理表格时出错");
+      toast.error("Erro ao processar 处理时出错");
     } finally {
       setParsing(false);
     }
-  }, []);
+  }, [processAiResponse]);
+
+  // Image upload handler
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie apenas imagens (PNG, JPG, WEBP). 仅上传图片");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 10MB). 图片太大");
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      setImagePreview(dataUrl);
+      const base64 = dataUrl.split(",")[1];
+      const mimeType = file.type || "image/png";
+
+      setParsing(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const resp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ imageBase64: base64, imageMimeType: mimeType }),
+          }
+        );
+
+        if (resp.status === 429) {
+          toast.error("Limite de requisições excedido. 请求限制已超过");
+          return;
+        }
+        if (resp.status === 402) {
+          toast.error("Créditos de IA esgotados. AI积分已用完");
+          return;
+        }
+        if (!resp.ok) throw new Error("Failed to parse image");
+
+        const data = await resp.json();
+        await processAiResponse(data, file, "foto_referencia");
+        toast.success("🤖 IA analisou a imagem com sucesso! AI成功分析图片！");
+      } catch (err: any) {
+        console.error(err);
+        toast.error("Erro ao analisar imagem 分析图片时出错");
+      } finally {
+        setParsing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [processAiResponse]);
 
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {

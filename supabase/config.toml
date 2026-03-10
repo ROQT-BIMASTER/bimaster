@@ -113,6 +113,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.marketing-insights]
     verify_jwt = true
+  [functions.parse-china-excel]
+    verify_jwt = false
   [functions.n8n-contas-receber]
     verify_jwt = false
   [functions.nano-banana-video]
