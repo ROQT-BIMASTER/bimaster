@@ -139,7 +139,7 @@ async function handleSyncTransactions(
   // Get contas_pagar for matching
   const { data: contasPagar } = await supabase
     .from("contas_pagar")
-    .select("id, valor, valor_aberto, data_vencimento, fornecedor, numero_documento, status")
+    .select("id, valor_original, valor_aberto, data_vencimento, fornecedor_nome, numero_documento, status")
     .in("status", ["Pendente", "Vencido", "Parcial"]);
 
   let conciliados = 0;
