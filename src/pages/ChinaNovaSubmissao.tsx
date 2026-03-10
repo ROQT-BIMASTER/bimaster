@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X, PenLine, Save, Eye, EyeOff, Package, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
