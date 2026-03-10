@@ -481,8 +481,32 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       });
     }
 
+    // Auto-zerar M.O. e Markup do Display, pois já estão embutidos nos custos dos filhos
+    if (config) {
+      const novaConfig = {
+        ...config,
+        custo_mao_obra_nf: 0,
+        custo_mao_obra_servico: 0,
+        percentual_markup: 0,
+      };
+      setConfig(novaConfig);
+
+      if (config.id) {
+        await supabase
+          .from("fabrica_produto_custos_config")
+          .update({
+            custo_mao_obra_nf: 0,
+            custo_mao_obra_servico: 0,
+            percentual_markup: 0,
+          })
+          .eq("id", config.id);
+      }
+
+      toast.info("M.O. e Markup zerados — valores já incluídos nos custos importados dos filhos");
+    }
+
     toast.success(`${custosFilhos.length} produto(s) importado(s) para a ficha`);
-  }, [produtoId, custosFilhos, adicionarInsumo]);
+  }, [produtoId, custosFilhos, adicionarInsumo, config]);
 
   return {
     produto,
