@@ -1140,6 +1140,7 @@ export type Database = {
           data_emissao: string
           data_entrega_prevista: string | null
           data_entrega_real: string | null
+          ean_caixa_master: string | null
           id: string
           numero_oc: string
           observacoes: string | null
@@ -1157,6 +1158,7 @@ export type Database = {
           data_emissao?: string
           data_entrega_prevista?: string | null
           data_entrega_real?: string | null
+          ean_caixa_master?: string | null
           id?: string
           numero_oc: string
           observacoes?: string | null
@@ -1174,6 +1176,7 @@ export type Database = {
           data_emissao?: string
           data_entrega_prevista?: string | null
           data_entrega_real?: string | null
+          ean_caixa_master?: string | null
           id?: string
           numero_oc?: string
           observacoes?: string | null
@@ -1341,9 +1344,13 @@ export type Database = {
       }
       china_produto_submissoes: {
         Row: {
+          arte_final_enviada_em: string | null
+          arte_final_path: string | null
+          arte_final_url: string | null
           created_at: string
           created_by: string | null
           dados_excel: Json | null
+          ean_caixa_master: string | null
           formula_codigo: string | null
           id: string
           medidas_display: Json | null
@@ -1362,9 +1369,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arte_final_enviada_em?: string | null
+          arte_final_path?: string | null
+          arte_final_url?: string | null
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          ean_caixa_master?: string | null
           formula_codigo?: string | null
           id?: string
           medidas_display?: Json | null
@@ -1383,9 +1394,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arte_final_enviada_em?: string | null
+          arte_final_path?: string | null
+          arte_final_url?: string | null
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
+          ean_caixa_master?: string | null
           formula_codigo?: string | null
           id?: string
           medidas_display?: Json | null
