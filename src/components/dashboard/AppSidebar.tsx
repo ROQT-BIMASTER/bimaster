@@ -309,6 +309,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "precos", label: t("module.precos"), icon: DollarSign },
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
+      { code: "china", label: "Fábrica China", icon: Globe },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
