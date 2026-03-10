@@ -1250,6 +1250,8 @@ export type Database = {
       }
       china_ordens_compra: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           created_at: string
           created_by: string | null
           data_emissao: string
@@ -1257,6 +1259,7 @@ export type Database = {
           data_entrega_real: string | null
           ean_caixa_master: string | null
           id: string
+          motivo_rejeicao: string | null
           numero_oc: string
           observacoes: string | null
           produto_codigo: string
@@ -1268,6 +1271,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
           created_by?: string | null
           data_emissao?: string
@@ -1275,6 +1280,7 @@ export type Database = {
           data_entrega_real?: string | null
           ean_caixa_master?: string | null
           id?: string
+          motivo_rejeicao?: string | null
           numero_oc: string
           observacoes?: string | null
           produto_codigo: string
@@ -1286,6 +1292,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
           created_by?: string | null
           data_emissao?: string
@@ -1293,6 +1301,7 @@ export type Database = {
           data_entrega_real?: string | null
           ean_caixa_master?: string | null
           id?: string
+          motivo_rejeicao?: string | null
           numero_oc?: string
           observacoes?: string | null
           produto_codigo?: string
