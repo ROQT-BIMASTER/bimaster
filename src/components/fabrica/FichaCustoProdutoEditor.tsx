@@ -934,7 +934,18 @@ export function FichaCustoProdutoEditor({
         <CardHeader>
           <CardTitle className="text-base">Configuração</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-4">
+          {isDisplayComKit && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+              <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">
+                Para Displays com produtos importados do Kit, a M.O. e Markup já estão incluídos no custo de cada unidade.
+                {todosInsumosKit 
+                  ? " Valores de M.O. e Markup nesta configuração serão ignorados."
+                  : " M.O. e Markup serão aplicados somente sobre insumos que não são do Kit."}
+              </span>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="fornecedor_mo">Fornecedor M.O.</Label>
