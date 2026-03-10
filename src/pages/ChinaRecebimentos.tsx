@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Package, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,8 +13,12 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isChinaUser } = useChinaUserContext();
-  const [filter, setFilter] = useState<"all" | "pending_action">("all");
+  const [filter, setFilter] = useState<"all" | "pending_action">(
+    searchParams.get("status") ? "all" : "all"
+  );
+  const statusFilter = searchParams.get("status");
   const [search, setSearch] = useState("");
 
   const { data: submissoes = [], isLoading } = useQuery({
@@ -54,6 +58,10 @@ export default function ChinaRecebimentos() {
         return false;
       }
     }
+    // Status query param filter (from dashboard cards)
+    if (statusFilter && sub.status !== statusFilter) {
+      return false;
+    }
     // Pending action filter (for China): rejected docs or rejeitado status
     if (filter === "pending_action") {
       return sub.status === "rejeitado" || (rejectedDocsMap as any)[sub.id] > 0;
@@ -84,6 +92,11 @@ export default function ChinaRecebimentos() {
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-xs"
           />
+          {statusFilter && (
+            <Badge variant="outline" className="gap-1 cursor-pointer" onClick={() => setSearchParams({})}>
+              Filtro: {STATUS_LABELS[statusFilter]?.pt || statusFilter} ✕
+            </Badge>
+          )}
           {isChinaUser && (
             <div className="flex gap-2">
               <Button
