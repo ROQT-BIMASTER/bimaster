@@ -557,6 +557,12 @@ export default function ChinaFichaProduto() {
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
 
+        {/* Checklist Pré-Lançamento do Projeto Brasil */}
+        {isBrasilUser && <ChinaProjetoChecklist submissaoId={submissao.id} />}
+
+        {/* Timeline Unificada */}
+        <ChinaTimeline submissaoId={submissao.id} />
+
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (
           <Card className="p-6 space-y-4">
