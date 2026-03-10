@@ -281,6 +281,81 @@ export default function ChinaRecebimentos() {
           </div>
         )}
       </div>
+
+      {/* Delete Draft Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Excluir Submissão 删除提交
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-sm space-y-2">
+              <p className="font-semibold">Termo de Exclusão 删除条款</p>
+              <p className="text-muted-foreground text-xs">
+                Ao excluir, a submissão será movida para a <strong>Lixeira</strong> por 30 dias.
+                Após esse período, será permanentemente removida.
+              </p>
+              <p className="text-muted-foreground text-xs">
+                删除后，提交将被移至<strong>回收站</strong>30天。之后将被永久删除。
+              </p>
+              {deleteTarget && (
+                <div className="mt-2 p-2 bg-muted rounded text-xs">
+                  <strong>Produto 产品:</strong> {deleteTarget.produto_codigo} — {deleteTarget.produto_nome}
+                </div>
+              )}
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="delete-confirm-list"
+                checked={deleteConfirmed}
+                onCheckedChange={(checked) => setDeleteConfirmed(!!checked)}
+              />
+              <label htmlFor="delete-confirm-list" className="text-sm cursor-pointer leading-tight">
+                Confirmo que desejo excluir esta submissão.
+                <br />
+                <span className="text-xs text-muted-foreground">我确认要删除此提交。</span>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar 取消
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteConfirmed || deleting}
+              onClick={async () => {
+                if (!deleteTarget) return;
+                setDeleting(true);
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  await supabase
+                    .from("china_produto_submissoes" as any)
+                    .update({
+                      deleted_at: new Date().toISOString(),
+                      deleted_by: user?.id || null,
+                      delete_reason: "Exclusão voluntária pelo usuário",
+                    } as any)
+                    .eq("id", deleteTarget.id);
+                  toast.success("Submissão movida para a lixeira! 提交已移至回收站！");
+                  setDeleteTarget(null);
+                  window.location.reload();
+                } catch {
+                  toast.error("Erro ao excluir 删除失败");
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Confirmar Exclusão 确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
