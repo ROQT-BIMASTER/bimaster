@@ -1,56 +1,62 @@
 
 
-## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
+# Análise Completa: Status de Implementação do Módulo de Projetos
 
-### O que muda
+## Todas as 9 Brechas — Status Atual
 
-Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
+| # | Brecha | Status | Detalhes |
+|---|--------|--------|----------|
+| 1 | **Filtrar + Ordenar** | ✅ Implementado | `ProjetoFilterSort.tsx` com popover de filtros (status, prioridade, estágio, tipo, responsável, atrasadas) e ordenação (5 campos). Integrado ao `ProjetoListView` via `applyFilters`/`applySort`. |
+| 2 | **RLS aprovações restritiva** | ✅ Implementado | Migração aplicada: policies permissivas substituídas por verificação de `projeto_membros` + `criador_id`. |
+| 3 | **Botão Adicionar tarefa** | ✅ Implementado | `QuickAddTaskDialog.tsx` com seleção de seção, conectado ao header via `quickAddOpen` state. |
+| 4 | **Aba Arquivos** | ✅ Implementado | `ProjetoArquivosView.tsx` lista anexos de todas as tarefas do projeto com busca e download. |
+| 5 | **Log de atividades** | ✅ Implementado | Tabela `projeto_tarefa_atividades` + trigger `tr_log_projeto_tarefa_changes` (status, responsável, prazo, estágio, retrabalho). `ProjetoAtividadesLog.tsx` integrado no detalhe da tarefa. |
+| 6 | **Exportação Excel** | ✅ Implementado | Botão no `ProjetoEquipeDashboard` exporta tarefas com ExcelJS + FileSaver. |
+| 7 | **Dependências entre tarefas** | ⚠️ Parcial | Tabela `projeto_tarefa_dependencias` criada com RLS, mas **sem UI** para adicionar/visualizar dependências no frontend. |
+| 8 | **Dashboard tarefas sem responsável** | ✅ Implementado | Card dedicado no `ProjetoEquipeDashboard` listando tarefas sem responsável. |
+| 9 | **Workflow de aprovação** | ✅ Implementado | `ProjetoAprovacaoWorkflow.tsx` com pipeline vertical, botões aprovar/rejeitar, observações e audit de aprovador. |
 
-### Implementação
+### Funcionalidades extras implementadas
+- **Campo de Retrabalho**: Toggle + motivo no detalhe da tarefa, badge na row, contador no Health Panel.
+- **Dashboard de Equipe**: Cards por membro, gráfico de barras (Recharts), tabela de atrasos, barra de progresso.
 
-**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+---
 
-1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
-   ```ts
-   interface ChecklistItem {
-     key: string;
-     label: string;
-     icon: ReactNode;
-     done: boolean;
-     docs: any[]; // documentos do cofre com essa categoria
-   }
-   ```
+## Brecha Restante: UI de Dependências entre Tarefas (#7)
 
-2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
-   ```ts
-   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
-   ```
+A tabela de banco existe mas falta o frontend. Implementação necessária:
 
-3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+### Arquivos a criar/editar
+1. **Novo**: `src/components/projetos/ProjetoTarefaDependencias.tsx` — mini-componente no detalhe da tarefa para adicionar/remover dependências (select com busca de tarefas do projeto).
+2. **Editar**: `src/components/projetos/ProjetoTarefaDetalhe.tsx` — adicionar seção "Dependências" abaixo do workflow de aprovação.
 
-4. **Na renderização de cada item** (linhas ~418-433):
-   - Tornar a linha clicável (quando `item.docs.length > 0`)
-   - Adicionar badge com contagem de documentos
-   - Adicionar chevron indicando expansão
-   - Quando expandido, mostrar sub-lista com:
-     - Nome do arquivo (`nome_arquivo`)
-     - Status do documento (badge: ativo/aprovado)
-     - Data de envio formatada
-     - Ícone `FileText` para cada documento
+### Lógica
+- Buscar tarefas do mesmo projeto (excluindo a tarefa atual e subtarefas)
+- Select para escolher tarefa + tipo de dependência ("Terminar antes" / "Iniciar junto")
+- Listar dependências existentes com botão de remover
+- Queries: INSERT/DELETE em `projeto_tarefa_dependencias`
 
-### Visual esperado
+---
 
-```text
-✅ Briefing              [2 docs] ▼
-   📄 Briefing_Produto_X.pdf    ativo   12/03
-   📄 Briefing_v2.pdf           aprovado 14/03
-○  Arte Final                   
-✅ Rótulo                [1 doc]  ▶
-○  Ficha Técnica
-```
+## Problemas Menores Identificados
 
-### Escopo
-- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
-- Sem mudanças no banco de dados
-- Usa dados já disponíveis em `cofreDocs`
+1. **TypeScript loose typing**: `tipo_tarefa` e `motivo_retrabalho` não estão no interface `ProjetoTarefa` — acessados via `(t as any)`. Funciona em runtime pois `select("*")` retorna os campos, mas não é type-safe. Corrigir adicionando 2 campos opcionais ao interface.
+
+2. **`ProjetoArquivosView`** usa `as any` para `projeto_tarefa_anexos` — tabela pode não estar nos types gerados. Se a tabela existir no DB, funciona em runtime.
+
+3. **Notificações de prazo** (item 8 do plano original) não foram implementadas — requer edge function com cron. É uma melhoria de médio prazo.
+
+---
+
+## Plano de Implementação
+
+### Tarefa 1: UI de Dependências entre Tarefas
+- Criar componente `ProjetoTarefaDependencias.tsx` com select de tarefas + lista de dependências
+- Integrar no `ProjetoTarefaDetalhe.tsx` como nova seção
+
+### Tarefa 2: Tipagem TypeScript
+- Adicionar `tipo_tarefa` e `motivo_retrabalho` ao interface `ProjetoTarefa` no hook
+
+### Tarefa 3: Verificação end-to-end
+- Testar no browser: filtros, ordenação, quick add, aprovação, retrabalho, dashboard equipe, arquivos, log de atividades
 
