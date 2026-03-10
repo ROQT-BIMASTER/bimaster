@@ -8,6 +8,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaOrdemProgress } from "@/components/china/ChinaOrdemProgress";
 import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
 import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

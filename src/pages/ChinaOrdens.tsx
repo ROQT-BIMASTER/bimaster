@@ -8,6 +8,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 const OC_STATUS: Record<string, { pt: string; cn: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
   rascunho: { pt: "Rascunho", cn: "草稿", variant: "secondary" },

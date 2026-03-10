@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { getSignedUrl, uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();

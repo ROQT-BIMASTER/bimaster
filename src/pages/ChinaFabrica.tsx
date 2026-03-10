@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { STATUS_LABELS } from "@/lib/china-document-types";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 
 export default function ChinaFabrica() {
   const navigate = useNavigate();
