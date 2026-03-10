@@ -95,9 +95,77 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     }
   };
 
-  const handleCreateIATasks = (tasks: any[]) => {
-    for (const task of tasks) {
-      createTarefa.mutate({ titulo: task.titulo, secao_id: task.secao_id });
+  const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
+    // 1. Create new sections and collect their IDs mapped by name
+    const newSecaoMap: Record<string, string> = {};
+    
+    for (const secao of data.secoes) {
+      createSecao.mutate(secao.nome, {
+        onSuccess: (created: any) => {
+          if (created?.id) {
+            newSecaoMap[secao.nome] = created.id;
+          }
+        },
+      });
+    }
+
+    // Small delay to let sections be created
+    if (data.secoes.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    // 2. Create tasks - map secao_nome to existing or new section IDs
+    for (const task of data.tasks) {
+      let secaoId = task.secao_id;
+      if (!secaoId && task.secao_nome) {
+        // Try to find in existing sections
+        const existing = secoes.find(s => s.nome.toLowerCase() === task.secao_nome.toLowerCase());
+        secaoId = existing?.id || newSecaoMap[task.secao_nome] || secoes[0]?.id;
+      }
+      if (!secaoId && secoes.length > 0) secaoId = secoes[0].id;
+      
+      createTarefa.mutate({ titulo: task.titulo, secao_id: secaoId }, {
+        onSuccess: async (created: any) => {
+          if (created?.id) {
+            // Update extra fields
+            const updates: any = {};
+            if (task.descricao) updates.descricao = task.descricao;
+            if (task.prioridade) updates.prioridade = task.prioridade;
+            if (task.estagio) updates.estagio = task.estagio;
+            if (task.data_prazo) updates.data_prazo = task.data_prazo;
+            if (Object.keys(updates).length > 0) {
+              updateTarefa.mutate({ id: created.id, ...updates });
+            }
+
+            // Upload document files and link to first task
+            if (data.documentFiles.length > 0 && data.tasks.indexOf(task) === 0) {
+              for (const file of data.documentFiles) {
+                try {
+                  const path = `${projetoId}/${created.id}/${Date.now()}_${file.name}`;
+                  const { supabase } = await import("@/integrations/supabase/client");
+                  const { error: uploadError } = await supabase.storage
+                    .from("projeto-documentos")
+                    .upload(path, file);
+                  if (!uploadError) {
+                    const { data: urlData } = supabase.storage
+                      .from("projeto-documentos")
+                      .getPublicUrl(path);
+                    await supabase.from("projeto_tarefa_documentos" as any).insert({
+                      tarefa_id: created.id,
+                      nome_arquivo: file.name,
+                      url: urlData.publicUrl,
+                      tipo_arquivo: file.type,
+                      tamanho: file.size,
+                    });
+                  }
+                } catch (e) {
+                  console.error("Error uploading doc:", e);
+                }
+              }
+            }
+          }
+        },
+      });
     }
   };
 
