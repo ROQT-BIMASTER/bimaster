@@ -141,6 +141,7 @@ export function ProjetoTarefaDetalhe({
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
+  const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
 
   useEffect(() => {
     if (tarefa) {
