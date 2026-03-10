@@ -11,6 +11,7 @@ import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 
 export default function ChinaFabrica() {
   const navigate = useNavigate();
+  const { isBrasilUser } = useChinaUserContext();
 
   const { data: stats } = useQuery({
     queryKey: ["china-stats"],
