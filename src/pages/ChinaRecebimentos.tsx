@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
