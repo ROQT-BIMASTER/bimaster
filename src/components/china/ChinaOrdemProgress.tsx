@@ -1,7 +1,7 @@
 import { Progress } from "@/components/ui/progress";
 
 interface ChinaOrdemProgressProps {
-  cores: { cor_nome: string; qty_pedida: number; qty_produzida: number }[];
+  cores: { cor_nome: string; qty_pedida: number; qty_produzida: number; cor_hex?: string }[];
   qtyTotal: number;
   qtyProduzida: number;
 }
