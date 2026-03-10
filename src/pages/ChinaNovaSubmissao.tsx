@@ -760,6 +760,20 @@ export default function ChinaNovaSubmissao() {
             </div>
           </Card>
         )}
+
+        {/* Validation Dialog */}
+        {pendingAiData && (
+          <ChinaDataValidationDialog
+            open={validationOpen}
+            onOpenChange={(open) => {
+              setValidationOpen(open);
+              if (!open) setPendingAiData(null);
+            }}
+            initialData={pendingAiData}
+            onConfirm={handleValidationConfirm}
+            mode="new"
+          />
+        )}
       </div>
     </div>
   );

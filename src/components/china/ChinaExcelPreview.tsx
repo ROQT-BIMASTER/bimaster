@@ -39,6 +39,7 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* Product Info */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
