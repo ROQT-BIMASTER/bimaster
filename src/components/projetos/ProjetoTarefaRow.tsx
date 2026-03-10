@@ -98,7 +98,7 @@ interface ProjetoTarefaRowProps {
 
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
-  onToggle, onSelect, onUpdate,
+  onToggle, onSelect, onUpdate, onDelete,
   teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
