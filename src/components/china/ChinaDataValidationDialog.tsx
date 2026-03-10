@@ -52,11 +52,13 @@ export function ChinaDataValidationDialog({
   const [accepted, setAccepted] = useState(false);
 
   // Reset state when dialog opens with new data
-  useState(() => {
-    setData({ ...initialData });
-    setCores(initialData.cores?.length ? [...initialData.cores] : []);
-    setAccepted(false);
-  });
+  useEffect(() => {
+    if (open) {
+      setData({ ...initialData });
+      setCores(initialData.cores?.length ? [...initialData.cores] : []);
+      setAccepted(false);
+    }
+  }, [open, initialData]);
 
   const colorSum = useMemo(() => cores.reduce((s, c) => s + (c.quantidade || 0), 0), [cores]);
   const qtyTotal = data.qty_total || 0;
