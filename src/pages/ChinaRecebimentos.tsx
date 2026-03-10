@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, MessageSquare, Loader2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
+  const [ocDialogOpen, setOcDialogOpen] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
@@ -152,32 +154,41 @@ export default function ChinaRecebimentos() {
             {selected ? (
               <Card className="p-6 space-y-6">
                 {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">{selected.produto_codigo}</h2>
-                    <p className="text-muted-foreground">{selected.produto_nome}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    {selected.status !== "aprovado" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => updateSubStatus.mutate({ id: selected.id, status: "aprovado" })}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar 批准
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => updateSubStatus.mutate({ id: selected.id, status: "rejeitado" })}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" /> Rejeitar 拒绝
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                 <div className="flex items-start justify-between">
+                   <div>
+                     <h2 className="text-xl font-bold text-foreground">{selected.produto_codigo}</h2>
+                     <p className="text-muted-foreground">{selected.produto_nome}</p>
+                   </div>
+                   <div className="flex gap-2 flex-wrap justify-end">
+                     {selected.status === "aprovado" && (
+                       <Button
+                         size="sm"
+                         variant="default"
+                         onClick={() => setOcDialogOpen(true)}
+                       >
+                         <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
+                       </Button>
+                     )}
+                     {selected.status !== "aprovado" && (
+                       <>
+                         <Button
+                           size="sm"
+                           variant="success"
+                           onClick={() => updateSubStatus.mutate({ id: selected.id, status: "aprovado" })}
+                         >
+                           <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar 批准
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="destructive"
+                           onClick={() => updateSubStatus.mutate({ id: selected.id, status: "rejeitado" })}
+                         >
+                           <XCircle className="h-4 w-4 mr-1" /> Rejeitar 拒绝
+                         </Button>
+                       </>
+                     )}
+                   </div>
+                 </div>
 
                 {/* Excel Data */}
                 {selected.dados_excel && (
@@ -308,6 +319,18 @@ export default function ChinaRecebimentos() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Emitir OC Dialog */}
+      {selected && (
+        <EmitirOCDialog
+          open={ocDialogOpen}
+          onOpenChange={setOcDialogOpen}
+          submissao={selected}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["china-submissoes"] });
+          }}
+        />
+      )}
     </div>
   );
 }

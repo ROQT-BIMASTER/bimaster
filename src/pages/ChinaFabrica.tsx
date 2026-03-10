@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, List, CheckCircle, Factory, ArrowLeft } from "lucide-react";
+import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
@@ -29,6 +29,21 @@ export default function ChinaFabrica() {
     },
   });
 
+  const { data: ocStats } = useQuery({
+    queryKey: ["china-oc-stats"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("china_ordens_compra" as any)
+        .select("status");
+      const items = (data || []) as any[];
+      return {
+        total: items.length,
+        ativas: items.filter((s: any) => ["emitida", "em_producao", "parcial"].includes(s.status)).length,
+        concluidas: items.filter((s: any) => s.status === "concluida").length,
+      };
+    },
+  });
+
   const cards = [
     {
       icon: <Plus className="h-10 w-10 text-primary" />,
@@ -54,6 +69,14 @@ export default function ChinaFabrica() {
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
     },
+    {
+      icon: <ShoppingCart className="h-10 w-10 text-primary" />,
+      labelPt: "Ordens de Compra",
+      labelCn: "采购订单",
+      desc: `${ocStats?.ativas || 0} ativas 活跃 · ${ocStats?.concluidas || 0} concluídas 已完成`,
+      onClick: () => navigate("/dashboard/fabrica-china/ordens"),
+      color: "bg-primary/5 hover:bg-primary/10 border-primary/20",
+    },
   ];
 
   return (
@@ -76,7 +99,7 @@ export default function ChinaFabrica() {
         </div>
 
         {/* Main Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {cards.map((card, i) => (
             <Card
               key={i}
