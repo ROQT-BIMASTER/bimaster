@@ -89,7 +89,7 @@ export function useProjetoChinaVinculo(projetoId: string | undefined) {
         .select("id, produto_codigo, produto_nome")
         .eq("id", (data as any).submissao_id)
         .single();
-      return sub as { id: string; produto_codigo: string; produto_nome: string } | null;
+      return sub as unknown as { id: string; produto_codigo: string; produto_nome: string } | null;
     },
   });
 }
