@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Package, Loader2, AlertTriangle, Clock, Barcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { SubmissionManual } from "@/components/china/SubmissionManual";
 
 export default function ChinaRecebimentos() {
   const navigate = useNavigate();
@@ -83,6 +84,8 @@ export default function ChinaRecebimentos() {
           </Button>
           <BilingualLabel pt="Submissões" cn="提交列表" size="lg" />
         </div>
+        {/* Manual */}
+        <SubmissionManual />
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
