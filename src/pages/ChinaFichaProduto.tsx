@@ -758,7 +758,7 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
   const handleCriar = async () => {
     // Run AI audit first
     setPendingCreate(true);
-    const secoes = Object.keys(TAREFAS_POR_SECAO_LABELS);
+    const secoes = Object.keys(TAREFAS_POR_SECAO);
     const audit = await auditProjeto({
       projeto: { nome: `Dev — ${submissao.produto_codigo}`, secoes },
       submissao: {
