@@ -40,7 +40,7 @@ export function PluggyConnectWidget({
           console.log("📡 Loading Pluggy script via proxy...");
           await new Promise<void>((resolve, reject) => {
             const script = document.createElement("script");
-            script.src = PLUGGY_PROXY_URL;
+            script.src = PLUGGY_SCRIPT_URL;
             script.async = true;
             script.onload = () => {
               console.log("✅ Pluggy script loaded");
