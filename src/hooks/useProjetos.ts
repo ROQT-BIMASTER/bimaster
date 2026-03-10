@@ -16,6 +16,7 @@ export interface Projeto {
   created_at: string;
   updated_at: string;
   bg_cor?: string | null;
+  tipo: string;
 }
 
 export function useProjetos() {
