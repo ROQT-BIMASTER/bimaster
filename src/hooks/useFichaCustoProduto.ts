@@ -153,33 +153,56 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
     }
   }, [produtoId, carregarDados]);
 
+  // Verificar se produto é DISPLAY com insumos importados do kit
+  const isDisplayComKit = useMemo(() => {
+    return produto?.tipo === 'DISPLAY' && insumos.some(i => i.tipo_insumo === 'importado_kit');
+  }, [produto?.tipo, insumos]);
+
+  const todosInsumosKit = useMemo(() => {
+    return insumos.length > 0 && insumos.every(i => i.tipo_insumo === 'importado_kit');
+  }, [insumos]);
+
   // Calcular totais
   const totais = useMemo<Totais>(() => {
-    // Soma dos insumos
-    const totalNFInsumos = insumos.reduce((acc, i) => acc + (Number(i.custo_nf) || 0), 0);
-    const totalServicoInsumos = insumos.reduce((acc, i) => acc + (Number(i.custo_servico) || 0), 0);
-    const totalCondicaoInsumos = insumos.reduce((acc, i) => acc + (Number(i.custo_condicao) || 0), 0);
+    // Separar insumos kit vs não-kit
+    const insumosKit = insumos.filter(i => i.tipo_insumo === 'importado_kit');
+    const insumosNaoKit = insumos.filter(i => i.tipo_insumo !== 'importado_kit');
 
-    // Adicionar M.O.
-    const moNF = Number(config?.custo_mao_obra_nf) || 0;
-    const moServico = Number(config?.custo_mao_obra_servico) || 0;
+    // Insumos do kit (M.O. e Markup já embutidos no custo unitário)
+    const kitNF = insumosKit.reduce((acc, i) => acc + (Number(i.custo_nf) || 0), 0);
+    const kitServico = insumosKit.reduce((acc, i) => acc + (Number(i.custo_servico) || 0), 0);
+    const kitCondicao = insumosKit.reduce((acc, i) => acc + (Number(i.custo_condicao) || 0), 0);
 
-    const totalNF = totalNFInsumos + moNF;
-    const totalServico = totalServicoInsumos + moServico;
-    const totalCondicao = totalCondicaoInsumos;
+    // Insumos normais (recebem M.O. e Markup)
+    const normalNF = insumosNaoKit.reduce((acc, i) => acc + (Number(i.custo_nf) || 0), 0);
+    const normalServico = insumosNaoKit.reduce((acc, i) => acc + (Number(i.custo_servico) || 0), 0);
+    const normalCondicao = insumosNaoKit.reduce((acc, i) => acc + (Number(i.custo_condicao) || 0), 0);
+
+    // M.O. aplicada SOMENTE sobre insumos não-kit (para DISPLAY com kit)
+    const moNF = isDisplayComKit && todosInsumosKit ? 0 : (Number(config?.custo_mao_obra_nf) || 0);
+    const moServico = isDisplayComKit && todosInsumosKit ? 0 : (Number(config?.custo_mao_obra_servico) || 0);
+
+    const totalNF = kitNF + normalNF + moNF;
+    const totalServico = kitServico + normalServico + moServico;
+    const totalCondicao = kitCondicao + normalCondicao;
 
     const subtotal = totalNF + totalServico + totalCondicao;
 
-    // Markup - baseado na opção selecionada
+    // Markup - aplicado SOMENTE sobre insumos não-kit (para DISPLAY com kit)
     const percentualMarkup = Number(config?.percentual_markup) || 0;
     const baseMarkup = config?.base_calculo_markup || 'total';
+
+    // Base para markup: somente a parte normal (não-kit) + M.O.
+    const baseNFMarkup = isDisplayComKit ? (normalNF + moNF) : totalNF;
+    const baseServicoMarkup = isDisplayComKit ? (normalServico + moServico) : totalServico;
+    const baseCondicaoMarkup = isDisplayComKit ? normalCondicao : totalCondicao;
     
     const markupNF = (baseMarkup === 'total' || baseMarkup === 'nf' || baseMarkup === 'nf_servico') 
-      ? totalNF * (percentualMarkup / 100) : 0;
+      ? baseNFMarkup * (percentualMarkup / 100) : 0;
     const markupServico = (baseMarkup === 'total' || baseMarkup === 'servico' || baseMarkup === 'nf_servico') 
-      ? totalServico * (percentualMarkup / 100) : 0;
+      ? baseServicoMarkup * (percentualMarkup / 100) : 0;
     const markupCondicao = baseMarkup === 'total' 
-      ? totalCondicao * (percentualMarkup / 100) : 0;
+      ? baseCondicaoMarkup * (percentualMarkup / 100) : 0;
     const markupTotal = markupNF + markupServico + markupCondicao;
 
     const custoTotal = subtotal + markupTotal;
@@ -195,7 +218,7 @@ export function useFichaCustoProduto(produtoId: string | undefined) {
       markupTotal,
       custoTotal,
     };
-  }, [insumos, config]);
+  }, [insumos, config, isDisplayComKit, todosInsumosKit]);
 
   // Adicionar insumo
   const adicionarInsumo = useCallback(
