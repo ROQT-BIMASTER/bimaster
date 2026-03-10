@@ -199,6 +199,7 @@ const ChinaNovaSubmissao = lazyWithRetry(() => import("./pages/ChinaNovaSubmissa
 const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"));
 const ChinaOrdens = lazyWithRetry(() => import("./pages/ChinaOrdens"));
 const ChinaOrdemDetalhe = lazyWithRetry(() => import("./pages/ChinaOrdemDetalhe"));
+const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissaoDetalhe"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
