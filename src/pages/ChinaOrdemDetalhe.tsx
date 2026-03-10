@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Package, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaOrdemProgress } from "@/components/china/ChinaOrdemProgress";
 import { ChinaApontamentoForm } from "@/components/china/ChinaApontamentoForm";
@@ -10,8 +11,10 @@ import { ChinaEmbarqueForm } from "@/components/china/ChinaEmbarqueForm";
 import { ChinaEmbarqueInfo } from "@/components/china/ChinaEmbarqueInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useChinaUserContext } from "@/hooks/useChinaUserContext";
+import { toast } from "sonner";
 
 export default function ChinaOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
