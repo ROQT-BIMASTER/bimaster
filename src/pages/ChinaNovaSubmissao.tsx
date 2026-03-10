@@ -973,7 +973,7 @@ export default function ChinaNovaSubmissao() {
                 </div>
                 <div>
                   <Label className="text-sm">Peso Líquido (g) 净重</Label>
-                  <Input type="number" step="0.01" value={weights.peso_liquido_g} onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))} placeholder="Ex: 6.68" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_liquido_g} onChange={(e) => setWeights(w => ({ ...w, peso_liquido_g: e.target.value }))} placeholder="Ex: 6.68" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Tester (g) 试用装重量</Label>
