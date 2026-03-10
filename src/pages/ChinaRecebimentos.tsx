@@ -20,6 +20,7 @@ export default function ChinaRecebimentos() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
+  const [ocDialogOpen, setOcDialogOpen] = useState(false);
 
   const { data: submissoes = [], isLoading } = useQuery({
     queryKey: ["china-submissoes"],
