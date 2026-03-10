@@ -36,7 +36,7 @@ export default function ProjetoDetalhe() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lista");
-  const { tarefas, secoes, teamMembers, createTarefa } = useProjetoTarefas(id);
+  const { tarefas, secoes, teamMembers, createTarefa, softDeleteTarefa, restaurarTarefa, tarefasExcluidas, tarefasExcluidasLoading } = useProjetoTarefas(id);
   const { data: chinaVinculo } = useProjetoChinaVinculo(id);
   const [filters, setFilters] = useState<ProjetoFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<ProjetoSort>(DEFAULT_SORT);
