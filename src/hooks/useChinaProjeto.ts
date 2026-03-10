@@ -72,7 +72,17 @@ export function useChinaProjetosVinculados(submissaoId: string | undefined) {
   });
 }
 
-/** Fetch China submission linked to a project */
+/** Fetch China submission linked to a project (expanded with status + docs count) */
+export interface ChinaVinculo {
+  id: string;
+  produto_codigo: string;
+  produto_nome: string;
+  status: string;
+  total_docs: number;
+  docs_aprovados: number;
+  created_at: string;
+}
+
 export function useProjetoChinaVinculo(projetoId: string | undefined) {
   return useQuery({
     queryKey: ["projeto-china-vinculo", projetoId],
@@ -84,12 +94,172 @@ export function useProjetoChinaVinculo(projetoId: string | undefined) {
         .eq("projeto_id", projetoId)
         .maybeSingle();
       if (!data) return null;
+      const submissaoId = (data as any).submissao_id;
+
+      const [subRes, docsRes] = await Promise.all([
+        supabase
+          .from("china_produto_submissoes" as any)
+          .select("id, produto_codigo, produto_nome, status, created_at")
+          .eq("id", submissaoId)
+          .single(),
+        supabase
+          .from("china_produto_documentos" as any)
+          .select("id, status")
+          .eq("submissao_id", submissaoId),
+      ]);
+
+      if (!subRes.data) return null;
+      const docs = (docsRes.data || []) as any[];
+      return {
+        ...(subRes.data as any),
+        total_docs: docs.length,
+        docs_aprovados: docs.filter((d) => d.status === "aprovado").length,
+      } as ChinaVinculo;
+    },
+  });
+}
+
+/** Fetch checklist progress from linked project tasks for a China submission */
+export function useChinaProjetoChecklist(submissaoId: string | undefined) {
+  return useQuery({
+    queryKey: ["china-projeto-checklist", submissaoId],
+    enabled: !!submissaoId,
+    queryFn: async () => {
+      // Get linked project IDs
+      const { data: links } = await supabase
+        .from("china_submissao_projetos" as any)
+        .select("projeto_id")
+        .eq("submissao_id", submissaoId);
+      if (!links || links.length === 0) return [];
+
+      const projetoId = (links as any[])[0].projeto_id;
+
+      // Get sections and tasks
+      const [secoesRes, tarefasRes] = await Promise.all([
+        supabase
+          .from("projeto_secoes")
+          .select("id, nome, ordem")
+          .eq("projeto_id", projetoId)
+          .order("ordem"),
+        supabase
+          .from("projeto_tarefas" as any)
+          .select("id, titulo, status, secao_id, ordem")
+          .eq("projeto_id", projetoId)
+          .is("parent_id", null)
+          .order("ordem"),
+      ]);
+
+      const secoes = (secoesRes.data || []) as any[];
+      const tarefas = (tarefasRes.data || []) as any[];
+
+      return secoes.map((s) => {
+        const secTarefas = tarefas.filter((t: any) => t.secao_id === s.id);
+        return {
+          secao_id: s.id,
+          secao_nome: s.nome,
+          total: secTarefas.length,
+          concluidas: secTarefas.filter((t: any) => t.status === "concluida").length,
+          tarefas: secTarefas.map((t: any) => ({
+            id: t.id,
+            titulo: t.titulo,
+            status: t.status,
+          })),
+        };
+      });
+    },
+  });
+}
+
+/** Fetch unified timeline merging China submission events and project activities */
+export function useChinaTimeline(submissaoId: string | undefined) {
+  return useQuery({
+    queryKey: ["china-timeline", submissaoId],
+    enabled: !!submissaoId,
+    queryFn: async () => {
+      // Get linked project
+      const { data: links } = await supabase
+        .from("china_submissao_projetos" as any)
+        .select("projeto_id")
+        .eq("submissao_id", submissaoId);
+
+      const projetoId = links && links.length > 0 ? (links as any[])[0].projeto_id : null;
+
+      // Fetch submission details for timeline
       const { data: sub } = await supabase
         .from("china_produto_submissoes" as any)
-        .select("id, produto_codigo, produto_nome")
-        .eq("id", (data as any).submissao_id)
+        .select("created_at, status, updated_at, arte_final_enviada_em")
+        .eq("id", submissaoId)
         .single();
-      return sub as unknown as { id: string; produto_codigo: string; produto_nome: string } | null;
+
+      // Fetch docs timeline
+      const { data: docs } = await supabase
+        .from("china_produto_documentos" as any)
+        .select("id, tipo_documento, status, created_at, nome_arquivo")
+        .eq("submissao_id", submissaoId)
+        .order("created_at", { ascending: false });
+
+      // Fetch project activities if linked
+      let projectActivities: any[] = [];
+      if (projetoId) {
+        const { data: atividades } = await supabase
+          .from("projeto_atividades")
+          .select("id, tipo, descricao, created_at, metadata")
+          .eq("projeto_id", projetoId)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        projectActivities = (atividades || []).map((a) => ({
+          id: a.id,
+          type: "projeto" as const,
+          description: a.descricao || a.tipo,
+          timestamp: a.created_at,
+          metadata: a.metadata,
+        }));
+      }
+
+      // Build timeline entries
+      const entries: Array<{
+        id: string;
+        type: "china" | "projeto" | "documento";
+        description: string;
+        timestamp: string;
+        metadata?: any;
+      }> = [];
+
+      // Submission creation
+      if (sub) {
+        entries.push({
+          id: `sub-created-${submissaoId}`,
+          type: "china",
+          description: "Submissão criada 提交已创建",
+          timestamp: (sub as any).created_at,
+        });
+        if ((sub as any).arte_final_enviada_em) {
+          entries.push({
+            id: `sub-arte-${submissaoId}`,
+            type: "china",
+            description: "Arte final enviada 终稿已发送",
+            timestamp: (sub as any).arte_final_enviada_em,
+          });
+        }
+      }
+
+      // Documents
+      (docs || []).forEach((d: any) => {
+        entries.push({
+          id: `doc-${d.id}`,
+          type: "documento",
+          description: `${d.nome_arquivo || d.tipo_documento}: ${d.status}`,
+          timestamp: d.created_at,
+        });
+      });
+
+      // Project activities
+      entries.push(...projectActivities);
+
+      // Sort by timestamp descending
+      entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      return entries.slice(0, 50);
     },
   });
 }

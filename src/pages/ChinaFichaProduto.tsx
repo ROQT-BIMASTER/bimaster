@@ -17,6 +17,8 @@ import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
+import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
+import { ChinaTimeline } from "@/components/china/ChinaTimeline";
 import { useChinaUserContext } from "@/hooks/useChinaUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -556,6 +558,12 @@ export default function ChinaFichaProduto() {
 
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
+
+        {/* Checklist Pré-Lançamento do Projeto Brasil */}
+        {isBrasilUser && <ChinaProjetoChecklist submissaoId={submissao.id} />}
+
+        {/* Timeline Unificada */}
+        <ChinaTimeline submissaoId={submissao.id} />
 
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (

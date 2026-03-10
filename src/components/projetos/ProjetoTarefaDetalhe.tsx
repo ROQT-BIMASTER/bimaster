@@ -28,7 +28,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   Send, Upload, FileText, Image, File, Trash2, Download,
-  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw
+  Package, FolderOpen, MessageCircle, Search, X, ArrowRightLeft, Plus, ShieldCheck, ChevronRight, Clock, Sparkles, Loader2, Target, Maximize2, FileSpreadsheet, RotateCcw, Ship
 } from "lucide-react";
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
@@ -41,6 +41,8 @@ import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { BriefingImportDialog } from "./BriefingImportDialog";
 import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
+import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
+import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -139,6 +141,7 @@ export function ProjetoTarefaDetalhe({
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [briefingTasksDialogOpen, setBriefingTasksDialogOpen] = useState(false);
   const { briefing: tarefaBriefing, saveBriefing: saveTarefaBriefing, deleteBriefing: deleteTarefaBriefing } = useProjetoBriefing(tarefa?.id);
+  const { data: chinaVinculo } = useProjetoChinaVinculo(projetoId);
 
   useEffect(() => {
     if (tarefa) {
@@ -629,6 +632,16 @@ export function ProjetoTarefaDetalhe({
                       </div>
                     )}
                   </div>
+
+                  {/* Widget Produto China */}
+                  {chinaVinculo && (
+                    <>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Ship className="h-3.5 w-3.5" /> Produto China
+                      </span>
+                      <ChinaProdutoWidget vinculo={chinaVinculo} />
+                    </>
+                  )}
 
                   {/* Mover para Seção */}
                   {secoes.length > 1 && onMoveTarefa && (
