@@ -1420,6 +1420,45 @@ export type Database = {
         }
         Relationships: []
       }
+      china_submissao_projetos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          projeto_id: string
+          submissao_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          projeto_id: string
+          submissao_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          projeto_id?: string
+          submissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_submissao_projetos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_submissao_projetos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           bairro: string | null
