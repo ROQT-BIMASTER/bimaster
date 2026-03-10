@@ -947,7 +947,13 @@ export default function ChinaNovaSubmissao() {
             )}
 
             {/* Grade Editor */}
-            <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+            {isReadOnly ? (
+              <div className="opacity-60 pointer-events-none">
+                <ChinaGradeEditor items={gradeItems} onChange={() => {}} />
+              </div>
+            ) : (
+              <ChinaGradeEditor items={gradeItems} onChange={setGradeItems} />
+            )}
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(0)}>
