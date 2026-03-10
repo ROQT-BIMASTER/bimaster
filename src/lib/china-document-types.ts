@@ -22,6 +22,12 @@ export const CHINA_DOCUMENT_TYPES: DocumentSlotConfig[] = [
 
 export const DOCUMENT_CATEGORIES = [
   {
+    key: "dados_oficiais",
+    labelPt: "Dados Oficiais",
+    labelCn: "官方数据",
+    tipos: ["planilha_excel"],
+  },
+  {
     key: "rotulagem",
     labelPt: "Rotulagem",
     labelCn: "标签",
