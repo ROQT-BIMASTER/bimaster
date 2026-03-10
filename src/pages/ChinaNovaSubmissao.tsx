@@ -969,7 +969,7 @@ export default function ChinaNovaSubmissao() {
                 <BilingualLabel pt="Pesos do Produto" cn="产品重量" size="md" />
                 <div>
                   <Label className="text-sm">Peso Bruto (g) 毛重</Label>
-                  <Input type="number" step="0.01" value={weights.peso_bruto_g} onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))} placeholder="Ex: 23.85" className="text-lg h-12" />
+                  <Input type="number" step="0.01" value={weights.peso_bruto_g} onChange={(e) => setWeights(w => ({ ...w, peso_bruto_g: e.target.value }))} placeholder="Ex: 23.85" className="text-lg h-12" disabled={isReadOnly} />
                 </div>
                 <div>
                   <Label className="text-sm">Peso Líquido (g) 净重</Label>
