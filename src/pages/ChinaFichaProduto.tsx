@@ -475,6 +475,9 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
+        {/* Projetos Vinculados */}
+        <ChinaProjetosVinculadosSection submissao={submissao} />
+
         {/* Ordens de Compra + Produção */}
         {ordens.length > 0 && (
           <Card className="p-6 space-y-4">
