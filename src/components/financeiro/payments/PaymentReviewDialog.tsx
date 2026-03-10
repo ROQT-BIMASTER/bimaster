@@ -31,6 +31,7 @@ import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 import { PaymentBankPrintSummary } from "./PaymentBankPrintSummary";
 import { QuickDueDateChange } from "./QuickDueDateChange";
+import { DocumentAuditCard } from "./DocumentAuditCard";
 
 interface PaymentReviewDialogProps {
   open: boolean;
