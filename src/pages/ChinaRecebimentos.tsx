@@ -52,20 +52,23 @@ export default function ChinaRecebimentos() {
     },
   });
 
-  const filtered = submissoes.filter((sub: any) => {
-    // Search filter
+  // Separate active vs deleted
+  const activeSubmissoes = submissoes.filter((s: any) => !s.deleted_at);
+  const trashedSubmissoes = submissoes.filter((s: any) => !!s.deleted_at);
+
+  const baseList = showTrash ? trashedSubmissoes : activeSubmissoes;
+
+  const filtered = baseList.filter((sub: any) => {
     if (search) {
       const q = search.toLowerCase();
       if (!sub.produto_codigo?.toLowerCase().includes(q) && !sub.produto_nome?.toLowerCase().includes(q)) {
         return false;
       }
     }
-    // Status query param filter (from dashboard cards)
     if (statusFilter && sub.status !== statusFilter) {
       return false;
     }
-    // Pending action filter (for China): rejected docs or rejeitado status
-    if (filter === "pending_action") {
+    if (!showTrash && filter === "pending_action") {
       return sub.status === "rejeitado" || (rejectedDocsMap as any)[sub.id] > 0;
     }
     return true;
