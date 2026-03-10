@@ -140,11 +140,16 @@ export default function ChinaRecebimentos() {
               const statusInfo = STATUS_LABELS[sub.status] || STATUS_LABELS.rascunho;
               const rejectedDocs = (rejectedDocsMap as any)[sub.id] || 0;
 
+              const isDraft = sub.status === "rascunho";
+
               return (
                 <Card
                   key={sub.id}
                   className="p-4 cursor-pointer transition-all hover:shadow-md hover:border-primary/30"
-                  onClick={() => navigate(`/dashboard/fabrica-china/produto/${sub.id}`)}
+                  onClick={() => isDraft
+                    ? navigate(`/dashboard/fabrica-china/nova/${sub.id}`)
+                    : navigate(`/dashboard/fabrica-china/produto/${sub.id}`)
+                  }
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
