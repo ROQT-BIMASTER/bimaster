@@ -37,7 +37,12 @@ export function ChinaOrdemProgress({ cores, qtyTotal, qtyProduzida }: ChinaOrdem
             return (
               <div key={cor.cor_nome} className="p-3 border rounded-lg">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium truncate">{cor.cor_nome}</span>
+                  <div className="flex items-center gap-2">
+                    {cor.cor_hex && (
+                      <div className="h-3.5 w-3.5 rounded-full border border-border shrink-0" style={{ backgroundColor: cor.cor_hex }} />
+                    )}
+                    <span className="text-sm font-medium truncate">{cor.cor_nome}</span>
+                  </div>
                   <span className={`text-sm font-bold ${isComplete ? "text-success" : "text-foreground"}`}>
                     {cor.qty_produzida} / {cor.qty_pedida}
                   </span>

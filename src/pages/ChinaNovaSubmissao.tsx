@@ -155,6 +155,26 @@ export default function ChinaNovaSubmissao() {
     if (!submissaoId) return;
     setSubmitting(true);
     try {
+      // Save grade items to DB
+      if (gradeItems.length > 0) {
+        // Delete old cores
+        await supabase.from("china_produto_cores" as any).delete().eq("submissao_id", submissaoId);
+        // Insert updated ones
+        await supabase.from("china_produto_cores" as any).insert(
+          gradeItems.map((item, i) => ({
+            submissao_id: submissaoId,
+            grupo: item.grupo || "A",
+            cor_nome: item.cor_nome,
+            cor_hex: item.cor_hex || null,
+            cor_numero: item.cor_numero || null,
+            codigo_produto: item.codigo_produto || null,
+            codigo_barras_ean: item.codigo_barras_ean || null,
+            quantidade: item.quantidade,
+            ordem: i,
+          }))
+        );
+      }
+
       await supabase
         .from("china_produto_submissoes" as any)
         .update({
@@ -177,7 +197,7 @@ export default function ChinaNovaSubmissao() {
     } finally {
       setSubmitting(false);
     }
-  }, [submissaoId, weights, navigate]);
+  }, [submissaoId, weights, gradeItems, navigate]);
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
