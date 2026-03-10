@@ -195,7 +195,8 @@ Deno.serve(async (req) => {
                     numero_item: { type: "string", description: "Item number" },
                     numero_ordem: { type: "string", description: "Order number" },
                     formula_codigo: { type: "string", description: "Formula code" },
-                    qty_total: { type: "number", description: "Total quantity" },
+                    qty_total: { type: "number", description: "Total quantity in PIECES (sum of all color quantities)" },
+                    ctn_total: { type: "number", description: "Total number of cartons/boxes (CTN)" },
                     peso_bruto_g: { type: "number", description: "Gross weight in grams" },
                     peso_liquido_g: { type: "number", description: "Net weight in grams" },
                     cores: {
