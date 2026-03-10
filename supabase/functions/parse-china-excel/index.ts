@@ -1,5 +1,3 @@
-import "npm:@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -34,6 +32,16 @@ For images:
 If a field cannot be determined, set it to null (for strings) or 0 (for qty_total).
 For cores array, return empty array [] if no color data found.`;
 
+function uint8ArrayToBase64(uint8Array: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,7 +50,11 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const contentType = req.headers.get("content-type") || "";
@@ -55,8 +67,9 @@ Deno.serve(async (req) => {
       const file = formData.get("file") as File | null;
       const imageFile = formData.get("image") as File | null;
 
-      // Parse Excel file to text
+      // Parse Excel file to text using SheetJS
       if (file) {
+        console.log("Parsing Excel file:", file.name, "size:", file.size);
         try {
           const { default: XLSX } = await import(
             "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs"
@@ -71,23 +84,27 @@ Deno.serve(async (req) => {
 
           // Convert to readable text table
           excelText = rows
-            .filter((row) => row.some((cell: any) => String(cell).trim() !== ""))
-            .map((row) =>
+            .filter((row: any[]) => row.some((cell: any) => String(cell).trim() !== ""))
+            .map((row: any[]) =>
               row.map((cell: any) => String(cell).trim()).join(" | ")
             )
             .join("\n");
+
+          console.log("Excel parsed successfully, text length:", excelText.length);
         } catch (e) {
           console.error("Excel parse error:", e);
-          excelText = "Failed to parse Excel file";
+          return new Response(
+            JSON.stringify({ error: "Erro ao ler planilha Excel. Verifique o formato do arquivo. Excel文件读取错误" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
 
       // Handle image file
       if (imageFile) {
+        console.log("Processing image:", imageFile.name, "size:", imageFile.size);
         const imgBuffer = await imageFile.arrayBuffer();
-        imageBase64 = btoa(
-          String.fromCharCode(...new Uint8Array(imgBuffer))
-        );
+        imageBase64 = uint8ArrayToBase64(new Uint8Array(imgBuffer));
         imageMimeType = imageFile.type || "image/png";
       }
     } else {
@@ -96,16 +113,14 @@ Deno.serve(async (req) => {
       if (body.imageBase64) {
         imageBase64 = body.imageBase64;
         imageMimeType = body.imageMimeType || "image/png";
+        console.log("Received image via JSON, base64 length:", imageBase64.length);
       }
     }
 
     if (!excelText && !imageBase64) {
       return new Response(
-        JSON.stringify({ error: "No file or image provided" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Nenhum arquivo fornecido. Envie uma planilha ou imagem. 未提供文件" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -113,9 +128,11 @@ Deno.serve(async (req) => {
     const userContent: any[] = [];
 
     if (excelText) {
+      // Truncate if too long to avoid token limits
+      const truncated = excelText.length > 15000 ? excelText.substring(0, 15000) + "\n...(truncated)" : excelText;
       userContent.push({
         type: "text",
-        text: `Here is the spreadsheet content (rows separated by newlines, columns by |):\n\n${excelText}`,
+        text: `Here is the spreadsheet content (rows separated by newlines, columns by |):\n\n${truncated}`,
       });
     }
 
@@ -139,8 +156,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use tool calling for structured output
     const model = imageBase64 ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+    console.log("Calling AI gateway with model:", model);
 
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -161,60 +178,26 @@ Deno.serve(async (req) => {
               type: "function",
               function: {
                 name: "extract_product_data",
-                description:
-                  "Extract structured product data from the spreadsheet or image",
+                description: "Extract structured product data from the spreadsheet or image",
                 parameters: {
                   type: "object",
                   properties: {
-                    produto_codigo: {
-                      type: "string",
-                      description: "Product code (e.g. HB-001, TGV-001)",
-                    },
-                    produto_nome: {
-                      type: "string",
-                      description: "Product name",
-                    },
-                    numero_item: {
-                      type: "string",
-                      description: "Item number",
-                    },
-                    numero_ordem: {
-                      type: "string",
-                      description: "Order number",
-                    },
-                    formula_codigo: {
-                      type: "string",
-                      description: "Formula code",
-                    },
-                    qty_total: {
-                      type: "number",
-                      description: "Total quantity",
-                    },
-                    peso_bruto_g: {
-                      type: "number",
-                      description: "Gross weight in grams",
-                    },
-                    peso_liquido_g: {
-                      type: "number",
-                      description: "Net weight in grams",
-                    },
+                    produto_codigo: { type: "string", description: "Product code" },
+                    produto_nome: { type: "string", description: "Product name" },
+                    numero_item: { type: "string", description: "Item number" },
+                    numero_ordem: { type: "string", description: "Order number" },
+                    formula_codigo: { type: "string", description: "Formula code" },
+                    qty_total: { type: "number", description: "Total quantity" },
+                    peso_bruto_g: { type: "number", description: "Gross weight in grams" },
+                    peso_liquido_g: { type: "number", description: "Net weight in grams" },
                     cores: {
                       type: "array",
                       items: {
                         type: "object",
                         properties: {
-                          grupo: {
-                            type: "string",
-                            description: "Color group (G1, G2, A, B, etc.)",
-                          },
-                          cor_nome: {
-                            type: "string",
-                            description: "Color name",
-                          },
-                          quantidade: {
-                            type: "number",
-                            description: "Quantity for this color",
-                          },
+                          grupo: { type: "string", description: "Color group" },
+                          cor_nome: { type: "string", description: "Color name" },
+                          quantidade: { type: "number", description: "Quantity" },
                         },
                         required: ["grupo", "cor_nome", "quantidade"],
                         additionalProperties: false,
@@ -222,26 +205,13 @@ Deno.serve(async (req) => {
                       description: "Array of color entries",
                     },
                   },
-                  required: [
-                    "produto_codigo",
-                    "produto_nome",
-                    "numero_item",
-                    "numero_ordem",
-                    "formula_codigo",
-                    "qty_total",
-                    "peso_bruto_g",
-                    "peso_liquido_g",
-                    "cores",
-                  ],
+                  required: ["produto_codigo", "produto_nome", "numero_item", "numero_ordem", "formula_codigo", "qty_total", "peso_bruto_g", "peso_liquido_g", "cores"],
                   additionalProperties: false,
                 },
               },
             },
           ],
-          tool_choice: {
-            type: "function",
-            function: { name: "extract_product_data" },
-          },
+          tool_choice: { type: "function", function: { name: "extract_product_data" } },
         }),
       }
     );
@@ -253,56 +223,52 @@ Deno.serve(async (req) => {
 
       if (status === 429) {
         return new Response(
-          JSON.stringify({
-            error: "Limite de requisições excedido. Tente novamente em alguns segundos. 请求限制已超过，请稍后再试。",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos. 请求限制已超过" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (status === 402) {
         return new Response(
-          JSON.stringify({
-            error: "Créditos de IA esgotados. Entre em contato com o administrador. AI积分已用完。",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Créditos de IA esgotados. AI积分已用完" }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      throw new Error(`AI gateway returned ${status}: ${errorText}`);
+      return new Response(
+        JSON.stringify({ error: `Erro no serviço de IA (${status}). Tente novamente. AI服务错误` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const aiData = await aiResponse.json();
+    console.log("AI response received, choices:", aiData.choices?.length);
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      console.error("No tool call in AI response:", JSON.stringify(aiData));
-      throw new Error("AI did not return structured data");
+      console.error("No tool call in AI response:", JSON.stringify(aiData).substring(0, 500));
+      return new Response(
+        JSON.stringify({ error: "IA não retornou dados estruturados. Tente novamente. AI未返回结构化数据" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const extracted = JSON.parse(toolCall.function.arguments);
+    console.log("Extracted product:", extracted.produto_codigo, extracted.produto_nome);
 
-    // Return the AI-extracted data
     return new Response(
       JSON.stringify({
         ...extracted,
         _ai_extracted: true,
         _model: model,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error in parse-china-excel:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message || "Erro interno. Tente novamente. 内部错误" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
