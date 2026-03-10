@@ -1,91 +1,56 @@
 
 
-# Ficha Unificada do Produto — Tela Única para China e Brasil
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-## O que é
+### O que muda
 
-Uma página unificada (`ChinaFichaProduto`) que consolida **tudo** sobre um produto em uma só tela, conforme o wireframe. Tanto a China quanto o Brasil usam essa mesma página — cada seção exibe ou permite editar dados conforme o status do produto.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Layout (baseado no wireframe)
+### Implementação
+
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ FICHA DO PRODUTO 产品档案                               │
-│ Código: TGV-001  Nome: Produto X   [Status Badge]      │
-├──────────────────────────┬──────────────────────────────┤
-│                          │  📷 Foto Produto             │
-│  GRADE (display)         │  (foto principal)            │
-│  ● Cor1  Qtd=6  EAN     │                              │
-│  ● Cor2  Qtd=6  EAN     │  📁 Cofre Documentos         │
-│  ● Cor3  Qtd=6  EAN     │  (link p/ cofre vinculado)   │
-│                          │                              │
-├──────────────────────────┴──────────────────────────────┤
-│ ROTULAGEM 标签                                          │
-│  □ Volumetria (líq+bruto) — dados volumétricos          │
-│  □ Fórmula (01, 02, 03) — código da fórmula            │
-│  □ Doc Regulatória                                      │
-├─────────────────────────────────────────────────────────┤
-│ EMBALAGEM 包装                                          │
-│  □ Desenhos técnicos (facas)                            │
-│  □ Provadores / Tester                                  │
-│  □ Embalagem Primária                                   │
-│  □ Display                                              │
-│  □ Etiqueta                                             │
-│  □ Amostras (foto+vídeo) — vincular produtos, fotos    │
-├─────────────────────────────────────────────────────────┤
-│ ARTE FINAL + EAN (seção Brasil→China)                   │
-├──────────────────────────┬──────────────────────────────┤
-│ ORDEM DE COMPRA 采购订单  │ ORDEM DE PRODUÇÃO 生产订单   │
-│ Nº 01   Qtde: 50        │ Qtde produzida: 30           │
-│                          │ Qtd Pendente: 20             │
-└──────────────────────────┴──────────────────────────────┘
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-## Implementação
-
-### 1. Criar `src/pages/ChinaFichaProduto.tsx`
-
-Página unificada que busca e exibe tudo de uma submissão em seções:
-
-- **Header**: código, nome, status badge, foto do produto (do campo `foto_url` ou primeira foto de amostra)
-- **Grade**: `ChinaGradeView` com cores, EANs, quantidades — reutiliza componente existente
-- **Cofre/Documentos vinculados**: Link para cofre de documentos se houver vínculo (campo futuro ou busca por código)
-- **Rotulagem**: Cards dos documentos da categoria "rotulagem" com status (aprovado/pendente/rejeitado) — China pode fazer upload, Brasil pode aprovar/rejeitar
-- **Embalagem**: Cards dos documentos da categoria "embalagem" — mesma lógica
-- **Arte Final + EAN**: Seção visível quando status ≥ aprovado — Brasil envia arte, China vê download + EAN
-- **Ordem de Compra**: Se existe OC vinculada, mostra número, qtd total, data entrega
-- **Ordem de Produção**: Progresso visual (barra), qtd produzida, qtd pendente, link para detalhe da OC
-- **Observações**: Feedbacks Brasil, docs rejeitados
-
-### 2. Funcionalidades inline (sem navegar para outras páginas)
-
-- **Upload de documentos** pela China diretamente nos slots (reutiliza `ChinaDocumentSlot`)
-- **Aprovar/Rejeitar** documentos pelo Brasil inline (botões ✓/✗)
-- **Enviar arte + EAN** pelo Brasil inline (mesma lógica do `ChinaRecebimentos`)
-- **Emitir OC** via dialog (reutiliza `EmitirOCDialog`)
-- **Registrar produção** via dialog/inline (reutiliza `ChinaApontamentoForm`)
-
-### 3. Registrar rota
-
-```
-/dashboard/fabrica-china/produto/:id → ChinaFichaProduto
-```
-
-Atualizar links em `ChinaRecebimentos`, `ChinaFabrica`, e `ChinaOrdens` para apontar para esta ficha.
-
-### 4. Atualizar `ChinaFabrica.tsx`
-
-Atualizar o card "Minhas Submissões" para linkar direto às fichas em vez da listagem genérica.
-
----
-
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/ChinaFichaProduto.tsx` | **Criar**: página unificada com todas as seções |
-| `src/App.tsx` | Editar: nova rota `/dashboard/fabrica-china/produto/:id` |
-| `src/pages/ChinaRecebimentos.tsx` | Editar: links apontam para ficha unificada |
-| `src/pages/ChinaOrdens.tsx` | Editar: link do produto aponta para ficha |
-| `src/pages/ChinaFabrica.tsx` | Editar: navegação atualizada |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

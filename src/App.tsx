@@ -200,6 +200,7 @@ const ChinaRecebimentos = lazyWithRetry(() => import("./pages/ChinaRecebimentos"
 const ChinaOrdens = lazyWithRetry(() => import("./pages/ChinaOrdens"));
 const ChinaOrdemDetalhe = lazyWithRetry(() => import("./pages/ChinaOrdemDetalhe"));
 const ChinaSubmissaoDetalhe = lazyWithRetry(() => import("./pages/ChinaSubmissaoDetalhe"));
+const ChinaFichaProduto = lazyWithRetry(() => import("./pages/ChinaFichaProduto"));
 const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
@@ -413,6 +414,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ChinaOrdens /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ChinaOrdemDetalhe /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ProtectedRoute><ChinaSubmissaoDetalhe /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/produto/:id" element={<ProtectedRoute><ChinaFichaProduto /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
