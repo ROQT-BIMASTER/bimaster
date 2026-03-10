@@ -34,6 +34,9 @@ export default function ChinaFichaProduto() {
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
   const [arteFile, setArteFile] = useState<File | null>(null);
   const [sendingArte, setSendingArte] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
