@@ -1,70 +1,56 @@
 
 
-# Hierarquia de Equipe no Módulo de Desenvolvimento (Projetos)
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-## Contexto
+### O que muda
 
-Hoje o módulo de Projetos opera com isolamento por **membership** (só vê quem foi adicionado ao projeto). Não existe visão de equipe hierárquica como no Trade Marketing. O pedido é:
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-1. **Gerente/Coordenação** controla quem visualiza módulos (já existe via `projeto_membro_secoes`)
-2. **Nova funcionalidade**: Tela "Minha Equipe" dentro de Projetos, mostrando a hierarquia organizacional (Gerente > Supervisor > Membros) com métricas de produtividade em projetos
+### Implementação
 
-## Arquitetura Proposta
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
+
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
+
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
+
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│            /dashboard/projetos/minha-equipe           │
-│                                                      │
-│  ┌─ Filtro hierárquico (reutiliza TeamHierarchy) ──┐ │
-│  │  Admin: vê todos                                │ │
-│  │  Gerente: vê sua árvore de subordinados         │ │
-│  │  Supervisor: vê seus vendedores/promotores      │ │
-│  └─────────────────────────────────────────────────┘ │
-│                                                      │
-│  ┌─ KPIs por membro ──────────────────────────────┐ │
-│  │  • Projetos ativos (como membro/coordenador)   │ │
-│  │  • Tarefas atribuídas / concluídas             │ │
-│  │  • Taxa de conclusão (%)                        │ │
-│  │  • Tarefas atrasadas                            │ │
-│  └─────────────────────────────────────────────────┘ │
-│                                                      │
-│  ┌─ Lista de membros com ranking ─────────────────┐ │
-│  │  Agrupado por supervisor (hierarquia real)      │ │
-│  │  Click → ver projetos desse membro              │ │
-│  └─────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-## Implementação
-
-### 1. Nova página: `src/pages/ProjetosMinhaEquipe.tsx`
-- Reutiliza a lógica do `TeamHierarchyFilter` (já existente no Trade) adaptada para o contexto de Projetos
-- Busca métricas de cada membro da equipe:
-  - Total de projetos em que participa (`projeto_membros`)
-  - Tarefas atribuídas e concluídas (`projeto_tarefas` onde `responsavel_id = user_id`)
-  - Tarefas atrasadas (data_fim < hoje e não concluída)
-- Exibe cards por membro com KPIs e ranking por produtividade
-- Respeita hierarquia: admin vê todos, gerente/supervisor vêem apenas sua árvore via `get_subordinados`
-
-### 2. Hook: `src/hooks/useProjetosTeamData.ts`
-- Similar ao `useMapTeamData` mas com métricas de projetos
-- Busca: profiles da hierarquia → roles → contagem de projetos/tarefas por membro
-- Calcula ranking: tarefas concluídas * 3 + projetos ativos * 2
-
-### 3. Sidebar: `src/components/dashboard/AppSidebar.tsx`
-- Adicionar link "Minha Equipe" no menu de Projetos (visível apenas para admin/gerente/supervisor)
-
-### 4. Rota: `App.tsx`
-- Adicionar rota `/dashboard/projetos/minha-equipe` protegida por `ScreenProtectedRoute` ou verificação de role
-
-### Sem alterações no banco de dados
-Todas as métricas são derivadas de tabelas existentes (`projeto_membros`, `projeto_tarefas`, `profiles`, `user_roles`). Não é necessária migração.
-
-### Arquivos impactados
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/ProjetosMinhaEquipe.tsx` | Criar — página principal |
-| `src/hooks/useProjetosTeamData.ts` | Criar — hook de dados da equipe |
-| `src/components/dashboard/AppSidebar.tsx` | Editar — adicionar link no menu |
-| `src/App.tsx` | Editar — adicionar rota |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
