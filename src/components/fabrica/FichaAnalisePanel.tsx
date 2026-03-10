@@ -364,7 +364,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
               </div>
               <div className="p-3 bg-primary/10 rounded text-center border-2 border-primary">
                 <p className="text-xs text-muted-foreground">Custo Total</p>
-                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal || 0)}</p>
+                <p className="text-lg font-bold text-primary">{formatarMoeda(snapshotTotais.custoTotal ?? snapshotTotais.custoFinalTotal ?? 0)}</p>
               </div>
             </div>
 
@@ -376,7 +376,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                     <Link2 className="h-3.5 w-3.5" /> Produtos Vinculados
                   </p>
                   {produtosVinculados.map((v: any) => {
-                    const custoVinc = v.snapshot_totais?.custoTotal || 0;
+                    const custoVinc = v.snapshot_totais?.custoTotal ?? v.snapshot_totais?.custoFinalTotal ?? 0;
                     const vincInsumos = (v.snapshot_insumos || []) as any[];
                     const isVincExpanded = expandedVinculado === v.id;
                     return (
@@ -715,8 +715,9 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                         const totais = v.snapshot_totais || {};
                         const isCurrent = v.id === ficha.id;
                         const prevVersion = historicoVersoes.find((h: any) => h.versao === v.versao - 1);
-                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal;
-                        const variacaoTotal = prevTotal ? ((totais.custoTotal - prevTotal) / prevTotal * 100) : null;
+                        const prevTotal = prevVersion?.snapshot_totais?.custoTotal ?? prevVersion?.snapshot_totais?.custoFinalTotal;
+                        const curTotal = totais.custoTotal ?? totais.custoFinalTotal ?? 0;
+                        const variacaoTotal = prevTotal ? ((curTotal - prevTotal) / prevTotal * 100) : null;
                         return (
                           <div key={v.id} className={`p-3 border rounded-lg flex items-center justify-between ${isCurrent ? "border-primary bg-primary/5" : ""}`}>
                             <div>
@@ -733,7 +734,7 @@ export function FichaAnalisePanel({ ficha, processando, onAprovar, onSolicitarRe
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal || 0)}</p>
+                              <p className="font-bold text-sm">{formatarMoeda(totais.custoTotal ?? totais.custoFinalTotal ?? 0)}</p>
                               {variacaoTotal !== null && (
                                 <span className={`text-xs font-medium ${variacaoTotal > 0 ? "text-destructive" : "text-green-600"}`}>
                                   {variacaoTotal > 0 ? "+" : ""}{variacaoTotal.toFixed(1)}% vs v{v.versao - 1}

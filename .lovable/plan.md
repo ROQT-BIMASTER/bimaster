@@ -1,46 +1,56 @@
 
 
-## Corrigir inconsistência de custo entre Ficha e Listagem
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-### Problema identificado
+### O que muda
 
-O campo de custo na **listagem** busca `snapshot_totais.custoTotal`, mas quando a ficha é submetida pela página de Ficha de Custos, o objeto `totais` vem de `calcularCustosTotais()` que usa a chave **`custoFinalTotal`** — chave diferente. Resultado: a listagem não encontra o valor e mostra um valor antigo ou incorreto.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-Há dois caminhos de submissão:
-- **`useFichaRevisao.submeterParaAprovacao`** → salva `{ ...totais }` com chave `custoFinalTotal`
-- **`FichaAnalisePanel.calcularTotaisSimples`** → salva com chave `custoTotal`
+### Implementação
 
-### Solução
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-Normalizar em **2 pontos**:
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-**1. `src/hooks/useFichaRevisao.ts` — `submeterFichaUnica`** (linha ~173)
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-Ao montar o `snapshot_totais`, garantir que `custoTotal` sempre exista:
-```ts
-snapshot_totais: { 
-  ...totaisObj, 
-  custoTotal: totaisObj.custoTotal ?? totaisObj.custoFinalTotal ?? 0,
-  alteracoes_pendentes: alteracoesPendentes 
-}
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
 ```
 
-**2. `src/pages/FabricaProdutosAcabados.tsx` — `custoTotalMap`** (linha ~163)
-
-Ler com fallback:
-```ts
-const custo = totais?.custoTotal ?? totais?.custoFinalTotal;
-if (custo) map.set(r.produto_id, Number(custo));
-```
-
-Mesma correção aplicar em `FichaRevisaoDiretoria.tsx` (linha ~436) e `FichaAnalisePanel.tsx` onde lê `snapshot_totais.custoTotal`.
-
-### Arquivos a alterar
-
-| Arquivo | Alteração |
-|---|---|
-| `src/hooks/useFichaRevisao.ts` | Adicionar `custoTotal` ao snapshot |
-| `src/pages/FabricaProdutosAcabados.tsx` | Fallback `custoFinalTotal` |
-| `src/pages/FichaRevisaoDiretoria.tsx` | Fallback `custoFinalTotal` |
-| `src/components/fabrica/FichaAnalisePanel.tsx` | Fallback `custoFinalTotal` |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
