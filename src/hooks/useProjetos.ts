@@ -41,9 +41,10 @@ export function useProjetos() {
       if (!user) throw new Error("Não autenticado");
       
       const { template, ...projetoData } = projeto;
+      const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
-        .insert({ ...projetoData, criador_id: user.id })
+        .insert({ ...projetoData, criador_id: user.id, tipo })
         .select()
         .single();
       if (error) throw error;
