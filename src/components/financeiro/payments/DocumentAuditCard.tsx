@@ -27,7 +27,7 @@ const fieldLabels: Record<string, string> = {
 export function DocumentAuditCard({ item }: DocumentAuditCardProps) {
   const { audit, isAuditing, auditResult } = useDocumentAudit();
 
-  const attachmentUrl = item.attachment_url || (item.attachments && item.attachments.length > 0 ? item.attachments[0] : null);
+  const attachmentUrl = item.attachment_url || (item.attachments && item.attachments.length > 0 ? item.attachments[0].url : null);
 
   if (!attachmentUrl) return null;
 

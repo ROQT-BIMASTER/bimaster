@@ -726,6 +726,9 @@ serve(async (req) => {
       case "generate_report":
         result = await handleGenerateReport(params.eventId, authHeader);
         break;
+      case "audit_document":
+        result = await handleAuditDocument(params);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,
