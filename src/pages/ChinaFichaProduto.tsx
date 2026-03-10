@@ -3,8 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert
 } from "lucide-react";
+import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
+import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
+import { TAREFAS_POR_SECAO } from "@/hooks/useChinaProjeto";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -749,30 +752,96 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
   const navigate = useNavigate();
   const { data: projetos = [], isLoading } = useChinaProjetosVinculados(submissao?.id);
   const criarProjeto = useCriarProjetoChina();
+  const { auditProjeto, loading: auditing, result: auditResult, reset: resetAudit } = useAuditChinaVinculo();
+  const [pendingCreate, setPendingCreate] = useState(false);
 
   const handleCriar = async () => {
-    const projeto = await criarProjeto.mutateAsync({
-      id: submissao.id,
-      produto_codigo: submissao.produto_codigo,
-      produto_nome: submissao.produto_nome,
+    // Run AI audit first
+    setPendingCreate(true);
+    const secoes = Object.keys(TAREFAS_POR_SECAO);
+    const audit = await auditProjeto({
+      projeto: { nome: `Dev — ${submissao.produto_codigo}`, secoes },
+      submissao: {
+        produto_codigo: submissao.produto_codigo,
+        produto_nome: submissao.produto_nome,
+        status: submissao.status,
+        formula_codigo: submissao.formula_codigo,
+        ean_unidade: submissao.ean_unidade,
+        ean_display: submissao.ean_display,
+        ean_caixa_master: submissao.ean_caixa_master,
+        peso_liquido_g: submissao.peso_liquido_g,
+        peso_bruto_g: submissao.peso_bruto_g,
+        qty_total: submissao.qty_total,
+        observacoes_brasil: submissao.observacoes_brasil,
+        observacoes_china: submissao.observacoes_china,
+        numero_ordem: submissao.numero_ordem,
+        numero_item: submissao.numero_item,
+      },
     });
-    navigate(`/dashboard/projetos/${projeto.id}`);
+
+    // If low match, show warning but don't block
+    if (audit?.match === "baixo") {
+      toast.warning("IA identificou possível incompatibilidade — verifique os alertas antes de prosseguir.");
+      setPendingCreate(false);
+      return;
+    }
+
+    // Proceed with creation
+    await proceedCreate();
+  };
+
+  const proceedCreate = async () => {
+    try {
+      const projeto = await criarProjeto.mutateAsync({
+        id: submissao.id,
+        produto_codigo: submissao.produto_codigo,
+        produto_nome: submissao.produto_nome,
+      });
+      resetAudit();
+      setPendingCreate(false);
+      navigate(`/dashboard/projetos/${projeto.id}`);
+    } catch {
+      setPendingCreate(false);
+    }
+  };
+
+  const forceCreate = async () => {
+    resetAudit();
+    await proceedCreate();
   };
 
   return (
     <Card className="p-6 space-y-4">
       <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
 
+      {/* AI Audit result */}
+      {(auditing || auditResult) && (
+        <AuditChinaVinculoBadge result={auditResult} loading={auditing} />
+      )}
+
+      {/* If audit blocked creation, show force button */}
+      {auditResult?.match === "baixo" && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => resetAudit()}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" size="sm" onClick={forceCreate} disabled={criarProjeto.isPending} className="gap-2">
+            {criarProjeto.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+            Criar mesmo assim
+          </Button>
+        </div>
+      )}
+
       {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
 
-      {!isLoading && projetos.length === 0 && (
+      {!isLoading && projetos.length === 0 && !auditResult && (
         <div className="flex flex-col items-center py-6 text-center">
           <Briefcase className="h-10 w-10 text-muted-foreground/30 mb-2" />
           <p className="text-sm text-muted-foreground mb-3">
             Nenhum projeto vinculado. 没有关联项目。
           </p>
-          <Button onClick={handleCriar} disabled={criarProjeto.isPending} className="gap-2">
-            {criarProjeto.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+          <Button onClick={handleCriar} disabled={criarProjeto.isPending || auditing || pendingCreate} className="gap-2">
+            {(criarProjeto.isPending || auditing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
             Criar Projeto de Desenvolvimento 创建开发项目
           </Button>
         </div>
@@ -804,8 +873,8 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
               );
             })}
           </div>
-          <Button variant="outline" size="sm" onClick={handleCriar} disabled={criarProjeto.isPending} className="gap-2">
-            {criarProjeto.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+          <Button variant="outline" size="sm" onClick={handleCriar} disabled={criarProjeto.isPending || auditing} className="gap-2">
+            {(criarProjeto.isPending || auditing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
             Criar outro projeto 创建其他项目
           </Button>
         </div>

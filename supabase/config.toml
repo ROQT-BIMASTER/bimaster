@@ -21,6 +21,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.audit-briefing-tarefa]
     verify_jwt = false
+  [functions.audit-china-vinculo]
+    verify_jwt = false
   [functions.analyze-brand-website]
     verify_jwt = true
   [functions.analyze-competitor-photo]

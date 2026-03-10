@@ -1,35 +1,56 @@
 
 
-## Análise: Todas as funcionalidades estão implementadas corretamente
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-Após revisão detalhada do código, **a implementação da sincronização Brasil-China está completa e funcional**. Segue o que foi verificado:
+### O que muda
 
-### Verificações realizadas
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-| Item | Status | Detalhes |
-|---|---|---|
-| Hook `useProjetoChinaVinculo` | OK | Retorna status, total_docs, docs_aprovados da submissão China vinculada |
-| Hook `useChinaProjetoChecklist` | OK | Busca seções e tarefas do projeto vinculado, calcula progresso por seção |
-| Hook `useChinaTimeline` | OK | Mescla eventos da submissão China + atividades do projeto Brasil |
-| `ChinaProjetoChecklist` componente | OK | Renderiza checklist expandível com progresso por seção e barra geral |
-| `ChinaTimeline` componente | OK | Timeline vertical com ícones por tipo (China/Projeto/Documento) |
-| `ChinaProdutoWidget` componente | OK | Card compacto com status, docs e link para ficha China |
-| Integração em `ChinaFichaProduto` | OK | Checklist (só Brasil) + Timeline (todos) renderizados na ficha |
-| Integração em `ProjetoTarefaDetalhe` | OK | Widget China aparece quando projeto tem vínculo |
-| Tabelas no banco | OK | `china_submissao_projetos`, `china_produto_documentos`, `projeto_atividades`, `projeto_secoes` todas existem |
-| Badge variant `ghost` | OK | Existe no componente Badge |
-| Sem erros no console | OK | Nenhum erro registrado |
+### Implementação
 
-### Recomendação
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-A implementação está pronta para uso. Para validar na prática, o fluxo de teste seria:
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-1. **Criar uma submissão China** (Rascunho -> Enviado)
-2. **Criar projeto de desenvolvimento** a partir da submissão (botão "Criar Projeto")
-3. **Verificar na Ficha do Produto** que o Checklist Pré-Lançamento aparece com as seções e tarefas
-4. **Verificar a Timeline Unificada** com eventos de criação da submissão e documentos
-5. **Abrir o Projeto no lado Brasil** e verificar que o Widget "Produto China" aparece no detalhe de qualquer tarefa
-6. **Concluir tarefas no projeto Brasil** e verificar que o checklist na Ficha China atualiza o progresso
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-Não há bugs ou ajustes necessários no código atual.
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
+
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
+
+### Visual esperado
+
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
+
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 
