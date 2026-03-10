@@ -998,6 +998,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <SidebarMenu className="space-y-0.5 ps-2">
                   <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
                   <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+                  {(isAdmin || isGerente || isSupervisor) && (
+                    <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
