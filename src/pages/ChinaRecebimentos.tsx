@@ -58,6 +58,10 @@ export default function ChinaRecebimentos() {
         return false;
       }
     }
+    // Status query param filter (from dashboard cards)
+    if (statusFilter && sub.status !== statusFilter) {
+      return false;
+    }
     // Pending action filter (for China): rejected docs or rejeitado status
     if (filter === "pending_action") {
       return sub.status === "rejeitado" || (rejectedDocsMap as any)[sub.id] > 0;
