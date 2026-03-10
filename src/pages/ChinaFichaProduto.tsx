@@ -3,8 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert
 } from "lucide-react";
+import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
+import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
+import { TAREFAS_POR_SECAO } from "@/hooks/useChinaProjeto";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
