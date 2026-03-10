@@ -1,72 +1,47 @@
 
 
-## Projeto "BiMaster - Implantação do Sistema" com Documentação Completa
+## Regra de M.O./Markup para Displays com Produtos Importados do Kit
 
-### Objetivo
-Criar via SQL migration um projeto completo de acompanhamento da implantação do BiMaster, com seções por módulo/departamento, tarefas com percentuais de conclusão realistas baseados no código existente, e descrições detalhadas servindo como documentação e fluxogramas de cada função.
+### Problema Atual
+Quando um produto DISPLAY importa custos dos filhos via "Importar do Kit", o custo unitário do filho (`custoUnit`) **já inclui** M.O. NF, M.O. Serviço e Markup do produto filho (linhas 407-418 do hook). Porém, o Display ainda aplica **sua própria** M.O. e Markup por cima, gerando duplicidade.
 
-### Seções (Módulos do Sistema)
-Baseado na análise completa do codebase (`src/pages/`), o projeto terá **14 seções**:
+No caso do HB-573: o custo importado R$ 38,3779 já contém M.O. e Markup do filho, mas o kit ainda soma M.O. NF=0,05 + M.O. Serviço=0,85, inflando o custo.
 
-1. **Dashboard & Administração** — painel principal, aprovações, departamentos, LGPD
-2. **CRM / Prospects** — gestão de prospects, importação, reativação, lead mining, whitespace
-3. **Trade Marketing** — visitas, fotos, campanhas, sell-out, competidores, shelf, rewards
-4. **Fábrica** — ordens produção, fórmulas, qualidade, máquinas, operadores, planejamento
-5. **Financeiro** — contas pagar/receber, DRE, fluxo de caixa, saldos, plano de contas
-6. **Marketing & Redes Sociais** — mission control, nano banana, ElevenLabs
-7. **Estoque** — consolidado, distribuidoras, produtos master, saldos, vinculações
-8. **Projetos** — gestão tarefas, Kanban, Gantt, calendário, inbox, equipe, aprovações
-9. **China (Importação)** — submissões, ficha produto, recebimentos, ordens, cofre docs
-10. **Chat & Comunicação** — chat interno, WhatsApp monitoring, call history
-11. **Mapas & Geolocalização** — mapa comercial, municípios, intelligence IBGE
-12. **Eventos Corporativos** — eventos, dashboard, aprovações
-13. **Relatórios & Analytics** — relatórios, AI analytics, QA agent, auditoria
-14. **Infraestrutura & Segurança** — auth, PWA, API health, configurações, roles/RLS
+### Solução
 
-### Tarefas por Seção
-Cada seção terá **4-8 tarefas** representando funcionalidades-chave. Cada tarefa incluirá:
-- `titulo`: nome da funcionalidade
-- `descricao`: documentação detalhada com fluxograma em texto (inputs → processo → outputs, departamentos envolvidos, regras de negócio)
-- `status`: `concluida`, `em_andamento` ou `pendente` baseado no estado real do código
-- `prioridade`: `alta`, `media` ou `baixa`
+#### 1. Regra no cálculo de totais (`useFichaCustoProduto.ts`)
+No `useMemo` de `totais` (linha 157), quando o produto for DISPLAY e **todos** os insumos forem do tipo `importado_kit`, ignorar M.O. NF, M.O. Serviço e Markup do kit — pois já estão embutidos nos custos importados dos filhos.
 
-### Percentuais Estimados por Módulo
-| Módulo | Estimativa |
+Se houver insumos mistos (importado_kit + outros tipos como embalagem), aplicar M.O./Markup normalmente apenas sobre os insumos não-kit.
+
+#### 2. Auto-zero na importação (`importarCustosFilhos`)
+Após importar os filhos, se **todos** os filhos tinham M.O./Markup preenchidos, auto-zerar `custo_mao_obra_nf`, `custo_mao_obra_servico` e `percentual_markup` da config do Display e salvar, com toast explicativo.
+
+#### 3. Aviso visual no Editor (`FichaCustoProdutoEditor.tsx`)
+Na seção "Configuração", quando produto for DISPLAY e houver insumos `importado_kit`, exibir um alerta informativo:
+> "Para Displays com produtos importados do Kit, a M.O. e Markup já estão incluídos no custo de cada unidade. Valores de M.O. e Markup nesta configuração serão ignorados para insumos do Kit."
+
+#### 4. Correção dos dados existentes (SQL migration)
+Zerar M.O. e Markup em fichas de DISPLAY que possuem insumos `importado_kit` e cujos filhos já têm M.O./Markup configurados:
+
+```sql
+UPDATE fabrica_produto_custos_config SET
+  custo_mao_obra_nf = 0,
+  custo_mao_obra_servico = 0,
+  percentual_markup = 0
+WHERE produto_id IN (
+  SELECT DISTINCT pc.produto_id
+  FROM fabrica_produto_custos pc
+  JOIN fabrica_produtos p ON p.id = pc.produto_id
+  WHERE p.tipo = 'DISPLAY' AND pc.tipo_insumo = 'importado_kit'
+);
+```
+
+### Arquivos a Modificar
+
+| Arquivo | Alteração |
 |---|---|
-| Dashboard & Admin | 90% |
-| CRM / Prospects | 85% |
-| Trade Marketing | 90% |
-| Fábrica | 80% |
-| Financeiro | 75% |
-| Marketing | 60% |
-| Estoque | 70% |
-| Projetos | 95% |
-| China | 85% |
-| Chat & Comunicação | 70% |
-| Mapas | 80% |
-| Eventos | 75% |
-| Relatórios & Analytics | 65% |
-| Infraestrutura | 85% |
-
-### Implementação Técnica
-
-**Único arquivo**: Uma SQL migration que:
-1. Cria o projeto `BiMaster - Implantação do Sistema` vinculado ao admin (primeiro user da tabela `user_roles` com role admin)
-2. Insere as 14 seções com `ordem` sequencial
-3. Insere ~70 tarefas com `titulo`, `descricao` (documentação completa com fluxograma textual), `status`, `prioridade`
-4. Adiciona o admin como membro coordenador em `projeto_membros`
-
-A `descricao` de cada tarefa conterá:
-- **Visão Geral**: O que a funcionalidade faz
-- **Departamentos**: Quem usa
-- **Fluxo**: Passo-a-passo do processo (entrada → processamento → saída)
-- **Tabelas Envolvidas**: Referências ao banco
-- **Status Atual**: O que está implementado vs pendente
-
-### Arquivos a Criar/Modificar
-| Arquivo | Ação |
-|---|---|
-| `supabase/migrations/seed_projeto_implantacao.sql` | Migration com todo o conteúdo |
-
-Nenhuma alteração de código frontend necessária — o projeto aparecerá automaticamente na tela de Projetos para o admin.
+| `src/hooks/useFichaCustoProduto.ts` | Regra no cálculo de totais + auto-zero na importação |
+| `src/components/fabrica/FichaCustoProdutoEditor.tsx` | Alerta visual na configuração |
+| Migration SQL | Corrigir dados existentes |
 
