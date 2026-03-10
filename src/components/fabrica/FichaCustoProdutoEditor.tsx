@@ -75,6 +75,8 @@ interface Props {
   loadingFilhos?: boolean;
   onImportarCustosFilhos?: () => Promise<void>;
   onRecarregarCustosFilhos?: () => Promise<void>;
+  isDisplayComKit?: boolean;
+  todosInsumosKit?: boolean;
 }
 
 function DecimalInput({
