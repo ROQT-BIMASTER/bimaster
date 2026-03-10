@@ -319,6 +319,18 @@ export default function ChinaRecebimentos() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Emitir OC Dialog */}
+      {selected && (
+        <EmitirOCDialog
+          open={ocDialogOpen}
+          onOpenChange={setOcDialogOpen}
+          submissao={selected}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["china-submissoes"] });
+          }}
+        />
+      )}
     </div>
   );
 }

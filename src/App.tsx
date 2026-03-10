@@ -409,6 +409,8 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ChinaFabrica /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
             <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ChinaRecebimentos /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ChinaOrdens /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ChinaOrdemDetalhe /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
