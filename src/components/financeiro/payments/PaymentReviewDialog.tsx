@@ -31,6 +31,7 @@ import { usePaymentMessages } from "@/hooks/usePaymentMessages";
 import { PasswordConfirmDialog } from "@/components/dre/PasswordConfirmDialog";
 import { PaymentBankPrintSummary } from "./PaymentBankPrintSummary";
 import { QuickDueDateChange } from "./QuickDueDateChange";
+import { DocumentAuditCard } from "./DocumentAuditCard";
 
 interface PaymentReviewDialogProps {
   open: boolean;
@@ -577,6 +578,11 @@ export function PaymentReviewDialog({
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Document Audit - AI cross-reference */}
+          {(item.attachment_url || (item.attachments && item.attachments.length > 0)) && (
+            <DocumentAuditCard item={item} />
           )}
 
           {/* Receipt Upload Section - for accepted/paid payments */}
