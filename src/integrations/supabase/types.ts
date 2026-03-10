@@ -15024,6 +15024,47 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_documentos: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome_arquivo: string
+          tamanho: number | null
+          tarefa_id: string
+          tipo_arquivo: string | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo: string
+          tamanho?: number | null
+          tarefa_id: string
+          tipo_arquivo?: string | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome_arquivo?: string
+          tamanho?: number | null
+          tarefa_id?: string
+          tipo_arquivo?: string | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_documentos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_messages: {
         Row: {
           conteudo: string

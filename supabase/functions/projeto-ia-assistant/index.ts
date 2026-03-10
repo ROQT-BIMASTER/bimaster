@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const ALLOWED_ORIGIN = "https://bimaster.lovable.app";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -13,7 +11,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function callAI(
-  messages: { role: string; content: string }[],
+  messages: { role: string; content: string | unknown[] }[],
   tools?: unknown[],
   toolChoice?: unknown,
   model = "google/gemini-3-flash-preview"
@@ -50,64 +48,88 @@ function getSupabaseAdmin() {
   );
 }
 
+// ─── TOOL SCHEMAS ───
+const TASK_SCHEMA = {
+  type: "object",
+  properties: {
+    titulo: { type: "string", description: "Título conciso da tarefa" },
+    descricao: { type: "string", description: "Descrição detalhada" },
+    secao_id: { type: "string", description: "ID da seção existente, ou vazio se nova seção" },
+    secao_nome: { type: "string", description: "Nome da seção (para novas seções ou referência)" },
+    prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
+    estagio: { type: "string", enum: ["briefing", "em_criacao", "revisao", "aprovado", "producao", "lancamento"] },
+    data_prazo: { type: "string", description: "Data prazo YYYY-MM-DD" },
+    produto_mencionado: { type: "string", description: "Nome do produto mencionado, se houver" },
+  },
+  required: ["titulo", "prioridade"],
+  additionalProperties: false,
+};
+
+const SECAO_SCHEMA = {
+  type: "object",
+  properties: {
+    nome: { type: "string", description: "Nome da seção" },
+  },
+  required: ["nome"],
+  additionalProperties: false,
+};
+
+function buildToolSchema(createType: string) {
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+
+  if (createType === "secoes" || createType === "ambos") {
+    properties.secoes = { type: "array", items: SECAO_SCHEMA };
+    required.push("secoes");
+  }
+  if (createType === "tarefas" || createType === "ambos") {
+    properties.tasks = { type: "array", items: TASK_SCHEMA };
+    required.push("tasks");
+  }
+
+  return [{
+    type: "function",
+    function: {
+      name: "create_items",
+      description: "Cria seções e/ou tarefas estruturadas a partir da descrição ou arquivo.",
+      parameters: {
+        type: "object",
+        properties,
+        required,
+        additionalProperties: false,
+      },
+    },
+  }];
+}
+
 // ─── ACTION: create_tasks ───
 async function handleCreateTasks(
   prompt: string,
   projetoId: string,
   secoes: { id: string; nome: string }[],
-  authHeader: string
+  createType = "tarefas"
 ) {
   const secoesStr = secoes.map(s => `- ${s.nome} (id: ${s.id})`).join("\n");
 
   const systemPrompt = `Você é um assistente de projetos de lançamento de produtos (cosméticos/higiene). 
-O usuário vai descrever tarefas em linguagem natural. Você deve criar tarefas estruturadas.
+O usuário vai descrever o que precisa. Você deve criar ${createType === "secoes" ? "seções" : createType === "ambos" ? "seções e tarefas" : "tarefas"} estruturadas.
 
-Seções disponíveis no projeto:
+Seções existentes no projeto:
 ${secoesStr}
 
 Estágios disponíveis: briefing, em_criacao, revisao, aprovado, producao, lancamento
 Prioridades: baixa, media, alta
 
 Regras:
-- Crie entre 1 e 10 tarefas
-- Escolha a seção mais adequada para cada tarefa
+${createType !== "secoes" ? `- Crie entre 1 e 10 tarefas
+- Use secao_id para seções existentes. Se sugerir nova seção, deixe secao_id vazio e preencha secao_nome
 - Sugira prazos realistas (formato YYYY-MM-DD) a partir da data atual
 - Se o usuário mencionar um produto, inclua o nome no campo produto_mencionado
-- Títulos devem ser concisos e acionáveis`;
+- Títulos devem ser concisos e acionáveis` : ""}
+${createType !== "tarefas" ? `- Sugira seções que organizem logicamente o trabalho
+- Nomes de seção devem ser curtos e descritivos` : ""}`;
 
-  const tools = [
-    {
-      type: "function",
-      function: {
-        name: "create_tasks",
-        description: "Cria múltiplas tarefas estruturadas a partir da descrição do usuário.",
-        parameters: {
-          type: "object",
-          properties: {
-            tasks: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  titulo: { type: "string", description: "Título conciso da tarefa" },
-                  descricao: { type: "string", description: "Descrição detalhada" },
-                  secao_id: { type: "string", description: "ID da seção" },
-                  prioridade: { type: "string", enum: ["baixa", "media", "alta"] },
-                  estagio: { type: "string", enum: ["briefing", "em_criacao", "revisao", "aprovado", "producao", "lancamento"] },
-                  data_prazo: { type: "string", description: "Data prazo YYYY-MM-DD" },
-                  produto_mencionado: { type: "string", description: "Nome do produto mencionado, se houver" },
-                },
-                required: ["titulo", "secao_id", "prioridade"],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ["tasks"],
-          additionalProperties: false,
-        },
-      },
-    },
-  ];
+  const tools = buildToolSchema(createType);
 
   const result = await callAI(
     [
@@ -115,14 +137,82 @@ Regras:
       { role: "user", content: prompt },
     ],
     tools,
-    { type: "function", function: { name: "create_tasks" } }
+    { type: "function", function: { name: "create_items" } }
   );
 
   const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("IA não retornou tarefas");
+  if (!toolCall) throw new Error("IA não retornou resultados");
 
   const parsed = JSON.parse(toolCall.function.arguments);
-  return { tasks: parsed.tasks };
+  return {
+    secoes: parsed.secoes || [],
+    tasks: parsed.tasks || [],
+  };
+}
+
+// ─── ACTION: create_from_file ───
+async function handleCreateFromFile(
+  fileContent: string,
+  fileType: string,
+  createType: string,
+  projetoId: string,
+  secoes: { id: string; nome: string }[],
+  prompt?: string
+) {
+  const secoesStr = secoes.map(s => `- ${s.nome} (id: ${s.id})`).join("\n");
+
+  const systemPrompt = `Você é um assistente de projetos de lançamento de produtos (cosméticos/higiene).
+O usuário enviou um arquivo (${fileType}) para que você interprete e crie ${createType === "secoes" ? "seções" : createType === "ambos" ? "seções e tarefas" : "tarefas"} estruturadas.
+
+Seções existentes no projeto:
+${secoesStr}
+
+Estágios disponíveis: briefing, em_criacao, revisao, aprovado, producao, lancamento
+Prioridades: baixa, media, alta
+
+Regras:
+${createType !== "secoes" ? `- Crie tarefas baseadas no conteúdo do arquivo
+- Use secao_id para seções existentes. Se sugerir nova seção, deixe secao_id vazio e preencha secao_nome
+- Sugira prazos realistas (formato YYYY-MM-DD)
+- Se encontrar produtos mencionados, inclua no campo produto_mencionado
+- Títulos devem ser concisos e acionáveis` : ""}
+${createType !== "tarefas" ? `- Sugira seções que organizem logicamente o conteúdo do arquivo
+- Nomes de seção devem ser curtos e descritivos` : ""}
+${prompt ? `\nInstrução adicional do usuário: ${prompt}` : ""}`;
+
+  const tools = buildToolSchema(createType);
+
+  // Build message content - use multimodal if image
+  const isImage = ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(fileType);
+
+  let userContent: string | unknown[];
+  if (isImage) {
+    userContent = [
+      { type: "text", text: "Analise esta imagem e crie itens estruturados baseados no conteúdo:" },
+      { type: "image_url", image_url: { url: `data:${fileType};base64,${fileContent}` } },
+    ];
+  } else {
+    userContent = `Analise o conteúdo deste arquivo e crie itens estruturados:\n\n${fileContent}`;
+  }
+
+  const result = await callAI(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userContent },
+    ],
+    tools,
+    { type: "function", function: { name: "create_items" } },
+    "google/gemini-2.5-flash"
+  );
+
+  const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("IA não conseguiu interpretar o arquivo");
+
+  const parsed = JSON.parse(toolCall.function.arguments);
+  return {
+    secoes: parsed.secoes || [],
+    tasks: parsed.tasks || [],
+  };
 }
 
 // ─── ACTION: suggest_fields ───
@@ -355,7 +445,13 @@ serve(async (req) => {
 
     switch (action) {
       case "create_tasks":
-        result = await handleCreateTasks(params.prompt, params.projetoId, params.secoes, req.headers.get("authorization") || "");
+        result = await handleCreateTasks(params.prompt, params.projetoId, params.secoes, params.createType || "tarefas");
+        break;
+      case "create_from_file":
+        result = await handleCreateFromFile(
+          params.fileContent, params.fileType, params.createType || "ambos",
+          params.projetoId, params.secoes, params.prompt
+        );
         break;
       case "suggest_fields":
         result = await handleSuggestFields(params.titulo, params.descricao, params.projetoNome, params.secaoNome);

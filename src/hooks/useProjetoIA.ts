@@ -2,16 +2,24 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface CreateTasksResult {
-  tasks: {
-    titulo: string;
-    descricao?: string;
-    secao_id: string;
-    prioridade: string;
-    estagio?: string;
-    data_prazo?: string;
-    produto_mencionado?: string;
-  }[];
+interface AITask {
+  titulo: string;
+  descricao?: string;
+  secao_id?: string;
+  secao_nome?: string;
+  prioridade: string;
+  estagio?: string;
+  data_prazo?: string;
+  produto_mencionado?: string;
+}
+
+interface AISecao {
+  nome: string;
+}
+
+interface CreateResult {
+  secoes: AISecao[];
+  tasks: AITask[];
 }
 
 interface SuggestFieldsResult {
@@ -64,18 +72,47 @@ export function useProjetoIA() {
   const createTasksWithAI = async (
     prompt: string,
     projetoId: string,
-    secoes: { id: string; nome: string }[]
-  ): Promise<CreateTasksResult> => {
+    secoes: { id: string; nome: string }[],
+    createType = "tarefas"
+  ): Promise<CreateResult> => {
     setLoading("create_tasks");
     try {
-      const result = await callProjetoIA<CreateTasksResult>("create_tasks", {
+      const result = await callProjetoIA<CreateResult>("create_tasks", {
         prompt,
         projetoId,
         secoes,
+        createType,
       });
-      return result;
+      return { secoes: result.secoes || [], tasks: result.tasks || [] };
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar tarefas com IA");
+      toast.error(err.message || "Erro ao criar com IA");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const createFromFile = async (
+    fileContent: string,
+    fileType: string,
+    projetoId: string,
+    secoes: { id: string; nome: string }[],
+    createType = "ambos",
+    prompt?: string
+  ): Promise<CreateResult> => {
+    setLoading("create_from_file");
+    try {
+      const result = await callProjetoIA<CreateResult>("create_from_file", {
+        fileContent,
+        fileType,
+        createType,
+        projetoId,
+        secoes,
+        prompt,
+      });
+      return { secoes: result.secoes || [], tasks: result.tasks || [] };
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao interpretar arquivo");
       throw err;
     } finally {
       setLoading(null);
@@ -90,13 +127,9 @@ export function useProjetoIA() {
   ): Promise<SuggestFieldsResult> => {
     setLoading("suggest_fields");
     try {
-      const result = await callProjetoIA<SuggestFieldsResult>("suggest_fields", {
-        titulo,
-        descricao,
-        projetoNome,
-        secaoNome,
+      return await callProjetoIA<SuggestFieldsResult>("suggest_fields", {
+        titulo, descricao, projetoNome, secaoNome,
       });
-      return result;
     } catch (err: any) {
       toast.error(err.message || "Erro ao sugerir preenchimento");
       throw err;
@@ -112,12 +145,9 @@ export function useProjetoIA() {
   ): Promise<ChecklistResult> => {
     setLoading("generate_checklist");
     try {
-      const result = await callProjetoIA<ChecklistResult>("generate_checklist", {
-        titulo,
-        descricao,
-        estagio,
+      return await callProjetoIA<ChecklistResult>("generate_checklist", {
+        titulo, descricao, estagio,
       });
-      return result;
     } catch (err: any) {
       toast.error(err.message || "Erro ao gerar checklist");
       throw err;
@@ -129,10 +159,7 @@ export function useProjetoIA() {
   const getProjectSummary = async (projetoId: string): Promise<ProjectSummaryResult> => {
     setLoading("project_summary");
     try {
-      const result = await callProjetoIA<ProjectSummaryResult>("project_summary", {
-        projetoId,
-      });
-      return result;
+      return await callProjetoIA<ProjectSummaryResult>("project_summary", { projetoId });
     } catch (err: any) {
       toast.error(err.message || "Erro ao gerar resumo");
       throw err;
@@ -147,11 +174,9 @@ export function useProjetoIA() {
   ): Promise<ClassifyDocumentResult> => {
     setLoading("classify_document");
     try {
-      const result = await callProjetoIA<ClassifyDocumentResult>("classify_document", {
-        fileName,
-        tipoArquivo,
+      return await callProjetoIA<ClassifyDocumentResult>("classify_document", {
+        fileName, tipoArquivo,
       });
-      return result;
     } catch (err: any) {
       toast.error(err.message || "Erro ao classificar documento");
       throw err;
@@ -163,6 +188,7 @@ export function useProjetoIA() {
   return {
     loading,
     createTasksWithAI,
+    createFromFile,
     suggestFields,
     generateChecklist,
     getProjectSummary,
