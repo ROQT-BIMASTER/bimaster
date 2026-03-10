@@ -66,10 +66,13 @@ export function ChinaDataValidationDialog({
   initialData,
   onConfirm,
   mode = "new",
+  showPhotoUpload = true,
 }: ChinaDataValidationDialogProps) {
   const [data, setData] = useState<ValidationData>({ ...initialData });
   const [cores, setCores] = useState<ColorEntry[]>(initialData.cores?.length ? [...initialData.cores] : []);
   const [accepted, setAccepted] = useState(false);
+  const [photos, setPhotos] = useState<Record<string, File[]>>({});
+  const [photoPreviews, setPhotoPreviews] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (open) {
