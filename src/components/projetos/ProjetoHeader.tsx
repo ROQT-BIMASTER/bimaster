@@ -51,7 +51,7 @@ export function ProjetoHeader({
   const [resumoOpen, setResumoOpen] = useState(false);
   const [membrosOpen, setMembrosOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-
+  const [lixeiraOpen, setLixeiraOpen] = useState(false);
   return (
     <div className="space-y-4">
       {/* Project title */}
