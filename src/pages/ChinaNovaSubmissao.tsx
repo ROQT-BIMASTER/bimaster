@@ -137,6 +137,26 @@ export default function ChinaNovaSubmissao() {
         setPendingSourceFile(null);
       }
 
+      // Upload photo files from validation dialog
+      if (photoFiles && Object.keys(photoFiles).length > 0) {
+        const subId = (sub as any).id;
+        for (const [tipo, files] of Object.entries(photoFiles)) {
+          for (const file of files) {
+            const path = `${subId}/${tipo}/${file.name}`;
+            const { signedUrl: photoUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
+            await supabase.from("china_produto_documentos" as any).insert({
+              submissao_id: subId,
+              tipo_documento: tipo,
+              arquivo_url: photoUrl,
+              arquivo_path: path,
+              nome_arquivo: file.name,
+              status: "pendente",
+            } as any);
+            setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: file.name, status: "pendente" as const }] }));
+          }
+        }
+      }
+
       setPendingAiData(null);
       toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
     } catch (err: any) {
