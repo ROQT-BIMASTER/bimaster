@@ -580,6 +580,11 @@ export function PaymentReviewDialog({
             </Card>
           )}
 
+          {/* Document Audit - AI cross-reference */}
+          {(item.attachment_url || (item.attachments && item.attachments.length > 0)) && (
+            <DocumentAuditCard item={item} />
+          )}
+
           {/* Receipt Upload Section - for accepted/paid payments */}
           {showReceiptSection && (
             <ReceiptUploadSection
