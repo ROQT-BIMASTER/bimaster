@@ -31,11 +31,14 @@ export function useProjetosTeamData() {
       // 1. Get team member IDs based on hierarchy
       let memberIds: string[] = [];
 
+      const DEPT_PROJETOS_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+
       if (isAdmin) {
         const { data: allProfiles } = await supabase
           .from("profiles")
           .select("id")
-          .eq("aprovado", true);
+          .eq("aprovado", true)
+          .eq("departamento_id", DEPT_PROJETOS_ID);
         memberIds = allProfiles?.map((p) => p.id) || [];
       } else if (isGerente || isSupervisor) {
         const { data: subordinados } = await supabase.rpc("get_subordinados", {
