@@ -51,6 +51,9 @@ export default function ChinaNovaSubmissao() {
     numero_ordem: "",
     qty_total: "",
   });
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [pendingAiData, setPendingAiData] = useState<any>(null);
+  const [pendingSourceFile, setPendingSourceFile] = useState<{ file: File; type: string } | null>(null);
 
   // Process AI response (shared between Excel and image)
   const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
