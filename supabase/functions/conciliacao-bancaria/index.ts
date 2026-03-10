@@ -80,15 +80,10 @@ async function handleSyncTransactions(
     .select()
     .single();
 
-  const apiKey = await getPluggyApiKey();
+  const pluggy = getPluggyClient();
 
   // Fetch accounts for this item
-  const accountsRes = await fetch(
-    `${PLUGGY_BASE_URL}/accounts?itemId=${conn.pluggy_item_id}`,
-    { headers: { "X-API-KEY": apiKey } }
-  );
-  if (!accountsRes.ok) throw new Error(`Fetch accounts failed: ${await accountsRes.text()}`);
-  const accountsData = await accountsRes.json();
+  const accountsData = await pluggy.fetchAccounts(conn.pluggy_item_id);
 
   let allTransactions: any[] = [];
 
@@ -96,21 +91,14 @@ async function handleSyncTransactions(
     let page = 1;
     let hasMore = true;
     while (hasMore) {
-      const params = new URLSearchParams({
-        accountId: account.id,
-        page: String(page),
-        pageSize: "500",
+      const txData = await pluggy.fetchTransactions(account.id, {
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        page,
+        pageSize: 500,
       });
-      if (dateFrom) params.set("from", dateFrom);
-      if (dateTo) params.set("to", dateTo);
-
-      const txRes = await fetch(`${PLUGGY_BASE_URL}/transactions?${params}`, {
-        headers: { "X-API-KEY": apiKey },
-      });
-      if (!txRes.ok) break;
-      const txData = await txRes.json();
       allTransactions = allTransactions.concat(txData.results || []);
-      hasMore = txData.results?.length === 500;
+      hasMore = (txData.results?.length || 0) === 500;
       page++;
     }
   }
