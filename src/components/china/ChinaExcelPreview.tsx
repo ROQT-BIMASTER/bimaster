@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BilingualLabel } from "./BilingualLabel";
-import { Package, Palette, FlaskConical, Scale } from "lucide-react";
+import { ChinaDataValidationDialog, usePasswordProtectedEdit } from "./ChinaDataValidationDialog";
+import { Package, Palette, FlaskConical, Scale, Lock } from "lucide-react";
 
 interface ExcelData {
   produto_codigo?: string;
@@ -16,10 +21,25 @@ interface ExcelData {
 
 interface ChinaExcelPreviewProps {
   data: ExcelData;
+  editable?: boolean;
+  onUpdate?: (data: ExcelData) => void;
 }
 
-export function ChinaExcelPreview({ data }: ChinaExcelPreviewProps) {
+export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExcelPreviewProps) {
+  const { showPasswordPrompt, setShowPasswordPrompt, password, setPassword, requestEdit, validatePassword } = usePasswordProtectedEdit();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handlePasswordSuccess = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleEditConfirm = (updatedData: ExcelData) => {
+    onUpdate?.(updatedData);
+    setEditDialogOpen(false);
+  };
+
   return (
+    <>
     <div className="space-y-4">
       {/* Product Info */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -91,7 +111,46 @@ export function ChinaExcelPreview({ data }: ChinaExcelPreviewProps) {
           )}
         </div>
       )}
+
+      {/* Edit button */}
+      {editable && (
+        <div className="flex justify-end pt-2">
+          <Button type="button" variant="outline" size="sm" onClick={requestEdit} className="gap-2">
+            <Lock className="h-3 w-3" /> Editar (Senha) 编辑（密码）
+          </Button>
+        </div>
+      )}
     </div>
+
+    {/* Password prompt dialog */}
+    <Dialog open={showPasswordPrompt} onOpenChange={setShowPasswordPrompt}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Senha de Edição 编辑密码</DialogTitle>
+        </DialogHeader>
+        <Input
+          type="password"
+          placeholder="Digite a senha 输入密码"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && validatePassword(handlePasswordSuccess)}
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowPasswordPrompt(false)}>Cancelar</Button>
+          <Button onClick={() => validatePassword(handlePasswordSuccess)}>Confirmar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Edit validation dialog */}
+    <ChinaDataValidationDialog
+      open={editDialogOpen}
+      onOpenChange={setEditDialogOpen}
+      initialData={data}
+      onConfirm={handleEditConfirm}
+      mode="edit"
+    />
+    </>
   );
 }
 

@@ -10,6 +10,7 @@ import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
+import { ChinaDataValidationDialog } from "@/components/china/ChinaDataValidationDialog";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib/china-document-types";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
@@ -50,77 +51,99 @@ export default function ChinaNovaSubmissao() {
     numero_ordem: "",
     qty_total: "",
   });
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [pendingAiData, setPendingAiData] = useState<any>(null);
+  const [pendingSourceFile, setPendingSourceFile] = useState<{ file: File; type: string } | null>(null);
 
-  // Process AI response (shared between Excel and image)
+  // Process AI response - now opens validation dialog instead of saving immediately
   const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
     if (data.error) {
       toast.error(data.error);
       return;
     }
 
-    setParsedData(data);
+    // Store AI data and open validation dialog
+    setPendingAiData(data);
     setAiExtracted(!!data._ai_extracted);
-
-    // Pre-fill weights
-    if (data.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(data.peso_bruto_g) }));
-    if (data.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(data.peso_liquido_g) }));
-
-    // Create submission record
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
-
-    const { data: sub, error } = await supabase
-      .from("china_produto_submissoes" as any)
-      .insert({
-        produto_codigo: data.produto_codigo || "UNKNOWN",
-        produto_nome: data.produto_nome || "UNKNOWN",
-        numero_item: data.numero_item || null,
-        numero_ordem: data.numero_ordem || null,
-        formula_codigo: data.formula_codigo || null,
-        qty_total: data.qty_total || null,
-        peso_bruto_g: data.peso_bruto_g || null,
-        peso_liquido_g: data.peso_liquido_g || null,
-        dados_excel: data,
-        created_by: session.user.id,
-        status: "rascunho",
-      } as any)
-      .select("id")
-      .single();
-
-    if (error) throw error;
-    setSubmissaoId((sub as any).id);
-
-    // Populate grade items
-    if (data.cores?.length > 0) {
-      const parsed: GradeItem[] = data.cores.map((c: any) => ({
-        id: crypto.randomUUID(),
-        cor_nome: c.cor_nome || "",
-        cor_hex: "",
-        cor_numero: "",
-        codigo_produto: "",
-        codigo_barras_ean: "",
-        quantidade: c.quantidade || 0,
-        grupo: c.grupo || "A",
-      }));
-      setGradeItems(parsed);
+    if (sourceFile && sourceType) {
+      setPendingSourceFile({ file: sourceFile, type: sourceType });
     }
-
-    // Upload source file as document
-    if (sourceFile) {
-      const tipo = sourceType || "planilha_excel";
-      const path = `${(sub as any).id}/${tipo}/${sourceFile.name}`;
-      const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, sourceFile);
-      await supabase.from("china_produto_documentos" as any).insert({
-        submissao_id: (sub as any).id,
-        tipo_documento: tipo,
-        arquivo_url: signedUrl,
-        arquivo_path: path,
-        nome_arquivo: sourceFile.name,
-        status: "pendente",
-      } as any);
-      setDocs(d => ({ ...d, [tipo]: [...(d[tipo] || []), { fileName: sourceFile.name, status: "pendente" as const }] }));
-    }
+    setValidationOpen(true);
   }, []);
+
+  // Called when user confirms data in validation dialog
+  const handleValidationConfirm = useCallback(async (validatedData: any) => {
+    try {
+      // Pre-fill weights
+      if (validatedData.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(validatedData.peso_bruto_g) }));
+      if (validatedData.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(validatedData.peso_liquido_g) }));
+
+      setParsedData(validatedData);
+
+      // Create submission record with validated data
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data: sub, error } = await supabase
+        .from("china_produto_submissoes" as any)
+        .insert({
+          produto_codigo: validatedData.produto_codigo || "UNKNOWN",
+          produto_nome: validatedData.produto_nome || "UNKNOWN",
+          numero_item: validatedData.numero_item || null,
+          numero_ordem: validatedData.numero_ordem || null,
+          formula_codigo: validatedData.formula_codigo || null,
+          qty_total: validatedData.qty_total || null,
+          peso_bruto_g: validatedData.peso_bruto_g || null,
+          peso_liquido_g: validatedData.peso_liquido_g || null,
+          dados_excel: validatedData,
+          created_by: session.user.id,
+          status: "rascunho",
+        } as any)
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      setSubmissaoId((sub as any).id);
+
+      // Populate grade items from validated cores
+      if (validatedData.cores?.length > 0) {
+        const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
+          id: crypto.randomUUID(),
+          cor_nome: c.cor_nome || "",
+          cor_hex: c.cor_hex || "",
+          cor_numero: "",
+          codigo_produto: "",
+          codigo_barras_ean: "",
+          quantidade: c.quantidade || 0,
+          grupo: c.grupo || "A",
+        }));
+        setGradeItems(parsed);
+      }
+
+      // Upload source file as document
+      if (pendingSourceFile) {
+        const { file, type } = pendingSourceFile;
+        const path = `${(sub as any).id}/${type}/${file.name}`;
+        const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
+        await supabase.from("china_produto_documentos" as any).insert({
+          submissao_id: (sub as any).id,
+          tipo_documento: type,
+          arquivo_url: signedUrl,
+          arquivo_path: path,
+          nome_arquivo: file.name,
+          status: "pendente",
+        } as any);
+        setDocs(d => ({ ...d, [type]: [...(d[type] || []), { fileName: file.name, status: "pendente" as const }] }));
+        setPendingSourceFile(null);
+      }
+
+      setPendingAiData(null);
+      toast.success("✅ Dados validados e salvos! 数据已验证并保存！");
+    } catch (err: any) {
+      console.error("Validation confirm error:", err);
+      toast.error(err.message || "Erro ao salvar dados validados");
+    }
+  }, [pendingSourceFile]);
 
   // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -736,6 +759,20 @@ export default function ChinaNovaSubmissao() {
               </Button>
             </div>
           </Card>
+        )}
+
+        {/* Validation Dialog */}
+        {pendingAiData && (
+          <ChinaDataValidationDialog
+            open={validationOpen}
+            onOpenChange={(open) => {
+              setValidationOpen(open);
+              if (!open) setPendingAiData(null);
+            }}
+            initialData={pendingAiData}
+            onConfirm={handleValidationConfirm}
+            mode="new"
+          />
         )}
       </div>
     </div>
