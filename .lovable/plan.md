@@ -1,47 +1,56 @@
 
 
-# IA para Entender Planilhas e Fotos — China Excel Parser
+## Plano: Mostrar documentos do Cofre vinculados a cada etapa do Checklist Pré-Lançamento
 
-## Problema
+### O que muda
 
-A edge function `parse-china-excel` usa parsing rígido com posições fixas de colunas e padrões hardcoded (ex: "HB-", "COLORS /G1"). Qualquer variação no formato da planilha quebra a extração. Não há suporte para fotos/imagens.
+Na seção "Checklist Pré-Lançamento" do `ProductLaunchPanel`, cada etapa passará a ser expandível. Ao clicar, mostra os documentos do cofre (`cofreDocs`) que pertencem àquela categoria.
 
-## Solução
+### Implementação
 
-Substituir o parser rígido por uma abordagem **IA-first**: a edge function extrai os dados brutos do Excel (todas as linhas/colunas) e envia ao Lovable AI (Gemini) para interpretar o conteúdo de forma inteligente. Além disso, adicionar suporte para upload de **foto/imagem** do produto (print de tela, etiqueta, etc.) que a IA também analisa.
+**Arquivo**: `src/components/projetos/ProductLaunchPanel.tsx`
 
-### 1. Reescrever `supabase/functions/parse-china-excel/index.ts`
+1. **Alterar `ChecklistItem`** para incluir os documentos correspondentes:
+   ```ts
+   interface ChecklistItem {
+     key: string;
+     label: string;
+     icon: ReactNode;
+     done: boolean;
+     docs: any[]; // documentos do cofre com essa categoria
+   }
+   ```
 
-**Fluxo novo:**
-1. Recebe arquivo Excel OU imagem (ou ambos) via FormData
-2. Se Excel: lê com SheetJS, converte todas as linhas para texto tabular
-3. Envia o texto (e/ou imagem base64) ao Lovable AI Gateway com um prompt estruturado
-4. IA retorna JSON com: `produto_codigo`, `produto_nome`, `numero_item`, `numero_ordem`, `formula_codigo`, `qty_total`, `peso_bruto_g`, `peso_liquido_g`, `cores[]`
-5. Retorna o JSON parseado ao frontend
+2. **No `useMemo` do checklist** (linha ~156), associar os documentos filtrados por categoria a cada item:
+   ```ts
+   docs: cofreDocs.filter((d: any) => d.categoria === item.key)
+   ```
 
-**Prompt do sistema:** Instruções específicas para extrair dados de planilhas de produção China (fórmulas, cores por grupo, quantidades, pesos). A IA interpreta qualquer formato de planilha, não depende de posições fixas.
+3. **Adicionar estado `expandedChecklist`** (`string | null`) para controlar qual item está expandido.
 
-**Modelo:** `google/gemini-2.5-flash` (rápido, bom com tabelas) para Excel; `google/gemini-2.5-pro` para imagens.
+4. **Na renderização de cada item** (linhas ~418-433):
+   - Tornar a linha clicável (quando `item.docs.length > 0`)
+   - Adicionar badge com contagem de documentos
+   - Adicionar chevron indicando expansão
+   - Quando expandido, mostrar sub-lista com:
+     - Nome do arquivo (`nome_arquivo`)
+     - Status do documento (badge: ativo/aprovado)
+     - Data de envio formatada
+     - Ícone `FileText` para cada documento
 
-### 2. Atualizar `src/pages/ChinaNovaSubmissao.tsx`
+### Visual esperado
 
-- Adicionar opção de upload de **imagem** além do Excel (botão separado ou toggle)
-- Quando imagem é enviada, converte para base64 e envia junto no FormData
-- Mostrar badge "🤖 IA" nos campos preenchidos automaticamente
-- Manter preview dos dados extraídos com opção de edição manual
+```text
+✅ Briefing              [2 docs] ▼
+   📄 Briefing_Produto_X.pdf    ativo   12/03
+   📄 Briefing_v2.pdf           aprovado 14/03
+○  Arte Final                   
+✅ Rótulo                [1 doc]  ▶
+○  Ficha Técnica
+```
 
-### 3. Tratamento de erros
-
-- 429 (rate limit) → toast "Limite excedido, tente novamente"
-- 402 (créditos) → toast "Créditos esgotados"
-- Parse falho → fallback mostrando raw_rows para preenchimento manual
-
----
-
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `supabase/functions/parse-china-excel/index.ts` | **Reescrever**: IA-powered parser com suporte a Excel + imagem |
-| `src/pages/ChinaNovaSubmissao.tsx` | **Editar**: adicionar upload de imagem, badge IA, fallback manual |
+### Escopo
+- Apenas 1 arquivo editado: `ProductLaunchPanel.tsx`
+- Sem mudanças no banco de dados
+- Usa dados já disponíveis em `cofreDocs`
 

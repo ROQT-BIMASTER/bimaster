@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale } from "lucide-react";
+import { ArrowLeft, Upload, FileSpreadsheet, Check, Loader2, ChevronRight, Scale, ImageIcon, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
@@ -15,7 +16,7 @@ import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
 
 const STEPS = [
-  { labelPt: "Planilha", labelCn: "表格", icon: FileSpreadsheet },
+  { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
   { labelPt: "Documentos", labelCn: "文件", icon: Upload },
   { labelPt: "Pesos e Medidas", labelCn: "重量和尺寸", icon: Scale },
 ];
@@ -37,8 +38,82 @@ export default function ChinaNovaSubmissao() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [aiExtracted, setAiExtracted] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 1: Parse Excel
+  // Process AI response (shared between Excel and image)
+  const processAiResponse = useCallback(async (data: any, sourceFile?: File, sourceType?: string) => {
+    if (data.error) {
+      toast.error(data.error);
+      return;
+    }
+
+    setParsedData(data);
+    setAiExtracted(!!data._ai_extracted);
+
+    // Pre-fill weights
+    if (data.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(data.peso_bruto_g) }));
+    if (data.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(data.peso_liquido_g) }));
+
+    // Create submission record
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const { data: sub, error } = await supabase
+      .from("china_produto_submissoes" as any)
+      .insert({
+        produto_codigo: data.produto_codigo || "UNKNOWN",
+        produto_nome: data.produto_nome || "UNKNOWN",
+        numero_item: data.numero_item || null,
+        numero_ordem: data.numero_ordem || null,
+        formula_codigo: data.formula_codigo || null,
+        qty_total: data.qty_total || null,
+        peso_bruto_g: data.peso_bruto_g || null,
+        peso_liquido_g: data.peso_liquido_g || null,
+        dados_excel: data,
+        created_by: session.user.id,
+        status: "rascunho",
+      } as any)
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    setSubmissaoId((sub as any).id);
+
+    // Populate grade items
+    if (data.cores?.length > 0) {
+      const parsed: GradeItem[] = data.cores.map((c: any) => ({
+        id: crypto.randomUUID(),
+        cor_nome: c.cor_nome || "",
+        cor_hex: "",
+        cor_numero: "",
+        codigo_produto: "",
+        codigo_barras_ean: "",
+        quantidade: c.quantidade || 0,
+        grupo: c.grupo || "A",
+      }));
+      setGradeItems(parsed);
+    }
+
+    // Upload source file as document
+    if (sourceFile) {
+      const tipo = sourceType || "planilha_excel";
+      const path = `${(sub as any).id}/${tipo}/${sourceFile.name}`;
+      const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, sourceFile);
+      await supabase.from("china_produto_documentos" as any).insert({
+        submissao_id: (sub as any).id,
+        tipo_documento: tipo,
+        arquivo_url: signedUrl,
+        arquivo_path: path,
+        nome_arquivo: sourceFile.name,
+        status: "pendente",
+      } as any);
+      setDocs(d => ({ ...d, [tipo]: { fileName: sourceFile.name, status: "pendente" } }));
+    }
+  }, []);
+
+  // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -55,79 +130,93 @@ export default function ChinaNovaSubmissao() {
         `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session.access_token}` },
           body: formData,
         }
       );
 
-      if (!resp.ok) throw new Error("Failed to parse");
-      const data = await resp.json();
-      setParsedData(data);
-
-      // Pre-fill weights
-      if (data.peso_bruto_g) setWeights(w => ({ ...w, peso_bruto_g: String(data.peso_bruto_g) }));
-      if (data.peso_liquido_g) setWeights(w => ({ ...w, peso_liquido_g: String(data.peso_liquido_g) }));
-
-      // Create submission record
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: data.produto_codigo || "UNKNOWN",
-          produto_nome: data.produto_nome || "UNKNOWN",
-          numero_item: data.numero_item || null,
-          numero_ordem: data.numero_ordem || null,
-          formula_codigo: data.formula_codigo || null,
-          qty_total: data.qty_total || null,
-          peso_bruto_g: data.peso_bruto_g || null,
-          peso_liquido_g: data.peso_liquido_g || null,
-          dados_excel: data,
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
-
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
-
-      // Populate grade items from parsed data
-      if (data.cores?.length > 0) {
-        const parsed: GradeItem[] = data.cores.map((c: any, i: number) => ({
-          id: crypto.randomUUID(),
-          cor_nome: c.cor_nome || "",
-          cor_hex: "",
-          cor_numero: "",
-          codigo_produto: "",
-          codigo_barras_ean: "",
-          quantidade: c.quantidade || 0,
-          grupo: c.grupo || "A",
-        }));
-        setGradeItems(parsed);
+      if (resp.status === 429) {
+        toast.error("Limite de requisições excedido. Tente novamente. 请求限制已超过");
+        return;
       }
+      if (resp.status === 402) {
+        toast.error("Créditos de IA esgotados. AI积分已用完");
+        return;
+      }
+      if (!resp.ok) throw new Error("Failed to parse");
 
-      // Upload the Excel itself as a document
-      const path = `${(sub as any).id}/planilha_excel/${file.name}`;
-      const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
-      await supabase.from("china_produto_documentos" as any).insert({
-        submissao_id: (sub as any).id,
-        tipo_documento: "planilha_excel",
-        arquivo_url: signedUrl,
-        arquivo_path: path,
-        nome_arquivo: file.name,
-        status: "pendente",
-      } as any);
-      setDocs(d => ({ ...d, planilha_excel: { fileName: file.name, status: "pendente" } }));
-
-      toast.success("Planilha processada com sucesso! 表格处理成功！");
+      const data = await resp.json();
+      await processAiResponse(data, file, "planilha_excel");
+      toast.success("🤖 IA extraiu os dados com sucesso! AI成功提取数据！");
     } catch (err: any) {
       console.error(err);
-      toast.error("Erro ao processar planilha 处理表格时出错");
+      toast.error("Erro ao processar 处理时出错");
     } finally {
       setParsing(false);
     }
-  }, []);
+  }, [processAiResponse]);
+
+  // Image upload handler
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie apenas imagens (PNG, JPG, WEBP). 仅上传图片");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx 10MB). 图片太大");
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      setImagePreview(dataUrl);
+      const base64 = dataUrl.split(",")[1];
+      const mimeType = file.type || "image/png";
+
+      setParsing(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const resp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/parse-china-excel`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ imageBase64: base64, imageMimeType: mimeType }),
+          }
+        );
+
+        if (resp.status === 429) {
+          toast.error("Limite de requisições excedido. 请求限制已超过");
+          return;
+        }
+        if (resp.status === 402) {
+          toast.error("Créditos de IA esgotados. AI积分已用完");
+          return;
+        }
+        if (!resp.ok) throw new Error("Failed to parse image");
+
+        const data = await resp.json();
+        await processAiResponse(data, file, "foto_referencia");
+        toast.success("🤖 IA analisou a imagem com sucesso! AI成功分析图片！");
+      } catch (err: any) {
+        console.error(err);
+        toast.error("Erro ao analisar imagem 分析图片时出错");
+      } finally {
+        setParsing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [processAiResponse]);
 
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {
@@ -235,43 +324,113 @@ export default function ChinaNovaSubmissao() {
           ))}
         </div>
 
-        {/* Step 1: Excel Upload */}
+        {/* Step 1: Excel or Image Upload */}
         {step === 0 && (
           <Card className="p-8">
             <div className="flex flex-col items-center gap-6">
               <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <FileSpreadsheet className="h-12 w-12 text-primary" />
+                <Sparkles className="h-12 w-12 text-primary" />
               </div>
-              <BilingualLabel pt="Upload da Planilha do Produto" cn="上传产品表格" size="lg" className="text-center" />
+              <BilingualLabel pt="Importar Dados do Produto" cn="导入产品数据" size="lg" className="text-center" />
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                Envie a planilha Excel (.xlsx) com os dados do produto. O sistema irá extrair automaticamente as informações.
+                Envie a planilha Excel ou uma foto/print do produto. A IA irá extrair automaticamente todas as informações.
                 <br />
-                上传产品Excel表格(.xlsx)。系统将自动提取信息。
+                上传Excel表格或产品照片/截图。AI将自动提取所有信息。
               </p>
 
               {!parsedData ? (
-                <div className="relative w-full max-w-sm">
+                <div className="w-full max-w-lg space-y-4">
+                  {/* Excel Upload */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleExcelUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      disabled={parsing}
+                    />
+                    <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:border-primary/60 transition-colors">
+                      {parsing ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <p className="text-sm font-medium text-primary">🤖 IA analisando... AI分析中...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <FileSpreadsheet className="h-8 w-8 mx-auto text-primary mb-2" />
+                          <p className="text-sm font-medium">Planilha Excel 表格</p>
+                          <p className="text-xs text-muted-foreground">.xlsx, .xls</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">OU 或</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {/* Image Upload */}
                   <input
+                    ref={imageInputRef}
                     type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleExcelUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
                     disabled={parsing}
                   />
-                  <div className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center hover:border-primary/60 transition-colors">
-                    {parsing ? (
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    ) : (
-                      <>
-                        <Upload className="h-8 w-8 mx-auto text-primary mb-2" />
-                        <p className="text-sm font-medium">Clique ou arraste 点击或拖动</p>
-                        <p className="text-xs text-muted-foreground">.xlsx, .xls</p>
-                      </>
-                    )}
-                  </div>
+
+                  {imagePreview ? (
+                    <div className="relative border rounded-xl p-3 bg-muted/30">
+                      <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto rounded object-contain" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          setImagePreview(null);
+                          if (imageInputRef.current) imageInputRef.current.value = "";
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                      {parsing && (
+                        <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium text-primary">🤖 IA analisando imagem...</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-20 border-dashed border-2 gap-2"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={parsing}
+                    >
+                      <ImageIcon className="h-6 w-6" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium">Foto ou Print 照片或截图</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (máx 10MB)</p>
+                      </div>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="w-full space-y-4">
+                  {aiExtracted && (
+                    <div className="flex items-center gap-2 justify-center">
+                      <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary">
+                        <Sparkles className="h-3 w-3" />
+                        Dados extraídos por IA · AI提取的数据
+                      </Badge>
+                    </div>
+                  )}
                   <ChinaExcelPreview data={parsedData} />
                   <div className="flex justify-end">
                     <Button onClick={() => setStep(1)} className="gap-2">
