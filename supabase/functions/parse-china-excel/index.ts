@@ -15,15 +15,23 @@ Key fields to extract:
 - numero_item: Item number
 - numero_ordem: Order number
 - formula_codigo: Formula code (e.g., F-001, 01, 02)
-- qty_total: Total quantity (number)
+- qty_total: Total quantity IN PIECES (not cartons/boxes). This is the sum of all individual color quantities.
+- ctn_total: Total number of cartons/boxes (CTN), if available. This is different from qty_total.
 - peso_bruto_g: Gross weight in grams (number or null)
 - peso_liquido_g: Net weight in grams (number or null)
-- cores: Array of color objects with { grupo (group like G1, G2, A, B), cor_nome (color name), quantidade (quantity number) }
+- cores: Array of color objects with { grupo (group like G1, G2, A, B), cor_nome (color name), quantidade (quantity in PIECES for this specific color) }
+
+CRITICAL for cores extraction:
+- Each color MUST have its own individual quantity in pieces (not shared across groups)
+- The sum of all cores[].quantidade SHOULD equal qty_total
+- If colors are grouped (G1, G2, G3 or A, B, C), preserve the group identifier
+- Look carefully for per-color quantities in columns like QTY, PCS, 数量
 
 For spreadsheets:
 - Look for headers like FORMULA, ITEM NUB/MUB, ORDER NUMBER, QTY, COLORS, NET, GROSS
 - Colors are often grouped (G1, G2, G3 or A, B, C)
 - Quantities may have "PCS" suffix
+- Distinguish between PCS (pieces) and CTN (cartons/boxes)
 
 For images:
 - Extract any visible product codes, names, weights, color information

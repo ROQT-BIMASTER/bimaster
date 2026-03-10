@@ -111,7 +111,46 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           )}
         </div>
       )}
+
+      {/* Edit button */}
+      {editable && (
+        <div className="flex justify-end pt-2">
+          <Button type="button" variant="outline" size="sm" onClick={requestEdit} className="gap-2">
+            <Lock className="h-3 w-3" /> Editar (Senha) 编辑（密码）
+          </Button>
+        </div>
+      )}
     </div>
+
+    {/* Password prompt dialog */}
+    <Dialog open={showPasswordPrompt} onOpenChange={setShowPasswordPrompt}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Senha de Edição 编辑密码</DialogTitle>
+        </DialogHeader>
+        <Input
+          type="password"
+          placeholder="Digite a senha 输入密码"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && validatePassword(handlePasswordSuccess)}
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowPasswordPrompt(false)}>Cancelar</Button>
+          <Button onClick={() => validatePassword(handlePasswordSuccess)}>Confirmar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Edit validation dialog */}
+    <ChinaDataValidationDialog
+      open={editDialogOpen}
+      onOpenChange={setEditDialogOpen}
+      initialData={data}
+      onConfirm={handleEditConfirm}
+      mode="edit"
+    />
+    </>
   );
 }
 
