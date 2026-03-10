@@ -65,27 +65,27 @@ export function ProjetoHeader({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            className={`gap-1.5 text-xs bg-transparent ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "hover:bg-muted")}`}
             onClick={() => setMembrosOpen(true)}
           >
             <Users className="h-3.5 w-3.5" />
             Membros
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={`gap-1.5 text-xs ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            className={`gap-1.5 text-xs bg-transparent ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "hover:bg-muted")}`}
             onClick={() => setResumoOpen(true)}
           >
             <Sparkles className="h-3.5 w-3.5" />
             Resumo IA
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={`gap-1.5 text-xs relative ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "")}`}
+            className={`gap-1.5 text-xs relative bg-transparent ${btnHover || (customBg ? "text-black border-black/20 hover:bg-black/10" : "hover:bg-muted")}`}
             onClick={() => setLixeiraOpen(true)}
           >
             <Trash2 className="h-3.5 w-3.5" />
