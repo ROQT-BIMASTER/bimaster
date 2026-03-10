@@ -77,8 +77,8 @@ serve(async (req) => {
         });
 
         if (authError) {
-          console.error("Auth error for", email, ":", JSON.stringify(authError));
-          results.push({ email, success: false, error: authError.message });
+          console.error("Auth error for", email, ":", JSON.stringify(authError), "status:", authError.status, "code:", authError.code, "message:", authError.message);
+          results.push({ email, success: false, error: `${authError.message} (code: ${authError.code}, status: ${authError.status})` });
           continue;
         }
 
