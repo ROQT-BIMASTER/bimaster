@@ -42,7 +42,7 @@ export function useProjetosParaVinculo() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, nome, cor, status, codigo")
+        .select("id, nome, cor, status")
         .neq("status", "arquivado")
         .order("created_at", { ascending: false })
         .limit(100);
