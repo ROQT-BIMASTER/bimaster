@@ -462,15 +462,22 @@ export default function ChinaNovaSubmissao() {
                 <div key={cat.key} className="space-y-3">
                   <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {catDocs.map((config) => (
-                      <ChinaDocumentSlot
-                        key={config.tipo}
-                        config={config}
-                        status={docs[config.tipo]?.status || "none"}
-                        fileName={docs[config.tipo]?.fileName}
-                        onUpload={(file) => handleDocUpload(config.tipo, file)}
-                      />
-                    ))}
+                    {catDocs.map((config) => {
+                      const typeFiles = docs[config.tipo] || [];
+                      const worstStatus = typeFiles.length === 0 ? "none"
+                        : typeFiles.some(f => f.status === "rejeitado") ? "rejeitado"
+                        : typeFiles.some(f => f.status === "pendente") ? "pendente"
+                        : "aprovado";
+                      return (
+                        <ChinaDocumentSlot
+                          key={config.tipo}
+                          config={config}
+                          status={worstStatus as any}
+                          files={typeFiles.map((f, i) => ({ id: `local-${i}`, name: f.fileName, status: f.status }))}
+                          onUpload={(file) => handleDocUpload(config.tipo, file)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               );
