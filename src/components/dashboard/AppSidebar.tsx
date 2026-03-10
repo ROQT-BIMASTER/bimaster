@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,6 +118,13 @@ const moduleColors = {
     text: "text-[hsl(var(--module-departamentos,200_70%_45%))]",
     border: "border-[hsl(var(--module-departamentos,200_70%_45%))]",
     hover: "hover:bg-[hsl(var(--module-departamentos,200_70%_45%)/0.15)]",
+  },
+  china: {
+    bg: "bg-[hsl(0_72%_51%)]",
+    bgLight: "bg-[hsl(0_72%_51%/0.1)]",
+    text: "text-[hsl(0_72%_51%)]",
+    border: "border-[hsl(0_72%_51%)]",
+    hover: "hover:bg-[hsl(0_72%_51%/0.15)]",
   },
 };
 
@@ -266,6 +273,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const [marketingOpen, setMarketingOpen] = useState(true);
   const [fabricaOpen, setFabricaOpen] = useState(true);
   const [comercialOpen, setComercialOpen] = useState(true);
+  const [chinaOpen, setChinaOpen] = useState(true);
   const [eventosOpen, setEventosOpen] = useState(true);
   const [departamentosOpen, setDepartamentosOpen] = useState(true); // Mantido para compatibilidade futura
   const [precosOpen, setPrecosOpen] = useState(true);
@@ -301,6 +309,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "precos", label: t("module.precos"), icon: DollarSign },
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
+      { code: "china", label: "Fábrica China", icon: Globe },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -749,7 +758,54 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
-        {/* Módulo Comercial */}
+        {/* Módulo Fábrica China */}
+        {showModule("china") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible open={chinaOpen} onOpenChange={setChinaOpen}>
+              <CollapsibleTrigger className="w-full">
+                <ModuleHeader 
+                  icon={Globe} 
+                  title="Fábrica China 中国工厂" 
+                  isOpen={chinaOpen} 
+                  colorKey="china" 
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china" 
+                      icon={Home} 
+                      title="Painel 面板" 
+                      colorKey="china"
+                      end 
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/nova" 
+                      icon={Upload} 
+                      title="Nova Submissão 新提交" 
+                      colorKey="china"
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/recebimentos" 
+                      icon={Package} 
+                      title="Submissões 提交" 
+                      colorKey="china"
+                    />
+                    <MenuItemLink 
+                      to="/dashboard/fabrica-china/ordens" 
+                      icon={ShoppingCart} 
+                      title="Ordens de Compra 采购订单" 
+                      colorKey="china"
+                    />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+
         {hasModulePermission("comercial") && showModule("comercial") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
