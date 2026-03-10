@@ -298,12 +298,13 @@ export function ChinaDataValidationDialog({
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/50">
+                     <TableRow className="bg-muted/50">
                         <TableHead className="w-20 text-xs">Grupo 组</TableHead>
-                        <TableHead className="text-xs">Cor 颜色</TableHead>
-                        <TableHead className="w-32 text-xs">Qtd (PCS) 数量</TableHead>
-                        <TableHead className="w-12" />
-                      </TableRow>
+                         <TableHead className="text-xs">Cor 颜色</TableHead>
+                         <TableHead className="w-36 text-xs">EAN (SKU)</TableHead>
+                         <TableHead className="w-32 text-xs">Qtd (PCS) 数量</TableHead>
+                         <TableHead className="w-12" />
+                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {cores.map((c, i) => (
