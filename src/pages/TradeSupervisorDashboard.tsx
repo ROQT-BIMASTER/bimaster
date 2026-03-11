@@ -53,7 +53,7 @@ const FORM_ALLOWED_IDS = [
 ];
 
 export default function TradeSupervisorDashboard() {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isGerente, isSupervisor, loading: roleLoading } = useUserRole();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
 
@@ -109,6 +109,21 @@ export default function TradeSupervisorDashboard() {
       setCustomRange({ from: range.from, to: range.from });
     }
   };
+
+  // Guard: only admin, gerente, or supervisor can access this page
+  if (!roleLoading && !(isAdmin || isGerente || isSupervisor)) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertDescription>
+              Você não tem permissão para acessar esta tela. Apenas administradores, gerentes e supervisores podem visualizar dados da equipe.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (error) {
     return (
