@@ -41,9 +41,6 @@ export default function ProjetoVincularChina() {
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
 
-  if (!isDevTeam) {
-    return <AccessDenied message="Acesso restrito à equipe de desenvolvimento." />;
-  }
   const [search, setSearch] = useState("");
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
