@@ -1,42 +1,35 @@
 
 
-## Corrigir reunião travada e prevenir futuras ocorrências
+## Plano: Envio de Pagamentos para o ERP
 
-### Problema
+### Status: ✅ Implementado
 
-A Edge Function `meeting-analyze` tem um timeout interno de 180s para Phase 2, mas a **wall clock da Edge Function** (limite do servidor) matou o processo antes disso. Sequência:
-- 17:45:55 — Início da análise
-- 17:48:05 — Phase 1 OK (130s)
-- 17:49:14 — Shutdown forçado (apenas 69s após Phase 2 iniciar)
+### O que foi feito
 
-Quando o shutdown forçado acontece, nem o handler de timeout nem o catch block executam, deixando o meeting preso em `status: "processing"`.
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-### Correções
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-**1. Resetar a reunião travada (migração SQL)**
+---
 
-```sql
-UPDATE meetings 
-SET status = 'analyzed', 
-    progress = 100, 
-    progress_detail = 'Análise parcial (ata e mapa mental OK, extração de insights incompleta)'
-WHERE id = 'e418c499-a335-42d0-b198-f89e7d541819' 
-  AND status = 'processing';
-```
+## Plano: API de Exportação Pull para o ERP
 
-Isso libera a tela para a Michele ver a ata e o mapa mental que já foram salvos na Phase 1.
+### Status: ✅ Implementado
 
-**2. Adicionar mecanismo de recuperação automática no frontend**
+### O que foi feito
 
-No `ReuniaoDetalhe.tsx`, detectar reuniões presas em `processing` por mais de 10 minutos e resetar automaticamente para `analyzed` (parcial). Isso previne que qualquer futura ocorrência trave a tela.
-
-**3. Reduzir timeout da Phase 2 para caber no wall clock**
-
-No `meeting-analyze/index.ts`, reduzir o timeout da Phase 2 de 180s para 120s, garantindo que Phase 1 (~130s) + Phase 2 (~120s) caibam dentro do limite da Edge Function (~300s). Também usar o modelo `gemini-2.5-flash` que é mais rápido.
-
-### Resultado
-
-- A reunião atual será desbloqueada imediatamente com resultados parciais (ata + mapa mental)
-- Futuras reuniões que travarem serão recuperadas automaticamente pelo frontend
-- Phase 2 terá timeout mais curto para evitar o shutdown forçado
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
