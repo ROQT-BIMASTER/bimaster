@@ -56,6 +56,25 @@ export default function ReuniaoDetalhe() {
   // Realtime progress from DB — works even if user navigates away and comes back
   const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
 
+  const triggerPhase2 = useCallback(async (meetingId: string) => {
+    try {
+      console.log("[ReuniaoDetalhe] Triggering Phase 2 for meeting:", meetingId);
+      const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
+        body: { meetingId },
+      });
+      if (error) {
+        console.error("[ReuniaoDetalhe] Phase 2 error:", error);
+        toast.error("Erro na extração de insights. Resultados parciais disponíveis.");
+      }
+      if (data?.partial) {
+        toast.info("Análise parcial: ata e mapa mental OK, mas extração de insights incompleta.");
+      }
+    } catch (err: any) {
+      console.error("[ReuniaoDetalhe] Phase 2 exception:", err);
+      toast.error("Erro ao extrair insights da reunião.");
+    }
+  }, []);
+
   useEffect(() => {
     if (!id) return;
     const channel = supabase
@@ -79,6 +98,11 @@ export default function ReuniaoDetalhe() {
             queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
             queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
           }
+          // Auto-trigger Phase 2 when Phase 1 completes
+          if (row.status === "phase1_complete") {
+            queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+            triggerPhase2(id);
+          }
         }
       )
       .subscribe();
@@ -96,15 +120,15 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
-  // Auto-recovery: detect meetings stuck in "processing" for >10 minutes
+  // Auto-recovery: detect meetings stuck in "processing" or "phase1_complete" for >10 minutes
   useEffect(() => {
-    if (!meeting || meeting.status !== "processing") return;
+    if (!meeting || (meeting.status !== "processing" && meeting.status !== "phase1_complete")) return;
     const updatedAt = new Date(meeting.updated_at).getTime();
     const stuckMs = Date.now() - updatedAt;
     const TEN_MINUTES = 10 * 60 * 1000;
 
     if (stuckMs > TEN_MINUTES) {
-      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in processing for ${Math.round(stuckMs / 60000)}min — auto-recovering`);
+      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in ${meeting.status} for ${Math.round(stuckMs / 60000)}min — auto-recovering`);
       supabase.from("meetings").update({
         status: "analyzed",
         progress: 100,
@@ -225,14 +249,14 @@ export default function ReuniaoDetalhe() {
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
-      // STEP 2: Analyze transcription (text only — lightweight)
-      // progress is updated by the edge function via DB
+      // STEP 2: Phase 1 analysis (ata, summary, mindmap)
+      // Phase 2 (insights/tasks/risks) is automatically triggered when Phase 1 completes via realtime
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription, duration_seconds: meeting?.duration_seconds || null },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Realtime subscription will handle the final state update
+      // Phase 1 complete — Phase 2 will be triggered by realtime subscription detecting "phase1_complete" status
     } catch (e: any) {
       toast.error(e.message || "Erro ao analisar reunião");
     } finally {

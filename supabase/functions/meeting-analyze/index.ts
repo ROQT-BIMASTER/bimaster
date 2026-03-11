@@ -118,24 +118,20 @@ serve(async (req) => {
       console.log(`[meeting-analyze] Transcription truncated: ${transcription.length} → ${analysisTranscription.length} chars`);
     }
 
-    const { data: departments } = await supabaseAdmin.from("departamentos").select("nome").eq("ativo", true);
-    const deptNames = departments?.map((d: any) => d.nome).join(", ") || "Comercial, Marketing, Operações, Financeiro, Tecnologia, Produto";
-
     // ========================================================================
-    // PHASE 1: Structural Analysis (summary, ata, participants, mindmap)
+    // PHASE 1 ONLY: Structural Analysis (summary, ata, participants, mindmap)
+    // Phase 2 is now a separate edge function (meeting-analyze-phase2)
     // ========================================================================
     await supabaseAdmin.from("meetings").update({ progress: 88, progress_detail: "Fase 1: Gerando ata e mapa mental..." }).eq("id", meetingId);
 
-    // Estimate meeting duration: prefer stored duration, fallback to transcription heuristic
-    // Diarized transcriptions with timestamps average ~650 chars/min
     const estimatedMinutes = providedDuration
       ? Math.max(5, Math.round(providedDuration / 60))
       : meetingData.duration_seconds 
         ? Math.max(5, Math.round(meetingData.duration_seconds / 60))
         : Math.max(5, Math.round(analysisTranscription.length / 650));
-    const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100)); // ~100 palavras/min
+    const minAtaWords = Math.max(500, Math.round(estimatedMinutes * 100));
 
-    console.log(`[meeting-analyze] Starting 2-phase analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min (from ${meetingData.duration_seconds ? 'duration_seconds' : 'char heuristic'})`);
+    console.log(`[meeting-analyze] Phase 1 analysis, transcription length: ${analysisTranscription.length}, estimated duration: ${estimatedMinutes} min`);
 
     const phase1Messages = [
       {
@@ -285,266 +281,23 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       mindmapChildren: phase1Result.mindmap_data?.children?.length,
     });
 
-    // Save Phase 1 results immediately (so user sees progress)
+    // Save Phase 1 results — set status to "phase1_complete" so frontend knows to call Phase 2
     await supabaseAdmin.from("meetings").update({
       summary: phase1Result.summary,
       ata: phase1Result.ata || null,
       participants: phase1Result.participants || null,
       mermaid_mindmap: JSON.stringify(phase1Result.mindmap_data),
       progress: 92,
-      progress_detail: "Fase 2: Extraindo insights, tarefas e riscos...",
+      progress_detail: "Fase 1 concluída! Iniciando extração de insights...",
+      status: "phase1_complete",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
-
-    // ========================================================================
-    // PHASE 2: Exhaustive Extraction (insights, tasks, risks, highlights)
-    // ========================================================================
-    // Proportional targets based on meeting duration
-    const targetInsights = Math.max(15, Math.round(estimatedMinutes * 1.5)); // ~1.5 per minute
-    const targetTasks = Math.max(10, Math.round(estimatedMinutes * 1)); // ~1 per minute
-    const targetRisks = Math.max(6, Math.round(estimatedMinutes * 0.6)); // ~0.6 per minute
-    const targetHighlights = Math.max(12, Math.round(estimatedMinutes * 1.2)); // ~1.2 per minute
-
-    const phase2Messages = [
-      {
-        role: "system",
-        content: `Você é um analista sênior especializado em extrair EXAUSTIVAMENTE todos os insights, tarefas, riscos e momentos-chave de reuniões corporativas.
-
-DURAÇÃO ESTIMADA DA REUNIÃO: ~${estimatedMinutes} minutos.
-Departamentos disponíveis: ${deptNames}
-
-🎯 METAS PROPORCIONAIS (baseadas na duração — NÃO pare antes de atingir):
-
-📊 INSIGHTS — META: ${targetInsights}+ itens
-- Extraia ~1 insight para cada 1-2 minutos de reunião
-- Tipos: "decisao", "problema", "oportunidade", "bloqueio", "risco"
-- Cada decisão tomada → insight. Cada problema discutido → insight. Cada oportunidade → insight.
-- INCLUA insights granulares: processos internos, pessoas, tecnologia, finanças, clientes, mercado, operações, cultura
-- Prefira MUITOS insights específicos a POUCOS insights genéricos
-- Atribua departamento, impacto e urgência para CADA insight
-
-📋 TAREFAS — META: ${targetTasks}+ itens
-- Extraia ~1 tarefa para cada 1-2 minutos de reunião
-- Cada ação comprometida, cada "vamos fazer", "precisamos", "alguém precisa", cada follow-up, cada deadline → tarefa SEPARADA
-- Desmembre tarefas compostas em sub-tarefas individuais
-- Atribua departamento e prioridade
-
-⚠️ RISCOS — META: ${targetRisks}+ itens
-- Cada preocupação, desafio, obstáculo, incerteza, dependência externa, potencial problema futuro → risco INDIVIDUAL
-- Inclua riscos implícitos (o que pode dar errado mesmo que não dito explicitamente)
-- Inclua ação recomendada para CADA risco
-
-🔖 HIGHLIGHTS — META: ${targetHighlights}+ itens
-- Decisões, conflitos, ideias novas, problemas críticos, mudanças de direção, compromissos
-- DURAÇÃO TOTAL DA REUNIÃO: ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos
-- Os timestamps DEVEM ser distribuídos UNIFORMEMENTE ao longo de toda a duração (de 0 até ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)} segundos)
-- NÃO concentre timestamps no início. Garanta que haja highlights no primeiro terço, terço do meio e terço final da reunião
-- Se a transcrição tem timestamps [MM:SS], use-os. Senão, distribua proporcionalmente
-
-⚠️ INSTRUÇÃO ANTI-PREGUIÇA — LEIA COM ATENÇÃO:
-1. NÃO pare após gerar os primeiros 10 itens de cada tipo. Continue até ESGOTAR o conteúdo.
-2. Releia CADA parágrafo da transcrição e pergunte-se: "Extraí tudo daqui?"
-3. Se um parágrafo contém uma decisão E um risco E uma tarefa, gere os 3 itens separados.
-4. Prefira 30 itens granulares a 10 itens genéricos.
-5. Ao terminar, revise mentalmente: "Cobri o início, meio e fim da transcrição?"`,
-      },
-      {
-        role: "user",
-        content: `Esta reunião tem ~${estimatedMinutes} minutos. Extraia EXAUSTIVAMENTE todos os insights (meta: ${targetInsights}+), tarefas (meta: ${targetTasks}+), riscos (meta: ${targetRisks}+) e highlights (meta: ${targetHighlights}+). NÃO pare nos primeiros itens — continue até esgotar o conteúdo:\n\n${analysisTranscription}`,
-      },
-    ];
-
-    const phase2Tools = [
-      {
-        type: "function",
-        function: {
-          name: "phase2_extraction",
-          description: `Extrai exaustivamente insights (${targetInsights}+), tarefas (${targetTasks}+), riscos (${targetRisks}+) e highlights (${targetHighlights}+) da reunião de ~${estimatedMinutes} minutos.`,
-          parameters: {
-            type: "object",
-            properties: {
-              insights: {
-                type: "array",
-                description: `${targetInsights}+ insights extraídos exaustivamente da reunião`,
-                items: {
-                  type: "object",
-                  properties: {
-                    insight_type: { type: "string", enum: ["risco", "oportunidade", "decisao", "bloqueio", "problema"] },
-                    title: { type: "string", description: "Título conciso do insight" },
-                    description: { type: "string", description: "Descrição detalhada do insight em 2-3 frases" },
-                    department: { type: "string", description: "Departamento relacionado" },
-                    impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
-                    urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
-                  },
-                  required: ["insight_type", "title", "description", "department", "impact_level", "urgency_level"],
-                },
-              },
-              tasks: {
-                type: "array",
-                description: `${targetTasks}+ tarefas extraídas exaustivamente da reunião`,
-                items: {
-                  type: "object",
-                  properties: {
-                    task: { type: "string", description: "Descrição clara da tarefa/ação" },
-                    department: { type: "string", description: "Departamento responsável" },
-                    priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
-                    responsible: { type: "string", description: "Pessoa responsável, se mencionada" },
-                  },
-                  required: ["task", "department", "priority"],
-                },
-              },
-              risks: {
-                type: "array",
-                description: `${targetRisks}+ riscos identificados exaustivamente na reunião`,
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    description: { type: "string", description: "Descrição detalhada do risco" },
-                    department: { type: "string" },
-                    risk_level: { type: "string", enum: ["low", "medium", "high", "critical"] },
-                    impact_level: { type: "string", enum: ["baixo", "medio", "alto", "critico"] },
-                    urgency_level: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
-                    recommended_action: { type: "string", description: "Ação recomendada para mitigar o risco" },
-                  },
-                  required: ["title", "description", "department", "risk_level", "recommended_action"],
-                },
-              },
-              highlights: {
-                type: "array",
-                description: `${targetHighlights}+ momentos-chave da reunião com timestamps`,
-                items: {
-                  type: "object",
-                  properties: {
-                    label: { type: "string", description: "Descrição do momento importante" },
-                    timestamp_seconds: { type: "number", description: `Posição em segundos (de 0 a ${meetingData.duration_seconds || Math.round(estimatedMinutes * 60)}). Distribua uniformemente ao longo de toda a duração.` },
-                    type: { type: "string", enum: ["decisao", "problema", "tarefa", "oportunidade", "informacao", "conflito", "risco"] },
-                    speaker: { type: "string", description: "Quem estava falando" },
-                  },
-                  required: ["label", "timestamp_seconds", "type"],
-                },
-              },
-            },
-            required: ["insights", "tasks", "risks", "highlights"],
-            additionalProperties: false,
-          },
-        },
-      },
-    ];
-
-    let phase2Response: Response;
-    try {
-      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000, "google/gemini-2.5-flash", 0.3);
-    } catch (abortErr) {
-      console.error("[meeting-analyze] Phase 2 timeout:", abortErr);
-      // Phase 1 already saved — mark as partially analyzed
-      await supabaseAdmin.from("meetings").update({ 
-        status: "analyzed", progress: 100, 
-        progress_detail: "Análise parcial (ata e mapa mental OK, extração de insights incompleta)" 
-      }).eq("id", meetingId);
-      return new Response(JSON.stringify({ 
-        success: true, partial: true,
-        summary: phase1Result.summary,
-        insights_count: 0, tasks_count: 0, risks_count: 0, high_risks_count: 0,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    if (!phase2Response.ok) {
-      const errorText = await phase2Response.text();
-      console.error("[meeting-analyze] Phase 2 AI error:", phase2Response.status, errorText);
-      if (phase2Response.status === 429 || phase2Response.status === 402) {
-        // Phase 1 saved — return partial success
-        await supabaseAdmin.from("meetings").update({ 
-          status: "analyzed", progress: 100, 
-          progress_detail: "Análise parcial concluída" 
-        }).eq("id", meetingId);
-        return new Response(JSON.stringify({ 
-          success: true, partial: true,
-          error: phase2Response.status === 429 ? "Limite excedido na Fase 2" : "Créditos insuficientes na Fase 2",
-          summary: phase1Result.summary,
-          insights_count: 0, tasks_count: 0, risks_count: 0, high_risks_count: 0,
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      throw new Error(`Phase 2 AI error: ${phase2Response.status}`);
-    }
-
-    const phase2Data = await phase2Response.json();
-    const phase2Result = parseToolCallResult(phase2Data);
-
-    console.log("[meeting-analyze] Phase 2 OK:", {
-      insights: phase2Result.insights?.length,
-      tasks: phase2Result.tasks?.length,
-      risks: phase2Result.risks?.length,
-      highlights: phase2Result.highlights?.length,
-    });
-
-    // ========================================================================
-    // SAVE PHASE 2 RESULTS
-    // ========================================================================
-    await supabaseAdmin.from("meetings").update({
-      highlights: phase2Result.highlights || null,
-      status: "analyzed",
-      progress: 100,
-      progress_detail: "Análise concluída!",
-      updated_at: new Date().toISOString(),
-    }).eq("id", meetingId);
-
-    // Delete old insights/tasks/risks for re-analysis
-    await Promise.all([
-      supabaseAdmin.from("meeting_insights").delete().eq("meeting_id", meetingId),
-      supabaseAdmin.from("meeting_tasks").delete().eq("meeting_id", meetingId),
-      supabaseAdmin.from("meeting_risks").delete().eq("meeting_id", meetingId),
-    ]);
-
-    if (phase2Result.insights?.length > 0) {
-      await supabaseAdmin.from("meeting_insights").insert(
-        phase2Result.insights.map((i: any) => ({
-          meeting_id: meetingId, insight_type: i.insight_type, title: i.title,
-          description: i.description, department: i.department || null,
-          impact_level: i.impact_level || null, urgency_level: i.urgency_level || null,
-        }))
-      );
-    }
-
-    if (phase2Result.tasks?.length > 0) {
-      await supabaseAdmin.from("meeting_tasks").insert(
-        phase2Result.tasks.map((t: any) => ({
-          meeting_id: meetingId, task: t.task, department: t.department || null, priority: t.priority || "medium",
-          responsible_name: t.responsible || null,
-        }))
-      );
-    }
-
-    if (phase2Result.risks?.length > 0) {
-      await supabaseAdmin.from("meeting_risks").insert(
-        phase2Result.risks.map((r: any) => ({
-          meeting_id: meetingId, title: r.title, description: r.description,
-          department: r.department || null, risk_level: r.risk_level || "medium",
-          impact_level: r.impact_level || null, urgency_level: r.urgency_level || null,
-          recommended_action: r.recommended_action || null,
-        }))
-      );
-    }
-
-    // Notify about HIGH/CRITICAL risks
-    const highRisks = (phase2Result.risks || []).filter((r: any) => r.risk_level === "high" || r.risk_level === "critical");
-    if (highRisks.length > 0) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: user.id, type: "meeting_risk",
-        title: `⚠️ ${highRisks.length} risco(s) identificado(s)`,
-        message: `A análise da reunião "${meetingData.title}" identificou ${highRisks.length} risco(s) de nível alto/crítico.`,
-        action_url: `/dashboard/reunioes/${meetingId}`,
-      });
-    }
 
     return new Response(JSON.stringify({
       success: true,
+      phase: 1,
       summary: phase1Result.summary,
-      insights_count: phase2Result.insights?.length || 0,
-      tasks_count: phase2Result.tasks?.length || 0,
-      risks_count: phase2Result.risks?.length || 0,
-      highlights_count: phase2Result.highlights?.length || 0,
-      high_risks_count: highRisks.length,
+      estimatedMinutes,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
