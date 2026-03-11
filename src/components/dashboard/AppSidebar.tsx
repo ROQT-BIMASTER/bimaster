@@ -544,7 +544,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <Separator className="mx-4 w-auto" />
 
         {/* Módulo de Prospects */}
-        {hasModulePermission("prospects") && showModule("prospects") && (
+        {showModule("prospects") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
               <CollapsibleTrigger className="w-full">
