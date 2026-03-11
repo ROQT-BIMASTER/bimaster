@@ -1,35 +1,61 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Filtrar Contas a Pagar por Empresa do Usuário (RLS)
 
-### Status: ✅ Implementado
+### Situação Atual
+A política RLS `cp_select` em `contas_pagar` permite acesso a **todos os registros** para qualquer usuário com permissão ao módulo `financeiro`. Não há filtro por empresa. A função `user_has_empresa_access(user_id, empresa_id)` já existe no banco.
 
-### O que foi feito
+### Solução
+Atualizar a política RLS de SELECT da `contas_pagar` para incluir filtro por empresa usando a função existente `user_has_empresa_access`. Admins continuam vendo tudo; funcionários veem apenas registros das empresas vinculadas a eles via `user_empresas`.
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+### Mudanças
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+#### 1. Migração SQL
+Substituir a política `cp_select` por uma nova que combina acesso ao módulo financeiro **E** filtro por empresa:
 
----
+```sql
+DROP POLICY IF EXISTS "cp_select" ON public.contas_pagar;
 
-## Plano: API de Exportação Pull para o ERP
+CREATE POLICY "cp_select_empresa" ON public.contas_pagar
+FOR SELECT TO authenticated
+USING (
+  public.check_user_access(auth.uid(), 'financeiro')
+  AND public.user_has_empresa_access(auth.uid(), empresa_id)
+);
+```
 
-### Status: ✅ Implementado
+A função `user_has_empresa_access` já trata:
+- `empresa_id IS NULL` (dados legados) -> permite
+- Admin/Supervisor -> vê tudo
+- Demais usuários -> apenas empresas vinculadas em `user_empresas`
 
-### O que foi feito
+Fazer o mesmo para INSERT e UPDATE:
 
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+```sql
+DROP POLICY IF EXISTS "cp_insert" ON public.contas_pagar;
+CREATE POLICY "cp_insert_empresa" ON public.contas_pagar
+FOR INSERT TO authenticated
+WITH CHECK (
+  public.check_user_access(auth.uid(), 'financeiro')
+  AND public.user_has_empresa_access(auth.uid(), empresa_id)
+);
+
+DROP POLICY IF EXISTS "cp_update" ON public.contas_pagar;
+CREATE POLICY "cp_update_empresa" ON public.contas_pagar
+FOR UPDATE TO authenticated
+USING (
+  public.check_user_access(auth.uid(), 'financeiro')
+  AND public.user_has_empresa_access(auth.uid(), empresa_id)
+);
+```
+
+A política de DELETE (`cp_delete_hardened`) permanece apenas para admin.
+
+#### 2. Sem mudanças no frontend
+O `ContasAPagar.tsx` já tem filtros de empresa no frontend. O RLS agora garante que o banco só retorna dados das empresas autorizadas, independente do filtro frontend.
+
+### Impacto
+- Funcionários do financeiro sem vínculo em `user_empresas` verão 0 registros (precisam ser vinculados)
+- Admins e supervisores continuam com visão total (tratado pela `user_has_empresa_access`)
+- Dados legados sem `empresa_id` continuam acessíveis
+
