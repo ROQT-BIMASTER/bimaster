@@ -1097,12 +1097,55 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_alerts: {
+        Row: {
+          bank_connection_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          threshold: number
+          user_id: string
+        }
+        Insert: {
+          bank_connection_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          threshold: number
+          user_id: string
+        }
+        Update: {
+          bank_connection_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          threshold?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_alerts_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_connections: {
         Row: {
+          account_type: string | null
           agencia: string | null
+          available_limit: number | null
           banco: string
+          bill_amount: number | null
+          bill_due_date: string | null
           conta: string | null
           created_at: string
+          credit_limit: number | null
           empresa_id: number | null
           id: string
           last_sync: string | null
@@ -1114,10 +1157,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_type?: string | null
           agencia?: string | null
+          available_limit?: number | null
           banco: string
+          bill_amount?: number | null
+          bill_due_date?: string | null
           conta?: string | null
           created_at?: string
+          credit_limit?: number | null
           empresa_id?: number | null
           id?: string
           last_sync?: string | null
@@ -1129,10 +1177,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_type?: string | null
           agencia?: string | null
+          available_limit?: number | null
           banco?: string
+          bill_amount?: number | null
+          bill_due_date?: string | null
           conta?: string | null
           created_at?: string
+          credit_limit?: number | null
           empresa_id?: number | null
           id?: string
           last_sync?: string | null
@@ -2735,12 +2788,16 @@ export type Database = {
         Row: {
           bank_connection_id: string
           confianca: string | null
+          conta_contabil_id: string | null
           conta_pagar_id: string | null
           created_at: string
           data_transacao: string
           descricao: string | null
           documento: string | null
           id: string
+          payment_data: Json | null
+          pluggy_category: string | null
+          pluggy_category_id: string | null
           pluggy_transaction_id: string | null
           status_conciliacao: string
           tipo: string
@@ -2749,12 +2806,16 @@ export type Database = {
         Insert: {
           bank_connection_id: string
           confianca?: string | null
+          conta_contabil_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           data_transacao: string
           descricao?: string | null
           documento?: string | null
           id?: string
+          payment_data?: Json | null
+          pluggy_category?: string | null
+          pluggy_category_id?: string | null
           pluggy_transaction_id?: string | null
           status_conciliacao?: string
           tipo?: string
@@ -2763,12 +2824,16 @@ export type Database = {
         Update: {
           bank_connection_id?: string
           confianca?: string | null
+          conta_contabil_id?: string | null
           conta_pagar_id?: string | null
           created_at?: string
           data_transacao?: string
           descricao?: string | null
           documento?: string | null
           id?: string
+          payment_data?: Json | null
+          pluggy_category?: string | null
+          pluggy_category_id?: string | null
           pluggy_transaction_id?: string | null
           status_conciliacao?: string
           tipo?: string
@@ -2780,6 +2845,13 @@ export type Database = {
             columns: ["bank_connection_id"]
             isOneToOne: false
             referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conciliacoes_bancarias_conta_contabil_id_fkey"
+            columns: ["conta_contabil_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -14381,6 +14453,280 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pluggy_category_rules: {
+        Row: {
+          category_id: string
+          category_name: string | null
+          conta_contabil_id: string | null
+          created_at: string | null
+          description: string
+          id: string
+          pluggy_rule_id: string | null
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          category_name?: string | null
+          conta_contabil_id?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          pluggy_rule_id?: string | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          category_name?: string | null
+          conta_contabil_id?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          pluggy_rule_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_category_rules_conta_contabil_id_fkey"
+            columns: ["conta_contabil_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_identities: {
+        Row: {
+          addresses: Json | null
+          bank_connection_id: string | null
+          birth_date: string | null
+          created_at: string | null
+          document: string | null
+          document_type: string | null
+          emails: Json | null
+          full_name: string | null
+          id: string
+          last_sync: string | null
+          phones: Json | null
+          raw_data: Json | null
+          tax_number: string | null
+        }
+        Insert: {
+          addresses?: Json | null
+          bank_connection_id?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          document?: string | null
+          document_type?: string | null
+          emails?: Json | null
+          full_name?: string | null
+          id?: string
+          last_sync?: string | null
+          phones?: Json | null
+          raw_data?: Json | null
+          tax_number?: string | null
+        }
+        Update: {
+          addresses?: Json | null
+          bank_connection_id?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          document?: string | null
+          document_type?: string | null
+          emails?: Json | null
+          full_name?: string | null
+          id?: string
+          last_sync?: string | null
+          phones?: Json | null
+          raw_data?: Json | null
+          tax_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_identities_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: true
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_investment_transactions: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          investment_id: string | null
+          pluggy_transaction_id: string
+          quantity: number | null
+          type: string | null
+          value: number | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          investment_id?: string | null
+          pluggy_transaction_id: string
+          quantity?: number | null
+          type?: string | null
+          value?: number | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          investment_id?: string | null
+          pluggy_transaction_id?: string
+          quantity?: number | null
+          type?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_investment_transactions_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_investments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_investments: {
+        Row: {
+          annual_rate: number | null
+          balance: number | null
+          bank_connection_id: string | null
+          created_at: string | null
+          currency_code: string | null
+          due_date: string | null
+          id: string
+          issue_date: string | null
+          issuer: string | null
+          last_sync: string | null
+          metadata: Json | null
+          name: string | null
+          pluggy_investment_id: string
+          status: string | null
+          subtype: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          annual_rate?: number | null
+          balance?: number | null
+          bank_connection_id?: string | null
+          created_at?: string | null
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer?: string | null
+          last_sync?: string | null
+          metadata?: Json | null
+          name?: string | null
+          pluggy_investment_id: string
+          status?: string | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          annual_rate?: number | null
+          balance?: number | null
+          bank_connection_id?: string | null
+          created_at?: string | null
+          currency_code?: string | null
+          due_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer?: string | null
+          last_sync?: string | null
+          metadata?: Json | null
+          name?: string | null
+          pluggy_investment_id?: string
+          status?: string | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_investments_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_loans: {
+        Row: {
+          bank_connection_id: string | null
+          contract_number: string | null
+          created_at: string | null
+          id: string
+          installments_paid: number | null
+          installments_total: number | null
+          interest_rate: number | null
+          last_sync: string | null
+          loan_amount: number | null
+          metadata: Json | null
+          monthly_payment: number | null
+          name: string | null
+          next_payment_date: string | null
+          outstanding_balance: number | null
+          pluggy_account_id: string | null
+        }
+        Insert: {
+          bank_connection_id?: string | null
+          contract_number?: string | null
+          created_at?: string | null
+          id?: string
+          installments_paid?: number | null
+          installments_total?: number | null
+          interest_rate?: number | null
+          last_sync?: string | null
+          loan_amount?: number | null
+          metadata?: Json | null
+          monthly_payment?: number | null
+          name?: string | null
+          next_payment_date?: string | null
+          outstanding_balance?: number | null
+          pluggy_account_id?: string | null
+        }
+        Update: {
+          bank_connection_id?: string | null
+          contract_number?: string | null
+          created_at?: string | null
+          id?: string
+          installments_paid?: number | null
+          installments_total?: number | null
+          interest_rate?: number | null
+          last_sync?: string | null
+          loan_amount?: number | null
+          metadata?: Json | null
+          monthly_payment?: number | null
+          name?: string | null
+          next_payment_date?: string | null
+          outstanding_balance?: number | null
+          pluggy_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_loans_bank_connection_id_fkey"
+            columns: ["bank_connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_cliente_logs: {
         Row: {
