@@ -76,6 +76,33 @@ export default function ReuniaoDetalhe() {
     }
   }, []);
 
+  const handleRetryPhase2 = useCallback(async () => {
+    if (!id) return;
+    setExtractingPhase2(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
+        body: { meetingId: id },
+      });
+      if (error) {
+        console.error("[ReuniaoDetalhe] Phase 2 retry error:", error);
+        toast.error("Erro ao extrair insights. Tente novamente.");
+      } else if (data?.partial) {
+        toast.info("Extração parcial concluída.");
+      } else {
+        toast.success("Insights, tarefas e riscos extraídos com sucesso!");
+      }
+      queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+    } catch (err: any) {
+      console.error("[ReuniaoDetalhe] Phase 2 retry exception:", err);
+      toast.error("Erro ao extrair insights.");
+    } finally {
+      setExtractingPhase2(false);
+    }
+  }, [id, queryClient]);
+
   useEffect(() => {
     if (!id) return;
     const channel = supabase
