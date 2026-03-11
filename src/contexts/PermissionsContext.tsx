@@ -238,8 +238,14 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // fetchInProgressRef is checked inside fetchPermissions itself
-        // Silent background refresh — no loading state change
+        // SECURITY: Reset state immediately to prevent permission leakage between users
+        globalPermissionsCache = null;
+        try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
+        setModules([]);
+        setScreens([]);
+        setRole(null);
+        setIsAdmin(false);
+        setLoading(true);
         fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
