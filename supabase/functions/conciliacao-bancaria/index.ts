@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
       case "history":
         return await handleHistory(supabase);
       case "list-connections":
-        return await handleListConnections(supabase, user.id);
+        return await handleListConnections(supabase, user.id, body);
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
