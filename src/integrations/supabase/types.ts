@@ -1103,9 +1103,12 @@ export type Database = {
           banco: string
           conta: string | null
           created_at: string
+          empresa_id: number | null
           id: string
           last_sync: string | null
           pluggy_item_id: string | null
+          saldo_atual: number | null
+          saldo_atualizado_em: string | null
           status: string
           updated_at: string
           user_id: string
@@ -1115,9 +1118,12 @@ export type Database = {
           banco: string
           conta?: string | null
           created_at?: string
+          empresa_id?: number | null
           id?: string
           last_sync?: string | null
           pluggy_item_id?: string | null
+          saldo_atual?: number | null
+          saldo_atualizado_em?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -1127,14 +1133,25 @@ export type Database = {
           banco?: string
           conta?: string | null
           created_at?: string
+          empresa_id?: number | null
           id?: string
           last_sync?: string | null
           pluggy_item_id?: string | null
+          saldo_atual?: number | null
+          saldo_atualizado_em?: string | null
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bank_connections_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categoria_departamento: {
         Row: {
