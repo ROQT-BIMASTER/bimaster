@@ -281,7 +281,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       mindmapChildren: phase1Result.mindmap_data?.children?.length,
     });
 
-    // Save Phase 1 results — set status to "phase1_complete" so frontend knows to call Phase 2
+    // Save Phase 1 results
     await supabaseAdmin.from("meetings").update({
       summary: phase1Result.summary,
       ata: phase1Result.ata || null,
@@ -292,6 +292,22 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       status: "phase1_complete",
       updated_at: new Date().toISOString(),
     }).eq("id", meetingId);
+
+    // Trigger Phase 2 server-side (fire-and-forget) — no frontend dependency
+    const phase2Url = `${supabaseUrl}/functions/v1/meeting-analyze-phase2`;
+    fetch(phase2Url, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+        apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      },
+      body: JSON.stringify({ meetingId }),
+    }).then(res => {
+      console.log(`[meeting-analyze] Phase 2 triggered server-side: ${res.status}`);
+    }).catch(err => {
+      console.error("[meeting-analyze] Failed to trigger Phase 2:", err);
+    });
 
     return new Response(JSON.stringify({
       success: true,

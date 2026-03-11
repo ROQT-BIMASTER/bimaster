@@ -51,6 +51,7 @@ export default function ReuniaoDetalhe() {
   const [analyzing, setAnalyzing] = useState(false);
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
+  const [extractingPhase2, setExtractingPhase2] = useState(false);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
 
   // Realtime progress from DB — works even if user navigates away and comes back
@@ -74,6 +75,33 @@ export default function ReuniaoDetalhe() {
       toast.error("Erro ao extrair insights da reunião.");
     }
   }, []);
+
+  const handleRetryPhase2 = useCallback(async () => {
+    if (!id) return;
+    setExtractingPhase2(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
+        body: { meetingId: id },
+      });
+      if (error) {
+        console.error("[ReuniaoDetalhe] Phase 2 retry error:", error);
+        toast.error("Erro ao extrair insights. Tente novamente.");
+      } else if (data?.partial) {
+        toast.info("Extração parcial concluída.");
+      } else {
+        toast.success("Insights, tarefas e riscos extraídos com sucesso!");
+      }
+      queryClient.invalidateQueries({ queryKey: ["meeting-insights", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
+      queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+    } catch (err: any) {
+      console.error("[ReuniaoDetalhe] Phase 2 retry exception:", err);
+      toast.error("Erro ao extrair insights.");
+    } finally {
+      setExtractingPhase2(false);
+    }
+  }, [id, queryClient]);
 
   useEffect(() => {
     if (!id) return;
@@ -504,6 +532,26 @@ export default function ReuniaoDetalhe() {
 
             <TabsContent value="insights">
               <div className="space-y-3">
+                {!insights?.length && !extractingPhase2 && meeting.transcription && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+                      <Sparkles className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground text-center">Insights não foram extraídos. Clique para processar.</p>
+                      <Button size="sm" className="gap-2" onClick={handleRetryPhase2}>
+                        <Brain className="h-4 w-4" />
+                        Extrair Insights, Tarefas e Riscos
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {extractingPhase2 && (
+                  <Card>
+                    <CardContent className="flex items-center justify-center gap-3 py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Extraindo insights, tarefas e riscos...</span>
+                    </CardContent>
+                  </Card>
+                )}
                 {insights?.map((insight: any) => {
                   const Icon = insightIcons[insight.insight_type] || Lightbulb;
                   return (
@@ -527,7 +575,6 @@ export default function ReuniaoDetalhe() {
                     </Card>
                   );
                 })}
-                {!insights?.length && <p className="text-sm text-muted-foreground text-center py-8">Nenhum insight identificado</p>}
               </div>
             </TabsContent>
 
@@ -550,7 +597,18 @@ export default function ReuniaoDetalhe() {
                     </CardContent>
                   </Card>
                 ))}
-                {!tasks?.length && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa identificada</p>}
+                {!tasks?.length && !extractingPhase2 && meeting.transcription && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-6 gap-2">
+                      <p className="text-sm text-muted-foreground">Nenhuma tarefa extraída.</p>
+                      <Button size="sm" variant="outline" className="gap-2" onClick={handleRetryPhase2}>
+                        <Brain className="h-4 w-4" />
+                        Extrair com IA
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {!tasks?.length && !meeting.transcription && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa identificada</p>}
               </div>
             </TabsContent>
 
@@ -585,7 +643,18 @@ export default function ReuniaoDetalhe() {
                     </CardContent>
                   </Card>
                 ))}
-                {!risks?.length && <p className="text-sm text-muted-foreground text-center py-8">Nenhum risco identificado</p>}
+                {!risks?.length && !extractingPhase2 && meeting.transcription && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-6 gap-2">
+                      <p className="text-sm text-muted-foreground">Nenhum risco extraído.</p>
+                      <Button size="sm" variant="outline" className="gap-2" onClick={handleRetryPhase2}>
+                        <Brain className="h-4 w-4" />
+                        Extrair com IA
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {!risks?.length && !meeting.transcription && <p className="text-sm text-muted-foreground text-center py-8">Nenhum risco identificado</p>}
               </div>
             </TabsContent>
 
