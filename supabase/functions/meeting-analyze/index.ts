@@ -298,13 +298,15 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
     fetch(phase2Url, {
       method: "POST",
       headers: {
-        Authorization: authHeader,
+        Authorization: `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
-        apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+        apikey: supabaseKey,
+        "x-internal-call": "true",
       },
       body: JSON.stringify({ meetingId }),
-    }).then(res => {
-      console.log(`[meeting-analyze] Phase 2 triggered server-side: ${res.status}`);
+    }).then(async (res) => {
+      const body = await res.text();
+      console.log(`[meeting-analyze] Phase 2 triggered server-side: ${res.status} ${body}`);
     }).catch(err => {
       console.error("[meeting-analyze] Failed to trigger Phase 2:", err);
     });

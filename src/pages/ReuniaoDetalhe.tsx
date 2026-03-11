@@ -53,6 +53,7 @@ export default function ReuniaoDetalhe() {
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const [extractingPhase2, setExtractingPhase2] = useState(false);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
+  const autoRecoveryTriggeredRef = useRef(false);
 
   // Realtime progress from DB — works even if user navigates away and comes back
   const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
@@ -148,9 +149,9 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
-  // Auto-recovery: detect meetings stuck in "processing" or "phase1_complete" for >10 minutes
+  // Auto-recovery: only mark as partial if processing itself got stuck for too long
   useEffect(() => {
-    if (!meeting || (meeting.status !== "processing" && meeting.status !== "phase1_complete")) return;
+    if (!meeting || meeting.status !== "processing") return;
     const updatedAt = new Date(meeting.updated_at).getTime();
     const stuckMs = Date.now() - updatedAt;
     const TEN_MINUTES = 10 * 60 * 1000;
@@ -197,6 +198,26 @@ export default function ReuniaoDetalhe() {
     },
     enabled: !!id && !!session,
   });
+
+  useEffect(() => {
+    if (!meeting || !id || extractingPhase2 || autoRecoveryTriggeredRef.current) return;
+
+    const hasPhase1Data = Boolean(meeting.summary || meeting.ata || meeting.mermaid_mindmap);
+    const hasPhase2Data = Boolean(insights?.length || tasks?.length || risks?.length);
+    const hasTranscription = Boolean(meeting.transcription);
+    const updatedAt = new Date(meeting.updated_at).getTime();
+    const stuckMs = Date.now() - updatedAt;
+    const TEN_MINUTES = 10 * 60 * 1000;
+
+    const shouldRetryStuckPhase2 = meeting.status === "phase1_complete" && hasTranscription && !hasPhase2Data && stuckMs > TEN_MINUTES;
+    const shouldRecoverBrokenCompleted = meeting.status === "analyzed" && hasTranscription && hasPhase1Data && !hasPhase2Data;
+
+    if (!shouldRetryStuckPhase2 && !shouldRecoverBrokenCompleted) return;
+
+    autoRecoveryTriggeredRef.current = true;
+    toast.info("Recuperando automaticamente a extração de insights da reunião...");
+    void handleRetryPhase2();
+  }, [meeting, id, insights?.length, tasks?.length, risks?.length, extractingPhase2, handleRetryPhase2]);
 
   const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
 
