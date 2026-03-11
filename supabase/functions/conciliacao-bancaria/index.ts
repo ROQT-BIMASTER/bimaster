@@ -67,7 +67,7 @@ async function handleSaveConnection(
   userId: string,
   body: any
 ): Promise<Response> {
-  const { itemId, banco, conta, agencia } = body;
+  const { itemId, banco, conta, agencia, empresaId } = body;
 
   const { data, error } = await supabase
     .from("bank_connections")
@@ -78,6 +78,7 @@ async function handleSaveConnection(
         banco: banco || "desconhecido",
         conta: conta || null,
         agencia: agencia || null,
+        empresa_id: empresaId || null,
         status: "active",
         updated_at: new Date().toISOString(),
       },
