@@ -498,12 +498,24 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
       queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+
+      // Auto-export to ERP as registration (provisão)
+      if (data?.id) {
+        exportPaymentToErp(data.id, undefined, 'registration').then((result) => {
+          if (result.success) {
+            console.log(`ERP registration export success for ${data.code}`);
+          } else {
+            console.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
+          }
+        });
+      }
+
       toast({
         title: "Pagamento Aceito",
-        description: "Registro criado em Contas a Pagar",
+        description: "Registro criado em Contas a Pagar e provisão enviada ao ERP",
       });
     },
     onError: (error) => {

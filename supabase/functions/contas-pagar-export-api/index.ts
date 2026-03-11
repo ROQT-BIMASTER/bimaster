@@ -6,43 +6,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Map internal payment method codes to readable names
 function mapPaymentMethod(method: string | null): string {
   if (!method) return "Não informado";
   const map: Record<string, string> = {
-    pix: "PIX",
-    pix_code: "PIX",
-    "2": "PIX",
-    ted: "TED",
-    transferencia: "Transferência Bancária",
-    transfer: "Transferência Bancária",
-    boleto: "Boleto",
-    "1": "Boleto",
-    cartao: "Cartão",
-    credit_card: "Cartão de Crédito",
-    debit_card: "Cartão de Débito",
-    dinheiro: "Dinheiro",
-    cash: "Dinheiro",
-    cheque: "Cheque",
+    pix: "PIX", pix_code: "PIX", "2": "PIX",
+    ted: "TED", transferencia: "Transferência Bancária", transfer: "Transferência Bancária",
+    boleto: "Boleto", "1": "Boleto", cartao: "Cartão",
+    credit_card: "Cartão de Crédito", debit_card: "Cartão de Débito",
+    dinheiro: "Dinheiro", cash: "Dinheiro", cheque: "Cheque",
   };
-  const key = method.toLowerCase().trim();
-  return map[key] || method;
+  return map[(method || "").toLowerCase().trim()] || method;
 }
 
-// Clean CNPJ/CPF to numbers only
 function cleanDocument(doc: string | null): string | null {
   if (!doc) return null;
   return doc.replace(/[^\d]/g, "");
 }
 
-// Build professional payload with grouped objects
+/**
+ * Build payload based on financial_status:
+ * - accepted → "Aguardando Pagamento" (provisão)
+ * - paid → "Pago" (baixa)
+ */
 function buildCleanPayload(item: Record<string, unknown>) {
   const doc = item.supplier_document as string | null;
-  return {
+  const isPaid = item.financial_status === "paid";
+
+  const payload: Record<string, unknown> = {
     api_version: "1.0",
     generated_at: new Date().toISOString(),
     id: item.id,
     empresa_id: item.empresa_id || 1,
+    export_type: isPaid ? "payment" : "registration",
     fornecedor: {
       nome: item.supplier_name || null,
       documento: cleanDocument(doc),
@@ -52,18 +47,31 @@ function buildCleanPayload(item: Record<string, unknown>) {
       tipo: item.document_type || null,
       numero: item.document_number || null,
     },
-    pagamento: {
+    departamento: item.department_name || null,
+    descricao: item.description || null,
+  };
+
+  if (isPaid) {
+    payload.pagamento = {
       valor: Number(item.amount) || 0,
       moeda: "BRL",
       data_vencimento: item.due_date || null,
       data_pagamento: item.paid_at || null,
       metodo: mapPaymentMethod(item.payment_method as string),
       portador: item.portador || null,
-    },
-    departamento: item.department_name || null,
-    descricao: item.description || null,
-    status: "Pago",
-  };
+    };
+    payload.status = "Pago";
+  } else {
+    payload.pagamento = {
+      valor: Number(item.amount) || 0,
+      moeda: "BRL",
+      data_vencimento: item.due_date || null,
+      portador: item.portador || null,
+    };
+    payload.status = "Aguardando Pagamento";
+  }
+
+  return payload;
 }
 
 serve(async (req) => {
@@ -75,7 +83,6 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Authenticate via x-api-key header
   const apiKey = req.headers.get("x-api-key");
   const expectedKey = Deno.env.get("EXPORT_API_KEY");
 
@@ -88,17 +95,21 @@ serve(async (req) => {
     const path = url.pathname.split("/").pop();
 
     if (req.method === "GET" && path === "paid") {
-      return await handleGetPaid(supabase, url);
+      return await handleGetItems(supabase, url, "paid");
+    } else if (req.method === "GET" && path === "pending") {
+      return await handleGetItems(supabase, url, "accepted");
     } else if (req.method === "POST" && path === "confirm") {
       return await handleConfirm(supabase, req);
     } else if (req.method === "GET" && path === "status") {
       return await handleStatus(supabase);
     } else {
-      // Default: treat as /paid for simple GET requests
       if (req.method === "GET") {
-        return await handleGetPaid(supabase, url);
+        // Default: return both accepted + paid via status param
+        return await handleGetItems(supabase, url, null);
       }
-      return jsonResponse({ error: "Rota não encontrada. Rotas disponíveis: GET /paid, POST /confirm, GET /status" }, 404);
+      return jsonResponse({
+        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, POST /confirm, GET /status",
+      }, 404);
     }
   } catch (err) {
     console.error("contas-pagar-export-api error:", err);
@@ -106,45 +117,74 @@ serve(async (req) => {
   }
 });
 
-async function handleGetPaid(supabase: ReturnType<typeof createClient>, url: URL) {
+/**
+ * GET /paid — itens pagos pendentes de exportação
+ * GET /pending — itens aceitos pendentes de exportação (provisão)
+ * GET / — ambos, ou filtrado por ?status=accepted,paid
+ */
+async function handleGetItems(
+  supabase: ReturnType<typeof createClient>,
+  url: URL,
+  defaultStatus: string | null
+) {
   const limit = parseInt(url.searchParams.get("limit") || "100");
   const offset = parseInt(url.searchParams.get("offset") || "0");
 
-  // Get paid items from financial_payment_queue that are pending export
-  // Left join with erp_export_queue to find items not yet exported
-  const { data: paidItems, error: paidErr } = await supabase
+  // Determine which statuses to fetch
+  const statusParam = url.searchParams.get("status");
+  let statuses: string[];
+
+  if (defaultStatus) {
+    statuses = [defaultStatus];
+  } else if (statusParam) {
+    statuses = statusParam.split(",").map((s) => s.trim()).filter(Boolean);
+  } else {
+    statuses = ["accepted", "paid"];
+  }
+
+  // Fetch items matching the requested statuses
+  const { data: items, error: fetchErr } = await supabase
     .from("financial_payment_queue")
     .select("*")
-    .eq("financial_status", "paid")
-    .order("paid_at", { ascending: true })
+    .in("financial_status", statuses)
+    .order("updated_at", { ascending: true })
     .range(offset, offset + limit - 1);
 
-  if (paidErr) {
-    return jsonResponse({ error: "Erro ao buscar pagamentos: " + paidErr.message }, 500);
+  if (fetchErr) {
+    return jsonResponse({ error: "Erro ao buscar itens: " + fetchErr.message }, 500);
   }
 
-  if (!paidItems || paidItems.length === 0) {
-    return jsonResponse({ data: [], total: 0, message: "Nenhum pagamento pago encontrado" });
+  if (!items || items.length === 0) {
+    return jsonResponse({ data: [], total: 0, message: "Nenhum item encontrado" });
   }
 
-  // Check which ones have already been exported (confirmed)
-  const ids = paidItems.map((i: Record<string, unknown>) => i.id);
+  // Check which ones have already been exported
+  const ids = items.map((i: Record<string, unknown>) => i.id);
   const { data: exportedItems } = await supabase
     .from("erp_export_queue")
-    .select("payment_queue_id, export_status")
+    .select("payment_queue_id, export_type, export_status")
     .in("payment_queue_id", ids)
     .eq("export_status", "exported");
 
-  const exportedSet = new Set(
-    (exportedItems || []).map((e: Record<string, unknown>) => e.payment_queue_id)
-  );
+  // Build sets for each export type
+  const registrationExported = new Set<string>();
+  const paymentExported = new Set<string>();
+  (exportedItems || []).forEach((e: Record<string, unknown>) => {
+    if (e.export_type === "registration") registrationExported.add(e.payment_queue_id as string);
+    if (e.export_type === "payment") paymentExported.add(e.payment_queue_id as string);
+  });
 
-  // Filter out already exported items
-  const pendingItems = paidItems.filter(
-    (item: Record<string, unknown>) => !exportedSet.has(item.id)
-  );
+  // Filter: accepted items not yet exported as registration, paid items not yet exported as payment
+  const pendingItems = items.filter((item: Record<string, unknown>) => {
+    if (item.financial_status === "accepted") {
+      return !registrationExported.has(item.id as string);
+    }
+    if (item.financial_status === "paid") {
+      return !paymentExported.has(item.id as string);
+    }
+    return false;
+  });
 
-  // Build clean payload
   const cleanData = pendingItems.map(buildCleanPayload);
 
   return jsonResponse({
@@ -157,27 +197,27 @@ async function handleGetPaid(supabase: ReturnType<typeof createClient>, url: URL
 
 async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Request) {
   const body = await req.json();
-  const { ids } = body;
+  const { ids, export_type } = body;
 
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return jsonResponse({ error: "Envie um array 'ids' com os IDs dos pagamentos confirmados" }, 400);
   }
 
+  const resolvedType = export_type || "payment";
   let confirmed = 0;
   const errors: string[] = [];
 
   for (const paymentId of ids) {
-    // Check if export record exists
     const { data: existing } = await supabase
       .from("erp_export_queue")
       .select("id")
       .eq("payment_queue_id", paymentId)
+      .eq("export_type", resolvedType)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (existing) {
-      // Update existing record
       const { error: updateErr } = await supabase
         .from("erp_export_queue")
         .update({
@@ -192,13 +232,13 @@ async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Req
         confirmed++;
       }
     } else {
-      // Create export record and mark as exported
       const { error: insertErr } = await supabase
         .from("erp_export_queue")
         .insert({
           payment_queue_id: paymentId,
           export_channel: "pull_api",
           export_status: "exported",
+          export_type: resolvedType,
           exported_at: new Date().toISOString(),
           payload: {},
           attempts: 1,
@@ -215,31 +255,56 @@ async function handleConfirm(supabase: ReturnType<typeof createClient>, req: Req
 
   return jsonResponse({
     confirmed,
+    export_type: resolvedType,
     errors: errors.length > 0 ? errors : undefined,
-    message: `${confirmed} pagamento(s) confirmado(s) como exportado(s)`,
+    message: `${confirmed} item(ns) confirmado(s) como exportado(s) (${resolvedType})`,
   });
 }
 
 async function handleStatus(supabase: ReturnType<typeof createClient>) {
+  // Total accepted
+  const { count: totalAccepted } = await supabase
+    .from("financial_payment_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("financial_status", "accepted");
+
   // Total paid
   const { count: totalPaid } = await supabase
     .from("financial_payment_queue")
     .select("id", { count: "exact", head: true })
     .eq("financial_status", "paid");
 
-  // Total exported
-  const { count: totalExported } = await supabase
+  // Exported registrations
+  const { count: exportedRegistrations } = await supabase
     .from("erp_export_queue")
     .select("id", { count: "exact", head: true })
+    .eq("export_type", "registration")
     .eq("export_status", "exported");
 
-  // Total pending (paid - exported)
-  const pending = (totalPaid || 0) - (totalExported || 0);
+  // Exported payments
+  const { count: exportedPayments } = await supabase
+    .from("erp_export_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("export_type", "payment")
+    .eq("export_status", "exported");
+
+  const pendingRegistrations = Math.max(0, (totalAccepted || 0) - (exportedRegistrations || 0));
+  const pendingPayments = Math.max(0, (totalPaid || 0) - (exportedPayments || 0));
 
   return jsonResponse({
-    total_pagos: totalPaid || 0,
-    total_exportados: totalExported || 0,
-    pendentes_exportacao: pending > 0 ? pending : 0,
+    provisao: {
+      total_aceitos: totalAccepted || 0,
+      exportados: exportedRegistrations || 0,
+      pendentes: pendingRegistrations,
+    },
+    baixa: {
+      total_pagos: totalPaid || 0,
+      exportados: exportedPayments || 0,
+      pendentes: pendingPayments,
+    },
+    resumo: {
+      total_pendentes_exportacao: pendingRegistrations + pendingPayments,
+    },
   });
 }
 

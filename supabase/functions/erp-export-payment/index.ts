@@ -15,46 +15,33 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Authenticate user
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Não autorizado" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Não autorizado" }, 401);
   }
 
   const token = authHeader.replace("Bearer ", "");
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) {
-    return new Response(JSON.stringify({ error: "Token inválido" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Token inválido" }, 401);
   }
 
   try {
     const body = await req.json();
-    const { action, payment_queue_id, export_queue_id, channel } = body;
+    const { action, payment_queue_id, export_queue_id, channel, export_type } = body;
 
     if (action === "export") {
-      return await handleExport(supabase, payment_queue_id, channel, user.id);
+      return await handleExport(supabase, payment_queue_id, channel, user.id, export_type);
     } else if (action === "retry") {
       return await handleRetry(supabase, export_queue_id, user.id);
     } else if (action === "status") {
       return await handleStatus(supabase, payment_queue_id);
     } else {
-      return new Response(JSON.stringify({ error: "Ação inválida" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Ação inválida" }, 400);
     }
   } catch (err) {
     console.error("erp-export-payment error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: err.message }, 500);
   }
 });
 
@@ -70,7 +57,73 @@ function mapPaymentMethod(method: string | null): string {
   return map[method.toLowerCase().trim()] || method;
 }
 
-async function handleExport(supabase: any, paymentQueueId: string, channel: string | undefined, userId: string) {
+function cleanDocument(doc: string | null): string | null {
+  if (!doc) return null;
+  return doc.replace(/[^\d]/g, "");
+}
+
+/**
+ * Build payload based on export_type:
+ * - registration: provisão (Aguardando Pagamento), sem dados de pagamento
+ * - payment: baixa (Pago), com dados completos de pagamento
+ */
+function buildPayload(item: Record<string, unknown>, exportType: string) {
+  const doc = item.supplier_document as string | null;
+  const isRegistration = exportType === "registration";
+
+  const payload: Record<string, unknown> = {
+    api_version: "1.0",
+    generated_at: new Date().toISOString(),
+    id: item.id,
+    empresa_id: item.empresa_id || 1,
+    export_type: exportType,
+    fornecedor: {
+      nome: item.supplier_name,
+      documento: cleanDocument(doc),
+      documento_formatado: doc,
+    },
+    documento: {
+      tipo: item.document_type,
+      numero: item.document_number,
+    },
+    departamento: item.department_name,
+    descricao: item.description,
+  };
+
+  if (isRegistration) {
+    // Provisão: apenas dados do título, sem pagamento
+    payload.pagamento = {
+      valor: Number(item.amount) || 0,
+      moeda: "BRL",
+      data_vencimento: item.due_date,
+      portador: item.portador,
+    };
+    payload.status = "Aguardando Pagamento";
+  } else {
+    // Baixa: dados completos com método e data de pagamento
+    payload.pagamento = {
+      valor: Number(item.amount) || 0,
+      moeda: "BRL",
+      data_vencimento: item.due_date,
+      data_pagamento: item.paid_at,
+      metodo: mapPaymentMethod(item.payment_method as string),
+      portador: item.portador,
+    };
+    payload.status = "Pago";
+  }
+
+  return payload;
+}
+
+async function handleExport(
+  supabase: any,
+  paymentQueueId: string,
+  channel: string | undefined,
+  userId: string,
+  exportType: string | undefined
+) {
+  const resolvedType = exportType || "payment";
+
   const { data: item, error: fetchErr } = await supabase
     .from("financial_payment_queue")
     .select("*")
@@ -82,36 +135,7 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
   }
 
   const exportChannel = channel || "n8n";
-
-  const doc = item.supplier_document as string | null;
-  const cleanDoc = doc ? doc.replace(/[^\d]/g, "") : null;
-
-  const payload = {
-    api_version: "1.0",
-    generated_at: new Date().toISOString(),
-    id: paymentQueueId,
-    empresa_id: item.empresa_id || 1,
-    fornecedor: {
-      nome: item.supplier_name,
-      documento: cleanDoc,
-      documento_formatado: doc,
-    },
-    documento: {
-      tipo: item.document_type,
-      numero: item.document_number,
-    },
-    pagamento: {
-      valor: Number(item.amount) || 0,
-      moeda: "BRL",
-      data_vencimento: item.due_date,
-      data_pagamento: item.paid_at,
-      metodo: mapPaymentMethod(item.payment_method),
-      portador: item.portador,
-    },
-    departamento: item.department_name,
-    descricao: item.description,
-    status: "Pago",
-  };
+  const payload = buildPayload(item, resolvedType);
 
   // Create export queue record
   const { data: exportRecord, error: insertErr } = await supabase
@@ -120,6 +144,7 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
       payment_queue_id: paymentQueueId,
       export_channel: exportChannel,
       export_status: "pending",
+      export_type: resolvedType,
       payload,
       attempts: 0,
       created_by: userId,
@@ -155,11 +180,16 @@ async function handleExport(supabase: any, paymentQueueId: string, channel: stri
     .update(updateData)
     .eq("id", exportRecord.id);
 
+  const typeLabel = resolvedType === "registration" ? "Provisão" : "Baixa";
+
   return jsonResponse({
     success: result.success,
     export_id: exportRecord.id,
+    export_type: resolvedType,
     channel: exportChannel,
-    message: result.success ? "Enviado ao ERP com sucesso" : result.error,
+    message: result.success
+      ? `${typeLabel} enviada ao ERP com sucesso`
+      : result.error,
   });
 }
 
@@ -205,11 +235,14 @@ async function handleStatus(supabase: any, paymentQueueId: string) {
     .from("erp_export_queue")
     .select("*")
     .eq("payment_queue_id", paymentQueueId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  return jsonResponse({ export: data || null });
+  // Return both registration and payment exports
+  return jsonResponse({
+    exports: data || [],
+    registration: (data || []).find((e: any) => e.export_type === "registration") || null,
+    payment: (data || []).find((e: any) => e.export_type === "payment") || null,
+  });
 }
 
 async function sendToChannel(channel: string, payload: Record<string, unknown>): Promise<{ success: boolean; error?: string; response?: unknown }> {
@@ -217,7 +250,7 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
     if (channel === "n8n") {
       const webhookUrl = Deno.env.get("N8N_ERP_EXPORT_WEBHOOK_URL");
       if (!webhookUrl) {
-        return { success: false, error: "N8N_ERP_EXPORT_WEBHOOK_URL não configurada. Configure nas variáveis de ambiente." };
+        return { success: false, error: "N8N_ERP_EXPORT_WEBHOOK_URL não configurada." };
       }
       const res = await fetch(webhookUrl, {
         method: "POST",
@@ -234,7 +267,7 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
       const apiUrl = Deno.env.get("ERP_REST_API_URL");
       const apiKey = Deno.env.get("ERP_REST_API_KEY");
       if (!apiUrl) {
-        return { success: false, error: "ERP_REST_API_URL não configurada. Configure nas variáveis de ambiente." };
+        return { success: false, error: "ERP_REST_API_URL não configurada." };
       }
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
@@ -251,14 +284,10 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
       return { success: true, response: body };
 
     } else if (channel === "sql_direct") {
-      // SQL Server direct connection would require a library like node-mssql
-      // For now, return a placeholder indicating the channel needs configuration
       const sqlHost = Deno.env.get("ERP_SQL_HOST");
       if (!sqlHost) {
-        return { success: false, error: "ERP_SQL_HOST não configurado. Configure as credenciais SQL Server nas variáveis de ambiente." };
+        return { success: false, error: "ERP_SQL_HOST não configurado." };
       }
-      // In production, this would use mssql to INSERT into the ERP database
-      // For now, log and return success placeholder
       console.log("SQL Direct payload:", JSON.stringify(payload));
       return { success: false, error: "Canal SQL Direct ainda não implementado. Use N8N ou REST API." };
 
