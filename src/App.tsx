@@ -313,36 +313,36 @@ function AppContent() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
-            <Route path="/dashboard/ai-analytics" element={<ProtectedRoute><ScreenProtectedRoute screenCode="ai_analytics"><AIAnalytics /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/qa-agent" element={<ProtectedRoute><ScreenProtectedRoute screenCode="ai_analytics"><QAAgent /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/agente-huggs" element={<ProtectedRoute><ScreenProtectedRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/relatorios" element={<ProtectedRoute><ScreenProtectedRoute screenCode="relatorios"><Relatorios /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/ai-analytics" element={<ScreenRoute screenCode="ai_analytics"><AIAnalytics /></ScreenRoute>} />
+            <Route path="/dashboard/qa-agent" element={<ScreenRoute screenCode="ai_analytics"><QAAgent /></ScreenRoute>} />
+            <Route path="/dashboard/agente-huggs" element={<ScreenRoute screenCode="ai_analytics"><AgenteHuggs /></ScreenRoute>} />
+            <Route path="/dashboard/relatorios" element={<ScreenRoute screenCode="relatorios"><Relatorios /></ScreenRoute>} />
             
             {/* Módulo de Marketing */}
-            <Route path="/dashboard/marketing" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><MarketingModule /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/marketing/social" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><Marketing /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/marketing/whatsapp" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><WhatsAppMonitoring /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/marketing/elevenlabs" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><ElevenLabsStudioPage /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/marketing" element={<ModuleRoute moduleCode="marketing"><MarketingModule /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/social" element={<ModuleRoute moduleCode="marketing"><Marketing /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/whatsapp" element={<ModuleRoute moduleCode="marketing"><WhatsAppMonitoring /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/elevenlabs" element={<ModuleRoute moduleCode="marketing"><ElevenLabsStudioPage /></ModuleRoute>} />
             
             <Route path="/dashboard/instalar-app" element={<ProtectedRoute><InstalarApp /></ProtectedRoute>} />
             
             {/* Módulo de Prospects */}
-            <Route path="/dashboard/prospects" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><ProspectsModule /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/lista" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Prospects /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/list" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Prospects /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/kanban" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Kanban /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/atividades" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Atividades /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/mapa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Mapa /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/prospects/municipios" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="prospects"><Municipios /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/prospects" element={<ModuleRoute moduleCode="prospects"><ProspectsModule /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/lista" element={<ModuleRoute moduleCode="prospects"><Prospects /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/list" element={<ModuleRoute moduleCode="prospects"><Prospects /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/kanban" element={<ModuleRoute moduleCode="prospects"><Kanban /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/atividades" element={<ModuleRoute moduleCode="prospects"><Atividades /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/mapa" element={<ModuleRoute moduleCode="prospects"><Mapa /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/municipios" element={<ModuleRoute moduleCode="prospects"><Municipios /></ModuleRoute>} />
             <Route path="/dashboard/demandas" element={<ProtectedRoute><InternalTicketsPage /></ProtectedRoute>} />
             
             {/* Outras funcionalidades */}
-            <Route path="/dashboard/ranking" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="trade"><Ranking /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><Ranking /></ModuleRoute>} />
             <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
             <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-            <Route path="/dashboard/importar-clientes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ImportarClientes /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/auditoria" element={<ProtectedRoute><ScreenProtectedRoute screenCode="auditoria"><Auditoria /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ImportarClientes /></ModuleRoute>} />
+            <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
             
             {/* Módulo de Trade Marketing */}
             <Route path="/dashboard/trade" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="trade"><TradeModule /></ModuleProtectedRoute></ProtectedRoute>} />
