@@ -916,7 +916,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Departamentos - Cada departamento com submenu */}
-        {hasModulePermission("departamentos") && showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
+        {showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
           // Cores harmoniosas para cada departamento
           const deptColors = [
             { bg: "bg-blue-500", bgLight: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", hover: "hover:bg-blue-100 dark:hover:bg-blue-900/40" },
