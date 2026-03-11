@@ -439,6 +439,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("financeiro.bank_balances"), url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: t("financeiro.chart_accounts"), url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
     { title: t("financeiro.classify_bank"), url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
+    { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
+    { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
   ];
 
   const tradeSubMenus = [
