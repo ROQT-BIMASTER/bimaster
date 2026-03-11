@@ -349,12 +349,18 @@ async function handleHistory(supabase: any): Promise<Response> {
   });
 }
 
-async function handleListConnections(supabase: any, userId: string): Promise<Response> {
-  const { data, error } = await supabase
+async function handleListConnections(supabase: any, userId: string, body: any): Promise<Response> {
+  let query = supabase
     .from("bank_connections")
-    .select("*")
+    .select("*, empresas(id, nome, cnpj, uf)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (body?.empresaId) {
+    query = query.eq("empresa_id", body.empresaId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   return new Response(JSON.stringify({ connections: data }), {
