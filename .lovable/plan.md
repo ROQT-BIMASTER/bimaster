@@ -1,6 +1,5 @@
 
 
-
 ## Plano: Envio de Pagamentos para o ERP
 
 ### Status: ✅ Implementado
@@ -65,3 +64,57 @@ Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
                               ↓
              Pagamento → ERP: "Pago" (baixa do título)
 ```
+
+---
+
+## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+#### FASE 1 — Infraestrutura Base
+1. **Migration** — 6 novas tabelas + 2 alteradas:
+   - `pluggy_investments` — Investimentos corporativos
+   - `pluggy_investment_transactions` — Movimentações de investimento
+   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
+   - `pluggy_loans` — Empréstimos ativos
+   - `pluggy_category_rules` — Regras de categorização customizadas
+   - `balance_alerts` — Alertas de saldo baixo
+   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
+   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
+   - RLS em todas as tabelas via user_id / bank_connections join
+
+2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
+   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
+   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
+   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
+   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+
+#### FASE 2 — Webhook Avançado
+3. **`pluggy-webhook`** expandido:
+   - `transactions/created` → Sincronização incremental automática
+   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
+   - `connector/status_updated` → Log informacional
+   - Auto-registro de webhooks ao salvar conexão
+
+#### FASE 3 — Dashboards e UI
+4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
+   - Cards de patrimônio total, tipos de aplicação, filiais
+   - Gráfico de composição da carteira (PieChart)
+   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
+   - Sync por conexão bancária
+
+5. **Novos componentes na Conciliação Bancária** (novas tabs):
+   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
+   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
+   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
+   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
+
+6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
+
+#### FASE 4 — Automações Inteligentes
+7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
+8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
+9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
+10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
