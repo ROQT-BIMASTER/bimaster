@@ -391,123 +391,119 @@ function AppContent() {
             <Route path="/dashboard/trade/rewards" element={<ModuleRoute moduleCode="trade"><TradeRewards /></ModuleRoute>} />
 
             {/* Módulo de Eventos Corporativos */}
-            <Route path="/dashboard/eventos" element={<ProtectedRoute><CorporateEvents /></ProtectedRoute>} />
-            <Route path="/dashboard/eventos/aprovacoes" element={<ProtectedRoute><EventsApprovalHub /></ProtectedRoute>} />
-            <Route path="/dashboard/eventos/:id" element={<ProtectedRoute><CorporateEventDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/eventos/dashboard" element={<ProtectedRoute><CorporateEventsDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/eventos" element={<ModuleRoute moduleCode="eventos"><CorporateEvents /></ModuleRoute>} />
+            <Route path="/dashboard/eventos/aprovacoes" element={<ModuleRoute moduleCode="eventos"><EventsApprovalHub /></ModuleRoute>} />
+            <Route path="/dashboard/eventos/:id" element={<ModuleRoute moduleCode="eventos"><CorporateEventDetail /></ModuleRoute>} />
+            <Route path="/dashboard/eventos/dashboard" element={<ModuleRoute moduleCode="eventos"><CorporateEventsDashboard /></ModuleRoute>} />
 
             {/* Módulo de Departamentos */}
-            <Route path="/dashboard/departamentos" element={<ProtectedRoute><DepartmentHub /></ProtectedRoute>} />
-            <Route path="/dashboard/departamentos/:id" element={<ProtectedRoute><DepartmentDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/departamentos/:id/dashboard" element={<ProtectedRoute><DepartmentDashboard /></ProtectedRoute>} />
-            <Route path="/dashboard/departamentos/:id/aprovacoes" element={<ProtectedRoute><DepartmentApprovalHub /></ProtectedRoute>} />
-            <Route path="/dashboard/departamentos/aprovacoes" element={<ProtectedRoute><DepartmentsApprovalHub /></ProtectedRoute>} />
+            <Route path="/dashboard/departamentos" element={<ModuleRoute moduleCode="departamentos"><DepartmentHub /></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id" element={<ModuleRoute moduleCode="departamentos"><DepartmentDetail /></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id/dashboard" element={<ModuleRoute moduleCode="departamentos"><DepartmentDashboard /></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><DepartmentApprovalHub /></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><DepartmentsApprovalHub /></ModuleRoute>} />
 
             {/* Módulo de Fábrica */}
-            <Route path="/dashboard/fabrica" element={<ProtectedRoute><FabricaModule /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/recebimentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_recebimentos"><FabricaRecebimentos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/materias-primas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_mps"><FabricaMateriasPrimas /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulas /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas/nova" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/formulas/:id" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/planejamento" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_planejamento"><FabricaPlanejamento /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/fiscal" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_fiscal"><FabricaFiscal /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/tabela-impostos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_fiscal"><FabricaTabelaImpostos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/ordens-producao" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_ordens"><FabricaOrdensProducao /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/apontamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_apontamentos"><FabricaApontamentos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/qualidade" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_qualidade"><FabricaQualidade /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/paradas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_paradas"><FabricaParadas /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/maquinas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_maquinas"><FabricaMaquinas /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/operadores" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_operadores"><FabricaOperadores /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos-acabados" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/produtos/importar" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/revisao-fichas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica/executivo" element={<ProtectedRoute><ScreenProtectedRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica" element={<ModuleRoute moduleCode="fabrica"><FabricaModule /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica/recebimentos" element={<ScreenRoute screenCode="fabrica_recebimentos"><FabricaRecebimentos /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/materias-primas" element={<ScreenRoute screenCode="fabrica_mps"><FabricaMateriasPrimas /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/formulas" element={<ScreenRoute screenCode="fabrica_formulas"><FabricaFormulas /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/formulas/nova" element={<ScreenRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/formulas/:id" element={<ScreenRoute screenCode="fabrica_formulas"><FabricaFormulaEditor /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/planejamento" element={<ScreenRoute screenCode="fabrica_planejamento"><FabricaPlanejamento /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/fiscal" element={<ScreenRoute screenCode="fabrica_fiscal"><FabricaFiscal /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/tabela-impostos" element={<ScreenRoute screenCode="fabrica_fiscal"><FabricaTabelaImpostos /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/ordens-producao" element={<ScreenRoute screenCode="fabrica_ordens"><FabricaOrdensProducao /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/apontamentos" element={<ScreenRoute screenCode="fabrica_apontamentos"><FabricaApontamentos /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/qualidade" element={<ScreenRoute screenCode="fabrica_qualidade"><FabricaQualidade /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/paradas" element={<ScreenRoute screenCode="fabrica_paradas"><FabricaParadas /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/maquinas" element={<ScreenRoute screenCode="fabrica_maquinas"><FabricaMaquinas /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/operadores" element={<ScreenRoute screenCode="fabrica_operadores"><FabricaOperadores /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/produtos-acabados" element={<ScreenRoute screenCode="fabrica_produtos"><FabricaProdutosAcabados /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/produtos/:id/custos" element={<ScreenRoute screenCode="fabrica_produtos"><FichaCustoProduto /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/produtos/importar" element={<ScreenRoute screenCode="fabrica_produtos"><ImportarProdutosAcabados /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/revisao-fichas" element={<ScreenRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ScreenRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/executivo" element={<ScreenRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
 
             {/* Módulo Fábrica China */}
-            <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaFabrica /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaRecebimentos /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaOrdens /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaOrdemDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/submissao/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaSubmissaoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/produto/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaFichaProduto /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ChinaFabrica /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/nova" element={<ModuleRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ModuleRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/recebimentos" element={<ModuleRoute moduleCode="china"><ChinaRecebimentos /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens" element={<ModuleRoute moduleCode="china"><ChinaOrdens /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens/:id" element={<ModuleRoute moduleCode="china"><ChinaOrdemDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ChinaSubmissaoDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ChinaFichaProduto /></ModuleRoute>} />
 
             {/* Módulo Comercial */}
-            <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/lancamentos" element={<ProtectedRoute><ScreenProtectedRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/ibge" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><IBGEData /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/mineracao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><LeadMining /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/inteligencia" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><MarketIntelligence /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/reativacao" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ClientReactivation /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/mapa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialMapa /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/municipios-inteligencia" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><MunicipiosIntelligence /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/comercial/whitespace" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><WhitespaceAnalysis /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/lancamentos" element={<ScreenRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenRoute>} />
+            <Route path="/dashboard/comercial/ibge" element={<ModuleRoute moduleCode="comercial"><IBGEData /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/mineracao" element={<ModuleRoute moduleCode="comercial"><LeadMining /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/inteligencia" element={<ModuleRoute moduleCode="comercial"><MarketIntelligence /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/reativacao" element={<ModuleRoute moduleCode="comercial"><ClientReactivation /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/mapa" element={<ModuleRoute moduleCode="comercial"><ComercialMapa /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/municipios-inteligencia" element={<ModuleRoute moduleCode="comercial"><MunicipiosIntelligence /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/whitespace" element={<ModuleRoute moduleCode="comercial"><WhitespaceAnalysis /></ModuleRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
-            <Route path="/dashboard/precos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><TabelasPrecosModule /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/matriz" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_matriz"><PrecosMatrizComparativa /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/tabelas" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_tabelas"><FabricaTabelasPreco /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/aprovacao" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_tabelas"><FabricaAprovacaoPrecos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/portal-cliente" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="precos"><PortalCliente /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/acesso" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_tabelas"><GerenciamentoAcessoPrecos /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/precos/simulador" element={<ProtectedRoute><ScreenProtectedRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/precos" element={<ModuleRoute moduleCode="precos"><TabelasPrecosModule /></ModuleRoute>} />
+            <Route path="/dashboard/precos/matriz" element={<ScreenRoute screenCode="precos_matriz"><PrecosMatrizComparativa /></ScreenRoute>} />
+            <Route path="/dashboard/precos/tabelas" element={<ScreenRoute screenCode="precos_tabelas"><FabricaTabelasPreco /></ScreenRoute>} />
+            <Route path="/dashboard/precos/aprovacao" element={<ScreenRoute screenCode="precos_tabelas"><FabricaAprovacaoPrecos /></ScreenRoute>} />
+            <Route path="/dashboard/precos/portal-cliente" element={<ModuleRoute moduleCode="precos"><PortalCliente /></ModuleRoute>} />
+            <Route path="/dashboard/precos/acesso" element={<ScreenRoute screenCode="precos_tabelas"><GerenciamentoAcessoPrecos /></ScreenRoute>} />
+            <Route path="/dashboard/precos/simulador" element={<ScreenRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenRoute>} />
             
             {/* Módulo Financeiro - Protegido por módulo */}
-            <Route path="/dashboard/financeiro" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><Financeiro /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/visao-departamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/dre-analitico" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><DREAnalitico /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/trade" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ProtectedRoute><ScreenProtectedRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasAReceber /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/cobranca" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><CobrancaInadimplentes /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FluxoDeCaixa /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/plano-contas" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><PlanoContas /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/saldos-bancarios" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><SaldosBancarios /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/classificar-banco" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/central-pagamentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/consolidado" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><FinanceiroConsolidadoDashboard /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="financeiro"><ConciliacaoBancaria /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/dre-analitico" element={<ModuleRoute moduleCode="financeiro"><DREAnalitico /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/trade" element={<ModuleRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber" element={<ModuleRoute moduleCode="financeiro"><ContasAReceber /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ModuleRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ModuleRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><CobrancaInadimplentes /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><FluxoDeCaixa /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/plano-contas" element={<ModuleRoute moduleCode="financeiro"><PlanoContas /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/saldos-bancarios" element={<ModuleRoute moduleCode="financeiro"><SaldosBancarios /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/classificar-banco" element={<ModuleRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/central-pagamentos" element={<ModuleRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/consolidado" element={<ModuleRoute moduleCode="financeiro"><FinanceiroConsolidadoDashboard /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ModuleRoute moduleCode="financeiro"><ConciliacaoBancaria /></ModuleRoute>} />
             
             {/* Marketing Mission Control */}
-            <Route path="/dashboard/marketing/mission-control" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
-             <Route path="/dashboard/projetos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><Projetos /></ModuleProtectedRoute></ProtectedRoute>} />
-             <Route path="/dashboard/projetos/inbox" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoInbox /></ModuleProtectedRoute></ProtectedRoute>} />
-             <Route path="/dashboard/projetos/aprovacoes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleProtectedRoute></ProtectedRoute>} />
-             <Route path="/dashboard/projetos/minha-equipe" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetosMinhaEquipe /></ModuleProtectedRoute></ProtectedRoute>} />
-             <Route path="/dashboard/projetos/vincular-china" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoVincularChina /></ModuleProtectedRoute></ProtectedRoute>} />
-             <Route path="/dashboard/projetos/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+             <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><Projetos /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ProjetoInbox /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ProjetosMinhaEquipe /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ProjetoVincularChina /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleRoute>} />
 
             {/* Módulo de Reuniões */}
-            <Route path="/dashboard/reunioes" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><Reunioes /></ModuleProtectedRoute></ProtectedRoute>} />
-            <Route path="/dashboard/reunioes/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="reunioes"><ReuniaoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/reunioes" element={<ModuleRoute moduleCode="reunioes"><Reunioes /></ModuleRoute>} />
+            <Route path="/dashboard/reunioes/:id" element={<ModuleRoute moduleCode="reunioes"><ReuniaoDetalhe /></ModuleRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={
-              <ProtectedRoute>
-                <ScreenProtectedRoute screenCode="financeiro_contas_pagar" redirectTo="/dashboard/financeiro/contas-a-pagar">
-                  <ContasAPagar />
-                </ScreenProtectedRoute>
-              </ProtectedRoute>
+              <ScreenRoute screenCode="financeiro_contas_pagar" redirectTo="/dashboard/financeiro/contas-a-pagar">
+                <ContasAPagar />
+              </ScreenRoute>
             } />
             <Route path="/dashboard/plano-contas" element={
-              <ProtectedRoute>
-                <ScreenProtectedRoute screenCode="financeiro_plano_contas" redirectTo="/dashboard/financeiro/contas-a-pagar">
-                  <PlanoContas />
-                </ScreenProtectedRoute>
-              </ProtectedRoute>
+              <ScreenRoute screenCode="financeiro_plano_contas" redirectTo="/dashboard/financeiro/contas-a-pagar">
+                <PlanoContas />
+              </ScreenRoute>
             } />
-            <Route path="/dashboard/configuracoes/api-health" element={<ProtectedRoute><ScreenProtectedRoute screenCode="admin"><APIHealthCheck /></ScreenProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/configuracoes/api-health" element={<ScreenRoute screenCode="admin"><APIHealthCheck /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/lgpd" element={<ProtectedRoute><LGPDAdmin /></ProtectedRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
