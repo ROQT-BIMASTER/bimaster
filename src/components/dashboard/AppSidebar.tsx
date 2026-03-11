@@ -586,7 +586,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo Financeiro */}
-        {hasModulePermission("financeiro") && showModule("financeiro") && (
+        {showModule("financeiro") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen} defaultOpen>
               <CollapsibleTrigger className="w-full">
