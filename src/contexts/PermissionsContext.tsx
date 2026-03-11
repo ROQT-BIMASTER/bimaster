@@ -50,13 +50,12 @@ const saveToLocalStorage = (cache: NonNullable<typeof globalPermissionsCache>) =
 };
 
 export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
-  // Try to restore from localStorage for instant boot on mobile
-  const initialCache = restoreFromLocalStorage();
-  const [modules, setModules] = useState<string[]>(initialCache?.modules || []);
-  const [screens, setScreens] = useState<string[]>(initialCache?.screens || []);
-  const [role, setRole] = useState<string | null>(initialCache?.role || null);
-  const [isAdmin, setIsAdmin] = useState(initialCache?.isAdmin || false);
-  const [loading, setLoading] = useState(!initialCache); // If we have cache, start as not loading
+  // SECURITY: Never pre-populate from localStorage — prevents permission leakage between users
+  const [modules, setModules] = useState<string[]>([]);
+  const [screens, setScreens] = useState<string[]>([]);
+  const [role, setRole] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const isMountedRef = useRef(true);
   const fetchInProgressRef = useRef(false);
 
