@@ -139,7 +139,6 @@ export default function ReuniaoDetalhe() {
       });
     }
   }, [meeting, id, queryClient]);
-  }, [meeting, id, queryClient]);
 
   const { data: insights } = useQuery({
     queryKey: ["meeting-insights", id],
