@@ -189,6 +189,10 @@ export default function ProjetoVincularChina() {
     return cat ? `${cat.labelPt} ${cat.labelCn}` : key;
   };
 
+  if (!isDevTeam) {
+    return <AccessDenied message="Acesso restrito à equipe de desenvolvimento." />;
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
