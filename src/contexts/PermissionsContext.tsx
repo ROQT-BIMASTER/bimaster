@@ -74,6 +74,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           setScreens(fallback.screens);
           setRole(fallback.role);
           setIsAdmin(fallback.isAdmin);
+        } else {
+          // SECURITY: Clear any stale state from previous user
+          console.log("[PermissionsContext] No valid fallback - clearing stale state");
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
         }
         setLoading(false);
       }
