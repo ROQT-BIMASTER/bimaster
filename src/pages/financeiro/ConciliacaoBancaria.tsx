@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,8 +27,11 @@ import {
   Plus,
   History,
   Loader2,
-  Landmark,
   Filter,
+  CreditCard,
+  Landmark,
+  Tag,
+  Bell,
 } from "lucide-react";
 import { useConciliacaoBancaria } from "@/hooks/useConciliacaoBancaria";
 import { useUserEmpresas } from "@/hooks/useUserEmpresas";
@@ -36,6 +39,10 @@ import { DashboardConciliacao } from "@/components/conciliacao/DashboardConcilia
 import { TabelaPendentes } from "@/components/conciliacao/TabelaPendentes";
 import { PluggyConnectWidget } from "@/components/conciliacao/PluggyConnectWidget";
 import { PainelSaldos } from "@/components/conciliacao/PainelSaldos";
+import { PainelCartoes } from "@/components/conciliacao/PainelCartoes";
+import { MonitorEmprestimos } from "@/components/conciliacao/MonitorEmprestimos";
+import { GestaoCategoriasPluggy } from "@/components/conciliacao/GestaoCategoriasPluggy";
+import { AlertasSaldo } from "@/components/conciliacao/AlertasSaldo";
 import { toast } from "sonner";
 
 export default function ConciliacaoBancaria() {
@@ -54,6 +61,8 @@ export default function ConciliacaoBancaria() {
     saveConnection,
     syncTransactions,
     matchManual,
+    loans,
+    loansLoading,
   } = useConciliacaoBancaria(selectedEmpresaId);
 
   const [isConnecting, setIsConnecting] = useState(false);
@@ -71,7 +80,6 @@ export default function ConciliacaoBancaria() {
     if (userEmpresas && userEmpresas.length > 1) {
       setShowEmpresaDialog(true);
     } else {
-      // Single empresa or none — proceed directly
       const empresaId = userEmpresas?.[0]?.empresa_id || null;
       openPluggyConnect(empresaId);
     }
@@ -88,9 +96,7 @@ export default function ConciliacaoBancaria() {
     try {
       const popup = window.open("about:blank", "pluggy_connect", "width=450,height=700,left=200,top=100,scrollbars=yes");
       pluggyPopupRef.current = popup;
-
       const token = await getConnectToken();
-
       if (popup && !popup.closed) {
         popup.location.href = `https://connect.pluggy.ai/?connect_token=${token}`;
         setConnectToken(token);
@@ -197,7 +203,6 @@ export default function ConciliacaoBancaria() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Branch Filter */}
             {userEmpresas && userEmpresas.length > 1 && (
               <Select
                 value={empresaFilterValue}
@@ -258,31 +263,14 @@ export default function ConciliacaoBancaria() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Data Início</Label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[160px]"
-                />
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[160px]" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Data Fim</Label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[160px]"
-                />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[160px]" />
               </div>
-              <Button
-                onClick={handleSync}
-                disabled={!selectedConnection || isSyncing}
-              >
-                {isSyncing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
+              <Button onClick={handleSync} disabled={!selectedConnection || isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Sincronizar Extrato
               </Button>
             </div>
@@ -294,8 +282,24 @@ export default function ConciliacaoBancaria() {
 
         {/* Tabs */}
         <Tabs defaultValue="transacoes" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="transacoes">Transações</TabsTrigger>
+            <TabsTrigger value="cartoes">
+              <CreditCard className="h-3 w-3 mr-1" />
+              Cartões
+            </TabsTrigger>
+            <TabsTrigger value="emprestimos">
+              <Landmark className="h-3 w-3 mr-1" />
+              Empréstimos
+            </TabsTrigger>
+            <TabsTrigger value="categorias">
+              <Tag className="h-3 w-3 mr-1" />
+              Categorias
+            </TabsTrigger>
+            <TabsTrigger value="alertas">
+              <Bell className="h-3 w-3 mr-1" />
+              Alertas
+            </TabsTrigger>
             <TabsTrigger value="historico">
               <History className="h-3 w-3 mr-1" />
               Histórico
@@ -305,12 +309,7 @@ export default function ConciliacaoBancaria() {
           <TabsContent value="transacoes" className="space-y-4">
             <div className="flex gap-2">
               {["all", "pendente", "conciliado", "divergente"].map((f) => (
-                <Button
-                  key={f}
-                  size="sm"
-                  variant={filter === f ? "default" : "outline"}
-                  onClick={() => setFilter(f)}
-                >
+                <Button key={f} size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>
                   {f === "all" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}
                 </Button>
               ))}
@@ -319,14 +318,28 @@ export default function ConciliacaoBancaria() {
               <CardContent className="p-0">
                 <TabelaPendentes
                   conciliacoes={conciliacoes}
-                  onMatch={(conciliacaoId, contaPagarId) =>
-                    matchManual.mutate({ conciliacaoId, contaPagarId })
-                  }
+                  onMatch={(conciliacaoId, contaPagarId) => matchManual.mutate({ conciliacaoId, contaPagarId })}
                   isMatching={matchManual.isPending}
                   filter={filter}
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="cartoes">
+            <PainelCartoes connections={connections} />
+          </TabsContent>
+
+          <TabsContent value="emprestimos">
+            <MonitorEmprestimos loans={loans} isLoading={loansLoading} />
+          </TabsContent>
+
+          <TabsContent value="categorias">
+            <GestaoCategoriasPluggy />
+          </TabsContent>
+
+          <TabsContent value="alertas">
+            <AlertasSaldo />
           </TabsContent>
 
           <TabsContent value="historico">
@@ -339,10 +352,7 @@ export default function ConciliacaoBancaria() {
                 ) : (
                   <div className="space-y-3">
                     {history.map((h: any) => (
-                      <div
-                        key={h.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
+                      <div key={h.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="text-sm font-medium">
                             {h.bank_connections?.banco || "—"}{" "}
@@ -353,18 +363,10 @@ export default function ConciliacaoBancaria() {
                           </p>
                         </div>
                         <div className="flex gap-3 text-xs">
-                          <span className="text-green-600">
-                            ✓ {h.conciliados} conciliados
-                          </span>
-                          <span className="text-yellow-600">
-                            ○ {h.pendentes} pendentes
-                          </span>
-                          <span className="text-red-600">
-                            ✕ {h.divergentes} divergentes
-                          </span>
-                          <Badge variant="outline">
-                            {h.total_transacoes} total
-                          </Badge>
+                          <span className="text-green-600">✓ {h.conciliados} conciliados</span>
+                          <span className="text-yellow-600">○ {h.pendentes} pendentes</span>
+                          <span className="text-red-600">✕ {h.divergentes} divergentes</span>
+                          <Badge variant="outline">{h.total_transacoes} total</Badge>
                         </div>
                       </div>
                     ))}
