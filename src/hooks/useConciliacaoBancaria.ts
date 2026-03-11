@@ -14,13 +14,14 @@ const invokeFunction = async (action: string, body: Record<string, any> = {}) =>
   return data;
 };
 
-export function useConciliacaoBancaria() {
+export function useConciliacaoBancaria(empresaId?: number | null) {
   const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncingConnectionId, setSyncingConnectionId] = useState<string | null>(null);
 
   const connectionsQuery = useQuery({
-    queryKey: ["bank-connections"],
-    queryFn: () => invokeFunction("list-connections"),
+    queryKey: ["bank-connections", empresaId],
+    queryFn: () => invokeFunction("list-connections", empresaId ? { empresaId } : {}),
   });
 
   const historyQuery = useQuery({
@@ -29,16 +30,29 @@ export function useConciliacaoBancaria() {
   });
 
   const conciliacoesQuery = useQuery({
-    queryKey: ["conciliacoes-bancarias"],
+    queryKey: ["conciliacoes-bancarias", empresaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("conciliacoes_bancarias")
-        .select("*, bank_connections(banco, conta)")
+        .select("*, bank_connections(banco, conta, empresa_id)")
         .order("data_transacao", { ascending: false })
         .limit(500);
+
+      if (empresaId) {
+        // Filter by connections belonging to this empresa
+        const connIds = (connectionsQuery.data?.connections || []).map((c: any) => c.id);
+        if (connIds.length > 0) {
+          query = query.in("bank_connection_id", connIds);
+        } else {
+          return [];
+        }
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
+    enabled: !empresaId || !!connectionsQuery.data,
   });
 
   const getConnectToken = async () => {
@@ -52,7 +66,7 @@ export function useConciliacaoBancaria() {
   };
 
   const saveConnection = useMutation({
-    mutationFn: (params: { itemId: string; banco: string; conta?: string; agencia?: string }) =>
+    mutationFn: (params: { itemId: string; banco: string; conta?: string; agencia?: string; empresaId?: number }) =>
       invokeFunction("save-connection", params),
     onSuccess: () => {
       toast.success("Conexão bancária salva!");
@@ -63,6 +77,7 @@ export function useConciliacaoBancaria() {
 
   const syncTransactions = async (connectionId: string, dateFrom?: string, dateTo?: string) => {
     setIsSyncing(true);
+    setSyncingConnectionId(connectionId);
     try {
       const result = await invokeFunction("sync-transactions", { connectionId, dateFrom, dateTo });
       toast.success(
@@ -79,6 +94,7 @@ export function useConciliacaoBancaria() {
       throw err;
     } finally {
       setIsSyncing(false);
+      setSyncingConnectionId(null);
     }
   };
 
@@ -102,6 +118,7 @@ export function useConciliacaoBancaria() {
     conciliacoes: conciliacoesQuery.data || [],
     conciliacoesLoading: conciliacoesQuery.isLoading,
     isSyncing,
+    syncingConnectionId,
     getConnectToken,
     saveConnection,
     syncTransactions,
