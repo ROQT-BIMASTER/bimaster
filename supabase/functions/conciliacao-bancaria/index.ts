@@ -271,10 +271,19 @@ async function handleSyncTransactions(
     })
     .eq("id", upload.id);
 
-  // Update connection last_sync
+  // Update balance from Pluggy accounts
+  const totalBalance = (accountsData.results || []).reduce(
+    (sum: number, acc: any) => sum + (acc.balance || 0), 0
+  );
+
+  // Update connection last_sync + saldo
   await supabase
     .from("bank_connections")
-    .update({ last_sync: new Date().toISOString() })
+    .update({
+      last_sync: new Date().toISOString(),
+      saldo_atual: totalBalance,
+      saldo_atualizado_em: new Date().toISOString(),
+    })
     .eq("id", connectionId);
 
   return new Response(
