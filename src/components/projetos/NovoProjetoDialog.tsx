@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useProjetos } from "@/hooks/useProjetos";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { useUserDepartments } from "@/hooks/useUserDepartments";
 
 const CORES = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4"];
+const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
 export const TEMPLATES = {
   generico: {
@@ -46,6 +49,15 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
   const [cor, setCor] = useState(CORES[0]);
   const [template, setTemplate] = useState<TemplateKey>("generico");
   const { createProjeto } = useProjetos();
+  const { isAdmin } = usePermissions();
+  const { data: userDepartments = [] } = useUserDepartments();
+
+  const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
+
+  const availableTemplates = useMemo(() => {
+    if (isDevTeam) return Object.entries(TEMPLATES);
+    return Object.entries(TEMPLATES).filter(([key]) => key === "generico");
+  }, [isDevTeam]);
 
   const handleSubmit = async () => {
     if (!nome.trim()) return;
@@ -82,7 +94,7 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
           <div className="space-y-2">
             <Label>Template</Label>
             <RadioGroup value={template} onValueChange={v => setTemplate(v as TemplateKey)} className="space-y-2">
-              {Object.entries(TEMPLATES).map(([key, t]) => (
+              {availableTemplates.map(([key, t]) => (
                 <label
                   key={key}
                   className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5"
