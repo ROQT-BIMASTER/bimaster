@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useEventExpenses, DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
+import { Badge } from "@/components/ui/badge";
+import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
 import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, SplitSquareVertical, AlertTriangle, CalendarCheck, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
@@ -41,11 +42,23 @@ import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymen
 import { useActiveCorrectionRule, getCorrectionLocks } from "@/hooks/useFinancialCorrectionRules";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/lib/utils/sanitize";
 
 interface Fornecedor {
   id: string;
   razao_social: string;
   cnpj: string | null;
+}
+
+interface SiblingInstallment {
+  id: string;
+  installment_number: number;
+  installment_total: number;
+  valor_realizado: number;
+  valor_previsto: number;
+  due_date: string | null;
+  status: string;
+  boleto_barcode: string | null;
 }
 
 interface EnviarFinanceiroDialogProps {
@@ -59,19 +72,21 @@ export function EnviarFinanceiroDialog({
   open, 
   onOpenChange 
 }: EnviarFinanceiroDialogProps) {
-  const { sendToFinancial } = useEventExpenses();
   const { data: portadores } = usePortadores();
   const { data: activePolicy } = useActivePaymentPolicy();
   const { data: correctionRule } = useActiveCorrectionRule();
 
+  const [loading, setLoading] = useState(false);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState<string>("");
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [siblingEntries, setSiblingEntries] = useState<SiblingInstallment[]>([]);
   const [expenseInfo, setExpenseInfo] = useState<{ 
     status: string | null; 
     attachments: any[] | null;
     installment_number: number | null; 
     installment_total: number | null; 
+    installment_group_id: string | null;
     boleto_barcode: string | null;
     payment_queue_id: string | null;
     supplier_name: string | null;
@@ -81,6 +96,12 @@ export function EnviarFinanceiroDialog({
     due_date: string | null;
     portador: string | null;
     payment_notes: string | null;
+    valor_realizado: number;
+    valor_previsto: number;
+    description: string | null;
+    event_id: string | null;
+    empresa_id: number | null;
+    empresa_nome: string | null;
   } | null>(null);
 
   const [formData, setFormData] = useState({
@@ -101,57 +122,76 @@ export function EnviarFinanceiroDialog({
   const isCorrection = !!expenseInfo?.payment_queue_id;
   const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
-  // Pre-fill ALL form data when correcting a rejected payment
+  // Fetch suppliers + expense info + siblings when dialog opens
   useEffect(() => {
-    if (isCorrection && expenseInfo) {
-      setFormData((prev) => ({
-        ...prev,
-        supplier_name: expenseInfo.supplier_name || prev.supplier_name,
-        supplier_document: expenseInfo.supplier_document || prev.supplier_document,
-        document_type: expenseInfo.document_type || prev.document_type,
-        document_number: expenseInfo.document_number || prev.document_number,
-        due_date: expenseInfo.due_date || prev.due_date,
-        portador: expenseInfo.portador || prev.portador,
-        payment_notes: expenseInfo.payment_notes || prev.payment_notes,
-      }));
-    }
-  }, [isCorrection, expenseInfo]);
+    if (!open) return;
 
-  // Fetch suppliers + expense info when dialog opens
-  useEffect(() => {
-    if (open) {
-      supabase
-        .from("fabrica_fornecedores")
-        .select("id, razao_social, cnpj")
-        .eq("ativo", true)
-        .order("razao_social")
-        .then(({ data }) => setFornecedores(data || []));
+    supabase
+      .from("fabrica_fornecedores")
+      .select("id, razao_social, cnpj")
+      .eq("ativo", true)
+      .order("razao_social")
+      .then(({ data }) => setFornecedores(data || []));
 
-      supabase
-        .from("corporate_event_expenses")
-        .select("status, attachments, installment_number, installment_total, boleto_barcode, payment_queue_id, supplier_name, supplier_document, document_type, document_number, due_date, portador, payment_notes")
-        .eq("id", expenseId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setExpenseInfo({
-              status: data.status,
-              attachments: (data.attachments as any[]) || [],
-              installment_number: data.installment_number,
-              installment_total: data.installment_total,
-              boleto_barcode: data.boleto_barcode,
-              payment_queue_id: (data as any).payment_queue_id || null,
-              supplier_name: (data as any).supplier_name || null,
-              supplier_document: (data as any).supplier_document || null,
-              document_type: (data as any).document_type || null,
-              document_number: (data as any).document_number || null,
-              due_date: (data as any).due_date || null,
-              portador: (data as any).portador || null,
-              payment_notes: (data as any).payment_notes || null,
-            });
+    supabase
+      .from("corporate_event_expenses")
+      .select("status, attachments, installment_number, installment_total, installment_group_id, boleto_barcode, payment_queue_id, supplier_name, supplier_document, document_type, document_number, due_date, portador, payment_notes, valor_realizado, valor_previsto, description, event_id, empresa_id, empresa_nome")
+      .eq("id", expenseId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          const info = {
+            status: data.status,
+            attachments: (data.attachments as any[]) || [],
+            installment_number: data.installment_number,
+            installment_total: data.installment_total,
+            installment_group_id: (data as any).installment_group_id || null,
+            boleto_barcode: data.boleto_barcode,
+            payment_queue_id: (data as any).payment_queue_id || null,
+            supplier_name: (data as any).supplier_name || null,
+            supplier_document: (data as any).supplier_document || null,
+            document_type: (data as any).document_type || null,
+            document_number: (data as any).document_number || null,
+            due_date: (data as any).due_date || null,
+            portador: (data as any).portador || null,
+            payment_notes: (data as any).payment_notes || null,
+            valor_realizado: data.valor_realizado || 0,
+            valor_previsto: data.valor_previsto || 0,
+            description: data.description || null,
+            event_id: data.event_id || null,
+            empresa_id: (data as any).empresa_id || null,
+            empresa_nome: (data as any).empresa_nome || null,
+          };
+          setExpenseInfo(info);
+
+          // Pre-fill form if correction or re-send
+          if (info.payment_queue_id || info.supplier_name) {
+            setFormData((prev) => ({
+              ...prev,
+              supplier_name: info.supplier_name || prev.supplier_name,
+              supplier_document: info.supplier_document || prev.supplier_document,
+              document_type: info.document_type || prev.document_type,
+              document_number: info.document_number || prev.document_number,
+              due_date: info.due_date || prev.due_date,
+              portador: info.portador || prev.portador,
+              payment_notes: info.payment_notes || prev.payment_notes,
+            }));
           }
-        });
-    }
+
+          // Fetch sibling installments
+          if (info.installment_group_id) {
+            supabase
+              .from("corporate_event_expenses")
+              .select("id, installment_number, installment_total, valor_realizado, valor_previsto, due_date, status, boleto_barcode")
+              .eq("installment_group_id", info.installment_group_id)
+              .neq("id", expenseId)
+              .order("installment_number")
+              .then(({ data: siblings }) => {
+                setSiblingEntries((siblings || []) as unknown as SiblingInstallment[]);
+              });
+          }
+        }
+      });
   }, [open, expenseId]);
 
   // Reset form when dialog closes
@@ -159,6 +199,7 @@ export function EnviarFinanceiroDialog({
     if (!open) {
       setFornecedorId("");
       setExpenseInfo(null);
+      setSiblingEntries([]);
       setFormData({
         supplier_name: "",
         supplier_document: "",
@@ -203,6 +244,19 @@ export function EnviarFinanceiroDialog({
       });
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge variant="success" className="text-[10px]">Aprovada</Badge>;
+      case "pending":
+        return <Badge variant="warning" className="text-[10px]">Pendente</Badge>;
+      case "paid":
+        return <Badge className="text-[10px]">Paga</Badge>;
+      default:
+        return <Badge variant="ghost" className="text-[10px]">{status}</Badge>;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -221,26 +275,122 @@ export function EnviarFinanceiroDialog({
       return;
     }
 
-    // Build standardized notes: "Observações | Linha digitável: XXX | Parcela X/Y"
-    const noteParts: string[] = [];
-    if (formData.payment_notes) noteParts.push(formData.payment_notes);
-    if (boletoBarcode) noteParts.push(`Linha digitável: ${boletoBarcode}`);
-    if (isInstallment) noteParts.push(`Parcela ${expenseInfo!.installment_number}/${expenseInfo!.installment_total}`);
-    const notes = noteParts.join(" | ") || undefined;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
 
-    await sendToFinancial.mutateAsync({
-      id: expenseId,
-      supplier_name: formData.supplier_name,
-      supplier_document: formData.supplier_document || undefined,
-      document_type: formData.document_type,
-      document_number: formData.document_number,
-      due_date: formData.due_date,
-      portador: formData.portador,
-      payment_notes: notes,
-      payment_queue_id: expenseInfo?.payment_queue_id || null,
-    });
+      const code = `EVT-${Date.now()}`;
+      const existingQueueId = expenseInfo?.payment_queue_id;
 
-    onOpenChange(false);
+      // Get user name for history
+      let userName = "Usuário";
+      const { data: profile } = await supabase.from("profiles").select("nome").eq("id", user.id).single();
+      if (profile?.nome) userName = profile.nome;
+
+      // Build notes with boleto and installment info
+      const noteParts: string[] = [];
+      if (formData.payment_notes) noteParts.push(formData.payment_notes);
+      if (boletoBarcode) noteParts.push(`Linha digitável: ${boletoBarcode}`);
+      if (isInstallment) noteParts.push(`Parcela ${expenseInfo!.installment_number}/${expenseInfo!.installment_total}`);
+      const notes = noteParts.join(" | ") || null;
+
+      const amount = expenseInfo?.valor_realizado || expenseInfo?.valor_previsto || 0;
+
+      const queuePayload = {
+        source_type: "event_expense" as const,
+        source_id: expenseId,
+        source_code: null as string | null,
+        supplier_name: formData.supplier_name,
+        supplier_document: formData.supplier_document || null,
+        document_type: formData.document_type,
+        document_number: formData.document_number,
+        amount,
+        due_date: formData.due_date,
+        portador: formData.portador,
+        description: expenseInfo?.description || null,
+        notes,
+        department_name: "Eventos Corporativos",
+        requested_by: user.id,
+        attachments: expenseInfo?.attachments || null,
+        empresa_id: expenseInfo?.empresa_id || null,
+        empresa_nome: expenseInfo?.empresa_nome || null,
+      };
+
+      let finalQueueId = existingQueueId;
+
+      if (existingQueueId) {
+        // CORRECTION: Update existing record
+        const { error: updateQueueError } = await supabase
+          .from("financial_payment_queue")
+          .update({
+            ...queuePayload,
+            financial_status: 'pending',
+            financial_notes: null,
+            reviewed_at: null,
+            reviewed_by: null,
+            rejection_category: null,
+            rejection_fields: null,
+          })
+          .eq("id", existingQueueId);
+
+        if (updateQueueError) throw updateQueueError;
+
+        // Record correction in history
+        await supabase.from("financial_payment_queue_history" as any).insert({
+          payment_queue_id: existingQueueId,
+          changed_by: user.id,
+          changed_by_name: userName,
+          action: 'corrected',
+          snapshot: queuePayload,
+        });
+
+        finalQueueId = existingQueueId;
+      } else {
+        // FIRST SUBMISSION
+        const { data: queueEntry, error: queueError } = await supabase
+          .from("financial_payment_queue")
+          .insert({ code, ...queuePayload })
+          .select("id")
+          .single();
+
+        if (queueError) throw queueError;
+        finalQueueId = queueEntry.id;
+
+        // Record submission in history
+        await supabase.from("financial_payment_queue_history" as any).insert({
+          payment_queue_id: queueEntry.id,
+          changed_by: user.id,
+          changed_by_name: userName,
+          action: 'submitted',
+          snapshot: queuePayload,
+        });
+      }
+
+      // Update expense with financial fields
+      const { error: updateError } = await supabase
+        .from("corporate_event_expenses")
+        .update({
+          payment_queue_id: finalQueueId,
+          supplier_name: formData.supplier_name,
+          supplier_document: formData.supplier_document || null,
+          document_type: formData.document_type,
+          document_number: formData.document_number,
+          due_date: formData.due_date,
+          portador: formData.portador,
+          payment_notes: notes,
+        })
+        .eq("id", expenseId);
+
+      if (updateError) throw updateError;
+
+      toast.success("Despesa enviada ao financeiro com sucesso!");
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectedFornecedor = fornecedores.find(f => f.id === fornecedorId);
@@ -258,7 +408,7 @@ export function EnviarFinanceiroDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Installment context alert */}
+        {/* Installment context with siblings */}
         {isInstallment && (
           <Alert>
             <SplitSquareVertical className="h-4 w-4" />
@@ -271,6 +421,29 @@ export function EnviarFinanceiroDialog({
               )}
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Sibling installments card */}
+        {isInstallment && siblingEntries.length > 0 && (
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Outras parcelas do grupo:</p>
+            <div className="space-y-1.5">
+              {siblingEntries.map((sibling) => (
+                <div key={sibling.id} className="flex items-center justify-between text-xs gap-2">
+                  <span className="font-medium">
+                    {sibling.installment_number}/{sibling.installment_total}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {(sibling.valor_realizado || sibling.valor_previsto || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {sibling.due_date ? new Date(sibling.due_date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—"}
+                  </span>
+                  {getStatusBadge(sibling.status)}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Approval status alert */}
@@ -535,9 +708,9 @@ export function EnviarFinanceiroDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={sendToFinancial.isPending || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}
+              disabled={loading || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}
             >
-              {sendToFinancial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Send className="mr-2 h-4 w-4" />
               Enviar ao Financeiro
             </Button>
