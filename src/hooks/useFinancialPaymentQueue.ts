@@ -396,13 +396,13 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         });
       }
 
-      // Auto-export to ERP when marked as paid
+      // Auto-export to ERP when marked as paid (baixa)
       if (variables.financial_status === 'paid' && data) {
-        exportPaymentToErp(data.id).then((result) => {
+        exportPaymentToErp(data.id, undefined, 'payment').then((result) => {
           if (result.success) {
-            console.log(`ERP export success for ${data.code}`);
+            console.log(`ERP payment export success for ${data.code}`);
           } else {
-            console.warn(`ERP export failed for ${data.code}: ${result.message}`);
+            console.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
           }
         });
       }
