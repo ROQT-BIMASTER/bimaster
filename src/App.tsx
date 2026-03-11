@@ -190,6 +190,7 @@ const ContasPagarSyncPage = lazyWithRetry(() => import("./pages/financeiro/Conta
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
 const ConciliacaoBancaria = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoBancaria"));
+const InvestimentosCorporativos = lazyWithRetry(() => import("./pages/financeiro/InvestimentosCorporativos"));
 // Portal do Cliente (isolado)
 const PortalPrecos = lazyWithRetry(() => import("./pages/portal/PortalPrecos"));
 const PortalPerfil = lazyWithRetry(() => import("./pages/portal/PortalPerfil"));
@@ -476,6 +477,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/central-pagamentos" element={<ModuleRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/consolidado" element={<ModuleRoute moduleCode="financeiro"><FinanceiroConsolidadoDashboard /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ModuleRoute moduleCode="financeiro"><ConciliacaoBancaria /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><InvestimentosCorporativos /></ModuleRoute>} />
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleRoute>} />

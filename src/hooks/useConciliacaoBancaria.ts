@@ -39,7 +39,6 @@ export function useConciliacaoBancaria(empresaId?: number | null) {
         .limit(500);
 
       if (empresaId) {
-        // Filter by connections belonging to this empresa
         const connIds = (connectionsQuery.data?.connections || []).map((c: any) => c.id);
         if (connIds.length > 0) {
           query = query.in("bank_connection_id", connIds);
@@ -110,6 +109,146 @@ export function useConciliacaoBancaria(empresaId?: number | null) {
     onError: (err: any) => toast.error("Erro na conciliação manual: " + err.message),
   });
 
+  const investmentsQuery = useQuery({
+    queryKey: ["pluggy-investments", empresaId],
+    queryFn: async () => {
+      let query = supabase
+        .from("pluggy_investments")
+        .select("*, bank_connections(banco, conta, empresa_id, empresas(id, nome, uf))")
+        .order("balance", { ascending: false });
+
+      if (empresaId) {
+        const connIds = (connectionsQuery.data?.connections || []).map((c: any) => c.id);
+        if (connIds.length > 0) {
+          query = query.in("bank_connection_id", connIds);
+        } else {
+          return [];
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !empresaId || !!connectionsQuery.data,
+  });
+
+  const syncInvestments = async (connectionId: string) => {
+    try {
+      const result = await invokeFunction("fetch-investments", { connectionId });
+      toast.success(`${result.total} investimentos sincronizados`);
+      queryClient.invalidateQueries({ queryKey: ["pluggy-investments"] });
+      return result;
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar investimentos: " + err.message);
+      throw err;
+    }
+  };
+
+  const fetchIdentity = async (connectionId: string) => {
+    try {
+      const result = await invokeFunction("fetch-identity", { connectionId });
+      toast.success("Dados do titular sincronizados");
+      queryClient.invalidateQueries({ queryKey: ["pluggy-identities"] });
+      return result;
+    } catch (err: any) {
+      toast.error("Erro ao buscar identidade: " + err.message);
+      throw err;
+    }
+  };
+
+  const loansQuery = useQuery({
+    queryKey: ["pluggy-loans", empresaId],
+    queryFn: async () => {
+      let query = supabase
+        .from("pluggy_loans")
+        .select("*, bank_connections(banco, conta, empresa_id, empresas(id, nome, uf))")
+        .order("outstanding_balance", { ascending: false });
+
+      if (empresaId) {
+        const connIds = (connectionsQuery.data?.connections || []).map((c: any) => c.id);
+        if (connIds.length > 0) {
+          query = query.in("bank_connection_id", connIds);
+        } else {
+          return [];
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !empresaId || !!connectionsQuery.data,
+  });
+
+  const fetchCategories = async () => {
+    try {
+      return await invokeFunction("fetch-categories");
+    } catch (err: any) {
+      toast.error("Erro ao buscar categorias: " + err.message);
+      throw err;
+    }
+  };
+
+  const categoryRulesQuery = useQuery({
+    queryKey: ["pluggy-category-rules"],
+    queryFn: () => invokeFunction("list-category-rules"),
+  });
+
+  const createCategoryRule = useMutation({
+    mutationFn: (params: { description: string; categoryId: string; categoryName?: string; contaContabilId?: string }) =>
+      invokeFunction("create-category-rule", params),
+    onSuccess: () => {
+      toast.success("Regra de categorização criada!");
+      queryClient.invalidateQueries({ queryKey: ["pluggy-category-rules"] });
+    },
+    onError: (err: any) => toast.error("Erro ao criar regra: " + err.message),
+  });
+
+  const deleteCategoryRule = useMutation({
+    mutationFn: (ruleId: string) => invokeFunction("delete-category-rule", { ruleId }),
+    onSuccess: () => {
+      toast.success("Regra removida!");
+      queryClient.invalidateQueries({ queryKey: ["pluggy-category-rules"] });
+    },
+    onError: (err: any) => toast.error("Erro ao remover regra: " + err.message),
+  });
+
+  const balanceAlertsQuery = useQuery({
+    queryKey: ["balance-alerts"],
+    queryFn: () => invokeFunction("list-balance-alerts"),
+  });
+
+  const manageBalanceAlert = useMutation({
+    mutationFn: (params: { connectionId?: string; threshold?: number; alertId?: string; action?: string }) =>
+      invokeFunction("manage-balance-alert", params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["balance-alerts"] });
+    },
+    onError: (err: any) => toast.error("Erro ao gerenciar alerta: " + err.message),
+  });
+
+  const listConnectors = async (filters?: { name?: string; countries?: string; types?: string }) => {
+    try {
+      return await invokeFunction("list-connectors", filters || {});
+    } catch (err: any) {
+      toast.error("Erro ao listar conectores: " + err.message);
+      throw err;
+    }
+  };
+
+  const fetchAccounts = async (connectionId: string) => {
+    try {
+      const result = await invokeFunction("fetch-accounts", { connectionId });
+      queryClient.invalidateQueries({ queryKey: ["bank-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["pluggy-loans"] });
+      return result;
+    } catch (err: any) {
+      toast.error("Erro ao buscar contas: " + err.message);
+      throw err;
+    }
+  };
+
   return {
     connections: connectionsQuery.data?.connections || [],
     connectionsLoading: connectionsQuery.isLoading,
@@ -123,5 +262,21 @@ export function useConciliacaoBancaria(empresaId?: number | null) {
     saveConnection,
     syncTransactions,
     matchManual,
+    investments: investmentsQuery.data || [],
+    investmentsLoading: investmentsQuery.isLoading,
+    syncInvestments,
+    fetchIdentity,
+    loans: loansQuery.data || [],
+    loansLoading: loansQuery.isLoading,
+    fetchCategories,
+    categoryRules: categoryRulesQuery.data?.rules || [],
+    categoryRulesLoading: categoryRulesQuery.isLoading,
+    createCategoryRule,
+    deleteCategoryRule,
+    balanceAlerts: balanceAlertsQuery.data?.alerts || [],
+    balanceAlertsLoading: balanceAlertsQuery.isLoading,
+    manageBalanceAlert,
+    listConnectors,
+    fetchAccounts,
   };
 }
