@@ -249,14 +249,14 @@ export default function ReuniaoDetalhe() {
         queryClient.invalidateQueries({ queryKey: ["meeting", id] });
       }
 
-      // STEP 2: Analyze transcription (text only — lightweight)
-      // progress is updated by the edge function via DB
+      // STEP 2: Phase 1 analysis (ata, summary, mindmap)
+      // Phase 2 (insights/tasks/risks) is automatically triggered when Phase 1 completes via realtime
       const { data, error } = await supabase.functions.invoke("meeting-analyze", {
         body: { meetingId: id, transcription, duration_seconds: meeting?.duration_seconds || null },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Realtime subscription will handle the final state update
+      // Phase 1 complete — Phase 2 will be triggered by realtime subscription detecting "phase1_complete" status
     } catch (e: any) {
       toast.error(e.message || "Erro ao analisar reunião");
     } finally {
