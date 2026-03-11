@@ -271,6 +271,23 @@ function AppContent() {
     };
   }, [showSplash]);
 
+  // Helpers reutilizáveis para rotas protegidas — garantem segurança por padrão
+  const ModuleRoute = ({ moduleCode, children }: { moduleCode: string; children: React.ReactNode }) => (
+    <ProtectedRoute>
+      <ModuleProtectedRoute moduleCode={moduleCode}>
+        {children}
+      </ModuleProtectedRoute>
+    </ProtectedRoute>
+  );
+
+  const ScreenRoute = ({ screenCode, children, redirectTo }: { screenCode: string; children: React.ReactNode; redirectTo?: string }) => (
+    <ProtectedRoute>
+      <ScreenProtectedRoute screenCode={screenCode} redirectTo={redirectTo}>
+        {children}
+      </ScreenProtectedRoute>
+    </ProtectedRoute>
+  );
+
   return (
     <>
       {/* Splash Screen */}
