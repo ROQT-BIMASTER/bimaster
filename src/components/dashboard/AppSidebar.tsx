@@ -315,7 +315,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   }, [hasModulePermission]);
 
   // Empty set = show all (no filter active)
-  const showModule = (code: string) => selectedModules.size === 0 || selectedModules.has(code);
+  // showModule já inclui verificação de permissão automaticamente
+  // Qualquer novo módulo usando showModule("código") estará protegido por padrão
+  const showModule = (code: string) => hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
 
   const toggleModule = (code: string) => {
     setSelectedModules(prev => {
