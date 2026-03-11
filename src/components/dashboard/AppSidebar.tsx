@@ -1002,7 +1002,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <SidebarMenu className="space-y-0.5 ps-2">
                   <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
                   <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
-                  <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
+                  {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
+                    <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
+                  )}
                   {isAdminOrSupervisor && (
                     <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
                   )}
