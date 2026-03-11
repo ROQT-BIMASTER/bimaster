@@ -979,7 +979,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         })}
 
         {/* Módulo de Projetos */}
-        {hasModulePermission("projetos") && showModule("projetos") && (
+        {showModule("projetos") && (
         <SidebarGroup className="py-2 px-2">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger className="w-full">
