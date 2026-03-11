@@ -53,6 +53,7 @@ export default function ReuniaoDetalhe() {
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
   const [extractingPhase2, setExtractingPhase2] = useState(false);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
+  const autoRecoveryTriggeredRef = useRef(false);
 
   // Realtime progress from DB — works even if user navigates away and comes back
   const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
