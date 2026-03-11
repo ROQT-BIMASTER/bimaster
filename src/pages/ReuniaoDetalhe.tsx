@@ -504,6 +504,26 @@ export default function ReuniaoDetalhe() {
 
             <TabsContent value="insights">
               <div className="space-y-3">
+                {!insights?.length && !extractingPhase2 && meeting.transcription && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+                      <Sparkles className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground text-center">Insights não foram extraídos. Clique para processar.</p>
+                      <Button size="sm" className="gap-2" onClick={handleRetryPhase2}>
+                        <Brain className="h-4 w-4" />
+                        Extrair Insights, Tarefas e Riscos
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {extractingPhase2 && (
+                  <Card>
+                    <CardContent className="flex items-center justify-center gap-3 py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Extraindo insights, tarefas e riscos...</span>
+                    </CardContent>
+                  </Card>
+                )}
                 {insights?.map((insight: any) => {
                   const Icon = insightIcons[insight.insight_type] || Lightbulb;
                   return (
@@ -527,7 +547,6 @@ export default function ReuniaoDetalhe() {
                     </Card>
                   );
                 })}
-                {!insights?.length && <p className="text-sm text-muted-foreground text-center py-8">Nenhum insight identificado</p>}
               </div>
             </TabsContent>
 

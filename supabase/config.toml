@@ -115,6 +115,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = true
   [functions.meeting-analyze]
     verify_jwt = false
+  [functions.meeting-analyze-phase2]
+    verify_jwt = false
   [functions.meeting-search]
     verify_jwt = false
   [functions.meeting-transcribe]
