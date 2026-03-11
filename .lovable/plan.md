@@ -1,120 +1,48 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Diagnóstico: Bug de Cache de Permissões
 
-### Status: ✅ Implementado
+O módulo China está protegido corretamente no banco — Lucas Machado (vendedor) **não tem** permissão ao módulo "china" em nenhuma das 3 fontes (role, usuário, departamento). O problema é um **bug de cache no localStorage**.
 
-### O que foi feito
+### Causa Raiz
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
-
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
-
----
-
-## Plano: API de Exportação Pull para o ERP
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
-
----
-
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
+Em `src/contexts/PermissionsContext.tsx`, a função `restoreFromLocalStorage` (linha 32-44) restaura permissões cacheadas **sem verificar o `userId`**:
 
 ```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
+Admin faz logout → Lucas faz login no mesmo navegador
+  ↓
+localStorage ainda tem cache do Admin (válido por 5 min)
+  ↓
+PermissionsProvider inicia com isAdmin=true, modules=[todos]
+  ↓
+Lucas vê TODOS os módulos (incluindo China) por alguns segundos
+  ↓
+Fetch real completa → corrige para vendedor
 ```
 
----
+Se o fetch falhar (timeout, rede lenta) ou o safety timeout (5s) disparar antes, o cache do admin persiste e Lucas mantém acesso indevido.
 
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+### Correção
 
-### Status: ✅ Implementado
+**Arquivo: `src/contexts/PermissionsContext.tsx`**
 
-### O que foi feito
+1. **`restoreFromLocalStorage`** — Adicionar verificação do `userId` atual antes de aceitar o cache. Como no momento do boot não temos o userId imediatamente, a solução é:
+   - Salvar o `userId` no localStorage junto com o cache (já é salvo no objeto)
+   - No `PermissionsProvider`, NÃO usar o cache restaurado como estado inicial — iniciar sempre com `loading=true` e arrays vazios
+   - Usar o cache apenas como otimização DEPOIS de confirmar que o `userId` da sessão confere
 
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
+2. **Remover pré-população do estado inicial** — As linhas 54-59 que usam `initialCache` para pré-popular `modules`, `screens`, `role`, `isAdmin` devem ser removidas. O estado inicial deve ser sempre vazio/false.
 
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+3. **No `fetchPermissions`** — Antes de usar o cache do localStorage como fallback no safety timeout (linhas 69-76), verificar se o `userId` do cache confere com a sessão atual.
 
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
+4. **No `SIGNED_OUT`** — Já limpa o localStorage (linha 238). Correto.
 
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
+### Impacto
 
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
+- Corrige vazamento de permissões entre sessões de usuários diferentes no mesmo navegador
+- Usuários não-admin não verão mais módulos restritos temporariamente após login
+- O loading spinner aparecerá por ~1-2s no boot (comportamento correto e seguro)
 
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
+### Arquivo Modificado
+- `src/contexts/PermissionsContext.tsx`
 
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
