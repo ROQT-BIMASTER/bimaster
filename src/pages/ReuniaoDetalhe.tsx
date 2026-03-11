@@ -51,6 +51,7 @@ export default function ReuniaoDetalhe() {
   const [analyzing, setAnalyzing] = useState(false);
   const [manualTranscription, setManualTranscription] = useState("");
   const [searchResults, setSearchResults] = useState<{ timestamp_seconds: number; text: string }[]>([]);
+  const [extractingPhase2, setExtractingPhase2] = useState(false);
   const timelineSeekRef = useRef<((s: number) => void) | null>(null);
 
   // Realtime progress from DB — works even if user navigates away and comes back
