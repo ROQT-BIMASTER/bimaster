@@ -132,7 +132,7 @@ interface MeetingAnalysisProgressProps {
 export function MeetingAnalysisProgress({ progress, detail, status, durationSeconds }: MeetingAnalysisProgressProps) {
   const durationMinutes = durationSeconds ? Math.round(durationSeconds / 60) : null;
   const isTranscribing = status === "transcribing";
-  const isProcessing = status === "processing";
+  const isProcessing = status === "processing" || status === "phase1_complete";
   const isDone = progress >= 100;
 
   return (
