@@ -706,7 +706,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Fábrica - Com grupos */}
-        {hasModulePermission("fabrica") && showModule("fabrica") && (
+        {showModule("fabrica") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
               <CollapsibleTrigger className="w-full">
