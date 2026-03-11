@@ -14,20 +14,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Building2,
   RefreshCw,
   Plus,
   History,
   Loader2,
   Landmark,
+  Filter,
 } from "lucide-react";
 import { useConciliacaoBancaria } from "@/hooks/useConciliacaoBancaria";
+import { useUserEmpresas } from "@/hooks/useUserEmpresas";
 import { DashboardConciliacao } from "@/components/conciliacao/DashboardConciliacao";
 import { TabelaPendentes } from "@/components/conciliacao/TabelaPendentes";
 import { PluggyConnectWidget } from "@/components/conciliacao/PluggyConnectWidget";
+import { PainelSaldos } from "@/components/conciliacao/PainelSaldos";
 import { toast } from "sonner";
 
 export default function ConciliacaoBancaria() {
+  const { data: userEmpresas, isLoading: empresasLoading } = useUserEmpresas();
+  const [selectedEmpresaId, setSelectedEmpresaId] = useState<number | null>(null);
+
   const {
     connections,
     connectionsLoading,
@@ -35,11 +49,12 @@ export default function ConciliacaoBancaria() {
     conciliacoes,
     conciliacoesLoading,
     isSyncing,
+    syncingConnectionId,
     getConnectToken,
     saveConnection,
     syncTransactions,
     matchManual,
-  } = useConciliacaoBancaria();
+  } = useConciliacaoBancaria(selectedEmpresaId);
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectToken, setConnectToken] = useState("");
@@ -48,27 +63,43 @@ export default function ConciliacaoBancaria() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filter, setFilter] = useState("all");
+  const [showEmpresaDialog, setShowEmpresaDialog] = useState(false);
+  const [connectEmpresaId, setConnectEmpresaId] = useState<string>("");
   const pluggyPopupRef = useRef<Window | null>(null);
 
-  const handleConnect = async () => {
+  const handleConnectClick = () => {
+    if (userEmpresas && userEmpresas.length > 1) {
+      setShowEmpresaDialog(true);
+    } else {
+      // Single empresa or none — proceed directly
+      const empresaId = userEmpresas?.[0]?.empresa_id || null;
+      openPluggyConnect(empresaId);
+    }
+  };
+
+  const handleEmpresaConfirm = () => {
+    const empresaId = connectEmpresaId ? parseInt(connectEmpresaId) : null;
+    setShowEmpresaDialog(false);
+    openPluggyConnect(empresaId);
+  };
+
+  const openPluggyConnect = async (empresaId: number | null) => {
     setIsConnecting(true);
     try {
-      // Open popup immediately on user gesture (before async) to avoid blocker
       const popup = window.open("about:blank", "pluggy_connect", "width=450,height=700,left=200,top=100,scrollbars=yes");
       pluggyPopupRef.current = popup;
 
       const token = await getConnectToken();
-      
+
       if (popup && !popup.closed) {
-        // Navigate the already-opened popup to Pluggy
         popup.location.href = `https://connect.pluggy.ai/?connect_token=${token}`;
         setConnectToken(token);
+        setConnectEmpresaId(empresaId?.toString() || "");
         setShowPluggyConnect(true);
       } else {
         toast.error("Popup bloqueado pelo navegador. Permita popups para este site.");
       }
     } catch {
-      // error handled in hook
       pluggyPopupRef.current?.close();
     } finally {
       setIsConnecting(false);
@@ -80,6 +111,12 @@ export default function ConciliacaoBancaria() {
     syncTransactions(selectedConnection, dateFrom || undefined, dateTo || undefined);
   };
 
+  const handleSyncFromPanel = (connectionId: string) => {
+    syncTransactions(connectionId);
+  };
+
+  const empresaFilterValue = selectedEmpresaId?.toString() || "all";
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -88,7 +125,6 @@ export default function ConciliacaoBancaria() {
           <PluggyConnectWidget
             connectToken={connectToken}
             popupRef={pluggyPopupRef}
-
             onSuccess={(data) => {
               const item = data.item;
               saveConnection.mutate({
@@ -96,6 +132,7 @@ export default function ConciliacaoBancaria() {
                 banco: item.connector?.name || "desconhecido",
                 conta: item.accounts?.[0]?.number,
                 agencia: item.accounts?.[0]?.bankData?.branchNumber,
+                empresaId: connectEmpresaId ? parseInt(connectEmpresaId) : undefined,
               });
               setShowPluggyConnect(false);
               setConnectToken("");
@@ -113,56 +150,92 @@ export default function ConciliacaoBancaria() {
           />
         )}
 
+        {/* Branch Selection Dialog */}
+        <Dialog open={showEmpresaDialog} onOpenChange={setShowEmpresaDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Selecionar Filial
+              </DialogTitle>
+              <DialogDescription>
+                Escolha a filial para vincular esta conta bancária
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={connectEmpresaId} onValueChange={setConnectEmpresaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userEmpresas?.map((ue) => (
+                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                      {ue.empresa.nome}
+                      {ue.empresa.uf && ` (${ue.empresa.uf})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmpresaDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEmpresaConfirm} disabled={!connectEmpresaId}>
+                Continuar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Conciliação Bancária</h1>
             <p className="text-muted-foreground">
               Sincronize extratos via Pluggy e concilie automaticamente com contas a pagar
             </p>
           </div>
-          <Button onClick={handleConnect} disabled={isConnecting}>
-            {isConnecting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4 mr-2" />
+          <div className="flex items-center gap-2">
+            {/* Branch Filter */}
+            {userEmpresas && userEmpresas.length > 1 && (
+              <Select
+                value={empresaFilterValue}
+                onValueChange={(v) => setSelectedEmpresaId(v === "all" ? null : parseInt(v))}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-3 w-3 mr-1" />
+                  <SelectValue placeholder="Filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas Filiais</SelectItem>
+                  {userEmpresas.map((ue) => (
+                    <SelectItem key={ue.empresa_id} value={ue.empresa_id.toString()}>
+                      {ue.empresa.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-            Conectar Banco
-          </Button>
+            <Button onClick={handleConnectClick} disabled={isConnecting}>
+              {isConnecting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Conectar Banco
+            </Button>
+          </div>
         </div>
 
-        {/* Connected Banks */}
-        {connections.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Landmark className="h-4 w-4" />
-                Bancos Conectados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {connections.map((conn: any) => (
-                  <Badge
-                    key={conn.id}
-                    variant={conn.status === "active" ? "default" : "secondary"}
-                    className="px-3 py-1.5 text-sm cursor-pointer"
-                    onClick={() => setSelectedConnection(conn.id)}
-                  >
-                    <Building2 className="h-3 w-3 mr-1" />
-                    {conn.banco}
-                    {conn.conta && ` • ${conn.conta}`}
-                    {conn.last_sync && (
-                      <span className="ml-2 text-[10px] opacity-70">
-                        Sync: {new Date(conn.last_sync).toLocaleDateString("pt-BR")}
-                      </span>
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Painel de Saldos */}
+        <PainelSaldos
+          connections={connections}
+          conciliacoes={conciliacoes}
+          isSyncing={isSyncing}
+          syncingConnectionId={syncingConnectionId}
+          onSync={handleSyncFromPanel}
+        />
 
         {/* Sync Controls */}
         <Card>

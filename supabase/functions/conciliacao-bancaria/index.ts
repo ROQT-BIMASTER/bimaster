@@ -67,7 +67,7 @@ async function handleSaveConnection(
   userId: string,
   body: any
 ): Promise<Response> {
-  const { itemId, banco, conta, agencia } = body;
+  const { itemId, banco, conta, agencia, empresaId } = body;
 
   const { data, error } = await supabase
     .from("bank_connections")
@@ -78,6 +78,7 @@ async function handleSaveConnection(
         banco: banco || "desconhecido",
         conta: conta || null,
         agencia: agencia || null,
+        empresa_id: empresaId || null,
         status: "active",
         updated_at: new Date().toISOString(),
       },
@@ -270,10 +271,19 @@ async function handleSyncTransactions(
     })
     .eq("id", upload.id);
 
-  // Update connection last_sync
+  // Update balance from Pluggy accounts
+  const totalBalance = (accountsData.results || []).reduce(
+    (sum: number, acc: any) => sum + (acc.balance || 0), 0
+  );
+
+  // Update connection last_sync + saldo
   await supabase
     .from("bank_connections")
-    .update({ last_sync: new Date().toISOString() })
+    .update({
+      last_sync: new Date().toISOString(),
+      saldo_atual: totalBalance,
+      saldo_atualizado_em: new Date().toISOString(),
+    })
     .eq("id", connectionId);
 
   return new Response(
@@ -339,12 +349,18 @@ async function handleHistory(supabase: any): Promise<Response> {
   });
 }
 
-async function handleListConnections(supabase: any, userId: string): Promise<Response> {
-  const { data, error } = await supabase
+async function handleListConnections(supabase: any, userId: string, body: any): Promise<Response> {
+  let query = supabase
     .from("bank_connections")
-    .select("*")
+    .select("*, empresas(id, nome, cnpj, uf)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (body?.empresaId) {
+    query = query.eq("empresa_id", body.empresaId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   return new Response(JSON.stringify({ connections: data }), {
@@ -400,7 +416,7 @@ Deno.serve(async (req) => {
       case "history":
         return await handleHistory(supabase);
       case "list-connections":
-        return await handleListConnections(supabase, user.id);
+        return await handleListConnections(supabase, user.id, body);
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
