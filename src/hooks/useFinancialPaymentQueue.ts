@@ -396,13 +396,13 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         });
       }
 
-      // Auto-export to ERP when marked as paid
+      // Auto-export to ERP when marked as paid (baixa)
       if (variables.financial_status === 'paid' && data) {
-        exportPaymentToErp(data.id).then((result) => {
+        exportPaymentToErp(data.id, undefined, 'payment').then((result) => {
           if (result.success) {
-            console.log(`ERP export success for ${data.code}`);
+            console.log(`ERP payment export success for ${data.code}`);
           } else {
-            console.warn(`ERP export failed for ${data.code}: ${result.message}`);
+            console.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
           }
         });
       }
@@ -498,12 +498,24 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['financial-payment-queue'] });
       queryClient.invalidateQueries({ queryKey: ['contas-pagar'] });
+
+      // Auto-export to ERP as registration (provisão)
+      if (data?.id) {
+        exportPaymentToErp(data.id, undefined, 'registration').then((result) => {
+          if (result.success) {
+            console.log(`ERP registration export success for ${data.code}`);
+          } else {
+            console.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
+          }
+        });
+      }
+
       toast({
         title: "Pagamento Aceito",
-        description: "Registro criado em Contas a Pagar",
+        description: "Registro criado em Contas a Pagar e provisão enviada ao ERP",
       });
     },
     onError: (error) => {

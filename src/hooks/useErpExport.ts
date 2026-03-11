@@ -1,16 +1,24 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type ErpExportType = 'registration' | 'payment';
+
 /**
- * Envia um pagamento marcado como pago para o ERP.
- * Chamado automaticamente ao marcar como pago e disponível para reenvio manual.
+ * Envia um pagamento para o ERP.
+ * - registration: provisão ao aceitar (Aguardando Pagamento)
+ * - payment: baixa ao pagar (Pago)
  */
-export async function exportPaymentToErp(paymentQueueId: string, channel?: string): Promise<{ success: boolean; message?: string }> {
+export async function exportPaymentToErp(
+  paymentQueueId: string,
+  channel?: string,
+  exportType?: ErpExportType
+): Promise<{ success: boolean; message?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("erp-export-payment", {
       body: {
         action: "export",
         payment_queue_id: paymentQueueId,
         channel: channel || "n8n",
+        export_type: exportType || "payment",
       },
     });
 
