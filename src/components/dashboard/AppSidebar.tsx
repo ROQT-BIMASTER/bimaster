@@ -1012,7 +1012,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Reuniões */}
-        {hasModulePermission("reunioes") && showModule("reunioes") && (
+        {showModule("reunioes") && (
         <SidebarGroup className="py-2 px-2">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger className="w-full">
