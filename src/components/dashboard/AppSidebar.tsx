@@ -759,7 +759,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo Fábrica China */}
-        {showModule("china") && (
+        {hasModulePermission("china") && showModule("china") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={chinaOpen} onOpenChange={setChinaOpen}>
               <CollapsibleTrigger className="w-full">

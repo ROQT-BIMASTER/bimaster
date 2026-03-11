@@ -411,14 +411,14 @@ function AppContent() {
             <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
 
             {/* Módulo Fábrica China */}
-            <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ChinaFabrica /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ProtectedRoute><ChinaNovaSubmissao /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ChinaRecebimentos /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ChinaOrdens /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ChinaOrdemDetalhe /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/submissao/:id" element={<ProtectedRoute><ChinaSubmissaoDetalhe /></ProtectedRoute>} />
-            <Route path="/dashboard/fabrica-china/produto/:id" element={<ProtectedRoute><ChinaFichaProduto /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaFabrica /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/nova" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/nova/:submissaoId" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaNovaSubmissao /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/recebimentos" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaRecebimentos /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaOrdens /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/ordens/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaOrdemDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/submissao/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaSubmissaoDetalhe /></ModuleProtectedRoute></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica-china/produto/:id" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaFichaProduto /></ModuleProtectedRoute></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="comercial"><ComercialModule /></ModuleProtectedRoute></ProtectedRoute>} />
