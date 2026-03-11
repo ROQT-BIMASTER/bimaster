@@ -91,8 +91,8 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     // Prevent duplicate concurrent fetches
-    if (fetchInProgressRef.current) {
-      console.log("[PermissionsContext] Fetch already in progress, skipping");
+    if (fetchInProgressRef.current && !forceRefresh) {
+      console.log("[PermissionsContext] Fetch already in progress, skipping (non-forced)");
       return;
     }
     fetchInProgressRef.current = true;
