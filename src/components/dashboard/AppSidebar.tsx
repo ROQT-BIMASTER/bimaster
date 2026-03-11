@@ -620,7 +620,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Marketing */}
-        {hasModulePermission("marketing") && showModule("marketing") && (
+        {showModule("marketing") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
               <CollapsibleTrigger className="w-full">
