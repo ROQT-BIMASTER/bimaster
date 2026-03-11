@@ -30,8 +30,20 @@ import {
 } from "@/hooks/useChinaDocumentoVinculos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { useUserDepartments } from "@/hooks/useUserDepartments";
+import { AccessDenied } from "@/components/common/AccessDenied";
+
+const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
 export default function ProjetoVincularChina() {
+  const { isAdmin } = usePermissions();
+  const { data: userDepartments = [] } = useUserDepartments();
+  const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
+
+  if (!isDevTeam) {
+    return <AccessDenied message="Acesso restrito à equipe de desenvolvimento." />;
+  }
   const [search, setSearch] = useState("");
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
