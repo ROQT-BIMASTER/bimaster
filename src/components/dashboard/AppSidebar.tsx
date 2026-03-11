@@ -808,7 +808,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
 
-        {hasModulePermission("comercial") && showModule("comercial") && (
+        {showModule("comercial") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
               <CollapsibleTrigger className="w-full">
