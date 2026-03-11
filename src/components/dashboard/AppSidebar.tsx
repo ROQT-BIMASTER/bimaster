@@ -877,7 +877,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Eventos Corporativos */}
-        {hasModulePermission("eventos") && showModule("eventos") && (
+        {showModule("eventos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={eventosOpen} onOpenChange={setEventosOpen}>
               <CollapsibleTrigger className="w-full">
