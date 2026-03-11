@@ -50,25 +50,26 @@ const saveToLocalStorage = (cache: NonNullable<typeof globalPermissionsCache>) =
 };
 
 export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
-  // Try to restore from localStorage for instant boot on mobile
-  const initialCache = restoreFromLocalStorage();
-  const [modules, setModules] = useState<string[]>(initialCache?.modules || []);
-  const [screens, setScreens] = useState<string[]>(initialCache?.screens || []);
-  const [role, setRole] = useState<string | null>(initialCache?.role || null);
-  const [isAdmin, setIsAdmin] = useState(initialCache?.isAdmin || false);
-  const [loading, setLoading] = useState(!initialCache); // If we have cache, start as not loading
+  // SECURITY: Never pre-populate from localStorage — prevents permission leakage between users
+  const [modules, setModules] = useState<string[]>([]);
+  const [screens, setScreens] = useState<string[]>([]);
+  const [role, setRole] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const isMountedRef = useRef(true);
   const fetchInProgressRef = useRef(false);
 
   // Timeout de segurança - garante que loading nunca fica infinito
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       if (isMountedRef.current && loading) {
         console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
-        // If we have localStorage cache, use it as fallback
+        // SECURITY: Only use localStorage fallback if userId matches current session
         const fallback = restoreFromLocalStorage();
-        if (fallback && fallback.modules.length > 0) {
-          console.log("[PermissionsContext] Using localStorage cache as fallback");
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id;
+        if (fallback && fallback.modules.length > 0 && currentUserId && fallback.userId === currentUserId) {
+          console.log("[PermissionsContext] Using localStorage cache as fallback (userId verified)");
           setModules(fallback.modules);
           setScreens(fallback.screens);
           setRole(fallback.role);
