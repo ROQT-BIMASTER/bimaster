@@ -149,28 +149,6 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
-  // Auto-recovery: if phase 2 got stuck or a past meeting was marked as analyzed without extracted data,
-  // retry extraction automatically once when the user opens the page.
-  useEffect(() => {
-    if (!meeting || !id || extractingPhase2 || autoRecoveryTriggeredRef.current) return;
-
-    const hasPhase1Data = Boolean(meeting.summary || meeting.ata || meeting.mermaid_mindmap);
-    const hasPhase2Data = Boolean(insights?.length || tasks?.length || risks?.length);
-    const hasTranscription = Boolean(meeting.transcription);
-    const updatedAt = new Date(meeting.updated_at).getTime();
-    const stuckMs = Date.now() - updatedAt;
-    const TEN_MINUTES = 10 * 60 * 1000;
-
-    const shouldRetryStuckPhase2 = meeting.status === "phase1_complete" && hasTranscription && !hasPhase2Data && stuckMs > TEN_MINUTES;
-    const shouldRecoverBrokenCompleted = meeting.status === "analyzed" && hasTranscription && hasPhase1Data && !hasPhase2Data;
-
-    if (!shouldRetryStuckPhase2 && !shouldRecoverBrokenCompleted) return;
-
-    autoRecoveryTriggeredRef.current = true;
-    toast.info("Recuperando automaticamente a extração de insights da reunião...");
-    handleRetryPhase2();
-  }, [meeting, id, insights?.length, tasks?.length, risks?.length, extractingPhase2, handleRetryPhase2]);
-
   // Auto-recovery: only mark as partial if processing itself got stuck for too long
   useEffect(() => {
     if (!meeting || meeting.status !== "processing") return;
