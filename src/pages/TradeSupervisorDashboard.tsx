@@ -53,7 +53,7 @@ const FORM_ALLOWED_IDS = [
 ];
 
 export default function TradeSupervisorDashboard() {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isGerente, isSupervisor, loading: roleLoading } = useUserRole();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
 
