@@ -56,6 +56,25 @@ export default function ReuniaoDetalhe() {
   // Realtime progress from DB — works even if user navigates away and comes back
   const [liveProgress, setLiveProgress] = useState<{ progress: number; detail: string; status: string }>({ progress: 0, detail: "", status: "" });
 
+  const triggerPhase2 = useCallback(async (meetingId: string) => {
+    try {
+      console.log("[ReuniaoDetalhe] Triggering Phase 2 for meeting:", meetingId);
+      const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
+        body: { meetingId },
+      });
+      if (error) {
+        console.error("[ReuniaoDetalhe] Phase 2 error:", error);
+        toast.error("Erro na extração de insights. Resultados parciais disponíveis.");
+      }
+      if (data?.partial) {
+        toast.info("Análise parcial: ata e mapa mental OK, mas extração de insights incompleta.");
+      }
+    } catch (err: any) {
+      console.error("[ReuniaoDetalhe] Phase 2 exception:", err);
+      toast.error("Erro ao extrair insights da reunião.");
+    }
+  }, []);
+
   useEffect(() => {
     if (!id) return;
     const channel = supabase
