@@ -74,6 +74,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
           setScreens(fallback.screens);
           setRole(fallback.role);
           setIsAdmin(fallback.isAdmin);
+        } else {
+          // SECURITY: Clear any stale state from previous user
+          console.log("[PermissionsContext] No valid fallback - clearing stale state");
+          setModules([]);
+          setScreens([]);
+          setRole(null);
+          setIsAdmin(false);
         }
         setLoading(false);
       }
@@ -84,8 +91,8 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchPermissions = useCallback(async (forceRefresh = false) => {
     // Prevent duplicate concurrent fetches
-    if (fetchInProgressRef.current) {
-      console.log("[PermissionsContext] Fetch already in progress, skipping");
+    if (fetchInProgressRef.current && !forceRefresh) {
+      console.log("[PermissionsContext] Fetch already in progress, skipping (non-forced)");
       return;
     }
     fetchInProgressRef.current = true;
@@ -231,8 +238,14 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (!isMountedRef.current) return;
       
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // fetchInProgressRef is checked inside fetchPermissions itself
-        // Silent background refresh — no loading state change
+        // SECURITY: Reset state immediately to prevent permission leakage between users
+        globalPermissionsCache = null;
+        try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
+        setModules([]);
+        setScreens([]);
+        setRole(null);
+        setIsAdmin(false);
+        setLoading(true);
         fetchPermissions(true);
       } else if (event === "SIGNED_OUT") {
         globalPermissionsCache = null;
