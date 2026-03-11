@@ -61,13 +61,15 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
 
   // Timeout de segurança - garante que loading nunca fica infinito
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       if (isMountedRef.current && loading) {
         console.log("[PermissionsContext] Safety timeout triggered - forcing loading to false");
-        // If we have localStorage cache, use it as fallback
+        // SECURITY: Only use localStorage fallback if userId matches current session
         const fallback = restoreFromLocalStorage();
-        if (fallback && fallback.modules.length > 0) {
-          console.log("[PermissionsContext] Using localStorage cache as fallback");
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id;
+        if (fallback && fallback.modules.length > 0 && currentUserId && fallback.userId === currentUserId) {
+          console.log("[PermissionsContext] Using localStorage cache as fallback (userId verified)");
           setModules(fallback.modules);
           setScreens(fallback.screens);
           setRole(fallback.role);
