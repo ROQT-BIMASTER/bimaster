@@ -1,54 +1,35 @@
 
 
-## Corrigir função `get_subordinados` — search_path vazio
+## Plano: Envio de Pagamentos para o ERP
 
-### Diagnóstico
+### Status: ✅ Implementado
 
-A Michele (Gerente) tem 4 supervisores diretos vinculados a ela no banco, mas a função `get_subordinados` está falhando com o erro:
+### O que foi feito
 
-```
-relation "profiles" does not exist
-```
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-**Causa raiz:** A função tem `search_path=""` (vazio) mas referencia a tabela `profiles` sem o prefixo `public.`. Isso é o mesmo problema que corrigimos anteriormente em `is_admin_or_supervisor` e `user_has_empresa_access`.
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-### Correção
+---
 
-Uma migração SQL para recriar a função com referências explícitas ao schema `public`:
+## Plano: API de Exportação Pull para o ERP
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_subordinados(_user_id uuid)
-RETURNS TABLE(subordinado_id uuid)
-LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN QUERY
-  WITH RECURSIVE hierarchy AS (
-    SELECT id
-    FROM public.profiles
-    WHERE supervisor_id = _user_id
-    
-    UNION ALL
-    
-    SELECT p.id
-    FROM public.profiles p
-    INNER JOIN hierarchy h ON p.supervisor_id = h.id
-  )
-  SELECT id FROM hierarchy;
-END;
-$$;
-```
+### Status: ✅ Implementado
 
-### Impacto
+### O que foi feito
 
-Isso restaura a hierarquia para **todos** os hooks que dependem de `get_subordinados`:
-- `useTradeSupervisorDashboard` — Minha Equipe (Trade)
-- `useMapTeamData` — Painel de equipe no Mapa
-- `useProjetosTeamData` — Minha Equipe (Projetos)
-- `useFilteredStores` — Filtro de lojas por equipe
-- `TeamPerformanceChart` — Gráfico de performance
-- `TeamHierarchyFilter` — Filtro de hierarquia
-
-A Michele e qualquer outro Gerente/Supervisor passarão a ver seus subordinados novamente.
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
