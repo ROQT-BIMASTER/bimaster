@@ -4154,6 +4154,7 @@ export type Database = {
           error_message: string | null
           export_channel: string
           export_status: string
+          export_type: string
           exported_at: string | null
           id: string
           last_attempt_at: string | null
@@ -4168,6 +4169,7 @@ export type Database = {
           error_message?: string | null
           export_channel?: string
           export_status?: string
+          export_type?: string
           exported_at?: string | null
           id?: string
           last_attempt_at?: string | null
@@ -4182,6 +4184,7 @@ export type Database = {
           error_message?: string | null
           export_channel?: string
           export_status?: string
+          export_type?: string
           exported_at?: string | null
           id?: string
           last_attempt_at?: string | null
