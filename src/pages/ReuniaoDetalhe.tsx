@@ -643,7 +643,18 @@ export default function ReuniaoDetalhe() {
                     </CardContent>
                   </Card>
                 ))}
-                {!risks?.length && <p className="text-sm text-muted-foreground text-center py-8">Nenhum risco identificado</p>}
+                {!risks?.length && !extractingPhase2 && meeting.transcription && (
+                  <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-6 gap-2">
+                      <p className="text-sm text-muted-foreground">Nenhum risco extraído.</p>
+                      <Button size="sm" variant="outline" className="gap-2" onClick={handleRetryPhase2}>
+                        <Brain className="h-4 w-4" />
+                        Extrair com IA
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {!risks?.length && !meeting.transcription && <p className="text-sm text-muted-foreground text-center py-8">Nenhum risco identificado</p>}
               </div>
             </TabsContent>
 
