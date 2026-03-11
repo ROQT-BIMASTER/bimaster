@@ -1,60 +1,35 @@
 
 
-## Proteção Automática de Módulos — Prevenção de Falhas Futuras
+## Plano: Envio de Pagamentos para o ERP
 
-### Problema
-Atualmente, cada módulo no sidebar precisa manualmente incluir `hasModulePermission("código") && showModule("código")`. Se um desenvolvedor esquecer o `hasModulePermission`, o módulo fica visível para todos — como aconteceu com o módulo China.
+### Status: ✅ Implementado
 
-### Solução
-Unificar a lógica: fazer com que `showModule` já inclua automaticamente a verificação de permissão. Assim, é impossível exibir um módulo sem permissão.
+### O que foi feito
 
-### Alterações
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-**1. `AppSidebar.tsx` — Refatorar `showModule` para incluir permissão automaticamente**
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-Alterar a função `showModule` de:
-```ts
-const showModule = (code: string) => selectedModules.size === 0 || selectedModules.has(code);
-```
-Para:
-```ts
-const showModule = (code: string) => 
-  hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
-```
+---
 
-Depois, remover todos os `hasModulePermission("xxx") &&` duplicados das ~12 ocorrências no JSX, pois `showModule` já faz essa verificação. Cada bloco ficará mais limpo:
-```tsx
-// Antes:
-{hasModulePermission("financeiro") && showModule("financeiro") && (
-// Depois:
-{showModule("financeiro") && (
-```
+## Plano: API de Exportação Pull para o ERP
 
-Isso garante que **qualquer novo módulo** adicionado com `showModule("novo")` já estará protegido por permissão automaticamente, sem depender do desenvolvedor lembrar de adicionar `hasModulePermission`.
+### Status: ✅ Implementado
 
-**2. `App.tsx` — Criar helper para rotas protegidas por módulo**
+### O que foi feito
 
-Criar um componente wrapper reutilizável no topo do arquivo para simplificar as rotas:
-```tsx
-const ModuleRoute = ({ moduleCode, children }: { moduleCode: string; children: React.ReactNode }) => (
-  <ProtectedRoute>
-    <ModuleProtectedRoute moduleCode={moduleCode}>
-      {children}
-    </ModuleProtectedRoute>
-  </ProtectedRoute>
-);
-```
-
-Isso reduz verbosidade e garante que o padrão correto seja sempre seguido ao adicionar novas rotas. Uso:
-```tsx
-// Antes:
-<Route path="/dashboard/fabrica-china" element={<ProtectedRoute><ModuleProtectedRoute moduleCode="china"><ChinaFabrica /></ModuleProtectedRoute></ProtectedRoute>} />
-// Depois:
-<Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ChinaFabrica /></ModuleRoute>} />
-```
-
-### Resultado
-- Novos módulos ficam protegidos automaticamente no sidebar
-- Rotas ficam mais simples e consistentes com o helper `ModuleRoute`
-- Elimina a possibilidade de erro humano ao esquecer verificação de permissão
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)

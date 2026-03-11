@@ -315,7 +315,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   }, [hasModulePermission]);
 
   // Empty set = show all (no filter active)
-  const showModule = (code: string) => selectedModules.size === 0 || selectedModules.has(code);
+  // showModule já inclui verificação de permissão automaticamente
+  // Qualquer novo módulo usando showModule("código") estará protegido por padrão
+  const showModule = (code: string) => hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
 
   const toggleModule = (code: string) => {
     setSelectedModules(prev => {
@@ -542,7 +544,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <Separator className="mx-4 w-auto" />
 
         {/* Módulo de Prospects */}
-        {hasModulePermission("prospects") && showModule("prospects") && (
+        {showModule("prospects") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
               <CollapsibleTrigger className="w-full">
@@ -584,7 +586,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo Financeiro */}
-        {hasModulePermission("financeiro") && showModule("financeiro") && (
+        {showModule("financeiro") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen} defaultOpen>
               <CollapsibleTrigger className="w-full">
@@ -618,7 +620,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Marketing */}
-        {hasModulePermission("marketing") && showModule("marketing") && (
+        {showModule("marketing") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
               <CollapsibleTrigger className="w-full">
@@ -660,7 +662,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Trade Marketing */}
-        {hasModulePermission("trade") && showModule("trade") && (
+        {showModule("trade") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
               <CollapsibleTrigger className="w-full">
@@ -704,7 +706,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Fábrica - Com grupos */}
-        {hasModulePermission("fabrica") && showModule("fabrica") && (
+        {showModule("fabrica") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
               <CollapsibleTrigger className="w-full">
@@ -759,7 +761,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo Fábrica China */}
-        {hasModulePermission("china") && showModule("china") && (
+        {showModule("china") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={chinaOpen} onOpenChange={setChinaOpen}>
               <CollapsibleTrigger className="w-full">
@@ -806,7 +808,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
 
-        {hasModulePermission("comercial") && showModule("comercial") && (
+        {showModule("comercial") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
               <CollapsibleTrigger className="w-full">
@@ -875,7 +877,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Eventos Corporativos */}
-        {hasModulePermission("eventos") && showModule("eventos") && (
+        {showModule("eventos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={eventosOpen} onOpenChange={setEventosOpen}>
               <CollapsibleTrigger className="w-full">
@@ -914,7 +916,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Departamentos - Cada departamento com submenu */}
-        {hasModulePermission("departamentos") && showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
+        {showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
           // Cores harmoniosas para cada departamento
           const deptColors = [
             { bg: "bg-blue-500", bgLight: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", hover: "hover:bg-blue-100 dark:hover:bg-blue-900/40" },
@@ -977,7 +979,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         })}
 
         {/* Módulo de Projetos */}
-        {hasModulePermission("projetos") && showModule("projetos") && (
+        {showModule("projetos") && (
         <SidebarGroup className="py-2 px-2">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger className="w-full">
@@ -1010,7 +1012,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         )}
 
         {/* Módulo de Reuniões */}
-        {hasModulePermission("reunioes") && showModule("reunioes") && (
+        {showModule("reunioes") && (
         <SidebarGroup className="py-2 px-2">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger className="w-full">
@@ -1037,7 +1039,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         </SidebarGroup>
         )}
 
-        {hasModulePermission("precos") && showModule("precos") && (
+        {showModule("precos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
               <CollapsibleTrigger className="w-full">
