@@ -19989,6 +19989,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           description: string | null
+          empresa_id: number | null
           end_date: string
           estimated_cost: number
           id: string
@@ -20032,6 +20033,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           description?: string | null
+          empresa_id?: number | null
           end_date: string
           estimated_cost: number
           id?: string
@@ -20075,6 +20077,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           description?: string | null
+          empresa_id?: number | null
           end_date?: string
           estimated_cost?: number
           id?: string
@@ -20116,6 +20119,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_campaigns_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -20519,6 +20529,7 @@ export type Database = {
           document_number: string | null
           document_type: string | null
           due_date: string | null
+          empresa_id: number | null
           id: string
           investment_date: string
           notes: string | null
@@ -20551,6 +20562,7 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
           id?: string
           investment_date: string
           notes?: string | null
@@ -20583,6 +20595,7 @@ export type Database = {
           document_number?: string | null
           document_type?: string | null
           due_date?: string | null
+          empresa_id?: number | null
           id?: string
           investment_date?: string
           notes?: string | null
@@ -20614,6 +20627,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "trade_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_investments_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
