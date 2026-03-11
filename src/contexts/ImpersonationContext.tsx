@@ -27,6 +27,16 @@ interface ImpersonationContextType {
   loading: boolean;
 }
 
+interface PersistedImpersonationState {
+  ownerUserId: string;
+  impersonatedUser: ImpersonatedUser;
+  impersonatedPermissions: ImpersonatedPermissions;
+}
+
+const IMPERSONATION_SESSION_KEY = "impersonation_state_v2";
+const LEGACY_IMPERSONATION_USER_KEY = "impersonation_user";
+const LEGACY_IMPERSONATION_PERMISSIONS_KEY = "impersonation_permissions";
+
 const ImpersonationContext = createContext<ImpersonationContextType | null>(null);
 
 export const ImpersonationProvider = ({ children }: { children: ReactNode }) => {
@@ -35,22 +45,66 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
   const [impersonatedPermissions, setImpersonatedPermissions] = useState<ImpersonatedPermissions | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Restore impersonation from sessionStorage on mount
-  useEffect(() => {
-    const savedImpersonation = sessionStorage.getItem("impersonation_user");
-    const savedPermissions = sessionStorage.getItem("impersonation_permissions");
-    
-    if (savedImpersonation && savedPermissions) {
-      try {
-        setImpersonatedUser(JSON.parse(savedImpersonation));
-        setImpersonatedPermissions(JSON.parse(savedPermissions));
-      } catch (e) {
-        console.error("[ImpersonationContext] Erro ao restaurar impersonação:", e);
-        sessionStorage.removeItem("impersonation_user");
-        sessionStorage.removeItem("impersonation_permissions");
-      }
+  const clearStoredImpersonation = useCallback((resetState = true) => {
+    sessionStorage.removeItem(IMPERSONATION_SESSION_KEY);
+    sessionStorage.removeItem(LEGACY_IMPERSONATION_USER_KEY);
+    sessionStorage.removeItem(LEGACY_IMPERSONATION_PERMISSIONS_KEY);
+
+    if (resetState) {
+      setImpersonatedUser(null);
+      setImpersonatedPermissions(null);
     }
   }, []);
+
+  // SECURITY: restore impersonation only for the same admin user who created it
+  useEffect(() => {
+    const restoreImpersonation = async () => {
+      if (realPermissions.loading) return;
+
+      // Never allow non-admin users to keep any impersonation residue
+      if (!realPermissions.isAdmin) {
+        clearStoredImpersonation(true);
+        return;
+      }
+
+      const stored = sessionStorage.getItem(IMPERSONATION_SESSION_KEY);
+      if (!stored) return;
+
+      try {
+        const parsed = JSON.parse(stored) as PersistedImpersonationState;
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id;
+
+        if (!currentUserId || parsed.ownerUserId !== currentUserId) {
+          clearStoredImpersonation(true);
+          return;
+        }
+
+        setImpersonatedUser(parsed.impersonatedUser);
+        setImpersonatedPermissions(parsed.impersonatedPermissions);
+      } catch (e) {
+        console.error("[ImpersonationContext] Erro ao restaurar impersonação:", e);
+        clearStoredImpersonation(true);
+      }
+    };
+
+    restoreImpersonation();
+  }, [realPermissions.loading, realPermissions.isAdmin, clearStoredImpersonation]);
+
+  // Limpar impersonação em logout ou troca de sessão
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        clearStoredImpersonation(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [clearStoredImpersonation]);
 
   const startImpersonation = useCallback(async (userId: string): Promise<boolean> => {
     // Only admins can impersonate
@@ -62,6 +116,14 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
     setLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const ownerUserId = session?.user?.id;
+
+      if (!ownerUserId) {
+        console.error("[ImpersonationContext] Sessão inválida para impersonação");
+        return false;
+      }
+
       // Fetch user info
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -106,9 +168,16 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
       setImpersonatedUser(userData);
       setImpersonatedPermissions(permissions);
 
-      // Save to sessionStorage for persistence across page navigation
-      sessionStorage.setItem("impersonation_user", JSON.stringify(userData));
-      sessionStorage.setItem("impersonation_permissions", JSON.stringify(permissions));
+      const persistedState: PersistedImpersonationState = {
+        ownerUserId,
+        impersonatedUser: userData,
+        impersonatedPermissions: permissions,
+      };
+
+      sessionStorage.setItem(IMPERSONATION_SESSION_KEY, JSON.stringify(persistedState));
+      // Remove legacy keys to avoid stale restore paths
+      sessionStorage.removeItem(LEGACY_IMPERSONATION_USER_KEY);
+      sessionStorage.removeItem(LEGACY_IMPERSONATION_PERMISSIONS_KEY);
 
       console.log(`[ImpersonationContext] Visualizando como: ${userData.nome}`);
       return true;
@@ -121,25 +190,22 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
   }, [realPermissions.isAdmin]);
 
   const stopImpersonation = useCallback(() => {
-    setImpersonatedUser(null);
-    setImpersonatedPermissions(null);
-    sessionStorage.removeItem("impersonation_user");
-    sessionStorage.removeItem("impersonation_permissions");
+    clearStoredImpersonation(true);
     console.log("[ImpersonationContext] Voltando à visualização normal");
-  }, []);
+  }, [clearStoredImpersonation]);
 
-  // Check module permission - use impersonated if active, otherwise real
+  // Check module permission - impersonation is valid only for admins
   const hasModulePermission = useCallback((moduleCode: string): boolean => {
-    if (impersonatedPermissions) {
+    if (realPermissions.isAdmin && impersonatedPermissions) {
       if (impersonatedPermissions.isAdmin) return true;
       return impersonatedPermissions.modules.includes(moduleCode);
     }
     return realPermissions.hasModulePermission(moduleCode);
   }, [impersonatedPermissions, realPermissions]);
 
-  // Check screen permission - use impersonated if active, otherwise real
+  // Check screen permission - impersonation is valid only for admins
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
-    if (impersonatedPermissions) {
+    if (realPermissions.isAdmin && impersonatedPermissions) {
       if (impersonatedPermissions.isAdmin) return true;
       return impersonatedPermissions.screens.includes(screenCode);
     }
@@ -147,7 +213,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
   }, [impersonatedPermissions, realPermissions]);
 
   const value = useMemo(() => ({
-    isImpersonating: !!impersonatedUser,
+    isImpersonating: realPermissions.isAdmin && !!impersonatedUser,
     impersonatedUser,
     impersonatedPermissions,
     startImpersonation,
@@ -156,6 +222,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
     hasScreenPermission,
     loading,
   }), [
+    realPermissions.isAdmin,
     impersonatedUser,
     impersonatedPermissions,
     startImpersonation,
