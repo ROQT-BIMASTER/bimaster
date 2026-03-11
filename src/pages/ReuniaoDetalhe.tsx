@@ -79,6 +79,11 @@ export default function ReuniaoDetalhe() {
             queryClient.invalidateQueries({ queryKey: ["meeting-tasks", id] });
             queryClient.invalidateQueries({ queryKey: ["meeting-risks", id] });
           }
+          // Auto-trigger Phase 2 when Phase 1 completes
+          if (row.status === "phase1_complete") {
+            queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+            triggerPhase2(id);
+          }
         }
       )
       .subscribe();
