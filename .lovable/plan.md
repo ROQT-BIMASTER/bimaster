@@ -1,75 +1,35 @@
 
 
-## Filtrar Aprovações por Filial no Módulo Financeiro e Trade
+## Plano: Envio de Pagamentos para o ERP
 
-### Situação Atual
+### Status: ✅ Implementado
 
-| Tabela | Tem `empresa_id` | RLS com filtro empresa | Status |
-|---|---|---|---|
-| `contas_pagar` | ✅ | ✅ | OK |
-| `contas_receber` | ✅ | ✅ | OK |
-| `financial_payment_queue` | ✅ | ✅ | OK |
-| `bank_connections` | ✅ | ✅ | OK |
-| `conciliacoes_bancarias` | via FK | ✅ | OK |
-| `trade_financial_entries` | ✅ | ❌ | **Precisa atualizar RLS** |
-| `trade_campaigns` | ❌ | ❌ | **Precisa adicionar coluna + RLS** |
-| `trade_investments` | ❌ | ❌ | **Precisa adicionar coluna + RLS** |
+### O que foi feito
 
-### Mudanças
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
 
-#### 1. Migração SQL
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
 
-**Adicionar `empresa_id` nas tabelas que faltam:**
-```sql
-ALTER TABLE trade_campaigns 
-  ADD COLUMN empresa_id INTEGER REFERENCES empresas(id);
+---
 
-ALTER TABLE trade_investments 
-  ADD COLUMN empresa_id INTEGER REFERENCES empresas(id);
-```
+## Plano: API de Exportação Pull para o ERP
 
-**Atualizar RLS de `trade_financial_entries`:**
-```sql
-DROP POLICY IF EXISTS "tfe_select" ON trade_financial_entries;
-CREATE POLICY "tfe_select_empresa" ON trade_financial_entries
-FOR SELECT TO authenticated
-USING (
-  (created_by = auth.uid() OR check_user_access(auth.uid(), 'trade'))
-  AND user_has_empresa_access(auth.uid(), empresa_id)
-);
--- Mesma lógica para UPDATE e DELETE
-```
+### Status: ✅ Implementado
 
-**Adicionar RLS de empresa em `trade_campaigns`:**
-```sql
-DROP POLICY IF EXISTS "trade_campaigns_user_select" ON trade_campaigns;
-CREATE POLICY "tc_select_empresa" ON trade_campaigns
-FOR SELECT TO authenticated
-USING (
-  (responsible_user_id = auth.uid() OR created_by = auth.uid() OR is_admin_or_supervisor(auth.uid()))
-  AND user_has_empresa_access(auth.uid(), empresa_id)
-);
-```
+### O que foi feito
 
-**Adicionar RLS de empresa em `trade_investments`:**
-```sql
-DROP POLICY IF EXISTS "ti_select" ON trade_investments;
-CREATE POLICY "ti_select_empresa" ON trade_investments
-FOR SELECT TO authenticated
-USING (
-  (vendedor_id = auth.uid() OR created_by = auth.uid() OR check_user_access(auth.uid(), 'trade'))
-  AND user_has_empresa_access(auth.uid(), empresa_id)
-);
-```
-
-Dados legados (com `empresa_id = NULL`) continuam acessíveis — a função `user_has_empresa_access` já trata esse caso.
-
-#### 2. Sem mudanças no frontend
-
-Os hooks `usePendingCampaigns`, `usePendingFinancialEntries` e `usePendingInvestments` já fazem queries diretas ao banco. O RLS garante que o banco retorna apenas dados das filiais autorizadas automaticamente, sem necessidade de filtros adicionais no frontend.
-
-### Impacto
-- Funcionários vinculados a uma filial verão apenas campanhas, lançamentos e investimentos dessa filial nos centros de aprovação
-- Admins e supervisores mantêm visão global
-- Registros criados antes da mudança (sem `empresa_id`) continuam visíveis
-
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
