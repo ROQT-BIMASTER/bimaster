@@ -1,35 +1,82 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Plano: Fluxo Profissional de Contas a Pagar com Exportação ERP em Dois Estágios
 
-### Status: ✅ Implementado
+### Padrão de Mercado (SAP, TOTVS, Sankhya, Oracle AP)
 
-### O que foi feito
+Sistemas profissionais de contas a pagar operam com o conceito de **provisão contábil** e **baixa financeira**:
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+```text
+Lançamento → Aprovação → Provisão no ERP (Aguardando Pgto) → Pagamento → Baixa no ERP (Pago)
+```
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+O título é registrado no ERP **no momento da aprovação** (provisão), e a baixa ocorre **no momento do pagamento**. Isso garante visibilidade do fluxo de caixa futuro antes da saída efetiva do dinheiro.
 
----
+### Alterações
 
-## Plano: API de Exportação Pull para o ERP
+**1. Migration — Adicionar `export_type` à `erp_export_queue`**
 
-### Status: ✅ Implementado
+Coluna para distinguir cadastro (provisão) de baixa (pagamento):
+```sql
+ALTER TABLE public.erp_export_queue 
+  ADD COLUMN export_type text NOT NULL DEFAULT 'payment';
+-- Valores: 'registration' (provisão ao aceitar) | 'payment' (baixa ao pagar)
+```
+Também adicionar `'pull_api'` ao check constraint de `export_channel` e `'exported'` ao check de `export_status` (a Pull API já usa esses valores).
 
-### O que foi feito
+**2. Edge Function `erp-export-payment` — Payload dinâmico por tipo**
 
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+- Aceitar novo parâmetro `export_type` (`'registration'` ou `'payment'`)
+- Quando `registration`: payload com status `"Aguardando Pagamento"`, sem dados de pagamento
+- Quando `payment`: payload completo com método, data de pagamento, status `"Pago"`
+- Gravar `export_type` na `erp_export_queue`
+
+**3. Hook `useErpExport.ts` — Suportar tipo de exportação**
+
+Adicionar parâmetro `exportType` à função `exportPaymentToErp`:
+```ts
+export async function exportPaymentToErp(
+  paymentQueueId: string, 
+  channel?: string, 
+  exportType?: 'registration' | 'payment'
+)
+```
+
+**4. Hook `useFinancialPaymentQueue.ts` — Trigger automático ao aceitar**
+
+No `acceptPaymentMutation.onSuccess`, chamar:
+```ts
+exportPaymentToErp(data.id, undefined, 'registration')
+```
+
+E no `updateStatusMutation.onSuccess` (quando `paid`), ajustar para:
+```ts
+exportPaymentToErp(data.id, undefined, 'payment')
+```
+
+**5. Edge Function `contas-pagar-export-api` (Pull API) — Expor aceitos**
+
+- Novo parâmetro `?status=accepted,paid` no endpoint `GET /paid`
+- Itens aceitos retornam com `"status": "Aguardando Pagamento"`
+- Itens pagos retornam com `"status": "Pago"`
+- Endpoint `GET /status` inclui contagem de aceitos pendentes de exportação
+
+**6. Atualizar documentação da API**
+
+Refletir os dois tipos de exportação nos exemplos e descrições.
+
+### Fluxo Final
+
+```text
+Usuário lança  →  Financeiro aceita  →  ERP recebe: "Aguardando Pagamento" (provisão)
+                                              ↓
+                  Financeiro paga     →  ERP recebe: "Pago" (baixa do título)
+```
+
+### Arquivos Modificados
+- Migration SQL (nova coluna + ajuste constraints)
+- `supabase/functions/erp-export-payment/index.ts`
+- `supabase/functions/contas-pagar-export-api/index.ts`
+- `src/hooks/useErpExport.ts`
+- `src/hooks/useFinancialPaymentQueue.ts`
+
