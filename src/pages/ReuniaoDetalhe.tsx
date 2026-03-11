@@ -96,6 +96,26 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  // Auto-recovery: detect meetings stuck in "processing" for >10 minutes
+  useEffect(() => {
+    if (!meeting || meeting.status !== "processing") return;
+    const updatedAt = new Date(meeting.updated_at).getTime();
+    const stuckMs = Date.now() - updatedAt;
+    const TEN_MINUTES = 10 * 60 * 1000;
+
+    if (stuckMs > TEN_MINUTES) {
+      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in processing for ${Math.round(stuckMs / 60000)}min — auto-recovering`);
+      supabase.from("meetings").update({
+        status: "analyzed",
+        progress: 100,
+        progress_detail: "Análise parcial (recuperação automática — alguns dados podem estar incompletos)",
+      }).eq("id", id!).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+        toast.info("Reunião recuperada automaticamente. Alguns dados da análise podem estar incompletos.");
+      });
+    }
+  }, [meeting, id, queryClient]);
+
   const { data: insights } = useQuery({
     queryKey: ["meeting-insights", id],
     queryFn: async () => {

@@ -434,7 +434,7 @@ Departamentos disponíveis: ${deptNames}
 
     let phase2Response: Response;
     try {
-      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 180000, "google/gemini-2.5-flash", 0.3);
+      phase2Response = await callAI(lovableApiKey, phase2Messages, phase2Tools, "phase2_extraction", 120000, "google/gemini-2.5-flash", 0.3);
     } catch (abortErr) {
       console.error("[meeting-analyze] Phase 2 timeout:", abortErr);
       // Phase 1 already saved — mark as partially analyzed
