@@ -1,5 +1,6 @@
 
 
+
 ## Plano: Envio de Pagamentos para o ERP
 
 ### Status: ✅ Implementado
@@ -33,3 +34,34 @@
 3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
 4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
 5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+
+---
+
+## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
+2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
+   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
+   - `payment`: status "Pago", com método e data de pagamento
+3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
+   - `GET /pending` — Itens aceitos pendentes de provisão
+   - `GET /paid` — Itens pagos pendentes de baixa
+   - `GET /` — Ambos, com filtro `?status=accepted,paid`
+   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
+   - `GET /status` — Contagens separadas para provisão e baixa
+4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
+5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
+   - Ao aceitar: exporta como `registration` (provisão)
+   - Ao pagar: exporta como `payment` (baixa)
+
+### Fluxo
+
+```text
+Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
+                              ↓
+             Pagamento → ERP: "Pago" (baixa do título)
+```
