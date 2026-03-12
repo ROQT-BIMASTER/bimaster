@@ -121,6 +121,7 @@ export function TarefaFocusMode({
   const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
   const hasProduto = !!(tarefa as any)?.produto_id;
+  const isAdminCofre = currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
