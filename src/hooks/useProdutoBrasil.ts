@@ -137,10 +137,10 @@ export function useCreateProdutoBrasil() {
 
   return useMutation({
     mutationFn: async (params: {
-      submissao_china_id: string;
+      submissao_china_id?: string;
       vinculo_id?: string;
-      projeto_id: string;
-      china_nome: string;
+      projeto_id?: string;
+      china_nome: string | null;
       china_codigo: string;
       china_ean?: string;
       china_categoria?: string;

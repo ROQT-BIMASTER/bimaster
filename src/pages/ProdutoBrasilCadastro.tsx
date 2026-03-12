@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useProdutoBrasil } from "@/hooks/useProdutoBrasil";
+import { useProdutoBrasil, useUpdateProdutoBrasil } from "@/hooks/useProdutoBrasil";
 import { StatusPipeline } from "@/components/produto-brasil/StatusPipeline";
 import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
 import { ColunaBrasil } from "@/components/produto-brasil/ColunaBrasil";
 import { SkuTable } from "@/components/produto-brasil/SkuTable";
 import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
+import { ProjetoVinculoBanner } from "@/components/produto-brasil/ProjetoVinculoBanner";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +46,9 @@ export default function ProdutoBrasilCadastro() {
           </p>
         </div>
       </div>
+
+      {/* Project linking banner */}
+      {!produto.projeto_id && <ProjetoVinculoBanner produto={produto} />}
 
       {/* Status Pipeline */}
       <StatusPipeline currentStatus={produto.status} />
