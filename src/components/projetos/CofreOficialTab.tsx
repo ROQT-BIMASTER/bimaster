@@ -40,6 +40,22 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
     enabled: !!produtoId,
   });
 
+  // Check which docs have official versions
+  const { data: oficialVersions = [] } = useQuery({
+    queryKey: ["cofre-oficial-versions", produtoId],
+    queryFn: async () => {
+      const docIds = cofreDocs.map((d: any) => d.id);
+      if (docIds.length === 0) return [];
+      const { data } = await supabase
+        .from("produto_documento_versoes" as any)
+        .select("documento_id")
+        .in("documento_id", docIds)
+        .eq("versao_oficial", true);
+      return (data || []).map((v: any) => v.documento_id) as string[];
+    },
+    enabled: cofreDocs.length > 0,
+  });
+
   const handleDownload = async (doc: any) => {
     const { data } = await supabase.storage
       .from("projeto-anexos")
