@@ -94,6 +94,7 @@ function AvatarWithUpload({
       const { error: updErr } = await supabase.from("profiles").update({ avatar_url: signed.signedUrl }).eq("id", member.id);
       if (updErr) throw updErr;
 
+      setLocalUrl(signed.signedUrl);
       toast.success("Foto atualizada!");
       queryClient.invalidateQueries({ queryKey: ["projetos-team"] });
     } catch (err: any) {
