@@ -1,15 +1,20 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProdutoBrasil } from "@/hooks/useProdutoBrasil";
 import { StatusPipeline } from "@/components/produto-brasil/StatusPipeline";
-import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
-import { ColunaBrasil } from "@/components/produto-brasil/ColunaBrasil";
-import { SkuTable } from "@/components/produto-brasil/SkuTable";
-import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { ProjetoVinculoBanner } from "@/components/produto-brasil/ProjetoVinculoBanner";
+import { TabIdentificacao } from "@/components/produto-brasil/tabs/TabIdentificacao";
+import { TabClassificacao } from "@/components/produto-brasil/tabs/TabClassificacao";
+import { TabRegulatorio } from "@/components/produto-brasil/tabs/TabRegulatorio";
+import { TabDatasProcesso } from "@/components/produto-brasil/tabs/TabDatasProcesso";
+import { SkuTable } from "@/components/produto-brasil/SkuTable";
 import { ImagemTimeline } from "@/components/produto-brasil/ImagemTimeline";
+import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
+import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
+import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +46,7 @@ export default function ProdutoBrasilCadastro() {
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">
-            Pré-cadastro Brasil — {produto.china_nome || produto.china_codigo}
+            Pré-cadastro Brasil — {produto.nome_brasil || produto.china_nome || produto.china_codigo}
           </h1>
           <p className="text-sm text-muted-foreground">
             Adapte os dados do produto importado para o mercado brasileiro
@@ -55,23 +60,56 @@ export default function ProdutoBrasilCadastro() {
       {/* Status Pipeline */}
       <StatusPipeline currentStatus={produto.status} />
 
-      {/* Two columns: China x Brasil */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ColunaChina produto={produto} />
-        <ColunaBrasil produto={produto} />
-      </div>
+      {/* Main Tabbed Content */}
+      <Tabs defaultValue="identificacao" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
+          <TabsTrigger value="identificacao" className="text-xs">Identificação</TabsTrigger>
+          <TabsTrigger value="classificacao" className="text-xs">Classificação</TabsTrigger>
+          <TabsTrigger value="regulatorio" className="text-xs">Regulatório</TabsTrigger>
+          <TabsTrigger value="datas" className="text-xs">Datas</TabsTrigger>
+          <TabsTrigger value="grade" className="text-xs">Grade / SKUs</TabsTrigger>
+          <TabsTrigger value="custos" className="text-xs">Custos</TabsTrigger>
+          <TabsTrigger value="imagens" className="text-xs">Imagens</TabsTrigger>
+          <TabsTrigger value="china" className="text-xs">Dados China</TabsTrigger>
+          <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
+        </TabsList>
 
-      {/* SKU / Grade Table */}
-      <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
+        <TabsContent value="identificacao" className="mt-4">
+          <TabIdentificacao produto={produto} />
+        </TabsContent>
 
-      {/* Image Timeline */}
-      <ImagemTimeline produto={produto} />
+        <TabsContent value="classificacao" className="mt-4">
+          <TabClassificacao produto={produto} />
+        </TabsContent>
 
-      {/* Regulatory Checklist */}
-      <ChecklistRegulatorio produto={produto} />
+        <TabsContent value="regulatorio" className="mt-4">
+          <ChecklistRegulatorio produto={produto} />
+        </TabsContent>
 
-      {/* Activity History */}
-      <HistoricoAtividades produtoBrasilId={produto.id} />
+        <TabsContent value="datas" className="mt-4">
+          <TabDatasProcesso produto={produto} />
+        </TabsContent>
+
+        <TabsContent value="grade" className="mt-4">
+          <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
+        </TabsContent>
+
+        <TabsContent value="custos" className="mt-4">
+          <FichaCustoImportado produtoBrasilId={produto.id} produtoNome={produto.nome_brasil || produto.china_nome || "Produto"} />
+        </TabsContent>
+
+        <TabsContent value="imagens" className="mt-4">
+          <ImagemTimeline produto={produto} />
+        </TabsContent>
+
+        <TabsContent value="china" className="mt-4">
+          <ColunaChina produto={produto} />
+        </TabsContent>
+
+        <TabsContent value="historico" className="mt-4">
+          <HistoricoAtividades produtoBrasilId={produto.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

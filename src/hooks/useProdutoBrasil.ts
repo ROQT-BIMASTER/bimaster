@@ -29,6 +29,51 @@ export interface ProdutoBrasil {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // New expanded fields
+  ncm: string | null;
+  ean_unitario: string | null;
+  ean_display: string | null;
+  ean_caixa_master: string | null;
+  tipo_produto: string | null;
+  marca: string | null;
+  linha: string | null;
+  fabricante: string | null;
+  sku: string | null;
+  foto_url: string | null;
+  origem: string | null;
+  data_inicio_processo: string | null;
+  data_previsao_chegada: string | null;
+  data_cadastro_finalizado: string | null;
+  processo_anvisa: string | null;
+  nome_comercial: string | null;
+  descricao_curta: string | null;
+  descricao_completa: string | null;
+  custo_unitario_china: number | null;
+  itens_display: number | null;
+  peso_bruto: number | null;
+  peso_liquido: number | null;
+}
+
+export interface ProdutoBrasilCusto {
+  id: string;
+  produto_brasil_id: string;
+  custo_nf: number;
+  custo_servico: number;
+  custo_condicao: number;
+  custo_base_tipo: string;
+  markup_tipo: string;
+  markup_valor: number;
+  impostos_percentual: number;
+  frete_valor: number;
+  margem_contribuicao: number;
+  preco_sugerido: number;
+  status: string;
+  aprovado_por: string | null;
+  aprovado_em: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProdutoBrasilSku {

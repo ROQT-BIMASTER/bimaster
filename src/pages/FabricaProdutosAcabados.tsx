@@ -75,6 +75,7 @@ export default function FabricaProdutosAcabados() {
           unidade:fabrica_unidades_medida(sigla, nome)
         `)
         .in("tipo", ["ACABADO", "INTER", "DISPLAY"])
+        .or('origem.is.null,origem.neq.importado')
         .order("created_at", { ascending: false });
 
       if (error) throw error;

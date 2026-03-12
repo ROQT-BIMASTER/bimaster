@@ -1005,7 +1005,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
                     <>
                       <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
-                      <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Cadastro Brasil" />
+                      <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Produtos Importados" />
                     </>
                   )}
                   {isAdminOrSupervisor && (

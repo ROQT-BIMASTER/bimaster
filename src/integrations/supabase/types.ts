@@ -15226,19 +15226,41 @@ export type Database = {
           codigo_brasil: string | null
           created_at: string | null
           created_by: string | null
+          custo_unitario_china: number | null
           data_aprovacao_regulatorio: string | null
+          data_cadastro_finalizado: string | null
+          data_inicio_processo: string | null
+          data_previsao_chegada: string | null
           descricao_brasil: string | null
+          descricao_completa: string | null
+          descricao_curta: string | null
+          ean_caixa_master: string | null
+          ean_display: string | null
+          ean_unitario: string | null
+          fabricante: string | null
+          foto_url: string | null
           id: string
+          itens_display: number | null
+          linha: string | null
+          marca: string | null
+          ncm: string | null
           nome_brasil: string | null
+          nome_comercial: string | null
           numero_registro: string | null
           observacoes: string | null
+          origem: string | null
+          peso_bruto: number | null
+          peso_liquido: number | null
+          processo_anvisa: string | null
           projeto_id: string | null
           responsavel_precadastro_id: string | null
           responsavel_regulatorio_id: string | null
           responsavel_tecnico: string | null
+          sku: string | null
           status: string
           status_anvisa: string | null
           submissao_china_id: string | null
+          tipo_produto: string | null
           updated_at: string | null
           vinculo_id: string | null
         }
@@ -15253,19 +15275,41 @@ export type Database = {
           codigo_brasil?: string | null
           created_at?: string | null
           created_by?: string | null
+          custo_unitario_china?: number | null
           data_aprovacao_regulatorio?: string | null
+          data_cadastro_finalizado?: string | null
+          data_inicio_processo?: string | null
+          data_previsao_chegada?: string | null
           descricao_brasil?: string | null
+          descricao_completa?: string | null
+          descricao_curta?: string | null
+          ean_caixa_master?: string | null
+          ean_display?: string | null
+          ean_unitario?: string | null
+          fabricante?: string | null
+          foto_url?: string | null
           id?: string
+          itens_display?: number | null
+          linha?: string | null
+          marca?: string | null
+          ncm?: string | null
           nome_brasil?: string | null
+          nome_comercial?: string | null
           numero_registro?: string | null
           observacoes?: string | null
+          origem?: string | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          processo_anvisa?: string | null
           projeto_id?: string | null
           responsavel_precadastro_id?: string | null
           responsavel_regulatorio_id?: string | null
           responsavel_tecnico?: string | null
+          sku?: string | null
           status?: string
           status_anvisa?: string | null
           submissao_china_id?: string | null
+          tipo_produto?: string | null
           updated_at?: string | null
           vinculo_id?: string | null
         }
@@ -15280,19 +15324,41 @@ export type Database = {
           codigo_brasil?: string | null
           created_at?: string | null
           created_by?: string | null
+          custo_unitario_china?: number | null
           data_aprovacao_regulatorio?: string | null
+          data_cadastro_finalizado?: string | null
+          data_inicio_processo?: string | null
+          data_previsao_chegada?: string | null
           descricao_brasil?: string | null
+          descricao_completa?: string | null
+          descricao_curta?: string | null
+          ean_caixa_master?: string | null
+          ean_display?: string | null
+          ean_unitario?: string | null
+          fabricante?: string | null
+          foto_url?: string | null
           id?: string
+          itens_display?: number | null
+          linha?: string | null
+          marca?: string | null
+          ncm?: string | null
           nome_brasil?: string | null
+          nome_comercial?: string | null
           numero_registro?: string | null
           observacoes?: string | null
+          origem?: string | null
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          processo_anvisa?: string | null
           projeto_id?: string | null
           responsavel_precadastro_id?: string | null
           responsavel_regulatorio_id?: string | null
           responsavel_tecnico?: string | null
+          sku?: string | null
           status?: string
           status_anvisa?: string | null
           submissao_china_id?: string | null
+          tipo_produto?: string | null
           updated_at?: string | null
           vinculo_id?: string | null
         }
@@ -15316,6 +15382,128 @@ export type Database = {
             columns: ["vinculo_id"]
             isOneToOne: false
             referencedRelation: "china_submissao_tarefa_vinculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_brasil_custos: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string | null
+          created_by: string | null
+          custo_base_tipo: string | null
+          custo_condicao: number | null
+          custo_nf: number | null
+          custo_servico: number | null
+          frete_valor: number | null
+          id: string
+          impostos_percentual: number | null
+          margem_contribuicao: number | null
+          markup_tipo: string | null
+          markup_valor: number | null
+          observacoes: string | null
+          preco_sugerido: number | null
+          produto_brasil_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_base_tipo?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
+          frete_valor?: number | null
+          id?: string
+          impostos_percentual?: number | null
+          margem_contribuicao?: number | null
+          markup_tipo?: string | null
+          markup_valor?: number | null
+          observacoes?: string | null
+          preco_sugerido?: number | null
+          produto_brasil_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_base_tipo?: string | null
+          custo_condicao?: number | null
+          custo_nf?: number | null
+          custo_servico?: number | null
+          frete_valor?: number | null
+          id?: string
+          impostos_percentual?: number | null
+          margem_contribuicao?: number | null
+          markup_tipo?: string | null
+          markup_valor?: number | null
+          observacoes?: string | null
+          preco_sugerido?: number | null
+          produto_brasil_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_brasil_custos_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: true
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos_brasil_precos: {
+        Row: {
+          created_at: string | null
+          id: string
+          markup_aplicado: number | null
+          preco_calculado: number | null
+          preco_final: number | null
+          produto_brasil_id: string
+          tabela_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          markup_aplicado?: number | null
+          preco_calculado?: number | null
+          preco_final?: number | null
+          produto_brasil_id: string
+          tabela_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          markup_aplicado?: number | null
+          preco_calculado?: number | null
+          preco_final?: number | null
+          produto_brasil_id?: string
+          tabela_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_brasil_precos_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_brasil_precos_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "fabrica_tabelas_preco"
             referencedColumns: ["id"]
           },
         ]
