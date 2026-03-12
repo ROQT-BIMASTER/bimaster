@@ -116,7 +116,7 @@ function SortableRow({
   );
 }
 
-export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
+export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGradeEditorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
