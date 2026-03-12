@@ -35,10 +35,13 @@ export interface ProdutoBrasilSku {
   id: string;
   produto_brasil_id: string;
   cor: string | null;
+  cor_hex: string | null;
   tamanho_grade: string | null;
   codigo_interno: string | null;
   ean: string | null;
   quantidade_inicial: number;
+  ordem: number;
+  foto_url: string | null;
   created_at: string;
 }
 
@@ -107,6 +110,7 @@ export function useProdutoBrasilSkus(produtoBrasilId: string | undefined) {
         .from("produto_brasil_skus" as any)
         .select("*")
         .eq("produto_brasil_id", produtoBrasilId!)
+        .order("ordem")
         .order("created_at") as any);
       if (error) throw error;
       return (data || []) as ProdutoBrasilSku[];
@@ -228,7 +232,7 @@ export function useAddSku() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { produto_brasil_id: string; cor?: string; tamanho_grade?: string; codigo_interno?: string; ean?: string; quantidade_inicial?: number }) => {
+    mutationFn: async (params: { produto_brasil_id: string; cor?: string; cor_hex?: string; tamanho_grade?: string; codigo_interno?: string; ean?: string; quantidade_inicial?: number; ordem?: number; foto_url?: string }) => {
       const { error } = await (supabase
         .from("produto_brasil_skus" as any)
         .insert(params) as any);
@@ -237,6 +241,24 @@ export function useAddSku() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["produto-brasil-skus", vars.produto_brasil_id] });
       toast.success("SKU adicionado");
+    },
+  });
+}
+
+export function useUpdateSku() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, produtoBrasilId, updates }: { id: string; produtoBrasilId: string; updates: Record<string, any> }) => {
+      const { error } = await (supabase
+        .from("produto_brasil_skus" as any)
+        .update(updates)
+        .eq("id", id) as any);
+      if (error) throw error;
+      return produtoBrasilId;
+    },
+    onSuccess: (produtoBrasilId) => {
+      queryClient.invalidateQueries({ queryKey: ["produto-brasil-skus", produtoBrasilId] });
     },
   });
 }
@@ -257,5 +279,60 @@ export function useDeleteSku() {
       queryClient.invalidateQueries({ queryKey: ["produto-brasil-skus", produtoBrasilId] });
       toast.success("SKU removido");
     },
+  });
+}
+
+export function useImportSkusFromChina() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ produtoBrasilId, submissaoId }: { produtoBrasilId: string; submissaoId: string }) => {
+      // Check existing SKUs
+      const { data: existing } = await (supabase
+        .from("produto_brasil_skus" as any)
+        .select("id")
+        .eq("produto_brasil_id", produtoBrasilId)
+        .limit(1) as any);
+
+      if (existing && existing.length > 0) {
+        toast.info("Grade já importada. Remova os itens existentes para reimportar.");
+        return;
+      }
+
+      // Get china cores
+      const { data: cores, error } = await (supabase
+        .from("china_produto_cores" as any)
+        .select("*")
+        .eq("submissao_id", submissaoId)
+        .order("ordem") as any);
+
+      if (error) throw error;
+      if (!cores || cores.length === 0) {
+        toast.info("Nenhuma cor encontrada na submissão China.");
+        return;
+      }
+
+      const skusToInsert = cores.map((cor: any, i: number) => ({
+        produto_brasil_id: produtoBrasilId,
+        cor: cor.cor_nome,
+        cor_hex: cor.cor_hex || null,
+        codigo_interno: cor.codigo_produto || null,
+        ean: cor.codigo_barras_ean || null,
+        quantidade_inicial: cor.quantidade || 0,
+        ordem: i,
+        foto_url: cor.foto_url || null,
+      }));
+
+      const { error: insertError } = await (supabase
+        .from("produto_brasil_skus" as any)
+        .insert(skusToInsert) as any);
+      if (insertError) throw insertError;
+
+      toast.success(`${skusToInsert.length} variação(ões) importada(s) da China!`);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["produto-brasil-skus", vars.produtoBrasilId] });
+    },
+    onError: () => toast.error("Erro ao importar grade da China"),
   });
 }
