@@ -206,7 +206,7 @@ export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGra
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={6} className="text-right text-xs font-bold">
-                  Total 总计
+                  {bilingual ? "Total 总计" : "Total"}
                 </TableCell>
                 <TableCell className="text-center text-xs font-bold">{totalQty.toLocaleString()}</TableCell>
                 <TableCell />
