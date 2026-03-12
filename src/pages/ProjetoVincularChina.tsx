@@ -168,12 +168,13 @@ export default function ProjetoVincularChina() {
   const handleVincular = async () => {
     if (!selectedSubmissaoId || !selectedProjetoId || checkedTarefas.size === 0) return;
 
+    // Start audit in background (non-blocking)
     const firstTarefaId = Array.from(checkedTarefas)[0];
     const firstTarefa = tarefas.find((t: any) => t.id === firstTarefaId);
 
-    let audit = null;
+    let auditPromise: Promise<any> | null = null;
     if (selectedSubmissao && firstTarefa) {
-      audit = await auditTarefaProduto({
+      auditPromise = auditTarefaProduto({
         tarefa: { titulo: firstTarefa.titulo, estagio: firstTarefa.estagio || undefined },
         submissao: {
           produto_codigo: selectedSubmissao.produto_codigo,
@@ -189,9 +190,10 @@ export default function ProjetoVincularChina() {
           observacoes_brasil: selectedSubmissao.observacoes_brasil,
           observacoes_china: selectedSubmissao.observacoes_china,
         },
-      });
+      }).catch(() => null);
     }
 
+    // Create vínculos immediately without waiting for audit
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
       if (vinculosByTarefa.has(tarefaId)) continue;
@@ -200,10 +202,14 @@ export default function ProjetoVincularChina() {
         tarefa_id: tarefaId,
         secao_id: tarefa?.secao_id || null,
         projeto_id: selectedProjetoId,
-        audit_result: audit || undefined,
       });
     }
     setCheckedTarefas(new Set());
+
+    // Update audit result in background when ready (informational only)
+    if (auditPromise) {
+      auditPromise.then(() => {/* result already set via hook state */});
+    }
   };
 
   const handleDesvincular = (vinculoId: string) => {
@@ -568,7 +574,7 @@ export default function ProjetoVincularChina() {
                 <AuditChinaVinculoBadge result={auditResult} loading={auditLoading} />
                 <Button
                   onClick={handleVincular}
-                  disabled={checkedTarefas.size === 0 || createVinculo.isPending || auditLoading}
+                  disabled={checkedTarefas.size === 0 || createVinculo.isPending}
                   className="w-full"
                   size="sm"
                 >
