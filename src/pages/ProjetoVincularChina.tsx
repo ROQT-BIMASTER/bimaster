@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Link2, Unlink, ChevronRight, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
+import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
 const STATUS_FILTERS = [
@@ -79,6 +79,7 @@ export default function ProjetoVincularChina() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
+  const [expandedSubmissaoId, setExpandedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [checkedTarefas, setCheckedTarefas] = useState<Set<string>>(new Set());
   const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
@@ -310,7 +311,7 @@ export default function ProjetoVincularChina() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="h-[400px]">
+            <ScrollArea className="h-[500px]">
               {loadingSub ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -321,36 +322,48 @@ export default function ProjetoVincularChina() {
                 <div className="divide-y">
                   {filteredSubmissoes.map((sub: any) => {
                     const isSelected = selectedSubmissaoId === sub.id;
+                    const isExpanded = expandedSubmissaoId === sub.id;
                     const isLinked = submissaoVinculadas.has(sub.id);
                     return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setSelectedSubmissaoId(sub.id);
-                          setSelectedTarefaForDocs(null);
-                        }}
-                        className={cn(
-                          "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3",
-                          isSelected && "bg-primary/5 border-l-2 border-l-primary"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-primary">{sub.produto_codigo}</span>
-                            {isLinked && (
-                              <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Já vinculada" />
+                      <div key={sub.id}>
+                        <button
+                          onClick={() => {
+                            setSelectedSubmissaoId(sub.id);
+                            setExpandedSubmissaoId(isExpanded ? null : sub.id);
+                            setSelectedTarefaForDocs(null);
+                          }}
+                          className={cn(
+                            "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3",
+                            isSelected && "bg-primary/5 border-l-2 border-l-primary"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-primary">{sub.produto_codigo}</span>
+                              {isLinked && (
+                                <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Já vinculada" />
+                              )}
+                            </div>
+                            <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
+                            {sub.numero_ordem && (
+                              <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
                             )}
                           </div>
-                          <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
-                          {sub.numero_ordem && (
-                            <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
-                          )}
-                        </div>
-                        <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
-                          {getStatusLabel(sub.status)}
-                        </Badge>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </button>
+                          <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
+                            {getStatusLabel(sub.status)}
+                          </Badge>
+                          <ChevronDown className={cn(
+                            "h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200",
+                            isExpanded && "rotate-180"
+                          )} />
+                        </button>
+                        {isExpanded && (
+                          <ChinaSubmissaoExpandido
+                            submissao={sub}
+                            onPreviewDoc={setPreviewDoc}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
