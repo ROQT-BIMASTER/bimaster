@@ -37,6 +37,8 @@ export interface GradeItem {
 interface ChinaGradeEditorProps {
   items: GradeItem[];
   onChange: (items: GradeItem[]) => void;
+  /** Show bilingual PT/CN labels. Defaults to true. Set false for PT-only modules. */
+  bilingual?: boolean;
 }
 
 function SortableRow({
