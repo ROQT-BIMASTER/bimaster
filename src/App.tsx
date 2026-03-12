@@ -1,4 +1,4 @@
-// Build trigger v2
+// Build trigger v3 - force refresh
 import { lazy, Suspense, useEffect, useState, useRef, ComponentType } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
