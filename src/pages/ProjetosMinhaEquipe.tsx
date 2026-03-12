@@ -1,37 +1,143 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft } from "lucide-react";
+import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
-const getRoleLabel = (role: string) => {
-  const labels: Record<string, string> = {
-    admin: "Admin",
-    gerente: "Gerente",
-    supervisor: "Supervisor",
-    vendedor: "Vendedor",
-    promotor: "Promotor",
+const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  admin: {
+    label: "Admin",
+    bg: "bg-red-100 dark:bg-red-900/40",
+    text: "text-red-700 dark:text-red-300",
+    border: "border-red-300 dark:border-red-700",
+  },
+  gerente: {
+    label: "Gerente",
+    bg: "bg-purple-100 dark:bg-purple-900/40",
+    text: "text-purple-700 dark:text-purple-300",
+    border: "border-purple-300 dark:border-purple-700",
+  },
+  supervisor: {
+    label: "Supervisor",
+    bg: "bg-blue-100 dark:bg-blue-900/40",
+    text: "text-blue-700 dark:text-blue-300",
+    border: "border-blue-300 dark:border-blue-700",
+  },
+  vendedor: {
+    label: "Vendedor",
+    bg: "bg-green-100 dark:bg-green-900/40",
+    text: "text-green-700 dark:text-green-300",
+    border: "border-green-300 dark:border-green-700",
+  },
+  promotor: {
+    label: "Promotor",
+    bg: "bg-amber-100 dark:bg-amber-900/40",
+    text: "text-amber-700 dark:text-amber-300",
+    border: "border-amber-300 dark:border-amber-700",
+  },
+};
+
+const getRoleStyle = (role: string) => {
+  const config = ROLE_CONFIG[role];
+  if (!config) return { label: role, className: "bg-muted text-muted-foreground border-border" };
+  return { label: config.label, className: `${config.bg} ${config.text} ${config.border}` };
+};
+
+// --- Inline Avatar with Upload ---
+function AvatarWithUpload({
+  member,
+  size = "md",
+  canUpload,
+}: {
+  member: ProjetoTeamMember;
+  size?: "sm" | "md";
+  canUpload: boolean;
+}) {
+  const resolved = useResolvedAvatarUrl(member.avatar_url);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+
+  const sizeClass = size === "sm" ? "h-7 w-7" : "h-8 w-8";
+  const iconSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Máximo 5MB"); return; }
+
+    try {
+      setUploading(true);
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${member.id}/avatar.${ext}`;
+
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr || !signed?.signedUrl) throw signErr || new Error("Erro ao gerar URL");
+
+      const { error: updErr } = await supabase.from("profiles").update({ avatar_url: signed.signedUrl }).eq("id", member.id);
+      if (updErr) throw updErr;
+
+      toast.success("Foto atualizada!");
+      queryClient.invalidateQueries({ queryKey: ["projetos-team"] });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast.error("Erro ao enviar foto: " + (err.message || "Tente novamente"));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
-  return labels[role] || role;
-};
 
-const getRoleBadgeClass = (role: string) => {
-  switch (role) {
-    case "admin": return "bg-primary/10 text-primary border-primary/20";
-    case "gerente": return "bg-accent/10 text-accent-foreground border-accent/20";
-    case "supervisor": return "bg-secondary/80 text-secondary-foreground border-secondary";
-    default: return "bg-muted text-muted-foreground border-border";
-  }
-};
+  return (
+    <div className="relative inline-block group">
+      <Avatar className={sizeClass}>
+        <AvatarImage src={resolved} />
+        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+          {member.nome?.slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      {canUpload && (
+        <>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          >
+            {uploading ? (
+              <Loader2 className={`${iconSize} text-white animate-spin`} />
+            ) : (
+              <Camera className={`${iconSize} text-white`} />
+            )}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
+// --- Main Page ---
 export default function ProjetosMinhaEquipe() {
   const { data: team = [], isLoading } = useProjetosTeamData();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
+  const { isAdmin, isGerente, isSupervisor } = useUserRole();
+  const canUpload = isAdmin || isGerente || isSupervisor;
 
   const toggleNode = (id: string) => {
     setExpandedNodes((prev) => {
@@ -41,7 +147,6 @@ export default function ProjetosMinhaEquipe() {
     });
   };
 
-  // Flatten for ranking
   const flattenMembers = (members: ProjetoTeamMember[]): ProjetoTeamMember[] => {
     const result: ProjetoTeamMember[] = [];
     const traverse = (list: ProjetoTeamMember[]) => {
@@ -63,6 +168,7 @@ export default function ProjetosMinhaEquipe() {
   const renderMember = (member: ProjetoTeamMember, level = 0) => {
     const hasSubs = member.subordinados && member.subordinados.length > 0;
     const isExpanded = expandedNodes.has(member.id);
+    const roleStyle = getRoleStyle(member.role);
 
     return (
       <div key={member.id}>
@@ -78,18 +184,13 @@ export default function ProjetosMinhaEquipe() {
             <div className="w-6" />
           )}
 
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={member.avatar_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-              {member.nome?.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <AvatarWithUpload member={member} size="md" canUpload={canUpload} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium text-sm truncate">{member.nome}</span>
-              <Badge variant="outline" className={`text-xs ${getRoleBadgeClass(member.role)}`}>
-                {getRoleLabel(member.role)}
+              <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
+                {roleStyle.label}
               </Badge>
             </div>
             <span className="text-xs text-muted-foreground truncate block">{member.email}</span>
@@ -218,12 +319,7 @@ export default function ProjetosMinhaEquipe() {
                 <span className="text-lg font-bold text-muted-foreground w-6 text-center">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
                 </span>
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src={m.avatar_url || undefined} />
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {m.nome?.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarWithUpload member={m} size="sm" canUpload={canUpload} />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium truncate block">{m.nome}</span>
                   <span className="text-xs text-muted-foreground">
