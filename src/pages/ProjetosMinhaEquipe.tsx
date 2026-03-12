@@ -599,8 +599,8 @@ export default function ProjetosMinhaEquipe() {
         </Card>
       </div>
 
-      {/* Member Detail Sheet */}
-      <MemberDetailSheet
+      {/* Member Detail Modal */}
+      <MemberDetailModal
         member={selectedMember}
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
