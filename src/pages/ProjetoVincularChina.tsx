@@ -79,6 +79,7 @@ export default function ProjetoVincularChina() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
+  const [expandedSubmissaoId, setExpandedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [checkedTarefas, setCheckedTarefas] = useState<Set<string>>(new Set());
   const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
