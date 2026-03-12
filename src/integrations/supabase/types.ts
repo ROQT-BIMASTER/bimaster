@@ -14960,6 +14960,88 @@ export type Database = {
           },
         ]
       }
+      produto_brasil_historico: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          metadata: Json | null
+          produto_brasil_id: string
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          metadata?: Json | null
+          produto_brasil_id: string
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          metadata?: Json | null
+          produto_brasil_id?: string
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_historico_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_brasil_imagens: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          etapa: string
+          id: string
+          image_path: string | null
+          image_url: string
+          origem: string
+          produto_brasil_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          etapa?: string
+          id?: string
+          image_path?: string | null
+          image_url: string
+          origem?: string
+          produto_brasil_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          etapa?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string
+          origem?: string
+          produto_brasil_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_imagens_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_brasil_skus: {
         Row: {
           codigo_interno: string | null

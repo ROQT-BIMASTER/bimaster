@@ -1,13 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useProdutoBrasil, useUpdateProdutoBrasil } from "@/hooks/useProdutoBrasil";
+import { useProdutoBrasil } from "@/hooks/useProdutoBrasil";
 import { StatusPipeline } from "@/components/produto-brasil/StatusPipeline";
 import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
 import { ColunaBrasil } from "@/components/produto-brasil/ColunaBrasil";
 import { SkuTable } from "@/components/produto-brasil/SkuTable";
 import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { ProjetoVinculoBanner } from "@/components/produto-brasil/ProjetoVinculoBanner";
+import { ImagemTimeline } from "@/components/produto-brasil/ImagemTimeline";
+import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -62,8 +64,14 @@ export default function ProdutoBrasilCadastro() {
       {/* SKU Table */}
       <SkuTable produtoBrasilId={produto.id} />
 
+      {/* Image Timeline */}
+      <ImagemTimeline produto={produto} />
+
       {/* Regulatory Checklist */}
       <ChecklistRegulatorio produto={produto} />
+
+      {/* Activity History */}
+      <HistoricoAtividades produtoBrasilId={produto.id} />
     </div>
   );
 }
