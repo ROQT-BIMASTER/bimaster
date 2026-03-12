@@ -5,21 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Package, Search, ArrowLeft, Loader2, ChevronRight, Plus, AlertTriangle, Clock, FileText, Shield, CheckCircle2, Sparkles } from "lucide-react";
 import { useState, useMemo } from "react";
 import { PRODUCT_STATUS_LABELS } from "@/hooks/useProdutoBrasil";
-import { useCreateProdutoBrasil } from "@/hooks/useProdutoBrasil";
-import { toast } from "sonner";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
-} from "@/components/ui/dialog";
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NovoProdutoImportadoDialog } from "@/components/produto-brasil/NovoProdutoImportadoDialog";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos os Status" },
