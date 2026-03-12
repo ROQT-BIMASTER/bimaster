@@ -31,16 +31,18 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
+  const [selectedSecaoId, setSelectedSecaoId] = useState<string | null>(null);
   const [responsavelId, setResponsavelId] = useState<string | null>(null);
   const [newTarefaTitulo, setNewTarefaTitulo] = useState("");
+  const [newSecaoNome, setNewSecaoNome] = useState("");
+  const [creatingSecao, setCreatingSecao] = useState(false);
   const [searchTarefa, setSearchTarefa] = useState("");
 
   const { data: projetos = [] } = useProjetosParaVinculo();
-  const { data: secoesData } = useSecoesETarefas(selectedProjetoId);
+  const { data: secoesData, refetch: refetchSecoes } = useSecoesETarefas(selectedProjetoId);
   const createDocVinculo = useCreateDocVinculo();
   const { data: catResponsaveis = [] } = useCategoriaResponsaveis(selectedProjetoId);
 
-  // Load team members for responsible selection
   const { data: membros = [] } = useQuery({
     queryKey: ["projeto-membros-vincular", selectedProjetoId],
     enabled: !!selectedProjetoId,
@@ -82,26 +84,56 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
   useEffect(() => {
     if (open) {
       setSelectedTarefaId(null);
+      setSelectedSecaoId(null);
       setNewTarefaTitulo("");
+      setNewSecaoNome("");
+      setCreatingSecao(false);
       setSearchTarefa("");
       setMode("existing");
     }
   }, [open]);
 
+  // Auto-select first secao when switching to "new" mode
+  useEffect(() => {
+    if (mode === "new" && secoes.length > 0 && !selectedSecaoId) {
+      setSelectedSecaoId(secoes[0].id);
+    }
+  }, [mode, secoes, selectedSecaoId]);
+
+  const handleCreateSecao = async () => {
+    if (!newSecaoNome.trim() || !selectedProjetoId) return;
+    const maxOrdem = secoes.reduce((max: number, s: any) => Math.max(max, s.ordem || 0), 0);
+    const { data, error } = await supabase
+      .from("projeto_secoes")
+      .insert({
+        nome: newSecaoNome.trim(),
+        projeto_id: selectedProjetoId,
+        ordem: maxOrdem + 1,
+      })
+      .select("id")
+      .single();
+    if (!error && data) {
+      await refetchSecoes();
+      setSelectedSecaoId(data.id);
+      setNewSecaoNome("");
+      setCreatingSecao(false);
+    }
+  };
+
   const handleVincular = async () => {
     if (!documento || !selectedProjetoId) return;
 
     let tarefaId = selectedTarefaId;
+    let secaoId: string | null = null;
 
     if (mode === "new" && newTarefaTitulo.trim()) {
-      // Create new task in the project
-      const firstSecao = secoes[0];
+      secaoId = selectedSecaoId;
       const { data: newTarefa, error } = await supabase
         .from("projeto_tarefas")
         .insert({
           titulo: newTarefaTitulo.trim(),
           projeto_id: selectedProjetoId,
-          secao_id: firstSecao?.id || null,
+          secao_id: secaoId,
           responsavel_id: responsavelId,
           status: "pendente",
           ordem: 999,
@@ -110,15 +142,17 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
         .single();
       if (error || !newTarefa) return;
       tarefaId = newTarefa.id;
+    } else if (mode === "existing") {
+      const tarefa = tarefas.find((t: any) => t.id === tarefaId);
+      secaoId = tarefa?.secao_id || null;
     }
 
     if (!tarefaId) return;
 
-    const tarefa = tarefas.find((t: any) => t.id === tarefaId);
     await createDocVinculo.mutateAsync({
       documento_id: documento.id,
       tarefa_id: tarefaId,
-      secao_id: tarefa?.secao_id || null,
+      secao_id: secaoId,
       projeto_id: selectedProjetoId,
       responsavel_id: responsavelId,
     });
@@ -128,7 +162,7 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
 
   const canSubmit = documento && selectedProjetoId && (
     (mode === "existing" && selectedTarefaId) ||
-    (mode === "new" && newTarefaTitulo.trim())
+    (mode === "new" && newTarefaTitulo.trim() && selectedSecaoId)
   );
 
   return (
@@ -153,7 +187,7 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
           {/* Project selection */}
           <div className="space-y-1.5">
             <Label className="text-xs">Projeto</Label>
-            <Select value={selectedProjetoId || ""} onValueChange={(v) => { setSelectedProjetoId(v); setSelectedTarefaId(null); }}>
+            <Select value={selectedProjetoId || ""} onValueChange={(v) => { setSelectedProjetoId(v); setSelectedTarefaId(null); setSelectedSecaoId(null); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um projeto..." />
               </SelectTrigger>
@@ -234,13 +268,77 @@ export function ChinaDocVincularDialog({ open, onOpenChange, documento, categori
                   </ScrollArea>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Título da nova tarefa</Label>
-                  <Input
-                    placeholder="Ex: Revisar rótulo produto X..."
-                    value={newTarefaTitulo}
-                    onChange={(e) => setNewTarefaTitulo(e.target.value)}
-                  />
+                <div className="space-y-3">
+                  {/* Section selection */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Seção</Label>
+                    {!creatingSecao ? (
+                      <div className="flex gap-2">
+                        <Select value={selectedSecaoId || ""} onValueChange={setSelectedSecaoId}>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Selecione a seção..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {secoes.map((s: any) => (
+                              <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-9 w-9"
+                          onClick={() => setCreatingSecao(true)}
+                          title="Criar nova seção"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          autoFocus
+                          placeholder="Nome da nova seção..."
+                          value={newSecaoNome}
+                          onChange={(e) => setNewSecaoNome(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleCreateSecao();
+                            if (e.key === "Escape") { setCreatingSecao(false); setNewSecaoNome(""); }
+                          }}
+                          className="flex-1 h-9 text-xs"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-9"
+                          onClick={handleCreateSecao}
+                          disabled={!newSecaoNome.trim()}
+                        >
+                          Criar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9"
+                          onClick={() => { setCreatingSecao(false); setNewSecaoNome(""); }}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* New task title */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Título da nova tarefa</Label>
+                    <Input
+                      placeholder="Ex: Revisar rótulo produto X..."
+                      value={newTarefaTitulo}
+                      onChange={(e) => setNewTarefaTitulo(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
 
