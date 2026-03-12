@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -59,7 +60,7 @@ function AvatarWithUpload({
   canUpload,
 }: {
   member: ProjetoTeamMember;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   canUpload: boolean;
 }) {
   const resolved = useResolvedAvatarUrl(member.avatar_url);
@@ -68,8 +69,9 @@ function AvatarWithUpload({
   const fileRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const sizeClass = size === "sm" ? "h-11 w-11" : "h-14 w-14";
-  const iconSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const sizeClass = size === "lg" ? "h-28 w-28" : size === "sm" ? "h-11 w-11" : "h-14 w-14";
+  const iconSize = size === "lg" ? "h-7 w-7" : size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const textSize = size === "lg" ? "text-2xl" : "text-xs";
   const avatarSrc = localUrl || resolved;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,9 +110,9 @@ function AvatarWithUpload({
 
   return (
     <div className="relative inline-block group">
-      <Avatar className={sizeClass}>
+      <Avatar className={`${sizeClass} ${size === "lg" ? "ring-4 ring-primary/20" : ""}`}>
         <AvatarImage src={avatarSrc} className="object-cover" />
-        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+        <AvatarFallback className={`bg-primary/10 text-primary ${textSize} font-semibold`}>
           {member.nome?.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
@@ -118,7 +120,7 @@ function AvatarWithUpload({
         <>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
           <button
-            onClick={() => fileRef.current?.click()}
+            onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
             disabled={uploading}
             className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           >
@@ -134,13 +136,133 @@ function AvatarWithUpload({
   );
 }
 
+// --- Member Detail Sheet ---
+function MemberDetailSheet({
+  member,
+  open,
+  onClose,
+  canUpload,
+}: {
+  member: ProjetoTeamMember | null;
+  open: boolean;
+  onClose: () => void;
+  canUpload: boolean;
+}) {
+  if (!member) return null;
+
+  const roleStyle = getRoleStyle(member.role);
+  const completionColor = member.taxa_conclusao >= 80
+    ? "text-green-600 dark:text-green-400"
+    : member.taxa_conclusao >= 50
+    ? "text-amber-600 dark:text-amber-400"
+    : "text-red-600 dark:text-red-400";
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto p-0">
+        <SheetHeader className="sr-only">
+          <SheetTitle>Detalhes de {member.nome}</SheetTitle>
+        </SheetHeader>
+
+        {/* Hero header */}
+        <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-10 pb-8">
+          <div className="flex flex-col items-center text-center gap-4">
+            <AvatarWithUpload member={member} size="lg" canUpload={canUpload} />
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">{member.nome}</h2>
+              <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${roleStyle.className}`}>
+                {roleStyle.label}
+              </Badge>
+              <div className="flex items-center justify-center gap-1.5 text-muted-foreground text-sm mt-1">
+                <Mail className="h-3.5 w-3.5" />
+                <span className="truncate max-w-[220px]">{member.email}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Score destaque */}
+        <div className="px-6 -mt-4">
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score de Produtividade</p>
+                <p className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{member.score} pts</p>
+              </div>
+            </div>
+            <TrendingUp className="h-8 w-8 text-amber-300 dark:text-amber-700" />
+          </div>
+        </div>
+
+        {/* KPIs Grid */}
+        <div className="px-6 pt-6 pb-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Performance</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-indigo-500" />
+                <span className="text-xs text-muted-foreground">Projetos Ativos</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{member.projetos_ativos}</p>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-xs text-muted-foreground">Concluídas</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{member.tarefas_concluidas}</p>
+              <p className="text-xs text-muted-foreground">de {member.tarefas_atribuidas} tarefas</p>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="text-xs text-muted-foreground">Atrasadas</span>
+              </div>
+              <p className={`text-2xl font-bold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>
+                {member.tarefas_atrasadas}
+              </p>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Taxa Conclusão</span>
+              </div>
+              <p className={`text-2xl font-bold ${completionColor}`}>{member.taxa_conclusao}%</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-muted-foreground">Progresso Geral</span>
+            <span className={`text-sm font-bold ${completionColor}`}>{member.taxa_conclusao}%</span>
+          </div>
+          <Progress value={member.taxa_conclusao} gradient className="h-3" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1.5">
+            <span>{member.tarefas_concluidas} concluídas</span>
+            <span>{member.tarefas_atribuidas - member.tarefas_concluidas} pendentes</span>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // --- Main Page ---
 export default function ProjetosMinhaEquipe() {
   const { data: team = [], isLoading } = useProjetosTeamData();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [selectedMember, setSelectedMember] = useState<ProjetoTeamMember | null>(null);
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
-  const canUpload = isAdmin || isGerente || isSupervisor;
+  const canManage = isAdmin || isGerente || isSupervisor;
 
   const toggleNode = (id: string) => {
     setExpandedNodes((prev) => {
@@ -168,6 +290,12 @@ export default function ProjetosMinhaEquipe() {
   const totalConcluidas = allMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
   const totalAtrasadas = allMembers.reduce((s, m) => s + m.tarefas_atrasadas, 0);
 
+  const handleMemberClick = (member: ProjetoTeamMember) => {
+    if (canManage) {
+      setSelectedMember(member);
+    }
+  };
+
   const renderMember = (member: ProjetoTeamMember, level = 0) => {
     const hasSubs = member.subordinados && member.subordinados.length > 0;
     const isExpanded = expandedNodes.has(member.id);
@@ -176,18 +304,24 @@ export default function ProjetosMinhaEquipe() {
     return (
       <div key={member.id}>
         <div
-          className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
+          className={`flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border ${canManage ? "cursor-pointer" : ""}`}
           style={{ marginLeft: `${level * 1.5}rem` }}
+          onClick={() => handleMemberClick(member)}
         >
           {hasSubs ? (
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => toggleNode(member.id)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={(e) => { e.stopPropagation(); toggleNode(member.id); }}
+            >
               <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
             </Button>
           ) : (
             <div className="w-6" />
           )}
 
-          <AvatarWithUpload member={member} size="md" canUpload={canUpload} />
+          <AvatarWithUpload member={member} size="md" canUpload={canManage} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -318,11 +452,15 @@ export default function ProjetosMinhaEquipe() {
           </CardHeader>
           <CardContent className="space-y-3">
             {topPerformers.map((m, i) => (
-              <div key={m.id} className="flex items-center gap-3">
+              <div
+                key={m.id}
+                className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${canManage ? "cursor-pointer hover:bg-accent/50" : ""}`}
+                onClick={() => handleMemberClick(m)}
+              >
                 <span className="text-lg font-bold text-muted-foreground w-6 text-center">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
                 </span>
-                <AvatarWithUpload member={m} size="sm" canUpload={canUpload} />
+                <AvatarWithUpload member={m} size="sm" canUpload={canManage} />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium truncate block">{m.nome}</span>
                   <span className="text-xs text-muted-foreground">
@@ -338,6 +476,14 @@ export default function ProjetosMinhaEquipe() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Member Detail Sheet */}
+      <MemberDetailSheet
+        member={selectedMember}
+        open={!!selectedMember}
+        onClose={() => setSelectedMember(null)}
+        canUpload={canManage}
+      />
     </div>
   );
 }
