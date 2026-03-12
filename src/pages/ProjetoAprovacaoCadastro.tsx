@@ -721,6 +721,24 @@ function ProdutosVinculadosSection({
           ))}
         </div>
       )}
+
+      {/* Unlink confirmation AlertDialog */}
+      <AlertDialog open={!!unlinkProdutoId} onOpenChange={() => setUnlinkProdutoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desvincular produto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O produto será desvinculado desta tarefa. Esta ação será registrada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => unlinkProdutoId && onRemoveProduto(unlinkProdutoId)}>
+              Desvincular
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
