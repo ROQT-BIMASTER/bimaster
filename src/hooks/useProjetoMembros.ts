@@ -7,7 +7,7 @@ export interface ProjetoMembro {
   id: string;
   projeto_id: string;
   user_id: string;
-  papel: "coordenador" | "membro";
+  papel: string;
   created_at: string;
   profile?: {
     id: string;
@@ -27,7 +27,6 @@ export function useProjetoMembros(projetoId: string | undefined) {
     queryFn: async () => {
       if (!projetoId) return [];
 
-      // Fetch members
       const { data: membrosData, error } = await supabase
         .from("projeto_membros")
         .select("*")
@@ -35,14 +34,12 @@ export function useProjetoMembros(projetoId: string | undefined) {
         .order("created_at");
       if (error) throw error;
 
-      // Fetch profiles for each member
       const userIds = membrosData.map((m: any) => m.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome, avatar_url, email")
         .in("id", userIds);
 
-      // Fetch section assignments
       const membroIds = membrosData.map((m: any) => m.id);
       const { data: secAssignments } = await supabase
         .from("projeto_membro_secoes")
@@ -61,8 +58,10 @@ export function useProjetoMembros(projetoId: string | undefined) {
   });
 
   const isCoordinator = membros.some(
-    (m) => m.user_id === user?.id && m.papel === "coordenador"
+    (m) => m.user_id === user?.id && ["coordenador", "gestor_produto"].includes(m.papel)
   );
+
+  const currentUserPapel = membros.find(m => m.user_id === user?.id)?.papel;
 
   const addMembro = useMutation({
     mutationFn: async ({ userId, papel = "membro" }: { userId: string; papel?: string }) => {
@@ -79,9 +78,7 @@ export function useProjetoMembros(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Membro adicionado!");
     },
-    onError: (err: Error) => {
-      toast.error("Erro ao adicionar membro: " + err.message);
-    },
+    onError: (err: Error) => toast.error("Erro ao adicionar membro: " + err.message),
   });
 
   const removeMembro = useMutation({
@@ -96,21 +93,17 @@ export function useProjetoMembros(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Membro removido!");
     },
-    onError: (err: Error) => {
-      toast.error("Erro ao remover membro: " + err.message);
-    },
+    onError: (err: Error) => toast.error("Erro ao remover membro: " + err.message),
   });
 
   const updateSecoes = useMutation({
     mutationFn: async ({ membroId, secaoIds }: { membroId: string; secaoIds: string[] }) => {
-      // Delete all existing assignments for this member
       const { error: delError } = await supabase
         .from("projeto_membro_secoes")
         .delete()
         .eq("membro_id", membroId);
       if (delError) throw delError;
 
-      // Insert new assignments
       if (secaoIds.length > 0) {
         const { error: insError } = await supabase
           .from("projeto_membro_secoes")
@@ -122,17 +115,32 @@ export function useProjetoMembros(projetoId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
       toast.success("Visibilidade de seções atualizada!");
     },
-    onError: (err: Error) => {
-      toast.error("Erro ao atualizar seções: " + err.message);
+    onError: (err: Error) => toast.error("Erro ao atualizar seções: " + err.message),
+  });
+
+  const updatePapel = useMutation({
+    mutationFn: async ({ membroId, papel }: { membroId: string; papel: string }) => {
+      const { error } = await supabase
+        .from("projeto_membros")
+        .update({ papel })
+        .eq("id", membroId);
+      if (error) throw error;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto_membros", projetoId] });
+      toast.success("Papel atualizado!");
+    },
+    onError: (err: Error) => toast.error("Erro ao atualizar papel: " + err.message),
   });
 
   return {
     membros,
     isLoading,
     isCoordinator,
+    currentUserPapel,
     addMembro,
     removeMembro,
     updateSecoes,
+    updatePapel,
   };
 }
