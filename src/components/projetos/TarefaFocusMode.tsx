@@ -671,6 +671,16 @@ export function TarefaFocusMode({
                       </div>
                     )}
                   </TabsContent>
+
+                  {/* Tab: Cofre Oficial */}
+                  {isDevProduto && hasProduto && (
+                    <TabsContent value="cofre_oficial" className="mt-0">
+                      <CofreOficialTab
+                        produtoId={(tarefa as any).produto_id}
+                        projetoId={(tarefa as any).projeto_id}
+                      />
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
 
