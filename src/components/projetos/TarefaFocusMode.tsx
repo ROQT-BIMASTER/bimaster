@@ -33,8 +33,11 @@ import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock
 } from "lucide-react";
+import { CofreOficialTab } from "./CofreOficialTab";
+import { ProductDevStatusBar } from "./ProductDevStatusBar";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
