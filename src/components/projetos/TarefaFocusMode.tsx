@@ -506,9 +506,15 @@ export function TarefaFocusMode({
                       <TabsTrigger value="pendentes" className="text-xs h-7 gap-1">
                         <AlertTriangle className="h-3.5 w-3.5" /> Fora do Cofre ({anexosNoCofre.length})
                       </TabsTrigger>
+                      {isDevProduto && hasProduto && (
+                        <TabsTrigger value="cofre_oficial" className="text-xs h-7 gap-1">
+                          <Lock className="h-3.5 w-3.5" /> Cofre Oficial
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                     <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5" /> Upload
+                    </Button>
                     </Button>
                     <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
                   </div>
