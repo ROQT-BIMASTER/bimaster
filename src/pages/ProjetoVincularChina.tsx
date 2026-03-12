@@ -255,6 +255,9 @@ export default function ProjetoVincularChina() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Link2 className="h-5 w-5 text-primary" />
         </div>
