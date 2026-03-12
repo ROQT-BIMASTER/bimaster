@@ -38,7 +38,13 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
   const currentStatus = devStatus?.status || "submissao_criada";
   const currentIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === currentStatus);
 
-  const allowedTransitions = userPapel ? (STATUS_TRANSITIONS[userPapel] || []) : [];
+  // Only allow transitions that are the NEXT sequential step AND allowed by the user's role
+  const roleTransitions = userPapel ? (STATUS_TRANSITIONS[userPapel] || []) : [];
+  const allowedTransitions = roleTransitions.filter(t => {
+    const targetIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === t);
+    // Allow only forward transitions (next step or +1 from current)
+    return targetIndex > currentIndex && targetIndex <= currentIndex + 2;
+  });
 
   const updateStatus = useMutation({
     mutationFn: async (newStatus: string) => {
