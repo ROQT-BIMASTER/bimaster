@@ -532,7 +532,7 @@ function ManagerTreeSection({
               {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               <span className={mgrConfig.color}>{mgrConfig.icon}</span>
               <span className="font-bold text-sm">{tree.manager.details?.nome_completo || tree.manager.profile_nome}</span>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-purple-600 border-purple-300">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700">
                 Gerente
               </Badge>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
