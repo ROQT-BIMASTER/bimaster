@@ -366,58 +366,76 @@ function PersonPicker({ current, members, onSelect }: {
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
       <PopoverTrigger asChild>
         <button onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity min-w-0">
           {current ? (
             <>
-              <Avatar className="h-6 w-6 flex-shrink-0">
+              <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
                 <AvatarImage src={current.avatar_url || undefined} />
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-semibold">
                   {current.nome?.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="text-xs text-foreground/80 truncate hidden xl:inline">{current.nome?.split(" ")[0]}</span>
             </>
           ) : (
-            <div className="h-6 w-6 rounded-full border border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
+            <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-all">
+              <UserPlus className="h-3 w-3 text-muted-foreground/50" />
             </div>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-2" align="start" onClick={e => e.stopPropagation()}>
-        <Input
-          placeholder="Buscar..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="h-7 text-xs mb-2"
-        />
-        <div className="max-h-40 overflow-y-auto space-y-0.5">
+      <PopoverContent className="w-60 p-0" align="start" onClick={e => e.stopPropagation()}>
+        <div className="p-2 border-b border-border/50">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+            <Input
+              placeholder="Buscar membro..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 text-xs pl-8 bg-muted/30 border-border/50 focus-visible:ring-primary/30"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="max-h-48 overflow-y-auto p-1.5 space-y-0.5">
           {current && (
             <button
               onClick={() => { onSelect(null); setOpen(false); setSearch(""); }}
-              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 text-red-400"
+              className="flex items-center gap-2 w-full px-2.5 py-2 text-xs rounded-md hover:bg-destructive/10 text-destructive/80 transition-colors"
             >
-              <X className="h-3 w-3" /> Remover responsável
+              <X className="h-3.5 w-3.5" /> Remover responsável
             </button>
           )}
-          {filtered.map(m => (
-            <button
-              key={m.id}
-              onClick={() => { onSelect(m.id); setOpen(false); setSearch(""); }}
-              className={cn(
-                "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors",
-                current?.id === m.id && "bg-muted/30 font-medium"
-              )}
-            >
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={m.avatar_url || undefined} />
-                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">{m.nome}</span>
-            </button>
-          ))}
+          {filtered.map(m => {
+            const isSelected = current?.id === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => { onSelect(m.id); setOpen(false); setSearch(""); }}
+                className={cn(
+                  "flex items-center gap-2.5 w-full px-2.5 py-2 text-xs rounded-md transition-colors",
+                  isSelected ? "bg-primary/10 text-primary font-medium" : "hover:bg-accent/50"
+                )}
+              >
+                <Avatar className={cn("h-6 w-6 flex-shrink-0", isSelected && "ring-2 ring-primary/30")}>
+                  <AvatarImage src={m.avatar_url || undefined} />
+                  <AvatarFallback className={cn(
+                    "text-[9px] font-semibold",
+                    isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    {m.nome?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate flex-1 text-left">{m.nome}</span>
+                {isSelected && <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="text-[11px] text-muted-foreground text-center py-3">Nenhum membro encontrado</p>
+          )}
         </div>
       </PopoverContent>
     </Popover>
