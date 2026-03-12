@@ -73,6 +73,7 @@ function getStatusLabel(status: string): string {
 }
 
 export default function ProjetoVincularChina() {
+  const navigate = useNavigate();
   const { isAdmin } = usePermissions();
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
