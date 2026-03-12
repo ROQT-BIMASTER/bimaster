@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail, X, BarChart3, Award, Minimize2, Calendar, Flag } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +59,14 @@ const getRoleStyle = (role: string) => {
   const config = ROLE_CONFIG[role];
   if (!config) return { label: role, className: "bg-muted text-muted-foreground border-border" };
   return { label: config.label, className: `${config.bg} ${config.text} ${config.border}` };
+};
+
+const STATUS_PROGRESS: Record<string, number> = {
+  pendente: 0,
+  em_andamento: 50,
+  em_revisao: 75,
+  concluida: 100,
+  bloqueada: 0,
 };
 
 // --- Inline Avatar with Upload ---
@@ -157,6 +166,34 @@ const PRIORITY_LABELS: Record<string, { label: string; className: string }> = {
   baixa: { label: "Baixa", className: "text-green-500" },
 };
 
+// --- Project Filter Select ---
+function ProjetoFilterSelect({
+  projetos,
+  value,
+  onChange,
+  className = "",
+}: {
+  projetos: { id: string; nome: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={`h-8 text-xs w-[220px] ${className}`}>
+        <FolderKanban className="h-3.5 w-3.5 mr-1.5 shrink-0 text-muted-foreground" />
+        <SelectValue placeholder="Todos os projetos" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="todos">Todos os projetos</SelectItem>
+        {projetos.map((p) => (
+          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // --- Member Detail Modal (Focus Mode style) ---
 function MemberDetailModal({
   member,
@@ -164,14 +201,17 @@ function MemberDetailModal({
   onClose,
   canUpload,
   allMembers = [],
+  projetos = [],
 }: {
   member: ProjetoTeamMember | null;
   open: boolean;
   onClose: () => void;
   canUpload: boolean;
   allMembers?: ProjetoTeamMember[];
+  projetos?: { id: string; nome: string }[];
 }) {
   const [statusFilter, setStatusFilter] = useState("todas");
+  const [projetoFilter, setProjetoFilter] = useState("todos");
 
   const { data: tarefas = [], isLoading: loadingTarefas } = useQuery({
     queryKey: ["member-tarefas", member?.id],
@@ -179,7 +219,7 @@ function MemberDetailModal({
       if (!member) return [];
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projetos:projeto_id(nome)")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projeto_id, projetos:projeto_id(nome)")
         .eq("responsavel_id", member.id)
         .order("data_prazo", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -188,9 +228,15 @@ function MemberDetailModal({
     enabled: !!member && open,
   });
 
-  // Build weekly chart data for current month
+  // Filter tasks by project
+  const tarefasByProjeto = useMemo(() => {
+    if (projetoFilter === "todos") return tarefas;
+    return tarefas.filter((t: any) => t.projeto_id === projetoFilter);
+  }, [tarefas, projetoFilter]);
+
+  // Build weekly chart data for current month (filtered by project)
   const chartData = useMemo(() => {
-    if (!tarefas.length) return [];
+    if (!tarefasByProjeto.length) return [];
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -206,7 +252,7 @@ function MemberDetailModal({
       let criadas = 0;
       let vencendo = 0;
 
-      tarefas.forEach((t: any) => {
+      tarefasByProjeto.forEach((t: any) => {
         if (t.data_conclusao && isWithinInterval(parseISO(t.data_conclusao), interval)) concluidas++;
         if (t.created_at && isWithinInterval(parseISO(t.created_at), interval)) criadas++;
         if (t.data_prazo && isWithinInterval(parseISO(t.data_prazo), interval)) vencendo++;
@@ -220,7 +266,7 @@ function MemberDetailModal({
         Vencimento: vencendo,
       };
     });
-  }, [tarefas]);
+  }, [tarefasByProjeto]);
 
   if (!member) return null;
 
@@ -237,7 +283,7 @@ function MemberDetailModal({
   const pendentes = member.tarefas_atribuidas - member.tarefas_concluidas;
 
   const today = new Date().toISOString().split("T")[0];
-  const filteredTarefas = tarefas.filter((t: any) => {
+  const filteredTarefas = tarefasByProjeto.filter((t: any) => {
     if (statusFilter === "todas") return true;
     if (statusFilter === "pendentes") return t.status !== "concluida";
     if (statusFilter === "concluidas") return t.status === "concluida";
@@ -447,8 +493,13 @@ function MemberDetailModal({
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary" />
                   Tarefas Atribuídas
-                  <Badge variant="secondary" className="text-xs ml-1">{tarefas.length}</Badge>
+                  <Badge variant="secondary" className="text-xs ml-1">{filteredTarefas.length}</Badge>
                 </h3>
+                <ProjetoFilterSelect
+                  projetos={projetos}
+                  value={projetoFilter}
+                  onChange={setProjetoFilter}
+                />
               </div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter}>
                 <TabsList className="h-8">
@@ -476,6 +527,7 @@ function MemberDetailModal({
                     const statusInfo = STATUS_LABELS[tarefa.status] || STATUS_LABELS.pendente;
                     const prioridadeInfo = PRIORITY_LABELS[tarefa.prioridade] || null;
                     const projetoNome = tarefa.projetos?.nome || "—";
+                    const progressValue = STATUS_PROGRESS[tarefa.status] ?? 0;
 
                     return (
                       <Card key={tarefa.id} className="hover:shadow-md transition-shadow">
@@ -514,6 +566,16 @@ function MemberDetailModal({
                               </Badge>
                             </div>
                           </div>
+                          {/* Progress bar */}
+                          <div className="flex items-center gap-2 mt-2.5">
+                            <Progress
+                              value={progressValue}
+                              className={`h-1.5 flex-1 ${progressValue === 100 ? "[&>div]:bg-green-500" : ""}`}
+                            />
+                            <span className={`text-[10px] font-medium w-7 text-right ${progressValue === 100 ? "text-green-500" : "text-muted-foreground"}`}>
+                              {progressValue}%
+                            </span>
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -533,9 +595,38 @@ export default function ProjetosMinhaEquipe() {
   const { data: team = [], isLoading } = useProjetosTeamData();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedMember, setSelectedMember] = useState<ProjetoTeamMember | null>(null);
+  const [projetoFilter, setProjetoFilter] = useState("todos");
   const navigate = useNavigate();
   const { isAdmin, isGerente, isSupervisor } = useUserRole();
   const canManage = isAdmin || isGerente || isSupervisor;
+
+  // Fetch projetos list
+  const { data: projetos = [] } = useQuery({
+    queryKey: ["projetos-list-filter"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch projeto_membros for filtering
+  const { data: projetoMembros = [] } = useQuery({
+    queryKey: ["projeto-membros-filter", projetoFilter],
+    queryFn: async () => {
+      if (projetoFilter === "todos") return [];
+      const { data, error } = await supabase
+        .from("projeto_membros")
+        .select("user_id")
+        .eq("projeto_id", projetoFilter);
+      if (error) throw error;
+      return data?.map((d) => d.user_id) || [];
+    },
+    enabled: projetoFilter !== "todos",
+  });
 
   const toggleNode = (id: string) => {
     setExpandedNodes((prev) => {
@@ -557,7 +648,30 @@ export default function ProjetosMinhaEquipe() {
     return result;
   };
 
-  const allMembers = flattenMembers(team);
+  const allMembersRaw = flattenMembers(team);
+
+  // Filter members by project participation
+  const allMembers = useMemo(() => {
+    if (projetoFilter === "todos") return allMembersRaw;
+    return allMembersRaw.filter((m) => projetoMembros.includes(m.id));
+  }, [allMembersRaw, projetoFilter, projetoMembros]);
+
+  // Filter hierarchy tree for display
+  const filteredTeam = useMemo(() => {
+    if (projetoFilter === "todos") return team;
+    const memberIds = new Set(projetoMembros);
+    const filterTree = (members: ProjetoTeamMember[]): ProjetoTeamMember[] => {
+      return members.reduce<ProjetoTeamMember[]>((acc, m) => {
+        const filteredSubs = m.subordinados ? filterTree(m.subordinados) : [];
+        if (memberIds.has(m.id) || filteredSubs.length > 0) {
+          acc.push({ ...m, subordinados: filteredSubs });
+        }
+        return acc;
+      }, []);
+    };
+    return filterTree(team);
+  }, [team, projetoFilter, projetoMembros]);
+
   const topPerformers = [...allMembers].sort((a, b) => b.score - a.score).slice(0, 5);
   const totalTarefas = allMembers.reduce((s, m) => s + m.tarefas_atribuidas, 0);
   const totalConcluidas = allMembers.reduce((s, m) => s + m.tarefas_concluidas, 0);
@@ -697,6 +811,21 @@ export default function ProjetosMinhaEquipe() {
         </Card>
       </div>
 
+      {/* Project Filter */}
+      <div className="flex items-center gap-2">
+        <ProjetoFilterSelect
+          projetos={projetos}
+          value={projetoFilter}
+          onChange={setProjetoFilter}
+        />
+        {projetoFilter !== "todos" && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => setProjetoFilter("todos")}>
+            <X className="h-3.5 w-3.5" />
+            Limpar filtro
+          </Button>
+        )}
+      </div>
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Hierarchy */}
         <Card className="md:col-span-2">
@@ -707,10 +836,10 @@ export default function ProjetosMinhaEquipe() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 max-h-[500px] overflow-y-auto">
-            {team.length === 0 ? (
+            {filteredTeam.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhum membro encontrado</p>
             ) : (
-              team.map((m) => renderMember(m))
+              filteredTeam.map((m) => renderMember(m))
             )}
           </CardContent>
         </Card>
@@ -757,6 +886,7 @@ export default function ProjetosMinhaEquipe() {
         onClose={() => setSelectedMember(null)}
         canUpload={canManage}
         allMembers={allMembers}
+        projetos={projetos}
       />
     </div>
   );
