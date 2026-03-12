@@ -221,12 +221,12 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           enviado_por: user!.id,
           origem_projeto_tarefa_id: tarefaId || null,
           visivel_fabrica: false,
-        } as any).select("id").single();
+        } as any).select("id").single() as any;
 
         // Create version record
-        if (cofreDoc?.id) {
+        if (cofreDoc?.data?.id) {
           await supabase.from("produto_documento_versoes" as any).insert({
-            documento_id: cofreDoc.id,
+            documento_id: cofreDoc.data.id,
             versao: 1,
             arquivo_path: destPath,
             tamanho: anexo.tamanho,
