@@ -201,13 +201,12 @@ export default function ProjetoVincularChina() {
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
       if (vinculosByTarefa.has(tarefaId)) continue;
-      const result = await createVinculo.mutateAsync({
+      await createVinculo.mutateAsync({
         submissao_id: selectedSubmissaoId,
         tarefa_id: tarefaId,
         secao_id: tarefa?.secao_id || null,
         projeto_id: selectedProjetoId,
       });
-      if (!firstVinculoId && result?.id) firstVinculoId = result.id;
     }
     setCheckedTarefas(new Set());
 
