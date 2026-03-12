@@ -1,120 +1,180 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Sistema de Papéis e Permissões para Desenvolvimento de Produtos
 
-### Status: ✅ Implementado
+### Situação Atual
 
-### O que foi feito
+O sistema já possui infraestrutura parcial:
+- **`projeto_membros`**: papéis limitados a "coordenador" e "membro"
+- **`fabrica_revisao_documentos`**: funciona como cofre com `visivel_fabrica`, `status`, `aprovado_por`
+- **`projeto_tarefa_aprovacoes`**: workflow de aprovação multi-etapa (regulatório, qualidade, etc.)
+- **`sendToCofre`**: envia documentos ao cofre sem validação de papel ou aprovação prévia
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
-
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
-
----
-
-## Plano: API de Exportação Pull para o ERP
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+### Problemas Identificados
+1. Qualquer membro pode enviar documentos ao cofre (sem controle de papel)
+2. Não há controle de versão formal nos documentos
+3. Não há separação entre "documentos de trabalho" e "cofre oficial"
+4. A China pode acessar documentos antes da aprovação via `visivel_fabrica`
+5. Não há status de processo formal por produto
 
 ---
 
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
+### Plano de Implementação
 
-### Status: ✅ Implementado
+#### 1. Migração SQL — Novo Sistema de Papéis e Estruturas
 
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
-
-```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
+**Expandir papéis em `projeto_membros`:**
+```sql
+-- Enum para papéis de desenvolvimento de produto
+CREATE TYPE public.dev_produto_papel AS ENUM (
+  'gestor_produto',      -- Product Owner
+  'regulatorio',         -- Regulatório/Compliance
+  'design',              -- Design/Arte
+  'controle_arte',       -- QA de Arte
+  'admin_cofre',         -- Administrador do Cofre
+  'diretoria',           -- Supervisão
+  'coordenador',         -- Legacy
+  'membro'               -- Legacy
+);
 ```
 
+**Nova tabela de versões de documentos:**
+```sql
+CREATE TABLE public.produto_documento_versoes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  documento_id UUID NOT NULL REFERENCES fabrica_revisao_documentos(id),
+  versao INT NOT NULL DEFAULT 1,
+  arquivo_path TEXT NOT NULL,
+  tamanho BIGINT,
+  enviado_por UUID REFERENCES auth.users(id),
+  status TEXT DEFAULT 'rascunho', -- rascunho, em_revisao, aprovado, rejeitado
+  aprovado_por UUID REFERENCES auth.users(id),
+  aprovado_em TIMESTAMPTZ,
+  observacoes TEXT,
+  versao_oficial BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Nova tabela de status do processo por produto:**
+```sql
+CREATE TABLE public.produto_dev_status (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  produto_id UUID NOT NULL,
+  projeto_id UUID REFERENCES projetos(id),
+  status TEXT NOT NULL DEFAULT 'submissao_criada',
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(produto_id, projeto_id)
+);
+```
+
+**Tabela de auditoria de documentos:**
+```sql
+CREATE TABLE public.produto_doc_audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  documento_id UUID,
+  versao_id UUID,
+  produto_id UUID,
+  acao TEXT NOT NULL, -- upload, revisao, aprovacao, rejeicao, publicacao_cofre, download
+  user_id UUID REFERENCES auth.users(id),
+  user_name TEXT,
+  detalhes JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+RLS em todas as tabelas com `has_role` e `check_user_access`.
+
+#### 2. Função SQL de Verificação de Papel no Produto
+
+```sql
+CREATE FUNCTION public.has_dev_papel(
+  _user_id UUID, _projeto_id UUID, _papel dev_produto_papel
+) RETURNS BOOLEAN
+SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM projeto_membros
+    WHERE user_id = _user_id AND projeto_id = _projeto_id
+    AND papel = _papel::text
+  )
+$$;
+```
+
+Funções auxiliares:
+- `can_publish_to_cofre(user_id, projeto_id)` — verifica se é `admin_cofre` ou `admin`
+- `can_approve_doc(user_id, projeto_id)` — verifica se é `gestor_produto`, `regulatorio` ou `controle_arte`
+
+#### 3. Frontend — Atualizar Dialog de Membros (`ProjetoMembrosDialog.tsx`)
+
+- Expandir seletor de papel com os 6 novos papéis + ícones
+- Mostrar badge visual do papel ao lado de cada membro
+- Permitir que coordenadores/gestores atribuam papéis
+- Exibir descrição do papel ao selecionar
+
+#### 4. Frontend — Reforçar `sendToCofre` (`useProjetoTarefaDetalhe.ts`)
+
+- Antes de enviar ao cofre, verificar se o usuário tem papel `admin_cofre`
+- Verificar se todos os documentos relacionados à tarefa estão aprovados
+- Verificar se a tarefa está concluída
+- Bloquear envio com mensagem clara se condições não atendidas
+
+#### 5. Frontend — Controle de Versão nos Documentos (`TarefaFocusMode.tsx`)
+
+- Ao fazer upload de documento com mesmo nome, criar nova versão automaticamente
+- Exibir histórico de versões com indicador de "versão oficial"
+- Botão "Marcar como versão oficial" disponível apenas para `controle_arte` e `admin_cofre`
+
+#### 6. Frontend — Barra de Status do Processo por Produto
+
+- Componente `ProductDevStatusBar` com os 9 status em sequência visual
+- Transições de status validadas pelo papel:
+  - `gestor_produto`: avança fases principais
+  - `regulatorio`: marca "Documentação aprovada"
+  - `design`: marca "Arte em desenvolvimento" → "Arte em revisão"
+  - `controle_arte`: marca "Arte aprovada"
+  - `admin_cofre`: marca "Publicado no cofre" → "Liberado para produção"
+
+#### 7. Frontend — Separação Visual de Áreas de Documentos
+
+- Na `TarefaFocusMode`, criar duas abas:
+  - **Documentos de Trabalho**: uploads livres, edição permitida para `design`
+  - **Cofre Oficial**: somente leitura, documentos publicados com selo "VERSÃO OFICIAL"
+- China vê apenas a aba "Cofre Oficial"
+
+#### 8. Auditoria Automática
+
+- Registrar em `produto_doc_audit_log` cada ação:
+  - Upload de documento/versão
+  - Revisão (aprovação/rejeição)
+  - Publicação no cofre
+  - Download pela China
+- Exibir timeline de auditoria na ficha do produto
+
 ---
 
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+### Arquivos Modificados/Criados
 
-### Status: ✅ Implementado
+| Arquivo | Ação |
+|---------|------|
+| **Migration SQL** | Criar tabelas, enum, funções, RLS |
+| `src/hooks/useProjetoMembros.ts` | Expandir papéis |
+| `src/components/projetos/ProjetoMembrosDialog.tsx` | UI de papéis de dev |
+| `src/hooks/useProjetoTarefaDetalhe.ts` | Validação no `sendToCofre` |
+| `src/components/projetos/TarefaFocusMode.tsx` | Versões + separação de áreas |
+| `src/components/projetos/ProductDevStatusBar.tsx` | **Novo** — Barra de status |
+| `src/components/projetos/DocVersionHistory.tsx` | **Novo** — Histórico de versões |
+| `src/components/projetos/CofreOficialTab.tsx` | **Novo** — Aba cofre oficial |
+| `src/lib/productDocAudit.ts` | **Novo** — Funções de auditoria |
 
-### O que foi feito
+### Fluxo Resumido
 
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
+```text
+China envia docs → Brasil analisa → Regulatório valida
+    → Design cria arte → Controle revisa → PO aprova
+        → Admin Cofre publica → China recebe versão oficial
+```
 
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+Cada transição é validada pelo papel do usuário e registrada no log de auditoria.
 
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
-
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
-
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
-
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
-
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
