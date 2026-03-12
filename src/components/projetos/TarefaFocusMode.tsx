@@ -117,6 +117,9 @@ export function TarefaFocusMode({
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
+  const isDevProduto = projetoTipo === "desenvolvimento_produto";
+  const hasProduto = !!(tarefa as any)?.produto_id;
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
