@@ -322,36 +322,48 @@ export default function ProjetoVincularChina() {
                 <div className="divide-y">
                   {filteredSubmissoes.map((sub: any) => {
                     const isSelected = selectedSubmissaoId === sub.id;
+                    const isExpanded = expandedSubmissaoId === sub.id;
                     const isLinked = submissaoVinculadas.has(sub.id);
                     return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setSelectedSubmissaoId(sub.id);
-                          setSelectedTarefaForDocs(null);
-                        }}
-                        className={cn(
-                          "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3",
-                          isSelected && "bg-primary/5 border-l-2 border-l-primary"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-primary">{sub.produto_codigo}</span>
-                            {isLinked && (
-                              <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Já vinculada" />
+                      <div key={sub.id}>
+                        <button
+                          onClick={() => {
+                            setSelectedSubmissaoId(sub.id);
+                            setExpandedSubmissaoId(isExpanded ? null : sub.id);
+                            setSelectedTarefaForDocs(null);
+                          }}
+                          className={cn(
+                            "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3",
+                            isSelected && "bg-primary/5 border-l-2 border-l-primary"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-primary">{sub.produto_codigo}</span>
+                              {isLinked && (
+                                <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Já vinculada" />
+                              )}
+                            </div>
+                            <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
+                            {sub.numero_ordem && (
+                              <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
                             )}
                           </div>
-                          <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
-                          {sub.numero_ordem && (
-                            <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
-                          )}
-                        </div>
-                        <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
-                          {getStatusLabel(sub.status)}
-                        </Badge>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </button>
+                          <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
+                            {getStatusLabel(sub.status)}
+                          </Badge>
+                          <ChevronDown className={cn(
+                            "h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200",
+                            isExpanded && "rotate-180"
+                          )} />
+                        </button>
+                        {isExpanded && (
+                          <ChinaSubmissaoExpandido
+                            submissao={sub}
+                            onPreviewDoc={setPreviewDoc}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
