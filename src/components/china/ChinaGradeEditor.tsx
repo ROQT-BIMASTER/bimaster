@@ -195,7 +195,7 @@ export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGra
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-6">
-                      Nenhuma cor adicionada 未添加颜色
+                      {bilingual ? "Nenhuma cor adicionada 未添加颜色" : "Nenhuma cor adicionada"}
                     </TableCell>
                   </TableRow>
                 )}
