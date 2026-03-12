@@ -454,6 +454,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
                   <ChinaGradeEditor
                     items={gradeItems}
                     onChange={setGradeItems}
+                    bilingual={false}
                   />
                   {gradeItems.length > 0 && (
                     <div className="text-xs text-muted-foreground text-center">

@@ -37,6 +37,8 @@ export interface GradeItem {
 interface ChinaGradeEditorProps {
   items: GradeItem[];
   onChange: (items: GradeItem[]) => void;
+  /** Show bilingual PT/CN labels. Defaults to true. Set false for PT-only modules. */
+  bilingual?: boolean;
 }
 
 function SortableRow({
@@ -114,7 +116,7 @@ function SortableRow({
   );
 }
 
-export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
+export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGradeEditorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -160,9 +162,13 @@ export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <BilingualLabel pt="Grade de Cores" cn="颜色网格" size="md" />
+        {bilingual ? (
+          <BilingualLabel pt="Grade de Cores" cn="颜色网格" size="md" />
+        ) : (
+          <span className="text-sm font-semibold">Grade de Cores</span>
+        )}
         <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleAdd}>
-          <Plus className="h-3 w-3" /> Adicionar 添加
+          <Plus className="h-3 w-3" /> {bilingual ? "Adicionar 添加" : "Adicionar"}
         </Button>
       </div>
 
@@ -172,11 +178,11 @@ export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
             <TableRow className="bg-muted/50">
               <TableHead className="w-8 h-8" />
               <TableHead className="w-10 h-8 text-center text-[10px]">#</TableHead>
-              <TableHead className="h-8 text-[10px]">Cor 颜色</TableHead>
-              <TableHead className="h-8 text-[10px]">Nº 编号</TableHead>
-              <TableHead className="h-8 text-[10px]">Código 编码</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Cor 颜色" : "Cor"}</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Nº 编号" : "Nº"}</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Código 编码" : "Código"}</TableHead>
               <TableHead className="h-8 text-[10px]">EAN</TableHead>
-              <TableHead className="h-8 text-[10px] w-20">Qtd 数量</TableHead>
+              <TableHead className="h-8 text-[10px] w-20">{bilingual ? "Qtd 数量" : "Qtd"}</TableHead>
               <TableHead className="w-8 h-8" />
             </TableRow>
           </TableHeader>
@@ -189,7 +195,7 @@ export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-6">
-                      Nenhuma cor adicionada 未添加颜色
+                      {bilingual ? "Nenhuma cor adicionada 未添加颜色" : "Nenhuma cor adicionada"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -200,7 +206,7 @@ export function ChinaGradeEditor({ items, onChange }: ChinaGradeEditorProps) {
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={6} className="text-right text-xs font-bold">
-                  Total 总计
+                  {bilingual ? "Total 总计" : "Total"}
                 </TableCell>
                 <TableCell className="text-center text-xs font-bold">{totalQty.toLocaleString()}</TableCell>
                 <TableCell />
