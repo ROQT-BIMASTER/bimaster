@@ -181,7 +181,18 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
 
   // ===== Send to Cofre =====
   const sendToCofre = useMutation({
-    mutationFn: async ({ anexoIds, produtoId, categoriasPorAnexo }: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string> }) => {
+    mutationFn: async ({ anexoIds, produtoId, categoriasPorAnexo, projetoId }: { anexoIds: string[]; produtoId: string; categoriasPorAnexo: Record<string, string>; projetoId?: string }) => {
+      // === CRITICAL: Validate admin_cofre role before publishing ===
+      if (projetoId) {
+        const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
+          _user_id: user!.id,
+          _projeto_id: projetoId,
+        });
+        if (!canPublish) {
+          throw new Error("Apenas usuários com papel 'Admin. Cofre' ou 'Coordenador' podem enviar documentos ao Cofre.");
+        }
+      }
+
       const selectedAnexos = anexos.filter(a => anexoIds.includes(a.id));
       
       for (const anexo of selectedAnexos) {
@@ -198,7 +209,8 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           .upload(destPath, blob);
         if (uploadErr) throw uploadErr;
 
-        await supabase.from("fabrica_revisao_documentos" as any).insert({
+        // Insert into cofre
+        const { data: cofreDoc } = await supabase.from("fabrica_revisao_documentos" as any).insert({
           produto_id: produtoId,
           nome_arquivo: anexo.nome,
           arquivo_path: destPath,
@@ -209,11 +221,22 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           enviado_por: user!.id,
           origem_projeto_tarefa_id: tarefaId || null,
           visivel_fabrica: false,
-        } as any);
+        } as any).select("id").single();
+
+        // Create version record
+        if (cofreDoc?.id) {
+          await supabase.from("produto_documento_versoes" as any).insert({
+            documento_id: cofreDoc.id,
+            versao: 1,
+            arquivo_path: destPath,
+            tamanho: anexo.tamanho,
+            enviado_por: user!.id,
+            status: "rascunho",
+          } as any);
+        }
       }
     },
     onSuccess: (_, variables) => {
-      // Log audit for each doc sent to cofre
       variables.anexoIds.forEach(anexoId => {
         logDocAudit({
           produtoId: variables.produtoId,
@@ -223,7 +246,7 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       });
       toast.success("Documentos enviados ao Cofre!");
     },
-    onError: (err: Error) => toast.error("Erro ao enviar ao Cofre: " + err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   // ===== Chat Messages (Realtime) =====

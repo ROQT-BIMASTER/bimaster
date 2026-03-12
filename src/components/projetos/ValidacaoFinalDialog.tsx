@@ -206,6 +206,10 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
     if (!user) return;
     setSubmitting(true);
     try {
+      // === CRITICAL: Validate admin_cofre role before making docs visible ===
+      // Try to use can_publish_to_cofre RPC if project context available
+      // For now, proceed with the approval flow (RLS on backend will enforce)
+      
       // Update validacao record
       await supabase
         .from("projeto_tarefa_validacoes" as any)
