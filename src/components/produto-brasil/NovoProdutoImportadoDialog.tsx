@@ -15,7 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, PenLine, Sparkles, Bot, Save } from "lucide-react";
 import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
+import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
 import { useCreateProdutoBrasil } from "@/hooks/useProdutoBrasil";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 interface Props {
@@ -28,6 +30,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
   const createProduto = useCreateProdutoBrasil();
   const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+  const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
 
   const [formData, setFormData] = useState({
     // China identification
@@ -61,6 +64,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
     if (open) {
       setMode("choose");
       setAiFilledFields(new Set());
+      setGradeItems([]);
       setFormData({
         china_nome: "", china_codigo: "", china_ean: "", china_categoria: "", china_descricao: "",
         nome_brasil: "", nome_comercial: "", codigo_brasil: "", sku: "",
@@ -75,7 +79,6 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
     const filled = new Set<string>();
     const updates: any = {};
 
-    // Map AI fields to our form fields (AI returns factory-format fields)
     const fieldMap: Record<string, string> = {
       codigo: "codigo_brasil",
       sku: "sku",
@@ -99,7 +102,6 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
       }
     }
 
-    // Also fill china fields from AI if they look like original data
     if (data.nome && !updates.china_nome) {
       updates.china_nome = String(data.nome);
     }
@@ -118,6 +120,10 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
       return;
     }
 
+    if (formData.tipo_produto === "DISPLAY" && gradeItems.length === 0) {
+      toast.warning("Atenção: este Display não possui itens na grade.");
+    }
+
     createProduto.mutate(
       {
         china_nome: formData.china_nome || formData.nome_brasil || null,
@@ -128,8 +134,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
       },
       {
         onSuccess: async (produto) => {
-          // Update the expanded fields
-          const { supabase } = await import("@/integrations/supabase/client");
+          // Update expanded fields
           await (supabase
             .from("produtos_brasil" as any)
             .update({
@@ -149,9 +154,27 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
               descricao_curta: formData.descricao_curta || null,
               descricao_completa: formData.descricao_completa || null,
               observacoes: formData.observacoes || null,
+              itens_display: formData.tipo_produto === "DISPLAY" ? gradeItems.reduce((s, i) => s + (i.quantidade || 0), 0) : null,
               updated_at: new Date().toISOString(),
             })
             .eq("id", produto.id) as any);
+
+          // Save grade items as SKUs for DISPLAY products
+          if (formData.tipo_produto === "DISPLAY" && gradeItems.length > 0) {
+            const skuInserts = gradeItems.map((item, index) => ({
+              produto_brasil_id: produto.id,
+              cor: item.cor_nome || null,
+              cor_hex: item.cor_hex || null,
+              codigo_interno: item.codigo_produto || null,
+              ean: item.codigo_barras_ean || null,
+              quantidade_inicial: item.quantidade || 0,
+              ordem: index,
+            }));
+
+            await (supabase
+              .from("produto_brasil_skus" as any)
+              .insert(skuInserts) as any);
+          }
 
           toast.success("Produto importado criado com sucesso!");
           onOpenChange(false);
@@ -167,6 +190,9 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
         <Bot className="h-3 w-3" /> IA
       </Badge>
     ) : null;
+
+  const isDisplay = formData.tipo_produto === "DISPLAY";
+  const tabCount = isDisplay ? 5 : 4;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -224,10 +250,13 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
         {mode === "form" && (
           <div className="space-y-4">
             <Tabs defaultValue="china" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className={cn("grid w-full", `grid-cols-${tabCount}`)}>
                 <TabsTrigger value="china" className="text-xs">Dados China</TabsTrigger>
                 <TabsTrigger value="identificacao" className="text-xs">Identificação BR</TabsTrigger>
                 <TabsTrigger value="classificacao" className="text-xs">Classificação</TabsTrigger>
+                {isDisplay && (
+                  <TabsTrigger value="grade" className="text-xs">Grade</TabsTrigger>
+                )}
                 <TabsTrigger value="descricoes" className="text-xs">Descrições</TabsTrigger>
               </TabsList>
 
@@ -352,7 +381,13 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
                 </div>
                 <div>
                   <Label className="text-xs">Tipo de Produto</Label>
-                  <Select value={formData.tipo_produto} onValueChange={(v) => setFormData({ ...formData, tipo_produto: v })}>
+                  <Select
+                    value={formData.tipo_produto}
+                    onValueChange={(v) => {
+                      setFormData({ ...formData, tipo_produto: v });
+                      if (v !== "DISPLAY") setGradeItems([]);
+                    }}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -412,6 +447,21 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
                   </div>
                 </div>
               </TabsContent>
+
+              {/* Aba Grade - only for DISPLAY */}
+              {isDisplay && (
+                <TabsContent value="grade" className="space-y-4 mt-4">
+                  <ChinaGradeEditor
+                    items={gradeItems}
+                    onChange={setGradeItems}
+                  />
+                  {gradeItems.length > 0 && (
+                    <div className="text-xs text-muted-foreground text-center">
+                      {gradeItems.length} cores · {gradeItems.reduce((s, i) => s + (i.quantidade || 0), 0).toLocaleString()} unidades no total
+                    </div>
+                  )}
+                </TabsContent>
+              )}
 
               {/* Aba Descrições */}
               <TabsContent value="descricoes" className="space-y-4 mt-4">
