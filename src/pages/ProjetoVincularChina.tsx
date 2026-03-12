@@ -34,7 +34,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
+import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
 const STATUS_FILTERS = [
