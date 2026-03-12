@@ -450,16 +450,10 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
               {/* Aba Grade - only for DISPLAY */}
               {isDisplay && (
                 <TabsContent value="grade" className="space-y-4 mt-4">
-                  <ChinaGradeEditor
+                  <ComposicaoGradeImportadoEditor
                     items={gradeItems}
                     onChange={setGradeItems}
-                    bilingual={false}
                   />
-                  {gradeItems.length > 0 && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      {gradeItems.length} cores · {gradeItems.reduce((s, i) => s + (i.quantidade || 0), 0).toLocaleString()} unidades no total
-                    </div>
-                  )}
                 </TabsContent>
               )}
 
