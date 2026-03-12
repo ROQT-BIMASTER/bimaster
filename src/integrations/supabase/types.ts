@@ -1242,6 +1242,44 @@ export type Database = {
           },
         ]
       }
+      china_categoria_responsaveis: {
+        Row: {
+          categoria_key: string
+          categoria_nome: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          projeto_id: string | null
+          responsavel_id: string
+        }
+        Insert: {
+          categoria_key: string
+          categoria_nome: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          projeto_id?: string | null
+          responsavel_id: string
+        }
+        Update: {
+          categoria_key?: string
+          categoria_nome?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          projeto_id?: string | null
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_categoria_responsaveis_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_documento_tarefa_vinculos: {
         Row: {
           created_at: string | null
@@ -1249,6 +1287,7 @@ export type Database = {
           documento_id: string
           id: string
           projeto_id: string
+          responsavel_id: string | null
           secao_id: string | null
           tarefa_id: string
         }
@@ -1258,6 +1297,7 @@ export type Database = {
           documento_id: string
           id?: string
           projeto_id: string
+          responsavel_id?: string | null
           secao_id?: string | null
           tarefa_id: string
         }
@@ -1267,6 +1307,7 @@ export type Database = {
           documento_id?: string
           id?: string
           projeto_id?: string
+          responsavel_id?: string | null
           secao_id?: string | null
           tarefa_id?: string
         }
