@@ -1,120 +1,46 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Problema
 
-### Status: ✅ Implementado
+Ao clicar numa submissão na lista esquerda, ela apenas é "selecionada" visualmente — não abre nenhum detalhamento com os documentos, fotos e informações enviadas pela China. O painel de documentos só aparece depois de vincular a uma tarefa e clicar em "Docs", o que torna impossível ver o conteúdo antes de vincular.
 
-### O que foi feito
+## Plano
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+### 1. Adicionar painel de detalhamento expandível na submissão selecionada
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+Quando o usuário clicar numa submissão, expandir abaixo dela (ou em um Sheet lateral) um painel mostrando:
 
----
+- **Dados do produto**: código, nome, fórmula, EANs, pesos, quantidades, nº ordem
+- **Documentos enviados**: lista agrupada por categoria (Embalagem, Arte, Regulatório, etc.) com preview e download
+- **Fotos do produto**: thumbnails das fotos (garrafa, display, etc.)
+- **Observações**: notas Brasil e China
 
-## Plano: API de Exportação Pull para o ERP
+### 2. Implementação técnica
 
-### Status: ✅ Implementado
+- Substituir o clique simples na submissão por um **accordion/expandable** inline na lista esquerda
+- Quando expandido, carregar os documentos (`useDocumentosDaSubmissao`) e mostrar cards compactos com ícone do tipo, nome e botão de preview
+- Cada documento terá botão de preview (abre `ChinaDocPreviewDialog` existente)
+- Manter a seleção para o painel direito (vincular ao projeto) funcionando em paralelo
 
-### O que foi feito
-
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
-
----
-
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
+### 3. Estrutura visual
 
 ```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
+┌─ Submissões China ──────────────────┐
+│ [HB-3301] Gloss Labial Hidratante  │
+│  ├─ 📄 Embalagem                   │
+│  │   ├─ Lote_embalagem_v2.pdf  👁  │
+│  │   └─ Arte_rotulo_final.ai   👁  │
+│  ├─ 📄 Regulatório                 │
+│  │   └─ Ficha_tecnica.pdf      👁  │
+│  ├─ 📷 Fotos                       │
+│  │   └─ [thumb] [thumb] [thumb]    │
+│  └─ Obs: "Verificar cor da tampa"  │
+│                                     │
+│ [HB-7710] Paleta Sombras Sunset    │
+│ ...                                 │
+└─────────────────────────────────────┘
 ```
 
----
+### Arquivo a modificar
+- `src/pages/ProjetoVincularChina.tsx` — adicionar detalhamento expandível inline na lista de submissões com documentos, fotos e dados
 
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
-
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
-
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
-
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
-
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
-
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
-
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
