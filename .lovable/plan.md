@@ -1,120 +1,37 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Diagnóstico
 
-### Status: ✅ Implementado
+As alterações de hoje foram aplicadas nos componentes do **Trade Marketing** (`TeamMemberRegistration.tsx`, `TeamMemberFormDialog.tsx`), mas a tela **"Minha Equipe — Projetos"** (`ProjetosMinhaEquipe.tsx`) é um componente completamente separado que **não foi atualizado**. Por isso os badges continuam com baixo contraste e não há opção de upload de foto.
 
-### O que foi feito
+A tela de Projetos ainda usa o antigo `getRoleBadgeClass` com cores fracas (ex: `bg-accent/10 text-accent-foreground`) e não tem nenhuma lógica de upload de avatar.
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+## Plano de Implementação
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+### 1. Badges de alto contraste em ProjetosMinhaEquipe.tsx
+- Substituir `getRoleBadgeClass` pelo mesmo padrão `ROLE_CONFIG` já usado no Trade, com cores fortes por cargo (Gerente = roxo, Supervisor = azul, Vendedor = verde, etc.) e suporte a dark mode.
 
----
+### 2. Upload inline de foto no avatar (Projetos)
+- Ao clicar no avatar de um membro na hierarquia ou no ranking, abrir file picker para upload direto.
+- Mostrar overlay de câmera no hover (mesmo padrão visual do Trade).
+- Upload para bucket `avatars` com path `{user_id}/avatar.{ext}`, update do `avatar_url` na tabela `profiles`.
+- Gerar signed URL para exibição (bucket é privado).
+- Restringir upload a admin, gerente e supervisor (verificação client-side via `useUserRole`).
+- Exibir avatares existentes com signed URL via `useResolvedAvatarUrl` hook.
 
-## Plano: API de Exportação Pull para o ERP
+### 3. Versão e cache
+- Incrementar `APP_VERSION` para `2.7.0` para forçar invalidação de cache/PWA.
 
-### Status: ✅ Implementado
+### Detalhes Técnicos
 
-### O que foi feito
+**Arquivo modificado:** `src/pages/ProjetosMinhaEquipe.tsx`
+- Importar `supabase`, `useUserRole`, `useResolvedAvatarUrl`, `Camera`, `Loader2`, `toast`
+- Criar componente `AvatarWithUpload` que encapsula Avatar + overlay + file input + upload logic
+- Usar `useResolvedAvatarUrl` para resolver signed URLs dos avatares privados
+- Aplicar `ROLE_CONFIG` idêntico ao do Trade para badges
 
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+**Arquivo modificado:** `src/lib/version.ts`
+- `APP_VERSION = '2.7.0'`
 
----
+**Nenhuma migração necessária** — as políticas de storage para supervisores/gerentes já existem (migration `20260312122346`).
 
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
-
-```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
-```
-
----
-
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
-
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
-
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
-
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
-
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
-
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
-
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
