@@ -21,6 +21,7 @@ import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
+import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -136,6 +137,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         
         {/* Indicador de status offline */}
         <OfflineIndicator />
+        
+        {/* Barra flutuante de gravação */}
+        <FloatingRecordingBar />
         
         {/* Modal de inatividade */}
         <InactivityModal

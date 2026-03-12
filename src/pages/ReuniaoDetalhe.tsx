@@ -149,6 +149,20 @@ export default function ReuniaoDetalhe() {
     enabled: !!id && !!session,
   });
 
+  // Recovery: reset meetings stuck in "recording" without audio
+  useEffect(() => {
+    if (!meeting || meeting.status !== "recording" || meeting.audio_url) return;
+    const updatedAt = new Date(meeting.updated_at).getTime();
+    const stuckMs = Date.now() - updatedAt;
+    if (stuckMs > 60_000) {
+      console.warn(`[ReuniaoDetalhe] Meeting ${id} stuck in recording for ${Math.round(stuckMs / 60000)}min — resetting to draft`);
+      supabase.from("meetings").update({ status: "draft" }).eq("id", id!).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["meeting", id] });
+        toast.info("A gravação anterior foi interrompida. Você pode gravar novamente ou enviar um arquivo.");
+      });
+    }
+  }, [meeting, id, queryClient]);
+
   // Auto-recovery: only mark as partial if processing itself got stuck for too long
   useEffect(() => {
     if (!meeting || meeting.status !== "processing") return;
