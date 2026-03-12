@@ -35,10 +35,13 @@ export interface ProdutoBrasilSku {
   id: string;
   produto_brasil_id: string;
   cor: string | null;
+  cor_hex: string | null;
   tamanho_grade: string | null;
   codigo_interno: string | null;
   ean: string | null;
   quantidade_inicial: number;
+  ordem: number;
+  foto_url: string | null;
   created_at: string;
 }
 
