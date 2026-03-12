@@ -15,14 +15,6 @@ import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
 import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
-import { TabClassificacao } from "@/components/produto-brasil/tabs/TabClassificacao";
-import { TabRegulatorio } from "@/components/produto-brasil/tabs/TabRegulatorio";
-import { TabDatasProcesso } from "@/components/produto-brasil/tabs/TabDatasProcesso";
-import { SkuTable } from "@/components/produto-brasil/SkuTable";
-import { ImagemTimeline } from "@/components/produto-brasil/ImagemTimeline";
-import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
-import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
-import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
