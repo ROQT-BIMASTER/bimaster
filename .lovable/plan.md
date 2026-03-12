@@ -1,143 +1,142 @@
+## Plano: Envio de Pagamentos para o ERP
 
+### Status: ✅ Implementado
+
+### O que foi feito
+
+1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
+2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
+3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
+4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
+5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+
+### Secrets necessárias (conforme canal)
+- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
+- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
+- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+
+---
+
+## Plano: API de Exportação Pull para o ERP
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
+   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
+   - `POST /confirm` — ERP confirma recebimento dos pagamentos
+   - `GET /status` — Estatísticas de sincronização
+2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
+3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
+4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
+5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+
+---
+
+## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
+2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
+   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
+   - `payment`: status "Pago", com método e data de pagamento
+3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
+   - `GET /pending` — Itens aceitos pendentes de provisão
+   - `GET /paid` — Itens pagos pendentes de baixa
+   - `GET /` — Ambos, com filtro `?status=accepted,paid`
+   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
+   - `GET /status` — Contagens separadas para provisão e baixa
+4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
+5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
+   - Ao aceitar: exporta como `registration` (provisão)
+   - Ao pagar: exporta como `payment` (baixa)
+
+### Fluxo
+
+```text
+Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
+                              ↓
+             Pagamento → ERP: "Pago" (baixa do título)
+```
+
+---
+
+## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+#### FASE 1 — Infraestrutura Base
+1. **Migration** — 6 novas tabelas + 2 alteradas:
+   - `pluggy_investments` — Investimentos corporativos
+   - `pluggy_investment_transactions` — Movimentações de investimento
+   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
+   - `pluggy_loans` — Empréstimos ativos
+   - `pluggy_category_rules` — Regras de categorização customizadas
+   - `balance_alerts` — Alertas de saldo baixo
+   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
+   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
+   - RLS em todas as tabelas via user_id / bank_connections join
+
+2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
+   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment_detail`
+   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
+   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
+   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+
+#### FASE 2 — Webhook Avançado
+3. **`pluggy-webhook`** expandido:
+   - `transactions/created` → Sincronização incremental automática
+   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
+   - `connector/status_updated` → Log informacional
+   - Auto-registro de webhooks ao salvar conexão
+
+#### FASE 3 — Dashboards e UI
+4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
+   - Cards de patrimônio total, tipos de aplicação, filiais
+   - Gráfico de composição da carteira (PieChart)
+   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
+   - Sync por conexão bancária
+
+5. **Novos componentes na Conciliação Bancária** (novas tabs):
+   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
+   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
+   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
+   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
+
+6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
+
+#### FASE 4 — Automações Inteligentes
+7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
+8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
+9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
+10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
+
+---
 
 ## Plano: Fluxo de Onboarding de Produto Importado (China → Brasil)
 
-Este é um recurso complexo que envolve novas tabelas, páginas e automações. Recomendo implementar em **3 fases incrementais** para entregas rápidas e testáveis.
+### Status: ✅ Fase 1-3 Implementadas
 
----
+### O que foi feito
 
-### Fase 1 — Fundação (botão voltar + tabela de cadastro Brasil + automação pós-vínculo)
+1. **Migration** — 3 novas tabelas: `produtos_brasil`, `produto_brasil_skus`, `produto_brasil_checklist` com RLS
+2. **Botão Voltar** — Adicionado em `ProjetoVincularChina.tsx` com `useNavigate(-1)`
+3. **Automação pós-vínculo** — Ao vincular submissão China, cria automaticamente registro em `produtos_brasil` com snapshot dos dados + popula checklist regulatório com 7 itens padrão
+4. **Página ProdutoBrasilCadastro** — `/dashboard/projetos/produto-brasil/:id` com:
+   - Status Pipeline visual (6 etapas)
+   - Coluna China (somente leitura) x Coluna Brasil (editável)
+   - Botão "Copiar dados da China"
+   - Destaque visual para campos divergentes (borda amarela)
+   - Tabela de SKUs/variações (adicionar/remover inline)
+   - Checklist regulatório colapsável com campos extras (registro, ANVISA, categoria, responsável técnico)
+   - Transições de status: Enviar para Regulatório, Aprovar Produto
+5. **Hook `useProdutoBrasil.ts`** — CRUD completo para produtos_brasil, SKUs, checklist
 
-**1.1 Botão Voltar na tela de vinculação**
-- Adicionar `useNavigate` e um botão `ArrowLeft` no header de `ProjetoVincularChina.tsx`
-- `navigate(-1)` para voltar ao contexto anterior
-
-**1.2 Nova tabela `produtos_brasil`**
-Armazena o cadastro adaptado para o mercado brasileiro, referenciando a submissão China original:
-
-```sql
-CREATE TABLE public.produtos_brasil (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  submissao_china_id uuid REFERENCES public.china_submissoes(id),
-  vinculo_id uuid REFERENCES public.china_submissao_tarefa_vinculos(id),
-  projeto_id uuid REFERENCES public.projetos(id),
-  -- Dados China (snapshot, read-only na UI)
-  china_nome text,
-  china_codigo text,
-  china_ean text,
-  china_categoria text,
-  china_descricao text,
-  -- Dados Brasil (editáveis)
-  nome_brasil text,
-  codigo_brasil text,
-  categoria_brasil text,
-  descricao_brasil text,
-  observacoes text,
-  -- Status do fluxo
-  status text NOT NULL DEFAULT 'aguardando_precadastro',
-  responsavel_precadastro_id uuid,
-  responsavel_regulatorio_id uuid,
-  -- Regulatório
-  numero_registro text,
-  status_anvisa text,
-  categoria_regulatoria text,
-  responsavel_tecnico text,
-  data_aprovacao_regulatorio date,
-  -- Timestamps
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
-
-**1.3 Nova tabela `produto_brasil_skus`** (variações)
-```sql
-CREATE TABLE public.produto_brasil_skus (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  produto_brasil_id uuid REFERENCES public.produtos_brasil(id) ON DELETE CASCADE,
-  cor text,
-  tamanho_grade text,
-  codigo_interno text,
-  ean text,
-  quantidade_inicial integer DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
-```
-
-**1.4 Nova tabela `produto_brasil_checklist_regulatorio`**
-```sql
-CREATE TABLE public.produto_brasil_checklist (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  produto_brasil_id uuid REFERENCES public.produtos_brasil(id) ON DELETE CASCADE,
-  item text NOT NULL,
-  concluido boolean DEFAULT false,
-  concluido_por uuid,
-  concluido_em timestamptz,
-  observacao text
-);
-```
-
-**1.5 Automação pós-vínculo**
-No `handleVincular` de `ProjetoVincularChina.tsx`:
-- Após criar o vínculo, inserir um registro em `produtos_brasil` com os dados China como snapshot
-- Criar automaticamente uma tarefa "Pré-cadastro Brasil — {produto_nome}" na seção do projeto
-- Atribuir ao responsável configurado (usa `china_categoria_responsaveis` existente ou campo fixo)
-- Popular o checklist regulatório com os 7 itens padrão
-
----
-
-### Fase 2 — Tela de Pré-Cadastro (China x Brasil lado a lado)
-
-**2.1 Nova página `ProdutoBrasilCadastro.tsx`**
-- Rota: `/produto-brasil/:id`
-- Layout em duas colunas responsivas
-
-**Coluna esquerda — China (somente leitura):**
-- Nome, código, EAN, grade, cores, quantidades, imagens, categoria, descrição
-- Dados carregados do snapshot em `produtos_brasil` + documentos/fotos da submissão original
-
-**Coluna direita — Brasil (editável):**
-- Formulário com: nome, código interno, categoria, descrição, observações
-- Seção de SKUs/variações com tabela editável inline (adicionar/remover linhas)
-- Botão "Copiar dados da China" que preenche campos a partir do snapshot
-- Destaque visual (borda amarela) para campos que divergem dos dados China
-
-**2.2 Barra de status e ações**
-- Status bar no topo mostrando o estado atual do produto no fluxo
-- Botão "Salvar Rascunho" (salva sem mudar status)
-- Botão "Enviar para Regulatório" (muda status para `aguardando_regulatorio` e cria tarefa automática para o time regulatório)
-
----
-
-### Fase 3 — Workflow Regulatório e Status Pipeline
-
-**3.1 Checklist regulatório na tela do produto**
-- Seção colapsável com os 7 itens de validação
-- Cada item: checkbox + campo observação + quem concluiu
-- Campos adicionais: número de registro, status ANVISA, categoria regulatória, responsável técnico, data aprovação
-
-**3.2 Status pipeline do produto**
-Estados: `produto_importado` → `aguardando_precadastro` → `precadastro_em_andamento` → `aguardando_regulatorio` → `aprovado_cadastro` → `produto_ativo`
-- Badge visual de status na listagem e na tela de detalhe
-- Transições automáticas: ao vincular → `aguardando_precadastro`; ao enviar para regulatório → `aguardando_regulatorio`; ao completar checklist → `aprovado_cadastro`
-
-**3.3 Histórico de alterações**
-- Tabela `produto_brasil_historico` registrando cada mudança (campo, valor anterior, novo valor, usuário, timestamp)
-- Timeline visual na tela do produto
-
----
-
-### Arquivos a criar/modificar
-
-| Arquivo | Ação |
-|---|---|
-| `supabase/migrations/...` | 3 tabelas novas + RLS + checklist items |
-| `src/pages/ProjetoVincularChina.tsx` | Botão voltar + automação pós-vínculo |
-| `src/pages/ProdutoBrasilCadastro.tsx` | Nova página (comparação China x Brasil) |
-| `src/hooks/useProdutoBrasil.ts` | CRUD do cadastro Brasil + SKUs + checklist |
-| `src/components/produto-brasil/` | Componentes: ColunaChina, ColunaBrasil, SkuTable, ChecklistRegulatorio, StatusPipeline |
-| `src/App.tsx` | Nova rota `/produto-brasil/:id` |
-
-### Recomendação de implementação
-
-Sugiro começar pela **Fase 1** (fundação + automação) que já entrega valor imediato, e iterar nas fases 2 e 3 em sequência. Cada fase é funcional independentemente.
-
+### Status do produto no fluxo
+`produto_importado` → `aguardando_precadastro` → `precadastro_em_andamento` → `aguardando_regulatorio` → `aprovado_cadastro` → `produto_ativo`

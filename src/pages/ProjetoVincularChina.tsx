@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ function getStatusLabel(status: string): string {
 }
 
 export default function ProjetoVincularChina() {
+  const navigate = useNavigate();
   const { isAdmin } = usePermissions();
   const { data: userDepartments = [] } = useUserDepartments();
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
@@ -207,6 +209,44 @@ export default function ProjetoVincularChina() {
     }
     setCheckedTarefas(new Set());
 
+    // Auto-create produto_brasil record after linking
+    if (selectedSubmissao && selectedProjetoId) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await (supabase.from("produtos_brasil" as any).insert({
+          submissao_china_id: selectedSubmissaoId,
+          projeto_id: selectedProjetoId,
+          china_nome: selectedSubmissao.produto_nome,
+          china_codigo: selectedSubmissao.produto_codigo,
+          china_ean: selectedSubmissao.ean_unidade || null,
+          china_descricao: selectedSubmissao.observacoes_brasil || null,
+          status: "aguardando_precadastro",
+        }) as any);
+        // Populate checklist
+        const { data: prodBrasil } = await (supabase
+          .from("produtos_brasil" as any)
+          .select("id")
+          .eq("submissao_china_id", selectedSubmissaoId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single() as any);
+        if (prodBrasil?.id) {
+          const checklistItems = [
+            "Conferência de rotulagem",
+            "Conferência de composição",
+            "Registro ou notificação (se aplicável)",
+            "Categoria ANVISA",
+            "Tradução e adequação da descrição",
+            "Validação de imagens da embalagem",
+            "Verificação de obrigatoriedade de lote e validade",
+          ].map((item) => ({ produto_brasil_id: prodBrasil.id, item, concluido: false }));
+          await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
+        }
+      } catch (e) {
+        console.error("Erro ao criar produto Brasil:", e);
+      }
+    }
+
     // Update audit result in background when ready (informational only)
     if (auditPromise) {
       auditPromise.then(() => {/* result already set via hook state */});
@@ -253,6 +293,9 @@ export default function ProjetoVincularChina() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Link2 className="h-5 w-5 text-primary" />
         </div>

@@ -210,6 +210,7 @@ const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
+const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilCadastro"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
@@ -489,6 +490,7 @@ function AppContent() {
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleRoute>} />
              <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ProjetosMinhaEquipe /></ModuleRoute>} />
              <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ProjetoVincularChina /></ModuleRoute>} />
+             <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ProdutoBrasilCadastro /></ModuleRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleRoute>} />
 
             {/* Módulo de Reuniões */}
