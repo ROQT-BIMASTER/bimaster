@@ -162,9 +162,13 @@ export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGra
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <BilingualLabel pt="Grade de Cores" cn="颜色网格" size="md" />
+        {bilingual ? (
+          <BilingualLabel pt="Grade de Cores" cn="颜色网格" size="md" />
+        ) : (
+          <span className="text-sm font-semibold">Grade de Cores</span>
+        )}
         <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleAdd}>
-          <Plus className="h-3 w-3" /> Adicionar 添加
+          <Plus className="h-3 w-3" /> {bilingual ? "Adicionar 添加" : "Adicionar"}
         </Button>
       </div>
 
@@ -174,11 +178,11 @@ export function ChinaGradeEditor({ items, onChange, bilingual = true }: ChinaGra
             <TableRow className="bg-muted/50">
               <TableHead className="w-8 h-8" />
               <TableHead className="w-10 h-8 text-center text-[10px]">#</TableHead>
-              <TableHead className="h-8 text-[10px]">Cor 颜色</TableHead>
-              <TableHead className="h-8 text-[10px]">Nº 编号</TableHead>
-              <TableHead className="h-8 text-[10px]">Código 编码</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Cor 颜色" : "Cor"}</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Nº 编号" : "Nº"}</TableHead>
+              <TableHead className="h-8 text-[10px]">{bilingual ? "Código 编码" : "Código"}</TableHead>
               <TableHead className="h-8 text-[10px]">EAN</TableHead>
-              <TableHead className="h-8 text-[10px] w-20">Qtd 数量</TableHead>
+              <TableHead className="h-8 text-[10px] w-20">{bilingual ? "Qtd 数量" : "Qtd"}</TableHead>
               <TableHead className="w-8 h-8" />
             </TableRow>
           </TableHeader>
