@@ -14922,6 +14922,85 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_brasil_checklist: {
+        Row: {
+          concluido: boolean | null
+          concluido_em: string | null
+          concluido_por: string | null
+          id: string
+          item: string
+          observacao: string | null
+          produto_brasil_id: string
+        }
+        Insert: {
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          id?: string
+          item: string
+          observacao?: string | null
+          produto_brasil_id: string
+        }
+        Update: {
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          id?: string
+          item?: string
+          observacao?: string | null
+          produto_brasil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_checklist_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_brasil_skus: {
+        Row: {
+          codigo_interno: string | null
+          cor: string | null
+          created_at: string | null
+          ean: string | null
+          id: string
+          produto_brasil_id: string
+          quantidade_inicial: number | null
+          tamanho_grade: string | null
+        }
+        Insert: {
+          codigo_interno?: string | null
+          cor?: string | null
+          created_at?: string | null
+          ean?: string | null
+          id?: string
+          produto_brasil_id: string
+          quantidade_inicial?: number | null
+          tamanho_grade?: string | null
+        }
+        Update: {
+          codigo_interno?: string | null
+          cor?: string | null
+          created_at?: string | null
+          ean?: string | null
+          id?: string
+          produto_brasil_id?: string
+          quantidade_inicial?: number | null
+          tamanho_grade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_skus_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_dev_status: {
         Row: {
           created_at: string
@@ -15043,6 +15122,112 @@ export type Database = {
           versao_oficial?: boolean
         }
         Relationships: []
+      }
+      produtos_brasil: {
+        Row: {
+          categoria_brasil: string | null
+          categoria_regulatoria: string | null
+          china_categoria: string | null
+          china_codigo: string | null
+          china_descricao: string | null
+          china_ean: string | null
+          china_nome: string | null
+          codigo_brasil: string | null
+          created_at: string | null
+          created_by: string | null
+          data_aprovacao_regulatorio: string | null
+          descricao_brasil: string | null
+          id: string
+          nome_brasil: string | null
+          numero_registro: string | null
+          observacoes: string | null
+          projeto_id: string | null
+          responsavel_precadastro_id: string | null
+          responsavel_regulatorio_id: string | null
+          responsavel_tecnico: string | null
+          status: string
+          status_anvisa: string | null
+          submissao_china_id: string | null
+          updated_at: string | null
+          vinculo_id: string | null
+        }
+        Insert: {
+          categoria_brasil?: string | null
+          categoria_regulatoria?: string | null
+          china_categoria?: string | null
+          china_codigo?: string | null
+          china_descricao?: string | null
+          china_ean?: string | null
+          china_nome?: string | null
+          codigo_brasil?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_aprovacao_regulatorio?: string | null
+          descricao_brasil?: string | null
+          id?: string
+          nome_brasil?: string | null
+          numero_registro?: string | null
+          observacoes?: string | null
+          projeto_id?: string | null
+          responsavel_precadastro_id?: string | null
+          responsavel_regulatorio_id?: string | null
+          responsavel_tecnico?: string | null
+          status?: string
+          status_anvisa?: string | null
+          submissao_china_id?: string | null
+          updated_at?: string | null
+          vinculo_id?: string | null
+        }
+        Update: {
+          categoria_brasil?: string | null
+          categoria_regulatoria?: string | null
+          china_categoria?: string | null
+          china_codigo?: string | null
+          china_descricao?: string | null
+          china_ean?: string | null
+          china_nome?: string | null
+          codigo_brasil?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_aprovacao_regulatorio?: string | null
+          descricao_brasil?: string | null
+          id?: string
+          nome_brasil?: string | null
+          numero_registro?: string | null
+          observacoes?: string | null
+          projeto_id?: string | null
+          responsavel_precadastro_id?: string | null
+          responsavel_regulatorio_id?: string | null
+          responsavel_tecnico?: string | null
+          status?: string
+          status_anvisa?: string | null
+          submissao_china_id?: string | null
+          updated_at?: string | null
+          vinculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_brasil_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_brasil_submissao_china_id_fkey"
+            columns: ["submissao_china_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_brasil_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "china_submissao_tarefa_vinculos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
