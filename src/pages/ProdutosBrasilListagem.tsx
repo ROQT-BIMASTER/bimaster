@@ -45,8 +45,6 @@ export default function ProdutosBrasilListagem() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ china_nome: "", china_codigo: "", china_ean: "", china_categoria: "", china_descricao: "" });
-  const createProduto = useCreateProdutoBrasil();
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos-brasil-list"],
