@@ -581,6 +581,7 @@ const App = () => {
                     <AppContent />
                   </TooltipProvider>
                 </TourProvider>
+                </MeetingRecordingProvider>
               </ImpersonationProvider>
             </PermissionsProvider>
           </AuthProvider>

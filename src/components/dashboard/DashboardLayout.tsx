@@ -138,6 +138,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Indicador de status offline */}
         <OfflineIndicator />
         
+        {/* Barra flutuante de gravação */}
+        <FloatingRecordingBar />
+        
         {/* Modal de inatividade */}
         <InactivityModal
           open={showWarning}
