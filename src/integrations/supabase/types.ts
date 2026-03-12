@@ -15046,9 +15046,12 @@ export type Database = {
         Row: {
           codigo_interno: string | null
           cor: string | null
+          cor_hex: string | null
           created_at: string | null
           ean: string | null
+          foto_url: string | null
           id: string
+          ordem: number | null
           produto_brasil_id: string
           quantidade_inicial: number | null
           tamanho_grade: string | null
@@ -15056,9 +15059,12 @@ export type Database = {
         Insert: {
           codigo_interno?: string | null
           cor?: string | null
+          cor_hex?: string | null
           created_at?: string | null
           ean?: string | null
+          foto_url?: string | null
           id?: string
+          ordem?: number | null
           produto_brasil_id: string
           quantidade_inicial?: number | null
           tamanho_grade?: string | null
@@ -15066,9 +15072,12 @@ export type Database = {
         Update: {
           codigo_interno?: string | null
           cor?: string | null
+          cor_hex?: string | null
           created_at?: string | null
           ean?: string | null
+          foto_url?: string | null
           id?: string
+          ordem?: number | null
           produto_brasil_id?: string
           quantidade_inicial?: number | null
           tamanho_grade?: string | null
