@@ -572,29 +572,36 @@ export function TarefaFocusMode({
                     {cofreDocs.length > 0 ? (
                       <div className="space-y-1.5">
                         {cofreDocs.map((doc: any) => (
-                          <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-                            {getFileIcon(doc.tipo_arquivo)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {doc.categoria && (
-                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
-                                    {COFRE_CATEGORIA_LABELS[doc.categoria] || doc.categoria}
-                                  </Badge>
-                                )}
-                                <span className="text-[10px] text-muted-foreground">
-                                  {doc.created_at && format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
-                                </span>
-                                {doc.status === "aprovado" && (
-                                  <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-500/20 text-emerald-500 border-0">Aprovado</Badge>
-                                )}
+                          <div key={doc.id} className="space-y-1">
+                            <div className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                              {getFileIcon(doc.tipo_arquivo)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {doc.categoria && (
+                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+                                      {COFRE_CATEGORIA_LABELS[doc.categoria] || doc.categoria}
+                                    </Badge>
+                                  )}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {doc.created_at && format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
+                                  </span>
+                                  {doc.status === "aprovado" && (
+                                    <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-500/20 text-emerald-500 border-0">Aprovado</Badge>
+                                  )}
+                                </div>
                               </div>
+                              {doc.visivel_fabrica && (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
+                                  <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
+                                </Badge>
+                              )}
                             </div>
-                            {doc.visivel_fabrica && (
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
-                                <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
-                              </Badge>
-                            )}
+                            {/* Version history per document */}
+                            <DocVersionHistory
+                              documentoId={doc.id}
+                              canMarkOfficial={isAdminCofre}
+                            />
                           </div>
                         ))}
                       </div>
