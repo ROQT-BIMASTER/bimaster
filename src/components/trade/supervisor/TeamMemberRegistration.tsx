@@ -132,8 +132,9 @@ function MemberRow({
           <div>
             <p className="font-medium text-sm flex items-center gap-2">
               {member.details?.nome_completo || member.profile_nome}
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", roleConfig.color)}>
-                {roleConfig.label}
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-semibold border", roleConfig.color, roleConfig.bg)}>
+                {roleConfig.icon}
+                <span className="ml-1">{roleConfig.label}</span>
               </Badge>
             </p>
             <p className="text-xs text-muted-foreground">
