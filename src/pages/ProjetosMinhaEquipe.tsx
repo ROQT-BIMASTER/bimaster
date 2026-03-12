@@ -541,6 +541,7 @@ export default function ProjetosMinhaEquipe() {
         open={!!selectedMember}
         onClose={() => setSelectedMember(null)}
         canUpload={canManage}
+        allMembers={allMembers}
       />
     </div>
   );
