@@ -84,9 +84,23 @@ export function useProjetos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projeto_membros")
-        .select("projeto_id, user_id, papel, profiles:user_id(nome, avatar_url)");
+        .select("projeto_id, user_id, papel");
       if (error) throw error;
-      return data as Array<{
+
+      // Fetch profiles separately
+      const userIds = [...new Set((data || []).map(m => m.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds)
+        : { data: [] as Array<{ id: string; nome: string | null; avatar_url: string | null }> };
+
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      return (data || []).map(m => ({
+        projeto_id: m.projeto_id,
+        user_id: m.user_id,
+        papel: m.papel,
+        profiles: profileMap.get(m.user_id) || null,
+      })) as Array<{
         projeto_id: string;
         user_id: string;
         papel: string;
