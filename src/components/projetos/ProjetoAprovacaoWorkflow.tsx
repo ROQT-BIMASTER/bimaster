@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CheckCircle2, Circle, XCircle, Plus, Clock, Trash2, Loader2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,7 +28,6 @@ const ETAPAS_DISPONIVEIS = [
   { value: "producao", label: "Produção", papelRequerido: "coordenador" },
 ];
 
-// Which roles can approve each stage
 const ETAPA_PAPEIS_PERMITIDOS: Record<string, string[]> = {
   regulatorio: ["regulatorio", "coordenador", "gestor_produto"],
   qualidade: ["gestor_produto", "coordenador"],
@@ -35,6 +37,9 @@ const ETAPA_PAPEIS_PERMITIDOS: Record<string, string[]> = {
   marketing: ["gestor_produto", "coordenador"],
   producao: ["coordenador", "gestor_produto"],
 };
+
+// Roles allowed to manage (add/remove) approval stages
+const MANAGE_ROLES = ["coordenador", "gestor_produto"];
 
 interface Aprovacao {
   id: string;
@@ -58,6 +63,9 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
   const queryClient = useQueryClient();
   const [newEtapa, setNewEtapa] = useState("");
   const [observacao, setObservacao] = useState<Record<string, string>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<Aprovacao | null>(null);
+
+  const canManageStages = MANAGE_ROLES.includes(currentUserPapel || "");
 
   const { data: aprovacoes = [], isLoading } = useQuery({
     queryKey: ["tarefa-aprovacoes", tarefaId],
@@ -86,7 +94,6 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
 
   const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
 
-  // Check if user can approve a specific stage
   const canApproveEtapa = (etapa: string): boolean => {
     if (!currentUserPapel) return false;
     const allowed = ETAPA_PAPEIS_PERMITIDOS[etapa] || [];
@@ -110,11 +117,9 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status, obs, etapa }: { id: string; status: string; obs?: string; etapa: string }) => {
-      // Validate role for this stage
       if (!canApproveEtapa(etapa)) {
-        throw new Error(`Você não tem permissão para ${status === "aprovado" ? "aprovar" : "rejeitar"} esta etapa. Papel necessário: ${ETAPAS_DISPONIVEIS.find(e => e.value === etapa)?.papelRequerido || etapa}`);
+        throw new Error(`Você não tem permissão para ${status === "aprovado" ? "aprovar" : "rejeitar"} esta etapa.`);
       }
-      // Require justification for rejections
       if (status === "rejeitado" && (!obs || obs.trim().length === 0)) {
         throw new Error("É obrigatório informar o motivo da rejeição.");
       }
@@ -148,6 +153,7 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefa-aprovacoes", tarefaId] });
       toast.success("Etapa removida!");
+      setDeleteConfirm(null);
     },
   });
 
@@ -186,7 +192,7 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
           {aprovacoes.length > 1 && (
             <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-border/50" />
           )}
-          {aprovacoes.map((aprov, idx) => {
+          {aprovacoes.map((aprov) => {
             const etapaLabel = ETAPAS_DISPONIVEIS.find(e => e.value === aprov.etapa)?.label || aprov.etapa;
             const aprovador = aprov.aprovador_id ? profileMap[aprov.aprovador_id] : null;
             const userCanApprove = canApproveEtapa(aprov.etapa);
@@ -217,8 +223,9 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
                         </TooltipProvider>
                       )}
                     </div>
-                    {aprov.status === "pendente" && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeEtapa.mutate(aprov.id)}>
+                    {/* Only coordenador/gestor can remove stages */}
+                    {aprov.status === "pendente" && canManageStages && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteConfirm(aprov)}>
                         <Trash2 className="h-3 w-3 text-muted-foreground" />
                       </Button>
                     )}
@@ -241,11 +248,10 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
                     </p>
                   )}
 
-                  {/* Action buttons for pending - only show if user has the right role */}
                   {aprov.status === "pendente" && userCanApprove && (
                     <div className="space-y-2">
                       <Textarea
-                        placeholder={`Observação ${aprov.etapa === "rejeitado" ? "(obrigatória para rejeição)" : "(opcional)"}...`}
+                        placeholder="Observação (obrigatória para rejeição)..."
                         value={observacao[aprov.id] || ""}
                         onChange={e => setObservacao(prev => ({ ...prev, [aprov.id]: e.target.value }))}
                         className="min-h-[50px] text-xs resize-none"
@@ -287,7 +293,8 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
         </p>
       )}
 
-      {etapasDisponiveis.length > 0 && (
+      {/* Only coordenador/gestor can add stages */}
+      {etapasDisponiveis.length > 0 && canManageStages && (
         <div className="flex items-center gap-2">
           <Select value={newEtapa} onValueChange={setNewEtapa}>
             <SelectTrigger className="h-8 text-xs flex-1">
@@ -309,6 +316,24 @@ export function ProjetoAprovacaoWorkflow({ tarefaId, projetoId, currentUserPapel
           </Button>
         </div>
       )}
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover etapa de aprovação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A etapa "{ETAPAS_DISPONIVEIS.find(e => e.value === deleteConfirm?.etapa)?.label}" será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteConfirm && removeEtapa.mutate(deleteConfirm.id)}>
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
