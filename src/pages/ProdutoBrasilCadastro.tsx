@@ -61,7 +61,7 @@ export default function ProdutoBrasilCadastro() {
         <ColunaBrasil produto={produto} />
       </div>
 
-      {/* SKU Table */}
+      {/* SKU / Grade Table */}
       <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
 
       {/* Image Timeline */}
