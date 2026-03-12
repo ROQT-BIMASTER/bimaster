@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Link2, Unlink, ChevronRight, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
