@@ -651,33 +651,41 @@ export function TarefaFocusMode({
                           </div>
                         ))}
                         {selectedAnexoIds.length > 0 && (tarefa as any).produto_id && (
-                          <Button
-                            size="sm"
-                            className="w-full gap-1.5 text-xs mt-2"
-                            disabled={sendingToCofre || !selectedAnexoIds.every(id => categoriasPorAnexo[id])}
-                            onClick={async () => {
-                              if (!selectedAnexoIds.every(id => categoriasPorAnexo[id])) {
-                                toast.error("Selecione uma categoria para cada documento.");
-                                return;
-                              }
-                              setSendingToCofre(true);
-                              try {
-                                await sendToCofre.mutateAsync({
-                                  anexoIds: selectedAnexoIds,
-                                  produtoId: (tarefa as any).produto_id,
-                                  categoriasPorAnexo,
-                                });
-                                queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefa.id] });
-                                setSelectedAnexoIds([]);
-                                setCategoriasPorAnexo({});
-                              } finally {
-                                setSendingToCofre(false);
-                              }
-                            }}
-                          >
-                            <FolderOpen className="h-3.5 w-3.5" />
-                            {sendingToCofre ? "Enviando..." : `Enviar ${selectedAnexoIds.length} ao Cofre`}
-                          </Button>
+                          isAdminCofre ? (
+                            <Button
+                              size="sm"
+                              className="w-full gap-1.5 text-xs mt-2"
+                              disabled={sendingToCofre || !selectedAnexoIds.every(id => categoriasPorAnexo[id])}
+                              onClick={async () => {
+                                if (!selectedAnexoIds.every(id => categoriasPorAnexo[id])) {
+                                  toast.error("Selecione uma categoria para cada documento.");
+                                  return;
+                                }
+                                setSendingToCofre(true);
+                                try {
+                                  await sendToCofre.mutateAsync({
+                                    anexoIds: selectedAnexoIds,
+                                    produtoId: (tarefa as any).produto_id,
+                                    categoriasPorAnexo,
+                                    projetoId: (tarefa as any).projeto_id,
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefa.id] });
+                                  setSelectedAnexoIds([]);
+                                  setCategoriasPorAnexo({});
+                                } finally {
+                                  setSendingToCofre(false);
+                                }
+                              }}
+                            >
+                              <FolderOpen className="h-3.5 w-3.5" />
+                              {sendingToCofre ? "Enviando..." : `Enviar ${selectedAnexoIds.length} ao Cofre`}
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 mt-2">
+                              <Lock className="h-4 w-4 flex-shrink-0" />
+                              <p className="text-xs">Apenas Admin. Cofre ou Coordenador pode enviar ao Cofre.</p>
+                            </div>
+                          )
                         )}
                       </div>
                     ) : (
