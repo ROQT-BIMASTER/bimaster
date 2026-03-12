@@ -202,7 +202,7 @@ function SupervisorGroupSection({
               {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               <span className={supConfig.color}>{supConfig.icon}</span>
               <span className="font-semibold text-sm">{group.supervisor.details?.nome_completo || group.supervisor.profile_nome}</span>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-blue-600">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700">
                 Supervisor
               </Badge>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
