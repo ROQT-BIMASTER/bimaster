@@ -71,7 +71,6 @@ export function ValidacaoFinalDialog({
     if (!user) return;
     setSubmitting(true);
     try {
-      // Create validacao record
       const { error: valError } = await supabase
         .from("projeto_tarefa_validacoes" as any)
         .insert({
@@ -83,7 +82,6 @@ export function ValidacaoFinalDialog({
         } as any);
       if (valError) throw valError;
 
-      // Update tarefa status
       const { error: taskError } = await supabase
         .from("projeto_tarefas")
         .update({ validacao_status: "pendente_validacao" } as any)
