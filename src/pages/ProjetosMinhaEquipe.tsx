@@ -347,7 +347,43 @@ function MemberDetailModal({
                 </CardContent>
               </Card>
 
-              {/* Score Card */}
+              {/* Evolução Mensal - Bar Chart */}
+              {chartData.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      Evolução no Mês — {format(new Date(), "MMMM yyyy", { locale: ptBR })}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-2 pb-4">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={chartData} barSize={14} barGap={2}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis dataKey="semana" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={28} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                          }}
+                          labelFormatter={(label, payload) => {
+                            const item = payload?.[0]?.payload;
+                            return item?.periodo || label;
+                          }}
+                        />
+                        <Legend iconSize={10} wrapperStyle={{ fontSize: "11px" }} />
+                        <Bar dataKey="Criadas" fill="hsl(217, 91%, 60%)" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="Concluídas" fill="hsl(142, 71%, 45%)" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="Vencimento" fill="hsl(38, 92%, 50%)" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
