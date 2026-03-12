@@ -50,6 +50,7 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTipo }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes, updatePapel } = useProjetoMembros(projetoId);
   const [search, setSearch] = useState("");
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
 
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
 
