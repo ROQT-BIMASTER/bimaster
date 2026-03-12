@@ -40,13 +40,13 @@ const ROLE_ORDER: Record<string, number> = {
   promotor: 5,
 };
 
-const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  admin: { label: "Administrador", icon: <Crown className="h-4 w-4" />, color: "text-amber-500" },
-  gerente: { label: "Gerente", icon: <Star className="h-4 w-4" />, color: "text-purple-500" },
-  supervisor: { label: "Supervisor", icon: <UserCheck className="h-4 w-4" />, color: "text-blue-500" },
-  coordenador: { label: "Coordenador", icon: <Users className="h-4 w-4" />, color: "text-cyan-500" },
-  vendedor: { label: "Vendedor", icon: <Target className="h-4 w-4" />, color: "text-green-500" },
-  promotor: { label: "Promotor", icon: <User className="h-4 w-4" />, color: "text-orange-500" },
+const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+  admin: { label: "Administrador", icon: <Crown className="h-4 w-4" />, color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700" },
+  gerente: { label: "Gerente", icon: <Star className="h-4 w-4" />, color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+  supervisor: { label: "Supervisor", icon: <UserCheck className="h-4 w-4" />, color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+  coordenador: { label: "Coordenador", icon: <Users className="h-4 w-4" />, color: "text-cyan-700 dark:text-cyan-300", bg: "bg-cyan-100 dark:bg-cyan-900/40 border-cyan-300 dark:border-cyan-700" },
+  vendedor: { label: "Vendedor", icon: <Target className="h-4 w-4" />, color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+  promotor: { label: "Promotor", icon: <User className="h-4 w-4" />, color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-900/40 border-orange-300 dark:border-orange-700" },
 };
 
 interface TeamMemberRegistrationProps {
@@ -132,8 +132,9 @@ function MemberRow({
           <div>
             <p className="font-medium text-sm flex items-center gap-2">
               {member.details?.nome_completo || member.profile_nome}
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", roleConfig.color)}>
-                {roleConfig.label}
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-semibold border", roleConfig.color, roleConfig.bg)}>
+                {roleConfig.icon}
+                <span className="ml-1">{roleConfig.label}</span>
               </Badge>
             </p>
             <p className="text-xs text-muted-foreground">
@@ -201,7 +202,7 @@ function SupervisorGroupSection({
               {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               <span className={supConfig.color}>{supConfig.icon}</span>
               <span className="font-semibold text-sm">{group.supervisor.details?.nome_completo || group.supervisor.profile_nome}</span>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-blue-600">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700">
                 Supervisor
               </Badge>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
@@ -531,7 +532,7 @@ function ManagerTreeSection({
               {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               <span className={mgrConfig.color}>{mgrConfig.icon}</span>
               <span className="font-bold text-sm">{tree.manager.details?.nome_completo || tree.manager.profile_nome}</span>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-purple-600 border-purple-300">
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700">
                 Gerente
               </Badge>
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
