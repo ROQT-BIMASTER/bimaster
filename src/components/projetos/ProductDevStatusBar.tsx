@@ -38,7 +38,13 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
   const currentStatus = devStatus?.status || "submissao_criada";
   const currentIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === currentStatus);
 
-  const allowedTransitions = userPapel ? (STATUS_TRANSITIONS[userPapel] || []) : [];
+  // Only allow transitions that are the NEXT sequential step AND allowed by the user's role
+  const roleTransitions = userPapel ? (STATUS_TRANSITIONS[userPapel] || []) : [];
+  const allowedTransitions = roleTransitions.filter(t => {
+    const targetIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === t);
+    // Allow only forward transitions (next step or +1 from current)
+    return targetIndex > currentIndex && targetIndex <= currentIndex + 2;
+  });
 
   const updateStatus = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -93,8 +99,9 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
                 </Badge>
               </PopoverTrigger>
               {isCurrent && allowedTransitions.length > 0 && (
-                <PopoverContent className="w-48 p-2" align="start">
-                  <p className="text-xs font-medium mb-2">Avançar para:</p>
+                <PopoverContent className="w-56 p-2" align="start">
+                  <p className="text-xs font-medium mb-1">Avançar para:</p>
+                  <p className="text-[10px] text-muted-foreground mb-2">Confirme a transição de status</p>
                   <div className="space-y-1">
                     {DEV_STATUS_OPTIONS.filter(s => 
                       allowedTransitions.includes(s.value) && s.value !== currentStatus
@@ -104,7 +111,11 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
                         variant="ghost"
                         size="sm"
                         className="w-full justify-start text-xs h-7"
-                        onClick={() => updateStatus.mutate(s.value)}
+                        onClick={() => {
+                          if (confirm(`Confirma a transição para "${s.label}"?`)) {
+                            updateStatus.mutate(s.value);
+                          }
+                        }}
                         disabled={updateStatus.isPending}
                       >
                         <div className={cn("h-2 w-2 rounded-full mr-2", s.color)} />
@@ -112,6 +123,11 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
                       </Button>
                     ))}
                   </div>
+                  {allowedTransitions.filter(t => t !== currentStatus).length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic py-2">
+                      Nenhuma transição disponível para seu papel atual.
+                    </p>
+                  )}
                 </PopoverContent>
               )}
             </Popover>

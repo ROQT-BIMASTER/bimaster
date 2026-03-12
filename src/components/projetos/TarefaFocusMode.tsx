@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
 import { ProductDevStatusBar } from "./ProductDevStatusBar";
+import { DocVersionHistory } from "./DocVersionHistory";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 const ESTAGIO_OPTIONS = [
@@ -120,6 +121,7 @@ export function TarefaFocusMode({
   const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
   const hasProduto = !!(tarefa as any)?.produto_id;
+  const isAdminCofre = currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
@@ -570,29 +572,36 @@ export function TarefaFocusMode({
                     {cofreDocs.length > 0 ? (
                       <div className="space-y-1.5">
                         {cofreDocs.map((doc: any) => (
-                          <div key={doc.id} className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-                            {getFileIcon(doc.tipo_arquivo)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {doc.categoria && (
-                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
-                                    {COFRE_CATEGORIA_LABELS[doc.categoria] || doc.categoria}
-                                  </Badge>
-                                )}
-                                <span className="text-[10px] text-muted-foreground">
-                                  {doc.created_at && format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
-                                </span>
-                                {doc.status === "aprovado" && (
-                                  <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-500/20 text-emerald-500 border-0">Aprovado</Badge>
-                                )}
+                          <div key={doc.id} className="space-y-1">
+                            <div className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                              {getFileIcon(doc.tipo_arquivo)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{doc.nome_arquivo}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {doc.categoria && (
+                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+                                      {COFRE_CATEGORIA_LABELS[doc.categoria] || doc.categoria}
+                                    </Badge>
+                                  )}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {doc.created_at && format(new Date(doc.created_at), "dd MMM yyyy", { locale: ptBR })}
+                                  </span>
+                                  {doc.status === "aprovado" && (
+                                    <Badge className="text-[9px] px-1 py-0 h-4 bg-emerald-500/20 text-emerald-500 border-0">Aprovado</Badge>
+                                  )}
+                                </div>
                               </div>
+                              {doc.visivel_fabrica && (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
+                                  <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
+                                </Badge>
+                              )}
                             </div>
-                            {doc.visivel_fabrica && (
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5">
-                                <ShieldCheck className="h-2.5 w-2.5" /> Visível Fábrica
-                              </Badge>
-                            )}
+                            {/* Version history per document */}
+                            <DocVersionHistory
+                              documentoId={doc.id}
+                              canMarkOfficial={isAdminCofre}
+                            />
                           </div>
                         ))}
                       </div>
@@ -649,33 +658,41 @@ export function TarefaFocusMode({
                           </div>
                         ))}
                         {selectedAnexoIds.length > 0 && (tarefa as any).produto_id && (
-                          <Button
-                            size="sm"
-                            className="w-full gap-1.5 text-xs mt-2"
-                            disabled={sendingToCofre || !selectedAnexoIds.every(id => categoriasPorAnexo[id])}
-                            onClick={async () => {
-                              if (!selectedAnexoIds.every(id => categoriasPorAnexo[id])) {
-                                toast.error("Selecione uma categoria para cada documento.");
-                                return;
-                              }
-                              setSendingToCofre(true);
-                              try {
-                                await sendToCofre.mutateAsync({
-                                  anexoIds: selectedAnexoIds,
-                                  produtoId: (tarefa as any).produto_id,
-                                  categoriasPorAnexo,
-                                });
-                                queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefa.id] });
-                                setSelectedAnexoIds([]);
-                                setCategoriasPorAnexo({});
-                              } finally {
-                                setSendingToCofre(false);
-                              }
-                            }}
-                          >
-                            <FolderOpen className="h-3.5 w-3.5" />
-                            {sendingToCofre ? "Enviando..." : `Enviar ${selectedAnexoIds.length} ao Cofre`}
-                          </Button>
+                          isAdminCofre ? (
+                            <Button
+                              size="sm"
+                              className="w-full gap-1.5 text-xs mt-2"
+                              disabled={sendingToCofre || !selectedAnexoIds.every(id => categoriasPorAnexo[id])}
+                              onClick={async () => {
+                                if (!selectedAnexoIds.every(id => categoriasPorAnexo[id])) {
+                                  toast.error("Selecione uma categoria para cada documento.");
+                                  return;
+                                }
+                                setSendingToCofre(true);
+                                try {
+                                  await sendToCofre.mutateAsync({
+                                    anexoIds: selectedAnexoIds,
+                                    produtoId: (tarefa as any).produto_id,
+                                    categoriasPorAnexo,
+                                    projetoId: (tarefa as any).projeto_id,
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["cofre-docs-tarefa", tarefa.id] });
+                                  setSelectedAnexoIds([]);
+                                  setCategoriasPorAnexo({});
+                                } finally {
+                                  setSendingToCofre(false);
+                                }
+                              }}
+                            >
+                              <FolderOpen className="h-3.5 w-3.5" />
+                              {sendingToCofre ? "Enviando..." : `Enviar ${selectedAnexoIds.length} ao Cofre`}
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 mt-2">
+                              <Lock className="h-4 w-4 flex-shrink-0" />
+                              <p className="text-xs">Apenas Admin. Cofre ou Coordenador pode enviar ao Cofre.</p>
+                            </div>
+                          )
                         )}
                       </div>
                     ) : (
