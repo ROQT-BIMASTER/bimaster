@@ -19,6 +19,20 @@ export interface Projeto {
   tipo: string;
 }
 
+export interface ProjetoMembro {
+  user_id: string;
+  papel: string;
+  nome: string | null;
+  avatar_url: string | null;
+}
+
+export interface ProjetoMetrics {
+  projeto_id: string;
+  total_tarefas: number;
+  concluidas: number;
+  atrasadas: number;
+}
+
 export function useProjetos() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -36,6 +50,66 @@ export function useProjetos() {
     enabled: !!user,
   });
 
+  // Fetch task metrics per project
+  const { data: projetoMetrics = [] } = useQuery({
+    queryKey: ["projetos-metrics"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_tarefas")
+        .select("projeto_id, status, data_prazo, excluida_em")
+        .is("excluida_em", null);
+      if (error) throw error;
+
+      const metricsMap = new Map<string, ProjetoMetrics>();
+      const now = new Date();
+
+      for (const t of data || []) {
+        if (!metricsMap.has(t.projeto_id)) {
+          metricsMap.set(t.projeto_id, { projeto_id: t.projeto_id, total_tarefas: 0, concluidas: 0, atrasadas: 0 });
+        }
+        const m = metricsMap.get(t.projeto_id)!;
+        m.total_tarefas++;
+        if (t.status === "concluida") m.concluidas++;
+        else if (t.data_prazo && new Date(t.data_prazo) < now) m.atrasadas++;
+      }
+
+      return Array.from(metricsMap.values());
+    },
+    enabled: !!user,
+  });
+
+  // Fetch members per project with profiles
+  const { data: projetoMembros = [] } = useQuery({
+    queryKey: ["projetos-membros"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_membros")
+        .select("projeto_id, user_id, papel");
+      if (error) throw error;
+
+      // Fetch profiles separately
+      const userIds = [...new Set((data || []).map(m => m.user_id))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds)
+        : { data: [] as Array<{ id: string; nome: string | null; avatar_url: string | null }> };
+
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      return (data || []).map(m => ({
+        projeto_id: m.projeto_id,
+        user_id: m.user_id,
+        papel: m.papel,
+        profiles: profileMap.get(m.user_id) || null,
+      })) as Array<{
+        projeto_id: string;
+        user_id: string;
+        papel: string;
+        profiles: { nome: string | null; avatar_url: string | null } | null;
+      }>;
+    },
+    enabled: !!user,
+  });
+
   const createProjeto = useMutation({
     mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey }) => {
       if (!user) throw new Error("Não autenticado");
@@ -49,7 +123,6 @@ export function useProjetos() {
         .single();
       if (error) throw error;
 
-      // Auto-insert creator as coordinator
       await supabase
         .from("projeto_membros")
         .insert({ projeto_id: data.id, user_id: user.id, papel: "coordenador" });
@@ -69,6 +142,8 @@ export function useProjetos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos-membros"] });
       toast.success("Projeto criado com sucesso!");
     },
     onError: (err: Error) => {
@@ -83,9 +158,25 @@ export function useProjetos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos-membros"] });
       toast.success("Projeto excluído!");
     },
   });
 
-  return { projetos, isLoading, createProjeto, deleteProjeto };
+  const finalizarProjeto = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("projetos")
+        .update({ status: "finalizado" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projetos"] });
+      toast.success("Projeto finalizado!");
+    },
+  });
+
+  return { projetos, isLoading, createProjeto, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros };
 }
