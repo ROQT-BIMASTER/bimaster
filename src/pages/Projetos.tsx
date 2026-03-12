@@ -43,6 +43,7 @@ function getProjetoStatus(projetoStatus: string, metrics: { total: number; concl
 export default function Projetos() {
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const navigate = useNavigate();
 
   const metricsMap = useMemo(() => {
