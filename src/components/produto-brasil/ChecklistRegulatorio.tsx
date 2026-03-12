@@ -25,6 +25,10 @@ export function ChecklistRegulatorio({ produto }: Props) {
   const allCompleted = checklist.length > 0 && completedCount === checklist.length;
 
   const handleSendToRegulatorio = () => {
+    if (!produto.projeto_id) {
+      toast.error("Para finalizar o cadastro, este produto precisa estar vinculado a um Projeto.");
+      return;
+    }
     updateProduto.mutate(
       { id: produto.id, status: "aguardando_regulatorio" },
       { onSuccess: () => toast.success("Enviado para regulatório!") }
@@ -32,6 +36,10 @@ export function ChecklistRegulatorio({ produto }: Props) {
   };
 
   const handleApprove = () => {
+    if (!produto.projeto_id) {
+      toast.error("Para finalizar o cadastro, este produto precisa estar vinculado a um Projeto.");
+      return;
+    }
     if (!allCompleted) {
       toast.error("Complete todos os itens do checklist antes de aprovar");
       return;
