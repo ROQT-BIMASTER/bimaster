@@ -281,8 +281,9 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       mindmapChildren: phase1Result.mindmap_data?.children?.length,
     });
 
-    // Save Phase 1 results
+    // Save Phase 1 results + ensure transcription is persisted for Phase 2
     await supabaseAdmin.from("meetings").update({
+      transcription: transcription,
       summary: phase1Result.summary,
       ata: phase1Result.ata || null,
       participants: phase1Result.participants || null,
