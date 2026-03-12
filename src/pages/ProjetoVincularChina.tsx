@@ -197,7 +197,6 @@ export default function ProjetoVincularChina() {
     }
 
     // Create vínculos immediately without waiting for audit
-    let firstVinculoId: string | null = null;
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
       if (vinculosByTarefa.has(tarefaId)) continue;
