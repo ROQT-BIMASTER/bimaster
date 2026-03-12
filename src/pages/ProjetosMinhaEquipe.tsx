@@ -1,13 +1,19 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail, X, BarChart3, Award } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Users, ChevronRight, FolderKanban, CheckCircle2, AlertTriangle, ClipboardList, Trophy, ArrowLeft, Camera, Loader2, Target, TrendingUp, Mail, X, BarChart3, Award, Minimize2, Calendar, Flag } from "lucide-react";
 import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamData";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { TarefaRiskBadge } from "@/components/projetos/TarefaRiskBadge";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,7 +142,21 @@ function AvatarWithUpload({
   );
 }
 
-// --- Member Detail Modal (large centered) ---
+// --- Status helpers ---
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  pendente: { label: "Pendente", className: "bg-muted text-muted-foreground" },
+  em_andamento: { label: "Em andamento", className: "bg-blue-500/20 text-blue-400" },
+  concluida: { label: "Concluída", className: "bg-green-500/20 text-green-400" },
+  bloqueada: { label: "Bloqueada", className: "bg-red-500/20 text-red-400" },
+};
+
+const PRIORITY_LABELS: Record<string, { label: string; className: string }> = {
+  alta: { label: "Alta", className: "text-red-500" },
+  media: { label: "Média", className: "text-amber-500" },
+  baixa: { label: "Baixa", className: "text-green-500" },
+};
+
+// --- Member Detail Modal (Focus Mode style) ---
 function MemberDetailModal({
   member,
   open,
@@ -150,6 +170,23 @@ function MemberDetailModal({
   canUpload: boolean;
   allMembers?: ProjetoTeamMember[];
 }) {
+  const [statusFilter, setStatusFilter] = useState("todas");
+
+  const { data: tarefas = [], isLoading: loadingTarefas } = useQuery({
+    queryKey: ["member-tarefas", member?.id],
+    queryFn: async () => {
+      if (!member) return [];
+      const { data, error } = await supabase
+        .from("projeto_tarefas")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, projetos:projeto_id(nome)")
+        .eq("responsavel_id", member.id)
+        .order("data_prazo", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!member && open,
+  });
+
   if (!member) return null;
 
   const roleStyle = getRoleStyle(member.role);
@@ -164,205 +201,165 @@ function MemberDetailModal({
   const totalMembers = allMembers.length;
   const pendentes = member.tarefas_atribuidas - member.tarefas_concluidas;
 
+  const today = new Date().toISOString().split("T")[0];
+  const filteredTarefas = tarefas.filter((t: any) => {
+    if (statusFilter === "todas") return true;
+    if (statusFilter === "pendentes") return t.status !== "concluida";
+    if (statusFilter === "concluidas") return t.status === "concluida";
+    if (statusFilter === "atrasadas") return t.status !== "concluida" && t.data_prazo && t.data_prazo < today;
+    return true;
+  });
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl">
+      <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col overflow-hidden rounded-2xl">
         <DialogHeader className="sr-only">
-          <DialogTitle>Detalhes de {member.nome}</DialogTitle>
+          <DialogTitle>Performance de {member.nome}</DialogTitle>
         </DialogHeader>
 
-        {/* Hero Header */}
-        <div className="relative bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-8 pt-8 pb-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <AvatarWithUpload member={member} size="lg" canUpload={canUpload} />
-            <div className="flex-1 text-center sm:text-left space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">{member.nome}</h2>
-              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${roleStyle.className}`}>
-                  {roleStyle.label}
+        {/* Header compacto */}
+        <div className="flex items-center gap-4 px-6 py-4 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent shrink-0">
+          <AvatarWithUpload member={member} size="md" canUpload={canUpload} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold text-foreground truncate">{member.nome}</h2>
+              <Badge variant="outline" className={`text-xs font-semibold ${roleStyle.className}`}>
+                {roleStyle.label}
+              </Badge>
+              {rankPosition > 0 && (
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Trophy className="h-3 w-3" />
+                  {rankPosition}º lugar
                 </Badge>
-                {rankPosition > 0 && (
-                  <Badge variant="secondary" className="text-sm px-3 py-1 gap-1">
-                    <Trophy className="h-3.5 w-3.5" />
-                    {rankPosition}º lugar
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-muted-foreground text-sm">
-                <Mail className="h-3.5 w-3.5" />
-                <span>{member.email}</span>
-              </div>
+              )}
             </div>
-            {/* Score highlight on header */}
-            <div className="flex flex-col items-center sm:items-end gap-1">
-              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-800 rounded-xl px-5 py-3 text-center">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score</p>
-                <p className="text-3xl font-extrabold text-amber-700 dark:text-amber-300">{member.score}</p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">pontos</p>
-              </div>
+            <span className="text-xs text-muted-foreground">{member.email}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2 text-center">
+              <p className="text-xs text-muted-foreground font-medium">Score</p>
+              <p className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{member.score}</p>
             </div>
+            <Button variant="outline" size="sm" onClick={onClose} className="gap-1.5">
+              <Minimize2 className="h-4 w-4" />
+              Sair do Foco
+            </Button>
           </div>
         </div>
 
-        {/* Main content grid */}
-        <div className="p-6 md:p-8 space-y-6">
-          {/* KPI Cards Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="border-l-4 border-l-indigo-500">
-              <CardContent className="p-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <FolderKanban className="h-5 w-5 text-indigo-500" />
-                  <span className="text-xs text-muted-foreground font-medium">Projetos Ativos</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{member.projetos_ativos}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardContent className="p-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-blue-500" />
-                  <span className="text-xs text-muted-foreground font-medium">Total Tarefas</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{member.tarefas_atribuidas}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500">
-              <CardContent className="p-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  <span className="text-xs text-muted-foreground font-medium">Concluídas</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{member.tarefas_concluidas}</p>
-              </CardContent>
-            </Card>
-
-            <Card className={`border-l-4 ${member.tarefas_atrasadas > 0 ? "border-l-destructive" : "border-l-border"}`}>
-              <CardContent className="p-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className={`h-5 w-5 ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-                  <span className="text-xs text-muted-foreground font-medium">Atrasadas</span>
-                </div>
-                <p className={`text-3xl font-bold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>
-                  {member.tarefas_atrasadas}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Two-column layout for details */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left: Detalhes de Tarefas */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Detalhes de Tarefas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                      <span className="text-sm text-foreground">Concluídas</span>
+        {/* Two column layout */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left column - Analytics */}
+          <ScrollArea className="w-[38%] border-r">
+            <div className="p-6 space-y-5">
+              {/* KPIs 2x2 */}
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="border-l-4 border-l-indigo-500">
+                  <CardContent className="p-3 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <FolderKanban className="h-4 w-4 text-indigo-500" />
+                      <span className="text-xs text-muted-foreground">Projetos</span>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{member.tarefas_concluidas} de {member.tarefas_atribuidas}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                      <span className="text-sm text-foreground">Pendentes</span>
+                    <p className="text-2xl font-bold text-foreground">{member.projetos_ativos}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-3 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <ClipboardList className="h-4 w-4 text-blue-500" />
+                      <span className="text-xs text-muted-foreground">Tarefas</span>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{pendentes}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-destructive" />
-                      <span className="text-sm text-foreground">Atrasadas</span>
+                    <p className="text-2xl font-bold text-foreground">{member.tarefas_atribuidas}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-green-500">
+                  <CardContent className="p-3 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-xs text-muted-foreground">Concluídas</span>
                     </div>
-                    <span className={`text-sm font-semibold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>{member.tarefas_atrasadas}</span>
-                  </div>
-                </div>
+                    <p className="text-2xl font-bold text-foreground">{member.tarefas_concluidas}</p>
+                  </CardContent>
+                </Card>
+                <Card className={`border-l-4 ${member.tarefas_atrasadas > 0 ? "border-l-destructive" : "border-l-border"}`}>
+                  <CardContent className="p-3 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className={`h-4 w-4 ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                      <span className="text-xs text-muted-foreground">Atrasadas</span>
+                    </div>
+                    <p className={`text-2xl font-bold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>
+                      {member.tarefas_atrasadas}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-                <div className="pt-2 border-t border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
+              {/* Taxa de Conclusão */}
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      Taxa de Conclusão
+                    </span>
                     <span className={`text-lg font-bold ${completionColor}`}>{member.taxa_conclusao}%</span>
                   </div>
                   <Progress value={member.taxa_conclusao} gradient className="h-3" />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{member.tarefas_concluidas} concluídas</span>
                     <span>{pendentes} pendentes</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Right: Ranking + Score */}
-            <div className="space-y-4">
-              {/* Score Card */}
-              <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/40">
-                      <Trophy className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score de Produtividade</p>
-                      <p className="text-3xl font-extrabold text-amber-700 dark:text-amber-300">{member.score} pts</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Fórmula: concluídas×3 + projetos×2</p>
-                    </div>
-                  </div>
-                  <TrendingUp className="h-10 w-10 text-amber-300 dark:text-amber-700" />
                 </CardContent>
               </Card>
 
-              {/* Ranking Card */}
+              {/* Score Card */}
+              <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                      <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Produtividade</p>
+                      <p className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{member.score} pts</p>
+                      <p className="text-[10px] text-muted-foreground">concluídas×3 + projetos×2</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-amber-300 dark:text-amber-700" />
+                </CardContent>
+              </Card>
+
+              {/* Ranking */}
               {totalMembers > 0 && rankPosition > 0 && (
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Award className="h-5 w-5 text-primary" />
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Award className="h-4 w-4 text-primary" />
                       Ranking na Equipe
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center h-14 w-14 rounded-full bg-primary/10">
-                        <span className="text-2xl font-extrabold">
+                  <CardContent className="px-4 pb-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                        <span className="text-lg font-extrabold">
                           {rankPosition === 1 ? "🥇" : rankPosition === 2 ? "🥈" : rankPosition === 3 ? "🥉" : `${rankPosition}º`}
                         </span>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-lg font-bold text-foreground">
-                          {rankPosition}º de {totalMembers} membros
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {rankPosition === 1
-                            ? "🔥 Líder do ranking!"
-                            : `${sortedMembers[0]?.score - member.score} pts atrás do 1º lugar`}
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{rankPosition}º de {totalMembers}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {rankPosition === 1 ? "🔥 Líder!" : `${sortedMembers[0]?.score - member.score} pts do 1º`}
                         </p>
                       </div>
                     </div>
-
-                    {/* Mini ranking list */}
-                    <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="space-y-1.5 pt-2 border-t border-border">
                       {sortedMembers.slice(0, 5).map((m, i) => (
-                        <div
-                          key={m.id}
-                          className={`flex items-center gap-2 py-1.5 px-2 rounded-lg text-sm ${
-                            m.id === member.id ? "bg-primary/5 ring-1 ring-primary/20" : ""
-                          }`}
-                        >
-                          <span className="w-6 text-center font-bold text-muted-foreground">
-                            {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
+                        <div key={m.id} className={`flex items-center gap-2 py-1 px-2 rounded text-xs ${m.id === member.id ? "bg-primary/5 ring-1 ring-primary/20" : ""}`}>
+                          <span className="w-5 text-center font-bold text-muted-foreground">
+                            {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                           </span>
-                          <span className={`flex-1 truncate ${m.id === member.id ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                            {m.nome}
-                          </span>
-                          <span className="text-xs font-medium text-muted-foreground">{m.score} pts</span>
+                          <span className={`flex-1 truncate ${m.id === member.id ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{m.nome}</span>
+                          <span className="text-muted-foreground">{m.score}pts</span>
                         </div>
                       ))}
                     </div>
@@ -370,6 +367,89 @@ function MemberDetailModal({
                 </Card>
               )}
             </div>
+          </ScrollArea>
+
+          {/* Right column - Tasks */}
+          <div className="flex-1 flex flex-col overflow-hidden bg-muted/5">
+            <div className="px-6 pt-5 pb-3 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  Tarefas Atribuídas
+                  <Badge variant="secondary" className="text-xs ml-1">{tarefas.length}</Badge>
+                </h3>
+              </div>
+              <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="todas" className="text-xs px-3 h-7">Todas</TabsTrigger>
+                  <TabsTrigger value="pendentes" className="text-xs px-3 h-7">Pendentes</TabsTrigger>
+                  <TabsTrigger value="concluidas" className="text-xs px-3 h-7">Concluídas</TabsTrigger>
+                  <TabsTrigger value="atrasadas" className="text-xs px-3 h-7">Atrasadas</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <ScrollArea className="flex-1 px-6 pb-6">
+              {loadingTarefas ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Carregando tarefas...
+                </div>
+              ) : filteredTarefas.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  Nenhuma tarefa encontrada neste filtro
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredTarefas.map((tarefa: any) => {
+                    const statusInfo = STATUS_LABELS[tarefa.status] || STATUS_LABELS.pendente;
+                    const prioridadeInfo = PRIORITY_LABELS[tarefa.prioridade] || null;
+                    const projetoNome = tarefa.projetos?.nome || "—";
+
+                    return (
+                      <Card key={tarefa.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-sm text-foreground truncate">{tarefa.titulo}</span>
+                                {tarefa.codigo && (
+                                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tarefa.codigo}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <FolderKanban className="h-3 w-3" />
+                                  {projetoNome}
+                                </span>
+                                {tarefa.data_prazo && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(parseISO(tarefa.data_prazo), "dd MMM yyyy", { locale: ptBR })}
+                                  </span>
+                                )}
+                                {prioridadeInfo && (
+                                  <span className={`flex items-center gap-1 ${prioridadeInfo.className}`}>
+                                    <Flag className="h-3 w-3" />
+                                    {prioridadeInfo.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <TarefaRiskBadge status={tarefa.status} dataPrazo={tarefa.data_prazo} />
+                              <Badge className={`text-[10px] px-2 py-0.5 border-0 ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
           </div>
         </div>
       </DialogContent>
