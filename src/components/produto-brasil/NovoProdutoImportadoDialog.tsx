@@ -159,21 +159,20 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
             })
             .eq("id", produto.id) as any);
 
-          // Save grade items as SKUs for DISPLAY products
+          // Save grade items for DISPLAY products
           if (formData.tipo_produto === "DISPLAY" && gradeItems.length > 0) {
-            const skuInserts = gradeItems.map((item, index) => ({
-              produto_brasil_id: produto.id,
-              cor: item.cor_nome || null,
-              cor_hex: item.cor_hex || null,
-              codigo_interno: item.codigo_produto || null,
-              ean: item.codigo_barras_ean || null,
-              quantidade_inicial: item.quantidade || 0,
+            const gradeInserts = gradeItems.map((item, index) => ({
+              produto_pai_id: produto.id,
+              produto_filho_id: item.produto_filho_id,
+              quantidade: item.quantidade,
               ordem: index,
+              cor_numero: item.cor_numero || null,
+              cor_hex: item.cor_hex || null,
             }));
 
             await (supabase
-              .from("produto_brasil_skus" as any)
-              .insert(skuInserts) as any);
+              .from("produto_brasil_grade_itens" as any)
+              .insert(gradeInserts) as any);
           }
 
           toast.success("Produto importado criado com sucesso!");
