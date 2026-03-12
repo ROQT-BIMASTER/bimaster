@@ -5,21 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Package, Search, ArrowLeft, Loader2, ChevronRight, Plus, AlertTriangle, Clock, FileText, Shield, CheckCircle2, Sparkles } from "lucide-react";
 import { useState, useMemo } from "react";
 import { PRODUCT_STATUS_LABELS } from "@/hooks/useProdutoBrasil";
-import { useCreateProdutoBrasil } from "@/hooks/useProdutoBrasil";
-import { toast } from "sonner";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
-} from "@/components/ui/dialog";
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NovoProdutoImportadoDialog } from "@/components/produto-brasil/NovoProdutoImportadoDialog";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos os Status" },
@@ -50,8 +45,6 @@ export default function ProdutosBrasilListagem() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ china_nome: "", china_codigo: "", china_ean: "", china_categoria: "", china_descricao: "" });
-  const createProduto = useCreateProdutoBrasil();
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos-brasil-list"],
@@ -108,30 +101,6 @@ export default function ProdutosBrasilListagem() {
     return map[status] || "secondary";
   };
 
-  const handleCreate = () => {
-    if (!form.china_nome && !form.china_codigo) {
-      toast.error("Informe ao menos o nome ou código do produto.");
-      return;
-    }
-    createProduto.mutate(
-      {
-        china_nome: form.china_nome || null,
-        china_codigo: form.china_codigo || "SEM-CODIGO",
-        china_ean: form.china_ean || undefined,
-        china_categoria: form.china_categoria || undefined,
-        china_descricao: form.china_descricao || undefined,
-      },
-      {
-        onSuccess: (produto) => {
-          toast.success("Produto criado com sucesso!");
-          setDialogOpen(false);
-          setForm({ china_nome: "", china_codigo: "", china_ean: "", china_categoria: "", china_descricao: "" });
-          navigate(`/dashboard/projetos/produto-brasil/${produto.id}`);
-        },
-      }
-    );
-  };
-
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
@@ -146,53 +115,11 @@ export default function ProdutosBrasilListagem() {
           <h1 className="text-xl font-bold text-foreground">Produtos Importados</h1>
           <p className="text-sm text-muted-foreground">Pré-cadastro e gestão de produtos importados da China</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Produto
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo Produto — Pré-Cadastro</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs">Nome do Produto (China)</Label>
-                <Input value={form.china_nome} onChange={(e) => setForm({ ...form, china_nome: e.target.value })} placeholder="Nome original" />
-              </div>
-              <div>
-                <Label className="text-xs">Código (China)</Label>
-                <Input value={form.china_codigo} onChange={(e) => setForm({ ...form, china_codigo: e.target.value })} placeholder="Código original" />
-              </div>
-              <div>
-                <Label className="text-xs">EAN</Label>
-                <Input value={form.china_ean} onChange={(e) => setForm({ ...form, china_ean: e.target.value })} placeholder="Opcional" />
-              </div>
-              <div>
-                <Label className="text-xs">Categoria</Label>
-                <Input value={form.china_categoria} onChange={(e) => setForm({ ...form, china_categoria: e.target.value })} placeholder="Opcional" />
-              </div>
-              <div>
-                <Label className="text-xs">Descrição</Label>
-                <Input value={form.china_descricao} onChange={(e) => setForm({ ...form, china_descricao: e.target.value })} placeholder="Opcional" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                O produto será criado em <strong>Pré-Cadastro</strong>. A vinculação a um Projeto poderá ser feita depois.
-              </p>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancelar</Button>
-              </DialogClose>
-              <Button onClick={handleCreate} disabled={createProduto.isPending}>
-                {createProduto.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Criar Produto
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Produto
+        </Button>
+        <NovoProdutoImportadoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
 
       {/* KPIs */}
