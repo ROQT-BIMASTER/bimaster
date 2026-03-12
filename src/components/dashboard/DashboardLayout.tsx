@@ -21,6 +21,7 @@ import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
+import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
