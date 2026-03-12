@@ -94,6 +94,10 @@ export default function ProdutoBrasilCadastro() {
           <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
         </TabsContent>
 
+        <TabsContent value="custos" className="mt-4">
+          <FichaCustoImportado produtoBrasilId={produto.id} produtoNome={produto.nome_brasil || produto.china_nome || "Produto"} />
+        </TabsContent>
+
         <TabsContent value="imagens" className="mt-4">
           <ImagemTimeline produto={produto} />
         </TabsContent>
