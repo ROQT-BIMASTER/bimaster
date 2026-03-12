@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Link2, Unlink, ChevronRight, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +33,43 @@ import { cn } from "@/lib/utils";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
+
+const STATUS_FILTERS = [
+  { value: "todos", label: "Todos" },
+  { value: "rascunho", label: "Rascunho" },
+  { value: "enviado", label: "Enviado" },
+  { value: "em_revisao", label: "Em Revisão" },
+  { value: "aprovado", label: "Aprovado" },
+  { value: "arte_enviada", label: "Arte Enviada" },
+  { value: "rejeitado", label: "Rejeitado" },
+];
+
+function getStatusBadgeVariant(status: string): "secondary" | "default" | "warning" | "success" | "destructive" | "outline" {
+  switch (status) {
+    case "rascunho": return "secondary";
+    case "enviado": return "default";
+    case "em_revisao": return "warning";
+    case "aprovado": return "success";
+    case "arte_enviada": return "outline";
+    case "rejeitado": return "destructive";
+    default: return "secondary";
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case "rascunho": return "Rascunho";
+    case "enviado": return "Enviado";
+    case "em_revisao": return "Em Revisão";
+    case "aprovado": return "Aprovado";
+    case "arte_enviada": return "Arte Enviada";
+    case "rejeitado": return "Rejeitado";
+    default: return status;
+  }
+}
 
 export default function ProjetoVincularChina() {
   const { isAdmin } = usePermissions();
@@ -42,12 +77,14 @@ export default function ProjetoVincularChina() {
   const isDevTeam = isAdmin || userDepartments.some(d => d.id === DEV_DEPARTMENT_ID);
 
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [checkedTarefas, setCheckedTarefas] = useState<Set<string>>(new Set());
   const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [vinculosOpen, setVinculosOpen] = useState(false);
 
   // Submissão & projeto queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina(search);
@@ -66,6 +103,15 @@ export default function ProjetoVincularChina() {
   const createDocVinculo = useCreateDocVinculo();
   const deleteDocVinculo = useDeleteDocVinculo();
 
+  // Filter out invalid submissions and apply status filter
+  const filteredSubmissoes = useMemo(() => {
+    return submissoes.filter((s: any) => {
+      if (!s.produto_codigo || !s.produto_nome || s.produto_codigo === "null") return false;
+      if (statusFilter !== "todos" && s.status !== statusFilter) return false;
+      return true;
+    });
+  }, [submissoes, statusFilter]);
+
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
     [submissoes, selectedSubmissaoId]
@@ -82,6 +128,10 @@ export default function ProjetoVincularChina() {
     allVinculos.forEach((v) => set.add(v.submissao_id));
     return set;
   }, [allVinculos]);
+
+  const vinculadasCount = useMemo(() => {
+    return filteredSubmissoes.filter((s: any) => submissaoVinculadas.has(s.id)).length;
+  }, [filteredSubmissoes, submissaoVinculadas]);
 
   // Doc vinculos indexed by "docId-tarefaId"
   const docVinculoMap = useMemo(() => {
@@ -100,7 +150,6 @@ export default function ProjetoVincularChina() {
       const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
       if (catDocs.length > 0) grouped[cat.key] = catDocs;
     }
-    // Ungrouped
     const allTipos = DOCUMENT_CATEGORIES.flatMap((c) => c.tipos);
     const ungrouped = documentos.filter((d: any) => !allTipos.includes(d.tipo_documento));
     if (ungrouped.length > 0) grouped["_outros"] = ungrouped;
@@ -213,10 +262,37 @@ export default function ProjetoVincularChina() {
         {/* Left panel - China submissions */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" />
-              Submissões China
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" />
+                Submissões China
+              </CardTitle>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span className="font-medium">{filteredSubmissoes.length}</span> submissões
+                <span className="text-muted-foreground/50">|</span>
+                <span className="font-medium text-success">{vinculadasCount}</span> vinculadas
+              </div>
+            </div>
+
+            {/* Status filter chips */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {STATUS_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setStatusFilter(f.value)}
+                  className={cn(
+                    "px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors",
+                    statusFilter === f.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted/50 text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -233,11 +309,11 @@ export default function ProjetoVincularChina() {
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
-              ) : submissoes.length === 0 ? (
+              ) : filteredSubmissoes.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
               ) : (
                 <div className="divide-y">
-                  {submissoes.map((sub: any) => {
+                  {filteredSubmissoes.map((sub: any) => {
                     const isSelected = selectedSubmissaoId === sub.id;
                     const isLinked = submissaoVinculadas.has(sub.id);
                     return (
@@ -260,9 +336,12 @@ export default function ProjetoVincularChina() {
                             )}
                           </div>
                           <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
+                          {sub.numero_ordem && (
+                            <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
+                          )}
                         </div>
-                        <Badge variant="outline" className="text-[10px] shrink-0">
-                          {sub.status}
+                        <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
+                          {getStatusLabel(sub.status)}
                         </Badge>
                         <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                       </button>
@@ -296,7 +375,15 @@ export default function ProjetoVincularChina() {
               <SelectContent>
                 {projetos.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.nome}
+                    <span className="flex items-center gap-2">
+                      {p.cor && (
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: p.cor }}
+                        />
+                      )}
+                      {p.nome}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -304,8 +391,101 @@ export default function ProjetoVincularChina() {
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[320px]">
-              {!selectedProjetoId ? (
-                <p className="text-sm text-muted-foreground text-center py-10">Selecione um projeto acima</p>
+              {!selectedProjetoId && !selectedSubmissaoId ? (
+                <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão e um projeto</p>
+              ) : !selectedProjetoId && selectedSubmissao ? (
+                /* Submission summary when no project is selected */
+                <div className="px-4 py-4 space-y-3">
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">{selectedSubmissao.produto_nome}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Código:</span>{" "}
+                        <span className="font-mono font-bold text-primary">{selectedSubmissao.produto_codigo}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Status:</span>{" "}
+                        <Badge variant={getStatusBadgeVariant(selectedSubmissao.status)} className="text-[10px] ml-1">
+                          {getStatusLabel(selectedSubmissao.status)}
+                        </Badge>
+                      </div>
+                      {selectedSubmissao.formula_codigo && (
+                        <div>
+                          <span className="text-muted-foreground">Fórmula:</span>{" "}
+                          <span className="font-mono">{selectedSubmissao.formula_codigo}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.qty_total && (
+                        <div>
+                          <span className="text-muted-foreground">Qtd Total:</span>{" "}
+                          <span className="font-semibold">{selectedSubmissao.qty_total.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.ean_unidade && (
+                        <div>
+                          <span className="text-muted-foreground">EAN Unid:</span>{" "}
+                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_unidade}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.ean_display && (
+                        <div>
+                          <span className="text-muted-foreground">EAN Display:</span>{" "}
+                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_display}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.ean_caixa_master && (
+                        <div>
+                          <span className="text-muted-foreground">EAN Cx Master:</span>{" "}
+                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_caixa_master}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.peso_liquido_g && (
+                        <div>
+                          <span className="text-muted-foreground">P. Líq:</span>{" "}
+                          <span>{selectedSubmissao.peso_liquido_g}g</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.peso_bruto_g && (
+                        <div>
+                          <span className="text-muted-foreground">P. Bruto:</span>{" "}
+                          <span>{selectedSubmissao.peso_bruto_g}g</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.numero_ordem && (
+                        <div>
+                          <span className="text-muted-foreground">Nº Ordem:</span>{" "}
+                          <span>{selectedSubmissao.numero_ordem}</span>
+                        </div>
+                      )}
+                      {selectedSubmissao.numero_item && (
+                        <div>
+                          <span className="text-muted-foreground">Nº Item:</span>{" "}
+                          <span>{selectedSubmissao.numero_item}</span>
+                        </div>
+                      )}
+                    </div>
+                    {(selectedSubmissao.observacoes_brasil || selectedSubmissao.observacoes_china) && (
+                      <div className="space-y-1 pt-1 border-t border-border/50">
+                        {selectedSubmissao.observacoes_brasil && (
+                          <p className="text-[11px] text-muted-foreground">
+                            <span className="font-medium">🇧🇷 Brasil:</span> {selectedSubmissao.observacoes_brasil}
+                          </p>
+                        )}
+                        {selectedSubmissao.observacoes_china && (
+                          <p className="text-[11px] text-muted-foreground">
+                            <span className="font-medium">🇨🇳 China:</span> {selectedSubmissao.observacoes_china}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Selecione um projeto acima para vincular
+                  </p>
+                </div>
               ) : !selectedSubmissaoId ? (
                 <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão à esquerda</p>
               ) : secoes.length === 0 ? (
@@ -452,7 +632,7 @@ export default function ProjetoVincularChina() {
                             </p>
                           </div>
                           <Badge
-                            variant={doc.status === "aprovado" ? "default" : "secondary"}
+                            variant={doc.status === "aprovado" ? "success" : "secondary"}
                             className="text-[10px] shrink-0"
                           >
                             {doc.status}
@@ -476,52 +656,67 @@ export default function ProjetoVincularChina() {
         </Card>
       )}
 
-      {/* Existing vinculos */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Vínculos Existentes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {allVinculos.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhum vínculo criado ainda</p>
-          ) : (
-            <div className="divide-y">
-              {allVinculos.map((v: any) => {
-                const projeto = projetos.find((p: any) => p.id === v.projeto_id);
-                return (
-                  <div key={v.id} className="flex items-center gap-3 py-2.5">
-                    <Package className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-mono font-bold text-primary">
-                        {v.submissao?.produto_codigo || "—"}
-                      </span>
-                      <span className="text-xs text-muted-foreground mx-1.5">→</span>
-                      <span className="text-sm text-foreground">
-                        {projeto?.nome || v.projeto_id}
-                      </span>
-                    </div>
-                    {v.audit_result && (
-                      <AuditChinaVinculoBadge result={v.audit_result} compact />
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDesvincular(v.id)}
-                      disabled={deleteVinculo.isPending}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Unlink className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Existing vinculos - collapsible, hidden when empty */}
+      {allVinculos.length > 0 && (
+        <Collapsible open={vinculosOpen} onOpenChange={setVinculosOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-3 cursor-pointer hover:bg-accent/30 transition-colors rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Vínculos Existentes
+                    <Badge variant="secondary" className="text-[10px] ml-1">
+                      {allVinculos.length}
+                    </Badge>
+                  </CardTitle>
+                  <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", vinculosOpen && "rotate-90")} />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="divide-y">
+                  {allVinculos.map((v: any) => {
+                    const projeto = projetos.find((p: any) => p.id === v.projeto_id);
+                    return (
+                      <div key={v.id} className="flex items-center gap-3 py-2.5">
+                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-mono font-bold text-primary">
+                            {v.submissao?.produto_codigo || "—"}
+                          </span>
+                          <span className="text-xs text-muted-foreground mx-1.5">→</span>
+                          <span className="text-sm text-foreground">
+                            {projeto?.nome || v.projeto_id}
+                          </span>
+                        </div>
+                        {v.submissao?.status && (
+                          <Badge variant={getStatusBadgeVariant(v.submissao.status)} className="text-[10px]">
+                            {getStatusLabel(v.submissao.status)}
+                          </Badge>
+                        )}
+                        {v.audit_result && (
+                          <AuditChinaVinculoBadge result={v.audit_result} compact />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDesvincular(v.id)}
+                          disabled={deleteVinculo.isPending}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Unlink className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
 
       {/* Grade Dialog */}
       <Dialog open={gradeOpen} onOpenChange={setGradeOpen}>
