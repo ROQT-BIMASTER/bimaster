@@ -1,9 +1,10 @@
-import { useMemo } from "react";
-import { Eye, FileText, Camera, Package, Loader2, ChevronDown } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Eye, FileText, Camera, Link2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDocumentosDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
+import { ChinaDocVincularDialog } from "./ChinaDocVincularDialog";
 
 interface ChinaSubmissaoExpandidoProps {
   submissao: any;
@@ -19,8 +20,17 @@ function isImageType(tipo: string) {
   return tipo.startsWith("foto_") || tipo === "amostra_foto";
 }
 
+function getCategoryKeyForTipo(tipo: string): string {
+  for (const cat of DOCUMENT_CATEGORIES) {
+    if (cat.tipos.includes(tipo)) return cat.key;
+  }
+  return "_outros";
+}
+
 export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmissaoExpandidoProps) {
   const { data: documentos = [], isLoading } = useDocumentosDaSubmissao(submissao.id);
+  const [vincularDoc, setVincularDoc] = useState<any>(null);
+  const [vincularCatKey, setVincularCatKey] = useState("");
 
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};
@@ -43,6 +53,11 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
   const getCategoryIcon = (key: string) => {
     if (key === "fotos_planilha" || key === "imagens_gerais") return <Camera className="h-3 w-3" />;
     return <FileText className="h-3 w-3" />;
+  };
+
+  const handleOpenVincular = (doc: any) => {
+    setVincularCatKey(getCategoryKeyForTipo(doc.tipo_documento));
+    setVincularDoc(doc);
   };
 
   return (
@@ -152,6 +167,15 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+                          onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
+                          title="Vincular a tarefa"
+                        >
+                          <Link2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -161,26 +185,33 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
                 {photoDocs.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {photoDocs.map((doc: any) => (
-                      <button
-                        key={doc.id}
-                        onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
-                        className="h-10 w-10 rounded border border-border bg-muted/50 flex items-center justify-center hover:ring-1 hover:ring-primary/50 transition-all overflow-hidden"
-                        title={doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
-                      >
-                        {doc.arquivo_url ? (
-                          <img
-                            src={doc.arquivo_url}
-                            alt={doc.nome_arquivo || "foto"}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                              (e.target as HTMLImageElement).parentElement?.classList.add("flex", "items-center", "justify-center");
-                            }}
-                          />
-                        ) : (
-                          <Camera className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </button>
+                      <div key={doc.id} className="relative group">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
+                          className="h-10 w-10 rounded border border-border bg-muted/50 flex items-center justify-center hover:ring-1 hover:ring-primary/50 transition-all overflow-hidden"
+                          title={doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
+                        >
+                          {doc.arquivo_url ? (
+                            <img
+                              src={doc.arquivo_url}
+                              alt={doc.nome_arquivo || "foto"}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
+                          className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Vincular"
+                        >
+                          <Link2 className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -189,6 +220,14 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
           })}
         </div>
       )}
+
+      {/* Vincular Dialog */}
+      <ChinaDocVincularDialog
+        open={!!vincularDoc}
+        onOpenChange={(open) => { if (!open) setVincularDoc(null); }}
+        documento={vincularDoc}
+        categoriaKey={vincularCatKey}
+      />
     </div>
   );
 }

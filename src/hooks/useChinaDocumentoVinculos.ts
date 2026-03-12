@@ -68,6 +68,7 @@ export function useCreateDocVinculo() {
       tarefa_id: string;
       secao_id: string | null;
       projeto_id: string;
+      responsavel_id?: string | null;
     }) => {
       const { error } = await (supabase
         .from("china_documento_tarefa_vinculos" as any)
