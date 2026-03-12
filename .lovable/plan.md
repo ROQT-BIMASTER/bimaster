@@ -1,5 +1,3 @@
-
-
 ## Plano: Envio de Pagamentos para o ERP
 
 ### Status: ✅ Implementado
@@ -86,7 +84,7 @@ Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
    - RLS em todas as tabelas via user_id / bank_connections join
 
 2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
+   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment_detail`
    - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
    - `create-category-rule`, `list-category-rules`, `delete-category-rule`
    - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
@@ -118,3 +116,27 @@ Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
 8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
 9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
 10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
+
+---
+
+## Plano: Fluxo de Onboarding de Produto Importado (China → Brasil)
+
+### Status: ✅ Fase 1-3 Implementadas
+
+### O que foi feito
+
+1. **Migration** — 3 novas tabelas: `produtos_brasil`, `produto_brasil_skus`, `produto_brasil_checklist` com RLS
+2. **Botão Voltar** — Adicionado em `ProjetoVincularChina.tsx` com `useNavigate(-1)`
+3. **Automação pós-vínculo** — Ao vincular submissão China, cria automaticamente registro em `produtos_brasil` com snapshot dos dados + popula checklist regulatório com 7 itens padrão
+4. **Página ProdutoBrasilCadastro** — `/dashboard/projetos/produto-brasil/:id` com:
+   - Status Pipeline visual (6 etapas)
+   - Coluna China (somente leitura) x Coluna Brasil (editável)
+   - Botão "Copiar dados da China"
+   - Destaque visual para campos divergentes (borda amarela)
+   - Tabela de SKUs/variações (adicionar/remover inline)
+   - Checklist regulatório colapsável com campos extras (registro, ANVISA, categoria, responsável técnico)
+   - Transições de status: Enviar para Regulatório, Aprovar Produto
+5. **Hook `useProdutoBrasil.ts`** — CRUD completo para produtos_brasil, SKUs, checklist
+
+### Status do produto no fluxo
+`produto_importado` → `aguardando_precadastro` → `precadastro_em_andamento` → `aguardando_regulatorio` → `aprovado_cadastro` → `produto_ativo`
