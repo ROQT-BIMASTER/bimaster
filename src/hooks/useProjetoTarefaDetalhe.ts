@@ -147,11 +147,11 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       });
       if (error) throw error;
 
-      // Log audit
+      // Log audit with produtoId from hook param
       await logDocAudit({
-        produtoId: (undefined as any),
+        produtoId: produtoId || undefined,
         acao: "upload",
-        detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type },
+        detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type, tarefa_id: tarefaId },
       });
     },
     onSuccess: () => {
@@ -223,11 +223,19 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
           visivel_fabrica: false,
         } as any).select("id").single() as any;
 
-        // Create version record
+        // Create version record with auto-increment
         if (cofreDoc?.data?.id) {
+          // Count existing versions for this document name to auto-increment
+          const { count: existingVersions } = await supabase
+            .from("produto_documento_versoes" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("documento_id", cofreDoc.data.id);
+          
+          const nextVersion = (existingVersions || 0) + 1;
+
           await supabase.from("produto_documento_versoes" as any).insert({
             documento_id: cofreDoc.data.id,
-            versao: 1,
+            versao: nextVersion,
             arquivo_path: destPath,
             tamanho: anexo.tamanho,
             enviado_por: user!.id,

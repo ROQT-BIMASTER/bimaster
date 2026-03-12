@@ -206,10 +206,25 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
     if (!user) return;
     setSubmitting(true);
     try {
-      // === CRITICAL: Validate admin_cofre role before making docs visible ===
-      // Try to use can_publish_to_cofre RPC if project context available
-      // For now, proceed with the approval flow (RLS on backend will enforce)
-      
+      // Get projeto_id from tarefa to validate role
+      const { data: tarefaData } = await supabase
+        .from("projeto_tarefas")
+        .select("projeto_id")
+        .eq("id", tarefaId)
+        .single();
+
+      if (tarefaData?.projeto_id) {
+        const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
+          _user_id: user.id,
+          _projeto_id: tarefaData.projeto_id,
+        });
+        if (!canPublish) {
+          toast.error("Apenas usuários com papel 'Admin. Cofre' ou 'Coordenador' podem aprovar.");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Update validacao record
       await supabase
         .from("projeto_tarefa_validacoes" as any)

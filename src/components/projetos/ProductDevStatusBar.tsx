@@ -38,10 +38,12 @@ export function ProductDevStatusBar({ produtoId, projetoId, userPapel }: Product
   const currentStatus = devStatus?.status || "submissao_criada";
   const currentIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === currentStatus);
 
-  // Only allow transitions that are the NEXT sequential step AND allowed by the user's role
+  // Allow transitions: next sequential step forward OR return to "ajuste_solicitado"
   const roleTransitions = userPapel ? (STATUS_TRANSITIONS[userPapel] || []) : [];
   const allowedTransitions = roleTransitions.filter(t => {
     const targetIndex = DEV_STATUS_OPTIONS.findIndex(s => s.value === t);
+    // Allow "ajuste_solicitado" as a return status regardless of position
+    if (t === "ajuste_solicitado" && currentStatus !== "ajuste_solicitado") return true;
     // Allow only forward transitions (next step or +1 from current)
     return targetIndex > currentIndex && targetIndex <= currentIndex + 2;
   });

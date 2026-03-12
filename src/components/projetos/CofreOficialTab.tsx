@@ -40,6 +40,22 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
     enabled: !!produtoId,
   });
 
+  // Check which docs have official versions
+  const { data: oficialVersions = [] } = useQuery({
+    queryKey: ["cofre-oficial-versions", produtoId],
+    queryFn: async () => {
+      const docIds = cofreDocs.map((d: any) => d.id);
+      if (docIds.length === 0) return [];
+      const { data } = await supabase
+        .from("produto_documento_versoes" as any)
+        .select("documento_id")
+        .in("documento_id", docIds)
+        .eq("versao_oficial", true);
+      return (data || []).map((v: any) => v.documento_id) as string[];
+    },
+    enabled: cofreDocs.length > 0,
+  });
+
   const handleDownload = async (doc: any) => {
     const { data } = await supabase.storage
       .from("projeto-anexos")
@@ -92,9 +108,15 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
                     </span>
                   </div>
                 </div>
-                <Badge variant="default" className="text-[9px] gap-1">
-                  <ShieldCheck className="h-2.5 w-2.5" /> OFICIAL
-                </Badge>
+                {oficialVersions.includes(doc.id) ? (
+                  <Badge variant="default" className="text-[9px] gap-1 bg-emerald-600">
+                    <ShieldCheck className="h-2.5 w-2.5" /> OFICIAL
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[9px] gap-1">
+                    <ShieldCheck className="h-2.5 w-2.5" /> VISÍVEL
+                  </Badge>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(doc)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>

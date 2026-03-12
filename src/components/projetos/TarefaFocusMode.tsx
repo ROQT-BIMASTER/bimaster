@@ -555,9 +555,16 @@ export function TarefaFocusMode({
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
                                 <Download className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {/* Only allow deletion if user is admin/coordenador/gestor or the uploader, and not in cofre */}
+                              {(isAdminCofre || currentUserPapel === "gestor_produto" || a.user_id === user?.id) && !cofreDocs.some((d: any) => d.nome_arquivo === a.nome) && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
+                                  if (confirm(`Excluir o anexo "${a.nome}"?`)) {
+                                    deleteAnexo.mutate(a);
+                                  }
+                                }}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           );
                         })}
