@@ -197,17 +197,58 @@ export default function ProjetoVincularChina() {
     }
 
     // Create vínculos immediately without waiting for audit
+    let firstVinculoId: string | null = null;
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
       if (vinculosByTarefa.has(tarefaId)) continue;
-      await createVinculo.mutateAsync({
+      const result = await createVinculo.mutateAsync({
         submissao_id: selectedSubmissaoId,
         tarefa_id: tarefaId,
         secao_id: tarefa?.secao_id || null,
         projeto_id: selectedProjetoId,
       });
+      if (!firstVinculoId && result?.id) firstVinculoId = result.id;
     }
     setCheckedTarefas(new Set());
+
+    // Auto-create produto_brasil record after linking
+    if (selectedSubmissao && selectedProjetoId) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await (supabase.from("produtos_brasil" as any).insert({
+          submissao_china_id: selectedSubmissaoId,
+          vinculo_id: firstVinculoId,
+          projeto_id: selectedProjetoId,
+          china_nome: selectedSubmissao.produto_nome,
+          china_codigo: selectedSubmissao.produto_codigo,
+          china_ean: selectedSubmissao.ean_unidade || null,
+          china_descricao: selectedSubmissao.observacoes_brasil || null,
+          status: "aguardando_precadastro",
+        }) as any);
+        // Populate checklist
+        const { data: prodBrasil } = await (supabase
+          .from("produtos_brasil" as any)
+          .select("id")
+          .eq("submissao_china_id", selectedSubmissaoId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single() as any);
+        if (prodBrasil?.id) {
+          const checklistItems = [
+            "Conferência de rotulagem",
+            "Conferência de composição",
+            "Registro ou notificação (se aplicável)",
+            "Categoria ANVISA",
+            "Tradução e adequação da descrição",
+            "Validação de imagens da embalagem",
+            "Verificação de obrigatoriedade de lote e validade",
+          ].map((item) => ({ produto_brasil_id: prodBrasil.id, item, concluido: false }));
+          await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
+        }
+      } catch (e) {
+        console.error("Erro ao criar produto Brasil:", e);
+      }
+    }
 
     // Update audit result in background when ready (informational only)
     if (auditPromise) {
