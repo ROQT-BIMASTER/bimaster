@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, PenLine, Sparkles, Bot, Save } from "lucide-react";
 import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
-import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
+import { ComposicaoGradeImportadoEditor, type GradeImportadoItem } from "@/components/produto-brasil/ComposicaoGradeImportadoEditor";
 import { useCreateProdutoBrasil } from "@/hooks/useProdutoBrasil";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
   const createProduto = useCreateProdutoBrasil();
   const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
-  const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
+  const [gradeItems, setGradeItems] = useState<GradeImportadoItem[]>([]);
 
   const [formData, setFormData] = useState({
     // China identification
@@ -159,21 +159,20 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
             })
             .eq("id", produto.id) as any);
 
-          // Save grade items as SKUs for DISPLAY products
+          // Save grade items for DISPLAY products
           if (formData.tipo_produto === "DISPLAY" && gradeItems.length > 0) {
-            const skuInserts = gradeItems.map((item, index) => ({
-              produto_brasil_id: produto.id,
-              cor: item.cor_nome || null,
-              cor_hex: item.cor_hex || null,
-              codigo_interno: item.codigo_produto || null,
-              ean: item.codigo_barras_ean || null,
-              quantidade_inicial: item.quantidade || 0,
+            const gradeInserts = gradeItems.map((item, index) => ({
+              produto_pai_id: produto.id,
+              produto_filho_id: item.produto_filho_id,
+              quantidade: item.quantidade,
               ordem: index,
+              cor_numero: item.cor_numero || null,
+              cor_hex: item.cor_hex || null,
             }));
 
             await (supabase
-              .from("produto_brasil_skus" as any)
-              .insert(skuInserts) as any);
+              .from("produto_brasil_grade_itens" as any)
+              .insert(gradeInserts) as any);
           }
 
           toast.success("Produto importado criado com sucesso!");
@@ -451,16 +450,10 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
               {/* Aba Grade - only for DISPLAY */}
               {isDisplay && (
                 <TabsContent value="grade" className="space-y-4 mt-4">
-                  <ChinaGradeEditor
+                  <ComposicaoGradeImportadoEditor
                     items={gradeItems}
                     onChange={setGradeItems}
-                    bilingual={false}
                   />
-                  {gradeItems.length > 0 && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      {gradeItems.length} cores · {gradeItems.reduce((s, i) => s + (i.quantidade || 0), 0).toLocaleString()} unidades no total
-                    </div>
-                  )}
                 </TabsContent>
               )}
 
