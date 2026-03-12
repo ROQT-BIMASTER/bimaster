@@ -14960,6 +14960,54 @@ export type Database = {
           },
         ]
       }
+      produto_brasil_grade_itens: {
+        Row: {
+          cor_hex: string | null
+          cor_numero: string | null
+          created_at: string
+          id: string
+          ordem: number
+          produto_filho_id: string
+          produto_pai_id: string
+          quantidade: number
+        }
+        Insert: {
+          cor_hex?: string | null
+          cor_numero?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          produto_filho_id: string
+          produto_pai_id: string
+          quantidade?: number
+        }
+        Update: {
+          cor_hex?: string | null
+          cor_numero?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          produto_filho_id?: string
+          produto_pai_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_grade_itens_produto_filho_id_fkey"
+            columns: ["produto_filho_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_brasil_grade_itens_produto_pai_id_fkey"
+            columns: ["produto_pai_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_brasil_historico: {
         Row: {
           created_at: string | null
