@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
@@ -366,58 +366,76 @@ function PersonPicker({ current, members, onSelect }: {
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
       <PopoverTrigger asChild>
         <button onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity min-w-0">
           {current ? (
             <>
-              <Avatar className="h-6 w-6 flex-shrink-0">
+              <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
                 <AvatarImage src={current.avatar_url || undefined} />
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-semibold">
                   {current.nome?.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="text-xs text-foreground/80 truncate hidden xl:inline">{current.nome?.split(" ")[0]}</span>
             </>
           ) : (
-            <div className="h-6 w-6 rounded-full border border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
-              <UserPlus className="h-3 w-3 text-muted-foreground" />
+            <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-all">
+              <UserPlus className="h-3 w-3 text-muted-foreground/50" />
             </div>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-2" align="start" onClick={e => e.stopPropagation()}>
-        <Input
-          placeholder="Buscar..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="h-7 text-xs mb-2"
-        />
-        <div className="max-h-40 overflow-y-auto space-y-0.5">
+      <PopoverContent className="w-60 p-0" align="start" onClick={e => e.stopPropagation()}>
+        <div className="p-2 border-b border-border/50">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+            <Input
+              placeholder="Buscar membro..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 text-xs pl-8 bg-muted/30 border-border/50 focus-visible:ring-primary/30"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="max-h-48 overflow-y-auto p-1.5 space-y-0.5">
           {current && (
             <button
               onClick={() => { onSelect(null); setOpen(false); setSearch(""); }}
-              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 text-red-400"
+              className="flex items-center gap-2 w-full px-2.5 py-2 text-xs rounded-md hover:bg-destructive/10 text-destructive/80 transition-colors"
             >
-              <X className="h-3 w-3" /> Remover responsável
+              <X className="h-3.5 w-3.5" /> Remover responsável
             </button>
           )}
-          {filtered.map(m => (
-            <button
-              key={m.id}
-              onClick={() => { onSelect(m.id); setOpen(false); setSearch(""); }}
-              className={cn(
-                "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors",
-                current?.id === m.id && "bg-muted/30 font-medium"
-              )}
-            >
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={m.avatar_url || undefined} />
-                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">{m.nome}</span>
-            </button>
-          ))}
+          {filtered.map(m => {
+            const isSelected = current?.id === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => { onSelect(m.id); setOpen(false); setSearch(""); }}
+                className={cn(
+                  "flex items-center gap-2.5 w-full px-2.5 py-2 text-xs rounded-md transition-colors",
+                  isSelected ? "bg-primary/10 text-primary font-medium" : "hover:bg-accent/50"
+                )}
+              >
+                <Avatar className={cn("h-6 w-6 flex-shrink-0", isSelected && "ring-2 ring-primary/30")}>
+                  <AvatarImage src={m.avatar_url || undefined} />
+                  <AvatarFallback className={cn(
+                    "text-[9px] font-semibold",
+                    isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    {m.nome?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate flex-1 text-left">{m.nome}</span>
+                {isSelected && <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />}
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="text-[11px] text-muted-foreground text-center py-3">Nenhum membro encontrado</p>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -490,73 +508,96 @@ function ColaboradoresPicker({ colaboradores, members, onAdd, onRemove }: {
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
       <PopoverTrigger asChild>
-        <button onClick={e => e.stopPropagation()} className="flex items-center -space-x-1 hover:opacity-80 transition-opacity">
+        <button onClick={e => e.stopPropagation()} className="flex items-center -space-x-1.5 hover:opacity-80 transition-opacity">
           {colaboradores.length > 0 ? (
             <>
               {colaboradores.slice(0, 3).map(c => (
-                <Avatar key={c.user_id} className="h-5 w-5 border border-background">
+                <Avatar key={c.user_id} className="h-5 w-5 border-2 border-background ring-1 ring-border/30">
                   <AvatarImage src={c.avatar_url || undefined} />
-                  <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-[8px] bg-muted font-semibold">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               ))}
               {colaboradores.length > 3 && (
-                <span className="text-[10px] text-muted-foreground ml-1">+{colaboradores.length - 3}</span>
+                <div className="h-5 w-5 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                  <span className="text-[8px] font-semibold text-muted-foreground">+{colaboradores.length - 3}</span>
+                </div>
               )}
             </>
           ) : (
-            <div className="h-5 w-5 rounded-full border border-dashed border-border flex items-center justify-center hover:border-primary/50 transition-colors">
-              <Plus className="h-2.5 w-2.5 text-muted-foreground" />
+            <div className="h-5 w-5 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-all">
+              <Plus className="h-2.5 w-2.5 text-muted-foreground/50" />
             </div>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start" onClick={e => e.stopPropagation()}>
-        <Input
-          placeholder="Buscar membro..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="h-7 text-xs mb-2"
-        />
+      <PopoverContent className="w-64 p-0" align="start" onClick={e => e.stopPropagation()}>
+        <div className="p-2 border-b border-border/50">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
+            <Input
+              placeholder="Buscar membro..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-8 text-xs pl-8 bg-muted/30 border-border/50 focus-visible:ring-primary/30"
+              autoFocus
+            />
+          </div>
+        </div>
 
         {/* Current colaboradores */}
         {colaboradores.length > 0 && (
-          <div className="mb-2 pb-2 border-b border-border/30 space-y-0.5">
-            <p className="text-[10px] text-muted-foreground font-medium mb-1">Colaboradores atuais</p>
-            {colaboradores.map(c => (
-              <div key={c.user_id} className="flex items-center justify-between px-2 py-1 rounded hover:bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={c.avatar_url || undefined} />
-                    <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs truncate">{c.nome}</span>
+          <div className="p-1.5 border-b border-border/30">
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider px-2 mb-1">
+              Colaboradores ({colaboradores.length})
+            </p>
+            <div className="space-y-0.5">
+              {colaboradores.map(c => (
+                <div key={c.user_id} className="flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-accent/30 group transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar className="h-6 w-6 flex-shrink-0">
+                      <AvatarImage src={c.avatar_url || undefined} />
+                      <AvatarFallback className="text-[9px] bg-primary/15 text-primary font-semibold">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs truncate">{c.nome}</span>
+                  </div>
+                  <button
+                    onClick={() => onRemove(c.user_id)}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 transition-all"
+                  >
+                    <X className="h-3 w-3 text-destructive/70" />
+                  </button>
                 </div>
-                <button onClick={() => onRemove(c.user_id)} className="text-red-400 hover:text-red-300">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {/* Available members */}
-        <div className="max-h-36 overflow-y-auto space-y-0.5">
+        <div className="max-h-40 overflow-y-auto p-1.5 space-y-0.5">
+          {filtered.filter(m => !colabIds.has(m.id)).length > 0 && (
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider px-2 mb-1">Adicionar</p>
+          )}
           {filtered.filter(m => !colabIds.has(m.id)).map(m => (
             <button
               key={m.id}
               onClick={() => onAdd(m.id)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2.5 w-full px-2.5 py-2 text-xs rounded-md hover:bg-accent/50 transition-colors group"
             >
-              <Avatar className="h-5 w-5">
+              <Avatar className="h-6 w-6 flex-shrink-0">
                 <AvatarImage src={m.avatar_url || undefined} />
-                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="text-[9px] bg-muted text-muted-foreground font-semibold">{m.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="truncate">{m.nome}</span>
-              <Plus className="h-3 w-3 ml-auto text-muted-foreground" />
+              <span className="truncate flex-1 text-left">{m.nome}</span>
+              <Plus className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary transition-colors" />
             </button>
           ))}
+          {filtered.filter(m => !colabIds.has(m.id)).length === 0 && (
+            <p className="text-[11px] text-muted-foreground text-center py-3">
+              {search ? "Nenhum membro encontrado" : "Todos os membros já adicionados"}
+            </p>
+          )}
         </div>
       </PopoverContent>
     </Popover>
