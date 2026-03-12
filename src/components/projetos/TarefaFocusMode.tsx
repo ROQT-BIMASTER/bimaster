@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { CofreOficialTab } from "./CofreOficialTab";
 import { ProductDevStatusBar } from "./ProductDevStatusBar";
+import { DocVersionHistory } from "./DocVersionHistory";
 import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 const ESTAGIO_OPTIONS = [
