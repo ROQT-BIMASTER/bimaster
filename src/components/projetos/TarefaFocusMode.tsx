@@ -515,7 +515,6 @@ export function TarefaFocusMode({
                     <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5" /> Upload
                     </Button>
-                    </Button>
                     <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
                   </div>
 
