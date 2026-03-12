@@ -136,8 +136,8 @@ function AvatarWithUpload({
   );
 }
 
-// --- Member Detail Sheet ---
-function MemberDetailSheet({
+// --- Member Detail Modal (large centered) ---
+function MemberDetailModal({
   member,
   open,
   onClose,
@@ -159,157 +159,221 @@ function MemberDetailSheet({
     ? "text-amber-600 dark:text-amber-400"
     : "text-red-600 dark:text-red-400";
 
-  // Calculate ranking position
   const sortedMembers = [...allMembers].sort((a, b) => b.score - a.score);
   const rankPosition = sortedMembers.findIndex(m => m.id === member.id) + 1;
   const totalMembers = allMembers.length;
+  const pendentes = member.tarefas_atribuidas - member.tarefas_concluidas;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto p-0">
-        <SheetHeader className="sr-only">
-          <SheetTitle>Detalhes de {member.nome}</SheetTitle>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Detalhes de {member.nome}</DialogTitle>
+        </DialogHeader>
 
-        {/* Hero header */}
-        <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pt-10 pb-8">
-          <div className="flex flex-col items-center text-center gap-4">
+        {/* Hero Header */}
+        <div className="relative bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-8 pt-8 pb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <AvatarWithUpload member={member} size="lg" canUpload={canUpload} />
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">{member.nome}</h2>
-              <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${roleStyle.className}`}>
-                {roleStyle.label}
-              </Badge>
-              <div className="flex items-center justify-center gap-1.5 text-muted-foreground text-sm mt-1">
+            <div className="flex-1 text-center sm:text-left space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">{member.nome}</h2>
+              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                <Badge variant="outline" className={`text-sm font-semibold px-3 py-1 ${roleStyle.className}`}>
+                  {roleStyle.label}
+                </Badge>
+                {rankPosition > 0 && (
+                  <Badge variant="secondary" className="text-sm px-3 py-1 gap-1">
+                    <Trophy className="h-3.5 w-3.5" />
+                    {rankPosition}º lugar
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-muted-foreground text-sm">
                 <Mail className="h-3.5 w-3.5" />
-                <span className="truncate max-w-[220px]">{member.email}</span>
+                <span>{member.email}</span>
+              </div>
+            </div>
+            {/* Score highlight on header */}
+            <div className="flex flex-col items-center sm:items-end gap-1">
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-200 dark:border-amber-800 rounded-xl px-5 py-3 text-center">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score</p>
+                <p className="text-3xl font-extrabold text-amber-700 dark:text-amber-300">{member.score}</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">pontos</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* KPIs Grid */}
-        <div className="px-6 pt-6 pb-2">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Performance</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2">
-                <FolderKanban className="h-4 w-4 text-indigo-500" />
-                <span className="text-xs text-muted-foreground">Projetos Ativos</span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{member.projetos_ativos}</p>
-            </div>
+        {/* Main content grid */}
+        <div className="p-6 md:p-8 space-y-6">
+          {/* KPI Cards Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="border-l-4 border-l-indigo-500">
+              <CardContent className="p-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="h-5 w-5 text-indigo-500" />
+                  <span className="text-xs text-muted-foreground font-medium">Projetos Ativos</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{member.projetos_ativos}</p>
+              </CardContent>
+            </Card>
 
-            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-blue-500" />
-                <span className="text-xs text-muted-foreground">Total Tarefas</span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{member.tarefas_atribuidas}</p>
-            </div>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="p-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-blue-500" />
+                  <span className="text-xs text-muted-foreground font-medium">Total Tarefas</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{member.tarefas_atribuidas}</p>
+              </CardContent>
+            </Card>
 
-            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-xs text-muted-foreground">Concluídas</span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{member.tarefas_concluidas}</p>
-              <p className="text-xs text-muted-foreground">de {member.tarefas_atribuidas} tarefas</p>
-            </div>
+            <Card className="border-l-4 border-l-green-500">
+              <CardContent className="p-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <span className="text-xs text-muted-foreground font-medium">Concluídas</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{member.tarefas_concluidas}</p>
+              </CardContent>
+            </Card>
 
-            <div className="bg-card border border-border rounded-xl p-4 space-y-1">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <span className="text-xs text-muted-foreground">Atrasadas</span>
-              </div>
-              <p className={`text-2xl font-bold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>
-                {member.tarefas_atrasadas}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Score destaque */}
-        <div className="px-6 pt-4">
-          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-full bg-amber-100 dark:bg-amber-900/40">
-                <Trophy className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score de Produtividade</p>
-                <p className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{member.score} pts</p>
-              </div>
-            </div>
-            <TrendingUp className="h-8 w-8 text-amber-300 dark:text-amber-700" />
-          </div>
-        </div>
-
-        {/* Detalhes de Tarefas */}
-        <div className="px-6 pt-6">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Detalhes de Tarefas</h3>
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-foreground">Concluídas</span>
-              </div>
-              <span className="text-sm font-semibold text-foreground">{member.tarefas_concluidas} de {member.tarefas_atribuidas}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <span className="text-sm text-foreground">Atrasadas</span>
-              </div>
-              <span className={`text-sm font-semibold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>{member.tarefas_atrasadas}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                <span className="text-sm text-foreground">Taxa de Conclusão</span>
-              </div>
-              <span className={`text-sm font-bold ${completionColor}`}>{member.taxa_conclusao}%</span>
-            </div>
-            <div className="pt-1">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted-foreground">Progresso Geral</span>
-                <span className={`text-xs font-bold ${completionColor}`}>{member.taxa_conclusao}%</span>
-              </div>
-              <Progress value={member.taxa_conclusao} gradient className="h-3" />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1.5">
-                <span>{member.tarefas_concluidas} concluídas</span>
-                <span>{member.tarefas_atribuidas - member.tarefas_concluidas} pendentes</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ranking na Equipe */}
-        {totalMembers > 0 && rankPosition > 0 && (
-          <div className="px-6 pt-6 pb-8">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ranking na Equipe</h3>
-            <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
-                <span className="text-lg font-extrabold text-primary">
-                  {rankPosition === 1 ? "🥇" : rankPosition === 2 ? "🥈" : rankPosition === 3 ? "🥉" : `${rankPosition}º`}
-                </span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {rankPosition}º de {totalMembers} membros
+            <Card className={`border-l-4 ${member.tarefas_atrasadas > 0 ? "border-l-destructive" : "border-l-border"}`}>
+              <CardContent className="p-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className={`h-5 w-5 ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                  <span className="text-xs text-muted-foreground font-medium">Atrasadas</span>
+                </div>
+                <p className={`text-3xl font-bold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>
+                  {member.tarefas_atrasadas}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {rankPosition === 1
-                    ? "Líder do ranking!"
-                    : `${sortedMembers[0]?.score - member.score} pts atrás do 1º lugar`}
-                </p>
-              </div>
-              <Badge variant="secondary" className="text-xs font-bold">{member.score} pts</Badge>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Two-column layout for details */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Left: Detalhes de Tarefas */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Detalhes de Tarefas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                      <span className="text-sm text-foreground">Concluídas</span>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">{member.tarefas_concluidas} de {member.tarefas_atribuidas}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                      <span className="text-sm text-foreground">Pendentes</span>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">{pendentes}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full bg-destructive" />
+                      <span className="text-sm text-foreground">Atrasadas</span>
+                    </div>
+                    <span className={`text-sm font-semibold ${member.tarefas_atrasadas > 0 ? "text-destructive" : "text-foreground"}`}>{member.tarefas_atrasadas}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">Taxa de Conclusão</span>
+                    <span className={`text-lg font-bold ${completionColor}`}>{member.taxa_conclusao}%</span>
+                  </div>
+                  <Progress value={member.taxa_conclusao} gradient className="h-3" />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{member.tarefas_concluidas} concluídas</span>
+                    <span>{pendentes} pendentes</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right: Ranking + Score */}
+            <div className="space-y-4">
+              {/* Score Card */}
+              <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                      <Trophy className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Score de Produtividade</p>
+                      <p className="text-3xl font-extrabold text-amber-700 dark:text-amber-300">{member.score} pts</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Fórmula: concluídas×3 + projetos×2</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-10 w-10 text-amber-300 dark:text-amber-700" />
+                </CardContent>
+              </Card>
+
+              {/* Ranking Card */}
+              {totalMembers > 0 && rankPosition > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary" />
+                      Ranking na Equipe
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center h-14 w-14 rounded-full bg-primary/10">
+                        <span className="text-2xl font-extrabold">
+                          {rankPosition === 1 ? "🥇" : rankPosition === 2 ? "🥈" : rankPosition === 3 ? "🥉" : `${rankPosition}º`}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-lg font-bold text-foreground">
+                          {rankPosition}º de {totalMembers} membros
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {rankPosition === 1
+                            ? "🔥 Líder do ranking!"
+                            : `${sortedMembers[0]?.score - member.score} pts atrás do 1º lugar`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Mini ranking list */}
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      {sortedMembers.slice(0, 5).map((m, i) => (
+                        <div
+                          key={m.id}
+                          className={`flex items-center gap-2 py-1.5 px-2 rounded-lg text-sm ${
+                            m.id === member.id ? "bg-primary/5 ring-1 ring-primary/20" : ""
+                          }`}
+                        >
+                          <span className="w-6 text-center font-bold text-muted-foreground">
+                            {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}º`}
+                          </span>
+                          <span className={`flex-1 truncate ${m.id === member.id ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                            {m.nome}
+                          </span>
+                          <span className="text-xs font-medium text-muted-foreground">{m.score} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
