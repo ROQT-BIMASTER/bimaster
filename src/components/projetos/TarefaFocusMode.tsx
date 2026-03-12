@@ -492,6 +492,20 @@ export function TarefaFocusMode({
 
               <Separator />
 
+              {/* Dev Status Bar */}
+              {isDevProduto && hasProduto && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Status do Desenvolvimento</h3>
+                  <ProductDevStatusBar
+                    produtoId={(tarefa as any).produto_id}
+                    projetoId={(tarefa as any).projeto_id}
+                    userPapel={currentUserPapel}
+                  />
+                </div>
+              )}
+
+              <Separator />
+
               {/* Documentos & Cofre */}
               <div>
                 <Tabs defaultValue="todos" className="w-full">
