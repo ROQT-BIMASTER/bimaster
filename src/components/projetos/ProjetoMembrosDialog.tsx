@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +50,7 @@ interface ProjetoSecao {
 export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTipo }: ProjetoMembrosDialogProps) {
   const { membros, isLoading, isCoordinator, addMembro, removeMembro, updateSecoes, updatePapel } = useProjetoMembros(projetoId);
   const [search, setSearch] = useState("");
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<string | null>(null);
 
   const isDevProduto = projetoTipo === "desenvolvimento_produto";
 
@@ -220,7 +225,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => removeMembro.mutate(membro.id)}
+                          onClick={() => setRemoveMemberConfirm(membro.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -268,6 +273,24 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
             </div>
           </ScrollArea>
         </div>
+
+        {/* Remove member confirmation */}
+        <AlertDialog open={!!removeMemberConfirm} onOpenChange={() => setRemoveMemberConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover membro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                O membro perderá acesso ao projeto. Esta ação pode ser revertida adicionando-o novamente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (removeMemberConfirm) { removeMembro.mutate(removeMemberConfirm); setRemoveMemberConfirm(null); } }}>
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

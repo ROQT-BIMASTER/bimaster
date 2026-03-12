@@ -15,6 +15,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -250,11 +254,14 @@ export default function ProjetoAprovacaoCadastro() {
     }
   };
 
+  const [unlinkConfirm, setUnlinkConfirm] = useState<string | null>(null);
+  
   const handleRemoveProduto = async (linkId: string) => {
     try {
       await supabase.from("projeto_tarefa_produtos" as any).delete().eq("id", linkId);
       toast.success("Produto desvinculado.");
       if (selectedTarefa) loadProdutos(selectedTarefa.id);
+      setUnlinkConfirm(null);
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -591,6 +598,7 @@ function ProdutosVinculadosSection({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [unlinkProdutoId, setUnlinkProdutoId] = useState<string | null>(null);
 
   const linkedIds = new Set(produtos.map(p => p.id));
 
@@ -705,7 +713,7 @@ function ProdutosVinculadosSection({
               </div>
               {isPending && (
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                  onClick={() => onRemoveProduto(p._linkId)} title="Desvincular produto"
+                  onClick={() => setUnlinkProdutoId(p._linkId)} title="Desvincular produto"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -714,6 +722,24 @@ function ProdutosVinculadosSection({
           ))}
         </div>
       )}
+
+      {/* Unlink confirmation AlertDialog */}
+      <AlertDialog open={!!unlinkProdutoId} onOpenChange={() => setUnlinkProdutoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desvincular produto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O produto será desvinculado desta tarefa. Esta ação será registrada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => unlinkProdutoId && onRemoveProduto(unlinkProdutoId)}>
+              Desvincular
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -880,25 +906,41 @@ function AprovacaoChatPanel({ tarefaId }: { tarefaId: string }) {
   const [replyTo, setReplyTo] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("projeto_tarefa_comentarios").select("*")
-        .eq("tarefa_id", tarefaId).order("created_at", { ascending: true });
-      const comments = data || [];
-      setComentarios(comments);
-      const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds);
-        const map: Record<string, any> = {};
-        (profs || []).forEach((p: any) => { map[p.id] = p; });
-        setProfiles(map);
-      }
-      setLoading(false);
-    };
-    load();
+  const loadComments = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("projeto_tarefa_comentarios").select("*")
+      .eq("tarefa_id", tarefaId).order("created_at", { ascending: true });
+    const comments = data || [];
+    setComentarios(comments);
+    const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds);
+      const map: Record<string, any> = {};
+      (profs || []).forEach((p: any) => { map[p.id] = p; });
+      setProfiles(map);
+    }
+    setLoading(false);
   }, [tarefaId]);
+
+  useEffect(() => { loadComments(); }, [loadComments]);
+
+  // Realtime subscription for approval chat
+  useEffect(() => {
+    if (!tarefaId) return;
+    const channel = supabase
+      .channel(`aprovacao-chat-${tarefaId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "projeto_tarefa_comentarios",
+        filter: `tarefa_id=eq.${tarefaId}`,
+      }, () => {
+        loadComments();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tarefaId, loadComments]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

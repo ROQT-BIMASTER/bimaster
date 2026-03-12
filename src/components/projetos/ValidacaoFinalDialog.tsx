@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { CheckCircle2, FileText, FolderOpen, ShieldCheck, ShieldX, Loader2 } from "lucide-react";
+import { CheckCircle2, FileText, FolderOpen, ShieldCheck, ShieldX, Loader2, AlertTriangle } from "lucide-react";
 
 const COFRE_CATEGORIA_LABELS: Record<string, string> = {
   briefing: "Briefing",
@@ -42,20 +42,32 @@ export function ValidacaoFinalDialog({
   const [submitting, setSubmitting] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [checkedCategories, setCheckedCategories] = useState<Set<string>>(new Set());
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
-  const loadDocumentos = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!open || !tarefaId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("fabrica_revisao_documentos" as any)
-      .select("*")
-      .eq("origem_projeto_tarefa_id", tarefaId)
-      .order("created_at", { ascending: false });
-    setDocumentos((data as any[]) || []);
+    
+    // Load documents and approval stages in parallel
+    const [docsResult, approvalsResult] = await Promise.all([
+      supabase
+        .from("fabrica_revisao_documentos" as any)
+        .select("*")
+        .eq("origem_projeto_tarefa_id", tarefaId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("projeto_tarefa_aprovacoes" as any)
+        .select("*")
+        .eq("tarefa_id", tarefaId)
+        .order("created_at", { ascending: true }),
+    ]);
+    
+    setDocumentos((docsResult.data as any[]) || []);
+    setPendingApprovals((approvalsResult.data as any[]) || []);
     setLoading(false);
   }, [open, tarefaId]);
 
-  useEffect(() => { loadDocumentos(); }, [loadDocumentos]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const docsByCategoria = documentos.reduce((acc: Record<string, any[]>, doc: any) => {
     const cat = doc.categoria || "outro";
@@ -67,8 +79,20 @@ export function ValidacaoFinalDialog({
   const allCategories = Object.keys(docsByCategoria);
   const allChecked = allCategories.length > 0 && allCategories.every(c => checkedCategories.has(c));
 
+  // CRITICAL: Check if all approval stages are approved
+  const hasApprovalStages = pendingApprovals.length > 0;
+  const allApprovalsApproved = pendingApprovals.every(a => a.status === "aprovado");
+  const pendingOrRejected = pendingApprovals.filter(a => a.status !== "aprovado");
+
   const handleSubmit = async () => {
     if (!user) return;
+    
+    // Block if approval stages are not all approved
+    if (hasApprovalStages && !allApprovalsApproved) {
+      toast.error("Todas as etapas de aprovação devem estar aprovadas antes de enviar para validação final.");
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const { error: valError } = await supabase
@@ -113,6 +137,19 @@ export function ValidacaoFinalDialog({
 
         <ScrollArea className="max-h-[400px]">
           <div className="space-y-4 pr-2">
+            {/* Approval stages warning */}
+            {hasApprovalStages && !allApprovalsApproved && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-destructive">Etapas de aprovação pendentes</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    As seguintes etapas precisam ser aprovadas: {pendingOrRejected.map(a => a.etapa).join(", ")}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -174,7 +211,7 @@ export function ValidacaoFinalDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || documentos.length === 0 || !allChecked}
+            disabled={submitting || documentos.length === 0 || !allChecked || (hasApprovalStages && !allApprovalsApproved)}
             className="gap-1.5 bg-emerald-600 hover:bg-emerald-700"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -206,7 +243,6 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
     if (!user) return;
     setSubmitting(true);
     try {
-      // Get projeto_id from tarefa to validate role
       const { data: tarefaData } = await supabase
         .from("projeto_tarefas")
         .select("projeto_id")
@@ -225,7 +261,6 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
         }
       }
 
-      // Update validacao record
       await supabase
         .from("projeto_tarefa_validacoes" as any)
         .update({
@@ -236,13 +271,11 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
         .eq("tarefa_id", tarefaId)
         .eq("status", "pendente");
 
-      // Update tarefa
       await supabase
         .from("projeto_tarefas")
         .update({ validacao_status: "validada" } as any)
         .eq("id", tarefaId);
 
-      // Make docs visible to factory
       await supabase
         .from("fabrica_revisao_documentos" as any)
         .update({ visivel_fabrica: true } as any)
@@ -259,6 +292,11 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
 
   const handleRejeitar = async () => {
     if (!user) return;
+    // Require rejection reason
+    if (!rejectObs.trim()) {
+      toast.error("Informe o motivo da rejeição.");
+      return;
+    }
     setSubmitting(true);
     try {
       await supabase
@@ -267,7 +305,7 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
           status: "rejeitada",
           aprovado_por: user.id,
           aprovado_em: new Date().toISOString(),
-          observacoes: rejectObs || null,
+          observacoes: rejectObs,
         } as any)
         .eq("tarefa_id", tarefaId)
         .eq("status", "pendente");
@@ -320,10 +358,16 @@ export function AprovacaoPanel({ tarefaId, validacaoStatus, onStatusChange }: Ap
             <Textarea
               value={rejectObs}
               onChange={e => setRejectObs(e.target.value)}
-              placeholder="Motivo da rejeição..."
+              placeholder="Motivo da rejeição (obrigatório)..."
               className="min-h-[32px] h-8 text-xs flex-1"
             />
-            <Button size="sm" variant="destructive" className="text-xs" onClick={handleRejeitar} disabled={submitting}>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="text-xs"
+              onClick={handleRejeitar}
+              disabled={submitting || !rejectObs.trim()}
+            >
               Confirmar
             </Button>
           </div>

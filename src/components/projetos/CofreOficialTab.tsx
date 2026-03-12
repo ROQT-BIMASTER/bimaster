@@ -1,13 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { logDocAudit } from "@/lib/productDocAudit";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ShieldCheck, Download, FileText, Image, File, Lock } from "lucide-react";
+import { ShieldCheck, Download, FileText, Image, File, Lock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 function getFileIcon(tipo: string | null) {
@@ -25,6 +31,10 @@ interface CofreOficialTabProps {
 
 export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOficialTabProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { currentUserPapel } = useProjetoMembros(projetoId);
+  const isAdminCofre = currentUserPapel === "admin_cofre" || currentUserPapel === "coordenador";
+  const [revokeDoc, setRevokeDoc] = useState<any>(null);
 
   const { data: cofreDocs = [] } = useQuery({
     queryKey: ["cofre-oficial", produtoId],
@@ -40,7 +50,6 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
     enabled: !!produtoId,
   });
 
-  // Check which docs have official versions
   const { data: oficialVersions = [] } = useQuery({
     queryKey: ["cofre-oficial-versions", produtoId],
     queryFn: async () => {
@@ -54,6 +63,28 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
       return (data || []).map((v: any) => v.documento_id) as string[];
     },
     enabled: cofreDocs.length > 0,
+  });
+
+  const revokeFromCofre = useMutation({
+    mutationFn: async (docId: string) => {
+      await supabase
+        .from("fabrica_revisao_documentos" as any)
+        .update({ visivel_fabrica: false } as any)
+        .eq("id", docId);
+      await logDocAudit({
+        documentoId: docId,
+        produtoId,
+        projetoId,
+        acao: "rejeicao",
+        detalhes: { action: "revoke_from_cofre", revoked_by: user?.id },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cofre-oficial", produtoId] });
+      toast.success("Documento revogado do Cofre.");
+      setRevokeDoc(null);
+    },
+    onError: () => toast.error("Erro ao revogar documento."),
   });
 
   const handleDownload = async (doc: any) => {
@@ -120,11 +151,45 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(doc)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
+                {/* Revoke from Cofre - admin_cofre only */}
+                {isAdminCofre && !isReadOnly && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => setRevokeDoc(doc)}
+                    title="Revogar do Cofre"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
         </ScrollArea>
       )}
+
+      {/* Revoke Confirmation */}
+      <AlertDialog open={!!revokeDoc} onOpenChange={() => setRevokeDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revogar documento do Cofre?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O documento "{revokeDoc?.nome_arquivo}" deixará de ser visível para a Fábrica.
+              Esta ação será registrada na auditoria.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => revokeDoc && revokeFromCofre.mutate(revokeDoc.id)}
+            >
+              Revogar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
