@@ -12,8 +12,9 @@ import { useProjetosTeamData, ProjetoTeamMember } from "@/hooks/useProjetosTeamD
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { TarefaRiskBadge } from "@/components/projetos/TarefaRiskBadge";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,7 +179,7 @@ function MemberDetailModal({
       if (!member) return [];
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, codigo, status, prioridade, data_prazo, projetos:projeto_id(nome)")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projetos:projeto_id(nome)")
         .eq("responsavel_id", member.id)
         .order("data_prazo", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -186,6 +187,40 @@ function MemberDetailModal({
     },
     enabled: !!member && open,
   });
+
+  // Build weekly chart data for current month
+  const chartData = useMemo(() => {
+    if (!tarefas.length) return [];
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+
+    return weeks.map((weekStart, i) => {
+      const wStart = i === 0 ? monthStart : weekStart;
+      const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+      const clampedEnd = wEnd > monthEnd ? monthEnd : wEnd;
+      const interval = { start: wStart, end: clampedEnd };
+
+      let concluidas = 0;
+      let criadas = 0;
+      let vencendo = 0;
+
+      tarefas.forEach((t: any) => {
+        if (t.data_conclusao && isWithinInterval(parseISO(t.data_conclusao), interval)) concluidas++;
+        if (t.created_at && isWithinInterval(parseISO(t.created_at), interval)) criadas++;
+        if (t.data_prazo && isWithinInterval(parseISO(t.data_prazo), interval)) vencendo++;
+      });
+
+      return {
+        semana: `Sem ${i + 1}`,
+        periodo: `${format(wStart, "dd/MM")} - ${format(clampedEnd, "dd/MM")}`,
+        Concluídas: concluidas,
+        Criadas: criadas,
+        Vencimento: vencendo,
+      };
+    });
+  }, [tarefas]);
 
   if (!member) return null;
 
@@ -312,7 +347,43 @@ function MemberDetailModal({
                 </CardContent>
               </Card>
 
-              {/* Score Card */}
+              {/* Evolução Mensal - Bar Chart */}
+              {chartData.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      Evolução no Mês — {format(new Date(), "MMMM yyyy", { locale: ptBR })}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-2 pb-4">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={chartData} barSize={14} barGap={2}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis dataKey="semana" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={28} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                          }}
+                          labelFormatter={(label, payload) => {
+                            const item = payload?.[0]?.payload;
+                            return item?.periodo || label;
+                          }}
+                        />
+                        <Legend iconSize={10} wrapperStyle={{ fontSize: "11px" }} />
+                        <Bar dataKey="Criadas" fill="hsl(217, 91%, 60%)" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="Concluídas" fill="hsl(142, 71%, 45%)" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="Vencimento" fill="hsl(38, 92%, 50%)" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-amber-200 dark:border-amber-800">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
