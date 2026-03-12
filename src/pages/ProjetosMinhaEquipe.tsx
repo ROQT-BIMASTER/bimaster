@@ -64,11 +64,13 @@ function AvatarWithUpload({
 }) {
   const resolved = useResolvedAvatarUrl(member.avatar_url);
   const [uploading, setUploading] = useState(false);
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const sizeClass = size === "sm" ? "h-7 w-7" : "h-8 w-8";
-  const iconSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+  const sizeClass = size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  const iconSize = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const avatarSrc = localUrl || resolved;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
