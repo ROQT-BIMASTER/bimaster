@@ -598,6 +598,7 @@ function ProdutosVinculadosSection({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [unlinkProdutoId, setUnlinkProdutoId] = useState<string | null>(null);
 
   const linkedIds = new Set(produtos.map(p => p.id));
 
