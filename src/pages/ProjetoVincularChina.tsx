@@ -574,7 +574,7 @@ export default function ProjetoVincularChina() {
                 <AuditChinaVinculoBadge result={auditResult} loading={auditLoading} />
                 <Button
                   onClick={handleVincular}
-                  disabled={checkedTarefas.size === 0 || createVinculo.isPending || auditLoading}
+                  disabled={checkedTarefas.size === 0 || createVinculo.isPending}
                   className="w-full"
                   size="sm"
                 >
