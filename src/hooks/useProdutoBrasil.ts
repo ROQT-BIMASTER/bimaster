@@ -110,6 +110,7 @@ export function useProdutoBrasilSkus(produtoBrasilId: string | undefined) {
         .from("produto_brasil_skus" as any)
         .select("*")
         .eq("produto_brasil_id", produtoBrasilId!)
+        .order("ordem")
         .order("created_at") as any);
       if (error) throw error;
       return (data || []) as ProdutoBrasilSku[];
