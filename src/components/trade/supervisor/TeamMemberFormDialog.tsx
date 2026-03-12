@@ -194,15 +194,17 @@ export function TeamMemberFormDialog({
   const displayUrl = avatarPreview || signedUrl;
 
   // Generate signed URL when avatarUrl changes
-  useState(() => {
+  useEffect(() => {
     if (avatarUrl && !avatarUrl.startsWith("http") && !avatarUrl.startsWith("data:")) {
       supabase.storage.from("avatars").createSignedUrl(avatarUrl, 3600).then(({ data }) => {
         if (data?.signedUrl) setSignedUrl(data.signedUrl);
       });
     } else if (avatarUrl?.startsWith("http")) {
       setSignedUrl(avatarUrl);
+    } else {
+      setSignedUrl(null);
     }
-  });
+  }, [avatarUrl]);
 
   const handleSubmit = (data: TeamMemberFormData) => {
     if (!member) return;
