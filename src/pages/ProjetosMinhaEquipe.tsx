@@ -109,7 +109,7 @@ function AvatarWithUpload({
   return (
     <div className="relative inline-block group">
       <Avatar className={sizeClass}>
-        <AvatarImage src={avatarSrc} />
+        <AvatarImage src={avatarSrc} className="object-cover" />
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
           {member.nome?.slice(0, 2).toUpperCase()}
         </AvatarFallback>
