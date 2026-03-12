@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { logDocAudit } from "@/lib/productDocAudit";
 
 export interface TarefaComentario {
   id: string;
