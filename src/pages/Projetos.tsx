@@ -82,9 +82,29 @@ export default function Projetos() {
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
                 </div>
               </div>
-              <Button onClick={() => setDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Novo Projeto
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border rounded-lg overflow-hidden">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-9 w-9 rounded-none"
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="icon"
+                    className="h-9 w-9 rounded-none"
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button onClick={() => setDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" /> Novo Projeto
+                </Button>
+              </div>
             </div>
 
             {/* Loading */}
