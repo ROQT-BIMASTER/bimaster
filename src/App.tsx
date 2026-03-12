@@ -22,6 +22,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { TourProvider } from "@/components/tour";
+import { MeetingRecordingProvider } from "@/contexts/MeetingRecordingContext";
 
 // Retry automático para lazy imports - resolve erros de chunk após deploys
 function lazyWithRetry<T extends ComponentType<any>>(
