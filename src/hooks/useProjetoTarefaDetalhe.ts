@@ -147,11 +147,11 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
       });
       if (error) throw error;
 
-      // Log audit
+      // Log audit with produtoId from hook param
       await logDocAudit({
-        produtoId: (undefined as any),
+        produtoId: produtoId || undefined,
         acao: "upload",
-        detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type },
+        detalhes: { nome_arquivo: file.name, tamanho: file.size, tipo: file.type, tarefa_id: tarefaId },
       });
     },
     onSuccess: () => {
