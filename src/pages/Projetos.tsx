@@ -1,18 +1,70 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjetos, Projeto } from "@/hooks/useProjetos";
 import { NovoProjetoDialog } from "@/components/projetos/NovoProjetoDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Plus, FolderOpen, Loader2, MoreHorizontal, Trash2, CheckCircle2, Calendar } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
+  const resolved = useResolvedAvatarUrl(avatarUrl);
+  return (
+    <Avatar className="h-7 w-7 border-2 border-background">
+      <AvatarImage src={resolved} className="object-cover" />
+      <AvatarFallback className="text-[10px] font-medium bg-muted">
+        {(nome || "?").charAt(0).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function getProjetoStatus(projetoStatus: string, metrics: { total: number; concluidas: number; atrasadas: number }) {
+  if (projetoStatus === "finalizado" || (metrics.total > 0 && metrics.concluidas === metrics.total)) {
+    return { label: "Concluído", variant: "success" as const, color: "text-green-600" };
+  }
+  if (metrics.atrasadas > 0) {
+    return { label: "Atrasado", variant: "destructive" as const, color: "text-red-600" };
+  }
+  if (metrics.concluidas > 0) {
+    return { label: "Em Andamento", variant: "secondary" as const, color: "text-blue-600" };
+  }
+  return { label: "No Prazo", variant: "outline" as const, color: "text-green-600" };
+}
 
 export default function Projetos() {
-  const { projetos, isLoading, deleteProjeto } = useProjetos();
+  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
+
+  const metricsMap = useMemo(() => {
+    const map = new Map<string, { total: number; concluidas: number; atrasadas: number }>();
+    for (const m of projetoMetrics) {
+      map.set(m.projeto_id, { total: m.total_tarefas, concluidas: m.concluidas, atrasadas: m.atrasadas });
+    }
+    return map;
+  }, [projetoMetrics]);
+
+  const membrosMap = useMemo(() => {
+    const map = new Map<string, Array<{ user_id: string; nome: string | null; avatar_url: string | null }>>();
+    for (const m of projetoMembros) {
+      if (!map.has(m.projeto_id)) map.set(m.projeto_id, []);
+      map.get(m.projeto_id)!.push({
+        user_id: m.user_id,
+        nome: m.profiles?.nome || null,
+        avatar_url: m.profiles?.avatar_url || null,
+      });
+    }
+    return map;
+  }, [projetoMembros]);
 
   return (
     <SidebarProvider>
@@ -55,43 +107,109 @@ export default function Projetos() {
 
             {/* Project grid */}
             {!isLoading && projetos.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projetos.map(projeto => (
-                  <Card
-                    key={projeto.id}
-                    className="cursor-pointer hover:shadow-lg transition-all group relative"
-                    onClick={() => navigate(`/dashboard/projetos/${projeto.id}`)}
-                  >
-                    <div className="h-2 rounded-t-xl" style={{ backgroundColor: projeto.cor }} />
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: projeto.cor }}>
-                            <span className="text-white font-bold">{projeto.nome.charAt(0)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {projetos.map(projeto => {
+                  const metrics = metricsMap.get(projeto.id) || { total: 0, concluidas: 0, atrasadas: 0 };
+                  const membros = membrosMap.get(projeto.id) || [];
+                  const isFinalizado = projeto.status === "finalizado" || (metrics.total > 0 && metrics.concluidas === metrics.total);
+                  const progressPercent = metrics.total > 0 ? Math.round((metrics.concluidas / metrics.total) * 100) : 0;
+                  const displayPercent = isFinalizado ? 100 : progressPercent;
+                  const status = getProjetoStatus(projeto.status, metrics);
+                  const displayMembros = membros.slice(0, 3);
+                  const extraMembros = membros.length - 3;
+
+                  return (
+                    <Card
+                      key={projeto.id}
+                      className="cursor-pointer hover:shadow-lg transition-all group relative overflow-hidden"
+                      onClick={() => navigate(`/dashboard/projetos/${projeto.id}`)}
+                    >
+                      {/* Color bar */}
+                      <div className="h-1.5" style={{ backgroundColor: projeto.cor }} />
+
+                      <CardContent className="p-5 space-y-4">
+                        {/* Header: icon + name + status + menu */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: projeto.cor }}
+                            >
+                              <span className="text-white font-bold text-sm">{projeto.nome.charAt(0)}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-foreground truncate">{projeto.nome}</h3>
+                              {projeto.descricao && (
+                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{projeto.descricao}</p>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-foreground">{projeto.nome}</h3>
-                            {projeto.descricao && (
-                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{projeto.descricao}</p>
-                            )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge variant={status.variant} className="text-[10px] px-2 py-0.5 whitespace-nowrap">
+                              {status.label}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+                                {!isFinalizado && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => finalizarProjeto.mutate(projeto.id)}>
+                                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" /> Finalizar Projeto
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                <DropdownMenuItem onClick={() => deleteProjeto.mutate(projeto.id)} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
-                            <DropdownMenuItem onClick={() => deleteProjeto.mutate(projeto.id)} className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {/* Progress section */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              <span className="font-semibold text-foreground">{isFinalizado ? metrics.total : metrics.concluidas}</span>
+                              {" / "}{metrics.total} tarefas
+                            </span>
+                            <span className={`font-bold ${displayPercent === 100 ? "text-green-600" : "text-foreground"}`}>
+                              {displayPercent}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={displayPercent}
+                            className="h-2"
+                            gradient={displayPercent === 100}
+                          />
+                        </div>
+
+                        {/* Footer: members + date */}
+                        <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center -space-x-1.5">
+                            {displayMembros.map(m => (
+                              <MemberAvatar key={m.user_id} avatarUrl={m.avatar_url} nome={m.nome} />
+                            ))}
+                            {extraMembros > 0 && (
+                              <div className="h-7 w-7 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                                <span className="text-[10px] font-medium text-muted-foreground">+{extraMembros}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(projeto.created_at), "dd MMM yyyy", { locale: ptBR })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
