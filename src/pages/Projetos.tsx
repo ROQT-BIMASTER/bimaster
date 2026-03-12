@@ -40,7 +40,32 @@ function getProjetoStatus(projetoStatus: string, metrics: { total: number; concl
   return { label: "No Prazo", variant: "outline" as const, color: "text-green-600" };
 }
 
-export default function Projetos() {
+function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { projeto: Projeto; isFinalizado: boolean; onFinalize: () => void; onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+        {!isFinalizado && (
+          <>
+            <DropdownMenuItem onClick={onFinalize}>
+              <CheckCircle2 className="h-4 w-4 mr-2 text-success" /> Finalizar Projeto
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <Trash2 className="h-4 w-4 mr-2" /> Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+
   const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
