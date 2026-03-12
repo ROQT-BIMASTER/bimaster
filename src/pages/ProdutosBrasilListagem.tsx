@@ -101,10 +101,24 @@ export default function ProdutosBrasilListagem() {
     return map[status] || "secondary";
   };
 
+  return (
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Package className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold text-foreground">Produtos Importados</h1>
+          <p className="text-sm text-muted-foreground">Pré-cadastro e gestão de produtos importados da China</p>
+        </div>
         <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Produto
-            </Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Produto
+        </Button>
         <NovoProdutoImportadoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
 
