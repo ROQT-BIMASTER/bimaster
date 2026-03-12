@@ -14881,6 +14881,128 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_dev_status: {
+        Row: {
+          created_at: string
+          id: string
+          produto_id: string
+          projeto_id: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          produto_id: string
+          projeto_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          produto_id?: string
+          projeto_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_dev_status_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_doc_audit_log: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: Json | null
+          documento_id: string | null
+          id: string
+          produto_id: string | null
+          projeto_id: string | null
+          user_id: string | null
+          user_name: string | null
+          versao_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: Json | null
+          documento_id?: string | null
+          id?: string
+          produto_id?: string | null
+          projeto_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          versao_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: Json | null
+          documento_id?: string | null
+          id?: string
+          produto_id?: string | null
+          projeto_id?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          versao_id?: string | null
+        }
+        Relationships: []
+      }
+      produto_documento_versoes: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          arquivo_path: string
+          created_at: string
+          documento_id: string
+          enviado_por: string | null
+          id: string
+          observacoes: string | null
+          status: string
+          tamanho: number | null
+          versao: number
+          versao_oficial: boolean
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          arquivo_path: string
+          created_at?: string
+          documento_id: string
+          enviado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tamanho?: number | null
+          versao?: number
+          versao_oficial?: boolean
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          arquivo_path?: string
+          created_at?: string
+          documento_id?: string
+          enviado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tamanho?: number | null
+          versao?: number
+          versao_oficial?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           aprovado: boolean
@@ -23013,6 +23135,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_approve_doc: {
+        Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_publish_to_cofre: {
+        Args: { _projeto_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_event: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
@@ -23506,6 +23636,10 @@ export type Database = {
         Returns: {
           tela_codigo: string
         }[]
+      }
+      has_dev_papel: {
+        Args: { _papel: string; _projeto_id: string; _user_id: string }
+        Returns: boolean
       }
       has_event_access: {
         Args: { _permission?: string; _user_id: string }

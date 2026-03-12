@@ -33,8 +33,11 @@ import { toast } from "sonner";
 import {
   Minimize2, CheckCircle2, Circle, CalendarIcon, Paperclip, MessageSquare,
   MessageCircle, Upload, FileText, Image, File, Trash2, Download,
-  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet
+  Target, Plus, BarChart3, FolderOpen, ShieldCheck, AlertTriangle, FileSpreadsheet, Lock
 } from "lucide-react";
+import { CofreOficialTab } from "./CofreOficialTab";
+import { ProductDevStatusBar } from "./ProductDevStatusBar";
+import { useProjetoMembros } from "@/hooks/useProjetoMembros";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -114,6 +117,9 @@ export function TarefaFocusMode({
   const { metas, addMeta, toggleMeta, deleteMeta } = useProjetoTarefaMetas(tarefa?.id);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { currentUserPapel } = useProjetoMembros((tarefa as any)?.projeto_id);
+  const isDevProduto = projetoTipo === "desenvolvimento_produto";
+  const hasProduto = !!(tarefa as any)?.produto_id;
 
   const [descValue, setDescValue] = useState(tarefa?.descricao || "");
   const [chatValue, setChatValue] = useState("");
@@ -486,6 +492,20 @@ export function TarefaFocusMode({
 
               <Separator />
 
+              {/* Dev Status Bar */}
+              {isDevProduto && hasProduto && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Status do Desenvolvimento</h3>
+                  <ProductDevStatusBar
+                    produtoId={(tarefa as any).produto_id}
+                    projetoId={(tarefa as any).projeto_id}
+                    userPapel={currentUserPapel}
+                  />
+                </div>
+              )}
+
+              <Separator />
+
               {/* Documentos & Cofre */}
               <div>
                 <Tabs defaultValue="todos" className="w-full">
@@ -500,6 +520,11 @@ export function TarefaFocusMode({
                       <TabsTrigger value="pendentes" className="text-xs h-7 gap-1">
                         <AlertTriangle className="h-3.5 w-3.5" /> Fora do Cofre ({anexosNoCofre.length})
                       </TabsTrigger>
+                      {isDevProduto && hasProduto && (
+                        <TabsTrigger value="cofre_oficial" className="text-xs h-7 gap-1">
+                          <Lock className="h-3.5 w-3.5" /> Cofre Oficial
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                     <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5" /> Upload
@@ -660,6 +685,16 @@ export function TarefaFocusMode({
                       </div>
                     )}
                   </TabsContent>
+
+                  {/* Tab: Cofre Oficial */}
+                  {isDevProduto && hasProduto && (
+                    <TabsContent value="cofre_oficial" className="mt-0">
+                      <CofreOficialTab
+                        produtoId={(tarefa as any).produto_id}
+                        projetoId={(tarefa as any).projeto_id}
+                      />
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
 

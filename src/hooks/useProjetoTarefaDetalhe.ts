@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { logDocAudit } from "@/lib/productDocAudit";
 
 export interface TarefaComentario {
   id: string;
@@ -184,7 +185,15 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
         } as any);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Log audit for each doc sent to cofre
+      variables.anexoIds.forEach(anexoId => {
+        logDocAudit({
+          produtoId: variables.produtoId,
+          acao: "publicacao_cofre",
+          detalhes: { anexo_id: anexoId, categoria: variables.categoriasPorAnexo[anexoId] },
+        });
+      });
       toast.success("Documentos enviados ao Cofre!");
     },
     onError: (err: Error) => toast.error("Erro ao enviar ao Cofre: " + err.message),
