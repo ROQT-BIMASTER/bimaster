@@ -62,7 +62,7 @@ export default function ProdutoBrasilCadastro() {
       </div>
 
       {/* SKU Table */}
-      <SkuTable produtoBrasilId={produto.id} />
+      <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
 
       {/* Image Timeline */}
       <ImagemTimeline produto={produto} />
