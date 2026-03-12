@@ -169,6 +169,7 @@ export function ProjetoHeader({
         open={membrosOpen}
         onOpenChange={setMembrosOpen}
         projetoId={projeto.id}
+        projetoTipo={projeto.tipo || undefined}
       />
 
       {secoes.length > 0 && onAddTarefa && (
