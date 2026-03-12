@@ -30,7 +30,7 @@ export function NovoProdutoImportadoDialog({ open, onOpenChange }: Props) {
   const createProduto = useCreateProdutoBrasil();
   const [mode, setMode] = useState<"choose" | "ai" | "form">("choose");
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
-  const [gradeItems, setGradeItems] = useState<GradeItem[]>([]);
+  const [gradeItems, setGradeItems] = useState<GradeImportadoItem[]>([]);
 
   const [formData, setFormData] = useState({
     // China identification
