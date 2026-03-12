@@ -40,13 +40,13 @@ const ROLE_ORDER: Record<string, number> = {
   promotor: 5,
 };
 
-const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  admin: { label: "Administrador", icon: <Crown className="h-4 w-4" />, color: "text-amber-500" },
-  gerente: { label: "Gerente", icon: <Star className="h-4 w-4" />, color: "text-purple-500" },
-  supervisor: { label: "Supervisor", icon: <UserCheck className="h-4 w-4" />, color: "text-blue-500" },
-  coordenador: { label: "Coordenador", icon: <Users className="h-4 w-4" />, color: "text-cyan-500" },
-  vendedor: { label: "Vendedor", icon: <Target className="h-4 w-4" />, color: "text-green-500" },
-  promotor: { label: "Promotor", icon: <User className="h-4 w-4" />, color: "text-orange-500" },
+const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+  admin: { label: "Administrador", icon: <Crown className="h-4 w-4" />, color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700" },
+  gerente: { label: "Gerente", icon: <Star className="h-4 w-4" />, color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+  supervisor: { label: "Supervisor", icon: <UserCheck className="h-4 w-4" />, color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+  coordenador: { label: "Coordenador", icon: <Users className="h-4 w-4" />, color: "text-cyan-700 dark:text-cyan-300", bg: "bg-cyan-100 dark:bg-cyan-900/40 border-cyan-300 dark:border-cyan-700" },
+  vendedor: { label: "Vendedor", icon: <Target className="h-4 w-4" />, color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+  promotor: { label: "Promotor", icon: <User className="h-4 w-4" />, color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-900/40 border-orange-300 dark:border-orange-700" },
 };
 
 interface TeamMemberRegistrationProps {
