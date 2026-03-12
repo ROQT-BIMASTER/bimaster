@@ -179,7 +179,7 @@ function MemberDetailModal({
       if (!member) return [];
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, codigo, status, prioridade, data_prazo, projetos:projeto_id(nome)")
+        .select("id, titulo, codigo, status, prioridade, data_prazo, data_conclusao, created_at, projetos:projeto_id(nome)")
         .eq("responsavel_id", member.id)
         .order("data_prazo", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -187,6 +187,40 @@ function MemberDetailModal({
     },
     enabled: !!member && open,
   });
+
+  // Build weekly chart data for current month
+  const chartData = useMemo(() => {
+    if (!tarefas.length) return [];
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 });
+
+    return weeks.map((weekStart, i) => {
+      const wStart = i === 0 ? monthStart : weekStart;
+      const wEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+      const clampedEnd = wEnd > monthEnd ? monthEnd : wEnd;
+      const interval = { start: wStart, end: clampedEnd };
+
+      let concluidas = 0;
+      let criadas = 0;
+      let vencendo = 0;
+
+      tarefas.forEach((t: any) => {
+        if (t.data_conclusao && isWithinInterval(parseISO(t.data_conclusao), interval)) concluidas++;
+        if (t.created_at && isWithinInterval(parseISO(t.created_at), interval)) criadas++;
+        if (t.data_prazo && isWithinInterval(parseISO(t.data_prazo), interval)) vencendo++;
+      });
+
+      return {
+        semana: `Sem ${i + 1}`,
+        periodo: `${format(wStart, "dd/MM")} - ${format(clampedEnd, "dd/MM")}`,
+        Concluídas: concluidas,
+        Criadas: criadas,
+        Vencimento: vencendo,
+      };
+    });
+  }, [tarefas]);
 
   if (!member) return null;
 
