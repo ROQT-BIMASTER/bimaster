@@ -880,25 +880,41 @@ function AprovacaoChatPanel({ tarefaId }: { tarefaId: string }) {
   const [replyTo, setReplyTo] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("projeto_tarefa_comentarios").select("*")
-        .eq("tarefa_id", tarefaId).order("created_at", { ascending: true });
-      const comments = data || [];
-      setComentarios(comments);
-      const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds);
-        const map: Record<string, any> = {};
-        (profs || []).forEach((p: any) => { map[p.id] = p; });
-        setProfiles(map);
-      }
-      setLoading(false);
-    };
-    load();
+  const loadComments = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("projeto_tarefa_comentarios").select("*")
+      .eq("tarefa_id", tarefaId).order("created_at", { ascending: true });
+    const comments = data || [];
+    setComentarios(comments);
+    const userIds = [...new Set(comments.map(c => c.user_id).filter(Boolean))];
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds);
+      const map: Record<string, any> = {};
+      (profs || []).forEach((p: any) => { map[p.id] = p; });
+      setProfiles(map);
+    }
+    setLoading(false);
   }, [tarefaId]);
+
+  useEffect(() => { loadComments(); }, [loadComments]);
+
+  // Realtime subscription for approval chat
+  useEffect(() => {
+    if (!tarefaId) return;
+    const channel = supabase
+      .channel(`aprovacao-chat-${tarefaId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "projeto_tarefa_comentarios",
+        filter: `tarefa_id=eq.${tarefaId}`,
+      }, () => {
+        loadComments();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tarefaId, loadComments]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
