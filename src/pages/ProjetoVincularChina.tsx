@@ -216,7 +216,6 @@ export default function ProjetoVincularChina() {
         const { supabase } = await import("@/integrations/supabase/client");
         await (supabase.from("produtos_brasil" as any).insert({
           submissao_china_id: selectedSubmissaoId,
-          vinculo_id: firstVinculoId,
           projeto_id: selectedProjetoId,
           china_nome: selectedSubmissao.produto_nome,
           china_codigo: selectedSubmissao.produto_codigo,
