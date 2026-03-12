@@ -101,91 +101,11 @@ export default function ProdutosBrasilListagem() {
     return map[status] || "secondary";
   };
 
-  const handleCreate = () => {
-    if (!form.china_nome && !form.china_codigo) {
-      toast.error("Informe ao menos o nome ou código do produto.");
-      return;
-    }
-    createProduto.mutate(
-      {
-        china_nome: form.china_nome || null,
-        china_codigo: form.china_codigo || "SEM-CODIGO",
-        china_ean: form.china_ean || undefined,
-        china_categoria: form.china_categoria || undefined,
-        china_descricao: form.china_descricao || undefined,
-      },
-      {
-        onSuccess: (produto) => {
-          toast.success("Produto criado com sucesso!");
-          setDialogOpen(false);
-          setForm({ china_nome: "", china_codigo: "", china_ean: "", china_categoria: "", china_descricao: "" });
-          navigate(`/dashboard/projetos/produto-brasil/${produto.id}`);
-        },
-      }
-    );
-  };
-
-  return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Package className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">Produtos Importados</h1>
-          <p className="text-sm text-muted-foreground">Pré-cadastro e gestão de produtos importados da China</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
+        <Button onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Produto
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo Produto — Pré-Cadastro</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs">Nome do Produto (China)</Label>
-                <Input value={form.china_nome} onChange={(e) => setForm({ ...form, china_nome: e.target.value })} placeholder="Nome original" />
-              </div>
-              <div>
-                <Label className="text-xs">Código (China)</Label>
-                <Input value={form.china_codigo} onChange={(e) => setForm({ ...form, china_codigo: e.target.value })} placeholder="Código original" />
-              </div>
-              <div>
-                <Label className="text-xs">EAN</Label>
-                <Input value={form.china_ean} onChange={(e) => setForm({ ...form, china_ean: e.target.value })} placeholder="Opcional" />
-              </div>
-              <div>
-                <Label className="text-xs">Categoria</Label>
-                <Input value={form.china_categoria} onChange={(e) => setForm({ ...form, china_categoria: e.target.value })} placeholder="Opcional" />
-              </div>
-              <div>
-                <Label className="text-xs">Descrição</Label>
-                <Input value={form.china_descricao} onChange={(e) => setForm({ ...form, china_descricao: e.target.value })} placeholder="Opcional" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                O produto será criado em <strong>Pré-Cadastro</strong>. A vinculação a um Projeto poderá ser feita depois.
-              </p>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancelar</Button>
-              </DialogClose>
-              <Button onClick={handleCreate} disabled={createProduto.isPending}>
-                {createProduto.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Criar Produto
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <NovoProdutoImportadoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
 
       {/* KPIs */}
