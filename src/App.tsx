@@ -573,6 +573,7 @@ const App = () => {
           <AuthProvider>
             <PermissionsProvider>
               <ImpersonationProvider>
+                <MeetingRecordingProvider>
                 <TourProvider>
                   <TooltipProvider delayDuration={0}>
                     <Toaster />
