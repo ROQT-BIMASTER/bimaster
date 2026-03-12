@@ -62,12 +62,13 @@ export default function ProdutoBrasilCadastro() {
 
       {/* Main Tabbed Content */}
       <Tabs defaultValue="identificacao" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
           <TabsTrigger value="identificacao" className="text-xs">Identificação</TabsTrigger>
           <TabsTrigger value="classificacao" className="text-xs">Classificação</TabsTrigger>
           <TabsTrigger value="regulatorio" className="text-xs">Regulatório</TabsTrigger>
           <TabsTrigger value="datas" className="text-xs">Datas</TabsTrigger>
           <TabsTrigger value="grade" className="text-xs">Grade / SKUs</TabsTrigger>
+          <TabsTrigger value="custos" className="text-xs">Custos</TabsTrigger>
           <TabsTrigger value="imagens" className="text-xs">Imagens</TabsTrigger>
           <TabsTrigger value="china" className="text-xs">Dados China</TabsTrigger>
           <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
