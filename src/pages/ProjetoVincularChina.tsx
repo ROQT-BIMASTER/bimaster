@@ -311,7 +311,7 @@ export default function ProjetoVincularChina() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="h-[400px]">
+            <ScrollArea className="h-[500px]">
               {loadingSub ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
