@@ -250,11 +250,14 @@ export default function ProjetoAprovacaoCadastro() {
     }
   };
 
+  const [unlinkConfirm, setUnlinkConfirm] = useState<string | null>(null);
+  
   const handleRemoveProduto = async (linkId: string) => {
     try {
       await supabase.from("projeto_tarefa_produtos" as any).delete().eq("id", linkId);
       toast.success("Produto desvinculado.");
       if (selectedTarefa) loadProdutos(selectedTarefa.id);
+      setUnlinkConfirm(null);
     } catch (err: any) { toast.error(err.message); }
   };
 
