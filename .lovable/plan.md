@@ -1,120 +1,59 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Plano: Painel Expandido de Performance Individual (estilo Focus Mode)
 
-### Status: ✅ Implementado
+Substituir o modal atual por um **Dialog fullscreen** (98vw x 95vh) no estilo do `TarefaFocusMode`, com layout em colunas e detalhes reais das tarefas do membro.
 
-### O que foi feito
-
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
-
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
-
----
-
-## Plano: API de Exportação Pull para o ERP
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
-
----
-
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
-
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
+### Layout
 
 ```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
+┌──────────────────────────────────────────────────────────────────┐
+│ [Avatar] Nome · Badge Cargo · Score 42pts        [Sair do Foco] │
+├────────────────────────────────┬─────────────────────────────────┤
+│  COLUNA ESQUERDA               │  COLUNA DIREITA                │
+│                                │                                │
+│  ▸ KPIs (grid 2x2)            │  ▸ Lista de Tarefas            │
+│    Proj. Ativos | Total Taref  │    ┌─ Tarefa 1 ── prazo ── ●  │
+│    Concluídas   | Atrasadas    │    ├─ Tarefa 2 ── prazo ── ○  │
+│                                │    ├─ Tarefa 3 ── ATRASADA ─!  │
+│  ▸ Taxa de Conclusão           │    └─ Tarefa 4 ── prazo ── ●  │
+│    [████████░░] 75%            │                                │
+│                                │  Filtros: Todas | Pendentes    │
+│  ▸ Score de Produtividade      │           Concluídas | Atrasa. │
+│    Card destaque amber         │                                │
+│                                │  Cada tarefa mostra:           │
+│  ▸ Ranking na Equipe           │  - Título + código             │
+│    Mini lista top 5            │  - Projeto (nome)              │
+│                                │  - Status badge                │
+│                                │  - Data prazo + risk badge     │
+│                                │  - Prioridade                  │
+└────────────────────────────────┴─────────────────────────────────┘
 ```
 
----
+### Implementação
 
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+**Arquivo:** `src/pages/ProjetosMinhaEquipe.tsx`
 
-### Status: ✅ Implementado
+1. **Dialog fullscreen**: Mudar de `max-w-4xl` para `max-w-[98vw] w-[98vw] h-[95vh]` com `flex flex-col overflow-hidden` (mesmo estilo do `TarefaFocusMode`)
 
-### O que foi feito
+2. **Header compacto**: Avatar + nome + badge de cargo + score em linha horizontal, botão "Sair do Foco" à direita (com ícone `Minimize2`)
 
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
+3. **Layout 2 colunas** (`flex flex-1 overflow-hidden`):
+   - **Coluna esquerda** (ScrollArea, ~40%): KPIs em grid 2x2, taxa de conclusão com Progress bar, score card amber, ranking mini-lista (conteúdo já existente, reorganizado)
+   - **Coluna direita** (ScrollArea, ~60%): **Lista real das tarefas do membro** buscadas do banco
 
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+4. **Busca de tarefas do membro**: Nova query dentro do componente que busca `projeto_tarefas` filtradas por `responsavel_id = member.id`, incluindo join com `projetos` para nome do projeto. Exibir em tabela/lista com:
+   - Título da tarefa + código
+   - Nome do projeto
+   - Status (badge colorido)
+   - Data prazo + `TarefaRiskBadge`
+   - Prioridade
 
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
+5. **Filtro de status**: Tabs ou botões para filtrar "Todas", "Pendentes", "Concluídas", "Atrasadas"
 
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
+6. **Componente `TarefaRiskBadge`**: já existe, será reutilizado na lista de tarefas
 
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
+### Dados necessários
+- Query adicional: `projeto_tarefas` com `responsavel_id = member.id` + join `projetos(nome)` — executada ao abrir o modal
+- Nenhuma migração de banco necessária
 
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
-
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
