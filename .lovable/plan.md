@@ -1,120 +1,87 @@
 
 
-## Plano: Envio de Pagamentos para o ERP
+## Análise Aprofundada — Falhas e Melhorias do Módulo de Desenvolvimento de Produtos
 
-### Status: ✅ Implementado
+### FALHAS CRÍTICAS ENCONTRADAS
 
-### O que foi feito
+#### 1. `ProjetoAprovacaoCadastro` — Aprovação sem validação de papel (CRÍTICO)
+**Arquivo:** `src/pages/ProjetoAprovacaoCadastro.tsx`, linhas 126-150
 
-1. **Tabela `erp_export_queue`** — Criada com RLS restrita via `can_access_payment_queue`
-2. **Edge Function `erp-export-payment`** — 3 canais: N8N webhook, REST API, SQL Direct (placeholder)
-3. **Trigger automático** — Ao marcar como pago no `useFinancialPaymentQueue`, exporta automaticamente
-4. **Badge visual** — `ErpExportStatusBadge` no `PaymentReviewDialog` com status e botão reenviar
-5. **Helper `useErpExport.ts`** — Função reutilizável para exportar pagamentos
+O `handleAprovar` marca `visivel_fabrica=true` em **todos** os documentos da tarefa **sem verificar** se o usuário tem papel `admin_cofre` ou qualquer outro papel. Qualquer usuário com acesso à rota `/dashboard/projetos/aprovacoes` pode aprovar e liberar documentos para a China.
 
-### Secrets necessárias (conforme canal)
-- `N8N_ERP_EXPORT_WEBHOOK_URL` — para canal N8N
-- `ERP_REST_API_URL` + `ERP_REST_API_KEY` — para canal REST API
-- `ERP_SQL_HOST` — para canal SQL Direct (não implementado ainda)
+**Correção:** Validar via RPC `can_publish_to_cofre` antes de aprovar. Exibir erro se não autorizado.
 
 ---
 
-## Plano: API de Exportação Pull para o ERP
+#### 2. `ValidacaoFinalDialog.AprovacaoPanel` — Mesma falha (CRÍTICO)
+**Arquivo:** `src/components/projetos/ValidacaoFinalDialog.tsx`, linhas 205-242
 
-### Status: ✅ Implementado
+O `handleAprovar` no `AprovacaoPanel` marca `visivel_fabrica=true` sem checar papel. O comentário na linha 209 diz "CRITICAL: Validate admin_cofre role" mas **a validação nunca é implementada**.
 
-### O que foi feito
-
-1. **Edge Function `contas-pagar-export-api`** — API Pull com 3 endpoints:
-   - `GET /paid` — Lista pagamentos pagos pendentes de exportação (payload limpo, sem códigos internos)
-   - `POST /confirm` — ERP confirma recebimento dos pagamentos
-   - `GET /status` — Estatísticas de sincronização
-2. **Payload limpo** — Métodos de pagamento mapeados para nomes legíveis (PIX, TED, Boleto, etc.)
-3. **Autenticação via `x-api-key`** — Usa secret `EXPORT_API_KEY` já existente
-4. **Documentação** — `docs/API_EXPORT_PAGAMENTOS.md` com exemplos completos para a equipe do ERP
-5. **erp-export-payment atualizado** — Payload sem códigos internos (`payment_details`, `code` removidos)
+**Correção:** Chamar `can_publish_to_cofre` antes de atualizar `visivel_fabrica`. Esconder botão "Aprovar" para quem não tem papel.
 
 ---
 
-## Plano: Fluxo Profissional de Contas a Pagar — Provisão + Baixa (Padrão SAP/TOTVS)
+#### 3. Auditoria de upload com `produtoId: undefined` (MÉDIO)
+**Arquivo:** `src/hooks/useProjetoTarefaDetalhe.ts`, linha 152
 
-### Status: ✅ Implementado
-
-### O que foi feito
-
-1. **Migration** — Adicionada coluna `export_type` em `erp_export_queue` (`registration` | `payment`) com constraints atualizadas
-2. **Edge Function `erp-export-payment`** — Payload dinâmico por tipo:
-   - `registration`: status "Aguardando Pagamento", sem dados de pagamento
-   - `payment`: status "Pago", com método e data de pagamento
-3. **Edge Function `contas-pagar-export-api`** — Pull API expandida:
-   - `GET /pending` — Itens aceitos pendentes de provisão
-   - `GET /paid` — Itens pagos pendentes de baixa
-   - `GET /` — Ambos, com filtro `?status=accepted,paid`
-   - `POST /confirm` — Aceita `export_type` para confirmar provisão ou baixa separadamente
-   - `GET /status` — Contagens separadas para provisão e baixa
-4. **Hook `useErpExport.ts`** — Parâmetro `exportType` adicionado
-5. **Hook `useFinancialPaymentQueue.ts`** — Triggers automáticos:
-   - Ao aceitar: exporta como `registration` (provisão)
-   - Ao pagar: exporta como `payment` (baixa)
-
-### Fluxo
-
-```text
-Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
-                              ↓
-             Pagamento → ERP: "Pago" (baixa do título)
+```typescript
+await logDocAudit({ produtoId: (undefined as any), ... });
 ```
+O `produtoId` é passado como `undefined` no upload de anexos. Todos os registros de auditoria de upload ficam sem vínculo a produto, tornando a rastreabilidade inútil.
+
+**Correção:** Passar `(tarefa as any)?.produto_id` corretamente. Isso requer refatorar `uploadAnexo` para aceitar `produtoId` como parâmetro.
 
 ---
 
-## Plano: Expansão Completa da Integração Pluggy (sem Pagamentos)
+#### 4. Exclusão de anexos sem validação de papel (MÉDIO)
+**Arquivo:** `src/components/projetos/TarefaFocusMode.tsx`, linha 558
 
-### Status: ✅ Implementado
+Qualquer membro pode deletar qualquer anexo (botão `Trash2`), incluindo documentos que já foram enviados ao cofre. Não há validação de papel nem confirmação.
 
-### O que foi feito
+**Correção:** Restringir exclusão a `coordenador`, `gestor_produto` e ao próprio uploader. Adicionar confirmação. Bloquear exclusão de anexos já no cofre.
 
-#### FASE 1 — Infraestrutura Base
-1. **Migration** — 6 novas tabelas + 2 alteradas:
-   - `pluggy_investments` — Investimentos corporativos
-   - `pluggy_investment_transactions` — Movimentações de investimento
-   - `pluggy_identities` — Identidade do titular (CPF/CNPJ)
-   - `pluggy_loans` — Empréstimos ativos
-   - `pluggy_category_rules` — Regras de categorização customizadas
-   - `balance_alerts` — Alertas de saldo baixo
-   - `bank_connections` — +5 colunas (account_type, credit_limit, etc.)
-   - `conciliacoes_bancarias` — +4 colunas (pluggy_category, payment_data, etc.)
-   - RLS em todas as tabelas via user_id / bank_connections join
+---
 
-2. **Edge Function `conciliacao-bancaria`** — +13 novos actions:
-   - `list-connectors`, `fetch-identity`, `fetch-investments`, `fetch-investment-detail`
-   - `fetch-investment-transactions`, `fetch-accounts`, `fetch-categories`
-   - `create-category-rule`, `list-category-rules`, `delete-category-rule`
-   - `manage-balance-alert`, `list-balance-alerts`, `register-webhook`
+#### 5. Documentos no cofre sem controle de remoção (MÉDIO)
+Não existe funcionalidade para **remover** um documento do cofre (`fabrica_revisao_documentos`). Se um documento foi enviado ao cofre por engano, não há como reverter — ele fica permanentemente lá.
 
-#### FASE 2 — Webhook Avançado
-3. **`pluggy-webhook`** expandido:
-   - `transactions/created` → Sincronização incremental automática
-   - `item/updated` → Auto-sync + atualização de saldo + verificação de alertas
-   - `connector/status_updated` → Log informacional
-   - Auto-registro de webhooks ao salvar conexão
+**Correção:** Adicionar botão "Revogar do Cofre" visível apenas para `admin_cofre`, que marca `visivel_fabrica=false` e registra auditoria.
 
-#### FASE 3 — Dashboards e UI
-4. **Nova página `InvestimentosCorporativos`** — Dashboard com:
-   - Cards de patrimônio total, tipos de aplicação, filiais
-   - Gráfico de composição da carteira (PieChart)
-   - Tabela detalhada com nome, tipo, emissor, saldo, taxa, vencimento, status
-   - Sync por conexão bancária
+---
 
-5. **Novos componentes na Conciliação Bancária** (novas tabs):
-   - `PainelCartoes` — Cartões de crédito com limite, utilizado, disponível, fatura
-   - `MonitorEmprestimos` — Empréstimos ativos com saldo devedor, parcelas, juros, progress
-   - `GestaoCategoriasPluggy` — Criar/remover regras de categorização com vínculo ao plano de contas
-   - `AlertasSaldo` — Configurar alertas de saldo mínimo por conta
+#### 6. `DocVersionHistory` — Versão nunca é incrementada (MÉDIO)
+**Arquivo:** `src/hooks/useProjetoTarefaDetalhe.ts`, linhas 228-235
 
-6. **Sidebar** — Links para Conciliação Bancária e Investimentos no módulo Financeiro
+O `sendToCofre` sempre cria versão `1`. Se o mesmo documento for reenviado ao cofre, haverá múltiplas versões "1" sem incremento. Não há lógica para detectar reenvio ou incrementar a versão.
 
-#### FASE 4 — Automações Inteligentes
-7. **DRE Automático** — `autoMapCategories` no sync mapeia categorias Pluggy → plano de contas
-8. **Conciliação Automática via Webhook** — Matching em 3 tiers no `pluggy-webhook`
-9. **Alertas de Saldo Baixo** — Verificação automática pós-sync com threshold configurável
-10. **Categorização em transações** — Salva `pluggy_category`, `pluggy_category_id`, `payment_data`
+**Correção:** Antes de inserir, contar versões existentes para o mesmo `documento_id` (ou nome de arquivo) e incrementar.
+
+---
+
+#### 7. `CofreOficialTab` não mostra versão oficial (BAIXO)
+**Arquivo:** `src/components/projetos/CofreOficialTab.tsx`
+
+O componente filtra por `visivel_fabrica=true` mas **não verifica** se o documento tem uma versão marcada como `versao_oficial`. Documentos sem versão oficial aprovada aparecem no cofre igualmente.
+
+**Correção:** Cruzar com `produto_documento_versoes` para exibir badge de "Versão Oficial" e filtrar opcionalmente apenas documentos com versão oficial.
+
+---
+
+#### 8. `ProductDevStatusBar` — Status "ajuste_solicitado" bloqueia fluxo (BAIXO)
+**Arquivo:** `src/components/projetos/ProductDevStatusBar.tsx`, linha 43-47
+
+A lógica `targetIndex > currentIndex` impede retroagir para "ajuste_solicitado" (posição 2) se o status atual é "arte_em_desenvolvimento" (posição 4). Mas o papel `controle_arte` e `regulatorio` têm "ajuste_solicitado" como transição permitida.
+
+**Correção:** Permitir transição de volta para "ajuste_solicitado" independente da posição, pois é um status de retorno legítimo.
+
+---
+
+#### 9. Sem timeout/debounce nos RPCs de validação (BAIXO)
+O `sendToCofre` chama `can_publish_to_cofre` via RPC sem tratamento de timeout. Se o RPC falhar silenciosamente (retornar `null` ao invés de `false`), o código não bloqueia pois `!canPublish` onde `canPublish = null` é `true` — bloqueando corretamente, mas o erro mostrado ao usuário é genérico.
+
+---
+
+### FUNCIONALIDADES AUSENTES PARA PRODUÇÃO
+
+#### 1. Dashboard de Govern
