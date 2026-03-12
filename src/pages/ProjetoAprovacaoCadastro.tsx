@@ -131,6 +131,17 @@ export default function ProjetoAprovacaoCadastro() {
     }
     setSubmitting(true);
     try {
+      // Validate admin_cofre role before making docs visible to factory
+      const { data: canPublish } = await supabase.rpc("can_publish_to_cofre", {
+        _user_id: user.id,
+        _projeto_id: (selectedTarefa as any).projeto_id,
+      });
+      if (!canPublish) {
+        toast.error("Apenas usuários com papel 'Admin. Cofre' ou 'Coordenador' podem aprovar e liberar documentos.");
+        setSubmitting(false);
+        return;
+      }
+
       await supabase
         .from("projeto_tarefa_validacoes" as any)
         .update({ status: "aprovada", aprovado_por: user.id, aprovado_em: new Date().toISOString() } as any)

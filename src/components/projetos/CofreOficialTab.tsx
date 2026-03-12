@@ -108,9 +108,15 @@ export function CofreOficialTab({ produtoId, projetoId, isReadOnly }: CofreOfici
                     </span>
                   </div>
                 </div>
-                <Badge variant="default" className="text-[9px] gap-1">
-                  <ShieldCheck className="h-2.5 w-2.5" /> OFICIAL
-                </Badge>
+                {oficialVersions.includes(doc.id) ? (
+                  <Badge variant="default" className="text-[9px] gap-1 bg-emerald-600">
+                    <ShieldCheck className="h-2.5 w-2.5" /> OFICIAL
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[9px] gap-1">
+                    <ShieldCheck className="h-2.5 w-2.5" /> VISÍVEL
+                  </Badge>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(doc)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
