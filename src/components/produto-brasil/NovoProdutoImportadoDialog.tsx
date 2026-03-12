@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, PenLine, Sparkles, Bot, Save } from "lucide-react";
 import { CadastroIAStep } from "@/components/fabrica/CadastroIAStep";
-import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
+import { ComposicaoGradeImportadoEditor, type GradeImportadoItem } from "@/components/produto-brasil/ComposicaoGradeImportadoEditor";
 import { useCreateProdutoBrasil } from "@/hooks/useProdutoBrasil";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
