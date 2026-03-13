@@ -499,6 +499,9 @@ function AppContent() {
             {/* Módulo Análise de Embalagem */}
             <Route path="/dashboard/analise-embalagem" element={<ModuleRoute moduleCode="analise_embalagem"><AnaliseEmbalagem /></ModuleRoute>} />
 
+            {/* Módulo Checklist Etiqueta/Bula */}
+            <Route path="/dashboard/etiqueta-bula" element={<ModuleRoute moduleCode="etiqueta_bula"><ChecklistEtiquetaBula /></ModuleRoute>} />
+
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleRoute>} />
