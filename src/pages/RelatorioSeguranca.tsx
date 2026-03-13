@@ -396,7 +396,7 @@ can_access_payment_queue(uid)              -- Acesso fila financeira`}</pre>
                 <tr><td className="border p-2">Rate Limiting</td><td className="border p-2">Exportações limitadas a 10 req/hora por usuário</td></tr>
               </tbody>
             </table>
-            <div className="bg-muted/50 p-3 rounded border-l-4 border-yellow-500">
+            <div className="bg-muted/50 p-3 rounded border-l-4 border-destructive/60">
               <strong>Exceções documentadas (sem JWT):</strong> <code>whatsapp-webhook</code> (webhook externo validado por token), 
               <code>social-media-cron</code> (scheduler interno), <code>process-photo-analysis-queue</code> (worker).
             </div>
