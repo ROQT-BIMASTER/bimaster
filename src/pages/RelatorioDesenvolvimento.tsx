@@ -420,7 +420,7 @@ const RelatorioDesenvolvimento = () => {
               </ul>
             </div>
             <div>
-              <h3 className="font-bold">3.2 Wizard de Criação Automática</h3>
+              <h3 className="font-bold">6.2 Wizard de Criação Automática</h3>
               <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
   ┌─────────────────┐     ┌──────────────────┐     ┌──────────────────────┐
   │ Submissão China │     │ Vincula a Projeto│     │ Cria Produto Brasil  │
