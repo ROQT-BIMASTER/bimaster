@@ -115,8 +115,8 @@ export default function FluxoAprovacaoArtes() {
       </div>
 
       {/* Search + Tabs */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por fluxo..."
@@ -125,6 +125,7 @@ export default function FluxoAprovacaoArtes() {
             className="pl-9"
           />
         </div>
+        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
