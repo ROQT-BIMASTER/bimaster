@@ -38,8 +38,10 @@ export default function FluxoArtesDetalhe() {
   const confirmarAF = useConfirmarAFArte();
   const addCor = useAddFluxoCor();
   const deleteCor = useDeleteFluxoCor();
+  const devolver = useDevolverEtapaArte();
 
   const [showApproval, setShowApproval] = useState(false);
+  const [showDevolucao, setShowDevolucao] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<"approved" | "approved_with_changes" | "not_approved">("approved");
   const [approvalDesc, setApprovalDesc] = useState("");
   const [newCor, setNewCor] = useState({ codigo_cor: "", pantone_ref: "", cor_hex: "#000000" });
