@@ -205,14 +205,10 @@ export function ProjetoSecao({
               <div className={`text-[10px] ${darkBg ? "text-white/40" : "text-muted-foreground"}`}>
                 {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
               </div>
-              <div />
-              <div />
-              <div /> {/* separator */}
-              <div />
-              <div />
-              <div /> {/* separator */}
-              <div />
-              <div />
+              <div /> {/* status */}
+              <div /> {/* timeline */}
+              <div /> {/* prazo */}
+              <div /> {/* prioridade */}
             </div>
           ))}
 
