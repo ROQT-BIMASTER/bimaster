@@ -917,10 +917,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 13. MÉTRICAS E INDICADORES */}
+        {/* 16. MÉTRICAS E INDICADORES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            13. Métricas e Indicadores (KPIs)
+            16. Métricas e Indicadores (KPIs)
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
