@@ -14,19 +14,19 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
 const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-muted text-foreground/70",
-  nao_iniciado: "bg-pink-500/15 text-pink-600",
-  em_andamento: "bg-amber-500/15 text-amber-600",
-  concluida: "bg-emerald-500/15 text-emerald-600",
-  bloqueada: "bg-red-500/15 text-red-600",
+  pendente: "bg-gray-400 text-white",
+  nao_iniciado: "bg-gray-400 text-white",
+  em_andamento: "bg-amber-500 text-white",
+  concluida: "bg-emerald-500 text-white",
+  bloqueada: "bg-red-500 text-white",
 };
 
 const STATUS_COLORS_DARK: Record<string, string> = {
-  pendente: "bg-white/10 text-white/70",
-  nao_iniciado: "bg-pink-500/20 text-pink-300",
-  em_andamento: "bg-amber-500/20 text-amber-300",
-  concluida: "bg-emerald-500/20 text-emerald-300",
-  bloqueada: "bg-red-500/20 text-red-300",
+  pendente: "bg-gray-500 text-white",
+  nao_iniciado: "bg-gray-500 text-white",
+  em_andamento: "bg-amber-500 text-white",
+  concluida: "bg-emerald-500 text-white",
+  bloqueada: "bg-red-500 text-white",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,21 +45,21 @@ const STATUS_OPTIONS = [
 ];
 
 const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500/15 text-purple-600",
-  em_criacao: "bg-blue-500/15 text-blue-600",
-  revisao: "bg-amber-500/15 text-amber-600",
-  aprovado: "bg-emerald-500/15 text-emerald-600",
-  producao: "bg-pink-500/15 text-pink-600",
-  lancamento: "bg-pink-500/15 text-pink-600",
+  briefing: "bg-purple-500 text-white",
+  em_criacao: "bg-blue-500 text-white",
+  revisao: "bg-amber-500 text-white",
+  aprovado: "bg-emerald-500 text-white",
+  producao: "bg-pink-500 text-white",
+  lancamento: "bg-rose-500 text-white",
 };
 
 const ESTAGIO_COLORS_DARK: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-300",
-  em_criacao: "bg-blue-500/20 text-blue-300",
-  revisao: "bg-amber-500/20 text-amber-300",
-  aprovado: "bg-emerald-500/20 text-emerald-300",
-  producao: "bg-pink-500/20 text-pink-300",
-  lancamento: "bg-pink-500/20 text-pink-300",
+  briefing: "bg-purple-500 text-white",
+  em_criacao: "bg-blue-500 text-white",
+  revisao: "bg-amber-500 text-white",
+  aprovado: "bg-emerald-500 text-white",
+  producao: "bg-pink-500 text-white",
+  lancamento: "bg-rose-500 text-white",
 };
 
 const ESTAGIO_LABELS: Record<string, string> = {
@@ -79,6 +79,14 @@ const ESTAGIO_OPTIONS = [
   { value: "producao", label: "Produção" },
   { value: "lancamento", label: "Lançamento" },
 ];
+
+const PRIORITY_MAP: Record<string, number> = {
+  baixa: 1, media: 2, normal: 3, alta: 4, urgente: 5,
+};
+
+const PRIORITY_REVERSE: Record<number, string> = {
+  1: "baixa", 2: "media", 3: "normal", 4: "alta", 5: "urgente",
+};
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
