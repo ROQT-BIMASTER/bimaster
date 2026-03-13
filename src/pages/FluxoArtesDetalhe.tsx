@@ -218,9 +218,17 @@ export default function FluxoArtesDetalhe() {
             </CardHeader>
             <CardContent className="space-y-2">
               {!isComplete && !isAFStage && (
-                <Button className="w-full" onClick={() => setShowApproval(true)}>
-                  Avaliar Etapa
-                </Button>
+                <>
+                  <Button className="w-full" onClick={() => setShowApproval(true)}>
+                    Avaliar Etapa
+                  </Button>
+                  {ETAPAS.findIndex(e => e.key === fluxo.etapa_atual) > 0 && (
+                    <Button variant="outline" className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                      <RotateCcw className="h-4 w-4" />
+                      Devolver Etapa
+                    </Button>
+                  )}
+                </>
               )}
               {isAFStage && !isComplete && (
                 <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleConfirmAF}>
