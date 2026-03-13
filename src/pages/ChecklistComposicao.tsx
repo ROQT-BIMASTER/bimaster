@@ -17,10 +17,11 @@ import {
 } from "lucide-react";
 import {
   useComposicaoBySubmissao, useUpsertComposicao, useDeleteComposicaoItem,
-  useSubmeterComposicao, useComposicaoVersoes, validarPercentuais,
+  useSubmeterComposicao, useComposicaoVersoes, useDevolverComposicao, validarPercentuais,
   FUNCAO_OPTIONS, STATUS_ANVISA_OPTIONS,
   type Composicao,
 } from "@/hooks/useComposicao";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
