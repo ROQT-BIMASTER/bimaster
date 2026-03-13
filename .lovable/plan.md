@@ -163,3 +163,49 @@ Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
 - **Departamento China**: 240 req/min (2x)
 - **Uploads**: Excluídos do rate limiting
 - **Bloqueio**: 5 minutos ao exceder limite
+
+---
+
+## Plano: Ciclo de Vida Completo do Produto (12 Fases)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+#### Fase 1 — Pipeline 12 Estágios
+1. **StatusPipeline expandido** — De 6 para 11 estágios visuais com tooltips: Ideia → Projeto → Pré-cadastro → Desenvolvimento → Testes → Embalagem → Regulatório → Cadastro Final → Aprovação → Produção → Lançamento
+2. **Compatibilidade retroativa** — Status legados mapeados automaticamente para novas posições
+3. **Labels e cores** atualizados em `useProdutoBrasil.ts`
+
+#### Fase 2 — Wizard "Novo Produto" no Projeto
+4. **NovoProjetoDialog** — Wizard multi-step para template "Desenvolvimento de Produto":
+   - Step 1: Dados básicos (nome, template, cor)
+   - Step 2: Marca, Categoria/Linha, Origem (China/Brasil/Collab/Recompra)
+5. **Migration** — Campos `marca`, `categoria_linha`, `origem_projeto` na tabela `projetos`
+6. **useProjetos** — Passa novos campos na criação
+
+#### Fase 3 — Módulo de Testes e Amostras
+7. **Tabela `produto_testes`** — Com RLS, tipos (cor/fragrância/textura/aplicador/estabilidade), status (solicitada→recebida→em teste→aprovada/reprovada)
+8. **TabTestes** — Cards por teste com dialog de criação e mudança de status inline
+
+#### Fase 4 — Checklist de Embalagem Expandido
+9. **12 itens de embalagem** — Faca primária/display/cartucho/tester, etiquetas, medidas, arte, mockup, foto final
+10. **`ALL_CHECKLIST_ITEMS`** — 19 itens totais (7 regulatórios + 12 embalagem)
+
+#### Fase 5 — Pipeline ANVISA
+11. **TabAnvisaPipeline** — Pipeline visual de 5 estágios: Análise → Dossiê → Enviado → Em Aprovação → Aprovado
+12. **Campos expandidos** — `anvisa_data_envio`, `anvisa_data_aprovacao`, `anvisa_taxa_paga`, `anvisa_observacoes`, `anvisa_pipeline_status`
+
+#### Fase 6 — Aprovação Física + RNC
+13. **Tabela `produto_aprovacoes_fisicas`** — Checklist de conformidade (cor, textura, fragrância, rotulagem, peso)
+14. **Tabela `produto_rnc`** — Registros de Não Conformidade com tipo, ação corretiva, fornecedor, status
+15. **TabAprovacaoFisica** — Interface completa para aprovar/reprovar e registrar RNCs
+
+#### Bonus — Tab Formulação
+16. **TabFormulacao** — Composição/INCI, ativos, fragrância, modo de uso, precauções, tipo de aplicador
+17. **6 novos campos** em `produtos_brasil`: `modo_uso`, `precaucoes`, `ativos`, `fragrancia`, `tipo_aplicador`, `composicao`
+
+### Página do Produto Expandida
+- 13 abas: Identificação, Formulação, Classificação, Testes, Checklist, ANVISA, Aprovação, Datas, Grade/SKUs, Custos, Imagens, Dados China, Histórico
+- Tabs em formato pill (não underline) para diferenciação visual
+- **Bloqueio**: 5 minutos ao exceder limite
