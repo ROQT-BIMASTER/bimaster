@@ -407,7 +407,7 @@ const RelatorioDesenvolvimento = () => {
         {/* 3. ORIGEM DA DEMANDA */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            3. Origem da Demanda — Fase Ideia/Projeto
+            6. Origem da Demanda — Fase Ideia/Projeto
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <div>
