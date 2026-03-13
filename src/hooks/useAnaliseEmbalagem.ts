@@ -230,6 +230,37 @@ export function useAprovarAnalise() {
   });
 }
 
+export function useDevolverAnalise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id, justificativa, userInfo,
+    }: {
+      id: string;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const { error } = await supabase
+        .from("produto_analise_embalagem")
+        .update({
+          status_aprovacao: "pendente",
+          descricao_alteracoes: `[Devolução por ${userInfo.nome}] ${justificativa}`,
+          aprovado_por: null,
+          aprovado_em: null,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analise_embalagem"] });
+      qc.invalidateQueries({ queryKey: ["analise_embalagem_all"] });
+      toast.success("Análise devolvida para reanálise");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+}
+
 // ── Cores Mutations ──
 
 export function useAddCor() {

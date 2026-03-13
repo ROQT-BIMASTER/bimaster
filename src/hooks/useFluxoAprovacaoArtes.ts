@@ -533,6 +533,55 @@ export function useAprovarEtapa() {
   });
 }
 
+export function useDevolverEtapaAprovacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      instanciaId, etapaId, etapaNome, etapaDestinoOrdem, justificativa, userInfo,
+    }: {
+      instanciaId: string;
+      etapaId: string;
+      etapaNome: string;
+      etapaDestinoOrdem: number;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const { data: inst } = await supabase
+        .from("fluxo_aprovacao_instancias" as any)
+        .select("*")
+        .eq("id", instanciaId)
+        .single();
+      const instancia = inst as any;
+
+      await supabase
+        .from("fluxo_aprovacao_instancias" as any)
+        .update({
+          etapa_atual_ordem: etapaDestinoOrdem,
+          status: "devolvido",
+          rodada: instancia.rodada + 1,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", instanciaId);
+
+      await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
+        instancia_id: instanciaId,
+        etapa_id: etapaId,
+        etapa_nome: etapaNome,
+        usuario_id: userInfo.id,
+        acao: "devolucao",
+        observacao: `[Devolução com senha] ${justificativa}`,
+        rodada: instancia.rodada,
+      } as any);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-instancias"] });
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-instancia"] });
+      toast.success("Etapa devolvida com sucesso");
+    },
+    onError: () => toast.error("Erro ao devolver etapa"),
+  });
+}
+
 export function useReprovarEtapa() {
   const qc = useQueryClient();
   return useMutation({

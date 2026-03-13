@@ -319,6 +319,36 @@ export function useUpdatePeticionamento() {
   });
 }
 
+export function useDevolverComposicao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      submissaoId, versao, justificativa, userInfo,
+    }: {
+      submissaoId: string;
+      versao: number;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const { error } = await supabase
+        .from("produto_composicao_versoes")
+        .update({
+          status: "devolvido",
+          observacoes: `[Devolução por ${userInfo.nome}] ${justificativa}`,
+        } as any)
+        .eq("submissao_id", submissaoId)
+        .eq("versao", versao);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["composicao_versoes"] });
+      qc.invalidateQueries({ queryKey: ["composicao"] });
+      toast.success("Composição devolvida para correção");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+}
+
 // ── Validação de percentuais ──
 
 export function validarPercentuais(items: Composicao[]): { corKey: string; soma: number; valido: boolean }[] {
