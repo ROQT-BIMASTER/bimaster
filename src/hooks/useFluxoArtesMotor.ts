@@ -146,8 +146,8 @@ export function useAllFluxoArtes(filters?: { tipo?: ChecklistTipo; status?: stri
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (filters?.tipo) query = query.eq("tipo_checklist", filters.tipo);
-      if (filters?.status) query = query.eq("status_geral", filters.status);
+      if (filters?.tipo) query = query.eq("tipo_checklist", filters.tipo as any);
+      if (filters?.status) query = query.eq("status_geral", filters.status as any);
       if (filters?.produto_id) query = query.eq("produto_id", filters.produto_id);
 
       const { data, error } = await query;
