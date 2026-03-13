@@ -211,6 +211,20 @@ const RelatorioDesenvolvimento = () => {
   │  │ ✅ Checklist         │                                               │
   │  │ 📋 Docs + Produto   │                                               │
   │  │ 🔒 Libera produção  │                                               │
+  │  └────────┬─────────────┘                                               │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇧🇷 Emite Ordem de   │                                               │
+  │  │ Compra (OC) p/ China │                                               │
+  │  │ Ex: OC-2026-001      │                                               │
+  │  └────────┬─────────────┘                                               │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇨🇳 China produz     │                                               │
+  │  │ 📊 Apontamentos      │                                               │
+  │  │ 📦 Embarque → Brasil │                                               │
   │  └──────────────────────┘                                               │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
