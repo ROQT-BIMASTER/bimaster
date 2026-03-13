@@ -64,11 +64,25 @@ export default function ChecklistComposicao() {
   const navigate = useNavigate();
   const [selectedSubmissao, setSelectedSubmissao] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoes();
 
-  const filtered = submissoes.filter(s =>
-    !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) || s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+  const filtered = filterByDateRange(
+    submissoes.filter(s =>
+      !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) || s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(s => ({
+      Produto: s.produto_nome,
+      Código: s.produto_codigo,
+      Status: s.status,
+      "Criado em": s.created_at ? new Date(s.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "composicao_inci", sheetName: "Composição", includeTimestamp: true });
+  };
 
   if (selectedSubmissao) {
     return <ComposicaoEditor submissaoId={selectedSubmissao} onBack={() => setSelectedSubmissao(null)} />;
