@@ -681,7 +681,7 @@ const RelatorioDesenvolvimento = () => {
               regulatórios e fiscais obrigatórios. O sistema bloqueia a transição se algum item estiver incompleto.
             </p>
 
-            <h3 className="font-bold">8.1 Checklist de Validação (7 Itens)</h3>
+            <h3 className="font-bold">11.1 Checklist de Validação (7 Itens)</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
