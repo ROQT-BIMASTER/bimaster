@@ -82,8 +82,10 @@ export function ProjetoSecao({
 
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  const sectionColor = SECTION_COLORS[secaoIndex % SECTION_COLORS.length];
+
   return (
-    <div className="mb-1">
+    <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -94,7 +96,7 @@ export function ProjetoSecao({
           ) : (
             <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
           )}
-          <span className={`font-semibold text-sm ${darkBg ? "text-white" : "text-foreground"}`}>{nome}</span>
+          <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
           <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
             {completedCount}/{totalCount}
           </span>
