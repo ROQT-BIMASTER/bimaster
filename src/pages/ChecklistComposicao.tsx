@@ -181,8 +181,10 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const upsert = useUpsertComposicao();
   const deleteItem = useDeleteComposicaoItem();
   const submeter = useSubmeterComposicao();
+  const devolver = useDevolverComposicao();
   const [localItems, setLocalItems] = useState<Partial<Composicao>[]>([]);
   const [cores, setCores] = useState<string[]>(["1#"]);
+  const [showDevolucao, setShowDevolucao] = useState(false);
 
   // Sync from DB
   useEffect(() => {
