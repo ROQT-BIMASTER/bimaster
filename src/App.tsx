@@ -173,6 +173,7 @@ const ComercialMapa = lazyWithRetry(() => import("./pages/ComercialMapa"));
 const GerenciamentoAcessoPrecos = lazyWithRetry(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazyWithRetry(() => import("./pages/PrecosMatrizComparativa"));
 const SimuladorCenariosPrecos = lazyWithRetry(() => import("./pages/SimuladorCenariosPrecos"));
+const SimulacaoDados = lazyWithRetry(() => import("./pages/SimulacaoDados"));
 const PortalCliente = lazyWithRetry(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazyWithRetry(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazyWithRetry(() => import("./pages/ContasAPagar"));
@@ -507,6 +508,9 @@ function AppContent() {
             {/* Motor Genérico de Aprovação de Artes */}
             <Route path="/dashboard/fluxo-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesMotor /></ModuleRoute>} />
             <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesDetalhe /></ModuleRoute>} />
+
+            {/* Simulação de Dados */}
+            <Route path="/dashboard/simulacao" element={<SimulacaoDados />} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
