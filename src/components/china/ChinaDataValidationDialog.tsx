@@ -191,8 +191,15 @@ export function ChinaDataValidationDialog({
     return Object.keys(duplicates).length === 0;
   }, [data.ean_display, data.ean_caixa_master, cores]);
 
+  const isMaterialPlasticoMissing = (data.peso_plastico_g != null && data.peso_plastico_g > 0) && !data.tipo_material_plastico;
+
   const handleConfirm = async () => {
     if (!accepted) return;
+
+    if (isMaterialPlasticoMissing) {
+      toast.error("Selecione o Tipo de Material Plástico antes de confirmar. 请在确认前选择塑料材料类型。");
+      return;
+    }
 
     // Check EAN uniqueness before confirming
     const isUnique = await checkEanUniqueness();
