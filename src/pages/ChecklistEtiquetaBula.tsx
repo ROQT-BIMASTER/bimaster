@@ -107,42 +107,78 @@ export default function ChecklistEtiquetaBula() {
         ) : !filtered.length ? (
           <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhum checklist encontrado.</CardContent></Card>
         ) : (
-          <div className="space-y-3">
-            {filtered.map(et => (
-              <Card key={et.id} className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => { setSelectedEtiqueta(et); setShowFlowDialog(true); }}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                        <Tag className="h-5 w-5 text-primary" />
+          <>
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-2">
+              {filtered.map(et => {
+                const etapaIdx = ETAPAS.findIndex(e => e.key === et.etapa_atual);
+                const pct = Math.round(((etapaIdx >= 0 ? etapaIdx : 0) / (ETAPAS.length - 1)) * 100);
+                return (
+                  <Card key={et.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all"
+                    onClick={() => { setSelectedEtiqueta(et); setShowFlowDialog(true); }}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{et.produto_nome}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">SKU: {et.sku} · R{et.numero_rodada}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">{ETAPA_LABELS[et.etapa_atual] || et.etapa_atual}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+              <div className="grid grid-cols-[1fr_140px_180px_80px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+                <span>Produto</span>
+                <span>Etapa Atual</span>
+                <span>Timeline</span>
+                <span>Rodada</span>
+                <span>Criado em</span>
+              </div>
+              {filtered.map(et => {
+                const initial = (et.produto_nome || "P")[0].toUpperCase();
+                const etapaIdx = ETAPAS.findIndex(e => e.key === et.etapa_atual);
+                const pct = Math.round(((etapaIdx >= 0 ? etapaIdx : 0) / Math.max(ETAPAS.length - 1, 1)) * 100);
+                return (
+                  <div
+                    key={et.id}
+                    className="grid grid-cols-[1fr_140px_180px_80px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                    onClick={() => { setSelectedEtiqueta(et); setShowFlowDialog(true); }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-primary font-bold text-xs">{initial}</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold truncate">{et.produto_nome}</p>
-                        <p className="text-sm text-muted-foreground">SKU: {et.sku} · R{et.numero_rodada}</p>
-                        {et.double_sticker && <Badge variant="outline" className="text-xs mt-0.5">Double Sticker</Badge>}
+                        <p className="font-medium text-sm truncate">{et.produto_nome}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">SKU: {et.sku}{et.double_sticker ? " · Double Sticker" : ""}</p>
                       </div>
                     </div>
-
-                    {/* Timeline mini */}
-                    <div className="hidden md:flex items-center gap-1">
+                    <Badge variant="outline" className="w-fit text-[10px]">{ETAPA_LABELS[et.etapa_atual] || et.etapa_atual}</Badge>
+                    <div className="flex items-center gap-1">
                       {ETAPAS.map((step, idx) => {
                         const color = getEtapaColor(step.key, et.etapa_atual, et.aprovacoes);
                         return (
                           <div key={step.key} className="flex items-center gap-1">
                             <div className={cn("w-3 h-3 rounded-full", STATUS_COLORS[color])} title={step.label} />
-                            {idx < ETAPAS.length - 1 && <div className="w-4 h-0.5 bg-muted" />}
+                            {idx < ETAPAS.length - 1 && <div className="w-3 h-0.5 bg-muted" />}
                           </div>
                         );
                       })}
                     </div>
-
-                    <Badge variant="outline">{ETAPA_LABELS[et.etapa_atual] || et.etapa_atual}</Badge>
+                    <span className="text-xs text-muted-foreground">R{et.numero_rodada}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {et.created_at ? new Date(et.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

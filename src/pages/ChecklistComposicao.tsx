@@ -184,7 +184,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const [cores, setCores] = useState<string[]>(["1#"]);
 
   // Sync from DB
-  useMemo(() => {
+  useEffect(() => {
     if (items.length > 0) {
       setLocalItems(items);
       const allCores = new Set<string>();

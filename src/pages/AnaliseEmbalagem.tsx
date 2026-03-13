@@ -169,60 +169,87 @@ function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar }: a
   if (!analises.length) return <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma análise encontrada.</CardContent></Card>;
 
   return (
-    <div className="space-y-3">
-      {analises.map((a: any) => {
-        const st = STATUS_LABELS[a.status_aprovacao] || STATUS_LABELS.pendente;
-        const Icon = st.icon;
-        return (
-          <Card key={a.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onSelect(a)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                    <Package className="h-5 w-5 text-primary" />
-                  </div>
+    <>
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-2">
+        {analises.map((a: any) => {
+          const st = STATUS_LABELS[a.status_aprovacao] || STATUS_LABELS.pendente;
+          return (
+            <Card key={a.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all" onClick={() => onSelect(a)}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{a.produto_nome}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {a.sku}</p>
-                    {a.linha_marca && <p className="text-xs text-muted-foreground">Linha: {a.linha_marca}</p>}
+                    <p className="font-medium text-sm truncate">{a.produto_nome}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">SKU: {a.sku}</p>
                   </div>
+                  <Badge className={cn("text-[10px] shrink-0", st.color)}>{st.label}</Badge>
                 </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-                <div className="flex items-center gap-2">
-                  <Badge className={st.color}>
-                    <Icon className="h-3 w-3 mr-1" />{st.label}
-                  </Badge>
+      {/* Desktop Table */}
+      <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+        <div className="grid grid-cols-[1fr_140px_1fr_160px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <span>Produto</span>
+          <span>Aprovação</span>
+          <span>Specs</span>
+          <span>Ações</span>
+          <span>Criado em</span>
+        </div>
+        {analises.map((a: any) => {
+          const st = STATUS_LABELS[a.status_aprovacao] || STATUS_LABELS.pendente;
+          const Icon = st.icon;
+          const initial = (a.produto_nome || "P")[0].toUpperCase();
+          const specs = [
+            a.tube_translucent && "Tube Translucent",
+            a.tube_shiny && "Tube Shiny",
+            a.cap_matte && "Cap Matte",
+            a.finishing_embossed && "Embossed",
+            a.colors_product_color && "Product Color",
+          ].filter(Boolean);
+          return (
+            <div
+              key={a.id}
+              className="grid grid-cols-[1fr_140px_1fr_160px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+              onClick={() => onSelect(a)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-primary font-bold text-xs">{initial}</span>
                 </div>
-
-                <div className="flex gap-2">
-                  {a.status_aprovacao === "pendente" && (
-                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onApprove(a); }}>
-                      <CheckCircle2 className="h-4 w-4 mr-1" />Avaliar
-                    </Button>
-                  )}
-                  {["approved", "approved_with_changes"].includes(a.status_aprovacao) && (
-                    <Button size="sm" onClick={(e) => { e.stopPropagation(); onSolicitar(a); }}>
-                      <Send className="h-4 w-4 mr-1" />Solicitar Amostra
-                    </Button>
-                  )}
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{a.produto_nome}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">SKU: {a.sku}</p>
                 </div>
               </div>
-
-              {/* Technical specs badges */}
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {a.tube_translucent && <Badge variant="outline" className="text-xs">Tube: Translucent</Badge>}
-                {a.tube_shiny && <Badge variant="outline" className="text-xs">Tube: Shiny</Badge>}
-                {a.cap_matte && <Badge variant="outline" className="text-xs">Cap: Matte</Badge>}
-                {a.finishing_embossed && <Badge variant="outline" className="text-xs">Embossed</Badge>}
-                {a.finishing_translucent && <Badge variant="outline" className="text-xs">Finishing: Translucent</Badge>}
-                {a.colors_product_color && <Badge variant="outline" className="text-xs">Product Color</Badge>}
-                {a.colors_white && <Badge variant="outline" className="text-xs">White</Badge>}
+              <Badge className={cn("w-fit text-[10px]", st.color)}>
+                <Icon className="h-3 w-3 mr-1" />{st.label}
+              </Badge>
+              <div className="flex flex-wrap gap-1">
+                {specs.slice(0, 3).map((s, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
+                ))}
+                {specs.length > 3 && <Badge variant="outline" className="text-[10px]">+{specs.length - 3}</Badge>}
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+              <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                {a.status_aprovacao === "pendente" && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onApprove(a)}>Avaliar</Button>
+                )}
+                {["approved", "approved_with_changes"].includes(a.status_aprovacao) && (
+                  <Button size="sm" className="h-7 text-xs" onClick={() => onSolicitar(a)}>Solicitar</Button>
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                {a.created_at ? new Date(a.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -232,58 +259,77 @@ function SolicitacoesList({ solicitacoes, loading, onChinaUpload, onAvaliar }: a
   if (!solicitacoes.length) return <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma solicitação encontrada.</CardContent></Card>;
 
   return (
-    <div className="space-y-3">
-      {solicitacoes.map((s: any) => {
-        const sla = getSlaStatus(s.sla_prazo);
-        const slaLabel = sla === "vencido" ? "SLA Vencido" : sla === "warning" ? "SLA Próximo" : "SLA OK";
-        return (
-          <Card key={s.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Send className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
+    <>
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-2">
+        {solicitacoes.map((s: any) => {
+          const sla = getSlaStatus(s.sla_prazo);
+          const slaLabel = sla === "vencido" ? "SLA Vencido" : sla === "warning" ? "SLA Próximo" : "SLA OK";
+          return (
+            <Card key={s.id} className={cn("border-l-4 active:scale-[0.99] transition-all", sla === "vencido" ? "border-l-destructive" : sla === "warning" ? "border-l-warning" : "border-l-primary")}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold">{s.numero_solicitacao}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {s.sku} · R{s.numero_rodada}</p>
-                    <p className="text-xs text-muted-foreground">Prazo: {new Date(s.sla_prazo).toLocaleDateString("pt-BR")}</p>
+                    <p className="font-medium text-sm truncate">{s.numero_solicitacao}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">SKU: {s.sku} · R{s.numero_rodada}</p>
                   </div>
+                  <Badge className={cn("text-[10px] shrink-0", SLA_COLORS[sla])}>{slaLabel}</Badge>
                 </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-                <div className="flex items-center gap-2">
-                  <Badge className={SLA_COLORS[sla]}>{slaLabel}</Badge>
-                  <Badge variant="outline">{s.avaliacao_status?.replace(/_/g, " ")}</Badge>
+      {/* Desktop Table */}
+      <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+        <div className="grid grid-cols-[1fr_120px_100px_120px_160px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <span>Solicitação</span>
+          <span>SLA</span>
+          <span>Evidências</span>
+          <span>Avaliação</span>
+          <span>Ações</span>
+          <span>Prazo</span>
+        </div>
+        {solicitacoes.map((s: any) => {
+          const sla = getSlaStatus(s.sla_prazo);
+          const slaLabel = sla === "vencido" ? "SLA Vencido" : sla === "warning" ? "SLA Próximo" : "SLA OK";
+          return (
+            <div
+              key={s.id}
+              className="grid grid-cols-[1fr_120px_100px_120px_160px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                  <Send className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-
-                <div className="flex gap-2">
-                  {s.avaliacao_status === "aguardando_china" && (
-                    <Button size="sm" variant="outline" onClick={() => onChinaUpload(s)}>
-                      <Upload className="h-4 w-4 mr-1" />Enviar Evidências
-                    </Button>
-                  )}
-                  {s.avaliacao_status === "evidencias_enviadas" && (
-                    <Button size="sm" onClick={() => onAvaliar(s)}>
-                      <Eye className="h-4 w-4 mr-1" />Avaliar Amostra
-                    </Button>
-                  )}
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{s.numero_solicitacao}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">SKU: {s.sku} · R{s.numero_rodada}</p>
                 </div>
               </div>
-
-              {/* Fotos/Video indicators */}
-              <div className="flex gap-3 mt-2">
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Camera className="h-3 w-3" />{(s.fotos_china || []).length} fotos
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Video className="h-3 w-3" />{s.video_url ? "1 vídeo" : "Sem vídeo"}
-                </span>
+              <Badge className={cn("w-fit text-[10px]", SLA_COLORS[sla])}>{slaLabel}</Badge>
+              <div className="flex gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-0.5"><Camera className="h-3 w-3" />{(s.fotos_china || []).length}</span>
+                <span className="flex items-center gap-0.5"><Video className="h-3 w-3" />{s.video_url ? "1" : "0"}</span>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+              <Badge variant="outline" className="w-fit text-[10px]">{s.avaliacao_status?.replace(/_/g, " ")}</Badge>
+              <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                {s.avaliacao_status === "aguardando_china" && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onChinaUpload(s)}>Enviar</Button>
+                )}
+                {s.avaliacao_status === "evidencias_enviadas" && (
+                  <Button size="sm" className="h-7 text-xs" onClick={() => onAvaliar(s)}>Avaliar</Button>
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                {s.sla_prazo ? new Date(s.sla_prazo).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
