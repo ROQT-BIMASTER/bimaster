@@ -167,9 +167,27 @@ export default function FluxoArtesDetalhe() {
                     <span className="font-mono text-sm font-bold">{cor.codigo_cor}</span>
                     {cor.pantone_ref && <span className="text-xs text-muted-foreground ml-2">Pantone: {cor.pantone_ref}</span>}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => deleteCor.mutate({ id: cor.id, fluxo_id: fluxo.id })}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover cor</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja remover a cor "{cor.codigo_cor}"? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteCor.mutate({ id: cor.id, fluxo_id: fluxo.id })} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               ))}
               <div className="flex gap-2 items-end">

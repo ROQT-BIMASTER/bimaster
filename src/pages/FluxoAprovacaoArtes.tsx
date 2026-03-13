@@ -164,6 +164,7 @@ export default function FluxoAprovacaoArtes() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
 
