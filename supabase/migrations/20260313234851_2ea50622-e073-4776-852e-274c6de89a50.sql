@@ -1,0 +1,1 @@
+ALTER TABLE public.produtos_brasil ADD COLUMN qty_per_display integer;

@@ -16655,6 +16655,7 @@ export type Database = {
           precaucoes: string | null
           processo_anvisa: string | null
           projeto_id: string | null
+          qty_per_display: number | null
           responsavel_precadastro_id: string | null
           responsavel_regulatorio_id: string | null
           responsavel_tecnico: string | null
@@ -16715,6 +16716,7 @@ export type Database = {
           precaucoes?: string | null
           processo_anvisa?: string | null
           projeto_id?: string | null
+          qty_per_display?: number | null
           responsavel_precadastro_id?: string | null
           responsavel_regulatorio_id?: string | null
           responsavel_tecnico?: string | null
@@ -16775,6 +16777,7 @@ export type Database = {
           precaucoes?: string | null
           processo_anvisa?: string | null
           projeto_id?: string | null
+          qty_per_display?: number | null
           responsavel_precadastro_id?: string | null
           responsavel_regulatorio_id?: string | null
           responsavel_tecnico?: string | null

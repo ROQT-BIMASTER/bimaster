@@ -49,6 +49,7 @@ export interface ProdutoBrasil {
   descricao_completa: string | null;
   custo_unitario_china: number | null;
   itens_display: number | null;
+  qty_per_display: number | null;
   peso_bruto: number | null;
   peso_liquido: number | null;
   // Phase 4 - new fields
