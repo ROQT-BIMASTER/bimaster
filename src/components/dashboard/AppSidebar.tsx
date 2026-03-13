@@ -311,6 +311,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "reunioes", label: "Reuniões", icon: Mic },
       { code: "china", label: "Fábrica China", icon: Globe },
       { code: "estoque", label: "Estoque", icon: Package },
+      { code: "aprovacao_artes", label: "Aprovação de Artes", icon: Palette },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
