@@ -220,6 +220,12 @@ const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
 const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
+const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
+const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
+const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
+const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
+const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
+const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
 
 // Loading component
 const PageLoader = () => (
