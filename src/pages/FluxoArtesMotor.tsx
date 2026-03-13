@@ -104,14 +104,24 @@ export default function FluxoArtesMotor() {
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Motor de Aprovação de Artes</h1>
-            <p className="text-muted-foreground mt-1">Fluxo genérico para todos os tipos de checklist</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Motor de Aprovação de Artes</h1>
+              <p className="text-muted-foreground mt-1">Fluxo genérico para todos os tipos de checklist</p>
+            </div>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Checklist
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={filteredAll.length === 0}>
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Checklist
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
