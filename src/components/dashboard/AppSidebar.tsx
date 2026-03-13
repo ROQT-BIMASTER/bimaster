@@ -310,6 +310,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
       { code: "china", label: "Fábrica China", icon: Globe },
+      { code: "estoque", label: "Estoque", icon: Package },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
