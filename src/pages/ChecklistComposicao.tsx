@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
   CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText
@@ -23,6 +24,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { cn } from "@/lib/utils";
 
 // Fetch submissões for listing
 function useSubmissoes() {
@@ -40,6 +44,13 @@ function useSubmissoes() {
   });
 }
 
+const STATUS_BADGE: Record<string, { variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning"; label: string }> = {
+  rascunho: { variant: "secondary", label: "Rascunho" },
+  submetido: { variant: "warning", label: "Submetido" },
+  aprovado: { variant: "success", label: "Aprovado" },
+  em_revisao: { variant: "default", label: "Em Revisão" },
+};
+
 export default function ChecklistComposicao() {
   const navigate = useNavigate();
   const [selectedSubmissao, setSelectedSubmissao] = useState<string | null>(null);
@@ -54,46 +65,109 @@ export default function ChecklistComposicao() {
     return <ComposicaoEditor submissaoId={selectedSubmissao} onBack={() => setSelectedSubmissao(null)} />;
   }
 
+  // KPIs
+  const total = submissoes.length;
+  const submetidos = submissoes.filter(s => s.status === "submetido").length;
+  const aprovados = submissoes.filter(s => s.status === "aprovado").length;
+  const rascunhos = submissoes.filter(s => s.status === "rascunho" || !s.status).length;
+
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <FlaskConical className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Checklist Composição</h1>
-          <p className="text-sm text-muted-foreground">Gerencie composições INCI e peticionamento ANVISA</p>
-        </div>
-      </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <ModuleBreadcrumb moduleName="Composição INCI" moduleHref="/dashboard/composicao" currentPage="Checklist" />
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-      </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Checklist Composição</h1>
+            <p className="text-muted-foreground mt-1">Gerencie composições INCI e peticionamento ANVISA</p>
+          </div>
+        </div>
 
-      <div className="grid gap-3">
-        {filtered.map(sub => (
-          <Card key={sub.id} className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSelectedSubmissao(sub.id)}>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <FlaskConical className="h-5 w-5 text-primary" />
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Total", value: total, icon: FlaskConical, color: "text-primary" },
+            { label: "Rascunhos", value: rascunhos, icon: FileText, color: "text-muted-foreground" },
+            { label: "Submetidos", value: submetidos, icon: Send, color: "text-warning" },
+            { label: "Aprovados", value: aprovados, icon: CheckCircle2, color: "text-success" },
+          ].map(k => (
+            <Card key={k.label}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <k.icon className={cn("h-5 w-5", k.color)} />
+                <div>
+                  <p className="text-2xl font-bold">{k.value}</p>
+                  <p className="text-xs text-muted-foreground">{k.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-2">
+          {filtered.map(sub => {
+            const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
+            return (
+              <Card key={sub.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all" onClick={() => setSelectedSubmissao(sub.id)}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{sub.produto_codigo}</p>
+                    </div>
+                    <Badge variant={badge.variant} className="text-[10px] shrink-0">{badge.label}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+          <div className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+            <span>Produto</span>
+            <span>Status</span>
+            <span>SKU</span>
+            <span>Criado em</span>
+          </div>
+          {filtered.map(sub => {
+            const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
+            const initial = (sub.produto_nome || "P")[0].toUpperCase();
+            return (
+              <div
+                key={sub.id}
+                className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                onClick={() => setSelectedSubmissao(sub.id)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-primary font-bold text-xs">{initial}</span>
+                  </div>
+                  <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                </div>
+                <Badge variant={badge.variant} className="w-fit text-[10px]">{badge.label}</Badge>
+                <span className="text-xs font-mono text-muted-foreground">{sub.produto_codigo}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{sub.produto_nome}</p>
-                <p className="text-xs text-muted-foreground">{sub.produto_codigo} • {sub.status}</p>
-              </div>
-              <Badge variant="outline">{sub.status}</Badge>
-            </CardContent>
-          </Card>
-        ))}
-        {!loadingSub && filtered.length === 0 && (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">
-            <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Nenhuma submissão encontrada</p>
-          </CardContent></Card>
-        )}
+            );
+          })}
+          {!loadingSub && filtered.length === 0 && (
+            <div className="py-12 text-center text-muted-foreground">
+              <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>Nenhuma submissão encontrada</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 
