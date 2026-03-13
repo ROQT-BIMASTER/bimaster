@@ -226,6 +226,9 @@ const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProduto
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
 const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
 const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
+const FluxoAprovacaoArtes = lazyWithRetry(() => import("./pages/FluxoAprovacaoArtes"));
+const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacaoDetalhe"));
+const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
 
 // Loading component
 const PageLoader = () => (
