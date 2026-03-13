@@ -297,6 +297,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
