@@ -438,7 +438,7 @@ const RelatorioDesenvolvimento = () => {
                                                     └──────────────────────┘`}</pre>
             </div>
             <div>
-              <h3 className="font-bold">3.3 Campos do Projeto</h3>
+              <h3 className="font-bold">6.3 Campos do Projeto</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li><strong>Marca</strong> — Seleção da marca destino (multimarca suportado)</li>
                 <li><strong>Categoria</strong> — Classificação por linha de produto</li>
