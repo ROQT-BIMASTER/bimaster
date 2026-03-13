@@ -67,8 +67,11 @@ export default function FluxoAprovacaoArtes() {
       <ModuleBreadcrumb moduleName="Aprovação de Artes" moduleHref="/dashboard/aprovacao-artes" currentPage="Painel" />
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="p-2 rounded-lg bg-primary/10">
             <Palette className="h-6 w-6 text-primary" />
           </div>
@@ -78,6 +81,9 @@ export default function FluxoAprovacaoArtes() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel} disabled={filteredInstancias.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Exportar Excel
+          </Button>
           <Button
             variant="outline"
             onClick={() => navigate("/dashboard/aprovacao-artes/configuracao")}
