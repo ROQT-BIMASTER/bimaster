@@ -111,16 +111,26 @@ export default function AnaliseEmbalagemPage() {
         <ModuleBreadcrumb moduleName="Análise de Embalagem" moduleHref="/dashboard/analise-embalagem" currentPage="Painel" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Análise de Embalagem — Criação</h1>
-            <p className="text-muted-foreground mt-1">
-              Primary Package, grade de cores e solicitação formal de amostras à China
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Análise de Embalagem — Criação</h1>
+              <p className="text-muted-foreground mt-1">
+                Primary Package, grade de cores e solicitação formal de amostras à China
+              </p>
+            </div>
           </div>
-          <Button onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Análise
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={filteredAnalises.length === 0}>
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Análise
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
