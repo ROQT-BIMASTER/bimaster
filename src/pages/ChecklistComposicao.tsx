@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw
 } from "lucide-react";
 import {
   useComposicaoBySubmissao, useUpsertComposicao, useDeleteComposicaoItem,
