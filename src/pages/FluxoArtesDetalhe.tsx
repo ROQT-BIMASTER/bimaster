@@ -16,15 +16,17 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, XCircle, Clock,
-  AlertTriangle, Check, X, Upload,
+  AlertTriangle, Check, X, Upload, RotateCcw,
 } from "lucide-react";
 import {
   useFluxoArteDetail, useFluxoCores, useUpdateFluxoArte,
   useAvancarEtapaArte, useConfirmarAFArte, useAddFluxoCor, useDeleteFluxoCor,
+  useDevolverEtapaArte,
   ETAPAS, REGULATORIO_ITEMS, CHECKLIST_TIPOS, CAMPOS_ESPECIFICOS_DEFAULT,
   getEtapaStatus, getChecklistLabel, getFluxoStatusInfo,
   type FluxoArte, type EtapaKey, type RegulatorioItem,
 } from "@/hooks/useFluxoArtesMotor";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 export default function FluxoArtesDetalhe() {
   const { id } = useParams<{ id: string }>();
