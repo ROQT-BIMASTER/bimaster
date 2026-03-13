@@ -313,6 +313,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "estoque", label: "Estoque", icon: Package },
       { code: "aprovacao_artes", label: "Aprovação de Artes", icon: Palette },
       { code: "composicao", label: "Composição", icon: FlaskConical },
+      { code: "amostras", label: "Amostras", icon: Package },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
