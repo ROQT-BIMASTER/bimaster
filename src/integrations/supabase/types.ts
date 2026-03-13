@@ -16812,6 +16812,7 @@ export type Database = {
           created_at: string | null
           criador_id: string | null
           data_conclusao: string | null
+          data_inicio: string | null
           data_inicio_planejada: string | null
           data_prazo: string | null
           descricao: string | null
@@ -16841,6 +16842,7 @@ export type Database = {
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
+          data_inicio?: string | null
           data_inicio_planejada?: string | null
           data_prazo?: string | null
           descricao?: string | null
@@ -16870,6 +16872,7 @@ export type Database = {
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
+          data_inicio?: string | null
           data_inicio_planejada?: string | null
           data_prazo?: string | null
           descricao?: string | null
