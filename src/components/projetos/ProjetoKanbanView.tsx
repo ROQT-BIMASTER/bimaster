@@ -237,18 +237,24 @@ function KanbanCard({
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
 
+  const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       className={cn(
-        "rounded-lg border p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group",
+        "rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group flex overflow-hidden",
         darkBg
           ? "bg-white/5 border-white/10 hover:border-white/25"
           : "bg-background border-border/60 hover:border-primary/40",
         isCompleted && "opacity-60"
       )}
     >
+      {/* Accent bar */}
+      {accentColor && <div className={cn("w-1 flex-shrink-0 rounded-l-lg", accentColor)} />}
+      
+      <div className="flex-1 p-3">
       {/* Product photo */}
       {tarefa.produto_foto_url && (
         <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
