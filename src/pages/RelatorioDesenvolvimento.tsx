@@ -770,10 +770,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 10. TABELAS DE DADOS (SCHEMA) */}
+        {/* 13. TABELAS DE DADOS (SCHEMA) */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            10. Schema de Dados — Tabelas e Relacionamentos
+            13. Schema de Dados — Tabelas e Relacionamentos
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
