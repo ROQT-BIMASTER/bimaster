@@ -511,10 +511,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 5. MÓDULO DE TESTES */}
+        {/* 8. MÓDULO DE TESTES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            5. Módulo de Testes e Amostras
+            8. Módulo de Testes e Amostras
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
