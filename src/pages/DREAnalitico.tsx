@@ -471,7 +471,7 @@ export default function DREAnalitico() {
     return ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100;
   };
 
-  // Construir hierarquia DRE padrão CIGAM
+  // Construir hierarquia DRE Gerencial
   const construirHierarquiaDRE = (): DRENode[] => {
     if (!planoContas || !lancamentos) return [];
 
