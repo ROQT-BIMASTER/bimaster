@@ -52,8 +52,11 @@ const SLA_COLORS: Record<string, string> = {
 };
 
 export default function AnaliseEmbalagemPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("analises");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedAnalise, setSelectedAnalise] = useState<any | null>(null);
   const [selectedSolicitacao, setSelectedSolicitacao] = useState<any | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -69,16 +72,28 @@ export default function AnaliseEmbalagemPage() {
   const { data: solicitacoes = [], isLoading: loadingSolicitacoes } = useAllSolicitacoes();
 
   const filteredAnalises = useMemo(() =>
-    analises.filter((a: any) =>
-      a.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      a.produto_nome?.toLowerCase().includes(search.toLowerCase())
-    ), [analises, search]);
+    filterByDateRange(
+      analises.filter((a: any) =>
+        a.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        a.produto_nome?.toLowerCase().includes(search.toLowerCase())
+      ),
+      "created_at", dateFrom, dateTo
+    ), [analises, search, dateFrom, dateTo]);
 
   const filteredSolicitacoes = useMemo(() =>
     solicitacoes.filter((s: any) =>
       s.numero_solicitacao?.toLowerCase().includes(search.toLowerCase()) ||
       s.sku?.toLowerCase().includes(search.toLowerCase())
     ), [solicitacoes, search]);
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredAnalises.map((a: any) => ({
+      SKU: a.sku,
+      Produto: a.produto_nome,
+      "Status Aprovação": a.status_aprovacao,
+      "Criado em": a.created_at ? new Date(a.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "analise_embalagem", sheetName: "Embalagem", includeTimestamp: true });
+  };
 
   // KPIs
   const kpis = useMemo(() => ({
