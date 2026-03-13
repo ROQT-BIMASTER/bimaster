@@ -42,7 +42,7 @@ const RelatorioDesenvolvimento = () => {
           </h1>
           <p className="text-xl text-muted-foreground mt-2">Sistema BiMaster / Huggs PLM</p>
           <div className="mt-4 inline-block bg-primary/10 text-primary font-bold text-lg px-6 py-3 rounded-lg">
-            12 Estágios · 6 Módulos · Governança Completa
+            12 Estágios · 8 Módulos · Governança Completa
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             Documento Técnico — {new Date().toLocaleDateString('pt-BR')} — Versão 1.0
@@ -86,10 +86,264 @@ const RelatorioDesenvolvimento = () => {
           </table>
         </section>
 
-        {/* 2. PIPELINE DE 12 ESTÁGIOS */}
+        {/* 2. PROJETOS COMO MOTOR DO DESENVOLVIMENTO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            2. Pipeline de 12 Estágios — Visão Completa
+            2. Projetos como Motor do Desenvolvimento
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              O módulo de <strong>Projetos</strong> é o <strong>centro de comando</strong> de todo o ciclo de vida do produto. 
+              Cada produto nasce dentro de um projeto do tipo <em>"Desenvolvimento de Produto"</em>, que organiza automaticamente 
+              as equipes, tarefas e entregas de ponta a ponta.
+            </p>
+
+            <h3 className="font-bold">2.1 Criação do Projeto</h3>
+            <p className="text-muted-foreground">
+              O wizard de criação gera automaticamente seções departamentais com base no template selecionado:
+            </p>
+            <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
+  Template: "Desenvolvimento de Produto"
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Seções geradas automaticamente:                              │
+  │                                                                │
+  │  1. Criação / Identidade          (Design)                    │
+  │  2. Desenvolvimento de Produtos   (P&D)                       │
+  │  3. Desenvolvimento de Embalagem  (Design / Engenharia)       │
+  │  4. Informações dos Produtos      (Cadastro / Briefing)       │
+  │  5. Assuntos Regulatórios         (Regulatório)               │
+  │  6. Criação / Artes               (Design / Marketing)        │
+  └────────────────────────────────────────────────────────────────┘`}</pre>
+
+            <h3 className="font-bold mt-4">2.2 Campos Obrigatórios do Projeto</h3>
+            <table className="w-full border-collapse mt-2">
+              <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
+              <tbody className="text-muted-foreground">
+                <tr><td className="border p-2 font-medium text-foreground">Marca</td><td className="border p-2">Ruby Rose, HB, Maiana ou Outra</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Categoria / Linha</td><td className="border p-2">Maquiagem, Skincare, Corpo, etc.</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Origem</td><td className="border p-2">China (Importação), Brasil (Nacional), Collab, Recompra</td></tr>
+              </tbody>
+            </table>
+
+            <h3 className="font-bold mt-4">2.3 Vinculação de Membros por Papel</h3>
+            <table className="w-full border-collapse mt-2">
+              <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Papel</th><th className="border p-2 text-left text-foreground">Responsabilidade</th><th className="border p-2 text-left text-foreground">Seções Visíveis</th></tr></thead>
+              <tbody className="text-muted-foreground">
+                <tr><td className="border p-2 font-medium text-foreground">Coordenador</td><td className="border p-2">Visão global, gerencia prazos e prioridades</td><td className="border p-2">Todas</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Gestor de Produto</td><td className="border p-2">Define escopo, vincula produtos, aprova entregas</td><td className="border p-2">Todas</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Membro</td><td className="border p-2">Executa tarefas atribuídas</td><td className="border p-2">Seções atribuídas</td></tr>
+              </tbody>
+            </table>
+
+            <h3 className="font-bold mt-4">2.4 Hierarquia do Projeto</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                   HIERARQUIA DO PROJETO                                  │
+  │                                                                           │
+  │  📁 PROJETO (Desenvolvimento de Produto)                                 │
+  │   │                                                                       │
+  │   ├── 📂 SEÇÃO: Criação / Identidade                                     │
+  │   │    ├── 📋 Tarefa PR-001: Definir identidade visual                   │
+  │   │    │    ├── ☐ Subtarefa: Pesquisa de referências                     │
+  │   │    │    └── ☐ Subtarefa: Criar mood board                            │
+  │   │    └── 📋 Tarefa PR-002: Logo e paleta de cores                      │
+  │   │         └── 🔗 Produto vinculado: Batom XYZ                          │
+  │   │                                                                       │
+  │   ├── 📂 SEÇÃO: Desenvolvimento de Embalagem                             │
+  │   │    └── 📋 Tarefa PR-003: Definir faca primária                       │
+  │   │         └── 🔗 Produto vinculado: Batom XYZ                          │
+  │   │                                                                       │
+  │   └── 📂 SEÇÃO: Assuntos Regulatórios                                    │
+  │        └── 📋 Tarefa PR-004: Montar dossiê ANVISA                        │
+  │             └── 🔗 Produto vinculado: Batom XYZ                          │
+  └───────────────────────────────────────────────────────────────────────────┘`}</pre>
+          </div>
+        </section>
+
+        {/* 3. CICLO COMPLETO: COMEÇO, MEIO E FIM */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            3. Ciclo Completo — Começo, Meio e Fim
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              O desenvolvimento de um produto segue <strong>3 fases distintas</strong>, cada uma com entregas, responsáveis e 
+              marcos específicos. O projeto do tipo "Desenvolvimento de Produto" orquestra todo o processo.
+            </p>
+
+            <h3 className="font-bold text-emerald-600">🟢 COMEÇO — Fase de Concepção</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 1: CONCEPÇÃO                                │
+  │                                                                          │
+  │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐                │
+  │  │  Criar      │    │  Template    │    │  Seções      │                │
+  │  │  Projeto    │───▶│  gera seções │───▶│  automáticas │                │
+  │  │  Dev.Produto│    │  por depto   │    │  + membros   │                │
+  │  └─────────────┘    └──────────────┘    └──────┬───────┘                │
+  │                                                │                        │
+  │       ┌────────────────────────────────────────┤                        │
+  │       │                                        │                        │
+  │       ▼                                        ▼                        │
+  │  ┌──────────────┐                    ┌──────────────────┐               │
+  │  │ 🇨🇳 Vincular │                    │  📝 Briefing IA  │               │
+  │  │ Produto China│                    │  gerado por      │               │
+  │  │ (submissão)  │                    │  tarefa          │               │
+  │  └──────┬───────┘                    └──────────────────┘               │
+  │         │                                                               │
+  │         ▼                                                               │
+  │  ┌──────────────────┐                                                   │
+  │  │ 🇧🇷 Cria Produto  │                                                   │
+  │  │ Brasil automát.  │                                                   │
+  │  │ (herda dados)    │                                                   │
+  │  └──────────────────┘                                                   │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Projeto criado via Wizard com marca, categoria e origem</li>
+              <li>Template gera automaticamente 6 seções departamentais</li>
+              <li>Submissão China vinculada → Produto Brasil criado automaticamente</li>
+              <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
+            </ul>
+
+            <h3 className="font-bold text-amber-600 mt-6">🟡 MEIO — Fase de Execução</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 2: EXECUÇÃO                                 │
+  │                                                                          │
+  │  ┌────────────────────────────────────────────────────────────┐          │
+  │  │               TAREFAS DISTRIBUÍDAS POR SEÇÃO               │          │
+  │  │                                                            │          │
+  │  │  Lista ──── Kanban ──── Gantt ──── Calendário              │          │
+  │  │  (visões simultâneas dos mesmos dados)                     │          │
+  │  └────────────────────────────────────────────────────────────┘          │
+  │                           │                                              │
+  │            ┌──────────────┼───────────────┐                              │
+  │            │              │               │                              │
+  │            ▼              ▼               ▼                              │
+  │     ┌───────────┐  ┌───────────┐  ┌─────────────┐                       │
+  │     │ 🧪 Testes │  │ 📦 Embal. │  │ 🛡️ ANVISA  │                       │
+  │     │(paralelo) │  │(paralelo) │  │ (paralelo)  │                       │
+  │     └─────┬─────┘  └─────┬─────┘  └──────┬──────┘                       │
+  │           │              │               │                               │
+  │           └──────────────┼───────────────┘                               │
+  │                          ▼                                               │
+  │                   ┌─────────────┐                                        │
+  │                   │  Validação  │                                        │
+  │                   │ Checklist + │                                        │
+  │                   │ Auditoria IA│                                        │
+  │                   └─────────────┘                                        │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Tarefas distribuídas por seções com 4 visões: Lista, Kanban, Gantt e Calendário</li>
+              <li>Cada tarefa pode ter produto vinculado com StatusPipeline visual</li>
+              <li>Focus Mode permite ver painel do produto lado a lado com a tarefa</li>
+              <li>Testes, Embalagem e ANVISA executados em paralelo por equipes diferentes</li>
+              <li>Fluxo: tarefa concluída → Enviar para Validação → Checklist + Auditoria IA</li>
+            </ul>
+
+            <h3 className="font-bold text-blue-600 mt-6">🔵 FIM — Fase de Conclusão</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 3: CONCLUSÃO                                │
+  │                                                                          │
+  │  ┌───────────────┐    ┌───────────────┐    ┌──────────────┐             │
+  │  │ 📋 Cadastro   │    │ ✅ Aprovação  │    │   RNC?       │             │
+  │  │ Final         │───▶│ Física        │───▶│              │             │
+  │  │ (7 validações)│    │ (5 critérios) │    │  ┌───┐ ┌───┐ │             │
+  │  └───────────────┘    └───────────────┘    │  │Sim│ │Não│ │             │
+  │                                            │  └─┬─┘ └─┬─┘ │             │
+  │                                            └────┼─────┼───┘             │
+  │                                                 │     │                  │
+  │                                                 ▼     ▼                  │
+  │                                          ┌──────────┐ ┌──────────┐      │
+  │                                          │ Ação     │ │ Produto  │      │
+  │                                          │ Corretiva│ │ avança   │      │
+  │                                          │ (RNC)    │ │ pipeline │      │
+  │                                          └──────────┘ └────┬─────┘      │
+  │                                                            │             │
+  │                                                            ▼             │
+  │                                                     ┌────────────┐      │
+  │                                                     │ 🏭 Produção│      │
+  │                                                     │ 🚀 Lanç.  │      │
+  │                                                     └────────────┘      │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Cadastro Final com 7 validações bloqueantes (ANVISA, NCM, EAN, etc.)</li>
+              <li>Aprovação física por 5 critérios: cor, textura, fragrância, rótulo, peso</li>
+              <li>Se não conforme → gera RNC com ação corretiva obrigatória</li>
+              <li>Tarefa validada → produto avança no pipeline automaticamente</li>
+              <li>Projeto finalizado quando todos os produtos atingem status "Lançamento"</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* 4. ESTRUTURA DE TAREFAS E GOVERNANÇA */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            4. Estrutura de Tarefas e Governança
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              As tarefas são o elo entre o projeto e os produtos. Cada tarefa segue um fluxo de validação 
+              que depende do tipo de projeto em que está inserida.
+            </p>
+
+            <h3 className="font-bold">4.1 Código Automático</h3>
+            <p className="text-muted-foreground">
+              Cada tarefa criada recebe um código sequencial automático (ex: <code>PR-001</code>, <code>PR-002</code>) 
+              que garante rastreabilidade e referência rápida em reuniões e relatórios.
+            </p>
+
+            <h3 className="font-bold mt-4">4.2 Fluxo de Validação — Projeto de Desenvolvimento</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │             FLUXO DE VALIDAÇÃO (Desenvolvimento de Produto)            │
+  │                                                                          │
+  │  ┌───────────┐    ┌──────────────┐    ┌──────────────┐                  │
+  │  │  Tarefa   │    │   Enviar p/  │    │  Checklist   │                  │
+  │  │ Concluída │───▶│  Validação   │───▶│  Obrigatório │                  │
+  │  │           │    │              │    │  (itens)     │                  │
+  │  └───────────┘    └──────────────┘    └──────┬───────┘                  │
+  │                                              │                          │
+  │                                              ▼                          │
+  │                                     ┌──────────────┐                    │
+  │                                     │ 🤖 Auditoria │                    │
+  │                                     │     IA       │                    │
+  │                                     │ (consistência│                    │
+  │                                     │  tarefa ↔    │                    │
+  │                                     │  produto)    │                    │
+  │                                     └──────┬───────┘                    │
+  │                                            │                            │
+  │                                 ┌──────────┴──────────┐                 │
+  │                                 │                     │                 │
+  │                                 ▼                     ▼                 │
+  │                          ┌────────────┐        ┌────────────┐           │
+  │                          │ ✅ Aprovada │        │ ❌ Rejeitada│           │
+  │                          │ (produto   │        │ (volta ao  │           │
+  │                          │  avança)   │        │  executor) │           │
+  │                          └────────────┘        └────────────┘           │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+
+            <h3 className="font-bold mt-4">4.3 Fluxo de Validação — Projeto Genérico</h3>
+            <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
+  ┌───────────┐    ┌──────────────────┐    ┌──────────────┐
+  │  Tarefa   │    │  Enviar ao       │    │  Supervisor  │
+  │ Concluída │───▶│  Superior        │───▶│  Aprova ou   │
+  │           │    │  (reatribui)     │    │  Devolve     │
+  └───────────┘    └──────────────────┘    └──────────────┘`}</pre>
+
+            <div className="bg-muted/50 p-3 rounded border-l-4 border-primary mt-4">
+              <strong>Diferença-chave:</strong> Em projetos de <em>Desenvolvimento de Produto</em>, a validação exige 
+              produto vinculado + checklist + auditoria IA. Em projetos <em>Genéricos</em>, a validação é hierárquica 
+              (envia ao supervisor para aprovação).
+            </div>
+          </div>
+        </section>
+
+        {/* 5. PIPELINE DE 12 ESTÁGIOS */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            5. Pipeline de 12 Estágios — Visão Completa
           </h2>
           <pre className="mt-4 bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -153,11 +407,11 @@ const RelatorioDesenvolvimento = () => {
         {/* 3. ORIGEM DA DEMANDA */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            3. Origem da Demanda — Fase Ideia/Projeto
+            6. Origem da Demanda — Fase Ideia/Projeto
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <div>
-              <h3 className="font-bold">3.1 Fontes de Demanda</h3>
+              <h3 className="font-bold">6.1 Fontes de Demanda</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li><strong>Viagem à China</strong> — Produtos identificados em feiras/fábricas, registrados via submissão China</li>
                 <li><strong>Pesquisa de Tendência</strong> — Análise de mercado, benchmarking de concorrentes</li>
@@ -166,7 +420,7 @@ const RelatorioDesenvolvimento = () => {
               </ul>
             </div>
             <div>
-              <h3 className="font-bold">3.2 Wizard de Criação Automática</h3>
+              <h3 className="font-bold">6.2 Wizard de Criação Automática</h3>
               <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
   ┌─────────────────┐     ┌──────────────────┐     ┌──────────────────────┐
   │ Submissão China │     │ Vincula a Projeto│     │ Cria Produto Brasil  │
@@ -184,7 +438,7 @@ const RelatorioDesenvolvimento = () => {
                                                     └──────────────────────┘`}</pre>
             </div>
             <div>
-              <h3 className="font-bold">3.3 Campos do Projeto</h3>
+              <h3 className="font-bold">6.3 Campos do Projeto</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li><strong>Marca</strong> — Seleção da marca destino (multimarca suportado)</li>
                 <li><strong>Categoria</strong> — Classificação por linha de produto</li>
@@ -199,7 +453,7 @@ const RelatorioDesenvolvimento = () => {
         {/* 4. PRÉ-CADASTRO DO PRODUTO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            4. Pré-Cadastro do Produto — Campos Detalhados
+            7. Pré-Cadastro do Produto — Campos Detalhados
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
@@ -207,7 +461,7 @@ const RelatorioDesenvolvimento = () => {
               para rastrear cada aspecto do produto ao longo do ciclo de vida.
             </p>
 
-            <h3 className="font-bold">4.1 Identificação</h3>
+            <h3 className="font-bold">7.1 Identificação</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Tipo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
@@ -219,7 +473,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">4.2 Classificação Fiscal e Regulatória</h3>
+            <h3 className="font-bold mt-4">7.2 Classificação Fiscal e Regulatória</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Tipo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
@@ -231,7 +485,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">4.3 Embalagem e Medidas</h3>
+            <h3 className="font-bold mt-4">7.3 Embalagem e Medidas</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Tipo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
@@ -244,7 +498,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">4.4 Dados de Origem China</h3>
+            <h3 className="font-bold mt-4">7.4 Dados de Origem China</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
@@ -257,10 +511,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 5. MÓDULO DE TESTES */}
+        {/* 8. MÓDULO DE TESTES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            5. Módulo de Testes e Amostras
+            8. Módulo de Testes e Amostras
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
@@ -287,7 +541,7 @@ const RelatorioDesenvolvimento = () => {
 │                                                       └─────────────┘      │
 └──────────────────────────────────────────────────────────────────────────────┘`}</pre>
 
-            <h3 className="font-bold">5.1 Tipos de Teste</h3>
+            <h3 className="font-bold">8.1 Tipos de Teste</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
@@ -312,10 +566,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 6. DESENVOLVIMENTO DE EMBALAGEM */}
+        {/* 9. DESENVOLVIMENTO DE EMBALAGEM */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            6. Desenvolvimento de Embalagem — Checklist Estruturado
+            9. Desenvolvimento de Embalagem — Checklist Estruturado
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
@@ -364,10 +618,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 7. PIPELINE REGULATÓRIO ANVISA */}
+        {/* 10. PIPELINE REGULATÓRIO ANVISA */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            7. Pipeline Regulatório — ANVISA
+            10. Pipeline Regulatório — ANVISA
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
@@ -390,7 +644,7 @@ const RelatorioDesenvolvimento = () => {
 │                                                        └────────────┘       │
 └──────────────────────────────────────────────────────────────────────────────┘`}</pre>
 
-            <h3 className="font-bold">7.1 Campos Rastreados</h3>
+            <h3 className="font-bold">10.1 Campos Rastreados</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
@@ -416,10 +670,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 8. CADASTRO FINAL */}
+        {/* 11. CADASTRO FINAL */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            8. Cadastro Final — Validações Obrigatórias
+            11. Cadastro Final — Validações Obrigatórias
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
@@ -427,7 +681,7 @@ const RelatorioDesenvolvimento = () => {
               regulatórios e fiscais obrigatórios. O sistema bloqueia a transição se algum item estiver incompleto.
             </p>
 
-            <h3 className="font-bold">8.1 Checklist de Validação (7 Itens)</h3>
+            <h3 className="font-bold">11.1 Checklist de Validação (7 Itens)</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
@@ -459,13 +713,13 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 9. APROVAÇÃO FÍSICA E RNC */}
+        {/* 12. APROVAÇÃO FÍSICA E RNC */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            9. Aprovação Física e RNC (Registro de Não Conformidade)
+            12. Aprovação Física e RNC (Registro de Não Conformidade)
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
-            <h3 className="font-bold">9.1 Critérios de Aprovação Física</h3>
+            <h3 className="font-bold">12.1 Critérios de Aprovação Física</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
@@ -483,7 +737,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">9.2 Fluxo de Não Conformidade (RNC)</h3>
+            <h3 className="font-bold mt-4">12.2 Fluxo de Não Conformidade (RNC)</h3>
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                 FLUXO DE NÃO CONFORMIDADE (RNC)                            │
@@ -516,10 +770,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 10. TABELAS DE DADOS (SCHEMA) */}
+        {/* 13. TABELAS DE DADOS (SCHEMA) */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            10. Schema de Dados — Tabelas e Relacionamentos
+            13. Schema de Dados — Tabelas e Relacionamentos
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
@@ -568,10 +822,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 11. CONTROLE DE ACESSO */}
+        {/* 14. CONTROLE DE ACESSO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            11. Controle de Acesso por Fase
+            14. Controle de Acesso por Fase
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <table className="w-full border-collapse">
@@ -604,10 +858,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 12. INTEGRAÇÕES */}
+        {/* 15. INTEGRAÇÕES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            12. Integrações do Módulo
+            15. Integrações do Módulo
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <table className="w-full border-collapse">
@@ -652,7 +906,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">12.1 Image Timeline — 5 Etapas</h3>
+            <h3 className="font-bold mt-4">15.1 Image Timeline — 5 Etapas</h3>
             <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
   ┌─────────────┐    ┌─────────────┐    ┌───────────────┐    ┌─────────────┐    ┌─────────────┐
   │ 🇨🇳 CHINA   │    │ 🔍 ANÁLISE  │    │ 🔧 DESENV.   │    │ ✅ APROVADO │    │ 📸 MARKETING│
@@ -663,10 +917,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 13. MÉTRICAS E INDICADORES */}
+        {/* 16. MÉTRICAS E INDICADORES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            13. Métricas e Indicadores (KPIs)
+            16. Métricas e Indicadores (KPIs)
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
@@ -722,10 +976,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 14. CONCLUSÃO */}
+        {/* 17. CONCLUSÃO */}
         <section className="page-break border-t-4 border-primary pt-6 mt-8">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            14. Conclusão
+            17. Conclusão
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-3">
             <p className="text-muted-foreground leading-relaxed">
