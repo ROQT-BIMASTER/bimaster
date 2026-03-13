@@ -229,6 +229,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const confirmarAF = useConfirmarAF();
   const updateEtiqueta = useUpdateEtiqueta();
   const addCor = useAddEtiquetaCor();
+  const devolver = useDevolverEtapaBula();
   const { data: cores = [] } = useEtiquetaCores(etiqueta.id);
 
   const [status, setStatus] = useState<string>("approved");
