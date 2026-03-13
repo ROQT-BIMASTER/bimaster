@@ -71,11 +71,12 @@ export function TabIdentificacao({ produto }: Props) {
       ean_caixa_master: form.ean_caixa_master || null,
       tipo_produto: form.tipo_produto,
       itens_display: form.itens_display ? parseInt(form.itens_display) : null,
+      qty_per_display: form.qty_per_display ? parseInt(form.qty_per_display) : null,
       descricao_curta: form.descricao_curta || null,
       descricao_completa: form.descricao_completa || null,
       observacoes: form.observacoes || null,
       status: produto.status === "aguardando_precadastro" ? "precadastro_em_andamento" : produto.status,
-    });
+    } as any);
   };
 
   return (
