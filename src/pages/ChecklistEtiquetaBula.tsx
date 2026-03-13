@@ -22,11 +22,12 @@ import {
 import {
   useAllEtiquetas, useEtiquetaCores,
   useCreateEtiqueta, useUpdateEtiqueta, useAvancarEtapa, useConfirmarAF,
-  useAddEtiquetaCor,
+  useAddEtiquetaCor, useDevolverEtapaBula,
   uploadEtiquetaFile, getEtapaColor,
   ETAPAS, REGULATORIO_ITEMS,
   type EtiquetaBula, type AprovacaoEntry, type RegulatorioItem,
 } from "@/hooks/useEtiquetaBula";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
