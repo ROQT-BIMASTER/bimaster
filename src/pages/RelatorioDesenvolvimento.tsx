@@ -670,10 +670,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 8. CADASTRO FINAL */}
+        {/* 11. CADASTRO FINAL */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            8. Cadastro Final — Validações Obrigatórias
+            11. Cadastro Final — Validações Obrigatórias
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
