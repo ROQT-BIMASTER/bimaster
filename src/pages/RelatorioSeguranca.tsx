@@ -452,7 +452,7 @@ Content-Security-Policy:
   frame-ancestors 'self';
   upgrade-insecure-requests;
 
-X-Frame-Options: DENY
+X-Frame-Options: SAMEORIGIN
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin`}</pre>
             <ul className="list-disc ml-6 space-y-1 text-muted-foreground">
