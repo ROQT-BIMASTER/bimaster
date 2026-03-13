@@ -411,7 +411,7 @@ const RelatorioDesenvolvimento = () => {
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <div>
-              <h3 className="font-bold">3.1 Fontes de Demanda</h3>
+              <h3 className="font-bold">6.1 Fontes de Demanda</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li><strong>Viagem à China</strong> — Produtos identificados em feiras/fábricas, registrados via submissão China</li>
                 <li><strong>Pesquisa de Tendência</strong> — Análise de mercado, benchmarking de concorrentes</li>
