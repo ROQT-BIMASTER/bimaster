@@ -12,9 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useComposicaoBySubmissao, useUpsertComposicao, useDeleteComposicaoItem,
   useSubmeterComposicao, useComposicaoVersoes, useDevolverComposicao, validarPercentuais,
