@@ -242,6 +242,7 @@ export default function ChinaNovaSubmissao() {
           qty_total: validatedData.qty_total || null,
           peso_bruto_g: validatedData.peso_bruto_g || null,
           peso_liquido_g: validatedData.peso_liquido_g || null,
+          tipo_material_plastico: validatedData.tipo_material_plastico || null,
           ean_display: validatedData.ean_display || null,
           ean_caixa_master: validatedData.ean_caixa_master || null,
           dados_excel: validatedData,

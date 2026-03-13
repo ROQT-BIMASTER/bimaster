@@ -161,6 +161,9 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
           {data.peso_plastico_g != null && (
             <Badge variant="secondary" className="gap-1">
               Plástico 塑料: {data.peso_plastico_g}g
+              {(data as any).tipo_material_plastico && (
+                <span className="font-semibold text-primary">({(data as any).tipo_material_plastico})</span>
+              )}
             </Badge>
           )}
           {data.peso_bruto_g != null && (

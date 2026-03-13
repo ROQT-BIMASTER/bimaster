@@ -1,0 +1,1 @@
+ALTER TABLE public.china_produto_submissoes ADD COLUMN IF NOT EXISTS tipo_material_plastico text;

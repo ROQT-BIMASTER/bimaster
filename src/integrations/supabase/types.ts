@@ -1697,6 +1697,7 @@ export type Database = {
           qty_total: number | null
           reviewed_by: string | null
           status: string
+          tipo_material_plastico: string | null
           updated_at: string
         }
         Insert: {
@@ -1727,6 +1728,7 @@ export type Database = {
           qty_total?: number | null
           reviewed_by?: string | null
           status?: string
+          tipo_material_plastico?: string | null
           updated_at?: string
         }
         Update: {
@@ -1757,6 +1759,7 @@ export type Database = {
           qty_total?: number | null
           reviewed_by?: string | null
           status?: string
+          tipo_material_plastico?: string | null
           updated_at?: string
         }
         Relationships: []
