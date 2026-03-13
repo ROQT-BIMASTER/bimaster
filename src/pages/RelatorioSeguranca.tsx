@@ -158,12 +158,12 @@ const RelatorioSeguranca = () => {
               </ul>
             </div>
             <div>
-              <h3 className="font-bold">3.2 Autenticação Multifator (MFA)</h3>
+              <h3 className="font-bold">3.2 Autenticação Multifator (MFA/TOTP)</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li>TOTP nativo — compatível com Google Authenticator, Authy, Microsoft Authenticator</li>
-                <li>WebAuthn/Passkeys — login biométrico (impressão digital, Face ID)</li>
                 <li>QR Code gerado in-app para registro de dispositivo</li>
-                <li>Códigos de recuperação para caso de perda do dispositivo</li>
+                <li>Verificação obrigatória no login quando MFA está ativo</li>
+                <li>Gerenciamento de fatores via painel do usuário</li>
               </ul>
             </div>
             <div>
