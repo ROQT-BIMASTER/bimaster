@@ -44,7 +44,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ChecklistEtiquetaBula() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [selectedEtiqueta, setSelectedEtiqueta] = useState<EtiquetaBula | null>(null);
   const [showFlowDialog, setShowFlowDialog] = useState(false);
@@ -52,10 +55,13 @@ export default function ChecklistEtiquetaBula() {
   const { data: etiquetas = [], isLoading } = useAllEtiquetas();
 
   const filtered = useMemo(() =>
-    etiquetas.filter(e =>
-      e.sku.toLowerCase().includes(search.toLowerCase()) ||
-      e.produto_nome.toLowerCase().includes(search.toLowerCase())
-    ), [etiquetas, search]);
+    filterByDateRange(
+      etiquetas.filter(e =>
+        e.sku.toLowerCase().includes(search.toLowerCase()) ||
+        e.produto_nome.toLowerCase().includes(search.toLowerCase())
+      ),
+      "created_at", dateFrom, dateTo
+    ), [etiquetas, search, dateFrom, dateTo]);
 
   const kpis = useMemo(() => ({
     total: etiquetas.length,
@@ -63,6 +69,16 @@ export default function ChecklistEtiquetaBula() {
     concluidos: etiquetas.filter(e => e.status_atual === "concluido").length,
     reprovados: etiquetas.filter(e => e.status_atual === "reprovado").length,
   }), [etiquetas]);
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(e => ({
+      SKU: e.sku,
+      Produto: e.produto_nome,
+      "Etapa Atual": ETAPA_LABELS[e.etapa_atual] || e.etapa_atual,
+      Rodada: e.numero_rodada,
+      "Criado em": e.created_at ? new Date(e.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "etiqueta_bula", sheetName: "Etiqueta Bula", includeTimestamp: true });
+  };
 
   return (
     <DashboardLayout>
