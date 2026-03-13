@@ -144,6 +144,22 @@ export function TabIdentificacao({ produto }: Props) {
               <Input type="number" min={1} value={form.itens_display} onChange={(e) => setForm({ ...form, itens_display: e.target.value })} className="mt-1" />
             </div>
           )}
+          <div>
+            <Label className="text-xs">QTY por Display (caixa)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.qty_per_display}
+              onChange={(e) => setForm({ ...form, qty_per_display: e.target.value })}
+              className="mt-1"
+              placeholder="Ex: 432"
+            />
+            {form.qty_per_display && parseInt(form.qty_per_display) > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                = {(parseInt(form.qty_per_display) / 12).toFixed(parseInt(form.qty_per_display) % 12 === 0 ? 0 : 1)} dúzia{parseInt(form.qty_per_display) >= 24 || parseInt(form.qty_per_display) < 12 ? 's' : ''}
+              </p>
+            )}
+          </div>
         </div>
 
         <div>
