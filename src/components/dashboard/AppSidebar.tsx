@@ -314,6 +314,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "aprovacao_artes", label: "Aprovação de Artes", icon: Palette },
       { code: "composicao", label: "Composição", icon: FlaskConical },
       { code: "amostras", label: "Amostras", icon: Package },
+      { code: "analise_embalagem", label: "Embalagem", icon: Layers },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -1162,6 +1163,34 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 ps-2">
                     <MenuItemLink to="/dashboard/amostras" icon={Home} title="Recebimento de Amostras" end />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo Análise de Embalagem */}
+        {showModule("analise_embalagem") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-violet-50 dark:bg-violet-950/30",
+                  "hover:bg-violet-100 dark:hover:bg-violet-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500">
+                    <Layers className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-violet-600 dark:text-violet-400">Embalagem</span>
+                  <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/analise-embalagem" icon={Home} title="Análise de Embalagem" end />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>

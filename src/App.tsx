@@ -231,6 +231,7 @@ const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacao
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
 const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
+const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
 
 // Loading component
 const PageLoader = () => (
@@ -493,6 +494,9 @@ function AppContent() {
 
             {/* Módulo Recebimento de Amostra */}
             <Route path="/dashboard/amostras" element={<ModuleRoute moduleCode="amostras"><RecebimentoAmostra /></ModuleRoute>} />
+
+            {/* Módulo Análise de Embalagem */}
+            <Route path="/dashboard/analise-embalagem" element={<ModuleRoute moduleCode="analise_embalagem"><AnaliseEmbalagem /></ModuleRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />

@@ -19,6 +19,7 @@ const MODULE_ROUTES = [
   { code: "aprovacao_artes", path: "/dashboard/aprovacao-artes" },
   { code: "composicao", path: "/dashboard/composicao" },
   { code: "amostras", path: "/dashboard/amostras" },
+  { code: "analise_embalagem", path: "/dashboard/analise-embalagem" },
   { code: "comercial", path: "/dashboard/comercial" },
   { code: "marketing", path: "/dashboard/marketing" },
   { code: "precos", path: "/dashboard/precos" },
