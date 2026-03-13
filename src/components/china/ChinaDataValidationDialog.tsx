@@ -480,6 +480,37 @@ export function ChinaDataValidationDialog({
                 />
               </div>
               <div>
+                <Label className="text-xs">Bruto Total (g) 毛重</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={data.peso_bruto_g ?? ""}
+                  onChange={e => updateField("peso_bruto_g", e.target.value ? parseFloat(e.target.value) : null)}
+                  className="h-9"
+                  placeholder="23.85"
+                />
+              </div>
+            </div>
+           </section>
+
+          {/* Grouped: Embalagem Plástica */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 border-b border-border pb-1">
+              <Package className="h-4 w-4 text-primary" />
+              <BilingualLabel pt="Embalagem Plástica" cn="塑料包装" size="md" />
+              {isMaterialPlasticoMissing && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 animate-pulse">
+                  Obrigatório
+                </Badge>
+              )}
+            </div>
+            <div className={cn(
+              "grid grid-cols-2 gap-3 p-3 rounded-lg border-2 transition-colors",
+              isMaterialPlasticoMissing
+                ? "border-destructive/50 bg-destructive/5"
+                : "border-primary/20 bg-primary/5"
+            )}>
+              <div>
                 <Label className="text-xs">Plástico (g) 塑料</Label>
                 <Input
                   type="number"
@@ -491,7 +522,29 @@ export function ChinaDataValidationDialog({
                 />
               </div>
               <div>
-                <Label className="text-xs">Bruto Total (g) 毛重</Label>
+                <Label className="text-xs flex items-center gap-1">
+                  Tipo de Material Plástico 塑料材料类型
+                  <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  value={data.tipo_material_plastico || ""}
+                  onChange={e => updateField("tipo_material_plastico", e.target.value || null)}
+                  className={cn(
+                    "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    isMaterialPlasticoMissing
+                      ? "border-destructive text-destructive"
+                      : "border-input"
+                  )}
+                >
+                  <option value="">Selecione... 请选择...</option>
+                  {TIPOS_MATERIAL_PLASTICO.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
                 <Input
                   type="number"
                   step="0.01"
