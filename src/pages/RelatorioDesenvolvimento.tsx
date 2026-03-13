@@ -822,10 +822,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 11. CONTROLE DE ACESSO */}
+        {/* 14. CONTROLE DE ACESSO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            11. Controle de Acesso por Fase
+            14. Controle de Acesso por Fase
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <table className="w-full border-collapse">
