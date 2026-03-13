@@ -719,7 +719,7 @@ const RelatorioDesenvolvimento = () => {
             12. Aprovação Física e RNC (Registro de Não Conformidade)
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
-            <h3 className="font-bold">9.1 Critérios de Aprovação Física</h3>
+            <h3 className="font-bold">12.1 Critérios de Aprovação Física</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
