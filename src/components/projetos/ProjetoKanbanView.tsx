@@ -308,36 +308,8 @@ function KanbanCard({
         />
       </div>
 
-      {/* Footer: date + grade eye + subtasks + avatar */}
+      {/* Footer: avatars left, date + grade + subtasks right */}
       <div className="flex items-center justify-between mt-2.5">
-        <div className="flex items-center gap-2">
-          {tarefa.data_prazo ? (
-            <span className={cn(
-              "text-[10px] flex items-center gap-1",
-              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
-            )}>
-              <Calendar className="h-3 w-3" />
-              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-            </span>
-          ) : null}
-
-          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
-          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <DisplayGradePopover
-                produtoId={tarefa.produto_id}
-                produtoNome={tarefa.titulo}
-                produtoCodigo={tarefa.codigo || undefined}
-              />
-            </div>
-          )}
-
-          {/* Subtasks popover */}
-          {subtaskTotal > 0 && tarefa.subtarefas && (
-            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
-          )}
-        </div>
-
         <div className="flex items-center -space-x-1">
           {tarefa.responsavel && (
             <Avatar className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
@@ -354,7 +326,36 @@ function KanbanCard({
             </Avatar>
           ))}
         </div>
+
+        <div className="flex items-center gap-2">
+          {/* Subtasks popover */}
+          {subtaskTotal > 0 && tarefa.subtarefas && (
+            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
+          )}
+
+          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
+          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DisplayGradePopover
+                produtoId={tarefa.produto_id}
+                produtoNome={tarefa.titulo}
+                produtoCodigo={tarefa.codigo || undefined}
+              />
+            </div>
+          )}
+
+          {tarefa.data_prazo ? (
+            <span className={cn(
+              "text-[10px] flex items-center gap-1",
+              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
+            )}>
+              <Calendar className="h-3 w-3" />
+              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
+            </span>
+          ) : null}
+        </div>
       </div>
+      </div> {/* end flex-1 inner content */}
     </div>
   );
 }
