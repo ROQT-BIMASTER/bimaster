@@ -140,3 +140,26 @@ Lançamento → Aprovação → ERP: "Aguardando Pagamento" (provisão)
 
 ### Status do produto no fluxo
 `produto_importado` → `aguardando_precadastro` → `precadastro_em_andamento` → `aguardando_regulatorio` → `aprovado_cadastro` → `produto_ativo`
+
+---
+
+## Plano: Proteção DDoS — Camada Aplicacional (L7)
+
+### Status: ✅ Implementado
+
+### O que foi feito
+
+1. **Tabela `ddos_rate_limits`** — Rate limiting persistente com índices e cleanup automático, RLS restrita a service_role
+2. **Edge Function `ddos-shield`** — 3 actions:
+   - `check` — Verifica se requisição é permitida (por user_id ou IP)
+   - `cleanup` — Remove registros expirados
+   - `status` — Estatísticas de IPs/usuários bloqueados
+3. **Hook `useDDoSProtection`** — Interceptor frontend para respostas 429 com backoff exponencial
+4. **Relatório de Segurança** — DDoS movido de "Risco Médio" para "✅ Implementado"
+
+### Limites configurados
+- **Anônimo (IP)**: 60 req/min
+- **Autenticado (user_id)**: 120 req/min
+- **Departamento China**: 240 req/min (2x)
+- **Uploads**: Excluídos do rate limiting
+- **Bloqueio**: 5 minutos ao exceder limite
