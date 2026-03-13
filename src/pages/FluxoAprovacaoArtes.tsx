@@ -7,8 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   GitPullRequest, Settings, Clock, CheckCircle2, XCircle, ArrowRight,
-  Search, Plus, Loader2, RotateCcw, Palette
+  Search, Plus, Loader2, RotateCcw, Palette, ArrowLeft, Download
 } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import { useFluxoInstancias, useFluxoConfigs, useIniciarFluxo, type FluxoInstancia } from "@/hooks/useFluxoAprovacaoArtes";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
