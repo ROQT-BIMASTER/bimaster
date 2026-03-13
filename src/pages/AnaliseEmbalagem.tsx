@@ -52,6 +52,8 @@ export default function AnaliseEmbalagemPage() {
   const [showSolicitacaoDialog, setShowSolicitacaoDialog] = useState(false);
   const [showAvaliacaoDialog, setShowAvaliacaoDialog] = useState(false);
   const [showChinaUploadDialog, setShowChinaUploadDialog] = useState(false);
+  const [showDevolucaoDialog, setShowDevolucaoDialog] = useState(false);
+  const devolverAnalise = useDevolverAnalise();
 
   const { data: analises = [], isLoading: loadingAnalises } = useAllAnalises();
   const { data: solicitacoes = [], isLoading: loadingSolicitacoes } = useAllSolicitacoes();
