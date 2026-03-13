@@ -3845,6 +3845,36 @@ export type Database = {
           },
         ]
       }
+      ddos_rate_limits: {
+        Row: {
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          identifier_type: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          identifier_type?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          identifier_type?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       departamento_permissoes_modulos: {
         Row: {
           created_at: string | null
@@ -23718,6 +23748,7 @@ export type Database = {
         Returns: number
       }
       cleanup_audit_logs_daily: { Args: never; Returns: undefined }
+      cleanup_ddos_rate_limits: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       complete_sync: {
