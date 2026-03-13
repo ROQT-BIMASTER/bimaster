@@ -173,6 +173,7 @@ const ComercialMapa = lazyWithRetry(() => import("./pages/ComercialMapa"));
 const GerenciamentoAcessoPrecos = lazyWithRetry(() => import("./pages/GerenciamentoAcessoPrecos"));
 const PrecosMatrizComparativa = lazyWithRetry(() => import("./pages/PrecosMatrizComparativa"));
 const SimuladorCenariosPrecos = lazyWithRetry(() => import("./pages/SimuladorCenariosPrecos"));
+const SimulacaoDados = lazyWithRetry(() => import("./pages/SimulacaoDados"));
 const PortalCliente = lazyWithRetry(() => import("./pages/PortalCliente"));
 const APIHealthCheck = lazyWithRetry(() => import("./pages/APIHealthCheck"));
 const ContasAPagar = lazyWithRetry(() => import("./pages/ContasAPagar"));
