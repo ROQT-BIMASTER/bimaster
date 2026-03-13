@@ -42,7 +42,7 @@ const RelatorioDesenvolvimento = () => {
           </h1>
           <p className="text-xl text-muted-foreground mt-2">Sistema BiMaster / Huggs PLM</p>
           <div className="mt-4 inline-block bg-primary/10 text-primary font-bold text-lg px-6 py-3 rounded-lg">
-            12 Estágios · 6 Módulos · Governança Completa
+            12 Estágios · 8 Módulos · Governança Completa
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             Documento Técnico — {new Date().toLocaleDateString('pt-BR')} — Versão 1.0
