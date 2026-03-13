@@ -906,7 +906,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">12.1 Image Timeline — 5 Etapas</h3>
+            <h3 className="font-bold mt-4">15.1 Image Timeline — 5 Etapas</h3>
             <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
   ┌─────────────┐    ┌─────────────┐    ┌───────────────┐    ┌─────────────┐    ┌─────────────┐
   │ 🇨🇳 CHINA   │    │ 🔍 ANÁLISE  │    │ 🔧 DESENV.   │    │ ✅ APROVADO │    │ 📸 MARKETING│
