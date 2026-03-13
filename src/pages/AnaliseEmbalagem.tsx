@@ -183,6 +183,9 @@ export default function AnaliseEmbalagemPage() {
           }}
         />
       )}
+      {selectedAnalise && (
+        <VincularProjetoDialog modulo="analise_embalagem" registroId={selectedAnalise.id} open={showVinculoDialog} onOpenChange={setShowVinculoDialog} />
+      )}
     </DashboardLayout>
   );
 }

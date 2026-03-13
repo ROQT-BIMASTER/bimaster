@@ -305,7 +305,10 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{etiqueta.sku}: {etiqueta.produto_nome}</DialogTitle>
+          <VinculoProjetoBadges modulo="etiqueta_bula" registroId={etiqueta.id} onVincular={() => setShowVinculo(true)} />
         </DialogHeader>
+
+        <VincularProjetoDialog modulo="etiqueta_bula" registroId={etiqueta.id} open={showVinculo} onOpenChange={setShowVinculo} />
 
         {/* Timeline visual */}
         <Card>
