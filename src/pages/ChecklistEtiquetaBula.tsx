@@ -492,6 +492,12 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
             {/* Intermediate steps: approve/reject */}
             {["embalagem", "desenvolvimento", "regulatorio"].includes(etiqueta.etapa_atual) && (
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                {ETAPAS.findIndex(e => e.key === etiqueta.etapa_atual) > 0 && (
+                  <Button variant="outline" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver
+                  </Button>
+                )}
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -512,5 +518,28 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
         )}
       </DialogContent>
     </Dialog>
+
+    <DevolucaoEtapaDialog
+      open={showDevolucao}
+      onOpenChange={setShowDevolucao}
+      entityType="etiqueta_bula"
+      entityId={etiqueta.id}
+      etapasAnteriores={
+        ETAPAS
+          .filter((_, idx) => idx < ETAPAS.findIndex(e => e.key === etiqueta.etapa_atual))
+          .map(e => ({ key: e.key, label: e.label }))
+      }
+      onConfirm={async (result: DevolucaoResult) => {
+        await devolver.mutateAsync({
+          id: etiqueta.id,
+          etiqueta,
+          etapaDestino: result.etapaDestino,
+          justificativa: result.justificativa,
+          userInfo: result.userInfo,
+        });
+        onClose();
+      }}
+    />
+    </>
   );
 }
