@@ -141,6 +141,7 @@ export default function AnaliseEmbalagemPage() {
               onApprove={(a: any) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
               onSolicitar={(a: any) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
               onDevolver={(a: any) => { setSelectedAnalise(a); setShowDevolucaoDialog(true); }}
+              onVincular={(a: any) => { setSelectedAnalise(a); setShowVinculoDialog(true); }}
             />
           </TabsContent>
 
