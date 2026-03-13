@@ -438,6 +438,24 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
             </CardContent>
           </Card>
 
+          {/* Devolver button */}
+          {!isReadOnly && amostra.status !== "aguardando_envio" && (
+            <Button variant="outline" className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+              <RotateCcw className="h-4 w-4" />Devolver Amostra
+            </Button>
+          )}
+
+          <DevolucaoEtapaDialog
+            open={showDevolucao}
+            onOpenChange={setShowDevolucao}
+            entityType="amostra"
+            entityId={amostra.id}
+            etapasAnteriores={[{ key: "aguardando_envio", label: "Aguardando Envio (Reenvio)" }]}
+            onConfirm={async (result: DevolucaoResult) => {
+              await devolver.mutateAsync({ id: amostra.id, justificativa: result.justificativa, userInfo: result.userInfo });
+            }}
+          />
+
           {!isReadOnly && allChecked && evidenciasOk && (
             <>
               {allConformes ? (
