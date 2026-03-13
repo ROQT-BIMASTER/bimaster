@@ -199,9 +199,9 @@ const RelatorioDesenvolvimento = () => {
   │  └──────────────────┘                                                   │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
-              <li>Projeto criado via Wizard com marca, categoria e origem</li>
-              <li>Template gera automaticamente 6 seções departamentais</li>
-              <li>Submissão China vinculada → Produto Brasil criado automaticamente</li>
+              <li>Equipe Brasil identifica oportunidade (viagem à China, pesquisa de tendência, demanda comercial)</li>
+              <li>Submissão registrada no sistema com dados do produto desejado</li>
+              <li>China recebe a demanda e produz amostras/protótipos após aprovação do Brasil</li>
               <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
             </ul>
 
