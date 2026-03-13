@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Progress } from "@/components/ui/progress";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
