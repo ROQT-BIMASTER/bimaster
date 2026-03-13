@@ -1080,7 +1080,36 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
-        {showModule("precos") && (
+        {/* Módulo de Aprovação de Artes */}
+        {showModule("aprovacao_artes") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-violet-50 dark:bg-violet-950/30",
+                  "hover:bg-violet-100 dark:hover:bg-violet-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500">
+                    <Palette className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-violet-600 dark:text-violet-400">Aprovação de Artes</span>
+                  <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/aprovacao-artes" icon={Home} title="Painel" end />
+                    <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Settings} title="Configuração" />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
               <CollapsibleTrigger className="w-full">
