@@ -1,49 +1,119 @@
 
 
-# Verificação de Completude — Todas as Etapas
+# Padronizar Listagens com Visual Tipo "Projetos"
 
-## Resultado: TUDO IMPLEMENTADO
+## O que fazer
 
-Após análise completa do código, rotas, hooks, migrações e sidebar, **todas as 7 etapas estão criadas e funcionais**:
+Aplicar o mesmo padrão visual da listagem de Projetos (imagem de referencia) nas listagens dos 5 novos modulos. Atualmente todos usam Cards empilhados -- vamos trocar por uma **tabela estilizada com header de colunas**, avatar colorido, barra de progresso, badge de status e data, igual ao `Projetos.tsx` (linhas 234-309).
 
-| Etapa | Módulo | Tabelas DB | Hook | Página | Rota |
-|-------|--------|-----------|------|--------|------|
-| 01 | Checklist Pedido/China | `china_produto_submissoes` (campo material plástico) | `useProdutoBrasil` | `ChinaNovaSubmissao` | `/dashboard/china/*` |
-| 02 | Fluxo Aprovação de Artes | `fluxo_aprovacao_artes`, `fluxo_aprovacao_artes_etapas`, `fluxo_aprovacao_artes_instancias` | `useFluxoAprovacaoArtes` | `FluxoAprovacaoArtes`, `FluxoAprovacaoDetalhe`, `FluxoAprovacaoConfig` | `/dashboard/aprovacao-artes/*` |
-| 03 | Checklist Composição + ANVISA | `produto_composicao`, `produto_composicao_versoes`, `produto_peticionamento`, `produto_gate_criacao` | `useComposicao` | `ChecklistComposicao` | `/dashboard/composicao` |
-| 04 | Recebimento Amostra Física | `produto_amostras`, `produto_amostra_fotos` + bucket `amostras` | `useAmostras` | `RecebimentoAmostra` | `/dashboard/amostras` |
-| 05 | Análise Embalagem + Solicitação | `produto_analise_embalagem`, `produto_embalagem_cores`, `produto_solicitacao_amostra` | `useAnaliseEmbalagem` | `AnaliseEmbalagem` | `/dashboard/analise-embalagem` |
-| 06 | Checklist Etiqueta/Bula | `produto_etiqueta_bula`, `produto_etiqueta_cores` | `useEtiquetaBula` | `ChecklistEtiquetaBula` | `/dashboard/etiqueta-bula` |
-| 07 | Motor Genérico de Artes (5 tipos) | `produto_fluxo_artes`, `produto_fluxo_artes_cores` + bucket `fluxo-artes` | `useFluxoArtesMotor` | `FluxoArtesMotor`, `FluxoArtesDetalhe` | `/dashboard/fluxo-artes/*` |
+## Padrão visual (extraido de Projetos.tsx)
 
-## Funcionalidades Confirmadas por Etapa
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│ Produto          │ Status        │ Progresso     │ Etapa  │ Criado │
+├──────────────────┼───────────────┼───────────────┼────────┼────────┤
+│ 🟠 Lip Oil       │ ⏳ Em Análise │ ████░░ 60%    │ Embal. │ 12 mar │
+│    SKU: HB-L6526 │               │               │        │        │
+└──────────────────┴───────────────┴───────────────┴────────┴────────┘
+```
 
-**Etapa 01** — Material Plástico (PP/PE/PET/ABS/Acrílico) presente no `CHECKLIST_EMBALAGEM` do `useProdutoBrasil`
+- Container: `border rounded-xl overflow-hidden bg-card`
+- Header row: `bg-muted/50 text-xs font-medium text-muted-foreground`
+- Data rows: `grid` com colunas fixas, `hover:bg-muted/30`, `cursor-pointer`, `border-b`
+- Avatar: circulo colorido com inicial do produto (cor derivada do tipo/status)
+- Progress bar: componente `<Progress>` com `h-1.5` + percentual ao lado
+- Status: `<Badge>` com variant por status
+- Data: `text-[11px] text-muted-foreground`, formato `dd MMM yyyy`
 
-**Etapa 02** — Pré-aprovação paralela (Funcionário + CQ), fluxo configurável por admin, logs de rodada, reprovação com fluxo inverso
+## Modulos a padronizar (5 arquivos)
 
-**Etapa 03** — INCI Name, CAS NO, % por cor, Função; validação soma=100%; Gate Composição+Arte→Criação; Peticionamento ANVISA (Grau 1 notificação, Grau 2 registro)
+### 1. ChecklistComposicao.tsx (linhas 74-95)
+**Colunas:** Produto | Status INCI | % Validado | Rodada | Criado em
+- Trocar `grid gap-3` de Cards por tabela estilizada
+- Adicionar avatar com inicial + cor
+- Barra de progresso = % ingredientes validados (se disponivel)
+- Manter DashboardLayout + Breadcrumb (adicionar, pois falta)
 
-**Etapa 04** — Fotos obrigatórias (mín. 3) + Vídeo (mín. 1) bloqueantes; Checklist 5 pontos; Conforme→avança, Não conforme→DEV China com instrução+prazo
+### 2. RecebimentoAmostra.tsx (linhas 105-132)
+**Colunas:** Produto | Status Amostra | Evidencias | Rodada | Criado em
+- Trocar Cards por tabela
+- Progresso = fotos/videos enviados vs obrigatorios
+- Adicionar DashboardLayout + Breadcrumb
 
-**Etapa 05** — Primary Package (Pantone, Tube/Cap, Finishing); SOL-auto; SLA obrigatório; China responde com foto+vídeo; SLA vencido = alerta vermelho
+### 3. AnaliseEmbalagem.tsx (linhas 170-226)
+**Colunas:** Produto | Aprovacao | Specs | Solicitacoes | Criado em
+- Ja tem DashboardLayout -- apenas trocar Cards por tabela
+- Badges de specs ficam inline na coluna "Specs"
 
-**Etapa 06** — Fluxo sequencial: Criação→Embalagem→Desenvolvimento→Regulatório→AF; 7 itens Regulatório (INCI, ANVISA, idioma, peso, validade, SAC, advertências); Reg reprova→volta Criação
+### 4. ChecklistEtiquetaBula.tsx (linhas 109-143)
+**Colunas:** Produto | Etapa Atual | Timeline | Rodada | Criado em
+- Ja tem DashboardLayout -- apenas trocar Cards por tabela
+- Timeline mini fica na coluna "Timeline"
 
-**Etapa 07** — 5 tipos (Etiqueta Bula, Etiqueta Fundo, Tester, Etiqueta Teste, Display); mesmo fluxo sequencial; Gate: todos 5 com AF ✅ → produto avança
+### 5. FluxoArtesMotor.tsx - aba "Todos" (linhas 225-254)
+**Colunas:** Documento | Produto | Tipo | Etapa | Status | Criado em
+- Trocar Cards por tabela
+- Adicionar DashboardLayout + Breadcrumb
+- A aba "Produtos (Gate)" mantem o layout agrupado atual
 
-## Tabelas Mencionadas — Todas Existem
+## Implementacao tecnica
 
-- `produto_composicao` ✅
-- `produto_peticionamento` ✅
-- `produto_amostras` ✅
-- `produto_solicitacao_amostra` ✅
-- `produto_etiqueta_bula` ✅
-- `produto_fluxo_artes` ✅
-- `fluxo_aprovacao_artes` (configs/instancias/etapas) ✅
-- `produto_analise_embalagem` ✅
+Para cada modulo:
 
-## Conclusão
+1. **Wrapper**: envolver com `DashboardLayout` + `ModuleBreadcrumb` (onde falta)
+2. **Substituir listagem de Cards** por:
+```tsx
+<div className="border rounded-xl overflow-hidden bg-card">
+  {/* Header */}
+  <div className="grid grid-cols-[...] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+    <span>Produto</span>
+    <span>Status</span>
+    <span>Progresso</span>
+    <span>Etapa</span>
+    <span>Criado em</span>
+  </div>
+  {/* Rows */}
+  {items.map(item => (
+    <div className="grid grid-cols-[...] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors">
+      {/* Avatar + nome */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <span className="text-primary font-bold text-xs">H</span>
+        </div>
+        <div className="min-w-0">
+          <p className="font-medium text-sm truncate">{nome}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{sku}</p>
+        </div>
+      </div>
+      {/* Status badge */}
+      <Badge variant={...}>{status}</Badge>
+      {/* Progress */}
+      <div className="flex items-center gap-3">
+        <Progress value={pct} className="h-1.5 flex-1" />
+        <span className="text-xs font-semibold">{pct}%</span>
+      </div>
+      {/* Etapa / info extra */}
+      ...
+      {/* Date */}
+      <span className="text-[11px] text-muted-foreground">12 mar 2026</span>
+    </div>
+  ))}
+</div>
+```
 
-**Nenhum módulo ou tabela está faltando.** Todos os 7 estágios do pipeline estão implementados com suas respectivas regras de negócio, tabelas, RLS policies, hooks e páginas. O gate final no Motor Genérico (`useGateCheck`) verifica que todos os 5 tipos tenham AF recebida antes de liberar o produto.
+3. **Responsividade**: Em mobile (`md:hidden`), manter Cards simplificados com border-left colorido. A tabela fica `hidden md:block`.
+
+4. **Correcoes incluidas**: Trocar `useMemo` com setState por `useEffect` em `ChecklistComposicao` e `RecebimentoAmostra`.
+
+5. **KPIs**: Padronizar todos para `grid-cols-2 md:grid-cols-4`.
+
+## Arquivos modificados
+
+| Arquivo | Alteracoes |
+|---------|-----------|
+| `ChecklistComposicao.tsx` | + DashboardLayout/Breadcrumb, tabela, KPIs responsivos, fix useMemo |
+| `RecebimentoAmostra.tsx` | + DashboardLayout/Breadcrumb, tabela, KPIs responsivos, fix useMemo |
+| `AnaliseEmbalagem.tsx` | Tabela nas duas sub-listas (Analises + Solicitacoes) |
+| `ChecklistEtiquetaBula.tsx` | Tabela com timeline inline |
+| `FluxoArtesMotor.tsx` | + DashboardLayout/Breadcrumb, tabela na aba "Todos", KPIs responsivos |
 
