@@ -566,10 +566,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 6. DESENVOLVIMENTO DE EMBALAGEM */}
+        {/* 9. DESENVOLVIMENTO DE EMBALAGEM */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            6. Desenvolvimento de Embalagem — Checklist Estruturado
+            9. Desenvolvimento de Embalagem — Checklist Estruturado
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
