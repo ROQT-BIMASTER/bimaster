@@ -25,6 +25,7 @@ export function TabIdentificacao({ produto }: Props) {
     ean_caixa_master: produto.ean_caixa_master || "",
     tipo_produto: produto.tipo_produto || "ACABADO",
     itens_display: produto.itens_display?.toString() || "",
+    qty_per_display: produto.qty_per_display?.toString() || "",
     descricao_curta: produto.descricao_curta || "",
     descricao_completa: produto.descricao_completa || "",
     observacoes: produto.observacoes || "",
