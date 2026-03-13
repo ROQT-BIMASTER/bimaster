@@ -447,8 +447,8 @@ export function ChinaDataValidationDialog({
                 {hasMismatch && (
                   <div className="flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
-                    Soma das cores ({colorSum.toLocaleString()}) difere da quantidade total ({qtyTotal.toLocaleString()}).
-                    颜色总量与总数量不匹配。
+                    Soma das cores ({colorSum.toLocaleString()}) difere da quantidade por caixa ({qtyPerDisplay.toLocaleString()}).
+                    颜色总量与每箱数量不匹配。
                   </div>
                 )}
               </>
