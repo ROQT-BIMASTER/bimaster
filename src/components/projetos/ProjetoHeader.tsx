@@ -103,36 +103,98 @@ export function ProjetoHeader({
       {tarefas.length > 0 && <ProjetoHealthPanel tarefas={tarefas} darkBg={darkBg} />}
 
       {/* Tabs and toolbar */}
-      <div className={`flex items-center justify-between border-b pb-0 ${borderColor}`}>
+      <div className={`flex items-center justify-between pb-2`}>
         <Tabs value={activeTab} onValueChange={onTabChange}>
-          <TabsList className="bg-transparent h-auto p-0 gap-0">
-            <TabsTrigger value="lista" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+          <TabsList className={cn(
+            "h-auto p-1 gap-1 rounded-lg",
+            darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
+          )}>
+            <TabsTrigger value="lista" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <List className="h-4 w-4" /> Lista
             </TabsTrigger>
-            <TabsTrigger value="quadro" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="quadro" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <LayoutGrid className="h-4 w-4" /> Quadro
             </TabsTrigger>
-            <TabsTrigger value="cronograma" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="cronograma" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <Calendar className="h-4 w-4" /> Cronograma
             </TabsTrigger>
-            <TabsTrigger value="calendario" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="calendario" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <CalendarDays className="h-4 w-4" /> Calendário
             </TabsTrigger>
-            <TabsTrigger value="painel" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="painel" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <BarChart3 className="h-4 w-4" /> Painel
             </TabsTrigger>
-            <TabsTrigger value="briefings" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="briefings" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <FileSpreadsheet className="h-4 w-4" /> Briefings
             </TabsTrigger>
-            <TabsTrigger value="equipe" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="equipe" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <UsersRound className="h-4 w-4" /> Equipe
             </TabsTrigger>
-            <TabsTrigger value="arquivos" className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 rounded-none pb-3 px-4 gap-1.5 ${textColor || ""} ${tabActive}`}>
+            <TabsTrigger value="arquivos" className={cn(
+              "rounded-md px-3 py-1.5 gap-1.5 text-sm font-medium transition-all data-[state=active]:shadow-sm",
+              darkBg
+                ? "text-white/70 data-[state=active]:bg-white/20 data-[state=active]:text-white"
+                : customBg
+                  ? "text-black/60 data-[state=active]:bg-white/80 data-[state=active]:text-black"
+                  : "data-[state=active]:bg-background data-[state=active]:text-foreground"
+            )}>
               <FileText className="h-4 w-4" /> Arquivos
             </TabsTrigger>
             <button
               onClick={() => navigate("/dashboard/projetos/aprovacoes")}
-              className={`flex items-center gap-1.5 pb-3 px-4 text-sm hover:text-foreground transition-colors ${textMuted}`}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md hover:bg-white/10 transition-colors",
+                darkBg ? "text-white/60 hover:text-white" : customBg ? "text-black/50 hover:text-black" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
             >
               <ShieldCheck className="h-4 w-4" /> Aprovações
             </button>
