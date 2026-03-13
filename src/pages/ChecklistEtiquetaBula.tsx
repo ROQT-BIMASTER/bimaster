@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
@@ -17,8 +18,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight, RotateCcw,
+  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight, RotateCcw, ArrowLeft, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useAllEtiquetas, useEtiquetaCores,
   useCreateEtiqueta, useUpdateEtiqueta, useAvancarEtapa, useConfirmarAF,
