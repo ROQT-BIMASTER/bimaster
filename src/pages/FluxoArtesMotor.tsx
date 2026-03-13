@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -76,185 +79,218 @@ export default function FluxoArtesMotor() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Palette className="h-6 w-6 text-primary" />
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <ModuleBreadcrumb moduleName="Motor de Artes" moduleHref="/dashboard/fluxo-artes" currentPage="Painel" />
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Motor de Aprovação de Artes</h1>
-            <p className="text-sm text-muted-foreground">Fluxo genérico para todos os tipos de checklist</p>
+            <h1 className="text-3xl font-bold">Motor de Aprovação de Artes</h1>
+            <p className="text-muted-foreground mt-1">Fluxo genérico para todos os tipos de checklist</p>
           </div>
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Checklist
+          </Button>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Checklist
-        </Button>
-      </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: "Total", value: total, icon: Palette, color: "text-primary" },
-          { label: "Em Andamento", value: emAndamento, icon: Clock, color: "text-amber-500" },
-          { label: "AF Recebida", value: aprovados, icon: CheckCircle2, color: "text-green-500" },
-          { label: "Reprovados", value: reprovados, icon: XCircle, color: "text-red-500" },
-        ].map(kpi => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <kpi.icon className={`h-8 w-8 ${kpi.color}`} />
-              <div>
-                <p className="text-2xl font-bold">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Total", value: total, icon: Palette, color: "text-primary" },
+            { label: "Em Andamento", value: emAndamento, icon: Clock, color: "text-warning" },
+            { label: "AF Recebida", value: aprovados, icon: CheckCircle2, color: "text-success" },
+            { label: "Reprovados", value: reprovados, icon: XCircle, color: "text-destructive" },
+          ].map(kpi => (
+            <Card key={kpi.label}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <kpi.icon className={cn("h-5 w-5", kpi.color)} />
+                <div>
+                  <p className="text-2xl font-bold">{kpi.value}</p>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-      </div>
+        {/* Search */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="produtos">Por Produto (Gate)</TabsTrigger>
-          <TabsTrigger value="todos">Todos os Checklists</TabsTrigger>
-        </TabsList>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="produtos">Por Produto (Gate)</TabsTrigger>
+            <TabsTrigger value="todos">Todos os Checklists</TabsTrigger>
+          </TabsList>
 
-        {/* Grouped by product */}
-        <TabsContent value="produtos" className="mt-4">
-          {loadingGrupo ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : filteredGrupo.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">
-              <Palette className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Nenhum produto encontrado</p>
-            </CardContent></Card>
-          ) : (
-            <div className="space-y-4">
-              {filteredGrupo.map(group => {
-                const gateOk = gatePerProduct(group.fluxos);
-                return (
-                  <Card key={group.produto_id} className="overflow-hidden">
-                    <CardContent className="p-0">
-                      {/* Product header */}
-                      <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm font-bold">{group.sku}</span>
-                          <span className="text-sm">—</span>
-                          <span className="text-sm font-medium">{group.produto_nome}</span>
+          {/* Grouped by product */}
+          <TabsContent value="produtos" className="mt-4">
+            {loadingGrupo ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : filteredGrupo.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">
+                <Palette className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Nenhum produto encontrado</p>
+              </CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {filteredGrupo.map(group => {
+                  const gateOk = gatePerProduct(group.fluxos);
+                  return (
+                    <Card key={group.produto_id} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        {/* Product header */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-sm font-bold">{group.sku}</span>
+                            <span className="text-sm">—</span>
+                            <span className="text-sm font-medium">{group.produto_nome}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {gateOk ? (
+                              <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Gate Liberado ✅
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-amber-600 border-amber-300">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Gate Pendente
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {gateOk ? (
-                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                              <Shield className="h-3 w-3 mr-1" />
-                              Gate Liberado ✅
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-amber-600 border-amber-300">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Gate Pendente
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Type rows */}
-                      <div className="divide-y">
-                        {CHECKLIST_TIPOS.map(tipo => {
-                          const fluxo = group.fluxos.find(f => f.tipo_checklist === tipo.key);
-                          const Icon = TIPO_ICONS[tipo.key] || Tag;
+                        {/* Type rows */}
+                        <div className="divide-y">
+                          {CHECKLIST_TIPOS.map(tipo => {
+                            const fluxo = group.fluxos.find(f => f.tipo_checklist === tipo.key);
+                            const Icon = TIPO_ICONS[tipo.key] || Tag;
 
-                          if (!fluxo) {
-                            return (
-                              <div key={tipo.key} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Icon className="h-4 w-4" />
-                                  <span>{tipo.short}</span>
+                            if (!fluxo) {
+                              return (
+                                <div key={tipo.key} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Icon className="h-4 w-4" />
+                                    <span>{tipo.short}</span>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground italic">Não iniciado</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground italic">Não iniciado</span>
+                              );
+                            }
+
+                            const info = getFluxoStatusInfo(fluxo);
+
+                            return (
+                              <div
+                                key={tipo.key}
+                                className="flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer hover:bg-muted/20 transition-colors"
+                                onClick={() => navigate(`/dashboard/fluxo-artes/${fluxo.id}`)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">{tipo.short}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-xs font-medium ${info.color}`}>{info.label}</span>
+                                  {fluxo.numero_rodada > 1 && (
+                                    <Badge variant="outline" className="text-[10px]">R{fluxo.numero_rodada}</Badge>
+                                  )}
+                                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                </div>
                               </div>
                             );
-                          }
-
-                          const info = getFluxoStatusInfo(fluxo);
-
-                          return (
-                            <div
-                              key={tipo.key}
-                              className="flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer hover:bg-muted/20 transition-colors"
-                              onClick={() => navigate(`/dashboard/fluxo-artes/${fluxo.id}`)}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{tipo.short}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-medium ${info.color}`}>{info.label}</span>
-                                {fluxo.numero_rodada > 1 && (
-                                  <Badge variant="outline" className="text-[10px]">R{fluxo.numero_rodada}</Badge>
-                                )}
-                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* All checklists flat */}
-        <TabsContent value="todos" className="mt-4">
-          {loadingAll ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : filteredAll.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">
-              <p>Nenhum checklist encontrado</p>
-            </CardContent></Card>
-          ) : (
-            <div className="space-y-2">
-              {filteredAll.map(fluxo => {
-                const info = getFluxoStatusInfo(fluxo);
-                const Icon = TIPO_ICONS[fluxo.tipo_checklist] || Tag;
-                return (
-                  <Card
-                    key={fluxo.id}
-                    className="cursor-pointer hover:border-primary/30 transition-colors"
-                    onClick={() => navigate(`/dashboard/fluxo-artes/${fluxo.id}`)}
-                  >
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-muted-foreground">{fluxo.numero_documento}</span>
-                          <span className="font-medium truncate">{fluxo.sku} — {fluxo.produto_nome}</span>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {getChecklistShort(fluxo.tipo_checklist)}
-                          </Badge>
+                          })}
                         </div>
-                        <p className={`text-xs mt-0.5 ${info.color}`}>{info.label}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* All checklists flat - TABLE */}
+          <TabsContent value="todos" className="mt-4">
+            {loadingAll ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : filteredAll.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">
+                <p>Nenhum checklist encontrado</p>
+              </CardContent></Card>
+            ) : (
+              <>
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-2">
+                  {filteredAll.map(fluxo => {
+                    const info = getFluxoStatusInfo(fluxo);
+                    const Icon = TIPO_ICONS[fluxo.tipo_checklist] || Tag;
+                    return (
+                      <Card key={fluxo.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all"
+                        onClick={() => navigate(`/dashboard/fluxo-artes/${fluxo.id}`)}>
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{fluxo.sku} — {fluxo.produto_nome}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{fluxo.numero_documento} · {getChecklistShort(fluxo.tipo_checklist)}</p>
+                            </div>
+                            <span className={cn("text-[10px] font-medium shrink-0", info.color)}>{info.label}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table */}
+                <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+                  <div className="grid grid-cols-[120px_1fr_100px_120px_100px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+                    <span>Documento</span>
+                    <span>Produto</span>
+                    <span>Tipo</span>
+                    <span>Etapa</span>
+                    <span>Rodada</span>
+                    <span>Criado em</span>
+                  </div>
+                  {filteredAll.map(fluxo => {
+                    const info = getFluxoStatusInfo(fluxo);
+                    const Icon = TIPO_ICONS[fluxo.tipo_checklist] || Tag;
+                    const initial = (fluxo.produto_nome || "P")[0].toUpperCase();
+                    return (
+                      <div
+                        key={fluxo.id}
+                        className="grid grid-cols-[120px_1fr_100px_120px_100px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/dashboard/fluxo-artes/${fluxo.id}`)}
+                      >
+                        <span className="font-mono text-xs text-muted-foreground truncate">{fluxo.numero_documento}</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-primary font-bold text-xs">{initial}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{fluxo.produto_nome}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">SKU: {fluxo.sku}</p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="w-fit text-[10px]">{getChecklistShort(fluxo.tipo_checklist)}</Badge>
+                        <span className={cn("text-xs font-medium", info.color)}>{info.label}</span>
+                        <span className="text-xs text-muted-foreground">R{fluxo.numero_rodada}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {fluxo.created_at ? new Date(fluxo.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                        </span>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -302,6 +338,6 @@ export default function FluxoArtesMotor() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   );
 }

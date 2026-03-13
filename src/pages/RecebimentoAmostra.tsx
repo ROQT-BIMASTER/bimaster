@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
   Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
   XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2,
@@ -22,8 +23,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { cn } from "@/lib/utils";
 
-const STATUS_MAP: Record<string, { label: string; variant: string; icon: any }> = {
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning"; icon: any }> = {
   aguardando_envio: { label: "Aguardando Envio", variant: "secondary", icon: Clock },
   recebida: { label: "Recebida", variant: "default", icon: Package },
   em_avaliacao: { label: "Em Avaliação", variant: "warning", icon: Eye },
@@ -42,7 +46,7 @@ export default function RecebimentoAmostra() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("china_produto_submissoes")
-        .select("id, produto_codigo, produto_nome, status")
+        .select("id, produto_codigo, produto_nome, status, created_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -66,71 +70,124 @@ export default function RecebimentoAmostra() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Package className="h-6 w-6 text-primary" />
+    <DashboardLayout>
+      <div className="space-y-6">
+        <ModuleBreadcrumb moduleName="Amostras" moduleHref="/dashboard/amostras" currentPage="Recebimento" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Recebimento de Amostra Física</h1>
+            <p className="text-muted-foreground mt-1">Receba, avalie e aprove amostras de produtos</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Recebimento de Amostra Física</h1>
-          <p className="text-sm text-muted-foreground">Receba, avalie e aprove amostras de produtos</p>
-        </div>
-      </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: "Aguardando", value: aguardando, icon: Clock, color: "text-muted-foreground" },
-          { label: "Em Avaliação", value: emAvaliacao, icon: Eye, color: "text-warning" },
-          { label: "Aprovadas", value: aprovadas, icon: CheckCircle2, color: "text-success" },
-          { label: "Reprovadas", value: reprovadas, icon: XCircle, color: "text-destructive" },
-        ].map(kpi => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <kpi.icon className={`h-8 w-8 ${kpi.color}`} />
-              <div>
-                <p className="text-2xl font-bold">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-      </div>
-
-      <div className="grid gap-3">
-        {filtered.map(sub => {
-          const subAmostras = allAmostras.filter((a: any) => a.submissao_id === sub.id);
-          const lastAmostra = subAmostras[0];
-          const statusInfo = lastAmostra ? STATUS_MAP[lastAmostra.status] || STATUS_MAP.aguardando_envio : null;
-
-          return (
-            <Card key={sub.id} className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSelectedSubmissao(sub.id)}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Package className="h-5 w-5 text-primary" />
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Aguardando", value: aguardando, icon: Clock, color: "text-muted-foreground" },
+            { label: "Em Avaliação", value: emAvaliacao, icon: Eye, color: "text-warning" },
+            { label: "Aprovadas", value: aprovadas, icon: CheckCircle2, color: "text-success" },
+            { label: "Reprovadas", value: reprovadas, icon: XCircle, color: "text-destructive" },
+          ].map(kpi => (
+            <Card key={kpi.label}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <kpi.icon className={cn("h-5 w-5", kpi.color)} />
+                <div>
+                  <p className="text-2xl font-bold">{kpi.value}</p>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{sub.produto_nome}</p>
-                  <p className="text-xs text-muted-foreground">{sub.produto_codigo}</p>
-                </div>
-                {statusInfo && (
-                  <Badge variant={statusInfo.variant as any} className="text-[10px]">
-                    {statusInfo.label}
-                    {lastAmostra?.numero_rodada > 1 && ` (${lastAmostra.numero_rodada}ª rodada)`}
-                  </Badge>
-                )}
-                {!lastAmostra && <Badge variant="outline" className="text-[10px]">Sem amostra</Badge>}
               </CardContent>
             </Card>
-          );
-        })}
+          ))}
+        </div>
+
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-2">
+          {filtered.map(sub => {
+            const subAmostras = allAmostras.filter((a: any) => a.submissao_id === sub.id);
+            const lastAmostra = subAmostras[0];
+            const statusInfo = lastAmostra ? STATUS_MAP[lastAmostra.status] || STATUS_MAP.aguardando_envio : null;
+            return (
+              <Card key={sub.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all" onClick={() => setSelectedSubmissao(sub.id)}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{sub.produto_codigo}</p>
+                    </div>
+                    {statusInfo ? (
+                      <Badge variant={statusInfo.variant} className="text-[10px] shrink-0">
+                        {statusInfo.label}
+                        {lastAmostra?.numero_rodada > 1 && ` R${lastAmostra.numero_rodada}`}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] shrink-0">Sem amostra</Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
+          <div className="grid grid-cols-[1fr_150px_100px_100px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+            <span>Produto</span>
+            <span>Status Amostra</span>
+            <span>Evidências</span>
+            <span>Rodada</span>
+            <span>Criado em</span>
+          </div>
+          {filtered.map(sub => {
+            const subAmostras = allAmostras.filter((a: any) => a.submissao_id === sub.id);
+            const lastAmostra = subAmostras[0];
+            const statusInfo = lastAmostra ? STATUS_MAP[lastAmostra.status] || STATUS_MAP.aguardando_envio : null;
+            const initial = (sub.produto_nome || "P")[0].toUpperCase();
+            return (
+              <div
+                key={sub.id}
+                className="grid grid-cols-[1fr_150px_100px_100px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                onClick={() => setSelectedSubmissao(sub.id)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-primary font-bold text-xs">{initial}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{sub.produto_codigo}</p>
+                  </div>
+                </div>
+                {statusInfo ? (
+                  <Badge variant={statusInfo.variant} className="w-fit text-[10px]">{statusInfo.label}</Badge>
+                ) : (
+                  <Badge variant="outline" className="w-fit text-[10px]">Sem amostra</Badge>
+                )}
+                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-xs text-muted-foreground">
+                  {lastAmostra ? `R${lastAmostra.numero_rodada}` : "—"}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                </span>
+              </div>
+            );
+          })}
+          {!isLoading && filtered.length === 0 && (
+            <div className="py-12 text-center text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>Nenhum produto encontrado</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
 
