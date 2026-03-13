@@ -59,6 +59,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.contas-pagar-api]
     verify_jwt = false
+  [functions.ddos-shield]
+    verify_jwt = false
   [functions.contas-pagar-export-api]
     verify_jwt = false
   [functions.contas-receber-api]

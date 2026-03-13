@@ -544,7 +544,7 @@ Referrer-Policy: strict-origin-when-cross-origin`}</pre>
                 <tr><td className="border p-2">TCP Timestamps (OpenVAS 2.6)</td><td className="border p-2">Baixo</td><td className="border p-2">Gerenciado pela infraestrutura Cloudflare</td></tr>
                 <tr><td className="border p-2">Cookie __cf_bm SameSite</td><td className="border p-2">Informativo</td><td className="border p-2">Cookie do Cloudflare, fora do escopo da aplicação</td></tr>
                 <tr><td className="border p-2">Portas TCP 8080/8443</td><td className="border p-2">Baixo</td><td className="border p-2">Portas da plataforma de hosting, não da aplicação</td></tr>
-                <tr><td className="border p-2">DDoS Protection adicional</td><td className="border p-2">Médio</td><td className="border p-2">Cloudflare provê proteção base; camada adicional planejada</td></tr>
+                <tr><td className="border p-2">DDoS Protection L7</td><td className="border p-2 text-green-600 font-semibold">✅ Implementado</td><td className="border p-2">Rate limiting centralizado via Edge Function (ddos-shield) — 120 req/min por user_id, 240 req/min dept. China, 60 req/min anônimo. Uploads excluídos.</td></tr>
               </tbody>
             </table>
           </div>
