@@ -105,11 +105,14 @@ export default function FluxoArtesDetalhe() {
           <p className="text-sm text-muted-foreground">
             {fluxo.numero_documento} • {fluxo.linha_marca || "—"}
           </p>
+          <VinculoProjetoBadges modulo="fluxo_artes" registroId={id} onVincular={() => setShowVinculo(true)} />
         </div>
         <Badge className={info.color.replace("text-", "bg-").replace("600", "100") + " " + info.color}>
           {info.label}
         </Badge>
       </div>
+
+      <VincularProjetoDialog modulo="fluxo_artes" registroId={id!} open={showVinculo} onOpenChange={setShowVinculo} />
 
       {/* Timeline */}
       <Card>

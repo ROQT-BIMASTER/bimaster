@@ -120,8 +120,11 @@ export default function FluxoAprovacaoDetalhe() {
               </Badge>
             )}
           </div>
+          <VinculoProjetoBadges modulo="aprovacao_artes" registroId={id} onVincular={() => setShowVinculo(true)} />
         </div>
       </div>
+
+      <VincularProjetoDialog modulo="aprovacao_artes" registroId={id!} open={showVinculo} onOpenChange={setShowVinculo} />
 
       {/* Stage Progress */}
       <Card>

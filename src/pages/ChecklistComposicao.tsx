@@ -274,8 +274,11 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
         <div>
           <h1 className="text-xl font-bold">Composição INCI</h1>
           <p className="text-xs text-muted-foreground">Versão {currentVersion}</p>
+          <VinculoProjetoBadges modulo="composicao" registroId={submissaoId} onVincular={() => setShowVinculo(true)} />
         </div>
       </div>
+
+      <VincularProjetoDialog modulo="composicao" registroId={submissaoId} open={showVinculo} onOpenChange={setShowVinculo} />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
