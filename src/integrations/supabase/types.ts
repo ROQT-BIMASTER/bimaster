@@ -15946,6 +15946,133 @@ export type Database = {
           },
         ]
       }
+      produto_etiqueta_bula: {
+        Row: {
+          aprovacoes: Json | null
+          arte_etiqueta_urls: Json | null
+          arte_final_url: string | null
+          colors: string | null
+          created_at: string
+          created_by: string | null
+          data_af_recebida: string | null
+          double_sticker: boolean | null
+          etapa_atual: string
+          faca_url: string | null
+          finishing: string | null
+          fotos_referencia: Json | null
+          historico_completo: Json | null
+          id: string
+          linha_marca: string | null
+          numero_rodada: number
+          produto_nome: string
+          regulatorio_checklist: Json | null
+          sku: string
+          status_atual: string
+          submissao_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          aprovacoes?: Json | null
+          arte_etiqueta_urls?: Json | null
+          arte_final_url?: string | null
+          colors?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_af_recebida?: string | null
+          double_sticker?: boolean | null
+          etapa_atual?: string
+          faca_url?: string | null
+          finishing?: string | null
+          fotos_referencia?: Json | null
+          historico_completo?: Json | null
+          id?: string
+          linha_marca?: string | null
+          numero_rodada?: number
+          produto_nome: string
+          regulatorio_checklist?: Json | null
+          sku: string
+          status_atual?: string
+          submissao_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aprovacoes?: Json | null
+          arte_etiqueta_urls?: Json | null
+          arte_final_url?: string | null
+          colors?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_af_recebida?: string | null
+          double_sticker?: boolean | null
+          etapa_atual?: string
+          faca_url?: string | null
+          finishing?: string | null
+          fotos_referencia?: Json | null
+          historico_completo?: Json | null
+          id?: string
+          linha_marca?: string | null
+          numero_rodada?: number
+          produto_nome?: string
+          regulatorio_checklist?: Json | null
+          sku?: string
+          status_atual?: string
+          submissao_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_etiqueta_bula_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_etiqueta_cores: {
+        Row: {
+          arte_url: string | null
+          codigo_cor: string
+          cor_hex: string | null
+          created_at: string
+          etiqueta_id: string
+          id: string
+          ordem: number | null
+          pantone_ref: string | null
+          swatch_url: string | null
+        }
+        Insert: {
+          arte_url?: string | null
+          codigo_cor: string
+          cor_hex?: string | null
+          created_at?: string
+          etiqueta_id: string
+          id?: string
+          ordem?: number | null
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Update: {
+          arte_url?: string | null
+          codigo_cor?: string
+          cor_hex?: string | null
+          created_at?: string
+          etiqueta_id?: string
+          id?: string
+          ordem?: number | null
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_etiqueta_cores_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "produto_etiqueta_bula"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_gate_criacao: {
         Row: {
           arte_aprovada_em: string | null
