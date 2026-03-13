@@ -211,6 +211,20 @@ const RelatorioDesenvolvimento = () => {
   │  │ ✅ Checklist         │                                               │
   │  │ 📋 Docs + Produto   │                                               │
   │  │ 🔒 Libera produção  │                                               │
+  │  └────────┬─────────────┘                                               │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇧🇷 Emite Ordem de   │                                               │
+  │  │ Compra (OC) p/ China │                                               │
+  │  │ Ex: OC-2026-001      │                                               │
+  │  └────────┬─────────────┘                                               │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇨🇳 China produz     │                                               │
+  │  │ 📊 Apontamentos      │                                               │
+  │  │ 📦 Embarque → Brasil │                                               │
   │  └──────────────────────┘                                               │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
@@ -220,6 +234,9 @@ const RelatorioDesenvolvimento = () => {
               <li><strong>China envia documentos e amostras para aprovação do Brasil</strong></li>
               <li><strong>Brasil confere via Checklist: documentos, produto físico e conformidade</strong></li>
               <li><strong>Produção só é liberada após aprovação formal do Brasil</strong></li>
+              <li><strong>Brasil emite Ordem de Compra (OC) para a fábrica na China</strong></li>
+              <li><strong>China executa a produção com apontamentos de progresso</strong></li>
+              <li><strong>Embarque registrado ao finalizar — produto segue para o Brasil</strong></li>
               <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
             </ul>
 
@@ -281,8 +298,8 @@ const RelatorioDesenvolvimento = () => {
   │                                                            │             │
   │                                                            ▼             │
   │                                                     ┌────────────┐      │
-  │                                                     │ 🏭 Produção│      │
-  │                                                     │ 🚀 Lanç.  │      │
+  │                                                     │📥 Recebim. │      │
+  │                                                     │Brasil+Lanç.│      │
   │                                                     └────────────┘      │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
