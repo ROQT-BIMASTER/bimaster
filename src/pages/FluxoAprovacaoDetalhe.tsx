@@ -10,7 +10,8 @@ import {
   ArrowLeft, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw,
   Loader2, Palette, User, MessageSquare
 } from "lucide-react";
-import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,10 @@ export default function FluxoAprovacaoDetalhe() {
   const { data: instancia, isLoading } = useFluxoInstanciaDetail(id);
   const aprovar = useAprovarEtapa();
   const reprovar = useReprovarEtapa();
+  const devolver = useDevolverEtapaAprovacao();
   const [observacao, setObservacao] = useState("");
   const [observacaoReprovar, setObservacaoReprovar] = useState("");
+  const [showDevolucao, setShowDevolucao] = useState(false);
 
   // Get current user
   const { data: currentUser } = useQuery({
@@ -272,6 +275,14 @@ export default function FluxoAprovacaoDetalhe() {
                     Aguardando ação do responsável desta etapa
                   </p>
                 )}
+
+                {/* Devolver button for non-first stages */}
+                {instancia.etapa_atual_ordem > 0 && canApprove && (
+                  <Button variant="outline" className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver para Ajuste
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -322,6 +333,31 @@ export default function FluxoAprovacaoDetalhe() {
           )}
         </CardContent>
       </Card>
+
+      {/* Devolução dialog */}
+      {etapaAtual && (
+        <DevolucaoEtapaDialog
+          open={showDevolucao}
+          onOpenChange={setShowDevolucao}
+          entityType="fluxo_aprovacao"
+          entityId={instancia.id}
+          etapasAnteriores={
+            etapas
+              .filter(e => e.ordem < instancia.etapa_atual_ordem)
+              .map(e => ({ key: String(e.ordem), label: e.nome }))
+          }
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolver.mutateAsync({
+              instanciaId: instancia.id,
+              etapaId: etapaAtual.id,
+              etapaNome: etapaAtual.nome,
+              etapaDestinoOrdem: parseInt(result.etapaDestino),
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

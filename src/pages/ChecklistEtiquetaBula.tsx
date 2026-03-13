@@ -17,16 +17,17 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight,
+  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight, RotateCcw,
 } from "lucide-react";
 import {
   useAllEtiquetas, useEtiquetaCores,
   useCreateEtiqueta, useUpdateEtiqueta, useAvancarEtapa, useConfirmarAF,
-  useAddEtiquetaCor,
+  useAddEtiquetaCor, useDevolverEtapaBula,
   uploadEtiquetaFile, getEtapaColor,
   ETAPAS, REGULATORIO_ITEMS,
   type EtiquetaBula, type AprovacaoEntry, type RegulatorioItem,
 } from "@/hooks/useEtiquetaBula";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
@@ -228,6 +229,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const confirmarAF = useConfirmarAF();
   const updateEtiqueta = useUpdateEtiqueta();
   const addCor = useAddEtiquetaCor();
+  const devolver = useDevolverEtapaBula();
   const { data: cores = [] } = useEtiquetaCores(etiqueta.id);
 
   const [status, setStatus] = useState<string>("approved");
@@ -235,6 +237,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const [newCorCodigo, setNewCorCodigo] = useState("");
   const [newCorPantone, setNewCorPantone] = useState("");
   const [newCorHex, setNewCorHex] = useState("");
+  const [showDevolucao, setShowDevolucao] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [regChecklist, setRegChecklist] = useState<RegulatorioItem[]>(
     etiqueta.regulatorio_checklist?.length
@@ -294,6 +297,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -489,6 +493,12 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
             {/* Intermediate steps: approve/reject */}
             {["embalagem", "desenvolvimento", "regulatorio"].includes(etiqueta.etapa_atual) && (
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                {ETAPAS.findIndex(e => e.key === etiqueta.etapa_atual) > 0 && (
+                  <Button variant="outline" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver
+                  </Button>
+                )}
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -509,5 +519,28 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
         )}
       </DialogContent>
     </Dialog>
+
+    <DevolucaoEtapaDialog
+      open={showDevolucao}
+      onOpenChange={setShowDevolucao}
+      entityType="etiqueta_bula"
+      entityId={etiqueta.id}
+      etapasAnteriores={
+        ETAPAS
+          .filter((_, idx) => idx < ETAPAS.findIndex(e => e.key === etiqueta.etapa_atual))
+          .map(e => ({ key: e.key, label: e.label }))
+      }
+      onConfirm={async (result: DevolucaoResult) => {
+        await devolver.mutateAsync({
+          id: etiqueta.id,
+          etiqueta,
+          etapaDestino: result.etapaDestino,
+          justificativa: result.justificativa,
+          userInfo: result.userInfo,
+        });
+        onClose();
+      }}
+    />
+    </>
   );
 }

@@ -210,6 +210,35 @@ export function useReprovarAmostra() {
   });
 }
 
+export function useDevolverAmostra() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id, justificativa, userInfo,
+    }: {
+      id: string;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const { error } = await supabase
+        .from("produto_amostras")
+        .update({
+          status: "aguardando_envio",
+          instrucao_correcao: `[Devolução por ${userInfo.nome}] ${justificativa}`,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["amostras"] });
+      qc.invalidateQueries({ queryKey: ["amostras_all"] });
+      toast.success("Amostra devolvida para reenvio");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+}
+
 // ── Upload helpers ──
 
 export async function uploadAmostraFile(

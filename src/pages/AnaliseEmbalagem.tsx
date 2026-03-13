@@ -16,17 +16,18 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText
+  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw
 } from "lucide-react";
 import {
   useAllAnalises, useAllSolicitacoes, useEmbalagemCores, useSolicitacoesByAnalise,
-  useCreateAnalise, useUpdateAnalise, useAprovarAnalise,
+  useCreateAnalise, useUpdateAnalise, useAprovarAnalise, useDevolverAnalise,
   useAddCor, useDeleteCor,
   useCreateSolicitacao, useUpdateSolicitacao, useAvaliarSolicitacao,
   uploadEmbalagemFile, getSlaStatus,
   AVALIACAO_ITEMS,
-  type AnaliseEmbalagem, type SolicitacaoAmostra, type AvaliacaoItem,
+  type AnaliseEmbalagem as AnaliseEmbalagemType, type SolicitacaoAmostra, type AvaliacaoItem,
 } from "@/hooks/useAnaliseEmbalagem";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
   pendente: { label: "Pendente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -41,7 +42,7 @@ const SLA_COLORS: Record<string, string> = {
   vencido: "bg-destructive/10 text-destructive",
 };
 
-export default function AnaliseEmbalagem() {
+export default function AnaliseEmbalagemPage() {
   const [activeTab, setActiveTab] = useState("analises");
   const [search, setSearch] = useState("");
   const [selectedAnalise, setSelectedAnalise] = useState<any | null>(null);
@@ -51,6 +52,8 @@ export default function AnaliseEmbalagem() {
   const [showSolicitacaoDialog, setShowSolicitacaoDialog] = useState(false);
   const [showAvaliacaoDialog, setShowAvaliacaoDialog] = useState(false);
   const [showChinaUploadDialog, setShowChinaUploadDialog] = useState(false);
+  const [showDevolucaoDialog, setShowDevolucaoDialog] = useState(false);
+  const devolverAnalise = useDevolverAnalise();
 
   const { data: analises = [], isLoading: loadingAnalises } = useAllAnalises();
   const { data: solicitacoes = [], isLoading: loadingSolicitacoes } = useAllSolicitacoes();
@@ -131,9 +134,10 @@ export default function AnaliseEmbalagem() {
 
           <TabsContent value="analises" className="mt-4">
             <AnalisesList analises={filteredAnalises} loading={loadingAnalises}
-              onSelect={(a) => setSelectedAnalise(a)}
-              onApprove={(a) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
-              onSolicitar={(a) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
+              onSelect={(a: any) => setSelectedAnalise(a)}
+              onApprove={(a: any) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
+              onSolicitar={(a: any) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
+              onDevolver={(a: any) => { setSelectedAnalise(a); setShowDevolucaoDialog(true); }}
             />
           </TabsContent>
 
@@ -160,12 +164,28 @@ export default function AnaliseEmbalagem() {
           <AvaliacaoDialog open={showAvaliacaoDialog} onClose={() => setShowAvaliacaoDialog(false)} solicitacao={selectedSolicitacao} />
         </>
       )}
+      {selectedAnalise && (
+        <DevolucaoEtapaDialog
+          open={showDevolucaoDialog}
+          onOpenChange={setShowDevolucaoDialog}
+          entityType="analise_embalagem"
+          entityId={selectedAnalise.id}
+          etapasAnteriores={[{ key: "pendente", label: "Pendente (Reanálise)" }]}
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolverAnalise.mutateAsync({
+              id: selectedAnalise.id,
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }
 
 // ── Analises List ──
-function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar }: any) {
+function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onDevolver }: any) {
   if (loading) return <div className="flex justify-center p-8"><Clock className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!analises.length) return <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma análise encontrada.</CardContent></Card>;
 
@@ -240,7 +260,12 @@ function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar }: a
                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onApprove(a)}>Avaliar</Button>
                 )}
                 {["approved", "approved_with_changes"].includes(a.status_aprovacao) && (
-                  <Button size="sm" className="h-7 text-xs" onClick={() => onSolicitar(a)}>Solicitar</Button>
+                  <>
+                    <Button size="sm" className="h-7 text-xs" onClick={() => onSolicitar(a)}>Solicitar</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-600" onClick={() => onDevolver(a)}>
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                  </>
                 )}
               </div>
               <span className="text-[11px] text-muted-foreground">

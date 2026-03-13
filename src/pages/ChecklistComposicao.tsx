@@ -13,14 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw
 } from "lucide-react";
 import {
   useComposicaoBySubmissao, useUpsertComposicao, useDeleteComposicaoItem,
-  useSubmeterComposicao, useComposicaoVersoes, validarPercentuais,
+  useSubmeterComposicao, useComposicaoVersoes, useDevolverComposicao, validarPercentuais,
   FUNCAO_OPTIONS, STATUS_ANVISA_OPTIONS,
   type Composicao,
 } from "@/hooks/useComposicao";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -180,8 +181,10 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const upsert = useUpsertComposicao();
   const deleteItem = useDeleteComposicaoItem();
   const submeter = useSubmeterComposicao();
+  const devolver = useDevolverComposicao();
   const [localItems, setLocalItems] = useState<Partial<Composicao>[]>([]);
   const [cores, setCores] = useState<string[]>(["1#"]);
+  const [showDevolucao, setShowDevolucao] = useState(false);
 
   // Sync from DB
   useEffect(() => {
@@ -318,7 +321,28 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
             <Button onClick={handleSubmit} disabled={!todasCoresValidas || submeter.isPending} variant="default">
               <Send className="h-4 w-4 mr-2" />Submeter para Regulatório
             </Button>
+            {versoes.length > 0 && versoes[0].status === "submetido" && (
+              <Button variant="outline" className="gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                <RotateCcw className="h-4 w-4" />Devolver
+              </Button>
+            )}
           </div>
+
+          <DevolucaoEtapaDialog
+            open={showDevolucao}
+            onOpenChange={setShowDevolucao}
+            entityType="composicao"
+            entityId={submissaoId}
+            etapasAnteriores={[{ key: "rascunho", label: "Rascunho (Correção)" }]}
+            onConfirm={async (result: DevolucaoResult) => {
+              await devolver.mutateAsync({
+                submissaoId,
+                versao: currentVersion,
+                justificativa: result.justificativa,
+                userInfo: result.userInfo,
+              });
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="regulatorio" className="mt-4">

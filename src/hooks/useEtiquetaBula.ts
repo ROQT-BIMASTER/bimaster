@@ -271,6 +271,49 @@ export function useConfirmarAF() {
   });
 }
 
+export function useDevolverEtapaBula() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id, etiqueta, etapaDestino, justificativa, userInfo,
+    }: {
+      id: string;
+      etiqueta: EtiquetaBula;
+      etapaDestino: string;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const newHistorico: HistoricoEntry = {
+        etapa_de: etiqueta.etapa_atual,
+        etapa_para: etapaDestino,
+        acao: "devolucao",
+        responsavel_id: userInfo.id,
+        responsavel_nome: userInfo.nome,
+        descricao: justificativa,
+        data: new Date().toISOString(),
+        rodada: etiqueta.numero_rodada,
+      };
+
+      const { error } = await supabase
+        .from("produto_etiqueta_bula")
+        .update({
+          etapa_atual: etapaDestino,
+          status_atual: STATUS_MAP[etapaDestino] || "rascunho",
+          numero_rodada: etiqueta.numero_rodada + 1,
+          historico_completo: [...(etiqueta.historico_completo || []), newHistorico],
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["etiqueta_bula_all"] });
+      toast.success("Etapa devolvida com sucesso");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+}
+
 // ── Cor mutations ──
 
 export function useAddEtiquetaCor() {

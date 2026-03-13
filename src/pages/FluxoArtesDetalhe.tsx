@@ -16,15 +16,17 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, XCircle, Clock,
-  AlertTriangle, Check, X, Upload,
+  AlertTriangle, Check, X, Upload, RotateCcw,
 } from "lucide-react";
 import {
   useFluxoArteDetail, useFluxoCores, useUpdateFluxoArte,
   useAvancarEtapaArte, useConfirmarAFArte, useAddFluxoCor, useDeleteFluxoCor,
+  useDevolverEtapaArte,
   ETAPAS, REGULATORIO_ITEMS, CHECKLIST_TIPOS, CAMPOS_ESPECIFICOS_DEFAULT,
   getEtapaStatus, getChecklistLabel, getFluxoStatusInfo,
   type FluxoArte, type EtapaKey, type RegulatorioItem,
 } from "@/hooks/useFluxoArtesMotor";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 export default function FluxoArtesDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -36,8 +38,10 @@ export default function FluxoArtesDetalhe() {
   const confirmarAF = useConfirmarAFArte();
   const addCor = useAddFluxoCor();
   const deleteCor = useDeleteFluxoCor();
+  const devolver = useDevolverEtapaArte();
 
   const [showApproval, setShowApproval] = useState(false);
+  const [showDevolucao, setShowDevolucao] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<"approved" | "approved_with_changes" | "not_approved">("approved");
   const [approvalDesc, setApprovalDesc] = useState("");
   const [newCor, setNewCor] = useState({ codigo_cor: "", pantone_ref: "", cor_hex: "#000000" });
@@ -214,9 +218,17 @@ export default function FluxoArtesDetalhe() {
             </CardHeader>
             <CardContent className="space-y-2">
               {!isComplete && !isAFStage && (
-                <Button className="w-full" onClick={() => setShowApproval(true)}>
-                  Avaliar Etapa
-                </Button>
+                <>
+                  <Button className="w-full" onClick={() => setShowApproval(true)}>
+                    Avaliar Etapa
+                  </Button>
+                  {ETAPAS.findIndex(e => e.key === fluxo.etapa_atual) > 0 && (
+                    <Button variant="outline" className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                      <RotateCcw className="h-4 w-4" />
+                      Devolver Etapa
+                    </Button>
+                  )}
+                </>
               )}
               {isAFStage && !isComplete && (
                 <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleConfirmAF}>
@@ -305,6 +317,30 @@ export default function FluxoArtesDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Devolução dialog */}
+      {fluxo && (
+        <DevolucaoEtapaDialog
+          open={showDevolucao}
+          onOpenChange={setShowDevolucao}
+          entityType="fluxo_artes"
+          entityId={fluxo.id}
+          etapasAnteriores={
+            ETAPAS
+              .filter(e => e.order < ETAPAS.findIndex(et => et.key === fluxo.etapa_atual))
+              .map(e => ({ key: e.key, label: e.label }))
+          }
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolver.mutateAsync({
+              id: fluxo.id,
+              fluxo,
+              etapaDestino: result.etapaDestino,
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
