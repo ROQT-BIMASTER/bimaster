@@ -15314,6 +15314,89 @@ export type Database = {
           },
         ]
       }
+      produto_analise_embalagem: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          cap_matte: boolean | null
+          cap_outro: string | null
+          colors_product_color: boolean | null
+          colors_white: boolean | null
+          created_at: string
+          created_by: string | null
+          descricao_alteracoes: string | null
+          finishing_embossed: boolean | null
+          finishing_outro: string | null
+          finishing_translucent: boolean | null
+          fotos_referencia: Json | null
+          id: string
+          linha_marca: string | null
+          produto_nome: string
+          sku: string
+          status_aprovacao: string
+          submissao_id: string
+          tube_shiny: boolean | null
+          tube_translucent: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cap_matte?: boolean | null
+          cap_outro?: string | null
+          colors_product_color?: boolean | null
+          colors_white?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          descricao_alteracoes?: string | null
+          finishing_embossed?: boolean | null
+          finishing_outro?: string | null
+          finishing_translucent?: boolean | null
+          fotos_referencia?: Json | null
+          id?: string
+          linha_marca?: string | null
+          produto_nome: string
+          sku: string
+          status_aprovacao?: string
+          submissao_id: string
+          tube_shiny?: boolean | null
+          tube_translucent?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cap_matte?: boolean | null
+          cap_outro?: string | null
+          colors_product_color?: boolean | null
+          colors_white?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          descricao_alteracoes?: string | null
+          finishing_embossed?: boolean | null
+          finishing_outro?: string | null
+          finishing_translucent?: boolean | null
+          fotos_referencia?: Json | null
+          id?: string
+          linha_marca?: string | null
+          produto_nome?: string
+          sku?: string
+          status_aprovacao?: string
+          submissao_id?: string
+          tube_shiny?: boolean | null
+          tube_translucent?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_analise_embalagem_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_aprovacoes_fisicas: {
         Row: {
           avaliado_em: string | null
@@ -15822,6 +15905,47 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_embalagem_cores: {
+        Row: {
+          analise_id: string
+          codigo_cor: string
+          cor_hex: string | null
+          created_at: string
+          id: string
+          ordem: number | null
+          pantone_ref: string | null
+          swatch_url: string | null
+        }
+        Insert: {
+          analise_id: string
+          codigo_cor: string
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number | null
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Update: {
+          analise_id?: string
+          codigo_cor?: string
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number | null
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_embalagem_cores_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "produto_analise_embalagem"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_gate_criacao: {
         Row: {
           arte_aprovada_em: string | null
@@ -16025,6 +16149,96 @@ export type Database = {
             columns: ["produto_brasil_id"]
             isOneToOne: false
             referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_solicitacao_amostra: {
+        Row: {
+          analise_id: string
+          aprovado_por: string | null
+          avaliacao_resultado: Json | null
+          avaliacao_status: string | null
+          cores_solicitadas: Json | null
+          created_at: string
+          created_by: string | null
+          data_aprovacao: string | null
+          data_solicitacao: string
+          fotos_china: Json | null
+          id: string
+          instrucao_ajuste: string | null
+          numero_rodada: number
+          numero_solicitacao: string
+          observacoes: string | null
+          qtd_amostras: number | null
+          sku: string
+          sla_prazo: string
+          submissao_id: string
+          updated_at: string
+          video_path: string | null
+          video_url: string | null
+        }
+        Insert: {
+          analise_id: string
+          aprovado_por?: string | null
+          avaliacao_resultado?: Json | null
+          avaliacao_status?: string | null
+          cores_solicitadas?: Json | null
+          created_at?: string
+          created_by?: string | null
+          data_aprovacao?: string | null
+          data_solicitacao?: string
+          fotos_china?: Json | null
+          id?: string
+          instrucao_ajuste?: string | null
+          numero_rodada?: number
+          numero_solicitacao: string
+          observacoes?: string | null
+          qtd_amostras?: number | null
+          sku: string
+          sla_prazo: string
+          submissao_id: string
+          updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          analise_id?: string
+          aprovado_por?: string | null
+          avaliacao_resultado?: Json | null
+          avaliacao_status?: string | null
+          cores_solicitadas?: Json | null
+          created_at?: string
+          created_by?: string | null
+          data_aprovacao?: string | null
+          data_solicitacao?: string
+          fotos_china?: Json | null
+          id?: string
+          instrucao_ajuste?: string | null
+          numero_rodada?: number
+          numero_solicitacao?: string
+          observacoes?: string | null
+          qtd_amostras?: number | null
+          sku?: string
+          sla_prazo?: string
+          submissao_id?: string
+          updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_solicitacao_amostra_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "produto_analise_embalagem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_solicitacao_amostra_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
         ]
