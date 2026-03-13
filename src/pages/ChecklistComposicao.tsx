@@ -12,9 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useComposicaoBySubmissao, useUpsertComposicao, useDeleteComposicaoItem,
   useSubmeterComposicao, useComposicaoVersoes, useDevolverComposicao, validarPercentuais,
@@ -58,11 +64,25 @@ export default function ChecklistComposicao() {
   const navigate = useNavigate();
   const [selectedSubmissao, setSelectedSubmissao] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoes();
 
-  const filtered = submissoes.filter(s =>
-    !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) || s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+  const filtered = filterByDateRange(
+    submissoes.filter(s =>
+      !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) || s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(s => ({
+      Produto: s.produto_nome,
+      Código: s.produto_codigo,
+      Status: s.status,
+      "Criado em": s.created_at ? new Date(s.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "composicao_inci", sheetName: "Composição", includeTimestamp: true });
+  };
 
   if (selectedSubmissao) {
     return <ComposicaoEditor submissaoId={selectedSubmissao} onBack={() => setSelectedSubmissao(null)} />;
@@ -80,10 +100,18 @@ export default function ChecklistComposicao() {
         <ModuleBreadcrumb moduleName="Composição INCI" moduleHref="/dashboard/composicao" currentPage="Checklist" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Checklist Composição</h1>
-            <p className="text-muted-foreground mt-1">Gerencie composições INCI e peticionamento ANVISA</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Checklist Composição</h1>
+              <p className="text-muted-foreground mt-1">Gerencie composições INCI e peticionamento ANVISA</p>
+            </div>
           </div>
+          <Button variant="outline" onClick={handleExportExcel} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Exportar Excel
+          </Button>
         </div>
 
         {/* KPIs */}
@@ -106,9 +134,12 @@ export default function ChecklistComposicao() {
           ))}
         </div>
 
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         </div>
 
         {/* Mobile Cards */}
@@ -239,10 +270,13 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
     } : item));
   };
 
+  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
+
   const removeItem = (idx: number) => {
     const item = localItems[idx];
     if (item.id) deleteItem.mutate(item.id);
     setLocalItems(prev => prev.filter((_, i) => i !== idx));
+    setDeleteIdx(null);
   };
 
   const handleSave = () => {
@@ -449,10 +483,28 @@ function ComposicaoTable({
                       />
                     </td>
                   ))}
-                  <td className="p-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemoveItem(idx)}>
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
+                   <td className="p-1">
+                     <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-7 w-7">
+                           <Trash2 className="h-3 w-3 text-destructive" />
+                         </Button>
+                       </AlertDialogTrigger>
+                       <AlertDialogContent>
+                         <AlertDialogHeader>
+                           <AlertDialogTitle>Remover ingrediente</AlertDialogTitle>
+                           <AlertDialogDescription>
+                             Tem certeza que deseja remover "{items[idx]?.inci_name || items[idx]?.nome_chines || 'este ingrediente'}"? Esta ação não pode ser desfeita.
+                           </AlertDialogDescription>
+                         </AlertDialogHeader>
+                         <AlertDialogFooter>
+                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                           <AlertDialogAction onClick={() => onRemoveItem(idx)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                             Remover
+                           </AlertDialogAction>
+                         </AlertDialogFooter>
+                       </AlertDialogContent>
+                     </AlertDialog>
                   </td>
                 </tr>
               ))}

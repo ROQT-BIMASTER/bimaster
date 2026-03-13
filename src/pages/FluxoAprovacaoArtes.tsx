@@ -7,8 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   GitPullRequest, Settings, Clock, CheckCircle2, XCircle, ArrowRight,
-  Search, Plus, Loader2, RotateCcw, Palette
+  Search, Plus, Loader2, RotateCcw, Palette, ArrowLeft, Download
 } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import { useFluxoInstancias, useFluxoConfigs, useIniciarFluxo, type FluxoInstancia } from "@/hooks/useFluxoAprovacaoArtes";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,15 +29,30 @@ export default function FluxoAprovacaoArtes() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("em_andamento");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: instancias = [], isLoading } = useFluxoInstancias(
     tab === "todos" ? undefined : { status: tab }
   );
   const { data: configs = [] } = useFluxoConfigs();
   const iniciarFluxo = useIniciarFluxo();
 
-  const filteredInstancias = instancias.filter(i =>
-    !search || (i.config?.nome || "").toLowerCase().includes(search.toLowerCase())
+  const filteredInstancias = filterByDateRange(
+    instancias.filter(i =>
+      !search || (i.config?.nome || "").toLowerCase().includes(search.toLowerCase())
+    ),
+    "updated_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredInstancias.map(i => ({
+      Fluxo: i.config?.nome || "Fluxo",
+      Status: STATUS_MAP[i.status]?.label || i.status,
+      Etapa: i.etapa_atual_ordem + 1,
+      Rodada: i.rodada,
+      "Atualizado em": i.updated_at ? new Date(i.updated_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "aprovacao_artes", sheetName: "Aprovações", includeTimestamp: true });
+  };
 
   // KPIs
   const allInstancias = useFluxoInstancias();
@@ -43,10 +62,15 @@ export default function FluxoAprovacaoArtes() {
   const devolvidos = allInstancias.data?.filter(i => i.status === "devolvido").length || 0;
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
+      <ModuleBreadcrumb moduleName="Aprovação de Artes" moduleHref="/dashboard/aprovacao-artes" currentPage="Painel" />
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="p-2 rounded-lg bg-primary/10">
             <Palette className="h-6 w-6 text-primary" />
           </div>
@@ -56,6 +80,9 @@ export default function FluxoAprovacaoArtes() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel} disabled={filteredInstancias.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Exportar Excel
+          </Button>
           <Button
             variant="outline"
             onClick={() => navigate("/dashboard/aprovacao-artes/configuracao")}
@@ -87,8 +114,8 @@ export default function FluxoAprovacaoArtes() {
       </div>
 
       {/* Search + Tabs */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por fluxo..."
@@ -97,6 +124,7 @@ export default function FluxoAprovacaoArtes() {
             className="pl-9"
           />
         </div>
+        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -135,6 +163,7 @@ export default function FluxoAprovacaoArtes() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
 

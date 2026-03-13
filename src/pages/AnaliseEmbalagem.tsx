@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,12 +13,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw, FolderOpen
+  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw, FolderOpen, ArrowLeft, Download
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useAllAnalises, useAllSolicitacoes, useEmbalagemCores, useSolicitacoesByAnalise,
   useCreateAnalise, useUpdateAnalise, useAprovarAnalise, useDevolverAnalise,
@@ -45,8 +52,11 @@ const SLA_COLORS: Record<string, string> = {
 };
 
 export default function AnaliseEmbalagemPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("analises");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedAnalise, setSelectedAnalise] = useState<any | null>(null);
   const [selectedSolicitacao, setSelectedSolicitacao] = useState<any | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -62,16 +72,28 @@ export default function AnaliseEmbalagemPage() {
   const { data: solicitacoes = [], isLoading: loadingSolicitacoes } = useAllSolicitacoes();
 
   const filteredAnalises = useMemo(() =>
-    analises.filter((a: any) =>
-      a.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      a.produto_nome?.toLowerCase().includes(search.toLowerCase())
-    ), [analises, search]);
+    filterByDateRange(
+      analises.filter((a: any) =>
+        a.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        a.produto_nome?.toLowerCase().includes(search.toLowerCase())
+      ),
+      "created_at", dateFrom, dateTo
+    ), [analises, search, dateFrom, dateTo]);
 
   const filteredSolicitacoes = useMemo(() =>
     solicitacoes.filter((s: any) =>
       s.numero_solicitacao?.toLowerCase().includes(search.toLowerCase()) ||
       s.sku?.toLowerCase().includes(search.toLowerCase())
     ), [solicitacoes, search]);
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredAnalises.map((a: any) => ({
+      SKU: a.sku,
+      Produto: a.produto_nome,
+      "Status Aprovação": a.status_aprovacao,
+      "Criado em": a.created_at ? new Date(a.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "analise_embalagem", sheetName: "Embalagem", includeTimestamp: true });
+  };
 
   // KPIs
   const kpis = useMemo(() => ({
@@ -89,16 +111,26 @@ export default function AnaliseEmbalagemPage() {
         <ModuleBreadcrumb moduleName="Análise de Embalagem" moduleHref="/dashboard/analise-embalagem" currentPage="Painel" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Análise de Embalagem — Criação</h1>
-            <p className="text-muted-foreground mt-1">
-              Primary Package, grade de cores e solicitação formal de amostras à China
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Análise de Embalagem — Criação</h1>
+              <p className="text-muted-foreground mt-1">
+                Primary Package, grade de cores e solicitação formal de amostras à China
+              </p>
+            </div>
           </div>
-          <Button onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Análise
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={filteredAnalises.length === 0}>
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Análise
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -124,9 +156,12 @@ export default function AnaliseEmbalagemPage() {
         </div>
 
         {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

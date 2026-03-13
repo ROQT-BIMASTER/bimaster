@@ -16,9 +16,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Search, Plus, Loader2, CheckCircle2, XCircle, Clock, ArrowRight,
-  Palette, Package, Tag, Layers, LayoutGrid, Shield,
+  Search, Plus, Loader2, CheckCircle2, XCircle, Clock, ArrowRight, ArrowLeft,
+  Palette, Package, Tag, Layers, LayoutGrid, Shield, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useFluxoArtesAgrupado, useAllFluxoArtes, useCreateFluxoArte,
   CHECKLIST_TIPOS, ETAPAS, getFluxoStatusInfo, getChecklistShort,
@@ -37,6 +39,8 @@ export default function FluxoArtesMotor() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("produtos");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showCreate, setShowCreate] = useState(false);
   const [newForm, setNewForm] = useState({ produto_id: "", sku: "", produto_nome: "", linha_marca: "", tipo_checklist: "etiqueta_bula" as ChecklistTipo });
 
@@ -48,9 +52,24 @@ export default function FluxoArtesMotor() {
     !search || g.sku.toLowerCase().includes(search.toLowerCase()) || g.produto_nome.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredAll = allFluxos.filter(f =>
-    !search || f.sku.toLowerCase().includes(search.toLowerCase()) || f.produto_nome.toLowerCase().includes(search.toLowerCase())
+  const filteredAll = filterByDateRange(
+    allFluxos.filter(f =>
+      !search || f.sku.toLowerCase().includes(search.toLowerCase()) || f.produto_nome.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredAll.map(f => ({
+      Documento: f.numero_documento,
+      SKU: f.sku,
+      Produto: f.produto_nome,
+      Tipo: getChecklistShort(f.tipo_checklist),
+      Etapa: getFluxoStatusInfo(f).label,
+      Rodada: f.numero_rodada,
+      "Criado em": f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "motor_artes", sheetName: "Motor Artes", includeTimestamp: true });
+  };
 
   // KPIs
   const total = allFluxos.length;
@@ -85,14 +104,24 @@ export default function FluxoArtesMotor() {
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Motor de Aprovação de Artes</h1>
-            <p className="text-muted-foreground mt-1">Fluxo genérico para todos os tipos de checklist</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Motor de Aprovação de Artes</h1>
+              <p className="text-muted-foreground mt-1">Fluxo genérico para todos os tipos de checklist</p>
+            </div>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Checklist
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={filteredAll.length === 0}>
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Checklist
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -116,9 +145,12 @@ export default function FluxoArtesMotor() {
         </div>
 
         {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>

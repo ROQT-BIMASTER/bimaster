@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
@@ -17,8 +18,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight, RotateCcw,
+  Clock, Upload, Palette, Send, Eye, FileText, Tag, ArrowRight, RotateCcw, ArrowLeft, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useAllEtiquetas, useEtiquetaCores,
   useCreateEtiqueta, useUpdateEtiqueta, useAvancarEtapa, useConfirmarAF,
@@ -41,7 +44,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ChecklistEtiquetaBula() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [selectedEtiqueta, setSelectedEtiqueta] = useState<EtiquetaBula | null>(null);
   const [showFlowDialog, setShowFlowDialog] = useState(false);
@@ -49,10 +55,13 @@ export default function ChecklistEtiquetaBula() {
   const { data: etiquetas = [], isLoading } = useAllEtiquetas();
 
   const filtered = useMemo(() =>
-    etiquetas.filter(e =>
-      e.sku.toLowerCase().includes(search.toLowerCase()) ||
-      e.produto_nome.toLowerCase().includes(search.toLowerCase())
-    ), [etiquetas, search]);
+    filterByDateRange(
+      etiquetas.filter(e =>
+        e.sku.toLowerCase().includes(search.toLowerCase()) ||
+        e.produto_nome.toLowerCase().includes(search.toLowerCase())
+      ),
+      "created_at", dateFrom, dateTo
+    ), [etiquetas, search, dateFrom, dateTo]);
 
   const kpis = useMemo(() => ({
     total: etiquetas.length,
@@ -61,21 +70,41 @@ export default function ChecklistEtiquetaBula() {
     reprovados: etiquetas.filter(e => e.status_atual === "reprovado").length,
   }), [etiquetas]);
 
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(e => ({
+      SKU: e.sku,
+      Produto: e.produto_nome,
+      "Etapa Atual": ETAPA_LABELS[e.etapa_atual] || e.etapa_atual,
+      Rodada: e.numero_rodada,
+      "Criado em": e.created_at ? new Date(e.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "etiqueta_bula", sheetName: "Etiqueta Bula", includeTimestamp: true });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <ModuleBreadcrumb moduleName="Etiqueta / Bula" moduleHref="/dashboard/etiqueta-bula" currentPage="Checklist" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Checklist Etiqueta / Bula</h1>
-            <p className="text-muted-foreground mt-1">
-              Fluxo sequencial: Criação → Embalagem → Desenvolvimento → Regulatório → AF
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Checklist Etiqueta / Bula</h1>
+              <p className="text-muted-foreground mt-1">
+                Fluxo sequencial: Criação → Embalagem → Desenvolvimento → Regulatório → AF
+              </p>
+            </div>
           </div>
-          <Button onClick={() => setShowNewDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />Novo Checklist
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
+            <Button onClick={() => setShowNewDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />Novo Checklist
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -99,9 +128,12 @@ export default function ChecklistEtiquetaBula() {
         </div>
 
         {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por SKU ou produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         </div>
 
         {/* List */}

@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
-  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw,
+  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useAllAmostras, useAmostrasBySubmissao, useAmostraFotos,
   useCreateAmostra, useUpdateAmostra, useAprovarAmostra, useReprovarAmostra,
@@ -40,8 +43,11 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 export default function RecebimentoAmostra() {
+  const navigate = useNavigate();
   const [selectedSubmissao, setSelectedSubmissao] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: allAmostras = [], isLoading } = useAllAmostras();
 
   // List submissões with amostras
@@ -58,10 +64,26 @@ export default function RecebimentoAmostra() {
     },
   });
 
-  const filtered = submissoes.filter(s =>
-    !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) ||
-    s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+  const filtered = filterByDateRange(
+    submissoes.filter(s =>
+      !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) ||
+      s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(sub => {
+      const lastAmostra = allAmostras.find((a: any) => a.submissao_id === sub.id);
+      return {
+        Produto: sub.produto_nome,
+        Código: sub.produto_codigo,
+        Status: lastAmostra?.status || "sem_amostra",
+        Rodada: lastAmostra?.numero_rodada || 0,
+        "Criado em": sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR") : "",
+      };
+    }), { filename: "amostras", sheetName: "Amostras", includeTimestamp: true });
+  };
 
   // KPIs
   const aguardando = allAmostras.filter(a => a.status === "aguardando_envio").length;
@@ -79,10 +101,18 @@ export default function RecebimentoAmostra() {
         <ModuleBreadcrumb moduleName="Amostras" moduleHref="/dashboard/amostras" currentPage="Recebimento" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Recebimento de Amostra Física</h1>
-            <p className="text-muted-foreground mt-1">Receba, avalie e aprove amostras de produtos</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Recebimento de Amostra Física</h1>
+              <p className="text-muted-foreground mt-1">Receba, avalie e aprove amostras de produtos</p>
+            </div>
           </div>
+          <Button variant="outline" onClick={handleExportExcel} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Exportar Excel
+          </Button>
         </div>
 
         {/* KPIs */}
@@ -105,9 +135,12 @@ export default function RecebimentoAmostra() {
           ))}
         </div>
 
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         </div>
 
         {/* Mobile Cards */}
