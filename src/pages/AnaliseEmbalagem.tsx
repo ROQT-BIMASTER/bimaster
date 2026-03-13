@@ -79,7 +79,7 @@ export default function AnaliseEmbalagem() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <ModuleBreadcrumb moduleName="Análise de Embalagem" currentPage="Painel" />
+        <ModuleBreadcrumb moduleName="Análise de Embalagem" moduleHref="/dashboard/analise-embalagem" currentPage="Painel" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
