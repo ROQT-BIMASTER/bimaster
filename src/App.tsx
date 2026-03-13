@@ -229,6 +229,7 @@ const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoe
 const FluxoAprovacaoArtes = lazyWithRetry(() => import("./pages/FluxoAprovacaoArtes"));
 const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacaoDetalhe"));
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
+const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 
 // Loading component
 const PageLoader = () => (
