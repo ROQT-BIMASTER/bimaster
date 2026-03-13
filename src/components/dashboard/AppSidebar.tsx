@@ -310,6 +310,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "projetos", label: "Projetos", icon: FolderKanban },
       { code: "reunioes", label: "Reuniões", icon: Mic },
       { code: "china", label: "Fábrica China", icon: Globe },
+      { code: "estoque", label: "Estoque", icon: Package },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -1044,6 +1045,39 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+        )}
+
+        {/* Módulo de Estoque */}
+        {showModule("estoque") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-emerald-50 dark:bg-emerald-950/30",
+                  "hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500">
+                    <Package className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-emerald-600 dark:text-emerald-400">Estoque</span>
+                  <ChevronDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/estoque" icon={Home} title="Painel" end />
+                    <MenuItemLink to="/dashboard/estoque/distribuidoras" icon={Building2} title="Distribuidoras" />
+                    <MenuItemLink to="/dashboard/estoque/produtos-master" icon={Package} title="Produtos Master" />
+                    <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
+                    <MenuItemLink to="/dashboard/estoque/consolidado" icon={BarChart3} title="Consolidado" />
+                    <MenuItemLink to="/dashboard/estoque/vinculacoes" icon={Send} title="Vinculações" />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
         )}
 
         {showModule("precos") && (
