@@ -42,7 +42,7 @@ const SLA_COLORS: Record<string, string> = {
   vencido: "bg-destructive/10 text-destructive",
 };
 
-export default function AnaliseEmbalagem() {
+export default function AnaliseEmbalagemPage() {
   const [activeTab, setActiveTab] = useState("analises");
   const [search, setSearch] = useState("");
   const [selectedAnalise, setSelectedAnalise] = useState<any | null>(null);
