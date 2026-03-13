@@ -737,7 +737,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">9.2 Fluxo de Não Conformidade (RNC)</h3>
+            <h3 className="font-bold mt-4">12.2 Fluxo de Não Conformidade (RNC)</h3>
             <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                 FLUXO DE NÃO CONFORMIDADE (RNC)                            │
