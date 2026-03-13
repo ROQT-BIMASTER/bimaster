@@ -313,6 +313,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "estoque", label: "Estoque", icon: Package },
       { code: "aprovacao_artes", label: "Aprovação de Artes", icon: Palette },
       { code: "composicao", label: "Composição", icon: FlaskConical },
+      { code: "amostras", label: "Amostras", icon: Package },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -1133,6 +1134,34 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 ps-2">
                     <MenuItemLink to="/dashboard/composicao" icon={Home} title="Checklist Composição" end />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo Amostras */}
+        {showModule("amostras") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-amber-50 dark:bg-amber-950/30",
+                  "hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500">
+                    <Package className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-amber-600 dark:text-amber-400">Amostras</span>
+                  <ChevronDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/amostras" icon={Home} title="Recebimento de Amostras" end />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>

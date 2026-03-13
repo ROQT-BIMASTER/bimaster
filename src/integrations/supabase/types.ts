@@ -15193,6 +15193,127 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_amostra_fotos: {
+        Row: {
+          amostra_id: string
+          angle_type: string
+          arquivo_path: string
+          arquivo_url: string | null
+          checklist_item_key: string | null
+          created_at: string
+          id: string
+          observacao: string | null
+          tipo: string
+        }
+        Insert: {
+          amostra_id: string
+          angle_type: string
+          arquivo_path: string
+          arquivo_url?: string | null
+          checklist_item_key?: string | null
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+        }
+        Update: {
+          amostra_id?: string
+          angle_type?: string
+          arquivo_path?: string
+          arquivo_url?: string | null
+          checklist_item_key?: string | null
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_amostra_fotos_amostra_id_fkey"
+            columns: ["amostra_id"]
+            isOneToOne: false
+            referencedRelation: "produto_amostras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_amostras: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          checklist_resultado: Json
+          created_at: string
+          created_by: string | null
+          data_recebimento: string | null
+          data_solicitacao: string
+          fotos: Json
+          id: string
+          instrucao_correcao: string | null
+          numero_rodada: number
+          observacoes: string | null
+          prazo_reenvio: string | null
+          qtd_cores: number | null
+          qtd_unidades: number | null
+          status: string
+          submissao_id: string
+          updated_at: string
+          video_path: string | null
+          video_url: string | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          checklist_resultado?: Json
+          created_at?: string
+          created_by?: string | null
+          data_recebimento?: string | null
+          data_solicitacao?: string
+          fotos?: Json
+          id?: string
+          instrucao_correcao?: string | null
+          numero_rodada?: number
+          observacoes?: string | null
+          prazo_reenvio?: string | null
+          qtd_cores?: number | null
+          qtd_unidades?: number | null
+          status?: string
+          submissao_id: string
+          updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          checklist_resultado?: Json
+          created_at?: string
+          created_by?: string | null
+          data_recebimento?: string | null
+          data_solicitacao?: string
+          fotos?: Json
+          id?: string
+          instrucao_correcao?: string | null
+          numero_rodada?: number
+          observacoes?: string | null
+          prazo_reenvio?: string | null
+          qtd_cores?: number | null
+          qtd_unidades?: number | null
+          status?: string
+          submissao_id?: string
+          updated_at?: string
+          video_path?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_amostras_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_aprovacoes_fisicas: {
         Row: {
           avaliado_em: string | null
