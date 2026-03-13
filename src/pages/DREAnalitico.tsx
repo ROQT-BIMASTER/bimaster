@@ -673,7 +673,7 @@ export default function DREAnalitico() {
       receitaBruta.children?.push(vendasSubconta);
     }
 
-    // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura CIGAM
+    // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura gerencial
     lancamentos.forEach(lancamento => {
       // Para regime de caixa, usar valor_pago; para competência, usar valor_original
       const valor = regimeAnalise === 'caixa'
