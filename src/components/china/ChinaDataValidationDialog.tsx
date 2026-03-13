@@ -10,6 +10,7 @@ import { BilingualLabel } from "./BilingualLabel";
 import { AlertTriangle, Check, Plus, Trash2, Lock, Sparkles, Scale, Package, Box, Camera, Upload, X, Barcode, FolderOpen, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 // Photo fields from the spreadsheet
 const PHOTO_FIELDS = [
