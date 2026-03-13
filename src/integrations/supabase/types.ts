@@ -15470,6 +15470,115 @@ export type Database = {
           },
         ]
       }
+      produto_composicao: {
+        Row: {
+          aprovado_por: string | null
+          cas_no: string | null
+          created_at: string
+          data_aprovacao: string | null
+          funcao: string
+          id: string
+          inci_name: string
+          justificativa_correcao: string | null
+          nome_chines: string | null
+          observacao_anvisa: string | null
+          percentual_por_cor: Json
+          status_anvisa: string
+          submissao_id: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          aprovado_por?: string | null
+          cas_no?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          funcao?: string
+          id?: string
+          inci_name: string
+          justificativa_correcao?: string | null
+          nome_chines?: string | null
+          observacao_anvisa?: string | null
+          percentual_por_cor?: Json
+          status_anvisa?: string
+          submissao_id: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          aprovado_por?: string | null
+          cas_no?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          funcao?: string
+          id?: string
+          inci_name?: string
+          justificativa_correcao?: string | null
+          nome_chines?: string | null
+          observacao_anvisa?: string | null
+          percentual_por_cor?: Json
+          status_anvisa?: string
+          submissao_id?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_composicao_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_composicao_versoes: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          id: string
+          observacoes: string | null
+          status: string
+          submetido_em: string | null
+          submetido_por: string | null
+          submissao_id: string
+          versao: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          submetido_em?: string | null
+          submetido_por?: string | null
+          submissao_id: string
+          versao: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          submetido_em?: string | null
+          submetido_por?: string | null
+          submissao_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_composicao_versoes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_dev_status: {
         Row: {
           created_at: string
@@ -15591,6 +15700,141 @@ export type Database = {
           versao_oficial?: boolean
         }
         Relationships: []
+      }
+      produto_gate_criacao: {
+        Row: {
+          arte_aprovada_em: string | null
+          arte_aprovada_por: string | null
+          arte_primaria_ok: boolean
+          composicao_aprovada_em: string | null
+          composicao_aprovada_por: string | null
+          composicao_ok: boolean
+          created_at: string
+          id: string
+          notificacao_criacao_enviada: boolean
+          pacote_liberado: boolean
+          pacote_liberado_em: string | null
+          submissao_id: string
+          updated_at: string
+        }
+        Insert: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_primaria_ok?: boolean
+          composicao_aprovada_em?: string | null
+          composicao_aprovada_por?: string | null
+          composicao_ok?: boolean
+          created_at?: string
+          id?: string
+          notificacao_criacao_enviada?: boolean
+          pacote_liberado?: boolean
+          pacote_liberado_em?: string | null
+          submissao_id: string
+          updated_at?: string
+        }
+        Update: {
+          arte_aprovada_em?: string | null
+          arte_aprovada_por?: string | null
+          arte_primaria_ok?: boolean
+          composicao_aprovada_em?: string | null
+          composicao_aprovada_por?: string | null
+          composicao_ok?: boolean
+          created_at?: string
+          id?: string
+          notificacao_criacao_enviada?: boolean
+          pacote_liberado?: boolean
+          pacote_liberado_em?: string | null
+          submissao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_gate_criacao_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: true
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_peticionamento: {
+        Row: {
+          checklist_composicao_ok: boolean
+          checklist_embalagem_ok: boolean
+          created_at: string
+          criado_por: string | null
+          data_aprovacao: string | null
+          data_envio: string | null
+          documento_composicao_id: string | null
+          documento_embalagem_id: string | null
+          id: string
+          numero_processo: string | null
+          observacoes: string | null
+          status: string
+          submissao_id: string
+          taxa: number | null
+          tipo_grau: string
+          updated_at: string
+        }
+        Insert: {
+          checklist_composicao_ok?: boolean
+          checklist_embalagem_ok?: boolean
+          created_at?: string
+          criado_por?: string | null
+          data_aprovacao?: string | null
+          data_envio?: string | null
+          documento_composicao_id?: string | null
+          documento_embalagem_id?: string | null
+          id?: string
+          numero_processo?: string | null
+          observacoes?: string | null
+          status?: string
+          submissao_id: string
+          taxa?: number | null
+          tipo_grau?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist_composicao_ok?: boolean
+          checklist_embalagem_ok?: boolean
+          created_at?: string
+          criado_por?: string | null
+          data_aprovacao?: string | null
+          data_envio?: string | null
+          documento_composicao_id?: string | null
+          documento_embalagem_id?: string | null
+          id?: string
+          numero_processo?: string | null
+          observacoes?: string | null
+          status?: string
+          submissao_id?: string
+          taxa?: number | null
+          tipo_grau?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_peticionamento_documento_composicao_id_fkey"
+            columns: ["documento_composicao_id"]
+            isOneToOne: false
+            referencedRelation: "produto_composicao_versoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_peticionamento_documento_embalagem_id_fkey"
+            columns: ["documento_embalagem_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_peticionamento_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produto_rnc: {
         Row: {
