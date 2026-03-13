@@ -223,56 +223,6 @@ export function ProjetoTarefaRow({
           />
         </div>
 
-        {/* Data prazo - inline date picker */}
-        <div className="text-xs min-w-0">
-          <InlineDatePicker
-            value={tarefa.data_prazo}
-            isOverdue={!!isOverdue}
-            isDueToday={!!isDueToday}
-            onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
-          />
-        </div>
-
-        {/* Colaboradores - inline add/remove */}
-        <div className="flex items-center">
-          <ColaboradoresPicker
-            colaboradores={tarefa.colaboradores || []}
-            members={teamMembers}
-            onAdd={(userId) => onAddColaborador?.(tarefa.id, userId)}
-            onRemove={(userId) => onRemoveColaborador?.(tarefa.id, userId)}
-          />
-        </div>
-
-        {/* Separator: People | Time */}
-        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
-
-        {/* Criador */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          {tarefa.criador ? (
-            <>
-              <Avatar className="h-5 w-5 flex-shrink-0">
-                <AvatarImage src={tarefa.criador.avatar_url || undefined} />
-                <AvatarFallback className="text-[8px] bg-muted">
-                  {tarefa.criador.nome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className={`text-[11px] truncate hidden xl:inline ${darkBg ? "text-white/60" : "text-foreground/70"}`}>{tarefa.criador.nome?.split(" ")[0]}</span>
-            </>
-          ) : null}
-        </div>
-
-        {/* Data modificação */}
-        <div className={`text-[11px] min-w-0 truncate ${darkBg ? "text-white/50" : "text-foreground/60"}`}>
-          {tarefa.updated_at ? (
-            isToday(new Date(tarefa.updated_at))
-              ? "Hoje"
-              : formatDistanceToNow(new Date(tarefa.updated_at), { locale: ptBR, addSuffix: false })
-          ) : null}
-        </div>
-
-        {/* Separator: Time | Status */}
-        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
-
         {/* Status */}
         <div className="flex justify-center">
           <InlineSelector
@@ -284,15 +234,32 @@ export function ProjetoTarefaRow({
           />
         </div>
 
-        {/* Estágio */}
-        <div className="flex justify-center items-center gap-1">
-          <InlineSelector
-            value={tarefa.estagio || ""}
-            options={ESTAGIO_OPTIONS}
-            colors={darkBg ? ESTAGIO_COLORS_DARK : ESTAGIO_COLORS}
-            labels={ESTAGIO_LABELS}
-            onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
-            placeholder="—"
+        {/* Timeline bar */}
+        <div className="flex items-center px-1">
+          <TimelineBar
+            dataInicio={(tarefa as any).data_inicio}
+            dataPrazo={tarefa.data_prazo}
+            isCompleted={isCompleted}
+            onChangeInicio={(date) => onUpdate?.(tarefa.id, { data_inicio: date })}
+            onChangePrazo={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
+          />
+        </div>
+
+        {/* Data prazo - inline date picker */}
+        <div className="text-xs min-w-0">
+          <InlineDatePicker
+            value={tarefa.data_prazo}
+            isOverdue={!!isOverdue}
+            isDueToday={!!isDueToday}
+            onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
+          />
+        </div>
+
+        {/* Prioridade - estrelas */}
+        <div className="flex justify-center items-center gap-0.5">
+          <PriorityStars
+            value={tarefa.prioridade}
+            onChange={(val) => onUpdate?.(tarefa.id, { prioridade: val })}
           />
           {onDelete && (
             <button
