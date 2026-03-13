@@ -858,10 +858,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 12. INTEGRAÇÕES */}
+        {/* 15. INTEGRAÇÕES */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            12. Integrações do Módulo
+            15. Integrações do Módulo
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <table className="w-full border-collapse">
