@@ -70,6 +70,8 @@ export function ProjetoSecao({
     saveBriefing.mutate({ projetoId, secaoId, nomeArquivo, campos });
   };
 
+  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
   return (
     <div className="mb-1">
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
@@ -86,6 +88,15 @@ export function ProjetoSecao({
           <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
             {completedCount}/{totalCount}
           </span>
+          {/* Mini progress bar */}
+          {totalCount > 0 && (
+            <div className={cn("w-16 h-1.5 rounded-full overflow-hidden ml-1", darkBg ? "bg-white/10" : "bg-muted")}>
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          )}
         </button>
         <TooltipProvider>
           <Tooltip>
@@ -178,12 +189,16 @@ export function ProjetoSecao({
                 </span>
               </div>
               <div />
+              <div /> {/* separator */}
               <div className={`text-[10px] ${darkBg ? "text-white/40" : "text-muted-foreground"}`}>
                 {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
               </div>
               <div />
               <div />
+              <div /> {/* separator */}
               <div />
+              <div />
+              <div /> {/* separator */}
               <div />
               <div />
             </div>

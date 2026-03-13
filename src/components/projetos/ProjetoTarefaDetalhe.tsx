@@ -324,14 +324,23 @@ export function ProjetoTarefaDetalhe({
   return (
     <>
       <Sheet open={open && !focusMode} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-[580px] p-0 flex flex-col">
+        <SheetContent side="right" className="w-full sm:max-w-[580px] p-0 flex flex-col overflow-hidden">
           <SheetHeader className="sr-only">
             <SheetTitle>Detalhe da tarefa</SheetTitle>
             <SheetDescription>Visualize e edite os detalhes da tarefa selecionada</SheetDescription>
           </SheetHeader>
 
-          {/* Top bar */}
-          <div className="flex items-center gap-2 px-5 py-3 border-b border-border/50">
+          {/* Gradient header based on stage */}
+          <div className={cn(
+            "px-5 py-3 border-b border-border/50 flex items-center gap-2",
+            tarefa.estagio === "briefing" && "bg-gradient-to-r from-purple-500/15 to-transparent",
+            tarefa.estagio === "em_criacao" && "bg-gradient-to-r from-blue-500/15 to-transparent",
+            tarefa.estagio === "revisao" && "bg-gradient-to-r from-amber-500/15 to-transparent",
+            tarefa.estagio === "aprovado" && "bg-gradient-to-r from-emerald-500/15 to-transparent",
+            tarefa.estagio === "producao" && "bg-gradient-to-r from-pink-500/15 to-transparent",
+            tarefa.estagio === "lancamento" && "bg-gradient-to-r from-pink-500/15 to-transparent",
+            !tarefa.estagio && ""
+          )}>
             {/* Marcar como concluída - bloqueado durante validação pendente */}
             {isPendingValidation ? (
               <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-0 gap-1">

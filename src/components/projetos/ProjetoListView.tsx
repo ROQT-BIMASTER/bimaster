@@ -10,7 +10,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 
 // Grid template matching ProjetoTarefaRow columns
-export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_100px_80px_64px_100px_80px_90px_90px]";
+export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_80px_64px_1px_100px_80px_1px_90px_90px]";
 
 interface ProjetoListViewProps {
   projetoId: string;
@@ -190,11 +190,14 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
           <div>Produto</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div>Responsável</div>
           <div>Data con.</div>
           <div>Colab.</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div>Criador</div>
           <div>Data mod.</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div className="text-center">Status</div>
           <div className="text-center">Estágio</div>
         </div>

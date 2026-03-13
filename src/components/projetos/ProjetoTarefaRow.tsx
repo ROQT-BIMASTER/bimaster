@@ -203,6 +203,9 @@ export function ProjetoTarefaRow({
           })()}
         </div>
 
+        {/* Separator: Identity | People */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+
         {/* Responsável - inline picker */}
         <div className="flex items-center gap-1.5 min-w-0">
           <PersonPicker
@@ -232,6 +235,9 @@ export function ProjetoTarefaRow({
           />
         </div>
 
+        {/* Separator: People | Time */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+
         {/* Criador */}
         <div className="flex items-center gap-1.5 min-w-0">
           {tarefa.criador ? (
@@ -255,6 +261,9 @@ export function ProjetoTarefaRow({
               : formatDistanceToNow(new Date(tarefa.updated_at), { locale: ptBR, addSuffix: false })
           ) : null}
         </div>
+
+        {/* Separator: Time | Status */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
 
         {/* Status */}
         <div className="flex justify-center">

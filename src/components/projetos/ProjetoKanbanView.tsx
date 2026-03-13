@@ -42,6 +42,15 @@ const ESTAGIO_COLORS: Record<string, string> = {
   lancamento: "bg-pink-500/20 text-pink-400",
 };
 
+const ESTAGIO_ACCENT: Record<string, string> = {
+  briefing: "bg-purple-500",
+  em_criacao: "bg-blue-500",
+  revisao: "bg-amber-500",
+  aprovado: "bg-emerald-500",
+  producao: "bg-pink-500",
+  lancamento: "bg-pink-500",
+};
+
 const ESTAGIO_LABELS: Record<string, string> = {
   briefing: "Briefing",
   em_criacao: "Em Criação",
@@ -228,18 +237,24 @@ function KanbanCard({
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
 
+  const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       className={cn(
-        "rounded-lg border p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group",
+        "rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group flex overflow-hidden",
         darkBg
           ? "bg-white/5 border-white/10 hover:border-white/25"
           : "bg-background border-border/60 hover:border-primary/40",
         isCompleted && "opacity-60"
       )}
     >
+      {/* Accent bar */}
+      {accentColor && <div className={cn("w-1 flex-shrink-0 rounded-l-lg", accentColor)} />}
+      
+      <div className="flex-1 p-3">
       {/* Product photo */}
       {tarefa.produto_foto_url && (
         <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
@@ -293,36 +308,8 @@ function KanbanCard({
         />
       </div>
 
-      {/* Footer: date + grade eye + subtasks + avatar */}
+      {/* Footer: avatars left, date + grade + subtasks right */}
       <div className="flex items-center justify-between mt-2.5">
-        <div className="flex items-center gap-2">
-          {tarefa.data_prazo ? (
-            <span className={cn(
-              "text-[10px] flex items-center gap-1",
-              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
-            )}>
-              <Calendar className="h-3 w-3" />
-              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-            </span>
-          ) : null}
-
-          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
-          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <DisplayGradePopover
-                produtoId={tarefa.produto_id}
-                produtoNome={tarefa.titulo}
-                produtoCodigo={tarefa.codigo || undefined}
-              />
-            </div>
-          )}
-
-          {/* Subtasks popover */}
-          {subtaskTotal > 0 && tarefa.subtarefas && (
-            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
-          )}
-        </div>
-
         <div className="flex items-center -space-x-1">
           {tarefa.responsavel && (
             <Avatar className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
@@ -339,7 +326,36 @@ function KanbanCard({
             </Avatar>
           ))}
         </div>
+
+        <div className="flex items-center gap-2">
+          {/* Subtasks popover */}
+          {subtaskTotal > 0 && tarefa.subtarefas && (
+            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
+          )}
+
+          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
+          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DisplayGradePopover
+                produtoId={tarefa.produto_id}
+                produtoNome={tarefa.titulo}
+                produtoCodigo={tarefa.codigo || undefined}
+              />
+            </div>
+          )}
+
+          {tarefa.data_prazo ? (
+            <span className={cn(
+              "text-[10px] flex items-center gap-1",
+              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
+            )}>
+              <Calendar className="h-3 w-3" />
+              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
+            </span>
+          ) : null}
+        </div>
       </div>
+      </div> {/* end flex-1 inner content */}
     </div>
   );
 }
