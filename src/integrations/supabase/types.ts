@@ -10632,6 +10632,244 @@ export type Database = {
           },
         ]
       }
+      fluxo_aprovacao_aprovadores: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          instancia_id: string
+          observacao: string | null
+          responsavel_tipo: string
+          status: string
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          instancia_id: string
+          observacao?: string | null
+          responsavel_tipo: string
+          status?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          instancia_id?: string
+          observacao?: string | null
+          responsavel_tipo?: string
+          status?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_aprovadores_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_aprovadores_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluxo_aprovacao_config: {
+        Row: {
+          ativo: boolean
+          checklist_tipo: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          checklist_tipo: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          checklist_tipo?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fluxo_aprovacao_etapas: {
+        Row: {
+          ativo: boolean
+          config_id: string
+          created_at: string
+          destino_aprovacao_ordem: number | null
+          destino_reprovacao_ordem: number | null
+          id: string
+          nome: string
+          nome_cn: string | null
+          ordem: number
+          responsavel_id: string | null
+          responsavel_secundario_id: string | null
+          tipo_aprovacao: string
+        }
+        Insert: {
+          ativo?: boolean
+          config_id: string
+          created_at?: string
+          destino_aprovacao_ordem?: number | null
+          destino_reprovacao_ordem?: number | null
+          id?: string
+          nome: string
+          nome_cn?: string | null
+          ordem?: number
+          responsavel_id?: string | null
+          responsavel_secundario_id?: string | null
+          tipo_aprovacao?: string
+        }
+        Update: {
+          ativo?: boolean
+          config_id?: string
+          created_at?: string
+          destino_aprovacao_ordem?: number | null
+          destino_reprovacao_ordem?: number | null
+          id?: string
+          nome?: string
+          nome_cn?: string | null
+          ordem?: number
+          responsavel_id?: string | null
+          responsavel_secundario_id?: string | null
+          tipo_aprovacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_etapas_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluxo_aprovacao_instancias: {
+        Row: {
+          config_id: string
+          created_at: string
+          created_by: string | null
+          etapa_atual_ordem: number
+          id: string
+          produto_brasil_id: string | null
+          projeto_id: string | null
+          rodada: number
+          status: string
+          submissao_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          created_by?: string | null
+          etapa_atual_ordem?: number
+          id?: string
+          produto_brasil_id?: string | null
+          projeto_id?: string | null
+          rodada?: number
+          status?: string
+          submissao_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          created_by?: string | null
+          etapa_atual_ordem?: number
+          id?: string
+          produto_brasil_id?: string | null
+          projeto_id?: string | null
+          rodada?: number
+          status?: string
+          submissao_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_instancias_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluxo_aprovacao_transicoes: {
+        Row: {
+          acao: string
+          created_at: string
+          etapa_id: string | null
+          etapa_nome: string | null
+          id: string
+          instancia_id: string
+          observacao: string | null
+          rodada: number
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          etapa_id?: string | null
+          etapa_nome?: string | null
+          id?: string
+          instancia_id: string
+          observacao?: string | null
+          rodada?: number
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          etapa_id?: string | null
+          etapa_nome?: string | null
+          id?: string
+          instancia_id?: string
+          observacao?: string | null
+          rodada?: number
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_transicoes_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_transicoes_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null

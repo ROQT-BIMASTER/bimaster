@@ -226,6 +226,9 @@ const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProduto
 const EstoqueSaldos = lazyWithRetry(() => import("./pages/EstoqueSaldos"));
 const EstoqueConsolidado = lazyWithRetry(() => import("./pages/EstoqueConsolidado"));
 const EstoqueVinculacoes = lazyWithRetry(() => import("./pages/EstoqueVinculacoes"));
+const FluxoAprovacaoArtes = lazyWithRetry(() => import("./pages/FluxoAprovacaoArtes"));
+const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacaoDetalhe"));
+const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
 
 // Loading component
 const PageLoader = () => (
@@ -477,6 +480,11 @@ function AppContent() {
             <Route path="/dashboard/estoque/saldos" element={<ModuleRoute moduleCode="estoque"><EstoqueSaldos /></ModuleRoute>} />
             <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><EstoqueConsolidado /></ModuleRoute>} />
             <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><EstoqueVinculacoes /></ModuleRoute>} />
+
+            {/* Módulo de Aprovação de Artes */}
+            <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoArtes /></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoConfig /></ModuleRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
