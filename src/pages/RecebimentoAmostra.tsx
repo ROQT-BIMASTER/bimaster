@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
-  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw,
+  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useAllAmostras, useAmostrasBySubmissao, useAmostraFotos,
   useCreateAmostra, useUpdateAmostra, useAprovarAmostra, useReprovarAmostra,
