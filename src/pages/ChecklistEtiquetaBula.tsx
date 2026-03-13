@@ -28,6 +28,8 @@ import {
   type EtiquetaBula, type AprovacaoEntry, type RegulatorioItem,
 } from "@/hooks/useEtiquetaBula";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
