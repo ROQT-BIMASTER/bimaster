@@ -39,6 +39,8 @@ export default function FluxoArtesMotor() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("produtos");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [showCreate, setShowCreate] = useState(false);
   const [newForm, setNewForm] = useState({ produto_id: "", sku: "", produto_nome: "", linha_marca: "", tipo_checklist: "etiqueta_bula" as ChecklistTipo });
 
@@ -50,9 +52,24 @@ export default function FluxoArtesMotor() {
     !search || g.sku.toLowerCase().includes(search.toLowerCase()) || g.produto_nome.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredAll = allFluxos.filter(f =>
-    !search || f.sku.toLowerCase().includes(search.toLowerCase()) || f.produto_nome.toLowerCase().includes(search.toLowerCase())
+  const filteredAll = filterByDateRange(
+    allFluxos.filter(f =>
+      !search || f.sku.toLowerCase().includes(search.toLowerCase()) || f.produto_nome.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredAll.map(f => ({
+      Documento: f.numero_documento,
+      SKU: f.sku,
+      Produto: f.produto_nome,
+      Tipo: getChecklistShort(f.tipo_checklist),
+      Etapa: getFluxoStatusInfo(f).label,
+      Rodada: f.numero_rodada,
+      "Criado em": f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "motor_artes", sheetName: "Motor Artes", includeTimestamp: true });
+  };
 
   // KPIs
   const total = allFluxos.length;
