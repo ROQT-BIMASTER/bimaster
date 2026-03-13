@@ -98,8 +98,8 @@ export function ChinaDataValidationDialog({
   }, [open, initialData]);
 
   const colorSum = useMemo(() => cores.reduce((s, c) => s + (c.quantidade || 0), 0), [cores]);
-  const qtyTotal = data.qty_total || 0;
-  const hasMismatch = cores.length > 0 && colorSum !== qtyTotal && qtyTotal > 0;
+  const qtyPerDisplay = data.qty_per_display || 0;
+  const hasMismatch = cores.length > 0 && colorSum !== qtyPerDisplay && qtyPerDisplay > 0;
 
   const updateField = (field: string, value: string | number | null) => {
     setData(d => ({ ...d, [field]: value }));
