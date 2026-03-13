@@ -231,6 +231,7 @@ const FluxoAprovacaoDetalhe = lazyWithRetry(() => import("./pages/FluxoAprovacao
 const FluxoAprovacaoConfig = lazyWithRetry(() => import("./pages/FluxoAprovacaoConfig"));
 const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposicao"));
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
+const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
 
 // Loading component
 const PageLoader = () => (
