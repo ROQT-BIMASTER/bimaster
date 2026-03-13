@@ -1226,6 +1226,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </Collapsible>
           </SidebarGroup>
         )}
+
+        {showModule("precos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
               <CollapsibleTrigger className="w-full">
