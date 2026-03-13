@@ -10,7 +10,8 @@ import {
   ArrowLeft, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw,
   Loader2, Palette, User, MessageSquare
 } from "lucide-react";
-import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
