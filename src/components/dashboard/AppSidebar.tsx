@@ -312,6 +312,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "china", label: "Fábrica China", icon: Globe },
       { code: "estoque", label: "Estoque", icon: Package },
       { code: "aprovacao_artes", label: "Aprovação de Artes", icon: Palette },
+      { code: "composicao", label: "Composição", icon: FlaskConical },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
