@@ -530,6 +530,7 @@ function AppContent() {
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/relatorio-seguranca" element={<RelatorioSeguranca />} />
+            <Route path="/relatorio-desenvolvimento" element={<RelatorioDesenvolvimento />} />
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}
