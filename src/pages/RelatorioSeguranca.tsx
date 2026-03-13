@@ -101,14 +101,14 @@ const RelatorioSeguranca = () => {
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                          CAMADA 1 — NAVEGADOR (Browser)                        │
 │                                                                                 │
-│  Content-Security-Policy (CSP)    │  X-Frame-Options: DENY                     │
+│  Content-Security-Policy (CSP)    │  X-Frame-Options: SAMEORIGIN                │
 │  frame-ancestors 'self'           │  Fontes self-hosted (sem CDN externo)      │
 │  upgrade-insecure-requests        │  Anti-Clickjacking                         │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                          CAMADA 2 — AUTENTICAÇÃO                               │
 │                                                                                 │
 │  JWT com refresh automático       │  MFA/TOTP nativo (Google Auth, Authy)      │
-│  WebAuthn/Passkeys (Biometria)    │  Account Lockout (5 falhas → 15min bloq.)  │
+│  Validação Zod em formulários     │  Account Lockout (5 falhas → 15min bloq.)  │
 │  Timeout de inatividade           │  Validação Zod em todos os formulários     │
 │  Aprovação manual obrigatória     │  Senhas validadas contra vazamentos        │
 ├─────────────────────────────────────────────────────────────────────────────────┤
@@ -158,12 +158,12 @@ const RelatorioSeguranca = () => {
               </ul>
             </div>
             <div>
-              <h3 className="font-bold">3.2 Autenticação Multifator (MFA)</h3>
+              <h3 className="font-bold">3.2 Autenticação Multifator (MFA/TOTP)</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
                 <li>TOTP nativo — compatível com Google Authenticator, Authy, Microsoft Authenticator</li>
-                <li>WebAuthn/Passkeys — login biométrico (impressão digital, Face ID)</li>
                 <li>QR Code gerado in-app para registro de dispositivo</li>
-                <li>Códigos de recuperação para caso de perda do dispositivo</li>
+                <li>Verificação obrigatória no login quando MFA está ativo</li>
+                <li>Gerenciamento de fatores via painel do usuário</li>
               </ul>
             </div>
             <div>
@@ -214,8 +214,8 @@ const RelatorioSeguranca = () => {
          │               │                 │ Sim
          │               │                 ▼
          │               │        ┌──────────────────┐
-         │               │        │  Validar TOTP /  │
-         │               │        │  WebAuthn         │
+          │               │        │  Validar TOTP /  │
+          │               │        │  código MFA       │
          │               │        └────────┬─────────┘
          │               │                 │ OK
          ▼               ▼                 ▼
@@ -452,7 +452,7 @@ Content-Security-Policy:
   frame-ancestors 'self';
   upgrade-insecure-requests;
 
-X-Frame-Options: DENY
+X-Frame-Options: SAMEORIGIN
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin`}</pre>
             <ul className="list-disc ml-6 space-y-1 text-muted-foreground">
