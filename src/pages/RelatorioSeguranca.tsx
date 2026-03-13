@@ -101,7 +101,7 @@ const RelatorioSeguranca = () => {
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                          CAMADA 1 — NAVEGADOR (Browser)                        │
 │                                                                                 │
-│  Content-Security-Policy (CSP)    │  X-Frame-Options: DENY                     │
+│  Content-Security-Policy (CSP)    │  X-Frame-Options: SAMEORIGIN                │
 │  frame-ancestors 'self'           │  Fontes self-hosted (sem CDN externo)      │
 │  upgrade-insecure-requests        │  Anti-Clickjacking                         │
 ├─────────────────────────────────────────────────────────────────────────────────┤
