@@ -298,8 +298,8 @@ const RelatorioDesenvolvimento = () => {
   │                                                            │             │
   │                                                            ▼             │
   │                                                     ┌────────────┐      │
-  │                                                     │ 🏭 Produção│      │
-  │                                                     │ 🚀 Lanç.  │      │
+  │                                                     │📥 Recebim. │      │
+  │                                                     │Brasil+Lanç.│      │
   │                                                     └────────────┘      │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
