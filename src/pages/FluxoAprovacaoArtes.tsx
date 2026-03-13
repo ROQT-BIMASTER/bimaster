@@ -29,15 +29,30 @@ export default function FluxoAprovacaoArtes() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("em_andamento");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: instancias = [], isLoading } = useFluxoInstancias(
     tab === "todos" ? undefined : { status: tab }
   );
   const { data: configs = [] } = useFluxoConfigs();
   const iniciarFluxo = useIniciarFluxo();
 
-  const filteredInstancias = instancias.filter(i =>
-    !search || (i.config?.nome || "").toLowerCase().includes(search.toLowerCase())
+  const filteredInstancias = filterByDateRange(
+    instancias.filter(i =>
+      !search || (i.config?.nome || "").toLowerCase().includes(search.toLowerCase())
+    ),
+    "updated_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredInstancias.map(i => ({
+      Fluxo: i.config?.nome || "Fluxo",
+      Status: STATUS_MAP[i.status]?.label || i.status,
+      Etapa: i.etapa_atual_ordem + 1,
+      Rodada: i.rodada,
+      "Atualizado em": i.updated_at ? new Date(i.updated_at).toLocaleDateString("pt-BR") : "",
+    })), { filename: "aprovacao_artes", sheetName: "Aprovações", includeTimestamp: true });
+  };
 
   // KPIs
   const allInstancias = useFluxoInstancias();
