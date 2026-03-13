@@ -22,6 +22,15 @@ interface GhostTrail {
   destSecaoNome: string;
 }
 
+const SECTION_COLORS = [
+  { border: "border-l-blue-500", text: "text-blue-500" },
+  { border: "border-l-purple-500", text: "text-purple-500" },
+  { border: "border-l-emerald-500", text: "text-emerald-500" },
+  { border: "border-l-amber-500", text: "text-amber-500" },
+  { border: "border-l-pink-500", text: "text-pink-500" },
+  { border: "border-l-cyan-500", text: "text-cyan-500" },
+];
+
 interface ProjetoSecaoProps {
   nome: string;
   tarefas: ProjetoTarefa[];
@@ -31,6 +40,7 @@ interface ProjetoSecaoProps {
   ghosts?: GhostTrail[];
   temBriefing?: boolean;
   allSecoes?: { id: string; nome: string }[];
+  secaoIndex?: number;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
