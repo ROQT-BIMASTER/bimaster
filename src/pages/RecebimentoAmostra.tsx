@@ -101,10 +101,18 @@ export default function RecebimentoAmostra() {
         <ModuleBreadcrumb moduleName="Amostras" moduleHref="/dashboard/amostras" currentPage="Recebimento" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Recebimento de Amostra Física</h1>
-            <p className="text-muted-foreground mt-1">Receba, avalie e aprove amostras de produtos</p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Recebimento de Amostra Física</h1>
+              <p className="text-muted-foreground mt-1">Receba, avalie e aprove amostras de produtos</p>
+            </div>
           </div>
+          <Button variant="outline" onClick={handleExportExcel} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Exportar Excel
+          </Button>
         </div>
 
         {/* KPIs */}
