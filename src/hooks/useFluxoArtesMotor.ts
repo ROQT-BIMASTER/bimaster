@@ -487,6 +487,51 @@ export async function uploadFluxoArteFile(folder: string, file: File) {
   return data.publicUrl;
 }
 
+export function useDevolverEtapaArte() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id, fluxo, etapaDestino, justificativa, userInfo,
+    }: {
+      id: string;
+      fluxo: FluxoArte;
+      etapaDestino: string;
+      justificativa: string;
+      userInfo: { id: string; email: string; nome: string };
+    }) => {
+      const newHistorico: HistoricoEntry = {
+        etapa_de: fluxo.etapa_atual,
+        etapa_para: etapaDestino,
+        acao: "devolucao",
+        responsavel_id: userInfo.id,
+        responsavel_nome: userInfo.nome,
+        descricao: justificativa,
+        data: new Date().toISOString(),
+        rodada: fluxo.numero_rodada,
+      };
+
+      const { error } = await supabase
+        .from("produto_fluxo_artes")
+        .update({
+          etapa_atual: etapaDestino,
+          status_geral: "em_andamento",
+          numero_rodada: fluxo.numero_rodada + 1,
+          historico: [...(fluxo.historico || []), newHistorico],
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo_artes_all"] });
+      qc.invalidateQueries({ queryKey: ["fluxo_artes_agrupado"] });
+      qc.invalidateQueries({ queryKey: ["fluxo_arte"] });
+      toast.success("Etapa devolvida com sucesso");
+    },
+    onError: (err: any) => toast.error("Erro: " + err.message),
+  });
+}
+
 // ── Helpers ──
 
 export function getEtapaStatus(etapa: EtapaKey, fluxo: FluxoArte): "done" | "active" | "rejected" | "pending" {
