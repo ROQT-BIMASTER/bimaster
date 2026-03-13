@@ -16073,6 +16073,122 @@ export type Database = {
           },
         ]
       }
+      produto_fluxo_artes: {
+        Row: {
+          aprovacoes: Json
+          arte_final_url: string | null
+          campos_especificos: Json
+          created_at: string
+          created_by: string | null
+          data_af_recebida: string | null
+          etapa_atual: Database["public"]["Enums"]["fluxo_arte_etapa"]
+          faca_url: string | null
+          fotos_referencia: string[]
+          historico: Json
+          id: string
+          linha_marca: string | null
+          numero_documento: string | null
+          numero_rodada: number
+          produto_id: string
+          produto_nome: string
+          regulatorio_checklist: Json
+          sku: string
+          status_geral: Database["public"]["Enums"]["fluxo_arte_status"]
+          tipo_checklist: Database["public"]["Enums"]["checklist_arte_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          aprovacoes?: Json
+          arte_final_url?: string | null
+          campos_especificos?: Json
+          created_at?: string
+          created_by?: string | null
+          data_af_recebida?: string | null
+          etapa_atual?: Database["public"]["Enums"]["fluxo_arte_etapa"]
+          faca_url?: string | null
+          fotos_referencia?: string[]
+          historico?: Json
+          id?: string
+          linha_marca?: string | null
+          numero_documento?: string | null
+          numero_rodada?: number
+          produto_id: string
+          produto_nome?: string
+          regulatorio_checklist?: Json
+          sku: string
+          status_geral?: Database["public"]["Enums"]["fluxo_arte_status"]
+          tipo_checklist: Database["public"]["Enums"]["checklist_arte_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          aprovacoes?: Json
+          arte_final_url?: string | null
+          campos_especificos?: Json
+          created_at?: string
+          created_by?: string | null
+          data_af_recebida?: string | null
+          etapa_atual?: Database["public"]["Enums"]["fluxo_arte_etapa"]
+          faca_url?: string | null
+          fotos_referencia?: string[]
+          historico?: Json
+          id?: string
+          linha_marca?: string | null
+          numero_documento?: string | null
+          numero_rodada?: number
+          produto_id?: string
+          produto_nome?: string
+          regulatorio_checklist?: Json
+          sku?: string
+          status_geral?: Database["public"]["Enums"]["fluxo_arte_status"]
+          tipo_checklist?: Database["public"]["Enums"]["checklist_arte_tipo"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      produto_fluxo_artes_cores: {
+        Row: {
+          arte_url: string | null
+          codigo_cor: string
+          cor_hex: string | null
+          created_at: string
+          fluxo_id: string
+          id: string
+          ordem: number
+          pantone_ref: string | null
+          swatch_url: string | null
+        }
+        Insert: {
+          arte_url?: string | null
+          codigo_cor: string
+          cor_hex?: string | null
+          created_at?: string
+          fluxo_id: string
+          id?: string
+          ordem?: number
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Update: {
+          arte_url?: string | null
+          codigo_cor?: string
+          cor_hex?: string | null
+          created_at?: string
+          fluxo_id?: string
+          id?: string
+          ordem?: number
+          pantone_ref?: string | null
+          swatch_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_fluxo_artes_cores_fluxo_id_fkey"
+            columns: ["fluxo_id"]
+            isOneToOne: false
+            referencedRelation: "produto_fluxo_artes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_gate_criacao: {
         Row: {
           arte_aprovada_em: string | null
@@ -25621,7 +25737,24 @@ export type Database = {
         | "promotor"
         | "cliente"
         | "gerente"
+      checklist_arte_tipo:
+        | "etiqueta_bula"
+        | "etiqueta_fundo"
+        | "tester"
+        | "etiqueta_teste"
+        | "display"
       client_category: "A" | "B" | "C" | "D"
+      fluxo_arte_etapa:
+        | "criacao"
+        | "embalagem"
+        | "desenvolvimento"
+        | "regulatorio"
+        | "af_final"
+      fluxo_arte_status:
+        | "em_andamento"
+        | "aprovado"
+        | "reprovado"
+        | "aguardando"
       meeting_risk_level: "low" | "medium" | "high" | "critical"
       prospect_status:
         | "novo"
@@ -25780,7 +25913,27 @@ export const Constants = {
         "cliente",
         "gerente",
       ],
+      checklist_arte_tipo: [
+        "etiqueta_bula",
+        "etiqueta_fundo",
+        "tester",
+        "etiqueta_teste",
+        "display",
+      ],
       client_category: ["A", "B", "C", "D"],
+      fluxo_arte_etapa: [
+        "criacao",
+        "embalagem",
+        "desenvolvimento",
+        "regulatorio",
+        "af_final",
+      ],
+      fluxo_arte_status: [
+        "em_andamento",
+        "aprovado",
+        "reprovado",
+        "aguardando",
+      ],
       meeting_risk_level: ["low", "medium", "high", "critical"],
       prospect_status: [
         "novo",

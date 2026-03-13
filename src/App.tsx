@@ -233,6 +233,8 @@ const ChecklistComposicao = lazyWithRetry(() => import("./pages/ChecklistComposi
 const RecebimentoAmostra = lazyWithRetry(() => import("./pages/RecebimentoAmostra"));
 const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"));
 const ChecklistEtiquetaBula = lazyWithRetry(() => import("./pages/ChecklistEtiquetaBula"));
+const FluxoArtesMotor = lazyWithRetry(() => import("./pages/FluxoArtesMotor"));
+const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"));
 
 // Loading component
 const PageLoader = () => (
@@ -501,6 +503,10 @@ function AppContent() {
 
             {/* Módulo Checklist Etiqueta/Bula */}
             <Route path="/dashboard/etiqueta-bula" element={<ModuleRoute moduleCode="etiqueta_bula"><ChecklistEtiquetaBula /></ModuleRoute>} />
+
+            {/* Motor Genérico de Aprovação de Artes */}
+            <Route path="/dashboard/fluxo-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesMotor /></ModuleRoute>} />
+            <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesDetalhe /></ModuleRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />

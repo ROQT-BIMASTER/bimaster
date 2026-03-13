@@ -1227,6 +1227,36 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarGroup>
         )}
 
+        {/* Motor de Aprovação de Artes */}
+        {showModule("aprovacao_artes") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-indigo-50 dark:bg-indigo-950/30",
+                  "hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500">
+                    <Palette className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-indigo-600 dark:text-indigo-400">Aprovação Artes</span>
+                  <ChevronDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" end />
+                    <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" end />
+                    <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" end />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
         {showModule("precos") && (
           <SidebarGroup className="py-2 px-2">
             <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
