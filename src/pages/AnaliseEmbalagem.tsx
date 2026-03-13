@@ -241,7 +241,12 @@ function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onD
                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onApprove(a)}>Avaliar</Button>
                 )}
                 {["approved", "approved_with_changes"].includes(a.status_aprovacao) && (
-                  <Button size="sm" className="h-7 text-xs" onClick={() => onSolicitar(a)}>Solicitar</Button>
+                  <>
+                    <Button size="sm" className="h-7 text-xs" onClick={() => onSolicitar(a)}>Solicitar</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-amber-600" onClick={() => onDevolver(a)}>
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                  </>
                 )}
               </div>
               <span className="text-[11px] text-muted-foreground">

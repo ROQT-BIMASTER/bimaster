@@ -333,6 +333,31 @@ export default function FluxoAprovacaoDetalhe() {
           )}
         </CardContent>
       </Card>
+
+      {/* Devolução dialog */}
+      {etapaAtual && (
+        <DevolucaoEtapaDialog
+          open={showDevolucao}
+          onOpenChange={setShowDevolucao}
+          entityType="fluxo_aprovacao"
+          entityId={instancia.id}
+          etapasAnteriores={
+            etapas
+              .filter(e => e.ordem < instancia.etapa_atual_ordem)
+              .map(e => ({ key: String(e.ordem), label: e.nome }))
+          }
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolver.mutateAsync({
+              instanciaId: instancia.id,
+              etapaId: etapaAtual.id,
+              etapaNome: etapaAtual.nome,
+              etapaDestinoOrdem: parseInt(result.etapaDestino),
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
