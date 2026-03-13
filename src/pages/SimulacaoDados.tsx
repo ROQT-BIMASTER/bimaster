@@ -165,9 +165,9 @@ export default function SimulacaoDados() {
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-10 w-10 text-green-600" />
+                <CheckCircle2 className="h-10 w-10 text-primary" />
                 <div className="text-center">
-                  <p className="font-semibold text-green-700 dark:text-green-400">Dados criados com sucesso!</p>
+                  <p className="font-semibold text-primary">Dados criados com sucesso!</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Projeto com {result?.secoes} seções, {result?.tarefas} tarefas e {result?.submissoes} produtos.
                   </p>
