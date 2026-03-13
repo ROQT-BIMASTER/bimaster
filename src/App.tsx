@@ -218,6 +218,7 @@ const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
+const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
 
 // Loading component
 const PageLoader = () => (
@@ -513,6 +514,7 @@ function AppContent() {
             } />
             <Route path="/dashboard/configuracoes/api-health" element={<ScreenRoute screenCode="admin"><APIHealthCheck /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/lgpd" element={<ProtectedRoute><LGPDAdmin /></ProtectedRoute>} />
+            <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
