@@ -98,8 +98,8 @@ export function ChinaDataValidationDialog({
   }, [open, initialData]);
 
   const colorSum = useMemo(() => cores.reduce((s, c) => s + (c.quantidade || 0), 0), [cores]);
-  const qtyTotal = data.qty_total || 0;
-  const hasMismatch = cores.length > 0 && colorSum !== qtyTotal && qtyTotal > 0;
+  const qtyPerDisplay = data.qty_per_display || 0;
+  const hasMismatch = cores.length > 0 && colorSum !== qtyPerDisplay && qtyPerDisplay > 0;
 
   const updateField = (field: string, value: string | number | null) => {
     setData(d => ({ ...d, [field]: value }));
@@ -447,8 +447,8 @@ export function ChinaDataValidationDialog({
                 {hasMismatch && (
                   <div className="flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
-                    Soma das cores ({colorSum.toLocaleString()}) difere da quantidade total ({qtyTotal.toLocaleString()}).
-                    颜色总量与总数量不匹配。
+                    Soma das cores ({colorSum.toLocaleString()}) difere da quantidade por caixa ({qtyPerDisplay.toLocaleString()}).
+                    颜色总量与每箱数量不匹配。
                   </div>
                 )}
               </>
