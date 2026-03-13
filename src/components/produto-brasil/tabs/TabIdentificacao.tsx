@@ -145,7 +145,7 @@ export function TabIdentificacao({ produto }: Props) {
             </div>
           )}
           <div>
-            <Label className="text-xs">QTY por Display (caixa)</Label>
+            <Label className="text-xs">QTY por Caixa</Label>
             <Input
               type="number"
               min={1}
