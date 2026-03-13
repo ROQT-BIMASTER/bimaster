@@ -17,9 +17,11 @@ import {
 import {
   useAllAmostras, useAmostrasBySubmissao, useAmostraFotos,
   useCreateAmostra, useUpdateAmostra, useAprovarAmostra, useReprovarAmostra,
+  useDevolverAmostra,
   uploadAmostraFile, ANGLE_TYPES, CHECKLIST_ITEMS,
   type Amostra, type ChecklistItem,
 } from "@/hooks/useAmostras";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
