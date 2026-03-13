@@ -14952,6 +14952,65 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_aprovacoes_fisicas: {
+        Row: {
+          avaliado_em: string | null
+          avaliado_por: string | null
+          cor_conforme: boolean | null
+          created_at: string | null
+          fotos: string[] | null
+          fragrancia_conforme: boolean | null
+          id: string
+          observacoes: string | null
+          peso_conforme: boolean | null
+          produto_brasil_id: string
+          resultado: string | null
+          rotulagem_conforme: boolean | null
+          textura_conforme: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          avaliado_em?: string | null
+          avaliado_por?: string | null
+          cor_conforme?: boolean | null
+          created_at?: string | null
+          fotos?: string[] | null
+          fragrancia_conforme?: boolean | null
+          id?: string
+          observacoes?: string | null
+          peso_conforme?: boolean | null
+          produto_brasil_id: string
+          resultado?: string | null
+          rotulagem_conforme?: boolean | null
+          textura_conforme?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          avaliado_em?: string | null
+          avaliado_por?: string | null
+          cor_conforme?: boolean | null
+          created_at?: string | null
+          fotos?: string[] | null
+          fragrancia_conforme?: boolean | null
+          id?: string
+          observacoes?: string | null
+          peso_conforme?: boolean | null
+          produto_brasil_id?: string
+          resultado?: string | null
+          rotulagem_conforme?: boolean | null
+          textura_conforme?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_aprovacoes_fisicas_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_brasil_checklist: {
         Row: {
           concluido: boolean | null
@@ -15292,8 +15351,151 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_rnc: {
+        Row: {
+          acao_corretiva: string | null
+          aprovacao_fisica_id: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          fornecedor_nome: string | null
+          fornecedor_notificado: boolean | null
+          fotos: string[] | null
+          id: string
+          prazo_correcao: string | null
+          produto_brasil_id: string
+          resolvida_em: string | null
+          resolvida_por: string | null
+          status: string | null
+          tipo_nao_conformidade: string
+          updated_at: string | null
+        }
+        Insert: {
+          acao_corretiva?: string | null
+          aprovacao_fisica_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          fornecedor_nome?: string | null
+          fornecedor_notificado?: boolean | null
+          fotos?: string[] | null
+          id?: string
+          prazo_correcao?: string | null
+          produto_brasil_id: string
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          status?: string | null
+          tipo_nao_conformidade: string
+          updated_at?: string | null
+        }
+        Update: {
+          acao_corretiva?: string | null
+          aprovacao_fisica_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          fornecedor_nome?: string | null
+          fornecedor_notificado?: boolean | null
+          fotos?: string[] | null
+          id?: string
+          prazo_correcao?: string | null
+          produto_brasil_id?: string
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          status?: string | null
+          tipo_nao_conformidade?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_rnc_aprovacao_fisica_id_fkey"
+            columns: ["aprovacao_fisica_id"]
+            isOneToOne: false
+            referencedRelation: "produto_aprovacoes_fisicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_rnc_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_testes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_recebimento: string | null
+          data_resultado: string | null
+          data_solicitacao: string | null
+          fornecedor: string | null
+          fotos: string[] | null
+          id: string
+          lote: string | null
+          observacoes: string | null
+          produto_brasil_id: string
+          responsavel_id: string | null
+          resultado: string | null
+          status: string
+          tipo_teste: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_recebimento?: string | null
+          data_resultado?: string | null
+          data_solicitacao?: string | null
+          fornecedor?: string | null
+          fotos?: string[] | null
+          id?: string
+          lote?: string | null
+          observacoes?: string | null
+          produto_brasil_id: string
+          responsavel_id?: string | null
+          resultado?: string | null
+          status?: string
+          tipo_teste?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_recebimento?: string | null
+          data_resultado?: string | null
+          data_solicitacao?: string | null
+          fornecedor?: string | null
+          fotos?: string[] | null
+          id?: string
+          lote?: string | null
+          observacoes?: string | null
+          produto_brasil_id?: string
+          responsavel_id?: string | null
+          resultado?: string | null
+          status?: string
+          tipo_teste?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_testes_produto_brasil_id_fkey"
+            columns: ["produto_brasil_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_brasil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos_brasil: {
         Row: {
+          anvisa_data_aprovacao: string | null
+          anvisa_data_envio: string | null
+          anvisa_observacoes: string | null
+          anvisa_pipeline_status: string | null
+          anvisa_taxa_paga: boolean | null
+          ativos: string | null
           categoria_brasil: string | null
           categoria_regulatoria: string | null
           china_categoria: string | null
@@ -15302,6 +15504,7 @@ export type Database = {
           china_ean: string | null
           china_nome: string | null
           codigo_brasil: string | null
+          composicao: string | null
           created_at: string | null
           created_by: string | null
           custo_unitario_china: number | null
@@ -15317,10 +15520,12 @@ export type Database = {
           ean_unitario: string | null
           fabricante: string | null
           foto_url: string | null
+          fragrancia: string | null
           id: string
           itens_display: number | null
           linha: string | null
           marca: string | null
+          modo_uso: string | null
           ncm: string | null
           nome_brasil: string | null
           nome_comercial: string | null
@@ -15329,6 +15534,7 @@ export type Database = {
           origem: string | null
           peso_bruto: number | null
           peso_liquido: number | null
+          precaucoes: string | null
           processo_anvisa: string | null
           projeto_id: string | null
           responsavel_precadastro_id: string | null
@@ -15338,11 +15544,18 @@ export type Database = {
           status: string
           status_anvisa: string | null
           submissao_china_id: string | null
+          tipo_aplicador: string | null
           tipo_produto: string | null
           updated_at: string | null
           vinculo_id: string | null
         }
         Insert: {
+          anvisa_data_aprovacao?: string | null
+          anvisa_data_envio?: string | null
+          anvisa_observacoes?: string | null
+          anvisa_pipeline_status?: string | null
+          anvisa_taxa_paga?: boolean | null
+          ativos?: string | null
           categoria_brasil?: string | null
           categoria_regulatoria?: string | null
           china_categoria?: string | null
@@ -15351,6 +15564,7 @@ export type Database = {
           china_ean?: string | null
           china_nome?: string | null
           codigo_brasil?: string | null
+          composicao?: string | null
           created_at?: string | null
           created_by?: string | null
           custo_unitario_china?: number | null
@@ -15366,10 +15580,12 @@ export type Database = {
           ean_unitario?: string | null
           fabricante?: string | null
           foto_url?: string | null
+          fragrancia?: string | null
           id?: string
           itens_display?: number | null
           linha?: string | null
           marca?: string | null
+          modo_uso?: string | null
           ncm?: string | null
           nome_brasil?: string | null
           nome_comercial?: string | null
@@ -15378,6 +15594,7 @@ export type Database = {
           origem?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
+          precaucoes?: string | null
           processo_anvisa?: string | null
           projeto_id?: string | null
           responsavel_precadastro_id?: string | null
@@ -15387,11 +15604,18 @@ export type Database = {
           status?: string
           status_anvisa?: string | null
           submissao_china_id?: string | null
+          tipo_aplicador?: string | null
           tipo_produto?: string | null
           updated_at?: string | null
           vinculo_id?: string | null
         }
         Update: {
+          anvisa_data_aprovacao?: string | null
+          anvisa_data_envio?: string | null
+          anvisa_observacoes?: string | null
+          anvisa_pipeline_status?: string | null
+          anvisa_taxa_paga?: boolean | null
+          ativos?: string | null
           categoria_brasil?: string | null
           categoria_regulatoria?: string | null
           china_categoria?: string | null
@@ -15400,6 +15624,7 @@ export type Database = {
           china_ean?: string | null
           china_nome?: string | null
           codigo_brasil?: string | null
+          composicao?: string | null
           created_at?: string | null
           created_by?: string | null
           custo_unitario_china?: number | null
@@ -15415,10 +15640,12 @@ export type Database = {
           ean_unitario?: string | null
           fabricante?: string | null
           foto_url?: string | null
+          fragrancia?: string | null
           id?: string
           itens_display?: number | null
           linha?: string | null
           marca?: string | null
+          modo_uso?: string | null
           ncm?: string | null
           nome_brasil?: string | null
           nome_comercial?: string | null
@@ -15427,6 +15654,7 @@ export type Database = {
           origem?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
+          precaucoes?: string | null
           processo_anvisa?: string | null
           projeto_id?: string | null
           responsavel_precadastro_id?: string | null
@@ -15436,6 +15664,7 @@ export type Database = {
           status?: string
           status_anvisa?: string | null
           submissao_china_id?: string | null
+          tipo_aplicador?: string | null
           tipo_produto?: string | null
           updated_at?: string | null
           vinculo_id?: string | null
@@ -16699,13 +16928,16 @@ export type Database = {
       projetos: {
         Row: {
           bg_cor: string | null
+          categoria_linha: string | null
           cor: string | null
           created_at: string | null
           criador_id: string
           descricao: string | null
           icone: string | null
           id: string
+          marca: string | null
           nome: string
+          origem_projeto: string | null
           status: string | null
           tipo: string
           updated_at: string | null
@@ -16713,13 +16945,16 @@ export type Database = {
         }
         Insert: {
           bg_cor?: string | null
+          categoria_linha?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id: string
           descricao?: string | null
           icone?: string | null
           id?: string
+          marca?: string | null
           nome: string
+          origem_projeto?: string | null
           status?: string | null
           tipo?: string
           updated_at?: string | null
@@ -16727,13 +16962,16 @@ export type Database = {
         }
         Update: {
           bg_cor?: string | null
+          categoria_linha?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id?: string
           descricao?: string | null
           icone?: string | null
           id?: string
+          marca?: string | null
           nome?: string
+          origem_projeto?: string | null
           status?: string | null
           tipo?: string
           updated_at?: string | null
