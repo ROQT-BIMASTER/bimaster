@@ -240,6 +240,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const [newCorPantone, setNewCorPantone] = useState("");
   const [newCorHex, setNewCorHex] = useState("");
   const [showDevolucao, setShowDevolucao] = useState(false);
+  const [showVinculo, setShowVinculo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [regChecklist, setRegChecklist] = useState<RegulatorioItem[]>(
     etiqueta.regulatorio_checklist?.length
