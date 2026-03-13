@@ -78,7 +78,7 @@ export function useVinculosDaTarefa(tarefaId: string | undefined) {
         .select("*")
         .eq("tarefa_id", tarefaId!);
       if (error) throw error;
-      return (data || []) as ModuloVinculo[];
+      return (data || []) as unknown as ModuloVinculo[];
     },
   });
 }
