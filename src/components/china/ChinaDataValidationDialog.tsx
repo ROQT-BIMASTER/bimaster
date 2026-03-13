@@ -318,6 +318,11 @@ export function ChinaDataValidationDialog({
                   className="h-9 text-lg font-bold mt-1"
                   placeholder="432"
                 />
+                {data.qty_per_display && data.qty_per_display > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    = {(data.qty_per_display / 12).toFixed(data.qty_per_display % 12 === 0 ? 0 : 1)} dúzia{data.qty_per_display >= 24 ? 's' : data.qty_per_display === 12 ? '' : 's'}
+                  </p>
+                )}
               </div>
               <div className="p-3 bg-success/5 rounded-lg border border-success/20">
                 <Label className="text-xs font-semibold">TOTAL QTY (pcs) 总数量</Label>

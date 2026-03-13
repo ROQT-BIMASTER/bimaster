@@ -103,7 +103,7 @@ export function ChinaExcelPreview({ data, editable = false, onUpdate }: ChinaExc
         <InfoCard
           icon={<Scale className="h-5 w-5 text-success" />}
           labelPt="QTY/Display" labelCn="每展示数量"
-          value={data.qty_per_display?.toLocaleString() || "—"}
+          value={data.qty_per_display ? `${data.qty_per_display.toLocaleString()} (${(data.qty_per_display / 12).toFixed(data.qty_per_display % 12 === 0 ? 0 : 1)} dz)` : "—"}
         />
         <InfoCard
           icon={<Package className="h-5 w-5 text-primary" />}
