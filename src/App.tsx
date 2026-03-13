@@ -481,6 +481,11 @@ function AppContent() {
             <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><EstoqueConsolidado /></ModuleRoute>} />
             <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><EstoqueVinculacoes /></ModuleRoute>} />
 
+            {/* Módulo de Aprovação de Artes */}
+            <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoArtes /></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoConfig /></ModuleRoute>} />
+
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleRoute>} />
