@@ -177,25 +177,25 @@ const RelatorioDesenvolvimento = () => {
   │                       FASE 1: CONCEPÇÃO                                │
   │                                                                          │
   │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐                │
-  │  │  Criar      │    │  Template    │    │  Seções      │                │
-  │  │  Projeto    │───▶│  gera seções │───▶│  automáticas │                │
-  │  │  Dev.Produto│    │  por depto   │    │  + membros   │                │
+  │  │ 🇧🇷 Brasil  │    │  Template    │    │  Seções      │                │
+  │  │  identifica │───▶│  gera seções │───▶│  automáticas │                │
+  │  │  oportunid. │    │  por depto   │    │  + membros   │                │
   │  └─────────────┘    └──────────────┘    └──────┬───────┘                │
   │                                                │                        │
   │       ┌────────────────────────────────────────┤                        │
   │       │                                        │                        │
   │       ▼                                        ▼                        │
   │  ┌──────────────┐                    ┌──────────────────┐               │
-  │  │ 🇨🇳 Vincular │                    │  📝 Briefing IA  │               │
-  │  │ Produto China│                    │  gerado por      │               │
-  │  │ (submissão)  │                    │  tarefa          │               │
+  │  │ 🇧🇷 Registra │                    │  📝 Briefing IA  │               │
+  │  │ Submissão c/ │                    │  gerado por      │               │
+  │  │ dados produto│                    │  tarefa          │               │
   │  └──────┬───────┘                    └──────────────────┘               │
   │         │                                                               │
   │         ▼                                                               │
   │  ┌──────────────────┐                                                   │
-  │  │ 🇧🇷 Cria Produto  │                                                   │
-  │  │ Brasil automát.  │                                                   │
-  │  │ (herda dados)    │                                                   │
+  │  │ 🇨🇳 China recebe  │                                                   │
+  │  │ demanda e produz │                                                   │
+  │  │ após aprovação   │                                                   │
   │  └──────────────────┘                                                   │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
