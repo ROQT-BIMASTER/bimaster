@@ -17,6 +17,7 @@ const MODULE_ROUTES = [
   { code: "fabrica", path: "/dashboard/fabrica" },
   { code: "estoque", path: "/dashboard/estoque" },
   { code: "aprovacao_artes", path: "/dashboard/aprovacao-artes" },
+  { code: "composicao", path: "/dashboard/composicao" },
   { code: "comercial", path: "/dashboard/comercial" },
   { code: "marketing", path: "/dashboard/marketing" },
   { code: "precos", path: "/dashboard/precos" },
