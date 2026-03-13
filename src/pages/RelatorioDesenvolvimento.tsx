@@ -195,13 +195,31 @@ const RelatorioDesenvolvimento = () => {
   │  ┌──────────────────┐                                                   │
   │  │ 🇨🇳 China recebe  │                                                   │
   │  │ demanda e produz │                                                   │
-  │  │ após aprovação   │                                                   │
-  │  └──────────────────┘                                                   │
+  │  │ amostras         │                                                   │
+  │  └────────┬─────────┘                                                   │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇨🇳 China envia docs │                                               │
+  │  │ e amostras para      │                                               │
+  │  │ aprovação Brasil     │                                               │
+  │  └────────┬─────────────┘                                               │
+  │           │                                                             │
+  │           ▼                                                             │
+  │  ┌──────────────────────┐                                               │
+  │  │ 🇧🇷 Brasil confere   │                                               │
+  │  │ ✅ Checklist         │                                               │
+  │  │ 📋 Docs + Produto   │                                               │
+  │  │ 🔒 Libera produção  │                                               │
+  │  └──────────────────────┘                                               │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
               <li>Equipe Brasil identifica oportunidade (viagem à China, pesquisa de tendência, demanda comercial)</li>
               <li>Submissão registrada no sistema com dados do produto desejado</li>
-              <li>China recebe a demanda e produz amostras/protótipos após aprovação do Brasil</li>
+              <li>China recebe a demanda e produz amostras/protótipos</li>
+              <li><strong>China envia documentos e amostras para aprovação do Brasil</strong></li>
+              <li><strong>Brasil confere via Checklist: documentos, produto físico e conformidade</strong></li>
+              <li><strong>Produção só é liberada após aprovação formal do Brasil</strong></li>
               <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
             </ul>
 
