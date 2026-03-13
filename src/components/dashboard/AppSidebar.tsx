@@ -315,6 +315,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "composicao", label: "Composição", icon: FlaskConical },
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
+      { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
