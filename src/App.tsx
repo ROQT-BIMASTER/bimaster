@@ -219,6 +219,7 @@ const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
+const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
 
 // Loading component
 const PageLoader = () => (
@@ -515,6 +516,7 @@ function AppContent() {
             <Route path="/dashboard/configuracoes/api-health" element={<ScreenRoute screenCode="admin"><APIHealthCheck /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/lgpd" element={<ProtectedRoute><LGPDAdmin /></ProtectedRoute>} />
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
+            <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
@@ -528,6 +530,7 @@ function AppContent() {
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/relatorio-seguranca" element={<RelatorioSeguranca />} />
+            <Route path="/relatorio-desenvolvimento" element={<RelatorioDesenvolvimento />} />
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}
