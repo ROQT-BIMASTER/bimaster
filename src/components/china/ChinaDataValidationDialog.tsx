@@ -545,17 +545,6 @@ export function ChinaDataValidationDialog({
               </div>
             </div>
           </section>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={data.peso_bruto_g ?? ""}
-                  onChange={e => updateField("peso_bruto_g", e.target.value ? parseFloat(e.target.value) : null)}
-                  className="h-9"
-                  placeholder="23.85"
-                />
-              </div>
-            </div>
-           </section>
 
           {/* Document/Photo Uploads → Cofre do Produto */}
           {showPhotoUpload && (
