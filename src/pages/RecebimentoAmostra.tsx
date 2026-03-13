@@ -12,7 +12,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
-  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2,
+  XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw,
 } from "lucide-react";
 import {
   useAllAmostras, useAmostrasBySubmissao, useAmostraFotos,
