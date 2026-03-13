@@ -976,10 +976,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 14. CONCLUSÃO */}
+        {/* 17. CONCLUSÃO */}
         <section className="page-break border-t-4 border-primary pt-6 mt-8">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            14. Conclusão
+            17. Conclusão
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-3">
             <p className="text-muted-foreground leading-relaxed">
