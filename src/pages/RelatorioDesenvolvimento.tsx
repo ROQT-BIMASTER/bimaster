@@ -177,31 +177,31 @@ const RelatorioDesenvolvimento = () => {
   │                       FASE 1: CONCEPÇÃO                                │
   │                                                                          │
   │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐                │
-  │  │  Criar      │    │  Template    │    │  Seções      │                │
-  │  │  Projeto    │───▶│  gera seções │───▶│  automáticas │                │
-  │  │  Dev.Produto│    │  por depto   │    │  + membros   │                │
+  │  │ 🇧🇷 Brasil  │    │  Template    │    │  Seções      │                │
+  │  │  identifica │───▶│  gera seções │───▶│  automáticas │                │
+  │  │  oportunid. │    │  por depto   │    │  + membros   │                │
   │  └─────────────┘    └──────────────┘    └──────┬───────┘                │
   │                                                │                        │
   │       ┌────────────────────────────────────────┤                        │
   │       │                                        │                        │
   │       ▼                                        ▼                        │
   │  ┌──────────────┐                    ┌──────────────────┐               │
-  │  │ 🇨🇳 Vincular │                    │  📝 Briefing IA  │               │
-  │  │ Produto China│                    │  gerado por      │               │
-  │  │ (submissão)  │                    │  tarefa          │               │
+  │  │ 🇧🇷 Registra │                    │  📝 Briefing IA  │               │
+  │  │ Submissão c/ │                    │  gerado por      │               │
+  │  │ dados produto│                    │  tarefa          │               │
   │  └──────┬───────┘                    └──────────────────┘               │
   │         │                                                               │
   │         ▼                                                               │
   │  ┌──────────────────┐                                                   │
-  │  │ 🇧🇷 Cria Produto  │                                                   │
-  │  │ Brasil automát.  │                                                   │
-  │  │ (herda dados)    │                                                   │
+  │  │ 🇨🇳 China recebe  │                                                   │
+  │  │ demanda e produz │                                                   │
+  │  │ após aprovação   │                                                   │
   │  └──────────────────┘                                                   │
   └──────────────────────────────────────────────────────────────────────────┘`}</pre>
             <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
-              <li>Projeto criado via Wizard com marca, categoria e origem</li>
-              <li>Template gera automaticamente 6 seções departamentais</li>
-              <li>Submissão China vinculada → Produto Brasil criado automaticamente</li>
+              <li>Equipe Brasil identifica oportunidade (viagem à China, pesquisa de tendência, demanda comercial)</li>
+              <li>Submissão registrada no sistema com dados do produto desejado</li>
+              <li>China recebe a demanda e produz amostras/protótipos após aprovação do Brasil</li>
               <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
             </ul>
 
@@ -413,7 +413,7 @@ const RelatorioDesenvolvimento = () => {
             <div>
               <h3 className="font-bold">6.1 Fontes de Demanda</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
-                <li><strong>Viagem à China</strong> — Produtos identificados em feiras/fábricas, registrados via submissão China</li>
+                <li><strong>Viagem à China</strong> — Equipe Brasil visita feiras/fábricas, identifica oportunidades e registra demandas via submissão</li>
                 <li><strong>Pesquisa de Tendência</strong> — Análise de mercado, benchmarking de concorrentes</li>
                 <li><strong>Diretoria / Comercial</strong> — Demandas estratégicas de portfólio</li>
                 <li><strong>Desenvolvimento Interno</strong> — Formulações novas da fábrica própria</li>
