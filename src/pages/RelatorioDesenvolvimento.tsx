@@ -461,7 +461,7 @@ const RelatorioDesenvolvimento = () => {
               para rastrear cada aspecto do produto ao longo do ciclo de vida.
             </p>
 
-            <h3 className="font-bold">4.1 Identificação</h3>
+            <h3 className="font-bold">7.1 Identificação</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Tipo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
