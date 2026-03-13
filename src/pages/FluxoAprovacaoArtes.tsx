@@ -62,6 +62,9 @@ export default function FluxoAprovacaoArtes() {
   const devolvidos = allInstancias.data?.filter(i => i.status === "devolvido").length || 0;
 
   return (
+    <DashboardLayout>
+    <div className="space-y-6 p-6">
+      <ModuleBreadcrumb moduleName="Aprovação de Artes" moduleHref="/dashboard/aprovacao-artes" currentPage="Painel" />
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
