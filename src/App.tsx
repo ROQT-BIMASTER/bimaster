@@ -487,6 +487,9 @@ function AppContent() {
             <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoDetalhe /></ModuleRoute>} />
             <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoConfig /></ModuleRoute>} />
 
+            {/* Módulo Checklist Composição */}
+            <Route path="/dashboard/composicao" element={<ModuleRoute moduleCode="composicao"><ChecklistComposicao /></ModuleRoute>} />
+
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleRoute>} />
