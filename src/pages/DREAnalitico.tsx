@@ -485,7 +485,7 @@ export default function DREAnalitico() {
       return vm;
     };
 
-    // === ESTRUTURA DRE PADRÃO CIGAM ===
+    // === ESTRUTURA DRE GERENCIAL ===
     
     // 1. (+) RECEITAS COM VENDA (Faturamento)
     const receitaBruta: DRENode = {
