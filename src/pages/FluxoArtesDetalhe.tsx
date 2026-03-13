@@ -317,6 +317,30 @@ export default function FluxoArtesDetalhe() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Devolução dialog */}
+      {fluxo && (
+        <DevolucaoEtapaDialog
+          open={showDevolucao}
+          onOpenChange={setShowDevolucao}
+          entityType="fluxo_artes"
+          entityId={fluxo.id}
+          etapasAnteriores={
+            ETAPAS
+              .filter(e => e.order < ETAPAS.findIndex(et => et.key === fluxo.etapa_atual))
+              .map(e => ({ key: e.key, label: e.label }))
+          }
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolver.mutateAsync({
+              id: fluxo.id,
+              fluxo,
+              etapaDestino: result.etapaDestino,
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
