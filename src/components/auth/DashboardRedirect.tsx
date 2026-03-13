@@ -20,6 +20,7 @@ const MODULE_ROUTES = [
   { code: "composicao", path: "/dashboard/composicao" },
   { code: "amostras", path: "/dashboard/amostras" },
   { code: "analise_embalagem", path: "/dashboard/analise-embalagem" },
+  { code: "etiqueta_bula", path: "/dashboard/etiqueta-bula" },
   { code: "comercial", path: "/dashboard/comercial" },
   { code: "marketing", path: "/dashboard/marketing" },
   { code: "precos", path: "/dashboard/precos" },

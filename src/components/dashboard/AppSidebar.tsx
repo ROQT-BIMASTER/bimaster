@@ -315,6 +315,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       { code: "composicao", label: "Composição", icon: FlaskConical },
       { code: "amostras", label: "Amostras", icon: Package },
       { code: "analise_embalagem", label: "Embalagem", icon: Layers },
+      { code: "etiqueta_bula", label: "Etiqueta/Bula", icon: Tag },
     ];
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
@@ -1191,6 +1192,34 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <SidebarGroupContent className="mt-1">
                   <SidebarMenu className="space-y-0.5 ps-2">
                     <MenuItemLink to="/dashboard/analise-embalagem" icon={Home} title="Análise de Embalagem" end />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
+        {/* Módulo Etiqueta/Bula */}
+        {showModule("etiqueta_bula") && (
+          <SidebarGroup className="py-2 px-2">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "bg-rose-50 dark:bg-rose-950/30",
+                  "hover:bg-rose-100 dark:hover:bg-rose-900/40"
+                )}>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500">
+                    <Tag className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm flex-1 text-rose-600 dark:text-rose-400">Etiqueta / Bula</span>
+                  <ChevronDown className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="mt-1">
+                  <SidebarMenu className="space-y-0.5 ps-2">
+                    <MenuItemLink to="/dashboard/etiqueta-bula" icon={Home} title="Checklist Etiqueta/Bula" end />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
