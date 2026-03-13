@@ -713,10 +713,10 @@ const RelatorioDesenvolvimento = () => {
           </div>
         </section>
 
-        {/* 9. APROVAÇÃO FÍSICA E RNC */}
+        {/* 12. APROVAÇÃO FÍSICA E RNC */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            9. Aprovação Física e RNC (Registro de Não Conformidade)
+            12. Aprovação Física e RNC (Registro de Não Conformidade)
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <h3 className="font-bold">9.1 Critérios de Aprovação Física</h3>
