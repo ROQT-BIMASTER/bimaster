@@ -108,7 +108,7 @@ const RelatorioSeguranca = () => {
 │                          CAMADA 2 — AUTENTICAÇÃO                               │
 │                                                                                 │
 │  JWT com refresh automático       │  MFA/TOTP nativo (Google Auth, Authy)      │
-│  WebAuthn/Passkeys (Biometria)    │  Account Lockout (5 falhas → 15min bloq.)  │
+│  Validação Zod em formulários     │  Account Lockout (5 falhas → 15min bloq.)  │
 │  Timeout de inatividade           │  Validação Zod em todos os formulários     │
 │  Aprovação manual obrigatória     │  Senhas validadas contra vazamentos        │
 ├─────────────────────────────────────────────────────────────────────────────────┤
