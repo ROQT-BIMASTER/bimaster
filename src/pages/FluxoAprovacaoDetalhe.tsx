@@ -24,8 +24,10 @@ export default function FluxoAprovacaoDetalhe() {
   const { data: instancia, isLoading } = useFluxoInstanciaDetail(id);
   const aprovar = useAprovarEtapa();
   const reprovar = useReprovarEtapa();
+  const devolver = useDevolverEtapaAprovacao();
   const [observacao, setObservacao] = useState("");
   const [observacaoReprovar, setObservacaoReprovar] = useState("");
+  const [showDevolucao, setShowDevolucao] = useState(false);
 
   // Get current user
   const { data: currentUser } = useQuery({
