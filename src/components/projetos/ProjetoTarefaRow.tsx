@@ -203,6 +203,9 @@ export function ProjetoTarefaRow({
           })()}
         </div>
 
+        {/* Separator: Identity | People */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+
         {/* Responsável - inline picker */}
         <div className="flex items-center gap-1.5 min-w-0">
           <PersonPicker
