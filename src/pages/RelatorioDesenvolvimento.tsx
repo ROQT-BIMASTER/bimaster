@@ -453,7 +453,7 @@ const RelatorioDesenvolvimento = () => {
         {/* 4. PRÉ-CADASTRO DO PRODUTO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            4. Pré-Cadastro do Produto — Campos Detalhados
+            7. Pré-Cadastro do Produto — Campos Detalhados
           </h2>
           <div className="mt-4 text-sm text-foreground space-y-4">
             <p className="text-muted-foreground">
