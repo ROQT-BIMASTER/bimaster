@@ -31,6 +31,15 @@ interface ColorEntry {
   codigo_barras_ean?: string;
 }
 
+const TIPOS_MATERIAL_PLASTICO = [
+  { value: "PP", label: "PP (Polipropileno)" },
+  { value: "PE", label: "PE (Polietileno)" },
+  { value: "PET", label: "PET (Politereftalato)" },
+  { value: "ABS", label: "ABS" },
+  { value: "Acrílico", label: "Acrílico" },
+  { value: "Outro", label: "Outro" },
+];
+
 interface ValidationData {
   produto_codigo?: string;
   produto_nome?: string;
@@ -47,6 +56,7 @@ interface ValidationData {
   peso_liquido_g?: number;
   peso_aluminio_g?: number;
   peso_plastico_g?: number;
+  tipo_material_plastico?: string;
   cores?: ColorEntry[];
   [key: string]: any;
 }
