@@ -235,6 +235,9 @@ export function ProjetoTarefaRow({
           />
         </div>
 
+        {/* Separator: People | Time */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+
         {/* Criador */}
         <div className="flex items-center gap-1.5 min-w-0">
           {tarefa.criador ? (
