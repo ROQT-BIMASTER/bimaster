@@ -16,9 +16,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Search, Plus, Loader2, CheckCircle2, XCircle, Clock, ArrowRight,
-  Palette, Package, Tag, Layers, LayoutGrid, Shield,
+  Search, Plus, Loader2, CheckCircle2, XCircle, Clock, ArrowRight, ArrowLeft,
+  Palette, Package, Tag, Layers, LayoutGrid, Shield, Download,
 } from "lucide-react";
+import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
+import { exportToExcel } from "@/utils/excelExport";
 import {
   useFluxoArtesAgrupado, useAllFluxoArtes, useCreateFluxoArte,
   CHECKLIST_TIPOS, ETAPAS, getFluxoStatusInfo, getChecklistShort,
