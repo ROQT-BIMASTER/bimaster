@@ -1957,7 +1957,7 @@ Data: ${dataGeracao}
           </CardContent>
         </Card>
 
-        {/* Cards de Resumo - Estrutura CIGAM */}
+        {/* Cards de Resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="border-l-4 border-l-emerald-500">
             <CardContent className="pt-3 pb-2">
