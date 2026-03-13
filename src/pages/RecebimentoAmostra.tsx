@@ -22,6 +22,8 @@ import {
   type Amostra, type ChecklistItem,
 } from "@/hooks/useAmostras";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -199,6 +201,7 @@ function AmostraDetail({ submissaoId, onBack }: { submissaoId: string; onBack: (
   const { data: amostras = [] } = useAmostrasBySubmissao(submissaoId);
   const createAmostra = useCreateAmostra();
   const [selectedAmostra, setSelectedAmostra] = useState<string | null>(null);
+  const [showVinculo, setShowVinculo] = useState(false);
 
   const current = amostras.find(a => a.id === selectedAmostra) || amostras[0];
 
@@ -214,11 +217,14 @@ function AmostraDetail({ submissaoId, onBack }: { submissaoId: string; onBack: (
         <div className="flex-1">
           <h1 className="text-xl font-bold">Amostra Física</h1>
           <p className="text-xs text-muted-foreground">{amostras.length} rodada(s)</p>
+          <VinculoProjetoBadges modulo="amostras" registroId={submissaoId} onVincular={() => setShowVinculo(true)} />
         </div>
         <Button onClick={() => createAmostra.mutate({ submissaoId })} disabled={createAmostra.isPending}>
           <Package className="h-4 w-4 mr-2" />Nova Rodada
         </Button>
       </div>
+
+      <VincularProjetoDialog modulo="amostras" registroId={submissaoId} open={showVinculo} onOpenChange={setShowVinculo} />
 
       {/* Round selector */}
       {amostras.length > 1 && (

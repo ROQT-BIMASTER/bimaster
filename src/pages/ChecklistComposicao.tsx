@@ -22,6 +22,8 @@ import {
   type Composicao,
 } from "@/hooks/useComposicao";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -185,6 +187,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const [localItems, setLocalItems] = useState<Partial<Composicao>[]>([]);
   const [cores, setCores] = useState<string[]>(["1#"]);
   const [showDevolucao, setShowDevolucao] = useState(false);
+  const [showVinculo, setShowVinculo] = useState(false);
 
   // Sync from DB
   useEffect(() => {
@@ -271,8 +274,11 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
         <div>
           <h1 className="text-xl font-bold">Composição INCI</h1>
           <p className="text-xs text-muted-foreground">Versão {currentVersion}</p>
+          <VinculoProjetoBadges modulo="composicao" registroId={submissaoId} onVincular={() => setShowVinculo(true)} />
         </div>
       </div>
+
+      <VincularProjetoDialog modulo="composicao" registroId={submissaoId} open={showVinculo} onOpenChange={setShowVinculo} />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,7 @@ export default function FluxoAprovacaoDetalhe() {
   const [observacao, setObservacao] = useState("");
   const [observacaoReprovar, setObservacaoReprovar] = useState("");
   const [showDevolucao, setShowDevolucao] = useState(false);
+  const [showVinculo, setShowVinculo] = useState(false);
 
   // Get current user
   const { data: currentUser } = useQuery({
@@ -117,8 +120,11 @@ export default function FluxoAprovacaoDetalhe() {
               </Badge>
             )}
           </div>
+          <VinculoProjetoBadges modulo="aprovacao_artes" registroId={id} onVincular={() => setShowVinculo(true)} />
         </div>
       </div>
+
+      <VincularProjetoDialog modulo="aprovacao_artes" registroId={id!} open={showVinculo} onOpenChange={setShowVinculo} />
 
       {/* Stage Progress */}
       <Card>

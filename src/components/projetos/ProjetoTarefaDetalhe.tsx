@@ -44,6 +44,7 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
+import { ModulosVinculadosWidget } from "@/components/shared/ModulosVinculadosWidget";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -711,6 +712,9 @@ export function ProjetoTarefaDetalhe({
                       <ChinaProdutoWidget vinculo={chinaVinculo} />
                     </>
                   )}
+
+                  {/* Módulos Vinculados */}
+                  <ModulosVinculadosWidget tarefaId={tarefa?.id} />
 
                   {/* Mover para Seção */}
                   {secoes.length > 1 && onMoveTarefa && (

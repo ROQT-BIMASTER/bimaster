@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw
+  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw, FolderOpen
 } from "lucide-react";
 import {
   useAllAnalises, useAllSolicitacoes, useEmbalagemCores, useSolicitacoesByAnalise,
@@ -28,6 +28,8 @@ import {
   type AnaliseEmbalagem as AnaliseEmbalagemType, type SolicitacaoAmostra, type AvaliacaoItem,
 } from "@/hooks/useAnaliseEmbalagem";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
   pendente: { label: "Pendente", color: "bg-muted text-muted-foreground", icon: Clock },
@@ -53,6 +55,7 @@ export default function AnaliseEmbalagemPage() {
   const [showAvaliacaoDialog, setShowAvaliacaoDialog] = useState(false);
   const [showChinaUploadDialog, setShowChinaUploadDialog] = useState(false);
   const [showDevolucaoDialog, setShowDevolucaoDialog] = useState(false);
+  const [showVinculoDialog, setShowVinculoDialog] = useState(false);
   const devolverAnalise = useDevolverAnalise();
 
   const { data: analises = [], isLoading: loadingAnalises } = useAllAnalises();
@@ -138,6 +141,7 @@ export default function AnaliseEmbalagemPage() {
               onApprove={(a: any) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
               onSolicitar={(a: any) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
               onDevolver={(a: any) => { setSelectedAnalise(a); setShowDevolucaoDialog(true); }}
+              onVincular={(a: any) => { setSelectedAnalise(a); setShowVinculoDialog(true); }}
             />
           </TabsContent>
 
@@ -180,12 +184,15 @@ export default function AnaliseEmbalagemPage() {
           }}
         />
       )}
+      {selectedAnalise && (
+        <VincularProjetoDialog modulo="analise_embalagem" registroId={selectedAnalise.id} open={showVinculoDialog} onOpenChange={setShowVinculoDialog} />
+      )}
     </DashboardLayout>
   );
 }
 
 // ── Analises List ──
-function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onDevolver }: any) {
+function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onDevolver, onVincular }: any) {
   if (loading) return <div className="flex justify-center p-8"><Clock className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!analises.length) return <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma análise encontrada.</CardContent></Card>;
 
@@ -267,6 +274,9 @@ function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onD
                     </Button>
                   </>
                 )}
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onVincular?.(a)} title="Vincular ao Projeto">
+                  <FolderOpen className="h-3 w-3" />
+                </Button>
               </div>
               <span className="text-[11px] text-muted-foreground">
                 {a.created_at ? new Date(a.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}

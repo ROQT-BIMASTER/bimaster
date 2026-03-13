@@ -14048,6 +14048,61 @@ export type Database = {
           },
         ]
       }
+      modulo_projeto_vinculos: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          modulo: string
+          projeto_id: string
+          registro_id: string
+          secao_id: string | null
+          tarefa_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          modulo: string
+          projeto_id: string
+          registro_id: string
+          secao_id?: string | null
+          tarefa_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          modulo?: string
+          projeto_id?: string
+          registro_id?: string
+          secao_id?: string | null
+          tarefa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulo_projeto_vinculos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modulo_projeto_vinculos_secao_id_fkey"
+            columns: ["secao_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_secoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modulo_projeto_vinculos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulos_sistema: {
         Row: {
           ativo: boolean | null

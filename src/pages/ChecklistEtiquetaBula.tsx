@@ -28,6 +28,8 @@ import {
   type EtiquetaBula, type AprovacaoEntry, type RegulatorioItem,
 } from "@/hooks/useEtiquetaBula";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
@@ -238,6 +240,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const [newCorPantone, setNewCorPantone] = useState("");
   const [newCorHex, setNewCorHex] = useState("");
   const [showDevolucao, setShowDevolucao] = useState(false);
+  const [showVinculo, setShowVinculo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [regChecklist, setRegChecklist] = useState<RegulatorioItem[]>(
     etiqueta.regulatorio_checklist?.length
@@ -302,7 +305,10 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{etiqueta.sku}: {etiqueta.produto_nome}</DialogTitle>
+          <VinculoProjetoBadges modulo="etiqueta_bula" registroId={etiqueta.id} onVincular={() => setShowVinculo(true)} />
         </DialogHeader>
+
+        <VincularProjetoDialog modulo="etiqueta_bula" registroId={etiqueta.id} open={showVinculo} onOpenChange={setShowVinculo} />
 
         {/* Timeline visual */}
         <Card>

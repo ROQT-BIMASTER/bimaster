@@ -27,6 +27,8 @@ import {
   type FluxoArte, type EtapaKey, type RegulatorioItem,
 } from "@/hooks/useFluxoArtesMotor";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 
 export default function FluxoArtesDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +44,7 @@ export default function FluxoArtesDetalhe() {
 
   const [showApproval, setShowApproval] = useState(false);
   const [showDevolucao, setShowDevolucao] = useState(false);
+  const [showVinculo, setShowVinculo] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<"approved" | "approved_with_changes" | "not_approved">("approved");
   const [approvalDesc, setApprovalDesc] = useState("");
   const [newCor, setNewCor] = useState({ codigo_cor: "", pantone_ref: "", cor_hex: "#000000" });
@@ -102,11 +105,14 @@ export default function FluxoArtesDetalhe() {
           <p className="text-sm text-muted-foreground">
             {fluxo.numero_documento} • {fluxo.linha_marca || "—"}
           </p>
+          <VinculoProjetoBadges modulo="fluxo_artes" registroId={id} onVincular={() => setShowVinculo(true)} />
         </div>
         <Badge className={info.color.replace("text-", "bg-").replace("600", "100") + " " + info.color}>
           {info.label}
         </Badge>
       </div>
+
+      <VincularProjetoDialog modulo="fluxo_artes" registroId={id!} open={showVinculo} onOpenChange={setShowVinculo} />
 
       {/* Timeline */}
       <Card>
