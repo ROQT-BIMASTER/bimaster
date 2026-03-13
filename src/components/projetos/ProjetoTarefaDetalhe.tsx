@@ -713,6 +713,9 @@ export function ProjetoTarefaDetalhe({
                     </>
                   )}
 
+                  {/* Módulos Vinculados */}
+                  <ModulosVinculadosWidget tarefaId={tarefa?.id} />
+
                   {/* Mover para Seção */}
                   {secoes.length > 1 && onMoveTarefa && (
                     <>
