@@ -42,6 +42,15 @@ const ESTAGIO_COLORS: Record<string, string> = {
   lancamento: "bg-pink-500/20 text-pink-400",
 };
 
+const ESTAGIO_ACCENT: Record<string, string> = {
+  briefing: "bg-purple-500",
+  em_criacao: "bg-blue-500",
+  revisao: "bg-amber-500",
+  aprovado: "bg-emerald-500",
+  producao: "bg-pink-500",
+  lancamento: "bg-pink-500",
+};
+
 const ESTAGIO_LABELS: Record<string, string> = {
   briefing: "Briefing",
   em_criacao: "Em Criação",
