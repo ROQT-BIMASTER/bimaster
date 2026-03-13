@@ -471,7 +471,7 @@ export default function DREAnalitico() {
     return ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100;
   };
 
-  // Construir hierarquia DRE padrão CIGAM
+  // Construir hierarquia DRE Gerencial
   const construirHierarquiaDRE = (): DRENode[] => {
     if (!planoContas || !lancamentos) return [];
 
@@ -485,7 +485,7 @@ export default function DREAnalitico() {
       return vm;
     };
 
-    // === ESTRUTURA DRE PADRÃO CIGAM ===
+    // === ESTRUTURA DRE GERENCIAL ===
     
     // 1. (+) RECEITAS COM VENDA (Faturamento)
     const receitaBruta: DRENode = {
@@ -673,7 +673,7 @@ export default function DREAnalitico() {
       receitaBruta.children?.push(vendasSubconta);
     }
 
-    // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura CIGAM
+    // Processar contas a pagar (DESPESAS) - categorizar conforme estrutura gerencial
     lancamentos.forEach(lancamento => {
       // Para regime de caixa, usar valor_pago; para competência, usar valor_original
       const valor = regimeAnalise === 'caixa'
@@ -1957,7 +1957,7 @@ Data: ${dataGeracao}
           </CardContent>
         </Card>
 
-        {/* Cards de Resumo - Estrutura CIGAM */}
+        {/* Cards de Resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="border-l-4 border-l-emerald-500">
             <CardContent className="pt-3 pb-2">
@@ -2048,7 +2048,7 @@ Data: ${dataGeracao}
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       DRE Gerencial
-                      <Badge variant="outline" className="text-xs">Padrão CIGAM</Badge>
+                      <Badge variant="outline" className="text-xs">Gerencial</Badge>
                     </CardTitle>
                     <div className="flex items-center gap-3">
                       <DREFontSizeControl currentSize={fontSize} onSizeChange={setFontSize} />
