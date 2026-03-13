@@ -470,6 +470,14 @@ function AppContent() {
             <Route path="/dashboard/precos/acesso" element={<ScreenRoute screenCode="precos_tabelas"><GerenciamentoAcessoPrecos /></ScreenRoute>} />
             <Route path="/dashboard/precos/simulador" element={<ScreenRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenRoute>} />
             
+            {/* Módulo de Estoque */}
+            <Route path="/dashboard/estoque" element={<ModuleRoute moduleCode="estoque"><EstoqueModule /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/distribuidoras" element={<ModuleRoute moduleCode="estoque"><EstoqueDistribuidoras /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/produtos-master" element={<ModuleRoute moduleCode="estoque"><EstoqueProdutosMaster /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/saldos" element={<ModuleRoute moduleCode="estoque"><EstoqueSaldos /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><EstoqueConsolidado /></ModuleRoute>} />
+            <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><EstoqueVinculacoes /></ModuleRoute>} />
+
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/visao-departamentos" element={<ModuleRoute moduleCode="financeiro"><VisaoDepartamentos /></ModuleRoute>} />
