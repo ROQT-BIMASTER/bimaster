@@ -201,6 +201,7 @@ function AmostraDetail({ submissaoId, onBack }: { submissaoId: string; onBack: (
   const { data: amostras = [] } = useAmostrasBySubmissao(submissaoId);
   const createAmostra = useCreateAmostra();
   const [selectedAmostra, setSelectedAmostra] = useState<string | null>(null);
+  const [showVinculo, setShowVinculo] = useState(false);
 
   const current = amostras.find(a => a.id === selectedAmostra) || amostras[0];
 
