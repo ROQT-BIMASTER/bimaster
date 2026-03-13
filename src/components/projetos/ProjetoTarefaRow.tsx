@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
-import { format, isPast, isToday, formatDistanceToNow } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,19 +14,19 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 
 const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-muted text-foreground/70",
-  nao_iniciado: "bg-pink-500/15 text-pink-600",
-  em_andamento: "bg-amber-500/15 text-amber-600",
-  concluida: "bg-emerald-500/15 text-emerald-600",
-  bloqueada: "bg-red-500/15 text-red-600",
+  pendente: "bg-gray-400 text-white",
+  nao_iniciado: "bg-gray-400 text-white",
+  em_andamento: "bg-amber-500 text-white",
+  concluida: "bg-emerald-500 text-white",
+  bloqueada: "bg-red-500 text-white",
 };
 
 const STATUS_COLORS_DARK: Record<string, string> = {
-  pendente: "bg-white/10 text-white/70",
-  nao_iniciado: "bg-pink-500/20 text-pink-300",
-  em_andamento: "bg-amber-500/20 text-amber-300",
-  concluida: "bg-emerald-500/20 text-emerald-300",
-  bloqueada: "bg-red-500/20 text-red-300",
+  pendente: "bg-gray-500 text-white",
+  nao_iniciado: "bg-gray-500 text-white",
+  em_andamento: "bg-amber-500 text-white",
+  concluida: "bg-emerald-500 text-white",
+  bloqueada: "bg-red-500 text-white",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,21 +45,21 @@ const STATUS_OPTIONS = [
 ];
 
 const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500/15 text-purple-600",
-  em_criacao: "bg-blue-500/15 text-blue-600",
-  revisao: "bg-amber-500/15 text-amber-600",
-  aprovado: "bg-emerald-500/15 text-emerald-600",
-  producao: "bg-pink-500/15 text-pink-600",
-  lancamento: "bg-pink-500/15 text-pink-600",
+  briefing: "bg-purple-500 text-white",
+  em_criacao: "bg-blue-500 text-white",
+  revisao: "bg-amber-500 text-white",
+  aprovado: "bg-emerald-500 text-white",
+  producao: "bg-pink-500 text-white",
+  lancamento: "bg-rose-500 text-white",
 };
 
 const ESTAGIO_COLORS_DARK: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-300",
-  em_criacao: "bg-blue-500/20 text-blue-300",
-  revisao: "bg-amber-500/20 text-amber-300",
-  aprovado: "bg-emerald-500/20 text-emerald-300",
-  producao: "bg-pink-500/20 text-pink-300",
-  lancamento: "bg-pink-500/20 text-pink-300",
+  briefing: "bg-purple-500 text-white",
+  em_criacao: "bg-blue-500 text-white",
+  revisao: "bg-amber-500 text-white",
+  aprovado: "bg-emerald-500 text-white",
+  producao: "bg-pink-500 text-white",
+  lancamento: "bg-rose-500 text-white",
 };
 
 const ESTAGIO_LABELS: Record<string, string> = {
@@ -79,6 +79,14 @@ const ESTAGIO_OPTIONS = [
   { value: "producao", label: "Produção" },
   { value: "lancamento", label: "Lançamento" },
 ];
+
+const PRIORITY_MAP: Record<string, number> = {
+  baixa: 1, media: 2, normal: 3, alta: 4, urgente: 5,
+};
+
+const PRIORITY_REVERSE: Record<number, string> = {
+  1: "baixa", 2: "media", 3: "normal", 4: "alta", 5: "urgente",
+};
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
@@ -215,56 +223,6 @@ export function ProjetoTarefaRow({
           />
         </div>
 
-        {/* Data prazo - inline date picker */}
-        <div className="text-xs min-w-0">
-          <InlineDatePicker
-            value={tarefa.data_prazo}
-            isOverdue={!!isOverdue}
-            isDueToday={!!isDueToday}
-            onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
-          />
-        </div>
-
-        {/* Colaboradores - inline add/remove */}
-        <div className="flex items-center">
-          <ColaboradoresPicker
-            colaboradores={tarefa.colaboradores || []}
-            members={teamMembers}
-            onAdd={(userId) => onAddColaborador?.(tarefa.id, userId)}
-            onRemove={(userId) => onRemoveColaborador?.(tarefa.id, userId)}
-          />
-        </div>
-
-        {/* Separator: People | Time */}
-        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
-
-        {/* Criador */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          {tarefa.criador ? (
-            <>
-              <Avatar className="h-5 w-5 flex-shrink-0">
-                <AvatarImage src={tarefa.criador.avatar_url || undefined} />
-                <AvatarFallback className="text-[8px] bg-muted">
-                  {tarefa.criador.nome?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className={`text-[11px] truncate hidden xl:inline ${darkBg ? "text-white/60" : "text-foreground/70"}`}>{tarefa.criador.nome?.split(" ")[0]}</span>
-            </>
-          ) : null}
-        </div>
-
-        {/* Data modificação */}
-        <div className={`text-[11px] min-w-0 truncate ${darkBg ? "text-white/50" : "text-foreground/60"}`}>
-          {tarefa.updated_at ? (
-            isToday(new Date(tarefa.updated_at))
-              ? "Hoje"
-              : formatDistanceToNow(new Date(tarefa.updated_at), { locale: ptBR, addSuffix: false })
-          ) : null}
-        </div>
-
-        {/* Separator: Time | Status */}
-        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
-
         {/* Status */}
         <div className="flex justify-center">
           <InlineSelector
@@ -276,15 +234,32 @@ export function ProjetoTarefaRow({
           />
         </div>
 
-        {/* Estágio */}
-        <div className="flex justify-center items-center gap-1">
-          <InlineSelector
-            value={tarefa.estagio || ""}
-            options={ESTAGIO_OPTIONS}
-            colors={darkBg ? ESTAGIO_COLORS_DARK : ESTAGIO_COLORS}
-            labels={ESTAGIO_LABELS}
-            onChange={(val) => onUpdate?.(tarefa.id, { estagio: val })}
-            placeholder="—"
+        {/* Timeline bar */}
+        <div className="flex items-center px-1">
+          <TimelineBar
+            dataInicio={(tarefa as any).data_inicio}
+            dataPrazo={tarefa.data_prazo}
+            isCompleted={isCompleted}
+            onChangeInicio={(date) => onUpdate?.(tarefa.id, { data_inicio: date })}
+            onChangePrazo={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
+          />
+        </div>
+
+        {/* Data prazo - inline date picker */}
+        <div className="text-xs min-w-0">
+          <InlineDatePicker
+            value={tarefa.data_prazo}
+            isOverdue={!!isOverdue}
+            isDueToday={!!isDueToday}
+            onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
+          />
+        </div>
+
+        {/* Prioridade - estrelas */}
+        <div className="flex justify-center items-center gap-0.5">
+          <PriorityStars
+            value={tarefa.prioridade}
+            onChange={(val) => onUpdate?.(tarefa.id, { prioridade: val })}
           />
           {onDelete && (
             <button
@@ -658,5 +633,82 @@ function InlineSelector({
         ))}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/* ───────── Timeline Bar ───────── */
+function TimelineBar({ dataInicio, dataPrazo, isCompleted, onChangeInicio, onChangePrazo }: {
+  dataInicio: string | null;
+  dataPrazo: string | null;
+  isCompleted: boolean;
+  onChangeInicio: (date: string | null) => void;
+  onChangePrazo: (date: string | null) => void;
+}) {
+  if (!dataInicio && !dataPrazo) {
+    return (
+      <div className="w-full h-2 rounded-full bg-muted/40 cursor-pointer" title="Sem datas definidas" />
+    );
+  }
+
+  const now = new Date();
+  const start = dataInicio ? new Date(dataInicio) : now;
+  const end = dataPrazo ? new Date(dataPrazo) : new Date(start.getTime() + 7 * 86400000);
+  const totalMs = Math.max(end.getTime() - start.getTime(), 86400000);
+  const elapsedMs = now.getTime() - start.getTime();
+  const progressPct = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+  const isOverdue = !isCompleted && now > end;
+
+  const startLabel = dataInicio ? format(new Date(dataInicio), "dd MMM", { locale: ptBR }) : "";
+  const endLabel = dataPrazo ? format(new Date(dataPrazo), "dd MMM", { locale: ptBR }) : "";
+
+  return (
+    <div className="w-full flex flex-col gap-0.5" title={`${startLabel} → ${endLabel}`}>
+      <div className="w-full h-2 rounded-full bg-muted/30 overflow-hidden relative">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
+            isCompleted ? "bg-emerald-500" : isOverdue ? "bg-red-500" : "bg-primary"
+          )}
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-muted-foreground leading-none">
+        <span>{startLabel}</span>
+        <span>{endLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Priority Stars ───────── */
+function PriorityStars({ value, onChange }: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const numStars = PRIORITY_MAP[value] || 0;
+
+  return (
+    <div className="flex items-center gap-px" onClick={e => e.stopPropagation()}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          onClick={() => onChange(PRIORITY_REVERSE[star === numStars ? 0 : star] || "normal")}
+          className="p-0 focus:outline-none hover:scale-110 transition-transform"
+          title={PRIORITY_REVERSE[star] || ""}
+        >
+          <svg
+            className={cn(
+              "h-3.5 w-3.5 transition-colors",
+              star <= numStars ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30 fill-none"
+            )}
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </button>
+      ))}
+    </div>
   );
 }

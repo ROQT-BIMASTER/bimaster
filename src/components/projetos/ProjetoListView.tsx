@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 
-// Grid template matching ProjetoTarefaRow columns
-export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_80px_64px_1px_100px_80px_1px_90px_90px]";
+// Grid template: expand, check, nome, produto, sep, responsável, status, timeline, prazo, prioridade
+export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_90px_120px_80px_80px]";
 
 interface ProjetoListViewProps {
   projetoId: string;
@@ -190,24 +190,21 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
           <div>Produto</div>
-          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
           <div>Responsável</div>
-          <div>Data con.</div>
-          <div>Colab.</div>
-          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
-          <div>Criador</div>
-          <div>Data mod.</div>
-          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div className="text-center">Status</div>
-          <div className="text-center">Estágio</div>
+          <div className="text-center">Timeline</div>
+          <div>Prazo</div>
+          <div className="text-center">Prior.</div>
         </div>
 
-        {secoes.map(secao => (
+        {secoes.map((secao, index) => (
           <ProjetoSecao
             key={secao.id}
             nome={secao.nome}
             secaoId={secao.id}
             projetoId={projetoId}
+            secaoIndex={index}
             tarefas={filteredTarefasPorSecao[secao.id] || []}
             ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}

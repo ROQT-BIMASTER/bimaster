@@ -22,6 +22,15 @@ interface GhostTrail {
   destSecaoNome: string;
 }
 
+const SECTION_COLORS = [
+  { border: "border-l-blue-500", text: "text-blue-500" },
+  { border: "border-l-purple-500", text: "text-purple-500" },
+  { border: "border-l-emerald-500", text: "text-emerald-500" },
+  { border: "border-l-amber-500", text: "text-amber-500" },
+  { border: "border-l-pink-500", text: "text-pink-500" },
+  { border: "border-l-cyan-500", text: "text-cyan-500" },
+];
+
 interface ProjetoSecaoProps {
   nome: string;
   tarefas: ProjetoTarefa[];
@@ -31,6 +40,7 @@ interface ProjetoSecaoProps {
   ghosts?: GhostTrail[];
   temBriefing?: boolean;
   allSecoes?: { id: string; nome: string }[];
+  secaoIndex?: number;
   onToggleTarefa: (tarefa: ProjetoTarefa) => void;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   onAddTarefa: (titulo: string, secaoId: string) => void;
@@ -45,7 +55,7 @@ interface ProjetoSecaoProps {
 }
 
 export function ProjetoSecao({
-  nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [],
+  nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
   teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
@@ -72,8 +82,10 @@ export function ProjetoSecao({
 
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  const sectionColor = SECTION_COLORS[secaoIndex % SECTION_COLORS.length];
+
   return (
-    <div className="mb-1">
+    <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -84,7 +96,7 @@ export function ProjetoSecao({
           ) : (
             <ChevronDown className={`h-4 w-4 ${darkBg ? "text-white/50" : "text-muted-foreground"}`} />
           )}
-          <span className={`font-semibold text-sm ${darkBg ? "text-white" : "text-foreground"}`}>{nome}</span>
+          <span className={cn("font-semibold text-sm", sectionColor.text)}>{nome}</span>
           <span className={`text-xs ml-1 ${darkBg ? "text-white/60" : "text-foreground/60"}`}>
             {completedCount}/{totalCount}
           </span>
@@ -193,14 +205,10 @@ export function ProjetoSecao({
               <div className={`text-[10px] ${darkBg ? "text-white/40" : "text-muted-foreground"}`}>
                 {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
               </div>
-              <div />
-              <div />
-              <div /> {/* separator */}
-              <div />
-              <div />
-              <div /> {/* separator */}
-              <div />
-              <div />
+              <div /> {/* status */}
+              <div /> {/* timeline */}
+              <div /> {/* prazo */}
+              <div /> {/* prioridade */}
             </div>
           ))}
 
