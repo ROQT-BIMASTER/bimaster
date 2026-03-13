@@ -27,6 +27,8 @@ import {
   type FluxoArte, type EtapaKey, type RegulatorioItem,
 } from "@/hooks/useFluxoArtesMotor";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 
 export default function FluxoArtesDetalhe() {
   const { id } = useParams<{ id: string }>();
