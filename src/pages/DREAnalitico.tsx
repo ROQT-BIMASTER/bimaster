@@ -2048,7 +2048,7 @@ Data: ${dataGeracao}
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       DRE Gerencial
-                      <Badge variant="outline" className="text-xs">Padrão CIGAM</Badge>
+                      <Badge variant="outline" className="text-xs">Gerencial</Badge>
                     </CardTitle>
                     <div className="flex items-center gap-3">
                       <DREFontSizeControl currentSize={fontSize} onSizeChange={setFontSize} />
