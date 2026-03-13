@@ -270,10 +270,13 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
     } : item));
   };
 
+  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
+
   const removeItem = (idx: number) => {
     const item = localItems[idx];
     if (item.id) deleteItem.mutate(item.id);
     setLocalItems(prev => prev.filter((_, i) => i !== idx));
+    setDeleteIdx(null);
   };
 
   const handleSave = () => {
