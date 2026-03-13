@@ -134,9 +134,10 @@ export default function AnaliseEmbalagemPage() {
 
           <TabsContent value="analises" className="mt-4">
             <AnalisesList analises={filteredAnalises} loading={loadingAnalises}
-              onSelect={(a) => setSelectedAnalise(a)}
-              onApprove={(a) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
-              onSolicitar={(a) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
+              onSelect={(a: any) => setSelectedAnalise(a)}
+              onApprove={(a: any) => { setSelectedAnalise(a); setShowApprovalDialog(true); }}
+              onSolicitar={(a: any) => { setSelectedAnalise(a); setShowSolicitacaoDialog(true); }}
+              onDevolver={(a: any) => { setSelectedAnalise(a); setShowDevolucaoDialog(true); }}
             />
           </TabsContent>
 
