@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { getTarefaRisk } from "@/utils/tarefaRiskUtils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
-import { AlertTriangle, Clock, CheckCircle2, Target, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface ProjetoHealthPanelProps {
   tarefas: ProjetoTarefa[];
@@ -13,7 +13,7 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
   const stats = useMemo(() => {
     let onTrack = 0, atRisk = 0, overdue = 0, completed = 0, noDeadline = 0;
     for (const t of tarefas) {
-      if (t.parent_tarefa_id) continue; // skip subtasks
+      if (t.parent_tarefa_id) continue;
       const risk = getTarefaRisk(t.status, t.data_prazo, (t as any).dias_alerta_antes ?? 2);
       switch (risk.level) {
         case "on_track": onTrack++; break;
@@ -32,28 +32,60 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
 
   if (stats.total === 0) return null;
 
-  const items = [
-    { icon: CheckCircle2, label: "Concluídas", count: stats.completed, color: "text-emerald-400", bg: darkBg ? "bg-emerald-500/20" : "bg-emerald-500/10" },
-    { icon: Target, label: "No prazo", count: stats.onTrack, color: "text-blue-400", bg: darkBg ? "bg-blue-500/20" : "bg-blue-500/10" },
-    { icon: Clock, label: "Em risco", count: stats.atRisk, color: "text-amber-400", bg: darkBg ? "bg-amber-500/20" : "bg-amber-500/10" },
-    { icon: AlertTriangle, label: "Atrasadas", count: stats.overdue, color: "text-red-400", bg: darkBg ? "bg-red-500/20" : "bg-red-500/10" },
-    { icon: RotateCcw, label: "Retrabalho", count: retrabalhoCount, color: "text-orange-400", bg: darkBg ? "bg-orange-500/20" : "bg-orange-500/10" },
-  ];
+  const segments = [
+    { label: "Concluídas", count: stats.completed, color: "bg-emerald-500", tooltip: `${stats.completed} concluída${stats.completed !== 1 ? "s" : ""}` },
+    { label: "No prazo", count: stats.onTrack, color: "bg-blue-500", tooltip: `${stats.onTrack} no prazo` },
+    { label: "Em risco", count: stats.atRisk, color: "bg-amber-500", tooltip: `${stats.atRisk} em risco` },
+    { label: "Atrasadas", count: stats.overdue, color: "bg-red-500", tooltip: `${stats.overdue} atrasada${stats.overdue !== 1 ? "s" : ""}` },
+    { label: "Retrabalho", count: retrabalhoCount, color: "bg-orange-500", tooltip: `${retrabalhoCount} retrabalho` },
+  ].filter(s => s.count > 0);
+
+  const activeTotal = segments.reduce((sum, s) => sum + s.count, 0);
+  const completedPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      {items.map((item) => (
-        item.count > 0 && (
-          <div
-            key={item.label}
-            className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium", item.bg, item.color)}
-          >
-            <item.icon className="h-3.5 w-3.5" />
-            <span>{item.count}</span>
-            <span className="hidden sm:inline">{item.label}</span>
-          </div>
-        )
-      ))}
-    </div>
+    <TooltipProvider>
+      <div className="flex items-center gap-3">
+        {/* Stacked progress bar */}
+        <div className={cn(
+          "flex-1 h-2.5 rounded-full overflow-hidden flex",
+          darkBg ? "bg-white/10" : "bg-muted"
+        )}>
+          {segments.map((seg) => (
+            <Tooltip key={seg.label}>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn("h-full transition-all duration-500", seg.color)}
+                  style={{ width: `${(seg.count / stats.total) * 100}%` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {seg.tooltip}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+
+        {/* Percentage label */}
+        <span className={cn(
+          "text-xs font-semibold tabular-nums whitespace-nowrap",
+          darkBg ? "text-white/80" : "text-foreground/70"
+        )}>
+          {completedPct}% concluído
+        </span>
+
+        {/* Legend dots */}
+        <div className="flex items-center gap-2">
+          {segments.map((seg) => (
+            <div key={seg.label} className="flex items-center gap-1">
+              <div className={cn("h-2 w-2 rounded-full", seg.color)} />
+              <span className={cn("text-[10px]", darkBg ? "text-white/60" : "text-muted-foreground")}>
+                {seg.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }

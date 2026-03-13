@@ -190,11 +190,14 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
           <div>Produto</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div>Responsável</div>
           <div>Data con.</div>
           <div>Colab.</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div>Criador</div>
           <div>Data mod.</div>
+          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} /> {/* separator */}
           <div className="text-center">Status</div>
           <div className="text-center">Estágio</div>
         </div>
