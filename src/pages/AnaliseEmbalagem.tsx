@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw
+  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw, FolderOpen
 } from "lucide-react";
 import {
   useAllAnalises, useAllSolicitacoes, useEmbalagemCores, useSolicitacoesByAnalise,
