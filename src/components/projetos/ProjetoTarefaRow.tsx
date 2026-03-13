@@ -635,3 +635,80 @@ function InlineSelector({
     </Popover>
   );
 }
+
+/* ───────── Timeline Bar ───────── */
+function TimelineBar({ dataInicio, dataPrazo, isCompleted, onChangeInicio, onChangePrazo }: {
+  dataInicio: string | null;
+  dataPrazo: string | null;
+  isCompleted: boolean;
+  onChangeInicio: (date: string | null) => void;
+  onChangePrazo: (date: string | null) => void;
+}) {
+  if (!dataInicio && !dataPrazo) {
+    return (
+      <div className="w-full h-2 rounded-full bg-muted/40 cursor-pointer" title="Sem datas definidas" />
+    );
+  }
+
+  const now = new Date();
+  const start = dataInicio ? new Date(dataInicio) : now;
+  const end = dataPrazo ? new Date(dataPrazo) : new Date(start.getTime() + 7 * 86400000);
+  const totalMs = Math.max(end.getTime() - start.getTime(), 86400000);
+  const elapsedMs = now.getTime() - start.getTime();
+  const progressPct = isCompleted ? 100 : Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+  const isOverdue = !isCompleted && now > end;
+
+  const startLabel = dataInicio ? format(new Date(dataInicio), "dd MMM", { locale: ptBR }) : "";
+  const endLabel = dataPrazo ? format(new Date(dataPrazo), "dd MMM", { locale: ptBR }) : "";
+
+  return (
+    <div className="w-full flex flex-col gap-0.5" title={`${startLabel} → ${endLabel}`}>
+      <div className="w-full h-2 rounded-full bg-muted/30 overflow-hidden relative">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
+            isCompleted ? "bg-emerald-500" : isOverdue ? "bg-red-500" : "bg-primary"
+          )}
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-muted-foreground leading-none">
+        <span>{startLabel}</span>
+        <span>{endLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Priority Stars ───────── */
+function PriorityStars({ value, onChange }: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const numStars = PRIORITY_MAP[value] || 0;
+
+  return (
+    <div className="flex items-center gap-px" onClick={e => e.stopPropagation()}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          onClick={() => onChange(PRIORITY_REVERSE[star === numStars ? 0 : star] || "normal")}
+          className="p-0 focus:outline-none hover:scale-110 transition-transform"
+          title={PRIORITY_REVERSE[star] || ""}
+        >
+          <svg
+            className={cn(
+              "h-3.5 w-3.5 transition-colors",
+              star <= numStars ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30 fill-none"
+            )}
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
