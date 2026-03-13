@@ -275,6 +275,14 @@ export default function FluxoAprovacaoDetalhe() {
                     Aguardando ação do responsável desta etapa
                   </p>
                 )}
+
+                {/* Devolver button for non-first stages */}
+                {instancia.etapa_atual_ordem > 0 && canApprove && (
+                  <Button variant="outline" className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => setShowDevolucao(true)}>
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver para Ajuste
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
