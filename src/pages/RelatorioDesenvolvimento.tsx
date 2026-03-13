@@ -541,7 +541,7 @@ const RelatorioDesenvolvimento = () => {
 │                                                       └─────────────┘      │
 └──────────────────────────────────────────────────────────────────────────────┘`}</pre>
 
-            <h3 className="font-bold">5.1 Tipos de Teste</h3>
+            <h3 className="font-bold">8.1 Tipos de Teste</h3>
             <table className="w-full border-collapse mt-2">
               <thead>
                 <tr className="bg-muted">
