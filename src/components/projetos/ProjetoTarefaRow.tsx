@@ -262,6 +262,9 @@ export function ProjetoTarefaRow({
           ) : null}
         </div>
 
+        {/* Separator: Time | Status */}
+        <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
+
         {/* Status */}
         <div className="flex justify-center">
           <InlineSelector
