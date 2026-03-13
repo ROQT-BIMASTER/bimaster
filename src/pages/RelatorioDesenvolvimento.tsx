@@ -485,7 +485,7 @@ const RelatorioDesenvolvimento = () => {
               </tbody>
             </table>
 
-            <h3 className="font-bold mt-4">4.3 Embalagem e Medidas</h3>
+            <h3 className="font-bold mt-4">7.3 Embalagem e Medidas</h3>
             <table className="w-full border-collapse mt-2">
               <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Tipo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
               <tbody className="text-muted-foreground">
