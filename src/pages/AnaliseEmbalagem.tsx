@@ -16,17 +16,18 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   Package, Plus, Search, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText
+  Clock, Upload, Palette, Send, Eye, Camera, Video, FileText, RotateCcw
 } from "lucide-react";
 import {
   useAllAnalises, useAllSolicitacoes, useEmbalagemCores, useSolicitacoesByAnalise,
-  useCreateAnalise, useUpdateAnalise, useAprovarAnalise,
+  useCreateAnalise, useUpdateAnalise, useAprovarAnalise, useDevolverAnalise,
   useAddCor, useDeleteCor,
   useCreateSolicitacao, useUpdateSolicitacao, useAvaliarSolicitacao,
   uploadEmbalagemFile, getSlaStatus,
   AVALIACAO_ITEMS,
-  type AnaliseEmbalagem, type SolicitacaoAmostra, type AvaliacaoItem,
+  type AnaliseEmbalagem as AnaliseEmbalagemType, type SolicitacaoAmostra, type AvaliacaoItem,
 } from "@/hooks/useAnaliseEmbalagem";
+import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
   pendente: { label: "Pendente", color: "bg-muted text-muted-foreground", icon: Clock },
