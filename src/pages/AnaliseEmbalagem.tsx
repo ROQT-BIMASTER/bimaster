@@ -274,6 +274,9 @@ function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onD
                     </Button>
                   </>
                 )}
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onVincular?.(a)} title="Vincular ao Projeto">
+                  <FolderOpen className="h-3 w-3" />
+                </Button>
               </div>
               <span className="text-[11px] text-muted-foreground">
                 {a.created_at ? new Date(a.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
