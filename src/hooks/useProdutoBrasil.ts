@@ -29,7 +29,6 @@ export interface ProdutoBrasil {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  // New expanded fields
   ncm: string | null;
   ean_unitario: string | null;
   ean_display: string | null;
@@ -52,6 +51,19 @@ export interface ProdutoBrasil {
   itens_display: number | null;
   peso_bruto: number | null;
   peso_liquido: number | null;
+  // Phase 4 - new fields
+  modo_uso: string | null;
+  precaucoes: string | null;
+  ativos: string | null;
+  fragrancia: string | null;
+  tipo_aplicador: string | null;
+  composicao: string | null;
+  // Phase 5 - ANVISA expanded
+  anvisa_data_envio: string | null;
+  anvisa_data_aprovacao: string | null;
+  anvisa_taxa_paga: boolean | null;
+  anvisa_observacoes: string | null;
+  anvisa_pipeline_status: string | null;
 }
 
 export interface ProdutoBrasilCusto {
@@ -100,6 +112,61 @@ export interface ProdutoBrasilChecklist {
   observacao: string | null;
 }
 
+export interface ProdutoTeste {
+  id: string;
+  produto_brasil_id: string;
+  tipo_teste: string;
+  status: string;
+  responsavel_id: string | null;
+  resultado: string | null;
+  fotos: string[];
+  lote: string | null;
+  fornecedor: string | null;
+  data_solicitacao: string | null;
+  data_recebimento: string | null;
+  data_resultado: string | null;
+  observacoes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AprovacaoFisica {
+  id: string;
+  produto_brasil_id: string;
+  cor_conforme: boolean | null;
+  textura_conforme: boolean | null;
+  fragrancia_conforme: boolean | null;
+  rotulagem_conforme: boolean | null;
+  peso_conforme: boolean | null;
+  resultado: string;
+  avaliado_por: string | null;
+  avaliado_em: string | null;
+  observacoes: string | null;
+  fotos: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProdutoRNC {
+  id: string;
+  produto_brasil_id: string;
+  aprovacao_fisica_id: string | null;
+  descricao: string;
+  tipo_nao_conformidade: string;
+  acao_corretiva: string | null;
+  prazo_correcao: string | null;
+  fornecedor_notificado: boolean;
+  fornecedor_nome: string | null;
+  fotos: string[];
+  status: string;
+  resolvida_em: string | null;
+  resolvida_por: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const CHECKLIST_ITEMS = [
   "Conferência de rotulagem",
   "Conferência de composição",
@@ -110,22 +177,92 @@ const CHECKLIST_ITEMS = [
   "Verificação de obrigatoriedade de lote e validade",
 ];
 
+// Phase 4: Packaging checklist items
+const CHECKLIST_EMBALAGEM = [
+  "Faca primária",
+  "Faca display",
+  "Faca cartucho",
+  "Faca tester",
+  "Etiqueta fundo",
+  "Etiqueta bula",
+  "Etiqueta tester",
+  "Medidas display",
+  "Peso embalagem",
+  "Arte aprovada",
+  "Mockup aprovado",
+  "Foto final",
+];
+
+export const ALL_CHECKLIST_ITEMS = [...CHECKLIST_ITEMS, ...CHECKLIST_EMBALAGEM];
+
+// Phase 1: Expanded 12-stage pipeline
 export const PRODUCT_STATUS_LABELS: Record<string, string> = {
-  produto_importado: "Produto Importado da China",
-  aguardando_precadastro: "Aguardando Pré-cadastro Brasil",
+  ideia: "Ideia / Conceito",
+  projeto_vinculado: "Projeto Vinculado",
+  precadastro: "Pré-cadastro",
+  desenvolvimento: "Desenvolvimento",
+  testes: "Testes / Amostras",
+  embalagem: "Embalagem",
+  regulatorio: "Regulatório",
+  cadastro_final: "Cadastro Final",
+  aprovacao: "Aprovação Física",
+  producao: "Produção / Pedido",
+  lancamento: "Lançamento",
+  // Legacy statuses (mapped for backwards compatibility)
+  produto_importado: "Produto Importado",
+  aguardando_precadastro: "Aguardando Pré-cadastro",
   precadastro_em_andamento: "Pré-cadastro em Andamento",
   aguardando_regulatorio: "Aguardando Regulatório",
   aprovado_cadastro: "Aprovado para Cadastro",
-  produto_ativo: "Produto Ativo no Sistema",
+  produto_ativo: "Produto Ativo",
 };
 
 export const PRODUCT_STATUS_COLORS: Record<string, string> = {
+  ideia: "secondary",
+  projeto_vinculado: "secondary",
+  precadastro: "default",
+  desenvolvimento: "default",
+  testes: "warning",
+  embalagem: "warning",
+  regulatorio: "warning",
+  cadastro_final: "default",
+  aprovacao: "warning",
+  producao: "success",
+  lancamento: "success",
+  // Legacy
   produto_importado: "secondary",
   aguardando_precadastro: "warning",
   precadastro_em_andamento: "default",
   aguardando_regulatorio: "warning",
   aprovado_cadastro: "success",
   produto_ativo: "success",
+};
+
+// Phase 5: ANVISA pipeline statuses
+export const ANVISA_PIPELINE_LABELS: Record<string, string> = {
+  analise_regulatoria: "Análise Regulatória",
+  dossie_em_elaboracao: "Dossiê em Elaboração",
+  enviado_anvisa: "Enviado ANVISA",
+  em_aprovacao: "Em Aprovação",
+  aprovado: "Aprovado",
+};
+
+// Test types for Phase 3
+export const TIPO_TESTE_LABELS: Record<string, string> = {
+  cor: "Teste de Cor",
+  fragrancia: "Teste de Fragrância",
+  textura: "Teste de Textura",
+  aplicador: "Teste de Aplicador",
+  estabilidade: "Teste de Estabilidade",
+};
+
+export const TESTE_STATUS_LABELS: Record<string, string> = {
+  amostra_solicitada: "Amostra Solicitada",
+  amostra_recebida: "Amostra Recebida",
+  em_teste: "Em Teste",
+  aprovada: "Aprovada",
+  reprovada: "Reprovada",
+  ajuste_solicitado: "Ajuste Solicitado",
 };
 
 // Fetch single produto brasil by ID
@@ -179,7 +316,59 @@ export function useProdutoBrasilChecklist(produtoBrasilId: string | undefined) {
   });
 }
 
-// Create produto brasil with checklist items
+// Phase 3: Fetch tests for a produto
+export function useProdutoTestes(produtoBrasilId: string | undefined) {
+  return useQuery({
+    queryKey: ["produto-testes", produtoBrasilId],
+    enabled: !!produtoBrasilId,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("produto_testes" as any)
+        .select("*")
+        .eq("produto_brasil_id", produtoBrasilId!)
+        .order("created_at", { ascending: false }) as any);
+      if (error) throw error;
+      return (data || []) as ProdutoTeste[];
+    },
+  });
+}
+
+// Phase 6: Fetch physical approval
+export function useAprovacaoFisica(produtoBrasilId: string | undefined) {
+  return useQuery({
+    queryKey: ["aprovacao-fisica", produtoBrasilId],
+    enabled: !!produtoBrasilId,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("produto_aprovacoes_fisicas" as any)
+        .select("*")
+        .eq("produto_brasil_id", produtoBrasilId!)
+        .order("created_at", { ascending: false })
+        .limit(1) as any);
+      if (error) throw error;
+      return (data?.[0] || null) as AprovacaoFisica | null;
+    },
+  });
+}
+
+// Phase 6: Fetch RNCs
+export function useProdutoRNCs(produtoBrasilId: string | undefined) {
+  return useQuery({
+    queryKey: ["produto-rnc", produtoBrasilId],
+    enabled: !!produtoBrasilId,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("produto_rnc" as any)
+        .select("*")
+        .eq("produto_brasil_id", produtoBrasilId!)
+        .order("created_at", { ascending: false }) as any);
+      if (error) throw error;
+      return (data || []) as ProdutoRNC[];
+    },
+  });
+}
+
+// Create produto brasil with checklist items (expanded with packaging items)
 export function useCreateProdutoBrasil() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -189,27 +378,31 @@ export function useCreateProdutoBrasil() {
       submissao_china_id?: string;
       vinculo_id?: string;
       projeto_id?: string;
-      china_nome: string | null;
-      china_codigo: string;
+      china_nome?: string | null;
+      china_codigo?: string;
       china_ean?: string;
       china_categoria?: string;
       china_descricao?: string;
       responsavel_precadastro_id?: string;
+      nome_brasil?: string;
+      marca?: string;
+      linha?: string;
+      categoria_brasil?: string;
+      status?: string;
     }) => {
-      // Create produto brasil
       const { data: produto, error } = await (supabase
         .from("produtos_brasil" as any)
         .insert({
           ...params,
           created_by: user?.id || null,
-          status: "aguardando_precadastro",
+          status: params.status || "ideia",
         })
         .select()
         .single() as any);
       if (error) throw error;
 
-      // Populate checklist with standard items
-      const checklistInserts = CHECKLIST_ITEMS.map((item) => ({
+      // Populate checklist with standard + packaging items
+      const checklistInserts = ALL_CHECKLIST_ITEMS.map((item) => ({
         produto_brasil_id: produto.id,
         item,
         concluido: false,
@@ -268,6 +461,85 @@ export function useToggleChecklistItem() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["produto-brasil-checklist", vars.produtoBrasilId] });
+    },
+  });
+}
+
+// Phase 3: CRUD Testes
+export function useCreateTeste() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: { produto_brasil_id: string; tipo_teste: string; responsavel_id?: string; lote?: string; fornecedor?: string; observacoes?: string }) => {
+      const { error } = await (supabase
+        .from("produto_testes" as any)
+        .insert({ ...params, created_by: user?.id }) as any);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["produto-testes", vars.produto_brasil_id] });
+      toast.success("Teste criado");
+    },
+  });
+}
+
+export function useUpdateTeste() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, produtoBrasilId, ...updates }: { id: string; produtoBrasilId: string } & Partial<ProdutoTeste>) => {
+      const { error } = await (supabase
+        .from("produto_testes" as any)
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id) as any);
+      if (error) throw error;
+      return produtoBrasilId;
+    },
+    onSuccess: (produtoBrasilId) => {
+      queryClient.invalidateQueries({ queryKey: ["produto-testes", produtoBrasilId] });
+      toast.success("Teste atualizado");
+    },
+  });
+}
+
+// Phase 6: CRUD Aprovação Física
+export function useCreateAprovacaoFisica() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: Partial<AprovacaoFisica> & { produto_brasil_id: string }) => {
+      const { data, error } = await (supabase
+        .from("produto_aprovacoes_fisicas" as any)
+        .insert({ ...params, avaliado_por: user?.id, avaliado_em: new Date().toISOString() })
+        .select()
+        .single() as any);
+      if (error) throw error;
+      return data as AprovacaoFisica;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["aprovacao-fisica", vars.produto_brasil_id] });
+      toast.success("Aprovação registrada");
+    },
+  });
+}
+
+// Phase 6: CRUD RNC
+export function useCreateRNC() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: { produto_brasil_id: string; descricao: string; tipo_nao_conformidade: string; aprovacao_fisica_id?: string; fornecedor_nome?: string; acao_corretiva?: string; prazo_correcao?: string }) => {
+      const { error } = await (supabase
+        .from("produto_rnc" as any)
+        .insert({ ...params, created_by: user?.id }) as any);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["produto-rnc", vars.produto_brasil_id] });
+      toast.success("RNC registrada");
     },
   });
 }
@@ -332,7 +604,6 @@ export function useImportSkusFromChina() {
 
   return useMutation({
     mutationFn: async ({ produtoBrasilId, submissaoId }: { produtoBrasilId: string; submissaoId: string }) => {
-      // Check existing SKUs
       const { data: existing } = await (supabase
         .from("produto_brasil_skus" as any)
         .select("id")
@@ -344,7 +615,6 @@ export function useImportSkusFromChina() {
         return;
       }
 
-      // Get china cores
       const { data: cores, error } = await (supabase
         .from("china_produto_cores" as any)
         .select("*")

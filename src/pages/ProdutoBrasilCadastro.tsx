@@ -9,6 +9,10 @@ import { TabIdentificacao } from "@/components/produto-brasil/tabs/TabIdentifica
 import { TabClassificacao } from "@/components/produto-brasil/tabs/TabClassificacao";
 import { TabRegulatorio } from "@/components/produto-brasil/tabs/TabRegulatorio";
 import { TabDatasProcesso } from "@/components/produto-brasil/tabs/TabDatasProcesso";
+import { TabTestes } from "@/components/produto-brasil/tabs/TabTestes";
+import { TabFormulacao } from "@/components/produto-brasil/tabs/TabFormulacao";
+import { TabAnvisaPipeline } from "@/components/produto-brasil/tabs/TabAnvisaPipeline";
+import { TabAprovacaoFisica } from "@/components/produto-brasil/tabs/TabAprovacaoFisica";
 import { SkuTable } from "@/components/produto-brasil/SkuTable";
 import { ImagemTimeline } from "@/components/produto-brasil/ImagemTimeline";
 import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
@@ -46,10 +50,10 @@ export default function ProdutoBrasilCadastro() {
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-foreground">
-            Pré-cadastro Brasil — {produto.nome_brasil || produto.china_nome || produto.china_codigo}
+            {produto.nome_brasil || produto.china_nome || produto.china_codigo || "Novo Produto"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Adapte os dados do produto importado para o mercado brasileiro
+            Ciclo de vida completo do produto — da ideia ao lançamento
           </p>
         </div>
       </div>
@@ -57,33 +61,53 @@ export default function ProdutoBrasilCadastro() {
       {/* Project linking banner */}
       {!produto.projeto_id && <ProjetoVinculoBanner produto={produto} />}
 
-      {/* Status Pipeline */}
+      {/* Status Pipeline - 12 stages */}
       <StatusPipeline currentStatus={produto.status} />
 
       {/* Main Tabbed Content */}
       <Tabs defaultValue="identificacao" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
-          <TabsTrigger value="identificacao" className="text-xs">Identificação</TabsTrigger>
-          <TabsTrigger value="classificacao" className="text-xs">Classificação</TabsTrigger>
-          <TabsTrigger value="regulatorio" className="text-xs">Regulatório</TabsTrigger>
-          <TabsTrigger value="datas" className="text-xs">Datas</TabsTrigger>
-          <TabsTrigger value="grade" className="text-xs">Grade / SKUs</TabsTrigger>
-          <TabsTrigger value="custos" className="text-xs">Custos</TabsTrigger>
-          <TabsTrigger value="imagens" className="text-xs">Imagens</TabsTrigger>
-          <TabsTrigger value="china" className="text-xs">Dados China</TabsTrigger>
-          <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
+          <TabsTrigger value="identificacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Identificação</TabsTrigger>
+          <TabsTrigger value="formulacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Formulação</TabsTrigger>
+          <TabsTrigger value="classificacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Classificação</TabsTrigger>
+          <TabsTrigger value="testes" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Testes</TabsTrigger>
+          <TabsTrigger value="checklist" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Checklist</TabsTrigger>
+          <TabsTrigger value="anvisa" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">ANVISA</TabsTrigger>
+          <TabsTrigger value="aprovacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Aprovação</TabsTrigger>
+          <TabsTrigger value="datas" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Datas</TabsTrigger>
+          <TabsTrigger value="grade" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Grade/SKUs</TabsTrigger>
+          <TabsTrigger value="custos" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Custos</TabsTrigger>
+          <TabsTrigger value="imagens" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Imagens</TabsTrigger>
+          <TabsTrigger value="china" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Dados China</TabsTrigger>
+          <TabsTrigger value="historico" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="identificacao" className="mt-4">
           <TabIdentificacao produto={produto} />
         </TabsContent>
 
+        <TabsContent value="formulacao" className="mt-4">
+          <TabFormulacao produto={produto} />
+        </TabsContent>
+
         <TabsContent value="classificacao" className="mt-4">
           <TabClassificacao produto={produto} />
         </TabsContent>
 
-        <TabsContent value="regulatorio" className="mt-4">
+        <TabsContent value="testes" className="mt-4">
+          <TabTestes produtoBrasilId={produto.id} />
+        </TabsContent>
+
+        <TabsContent value="checklist" className="mt-4">
           <ChecklistRegulatorio produto={produto} />
+        </TabsContent>
+
+        <TabsContent value="anvisa" className="mt-4">
+          <TabAnvisaPipeline produto={produto} />
+        </TabsContent>
+
+        <TabsContent value="aprovacao" className="mt-4">
+          <TabAprovacaoFisica produtoBrasilId={produto.id} />
         </TabsContent>
 
         <TabsContent value="datas" className="mt-4">

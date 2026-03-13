@@ -111,14 +111,21 @@ export function useProjetos() {
   });
 
   const createProjeto = useMutation({
-    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey }) => {
+    mutationFn: async (projeto: { nome: string; descricao?: string; cor?: string; icone?: string; template?: TemplateKey; marca?: string; categoriaLinha?: string; origemProjeto?: string }) => {
       if (!user) throw new Error("Não autenticado");
       
-      const { template, ...projetoData } = projeto;
+      const { template, marca, categoriaLinha, origemProjeto, ...projetoData } = projeto;
       const tipo = template || "generico";
       const { data, error } = await supabase
         .from("projetos")
-        .insert({ ...projetoData, criador_id: user.id, tipo })
+        .insert({
+          ...projetoData,
+          criador_id: user.id,
+          tipo,
+          ...(marca ? { marca } : {}),
+          ...(categoriaLinha ? { categoria_linha: categoriaLinha } : {}),
+          ...(origemProjeto ? { origem_projeto: origemProjeto } : {}),
+        } as any)
         .select()
         .single();
       if (error) throw error;
