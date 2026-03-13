@@ -214,8 +214,8 @@ const RelatorioSeguranca = () => {
          │               │                 │ Sim
          │               │                 ▼
          │               │        ┌──────────────────┐
-         │               │        │  Validar TOTP /  │
-         │               │        │  WebAuthn         │
+          │               │        │  Validar TOTP /  │
+          │               │        │  código MFA       │
          │               │        └────────┬─────────┘
          │               │                 │ OK
          ▼               ▼                 ▼
