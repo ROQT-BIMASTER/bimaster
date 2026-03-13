@@ -192,7 +192,7 @@ export default function AnaliseEmbalagemPage() {
 }
 
 // ── Analises List ──
-function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onDevolver }: any) {
+function AnalisesList({ analises, loading, onSelect, onApprove, onSolicitar, onDevolver, onVincular }: any) {
   if (loading) return <div className="flex justify-center p-8"><Clock className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!analises.length) return <Card><CardContent className="p-8 text-center text-muted-foreground">Nenhuma análise encontrada.</CardContent></Card>;
 
