@@ -164,6 +164,22 @@ export default function AnaliseEmbalagemPage() {
           <AvaliacaoDialog open={showAvaliacaoDialog} onClose={() => setShowAvaliacaoDialog(false)} solicitacao={selectedSolicitacao} />
         </>
       )}
+      {selectedAnalise && (
+        <DevolucaoEtapaDialog
+          open={showDevolucaoDialog}
+          onOpenChange={setShowDevolucaoDialog}
+          entityType="analise_embalagem"
+          entityId={selectedAnalise.id}
+          etapasAnteriores={[{ key: "pendente", label: "Pendente (Reanálise)" }]}
+          onConfirm={async (result: DevolucaoResult) => {
+            await devolverAnalise.mutateAsync({
+              id: selectedAnalise.id,
+              justificativa: result.justificativa,
+              userInfo: result.userInfo,
+            });
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

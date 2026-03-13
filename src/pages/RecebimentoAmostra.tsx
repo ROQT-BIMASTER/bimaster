@@ -267,8 +267,10 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
   const updateAmostra = useUpdateAmostra();
   const aprovar = useAprovarAmostra();
   const reprovar = useReprovarAmostra();
+  const devolver = useDevolverAmostra();
   const { data: fotos = [], refetch: refetchFotos } = useAmostraFotos(amostra.id);
   const qc = useQueryClient();
+  const [showDevolucao, setShowDevolucao] = useState(false);
 
   const [dataRecebimento, setDataRecebimento] = useState(amostra.data_recebimento?.split("T")[0] || "");
   const [qtdUnidades, setQtdUnidades] = useState(amostra.qtd_unidades?.toString() || "");
