@@ -19,6 +19,11 @@ const MODULE_ROUTES = [
   { code: "comercial", path: "/dashboard/comercial" },
   { code: "marketing", path: "/dashboard/marketing" },
   { code: "precos", path: "/dashboard/precos" },
+  { code: "china", path: "/dashboard/fabrica-china" },
+  { code: "eventos", path: "/dashboard/eventos" },
+  { code: "departamentos", path: "/dashboard/departamentos" },
+  { code: "projetos", path: "/dashboard/projetos" },
+  { code: "reunioes", path: "/dashboard/reunioes" },
 ] as const;
 
 // Fallback screen-based routes for users without module permissions
