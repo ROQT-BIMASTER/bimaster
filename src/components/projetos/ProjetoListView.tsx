@@ -198,12 +198,13 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
           <div className="text-center">Prior.</div>
         </div>
 
-        {secoes.map(secao => (
+        {secoes.map((secao, index) => (
           <ProjetoSecao
             key={secao.id}
             nome={secao.nome}
             secaoId={secao.id}
             projetoId={projetoId}
+            secaoIndex={index}
             tarefas={filteredTarefasPorSecao[secao.id] || []}
             ghosts={isFiltering ? [] : ghostsPorSecao(secao.id)}
             temBriefing={(secao as any).tem_briefing || false}
