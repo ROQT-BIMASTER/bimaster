@@ -86,10 +86,264 @@ const RelatorioDesenvolvimento = () => {
           </table>
         </section>
 
-        {/* 2. PIPELINE DE 12 ESTÁGIOS */}
+        {/* 2. PROJETOS COMO MOTOR DO DESENVOLVIMENTO */}
         <section className="page-break">
           <h2 className="text-xl font-bold text-foreground border-b pb-2">
-            2. Pipeline de 12 Estágios — Visão Completa
+            2. Projetos como Motor do Desenvolvimento
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              O módulo de <strong>Projetos</strong> é o <strong>centro de comando</strong> de todo o ciclo de vida do produto. 
+              Cada produto nasce dentro de um projeto do tipo <em>"Desenvolvimento de Produto"</em>, que organiza automaticamente 
+              as equipes, tarefas e entregas de ponta a ponta.
+            </p>
+
+            <h3 className="font-bold">2.1 Criação do Projeto</h3>
+            <p className="text-muted-foreground">
+              O wizard de criação gera automaticamente seções departamentais com base no template selecionado:
+            </p>
+            <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
+  Template: "Desenvolvimento de Produto"
+  ┌────────────────────────────────────────────────────────────────┐
+  │  Seções geradas automaticamente:                              │
+  │                                                                │
+  │  1. Criação / Identidade          (Design)                    │
+  │  2. Desenvolvimento de Produtos   (P&D)                       │
+  │  3. Desenvolvimento de Embalagem  (Design / Engenharia)       │
+  │  4. Informações dos Produtos      (Cadastro / Briefing)       │
+  │  5. Assuntos Regulatórios         (Regulatório)               │
+  │  6. Criação / Artes               (Design / Marketing)        │
+  └────────────────────────────────────────────────────────────────┘`}</pre>
+
+            <h3 className="font-bold mt-4">2.2 Campos Obrigatórios do Projeto</h3>
+            <table className="w-full border-collapse mt-2">
+              <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Campo</th><th className="border p-2 text-left text-foreground">Descrição</th></tr></thead>
+              <tbody className="text-muted-foreground">
+                <tr><td className="border p-2 font-medium text-foreground">Marca</td><td className="border p-2">Ruby Rose, HB, Maiana ou Outra</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Categoria / Linha</td><td className="border p-2">Maquiagem, Skincare, Corpo, etc.</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Origem</td><td className="border p-2">China (Importação), Brasil (Nacional), Collab, Recompra</td></tr>
+              </tbody>
+            </table>
+
+            <h3 className="font-bold mt-4">2.3 Vinculação de Membros por Papel</h3>
+            <table className="w-full border-collapse mt-2">
+              <thead><tr className="bg-muted"><th className="border p-2 text-left text-foreground">Papel</th><th className="border p-2 text-left text-foreground">Responsabilidade</th><th className="border p-2 text-left text-foreground">Seções Visíveis</th></tr></thead>
+              <tbody className="text-muted-foreground">
+                <tr><td className="border p-2 font-medium text-foreground">Coordenador</td><td className="border p-2">Visão global, gerencia prazos e prioridades</td><td className="border p-2">Todas</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Gestor de Produto</td><td className="border p-2">Define escopo, vincula produtos, aprova entregas</td><td className="border p-2">Todas</td></tr>
+                <tr><td className="border p-2 font-medium text-foreground">Membro</td><td className="border p-2">Executa tarefas atribuídas</td><td className="border p-2">Seções atribuídas</td></tr>
+              </tbody>
+            </table>
+
+            <h3 className="font-bold mt-4">2.4 Hierarquia do Projeto</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                   HIERARQUIA DO PROJETO                                  │
+  │                                                                           │
+  │  📁 PROJETO (Desenvolvimento de Produto)                                 │
+  │   │                                                                       │
+  │   ├── 📂 SEÇÃO: Criação / Identidade                                     │
+  │   │    ├── 📋 Tarefa PR-001: Definir identidade visual                   │
+  │   │    │    ├── ☐ Subtarefa: Pesquisa de referências                     │
+  │   │    │    └── ☐ Subtarefa: Criar mood board                            │
+  │   │    └── 📋 Tarefa PR-002: Logo e paleta de cores                      │
+  │   │         └── 🔗 Produto vinculado: Batom XYZ                          │
+  │   │                                                                       │
+  │   ├── 📂 SEÇÃO: Desenvolvimento de Embalagem                             │
+  │   │    └── 📋 Tarefa PR-003: Definir faca primária                       │
+  │   │         └── 🔗 Produto vinculado: Batom XYZ                          │
+  │   │                                                                       │
+  │   └── 📂 SEÇÃO: Assuntos Regulatórios                                    │
+  │        └── 📋 Tarefa PR-004: Montar dossiê ANVISA                        │
+  │             └── 🔗 Produto vinculado: Batom XYZ                          │
+  └───────────────────────────────────────────────────────────────────────────┘`}</pre>
+          </div>
+        </section>
+
+        {/* 3. CICLO COMPLETO: COMEÇO, MEIO E FIM */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            3. Ciclo Completo — Começo, Meio e Fim
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              O desenvolvimento de um produto segue <strong>3 fases distintas</strong>, cada uma com entregas, responsáveis e 
+              marcos específicos. O projeto do tipo "Desenvolvimento de Produto" orquestra todo o processo.
+            </p>
+
+            <h3 className="font-bold text-emerald-600">🟢 COMEÇO — Fase de Concepção</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 1: CONCEPÇÃO                                │
+  │                                                                          │
+  │  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐                │
+  │  │  Criar      │    │  Template    │    │  Seções      │                │
+  │  │  Projeto    │───▶│  gera seções │───▶│  automáticas │                │
+  │  │  Dev.Produto│    │  por depto   │    │  + membros   │                │
+  │  └─────────────┘    └──────────────┘    └──────┬───────┘                │
+  │                                                │                        │
+  │       ┌────────────────────────────────────────┤                        │
+  │       │                                        │                        │
+  │       ▼                                        ▼                        │
+  │  ┌──────────────┐                    ┌──────────────────┐               │
+  │  │ 🇨🇳 Vincular │                    │  📝 Briefing IA  │               │
+  │  │ Produto China│                    │  gerado por      │               │
+  │  │ (submissão)  │                    │  tarefa          │               │
+  │  └──────┬───────┘                    └──────────────────┘               │
+  │         │                                                               │
+  │         ▼                                                               │
+  │  ┌──────────────────┐                                                   │
+  │  │ 🇧🇷 Cria Produto  │                                                   │
+  │  │ Brasil automát.  │                                                   │
+  │  │ (herda dados)    │                                                   │
+  │  └──────────────────┘                                                   │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Projeto criado via Wizard com marca, categoria e origem</li>
+              <li>Template gera automaticamente 6 seções departamentais</li>
+              <li>Submissão China vinculada → Produto Brasil criado automaticamente</li>
+              <li>Briefing IA gerado por tarefa com dados estruturados da planilha</li>
+            </ul>
+
+            <h3 className="font-bold text-amber-600 mt-6">🟡 MEIO — Fase de Execução</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 2: EXECUÇÃO                                 │
+  │                                                                          │
+  │  ┌────────────────────────────────────────────────────────────┐          │
+  │  │               TAREFAS DISTRIBUÍDAS POR SEÇÃO               │          │
+  │  │                                                            │          │
+  │  │  Lista ──── Kanban ──── Gantt ──── Calendário              │          │
+  │  │  (visões simultâneas dos mesmos dados)                     │          │
+  │  └────────────────────────────────────────────────────────────┘          │
+  │                           │                                              │
+  │            ┌──────────────┼───────────────┐                              │
+  │            │              │               │                              │
+  │            ▼              ▼               ▼                              │
+  │     ┌───────────┐  ┌───────────┐  ┌─────────────┐                       │
+  │     │ 🧪 Testes │  │ 📦 Embal. │  │ 🛡️ ANVISA  │                       │
+  │     │(paralelo) │  │(paralelo) │  │ (paralelo)  │                       │
+  │     └─────┬─────┘  └─────┬─────┘  └──────┬──────┘                       │
+  │           │              │               │                               │
+  │           └──────────────┼───────────────┘                               │
+  │                          ▼                                               │
+  │                   ┌─────────────┐                                        │
+  │                   │  Validação  │                                        │
+  │                   │ Checklist + │                                        │
+  │                   │ Auditoria IA│                                        │
+  │                   └─────────────┘                                        │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Tarefas distribuídas por seções com 4 visões: Lista, Kanban, Gantt e Calendário</li>
+              <li>Cada tarefa pode ter produto vinculado com StatusPipeline visual</li>
+              <li>Focus Mode permite ver painel do produto lado a lado com a tarefa</li>
+              <li>Testes, Embalagem e ANVISA executados em paralelo por equipes diferentes</li>
+              <li>Fluxo: tarefa concluída → Enviar para Validação → Checklist + Auditoria IA</li>
+            </ul>
+
+            <h3 className="font-bold text-blue-600 mt-6">🔵 FIM — Fase de Conclusão</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                       FASE 3: CONCLUSÃO                                │
+  │                                                                          │
+  │  ┌───────────────┐    ┌───────────────┐    ┌──────────────┐             │
+  │  │ 📋 Cadastro   │    │ ✅ Aprovação  │    │   RNC?       │             │
+  │  │ Final         │───▶│ Física        │───▶│              │             │
+  │  │ (7 validações)│    │ (5 critérios) │    │  ┌───┐ ┌───┐ │             │
+  │  └───────────────┘    └───────────────┘    │  │Sim│ │Não│ │             │
+  │                                            │  └─┬─┘ └─┬─┘ │             │
+  │                                            └────┼─────┼───┘             │
+  │                                                 │     │                  │
+  │                                                 ▼     ▼                  │
+  │                                          ┌──────────┐ ┌──────────┐      │
+  │                                          │ Ação     │ │ Produto  │      │
+  │                                          │ Corretiva│ │ avança   │      │
+  │                                          │ (RNC)    │ │ pipeline │      │
+  │                                          └──────────┘ └────┬─────┘      │
+  │                                                            │             │
+  │                                                            ▼             │
+  │                                                     ┌────────────┐      │
+  │                                                     │ 🏭 Produção│      │
+  │                                                     │ 🚀 Lanç.  │      │
+  │                                                     └────────────┘      │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+            <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
+              <li>Cadastro Final com 7 validações bloqueantes (ANVISA, NCM, EAN, etc.)</li>
+              <li>Aprovação física por 5 critérios: cor, textura, fragrância, rótulo, peso</li>
+              <li>Se não conforme → gera RNC com ação corretiva obrigatória</li>
+              <li>Tarefa validada → produto avança no pipeline automaticamente</li>
+              <li>Projeto finalizado quando todos os produtos atingem status "Lançamento"</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* 4. ESTRUTURA DE TAREFAS E GOVERNANÇA */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            4. Estrutura de Tarefas e Governança
+          </h2>
+          <div className="mt-4 text-sm text-foreground space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              As tarefas são o elo entre o projeto e os produtos. Cada tarefa segue um fluxo de validação 
+              que depende do tipo de projeto em que está inserida.
+            </p>
+
+            <h3 className="font-bold">4.1 Código Automático</h3>
+            <p className="text-muted-foreground">
+              Cada tarefa criada recebe um código sequencial automático (ex: <code>PR-001</code>, <code>PR-002</code>) 
+              que garante rastreabilidade e referência rápida em reuniões e relatórios.
+            </p>
+
+            <h3 className="font-bold mt-4">4.2 Fluxo de Validação — Projeto de Desenvolvimento</h3>
+            <pre className="bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │             FLUXO DE VALIDAÇÃO (Desenvolvimento de Produto)            │
+  │                                                                          │
+  │  ┌───────────┐    ┌──────────────┐    ┌──────────────┐                  │
+  │  │  Tarefa   │    │   Enviar p/  │    │  Checklist   │                  │
+  │  │ Concluída │───▶│  Validação   │───▶│  Obrigatório │                  │
+  │  │           │    │              │    │  (itens)     │                  │
+  │  └───────────┘    └──────────────┘    └──────┬───────┘                  │
+  │                                              │                          │
+  │                                              ▼                          │
+  │                                     ┌──────────────┐                    │
+  │                                     │ 🤖 Auditoria │                    │
+  │                                     │     IA       │                    │
+  │                                     │ (consistência│                    │
+  │                                     │  tarefa ↔    │                    │
+  │                                     │  produto)    │                    │
+  │                                     └──────┬───────┘                    │
+  │                                            │                            │
+  │                                 ┌──────────┴──────────┐                 │
+  │                                 │                     │                 │
+  │                                 ▼                     ▼                 │
+  │                          ┌────────────┐        ┌────────────┐           │
+  │                          │ ✅ Aprovada │        │ ❌ Rejeitada│           │
+  │                          │ (produto   │        │ (volta ao  │           │
+  │                          │  avança)   │        │  executor) │           │
+  │                          └────────────┘        └────────────┘           │
+  └──────────────────────────────────────────────────────────────────────────┘`}</pre>
+
+            <h3 className="font-bold mt-4">4.3 Fluxo de Validação — Projeto Genérico</h3>
+            <pre className="bg-muted p-3 rounded text-xs font-mono mt-2 text-foreground">{`
+  ┌───────────┐    ┌──────────────────┐    ┌──────────────┐
+  │  Tarefa   │    │  Enviar ao       │    │  Supervisor  │
+  │ Concluída │───▶│  Superior        │───▶│  Aprova ou   │
+  │           │    │  (reatribui)     │    │  Devolve     │
+  └───────────┘    └──────────────────┘    └──────────────┘`}</pre>
+
+            <div className="bg-muted/50 p-3 rounded border-l-4 border-primary mt-4">
+              <strong>Diferença-chave:</strong> Em projetos de <em>Desenvolvimento de Produto</em>, a validação exige 
+              produto vinculado + checklist + auditoria IA. Em projetos <em>Genéricos</em>, a validação é hierárquica 
+              (envia ao supervisor para aprovação).
+            </div>
+          </div>
+        </section>
+
+        {/* 5. PIPELINE DE 12 ESTÁGIOS */}
+        <section className="page-break">
+          <h2 className="text-xl font-bold text-foreground border-b pb-2">
+            5. Pipeline de 12 Estágios — Visão Completa
           </h2>
           <pre className="mt-4 bg-muted p-4 rounded-lg text-xs leading-relaxed overflow-x-auto font-mono text-foreground">{`
 ┌─────────────────────────────────────────────────────────────────────────────────┐
