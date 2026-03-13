@@ -413,7 +413,7 @@ const RelatorioDesenvolvimento = () => {
             <div>
               <h3 className="font-bold">6.1 Fontes de Demanda</h3>
               <ul className="list-disc ml-6 mt-2 space-y-1 text-muted-foreground">
-                <li><strong>Viagem à China</strong> — Produtos identificados em feiras/fábricas, registrados via submissão China</li>
+                <li><strong>Viagem à China</strong> — Equipe Brasil visita feiras/fábricas, identifica oportunidades e registra demandas via submissão</li>
                 <li><strong>Pesquisa de Tendência</strong> — Análise de mercado, benchmarking de concorrentes</li>
                 <li><strong>Diretoria / Comercial</strong> — Demandas estratégicas de portfólio</li>
                 <li><strong>Desenvolvimento Interno</strong> — Formulações novas da fábrica própria</li>
