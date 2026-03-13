@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
