@@ -43,8 +43,11 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 export default function RecebimentoAmostra() {
+  const navigate = useNavigate();
   const [selectedSubmissao, setSelectedSubmissao] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: allAmostras = [], isLoading } = useAllAmostras();
 
   // List submissões with amostras
@@ -61,10 +64,26 @@ export default function RecebimentoAmostra() {
     },
   });
 
-  const filtered = submissoes.filter(s =>
-    !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) ||
-    s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+  const filtered = filterByDateRange(
+    submissoes.filter(s =>
+      !search || s.produto_nome?.toLowerCase().includes(search.toLowerCase()) ||
+      s.produto_codigo?.toLowerCase().includes(search.toLowerCase())
+    ),
+    "created_at", dateFrom, dateTo
   );
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered.map(sub => {
+      const lastAmostra = allAmostras.find((a: any) => a.submissao_id === sub.id);
+      return {
+        Produto: sub.produto_nome,
+        Código: sub.produto_codigo,
+        Status: lastAmostra?.status || "sem_amostra",
+        Rodada: lastAmostra?.numero_rodada || 0,
+        "Criado em": sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR") : "",
+      };
+    }), { filename: "amostras", sheetName: "Amostras", includeTimestamp: true });
+  };
 
   // KPIs
   const aguardando = allAmostras.filter(a => a.status === "aguardando_envio").length;
