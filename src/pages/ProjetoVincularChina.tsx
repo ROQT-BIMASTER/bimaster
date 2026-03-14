@@ -44,7 +44,7 @@ const STATUS_FILTERS = [
   { value: "enviado", label: "Enviado" },
   { value: "em_revisao", label: "Em Revisão" },
   { value: "aprovado", label: "Aprovado" },
-  { value: "arte_enviada", label: "Arte Enviada" },
+  { value: "arte_enviada", label: "Docs Enviados" },
   { value: "rejeitado", label: "Rejeitado" },
 ];
 
