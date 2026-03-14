@@ -418,100 +418,91 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Focus Mode + Documents by Category */}
-        <div className="flex items-center justify-between">
-          <BilingualLabel pt="Documentos" cn="文件" size="md" />
-          <ChinaChecklistFocusMode
-            submissaoId={id!}
-            documentos={documentos as any}
-            onUpload={handleDocUpload}
-            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
-            onRemoveFile={async (fileId) => {
-              await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
-              queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-              toast.success("Documento removido 文件已删除");
-            }}
-            onViewDoc={handleViewDoc}
-          />
-        </div>
-        {DOCUMENT_CATEGORIES.map((cat) => {
-          const catDocTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo));
-          return (
-            <Card key={cat.key} className="p-6 space-y-4">
-              <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {catDocTypes.map((config) => {
-                  const typeDocs = documentos.filter((d: any) => d.tipo_documento === config.tipo);
-                  const worstStatus = typeDocs.length === 0 ? "none"
-                    : typeDocs.some((d: any) => d.status === "rejeitado") ? "rejeitado"
-                    : typeDocs.some((d: any) => d.status === "pendente") ? "pendente"
-                    : typeDocs.every((d: any) => d.status === "aprovado") ? "aprovado"
-                    : "pendente";
+        {/* Documents Summary + Focus Mode */}
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <BilingualLabel pt="Documentos" cn="文件" size="md" />
+            <ChinaChecklistFocusMode
+              submissaoId={id!}
+              documentos={documentos as any}
+              onUpload={handleDocUpload}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
+              onRemoveFile={async (fileId) => {
+                await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
+                queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
+                toast.success("Documento removido 文件已删除");
+              }}
+              onViewDoc={handleViewDoc}
+            />
+          </div>
+
+          {/* Compact summary table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/30 text-muted-foreground text-xs">
+                  <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
+                  <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
+                  <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
+                  <th className="text-center px-4 py-2.5 font-medium">Rascunhos 草稿</th>
+                  <th className="text-center px-4 py-2.5 font-medium">Pendentes 待处理</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {DOCUMENT_CATEGORIES.map((cat) => {
+                  const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
+                  const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
+                  const catFilled = new Set(catDocs.map((d: any) => d.tipo_documento)).size;
+                  const hasRejected = catDocs.some((d: any) => d.status === "rejeitado");
+                  const hasDrafts = catDocs.filter((d: any) => d.status === "rascunho").length;
+                  const hasPending = catDocs.filter((d: any) => d.status === "pendente").length;
+                  const allApproved = catFilled === catTotalTypes && catDocs.length > 0 && catDocs.every((d: any) => d.status === "aprovado");
+
+                  const statusBadge = allApproved
+                    ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                    : hasRejected
+                    ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                    : catFilled === 0
+                    ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
+                    : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+
                   return (
-                    <div key={config.tipo} className="space-y-1">
-                      <ChinaDocumentSlot
-                        config={config}
-                        status={worstStatus as any}
-                        files={typeDocs.map((d: any) => ({ id: d.id, name: d.nome_arquivo || "doc", status: d.status }))}
-                        observacao={typeDocs.find((d: any) => d.observacao)?.observacao}
-                        onUpload={(file) => handleDocUpload(config.tipo, file)}
-                        onRemoveFile={async (fileId) => {
-                          await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
-                          queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
-                          toast.success("Documento removido 文件已删除");
-                        }}
-                      />
-                      {/* Inline approve/reject for Brasil — show for each pending doc */}
-                      {isBrasilUser && typeDocs.filter((d: any) => d.status === "pendente").map((doc: any) => (
-                        <div key={doc.id} className="flex justify-center gap-1">
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{doc.nome_arquivo}</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-success"
-                            onClick={() => updateDocStatus.mutate({ docId: doc.id, status: "aprovado" })}
-                          >
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> ✓
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-destructive"
-                            onClick={() => setObsDialog({ docId: doc.id, obs: "" })}
-                          >
-                            <XCircle className="h-3 w-3 mr-1" /> ✗
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7"
-                            onClick={() => handleViewDoc(doc)}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
+                    <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
+                          <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
                         </div>
-                      ))}
-                      {isBrasilUser && typeDocs.some((d: any) => d.status !== "pendente") && typeDocs.filter((d: any) => d.status !== "pendente").map((doc: any) => (
-                        <div key={doc.id} className="flex justify-center">
-                          <Button size="sm" variant="ghost" className="h-7" onClick={() => handleViewDoc(doc)}>
-                            <Eye className="h-3 w-3 mr-1" /> Ver 查看
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="font-semibold text-foreground">{catFilled}</span>
+                        <span className="text-muted-foreground">/{catTotalTypes}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">{statusBadge}</td>
+                      <td className="px-4 py-3 text-center">
+                        {hasDrafts > 0 ? (
+                          <Badge variant="secondary" className="text-xs">{hasDrafts}</Badge>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {hasPending > 0 ? (
+                          <Badge variant="warning" className="text-xs">{hasPending}</Badge>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                    </tr>
                   );
                 })}
-              </div>
+              </tbody>
+            </table>
+          </div>
 
-              {/* Mandatory warning */}
-              {cat.key === "embalagem" && MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo)) && (
-                <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
-                  ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
-                </div>
-              )}
-            </Card>
-          );
-        })}
+          {/* Mandatory warning */}
+          {MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo)) && (
+            <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-warning">
+              ⚠️ Foto e vídeo da amostra são obrigatórios para aprovação. 照片和视频样品是审批所必需的。
+            </div>
+          )}
+        </Card>
 
         {/* Arte Final + EAN Section */}
         {isBrasilUser && showArteSection && (
