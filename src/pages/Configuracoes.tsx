@@ -38,6 +38,7 @@ import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCatego
 import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
 import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
 import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
+import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
 
 interface Profile {
   id: string;
