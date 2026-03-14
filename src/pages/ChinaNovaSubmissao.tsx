@@ -29,6 +29,7 @@ const STEPS = [
 
 export default function ChinaNovaSubmissao() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
   const [step, setStep] = useState(0);
   const [parsing, setParsing] = useState(false);
