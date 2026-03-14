@@ -34,6 +34,7 @@ import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
 import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
 import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
+import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -510,6 +511,33 @@ export default function ChinaFichaProduto() {
 
         {/* Transferências Oficiais ao Brasil */}
         <TransferenciasOficiaisSection submissaoId={id!} documentos={documentos} isBrasilUser={isBrasilUser} eanCaixaMaster={submissao.ean_caixa_master} />
+
+        {/* Chat China ↔ Brasil */}
+        <ChinaChatPanel
+          submissaoId={id!}
+          produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
+          tipoRemetente={isChinaUser ? "china" : "brasil"}
+          referenciasDisponiveis={[
+            { tipo: "produto", id: id!, label: `${submissao.produto_codigo} — ${submissao.produto_nome}` },
+            ...DOCUMENT_CATEGORIES.flatMap(cat =>
+              cat.tipos
+                .filter(tipo => documentos.some((d: any) => d.tipo_documento === tipo))
+                .map(tipo => {
+                  const dt = CHINA_DOCUMENT_TYPES.find(t => t.tipo === tipo);
+                  return {
+                    tipo: "documento" as const,
+                    id: tipo,
+                    label: dt ? `${dt.labelPt}` : tipo,
+                  };
+                })
+            ),
+            ...DOCUMENT_CATEGORIES.map(cat => ({
+              tipo: "checklist" as const,
+              id: cat.key,
+              label: `${cat.labelPt} ${cat.labelCn}`,
+            })),
+          ]}
+        />
 
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}

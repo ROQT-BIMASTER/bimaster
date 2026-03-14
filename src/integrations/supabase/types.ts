@@ -1280,6 +1280,72 @@ export type Database = {
           },
         ]
       }
+      china_chat_mensagens: {
+        Row: {
+          anexos: Json | null
+          conteudo: string
+          created_at: string
+          id: string
+          lida_por: Json | null
+          mencoes: Json | null
+          ref_id: string | null
+          ref_label: string | null
+          ref_tipo: string | null
+          resposta_a_id: string | null
+          submissao_id: string
+          tipo: string
+          usuario_id: string
+          usuario_nome: string
+        }
+        Insert: {
+          anexos?: Json | null
+          conteudo: string
+          created_at?: string
+          id?: string
+          lida_por?: Json | null
+          mencoes?: Json | null
+          ref_id?: string | null
+          ref_label?: string | null
+          ref_tipo?: string | null
+          resposta_a_id?: string | null
+          submissao_id: string
+          tipo?: string
+          usuario_id: string
+          usuario_nome: string
+        }
+        Update: {
+          anexos?: Json | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          lida_por?: Json | null
+          mencoes?: Json | null
+          ref_id?: string | null
+          ref_label?: string | null
+          ref_tipo?: string | null
+          resposta_a_id?: string | null
+          submissao_id?: string
+          tipo?: string
+          usuario_id?: string
+          usuario_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_chat_mensagens_resposta_a_id_fkey"
+            columns: ["resposta_a_id"]
+            isOneToOne: false
+            referencedRelation: "china_chat_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_chat_mensagens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_checklist_custom_categorias: {
         Row: {
           created_at: string
@@ -1865,6 +1931,7 @@ export type Database = {
           arte_final_enviada_em: string | null
           arte_final_path: string | null
           arte_final_url: string | null
+          chat_status: string | null
           created_at: string
           created_by: string | null
           dados_excel: Json | null
@@ -1896,6 +1963,7 @@ export type Database = {
           arte_final_enviada_em?: string | null
           arte_final_path?: string | null
           arte_final_url?: string | null
+          chat_status?: string | null
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
@@ -1927,6 +1995,7 @@ export type Database = {
           arte_final_enviada_em?: string | null
           arte_final_path?: string | null
           arte_final_url?: string | null
+          chat_status?: string | null
           created_at?: string
           created_by?: string | null
           dados_excel?: Json | null
