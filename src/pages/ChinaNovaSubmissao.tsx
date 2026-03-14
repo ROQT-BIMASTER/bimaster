@@ -15,10 +15,11 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
 
 const STEPS = [
   { labelPt: "Dados do Produto", labelCn: "产品数据", icon: FileSpreadsheet },
@@ -28,6 +29,7 @@ const STEPS = [
 
 export default function ChinaNovaSubmissao() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { submissaoId: editId } = useParams<{ submissaoId: string }>();
   const [step, setStep] = useState(0);
   const [parsing, setParsing] = useState(false);
@@ -909,38 +911,89 @@ export default function ChinaNovaSubmissao() {
           </Card>
         )}
 
-        {/* Step 2: Document Checklist */}
+        {/* Step 2: Document Checklist — Compact Summary */}
         {step === 1 && (
           <Card className="p-6 space-y-6">
-            <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" />
+            <div className="flex items-center justify-between">
+              <BilingualLabel pt="Checklist de Documentos" cn="文件清单" size="lg" />
+              {submissaoId && (
+                <ChinaChecklistFocusMode
+                  submissaoId={submissaoId}
+                  documentos={(existingDocs || []).map((d: any) => ({
+                    id: d.id,
+                    tipo_documento: d.tipo_documento,
+                    nome_arquivo: d.nome_arquivo,
+                    status: d.status,
+                    observacao: d.observacao,
+                    arquivo_url: d.arquivo_url,
+                    arquivo_path: d.arquivo_path,
+                  }))}
+                  onUpload={handleDocUpload}
+                  onRefresh={() => {
+                    queryClient.invalidateQueries({ queryKey: ["china-edit-docs", editId] });
+                  }}
+                  onRemoveFile={async (fileId) => {
+                    await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
+                    queryClient.invalidateQueries({ queryKey: ["china-edit-docs", editId] });
+                    toast.success("Documento removido 文件已删除");
+                  }}
+                  onViewDoc={async (doc: any) => {
+                    if (doc.arquivo_url) window.open(doc.arquivo_url, "_blank");
+                  }}
+                />
+              )}
+            </div>
 
-            {/* Grouped by category */}
-            {DOCUMENT_CATEGORIES.map((cat) => {
-              const catDocs = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo));
-              return (
-                <div key={cat.key} className="space-y-3">
-                  <BilingualLabel pt={cat.labelPt} cn={cat.labelCn} size="md" className="border-b border-border pb-2" />
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {catDocs.map((config) => {
-                      const typeFiles = docs[config.tipo] || [];
-                      const worstStatus = typeFiles.length === 0 ? "none"
-                        : typeFiles.some(f => f.status === "rejeitado") ? "rejeitado"
-                        : typeFiles.some(f => f.status === "pendente") ? "pendente"
-                        : "aprovado";
-                      return (
-                        <ChinaDocumentSlot
-                          key={config.tipo}
-                          config={config}
-                          status={worstStatus as any}
-                          files={typeFiles.map((f, i) => ({ id: `local-${i}`, name: f.fileName, status: f.status }))}
-                          onUpload={isReadOnly ? undefined : (file) => handleDocUpload(config.tipo, file)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+            {/* Compact summary table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/30 text-muted-foreground text-xs">
+                    <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {DOCUMENT_CATEGORIES.map((cat) => {
+                    const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
+                    const catLocalDocs = Object.entries(docs).filter(([tipo]) => cat.tipos.includes(tipo));
+                    const catFileCount = catLocalDocs.reduce((sum, [, files]) => sum + files.length, 0);
+                    const catFilledTypes = catLocalDocs.filter(([, files]) => files.length > 0).length;
+                    const hasRejected = catLocalDocs.some(([, files]) => files.some(f => f.status === "rejeitado"));
+                    const allApproved = catFilledTypes === catTotalTypes && catFileCount > 0 && catLocalDocs.every(([, files]) => files.every(f => f.status === "aprovado"));
+
+                    const statusBadge = allApproved
+                      ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                      : hasRejected
+                      ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                      : catFilledTypes === 0
+                      ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
+                      : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+
+                    return (
+                      <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
+                          <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-semibold text-foreground">{catFilledTypes}</span>
+                          <span className="text-muted-foreground">/{catTotalTypes}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">{statusBadge}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Use o botão "Modo Foco 聚焦模式" acima para gerenciar documentos individualmente.
+              <br />
+              使用上方的"聚焦模式"按钮单独管理文件。
+            </p>
 
             {/* Mandatory docs warning */}
             {MANDATORY_DOCS.some(tipo => !docs[tipo]?.length) && (
