@@ -11,7 +11,8 @@ import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon,
 } from "lucide-react";
-import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, STATUS_LABELS } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl, getSignedUrl } from "@/lib/utils/storage-helper";
