@@ -17,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
-import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, MANDATORY_DOCS, STATUS_LABELS } from "@/lib/china-document-types";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { EmitirOCDialog } from "@/components/china/EmitirOCDialog";
 import { useChinaProjetosVinculados, useCriarProjetoChina } from "@/hooks/useChinaProjeto";
 import { ChinaProjetoChecklist } from "@/components/china/ChinaProjetoChecklist";
@@ -434,65 +435,79 @@ export default function ChinaFichaProduto() {
             />
           </div>
 
-          {/* Compact summary table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/30 text-muted-foreground text-xs">
-                  <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
-                  <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
-                  <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
-                  <th className="text-center px-4 py-2.5 font-medium">Rascunhos 草稿</th>
-                  <th className="text-center px-4 py-2.5 font-medium">Pendentes 待处理</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {DOCUMENT_CATEGORIES.map((cat) => {
-                  const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
-                  const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
-                  const catFilled = new Set(catDocs.map((d: any) => d.tipo_documento)).size;
-                  const hasRejected = catDocs.some((d: any) => d.status === "rejeitado");
-                  const hasDrafts = catDocs.filter((d: any) => d.status === "rascunho").length;
-                  const hasPending = catDocs.filter((d: any) => d.status === "pendente").length;
-                  const allApproved = catFilled === catTotalTypes && catDocs.length > 0 && catDocs.every((d: any) => d.status === "aprovado");
+          {/* Compact summary table — split by flow */}
+          {[
+            { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
+            { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
+          ].map(({ categories, headerPt, headerCn, icon, color }) => (
+            <div key={headerPt} className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th colSpan={5} className={`text-left px-4 py-3 font-bold text-sm border ${color} rounded-t-lg`}>
+                      <div className="flex items-center gap-2">
+                        {icon}
+                        <span>{headerPt}</span>
+                        <span className="font-normal text-xs opacity-75">{headerCn}</span>
+                      </div>
+                    </th>
+                  </tr>
+                  <tr className="bg-muted/30 text-muted-foreground text-xs">
+                    <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Rascunhos 草稿</th>
+                    <th className="text-center px-4 py-2.5 font-medium">Pendentes 待处理</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {categories.map((cat) => {
+                    const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
+                    const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
+                    const catFilled = new Set(catDocs.map((d: any) => d.tipo_documento)).size;
+                    const hasRejected = catDocs.some((d: any) => d.status === "rejeitado");
+                    const hasDrafts = catDocs.filter((d: any) => d.status === "rascunho").length;
+                    const hasPending = catDocs.filter((d: any) => d.status === "pendente").length;
+                    const allApproved = catFilled === catTotalTypes && catDocs.length > 0 && catDocs.every((d: any) => d.status === "aprovado");
 
-                  const statusBadge = allApproved
-                    ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
-                    : hasRejected
-                    ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
-                    : catFilled === 0
-                    ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
-                    : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+                    const statusBadge = allApproved
+                      ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                      : hasRejected
+                      ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                      : catFilled === 0
+                      ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
+                      : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
 
-                  return (
-                    <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
-                          <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="font-semibold text-foreground">{catFilled}</span>
-                        <span className="text-muted-foreground">/{catTotalTypes}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">{statusBadge}</td>
-                      <td className="px-4 py-3 text-center">
-                        {hasDrafts > 0 ? (
-                          <Badge variant="secondary" className="text-xs">{hasDrafts}</Badge>
-                        ) : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {hasPending > 0 ? (
-                          <Badge variant="warning" className="text-xs">{hasPending}</Badge>
-                        ) : <span className="text-muted-foreground">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
+                            <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-semibold text-foreground">{catFilled}</span>
+                          <span className="text-muted-foreground">/{catTotalTypes}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">{statusBadge}</td>
+                        <td className="px-4 py-3 text-center">
+                          {hasDrafts > 0 ? (
+                            <Badge variant="secondary" className="text-xs">{hasDrafts}</Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {hasPending > 0 ? (
+                            <Badge variant="warning" className="text-xs">{hasPending}</Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
           {/* Mandatory warning */}
           {MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo)) && (

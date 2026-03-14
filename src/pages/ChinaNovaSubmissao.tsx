@@ -11,7 +11,8 @@ import { ChinaExcelPreview } from "@/components/china/ChinaExcelPreview";
 import { ChinaDocumentSlot } from "@/components/china/ChinaDocumentSlot";
 import { ChinaGradeEditor, type GradeItem } from "@/components/china/ChinaGradeEditor";
 import { ChinaDataValidationDialog } from "@/components/china/ChinaDataValidationDialog";
-import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, MANDATORY_DOCS } from "@/lib/china-document-types";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
@@ -944,50 +945,64 @@ export default function ChinaNovaSubmissao() {
               )}
             </div>
 
-            {/* Compact summary table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/30 text-muted-foreground text-xs">
-                    <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
-                    <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {DOCUMENT_CATEGORIES.map((cat) => {
-                    const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
-                    const catLocalDocs = Object.entries(docs).filter(([tipo]) => cat.tipos.includes(tipo));
-                    const catFileCount = catLocalDocs.reduce((sum, [, files]) => sum + files.length, 0);
-                    const catFilledTypes = catLocalDocs.filter(([, files]) => files.length > 0).length;
-                    const hasRejected = catLocalDocs.some(([, files]) => files.some(f => f.status === "rejeitado"));
-                    const allApproved = catFilledTypes === catTotalTypes && catFileCount > 0 && catLocalDocs.every(([, files]) => files.every(f => f.status === "aprovado"));
+            {/* Compact summary table — split by flow */}
+            {[
+              { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia ao Brasil", headerCn: "中国发送至巴西", icon: <ArrowUpRight className="h-4 w-4" />, color: "bg-primary/10 text-primary border-primary/30" },
+              { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia à China", headerCn: "巴西发送至中国", icon: <ArrowDownLeft className="h-4 w-4" />, color: "bg-success/10 text-success border-success/30" },
+            ].map(({ categories, headerPt, headerCn, icon, color }) => (
+              <div key={headerPt} className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th colSpan={3} className={`text-left px-4 py-3 font-bold text-sm border ${color} rounded-t-lg`}>
+                        <div className="flex items-center gap-2">
+                          {icon}
+                          <span>{headerPt}</span>
+                          <span className="font-normal text-xs opacity-75">{headerCn}</span>
+                        </div>
+                      </th>
+                    </tr>
+                    <tr className="bg-muted/30 text-muted-foreground text-xs">
+                      <th className="text-left px-4 py-2.5 font-medium">Categoria 类别</th>
+                      <th className="text-center px-4 py-2.5 font-medium">Arquivos 文件</th>
+                      <th className="text-center px-4 py-2.5 font-medium">Status 状态</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {categories.map((cat) => {
+                      const catTotalTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo)).length;
+                      const catLocalDocs = Object.entries(docs).filter(([tipo]) => cat.tipos.includes(tipo));
+                      const catFileCount = catLocalDocs.reduce((sum, [, files]) => sum + files.length, 0);
+                      const catFilledTypes = catLocalDocs.filter(([, files]) => files.length > 0).length;
+                      const hasRejected = catLocalDocs.some(([, files]) => files.some(f => f.status === "rejeitado"));
+                      const allApproved = catFilledTypes === catTotalTypes && catFileCount > 0 && catLocalDocs.every(([, files]) => files.every(f => f.status === "aprovado"));
 
-                    const statusBadge = allApproved
-                      ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
-                      : hasRejected
-                      ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
-                      : catFilledTypes === 0
-                      ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
-                      : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
+                      const statusBadge = allApproved
+                        ? <Badge variant="success" className="text-xs">✓ Completo 完成</Badge>
+                        : hasRejected
+                        ? <Badge variant="destructive" className="text-xs">✗ Rejeitado 被拒</Badge>
+                        : catFilledTypes === 0
+                        ? <Badge variant="secondary" className="text-xs">— Vazio 空</Badge>
+                        : <Badge variant="warning" className="text-xs">⏳ Parcial 部分</Badge>;
 
-                    return (
-                      <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
-                          <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="font-semibold text-foreground">{catFilledTypes}</span>
-                          <span className="text-muted-foreground">/{catTotalTypes}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center">{statusBadge}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={cat.key} className="hover:bg-accent/10 transition-colors">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-foreground text-sm">{cat.labelPt}</p>
+                            <p className="text-[10px] text-muted-foreground">{cat.labelCn}</p>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="font-semibold text-foreground">{catFilledTypes}</span>
+                            <span className="text-muted-foreground">/{catTotalTypes}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">{statusBadge}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ))}
 
             <p className="text-xs text-muted-foreground text-center">
               Use o botão "Modo Foco 聚焦模式" acima para gerenciar documentos individualmente.
