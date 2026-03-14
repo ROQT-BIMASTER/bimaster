@@ -287,10 +287,10 @@ export default function ChinaNovaSubmissao() {
 
       if (pendingSourceFile) {
         const { file, type } = pendingSourceFile;
-        const path = `${(sub as any).id}/${type}/${file.name}`;
+        const path = `${activeSubId}/${type}/${file.name}`;
         const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
         await supabase.from("china_produto_documentos" as any).insert({
-          submissao_id: (sub as any).id,
+          submissao_id: activeSubId,
           tipo_documento: type,
           arquivo_url: signedUrl,
           arquivo_path: path,
@@ -302,7 +302,7 @@ export default function ChinaNovaSubmissao() {
       }
 
       if (photoFiles && Object.keys(photoFiles).length > 0) {
-        const subId = (sub as any).id;
+        const subId = activeSubId!;
         for (const [tipo, files] of Object.entries(photoFiles)) {
           for (const file of files) {
             const path = `${subId}/${tipo}/${file.name}`;
