@@ -1,19 +1,23 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
+  Plus, FolderPlus,
 } from "lucide-react";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
+import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +25,8 @@ import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createElement } from "react";
 
 interface DocRecord {
   id: string;
@@ -59,6 +65,28 @@ const statusBorders: Record<string, string> = {
   planejado: "border-l-primary border-l-4 border-dashed",
 };
 
+// Merged category type used internally
+interface MergedCategory {
+  key: string;
+  labelPt: string;
+  labelCn: string;
+  tipos: string[];
+  fluxo: "china_envia" | "brasil_envia";
+  isCustom?: boolean;
+  customId?: string;
+}
+
+// Merged document type used internally
+interface MergedDocType {
+  tipo: string;
+  labelPt: string;
+  labelCn: string;
+  icon?: React.ReactNode;
+  accept?: string;
+  multiple?: boolean;
+  isCustom?: boolean;
+}
+
 export function ChinaChecklistFocusMode({
   submissaoId,
   documentos,
@@ -73,16 +101,106 @@ export function ChinaChecklistFocusMode({
   const [submitting, setSubmitting] = useState(false);
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const queryClient = useQueryClient();
 
   // Preview dialog state
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewTipo, setPreviewTipo] = useState<{ tipo: string; pt: string; cn: string } | null>(null);
 
+  // Add category/item dialogs
+  const [addCatOpen, setAddCatOpen] = useState(false);
+  const [addCatFluxo, setAddCatFluxo] = useState<"china_envia" | "brasil_envia">("china_envia");
+  const [addCatLabelPt, setAddCatLabelPt] = useState("");
+  const [addCatLabelCn, setAddCatLabelCn] = useState("");
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [addItemCatKey, setAddItemCatKey] = useState("");
+  const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
+  const [addItemLabelPt, setAddItemLabelPt] = useState("");
+  const [addItemLabelCn, setAddItemLabelCn] = useState("");
+
+  // Fetch custom categories
+  const { data: customCategories = [] } = useQuery({
+    queryKey: ["checklist-custom-cats", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_custom_categorias" as any)
+        .select("*")
+        .eq("submissao_id", submissaoId)
+        .order("ordem") as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  // Fetch custom items
+  const { data: customItems = [] } = useQuery({
+    queryKey: ["checklist-custom-items", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .select("*")
+        .eq("submissao_id", submissaoId)
+        .order("created_at") as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  // Merge categories: default + custom
+  const allCategories = useMemo(() => {
+    const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
+      ...c,
+      isCustom: false,
+    }));
+    const customCats: MergedCategory[] = customCategories.map((c: any) => ({
+      key: `custom_${c.id}`,
+      labelPt: c.label_pt,
+      labelCn: c.label_cn || "",
+      tipos: customItems.filter((i: any) => i.categoria_custom_id === c.id).map((i: any) => i.tipo_key),
+      fluxo: c.fluxo,
+      isCustom: true,
+      customId: c.id,
+    }));
+    return [...defaultCats, ...customCats];
+  }, [customCategories, customItems]);
+
+  // Merge doc types: default + custom items added to default categories
+  const allDocTypes = useMemo(() => {
+    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({ ...d, isCustom: false }));
+    const customs: MergedDocType[] = customItems.map((i: any) => ({
+      tipo: i.tipo_key,
+      labelPt: i.label_pt,
+      labelCn: i.label_cn || "",
+      icon: createElement(FileText, { className: "h-5 w-5 text-muted-foreground" }),
+      accept: i.accept || undefined,
+      multiple: i.multiple || false,
+      isCustom: true,
+    }));
+    return [...defaults, ...customs];
+  }, [customItems]);
+
+  // Add custom items to default categories
+  const enrichedCategories = useMemo(() => {
+    return allCategories.map(cat => {
+      if (cat.isCustom) return cat;
+      // Find custom items assigned to this default category
+      const extraItems = customItems
+        .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
+        .map((i: any) => i.tipo_key);
+      return { ...cat, tipos: [...cat.tipos, ...extraItems] };
+    });
+  }, [allCategories, customItems]);
+
+  const chinaEnviaCats = enrichedCategories.filter(c => c.fluxo === "china_envia");
+  const brasilEnviaCats = enrichedCategories.filter(c => c.fluxo === "brasil_envia");
+
   // Counters for header
   const counters = useMemo(() => {
     const realDocs = documentos.filter(d => d.status !== "planejado");
     const filledTipos = new Set(realDocs.map(d => d.tipo_documento));
-    const allTipos = CHINA_DOCUMENT_TYPES.length;
+    const allTipos = allDocTypes.length;
     return {
       total: allTipos,
       aprovados: realDocs.filter(d => d.status === "aprovado" || d.status === "ciencia").length,
@@ -94,7 +212,7 @@ export function ChinaChecklistFocusMode({
       filled: filledTipos.size,
       progressPct: allTipos > 0 ? Math.round((filledTipos.size / allTipos) * 100) : 0,
     };
-  }, [documentos]);
+  }, [documentos, allDocTypes]);
 
   const draftDocs = useMemo(() => documentos.filter((d) => d.status === "rascunho"), [documentos]);
 
@@ -126,7 +244,7 @@ export function ChinaChecklistFocusMode({
   };
 
   const handleUploadWithPreview = (tipo: string, file: File) => {
-    const config = CHINA_DOCUMENT_TYPES.find((d) => d.tipo === tipo);
+    const config = allDocTypes.find((d) => d.tipo === tipo);
     setPreviewFile(file);
     setPreviewTipo({ tipo, pt: config?.labelPt || tipo, cn: config?.labelCn || "" });
   };
@@ -209,11 +327,11 @@ export function ChinaChecklistFocusMode({
   };
 
   // Active category data
-  const activeCatObj = DOCUMENT_CATEGORIES.find((c) => c.key === activeCat)!;
-  const activeCatTypes = CHINA_DOCUMENT_TYPES.filter((d) => activeCatObj.tipos.includes(d.tipo));
+  const activeCatObj = enrichedCategories.find((c) => c.key === activeCat) || enrichedCategories[0];
+  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo));
 
   // Sidebar category stats helper
-  const getCatStats = (cat: typeof DOCUMENT_CATEGORIES[0]) => {
+  const getCatStats = (cat: MergedCategory) => {
     const catDocs = documentos.filter(d => cat.tipos.includes(d.tipo_documento));
     const realDocs = catDocs.filter(d => d.status !== "planejado");
     const catTotal = cat.tipos.length;
@@ -224,6 +342,76 @@ export function ChinaChecklistFocusMode({
     const comPrevisao = catDocs.filter(d => d.previsao_envio).length;
     const pct = catTotal > 0 ? Math.round((filledTipos / catTotal) * 100) : 0;
     return { catTotal, filledTipos, aprovados, rejeitados, rascunhos, comPrevisao, pct };
+  };
+
+  // Create category mutation
+  const createCategory = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase
+        .from("china_checklist_custom_categorias" as any)
+        .insert({
+          submissao_id: submissaoId,
+          label_pt: addCatLabelPt.trim(),
+          label_cn: addCatLabelCn.trim(),
+          fluxo: addCatFluxo,
+          ordem: customCategories.length,
+          created_by: user?.id,
+        }) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      setAddCatOpen(false);
+      setAddCatLabelPt("");
+      setAddCatLabelCn("");
+      toast.success("Categoria criada!");
+    },
+  });
+
+  // Create item mutation
+  const createItem = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const tipoKey = `custom_${Date.now()}_${addItemLabelPt.trim().toLowerCase().replace(/\s+/g, "_")}`;
+      const { error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .insert({
+          submissao_id: submissaoId,
+          categoria_custom_id: addItemCustomCatId || null,
+          categoria_default_key: addItemCustomCatId ? null : addItemCatKey,
+          tipo_key: tipoKey,
+          label_pt: addItemLabelPt.trim(),
+          label_cn: addItemLabelCn.trim(),
+          accept: "image/*,.pdf",
+          multiple: true,
+          created_by: user?.id,
+        }) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      setAddItemOpen(false);
+      setAddItemLabelPt("");
+      setAddItemLabelCn("");
+      toast.success("Item adicionado ao checklist!");
+    },
+  });
+
+  const openAddItem = (catKey: string, customCatId?: string) => {
+    setAddItemCatKey(catKey);
+    setAddItemCustomCatId(customCatId || null);
+    setAddItemLabelPt("");
+    setAddItemLabelCn("");
+    setAddItemOpen(true);
+  };
+
+  const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
+    setAddCatFluxo(fluxo);
+    setAddCatLabelPt("");
+    setAddCatLabelCn("");
+    setAddCatOpen(true);
   };
 
   return (
@@ -277,64 +465,75 @@ export function ChinaChecklistFocusMode({
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {[
-                    { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
-                    { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
-                  ].map(({ categories, headerPt, headerCn, icon, color }, idx) => (
+                    { categories: chinaEnviaCats, fluxo: "china_envia" as const, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
+                    { categories: brasilEnviaCats, fluxo: "brasil_envia" as const, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
+                  ].map(({ categories, fluxo, headerPt, headerCn, icon, color }, idx) => (
                     <div key={headerPt}>
                       {idx > 0 && <div className="my-2 border-t border-border" />}
                       <div className={cn("flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-wide", color)}>
                         {icon}
                         <span>{headerPt}</span>
                         <span className="font-normal opacity-60">{headerCn}</span>
+                        <button
+                          onClick={() => openAddCategory(fluxo)}
+                          className="ml-auto p-0.5 rounded hover:bg-accent/50 transition-colors"
+                          title="Nova categoria"
+                        >
+                          <FolderPlus className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                       {categories.map((cat) => {
                         const stats = getCatStats(cat);
                         const isActive = activeCat === cat.key;
 
                         return (
-                          <button
-                            key={cat.key}
-                            onClick={() => setActiveCat(cat.key)}
-                            className={cn(
-                              "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
-                              isActive
-                                ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
-                                : "hover:bg-accent/50 text-foreground"
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="truncate">{cat.labelPt}</span>
-                              <span className={cn(
-                                "text-[10px] font-medium",
-                                stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "text-success" : "text-muted-foreground"
-                              )}>
-                                {stats.filledTipos}/{stats.catTotal}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
-                            {/* Mini progress bar */}
-                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  stats.rejeitados > 0 ? "bg-destructive" :
-                                  stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "bg-success" :
-                                  "bg-primary"
-                                )}
-                                style={{ width: `${stats.pct}%` }}
-                              />
-                            </div>
-                            {/* Indicators */}
-                            <div className="flex gap-1 mt-1">
-                              {stats.rejeitados > 0 && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">{stats.rejeitados}✗</Badge>}
-                              {stats.rascunhos > 0 && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{stats.rascunhos}📝</Badge>}
-                              {stats.comPrevisao > 0 && (
-                                <span className="inline-flex items-center gap-0.5 text-[9px] text-primary">
-                                  <CalendarIcon className="h-2.5 w-2.5" />{stats.comPrevisao}
-                                </span>
+                          <div key={cat.key} className="relative group">
+                            <button
+                              onClick={() => setActiveCat(cat.key)}
+                              className={cn(
+                                "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
+                                isActive
+                                  ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
+                                  : "hover:bg-accent/50 text-foreground"
                               )}
-                            </div>
-                          </button>
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="truncate flex items-center gap-1">
+                                  {cat.isCustom && <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">Custom</Badge>}
+                                  {cat.labelPt}
+                                </span>
+                                <span className={cn(
+                                  "text-[10px] font-medium",
+                                  stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "text-success" : "text-muted-foreground"
+                                )}>
+                                  {stats.filledTipos}/{stats.catTotal}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
+                              {/* Mini progress bar */}
+                              <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-500",
+                                    stats.rejeitados > 0 ? "bg-destructive" :
+                                    stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "bg-success" :
+                                    "bg-primary"
+                                  )}
+                                  style={{ width: `${stats.pct}%` }}
+                                />
+                              </div>
+                              {/* Indicators */}
+                              <div className="flex gap-1 mt-1">
+                                {stats.rejeitados > 0 && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">{stats.rejeitados}✗</Badge>}
+                                {stats.rascunhos > 0 && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{stats.rascunhos}📝</Badge>}
+                                {stats.comPrevisao > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] text-primary">
+                                    <CalendarIcon className="h-2.5 w-2.5" />{stats.comPrevisao}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -540,6 +739,18 @@ export function ChinaChecklistFocusMode({
                     );
                   })}
                 </div>
+
+                {/* Add new item button */}
+                {activeCatObj && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 gap-1.5 text-xs border-dashed"
+                    onClick={() => openAddItem(activeCatObj.key, activeCatObj.isCustom ? activeCatObj.customId : undefined)}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Novo item em "{activeCatObj.labelPt}"
+                  </Button>
+                )}
               </div>
             </ScrollArea>
           </div>
@@ -567,6 +778,106 @@ export function ChinaChecklistFocusMode({
         onClose={() => { setPreviewFile(null); setPreviewTipo(null); }}
         onConfirm={handleConfirmUpload}
       />
+
+      {/* Add Category Dialog */}
+      <Dialog open={addCatOpen} onOpenChange={setAddCatOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5 text-primary" />
+              Nova Categoria de Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome (Português)</Label>
+              <Input
+                value={addCatLabelPt}
+                onChange={(e) => setAddCatLabelPt(e.target.value)}
+                placeholder="Ex: Certificações, Laudos Técnicos..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={addCatLabelCn}
+                onChange={(e) => setAddCatLabelCn(e.target.value)}
+                placeholder="Ex: 认证文件"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Badge
+                variant={addCatFluxo === "china_envia" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setAddCatFluxo("china_envia")}
+              >
+                China Envia
+              </Badge>
+              <Badge
+                variant={addCatFluxo === "brasil_envia" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setAddCatFluxo("brasil_envia")}
+              >
+                Brasil Envia
+              </Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddCatOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createCategory.mutate()}
+              disabled={!addCatLabelPt.trim() || createCategory.isPending}
+            >
+              {createCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FolderPlus className="h-4 w-4 mr-1" />}
+              Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Item Dialog */}
+      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Novo Item no Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome do Item (Português)</Label>
+              <Input
+                value={addItemLabelPt}
+                onChange={(e) => setAddItemLabelPt(e.target.value)}
+                placeholder="Ex: Laudo Microbiológico, Certificado INMETRO..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={addItemLabelCn}
+                onChange={(e) => setAddItemLabelCn(e.target.value)}
+                placeholder="Ex: 微生物报告"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddItemOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createItem.mutate()}
+              disabled={!addItemLabelPt.trim() || createItem.isPending}
+            >
+              {createItem.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+              Adicionar Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
