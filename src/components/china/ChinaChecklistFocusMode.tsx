@@ -244,7 +244,7 @@ export function ChinaChecklistFocusMode({
   };
 
   const handleUploadWithPreview = (tipo: string, file: File) => {
-    const config = CHINA_DOCUMENT_TYPES.find((d) => d.tipo === tipo);
+    const config = allDocTypes.find((d) => d.tipo === tipo);
     setPreviewFile(file);
     setPreviewTipo({ tipo, pt: config?.labelPt || tipo, cn: config?.labelCn || "" });
   };
