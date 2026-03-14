@@ -38,6 +38,7 @@ import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCatego
 import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
 import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
 import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
+import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
 
 interface Profile {
   id: string;
@@ -265,6 +266,7 @@ function Configuracoes() {
               {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="categorias-dre">Categorias DRE</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cobranca">Cobrança Auto</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="cofre-produto">Cofre do Produto</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracao-erp">Integrações ERP</TabsTrigger>}
               {isAdmin && <TabsTrigger value="acessos">Acessos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
@@ -377,6 +379,12 @@ function Configuracoes() {
             {isAdmin && (
               <TabsContent value="cobranca">
                 <ConfiguracoesCobrancaAutomatica />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="cofre-produto">
+                <CofreProdutoConfig />
               </TabsContent>
             )}
 
