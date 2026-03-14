@@ -593,8 +593,10 @@ function CofreDoProdutoSection({
   const { configs, loading } = useCofreProdutoConfig();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
+  const [extraConfigIds, setExtraConfigIds] = useState<string[]>([]);
 
-  const activeConfigs = configs.filter(c => c.status === "ativo");
+  // Show active configs + manually added extras
+  const activeConfigs = configs.filter(c => c.status === "ativo" || extraConfigIds.includes(c.id));
 
   // Progress calculation
   const totalItems = activeConfigs.length;
