@@ -834,3 +834,79 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
     </Card>
   );
 }
+
+// ─── Transferências Oficiais ao Brasil ───
+function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, eanCaixaMaster }: {
+  submissaoId: string;
+  documentos: any[];
+  isBrasilUser: boolean;
+  eanCaixaMaster: string | null;
+}) {
+  const oficiais = documentos.filter(
+    (d: any) => d.oficializado === true && d.assinado_por
+  );
+
+  const docTypeLabel = (tipo: string) => {
+    const found = CHINA_DOCUMENT_TYPES.find(t => t.tipo === tipo);
+    return found ? `${found.labelPt} ${found.labelCn}` : tipo;
+  };
+
+  if (oficiais.length === 0 && !eanCaixaMaster) {
+    return (
+      <Card className="p-6 border-muted/30 space-y-2">
+        <BilingualLabel pt="Transferências Oficiais ao Brasil" cn="官方转交至巴西" size="md" />
+        <p className="text-sm text-muted-foreground">
+          Nenhum documento oficializado e assinado ainda. Após a oficialização e assinatura eletrônica no checklist, os documentos aparecerão aqui.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          目前没有正式签署的文件。在清单中完成正式化和电子签名后，文件将显示在此处。
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6 border-success/30 bg-success/5 space-y-4">
+      <div className="flex items-center gap-2">
+        <PackageCheck className="h-5 w-5 text-success" />
+        <BilingualLabel pt="Transferências Oficiais ao Brasil" cn="官方转交至巴西" size="md" />
+        <Badge variant="success" className="ml-auto text-xs">{oficiais.length} doc(s)</Badge>
+      </div>
+
+      <div className="space-y-2">
+        {oficiais.map((doc: any) => (
+          <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{docTypeLabel(doc.tipo_documento)}</p>
+              <p className="text-xs text-muted-foreground truncate">{doc.nome_arquivo || "—"}</p>
+            </div>
+            <div className="text-right shrink-0">
+              {doc.assinatura_nome && (
+                <p className="text-xs font-medium text-foreground">✍️ {doc.assinatura_nome}</p>
+              )}
+              {doc.assinado_em && (
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(doc.assinado_em).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </div>
+            <Badge variant="success" className="text-[10px]">Oficial</Badge>
+            {doc.arquivo_url && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(doc.arquivo_url, "_blank")}>
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {eanCaixaMaster && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-card border">
+          <Barcode className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-mono font-bold text-foreground">EAN Caixa Master: {eanCaixaMaster}</span>
+        </div>
+      )}
+    </Card>
+  );
+}
