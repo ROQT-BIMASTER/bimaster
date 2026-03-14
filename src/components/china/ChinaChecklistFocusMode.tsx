@@ -327,11 +327,11 @@ export function ChinaChecklistFocusMode({
   };
 
   // Active category data
-  const activeCatObj = DOCUMENT_CATEGORIES.find((c) => c.key === activeCat)!;
-  const activeCatTypes = CHINA_DOCUMENT_TYPES.filter((d) => activeCatObj.tipos.includes(d.tipo));
+  const activeCatObj = enrichedCategories.find((c) => c.key === activeCat) || enrichedCategories[0];
+  const activeCatTypes = allDocTypes.filter((d) => activeCatObj?.tipos.includes(d.tipo));
 
   // Sidebar category stats helper
-  const getCatStats = (cat: typeof DOCUMENT_CATEGORIES[0]) => {
+  const getCatStats = (cat: MergedCategory) => {
     const catDocs = documentos.filter(d => cat.tipos.includes(d.tipo_documento));
     const realDocs = catDocs.filter(d => d.status !== "planejado");
     const catTotal = cat.tipos.length;
@@ -342,6 +342,76 @@ export function ChinaChecklistFocusMode({
     const comPrevisao = catDocs.filter(d => d.previsao_envio).length;
     const pct = catTotal > 0 ? Math.round((filledTipos / catTotal) * 100) : 0;
     return { catTotal, filledTipos, aprovados, rejeitados, rascunhos, comPrevisao, pct };
+  };
+
+  // Create category mutation
+  const createCategory = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase
+        .from("china_checklist_custom_categorias" as any)
+        .insert({
+          submissao_id: submissaoId,
+          label_pt: addCatLabelPt.trim(),
+          label_cn: addCatLabelCn.trim(),
+          fluxo: addCatFluxo,
+          ordem: customCategories.length,
+          created_by: user?.id,
+        }) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      setAddCatOpen(false);
+      setAddCatLabelPt("");
+      setAddCatLabelCn("");
+      toast.success("Categoria criada!");
+    },
+  });
+
+  // Create item mutation
+  const createItem = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const tipoKey = `custom_${Date.now()}_${addItemLabelPt.trim().toLowerCase().replace(/\s+/g, "_")}`;
+      const { error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .insert({
+          submissao_id: submissaoId,
+          categoria_custom_id: addItemCustomCatId || null,
+          categoria_default_key: addItemCustomCatId ? null : addItemCatKey,
+          tipo_key: tipoKey,
+          label_pt: addItemLabelPt.trim(),
+          label_cn: addItemLabelCn.trim(),
+          accept: "image/*,.pdf",
+          multiple: true,
+          created_by: user?.id,
+        }) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-items", submissaoId] });
+      queryClient.invalidateQueries({ queryKey: ["checklist-custom-cats", submissaoId] });
+      setAddItemOpen(false);
+      setAddItemLabelPt("");
+      setAddItemLabelCn("");
+      toast.success("Item adicionado ao checklist!");
+    },
+  });
+
+  const openAddItem = (catKey: string, customCatId?: string) => {
+    setAddItemCatKey(catKey);
+    setAddItemCustomCatId(customCatId || null);
+    setAddItemLabelPt("");
+    setAddItemLabelCn("");
+    setAddItemOpen(true);
+  };
+
+  const openAddCategory = (fluxo: "china_envia" | "brasil_envia") => {
+    setAddCatFluxo(fluxo);
+    setAddCatLabelPt("");
+    setAddCatLabelCn("");
+    setAddCatOpen(true);
   };
 
   return (
