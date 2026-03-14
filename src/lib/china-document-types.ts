@@ -70,9 +70,11 @@ export const MANDATORY_DOCS = ["amostra_foto", "amostra_video"];
 
 export const STATUS_LABELS: Record<string, { pt: string; cn: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
   rascunho: { pt: "Rascunho", cn: "草稿", variant: "secondary" },
+  pendente: { pt: "Pendente", cn: "待审核", variant: "warning" },
   enviado: { pt: "Enviado", cn: "已发送", variant: "warning" },
   em_revisao: { pt: "Em Revisão", cn: "审核中", variant: "default" },
   aprovado: { pt: "Aprovado", cn: "已批准", variant: "success" },
   rejeitado: { pt: "Rejeitado", cn: "已拒绝", variant: "destructive" },
+  contestado: { pt: "Contestado", cn: "异议", variant: "warning" },
   arte_enviada: { pt: "Arte Enviada", cn: "终稿已发送", variant: "success" },
 };

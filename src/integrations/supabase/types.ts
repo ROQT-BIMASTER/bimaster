@@ -1280,6 +1280,63 @@ export type Database = {
           },
         ]
       }
+      china_doc_revisoes: {
+        Row: {
+          anotacoes: Json | null
+          contestacao_texto: string | null
+          contestado_por: string | null
+          created_at: string | null
+          documento_id: string
+          id: string
+          motivo_rejeicao: string | null
+          resultado: string
+          revisado_por: string | null
+          rodada: number
+          submissao_id: string
+        }
+        Insert: {
+          anotacoes?: Json | null
+          contestacao_texto?: string | null
+          contestado_por?: string | null
+          created_at?: string | null
+          documento_id: string
+          id?: string
+          motivo_rejeicao?: string | null
+          resultado: string
+          revisado_por?: string | null
+          rodada?: number
+          submissao_id: string
+        }
+        Update: {
+          anotacoes?: Json | null
+          contestacao_texto?: string | null
+          contestado_por?: string | null
+          created_at?: string | null
+          documento_id?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          resultado?: string
+          revisado_por?: string | null
+          rodada?: number
+          submissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_doc_revisoes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_doc_revisoes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_documento_tarefa_vinculos: {
         Row: {
           created_at: string | null

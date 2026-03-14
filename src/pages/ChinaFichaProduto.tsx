@@ -31,6 +31,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
+import { ChinaRevisaoPanel } from "@/components/china/ChinaRevisaoPanel";
+import { ChinaRevisaoFeedback } from "@/components/china/ChinaRevisaoFeedback";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -397,25 +399,21 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Rejected docs banner for China users */}
-        {isChinaUser && documentos.some((d: any) => d.status === "rejeitado") && (
-          <Card className="p-4 border-destructive/30 bg-destructive/5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
-                <XCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="font-semibold text-destructive text-sm">
-                  Ação necessária 需要操作
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {documentos.filter((d: any) => d.status === "rejeitado").length} documento(s) 
-                  rejeitado(s). Faça o reenvio abaixo. 
-                  被拒绝的文件，请重新上传。
-                </p>
-              </div>
-            </div>
-          </Card>
+        {/* Review Panel for Brasil / Feedback for China */}
+        {isBrasilUser && (
+          <ChinaRevisaoPanel
+            submissaoId={id!}
+            documentos={documentos}
+            onViewDoc={handleViewDoc}
+          />
+        )}
+        {isChinaUser && (
+          <ChinaRevisaoFeedback
+            submissaoId={id!}
+            documentos={documentos}
+            onViewDoc={handleViewDoc}
+            onReupload={handleDocUpload}
+          />
         )}
 
         {/* Documents Summary + Focus Mode */}
