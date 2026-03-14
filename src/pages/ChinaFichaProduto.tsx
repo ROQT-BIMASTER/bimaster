@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
 import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
+import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
