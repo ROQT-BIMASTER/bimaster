@@ -1282,6 +1282,8 @@ export type Database = {
       }
       china_doc_revisoes: {
         Row: {
+          acao_por_nome: string | null
+          acao_tipo: string | null
           anotacoes: Json | null
           contestacao_texto: string | null
           contestado_por: string | null
@@ -1295,6 +1297,8 @@ export type Database = {
           submissao_id: string
         }
         Insert: {
+          acao_por_nome?: string | null
+          acao_tipo?: string | null
           anotacoes?: Json | null
           contestacao_texto?: string | null
           contestado_por?: string | null
@@ -1308,6 +1312,8 @@ export type Database = {
           submissao_id: string
         }
         Update: {
+          acao_por_nome?: string | null
+          acao_tipo?: string | null
           anotacoes?: Json | null
           contestacao_texto?: string | null
           contestado_por?: string | null

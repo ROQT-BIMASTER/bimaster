@@ -32,8 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
-import { ChinaRevisaoPanel } from "@/components/china/ChinaRevisaoPanel";
-import { ChinaRevisaoFeedback } from "@/components/china/ChinaRevisaoFeedback";
+import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +47,7 @@ export default function ChinaFichaProduto() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [painelAprovacaoOpen, setPainelAprovacaoOpen] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
@@ -400,20 +400,26 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Review Panel for Brasil / Feedback for China */}
-        {isBrasilUser && (
-          <ChinaRevisaoPanel
+        {/* Approval Panel Button */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <BilingualLabel pt="Painel de Aprovação e Acompanhamento" cn="审批与跟踪面板" size="md" />
+            <Button onClick={() => setPainelAprovacaoOpen(true)} className="gap-2">
+              <Eye className="h-4 w-4" /> Abrir Painel 打开面板
+            </Button>
+          </div>
+        </Card>
+
+        {painelAprovacaoOpen && (
+          <ChinaPainelAprovacao
             submissaoId={id!}
+            produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
             documentos={documentos}
-            onViewDoc={handleViewDoc}
-          />
-        )}
-        {isChinaUser && (
-          <ChinaRevisaoFeedback
-            submissaoId={id!}
-            documentos={documentos}
+            isBrasilUser={isBrasilUser}
+            isChinaUser={isChinaUser}
             onViewDoc={handleViewDoc}
             onReupload={handleDocUpload}
+            onClose={() => setPainelAprovacaoOpen(false)}
           />
         )}
 

@@ -20,7 +20,20 @@ export interface Revisao {
   revisado_por: string | null;
   contestado_por: string | null;
   contestacao_texto: string | null;
+  acao_tipo: string | null;
+  acao_por_nome: string | null;
   created_at: string;
+}
+
+async function getUserName(): Promise<{ id: string; nome: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { id: "", nome: "Usuário" };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("nome")
+    .eq("id", user.id)
+    .single();
+  return { id: user.id, nome: (profile as any)?.nome || user.email?.split("@")[0] || "Usuário" };
 }
 
 export function useRevisoesPorSubmissao(submissaoId: string | undefined) {
@@ -49,8 +62,9 @@ export function useCriarRevisao() {
       resultado: "aprovado" | "rejeitado";
       motivo_rejeicao?: string;
       anotacoes?: Anotacao[];
+      acao_tipo?: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getUserName();
 
       // Get current round
       const { data: existing } = await supabase
@@ -71,7 +85,9 @@ export function useCriarRevisao() {
           resultado: params.resultado,
           motivo_rejeicao: params.motivo_rejeicao || null,
           anotacoes: params.anotacoes || [],
-          revisado_por: user?.id,
+          revisado_por: user.id,
+          acao_tipo: params.acao_tipo || params.resultado,
+          acao_por_nome: user.nome,
         } as any);
       if (error) throw error;
 
@@ -92,6 +108,52 @@ export function useCriarRevisao() {
   });
 }
 
+export function useDarCiencia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      documento_id: string;
+      submissao_id: string;
+    }) => {
+      const user = await getUserName();
+
+      const { data: existing } = await supabase
+        .from("china_doc_revisoes" as any)
+        .select("rodada")
+        .eq("documento_id", params.documento_id)
+        .order("rodada", { ascending: false })
+        .limit(1);
+
+      const rodada = ((existing as any)?.[0]?.rodada || 0) + 1;
+
+      const { error } = await supabase
+        .from("china_doc_revisoes" as any)
+        .insert({
+          documento_id: params.documento_id,
+          submissao_id: params.submissao_id,
+          rodada,
+          resultado: "ciencia",
+          revisado_por: user.id,
+          acao_tipo: "ciencia",
+          acao_por_nome: user.nome,
+          anotacoes: [],
+        } as any);
+      if (error) throw error;
+
+      await supabase
+        .from("china_produto_documentos" as any)
+        .update({ status: "ciencia" } as any)
+        .eq("id", params.documento_id);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["china-revisoes", vars.submissao_id] });
+      queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", vars.submissao_id] });
+      toast.success("Ciência registrada! 已确认！");
+    },
+  });
+}
+
 export function useContestarRevisao() {
   const queryClient = useQueryClient();
 
@@ -102,14 +164,16 @@ export function useContestarRevisao() {
       documento_id: string;
       contestacao_texto: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getUserName();
 
       await supabase
         .from("china_doc_revisoes" as any)
         .update({
           resultado: "contestado",
-          contestado_por: user?.id,
+          contestado_por: user.id,
           contestacao_texto: params.contestacao_texto,
+          acao_tipo: "contestar",
+          acao_por_nome: user.nome,
         } as any)
         .eq("id", params.revisao_id);
 
