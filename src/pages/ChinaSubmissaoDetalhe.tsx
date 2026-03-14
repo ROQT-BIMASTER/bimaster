@@ -101,10 +101,10 @@ export default function ChinaSubmissaoDetalhe() {
           <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
-        {/* Arte Final + EAN Section */}
+        {/* Docs Enviados ao Brasil */}
         {submissao.status === "arte_enviada" && (
           <Card className="p-6 border-success/30 bg-success/5">
-            <BilingualLabel pt="Arte Final e EAN" cn="终稿和EAN" size="lg" className="mb-4" />
+            <BilingualLabel pt="Documentos Enviados ao Brasil" cn="已发送至巴西的文件" size="lg" className="mb-4" />
             <div className="flex flex-col md:flex-row gap-4">
               {submissao.arte_final_path && (
                 <Button onClick={handleDownloadArte} variant="default" className="gap-2">

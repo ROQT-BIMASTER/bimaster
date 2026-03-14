@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
-  ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert
+  ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck
 } from "lucide-react";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
@@ -43,7 +43,7 @@ export default function ChinaFichaProduto() {
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
-  const [arteFile, setArteFile] = useState<File | null>(null);
+  const [arteFile, setArteFile] = useState<File | null>(null); // kept for backward compat
   const [sendingArte, setSendingArte] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
@@ -233,8 +233,8 @@ export default function ChinaFichaProduto() {
 
   const statusInfo = STATUS_LABELS[submissao.status] || STATUS_LABELS.rascunho;
   const canApprove = !["aprovado", "arte_enviada"].includes(submissao.status);
-  const showArteSection = submissao.status === "aprovado";
-  const showArteDownload = submissao.status === "arte_enviada" && submissao.arte_final_url;
+  const showArteSection = false; // Legacy — replaced by TransferenciasOficiaisSection
+  const showArteDownload = false;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -508,67 +508,8 @@ export default function ChinaFichaProduto() {
           )}
         </Card>
 
-        {/* Arte Final + EAN Section */}
-        {isBrasilUser && showArteSection && (
-          <Card className="p-6 border-primary/30 bg-primary/5 space-y-4">
-            <BilingualLabel pt="Resposta Brasil — Arte Final + EAN" cn="巴西回复 — 终稿 + EAN" size="md" />
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-foreground">Arte Final 终稿</label>
-                <div className="mt-1">
-                  <input
-                    type="file"
-                    onChange={(e) => setArteFile(e.target.files?.[0] || null)}
-                    className="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:font-medium file:cursor-pointer"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Barcode className="h-4 w-4" /> EAN Caixa Master 主箱EAN
-                </label>
-                <Input
-                  value={eanCaixaMaster}
-                  onChange={(e) => setEanCaixaMaster(e.target.value)}
-                  placeholder="Ex: 7898000000000"
-                  className="mt-1 font-mono"
-                />
-              </div>
-              <Button onClick={handleSendArte} disabled={sendingArte} className="gap-2">
-                {sendingArte ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Enviar Arte + EAN 发送终稿和EAN
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {showArteDownload && (
-          <Card className="p-6 border-success/30 bg-success/5 space-y-3">
-            <BilingualLabel pt="Arte Final Enviada" cn="终稿已发送" size="md" />
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button variant="outline" className="gap-2" onClick={() => window.open(submissao.arte_final_url, "_blank")}>
-                <Download className="h-4 w-4" /> Download Arte 下载终稿
-              </Button>
-              {(submissao as any).ean_display && (
-                <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
-                  <Barcode className="h-4 w-4 text-muted-foreground" />
-                  Display: {(submissao as any).ean_display}
-                </div>
-              )}
-              {submissao.ean_caixa_master && (
-                <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
-                  <Barcode className="h-5 w-5 text-muted-foreground" />
-                  Master: {submissao.ean_caixa_master}
-                </div>
-              )}
-            </div>
-            {submissao.arte_final_enviada_em && (
-              <p className="text-xs text-muted-foreground">
-                Enviada em 发送于: {new Date(submissao.arte_final_enviada_em).toLocaleDateString("pt-BR")}
-              </p>
-            )}
-          </Card>
-        )}
+        {/* Transferências Oficiais ao Brasil */}
+        <TransferenciasOficiaisSection submissaoId={id!} documentos={documentos} isBrasilUser={isBrasilUser} eanCaixaMaster={submissao.ean_caixa_master} />
 
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
@@ -888,6 +829,82 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
             {(criarProjeto.isPending || auditing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
             Criar outro projeto 创建其他项目
           </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── Transferências Oficiais ao Brasil ───
+function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, eanCaixaMaster }: {
+  submissaoId: string;
+  documentos: any[];
+  isBrasilUser: boolean;
+  eanCaixaMaster: string | null;
+}) {
+  const oficiais = documentos.filter(
+    (d: any) => d.oficializado === true && d.assinado_por
+  );
+
+  const docTypeLabel = (tipo: string) => {
+    const found = CHINA_DOCUMENT_TYPES.find(t => t.tipo === tipo);
+    return found ? `${found.labelPt} ${found.labelCn}` : tipo;
+  };
+
+  if (oficiais.length === 0 && !eanCaixaMaster) {
+    return (
+      <Card className="p-6 border-muted/30 space-y-2">
+        <BilingualLabel pt="Transferências Oficiais ao Brasil" cn="官方转交至巴西" size="md" />
+        <p className="text-sm text-muted-foreground">
+          Nenhum documento oficializado e assinado ainda. Após a oficialização e assinatura eletrônica no checklist, os documentos aparecerão aqui.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          目前没有正式签署的文件。在清单中完成正式化和电子签名后，文件将显示在此处。
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6 border-success/30 bg-success/5 space-y-4">
+      <div className="flex items-center gap-2">
+        <PackageCheck className="h-5 w-5 text-success" />
+        <BilingualLabel pt="Transferências Oficiais ao Brasil" cn="官方转交至巴西" size="md" />
+        <Badge variant="success" className="ml-auto text-xs">{oficiais.length} doc(s)</Badge>
+      </div>
+
+      <div className="space-y-2">
+        {oficiais.map((doc: any) => (
+          <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{docTypeLabel(doc.tipo_documento)}</p>
+              <p className="text-xs text-muted-foreground truncate">{doc.nome_arquivo || "—"}</p>
+            </div>
+            <div className="text-right shrink-0">
+              {doc.assinatura_nome && (
+                <p className="text-xs font-medium text-foreground">✍️ {doc.assinatura_nome}</p>
+              )}
+              {doc.assinado_em && (
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(doc.assinado_em).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </div>
+            <Badge variant="success" className="text-[10px]">Oficial</Badge>
+            {doc.arquivo_url && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(doc.arquivo_url, "_blank")}>
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {eanCaixaMaster && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-card border">
+          <Barcode className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-mono font-bold text-foreground">EAN Caixa Master: {eanCaixaMaster}</span>
         </div>
       )}
     </Card>

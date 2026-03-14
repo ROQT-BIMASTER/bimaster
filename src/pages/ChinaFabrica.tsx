@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, Send, AlertTriangle } from "lucide-react";
+import { Plus, List, CheckCircle, Factory, ArrowLeft, ShoppingCart, PackageCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BilingualLabel } from "@/components/china/BilingualLabel";
@@ -123,10 +123,10 @@ export default function ChinaFabrica() {
       brasilOnly: false,
     },
     {
-      icon: <Send className="h-10 w-10 text-success" />,
-      labelPt: "Arte Enviada",
-      labelCn: "终稿已发送",
-      desc: `${stats?.arte_enviada || 0} artes enviadas 终稿已发送`,
+      icon: <PackageCheck className="h-10 w-10 text-success" />,
+      labelPt: "Envios ao Brasil",
+      labelCn: "发送至巴西",
+      desc: `${stats?.arte_enviada || 0} envios oficiais 官方发送`,
       onClick: () => navigate("/dashboard/fabrica-china/recebimentos?status=arte_enviada"),
       color: "bg-success/5 hover:bg-success/10 border-success/20",
       brasilOnly: true,

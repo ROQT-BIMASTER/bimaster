@@ -44,7 +44,7 @@ const STATUS_FILTERS = [
   { value: "enviado", label: "Enviado" },
   { value: "em_revisao", label: "Em Revisão" },
   { value: "aprovado", label: "Aprovado" },
-  { value: "arte_enviada", label: "Arte Enviada" },
+  { value: "arte_enviada", label: "Docs Enviados" },
   { value: "rejeitado", label: "Rejeitado" },
 ];
 
@@ -66,7 +66,7 @@ function getStatusLabel(status: string): string {
     case "enviado": return "Enviado";
     case "em_revisao": return "Em Revisão";
     case "aprovado": return "Aprovado";
-    case "arte_enviada": return "Arte Enviada";
+    case "arte_enviada": return "Docs Enviados";
     case "rejeitado": return "Rejeitado";
     default: return status;
   }
