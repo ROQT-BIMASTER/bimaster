@@ -1628,6 +1628,7 @@ export type Database = {
         Row: {
           arquivo_path: string | null
           arquivo_url: string | null
+          cofre_item_id: string | null
           created_at: string
           id: string
           nome_arquivo: string | null
@@ -1639,6 +1640,7 @@ export type Database = {
         Insert: {
           arquivo_path?: string | null
           arquivo_url?: string | null
+          cofre_item_id?: string | null
           created_at?: string
           id?: string
           nome_arquivo?: string | null
@@ -1650,6 +1652,7 @@ export type Database = {
         Update: {
           arquivo_path?: string | null
           arquivo_url?: string | null
+          cofre_item_id?: string | null
           created_at?: string
           id?: string
           nome_arquivo?: string | null
@@ -1659,6 +1662,13 @@ export type Database = {
           tipo_documento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "china_produto_documentos_cofre_item_id_fkey"
+            columns: ["cofre_item_id"]
+            isOneToOne: false
+            referencedRelation: "cofre_produto_itens"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "china_produto_documentos_submissao_id_fkey"
             columns: ["submissao_id"]
@@ -2389,6 +2399,114 @@ export type Database = {
             columns: ["fila_id"]
             isOneToOne: false
             referencedRelation: "fila_cobrancas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cofre_produto_config: {
+        Row: {
+          aplicavel_a: Json
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome_pt: string
+          nome_zh: string | null
+          obrigatorio: boolean
+          ordem: number
+          qtd_minima: number
+          status: string
+          tipo_anexo: string
+          updated_at: string
+        }
+        Insert: {
+          aplicavel_a?: Json
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome_pt: string
+          nome_zh?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          qtd_minima?: number
+          status?: string
+          tipo_anexo?: string
+          updated_at?: string
+        }
+        Update: {
+          aplicavel_a?: Json
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome_pt?: string
+          nome_zh?: string | null
+          obrigatorio?: boolean
+          ordem?: number
+          qtd_minima?: number
+          status?: string
+          tipo_anexo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cofre_produto_itens: {
+        Row: {
+          adicionado_por: string | null
+          config_id: string | null
+          created_at: string
+          id: string
+          nome_pt: string
+          nome_zh: string | null
+          obrigatorio: boolean
+          observacao_brasil: string | null
+          qtd_minima: number
+          status: string
+          submissao_id: string
+          tipo_anexo: string
+          tipo_documento: string
+        }
+        Insert: {
+          adicionado_por?: string | null
+          config_id?: string | null
+          created_at?: string
+          id?: string
+          nome_pt: string
+          nome_zh?: string | null
+          obrigatorio?: boolean
+          observacao_brasil?: string | null
+          qtd_minima?: number
+          status?: string
+          submissao_id: string
+          tipo_anexo?: string
+          tipo_documento: string
+        }
+        Update: {
+          adicionado_por?: string | null
+          config_id?: string | null
+          created_at?: string
+          id?: string
+          nome_pt?: string
+          nome_zh?: string | null
+          obrigatorio?: boolean
+          observacao_brasil?: string | null
+          qtd_minima?: number
+          status?: string
+          submissao_id?: string
+          tipo_anexo?: string
+          tipo_documento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cofre_produto_itens_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "cofre_produto_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cofre_produto_itens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
             referencedColumns: ["id"]
           },
         ]
