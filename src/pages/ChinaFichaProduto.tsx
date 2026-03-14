@@ -508,67 +508,8 @@ export default function ChinaFichaProduto() {
           )}
         </Card>
 
-        {/* Arte Final + EAN Section */}
-        {isBrasilUser && showArteSection && (
-          <Card className="p-6 border-primary/30 bg-primary/5 space-y-4">
-            <BilingualLabel pt="Resposta Brasil — Arte Final + EAN" cn="巴西回复 — 终稿 + EAN" size="md" />
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-foreground">Arte Final 终稿</label>
-                <div className="mt-1">
-                  <input
-                    type="file"
-                    onChange={(e) => setArteFile(e.target.files?.[0] || null)}
-                    className="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground file:font-medium file:cursor-pointer"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Barcode className="h-4 w-4" /> EAN Caixa Master 主箱EAN
-                </label>
-                <Input
-                  value={eanCaixaMaster}
-                  onChange={(e) => setEanCaixaMaster(e.target.value)}
-                  placeholder="Ex: 7898000000000"
-                  className="mt-1 font-mono"
-                />
-              </div>
-              <Button onClick={handleSendArte} disabled={sendingArte} className="gap-2">
-                {sendingArte ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Enviar Arte + EAN 发送终稿和EAN
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {showArteDownload && (
-          <Card className="p-6 border-success/30 bg-success/5 space-y-3">
-            <BilingualLabel pt="Arte Final Enviada" cn="终稿已发送" size="md" />
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button variant="outline" className="gap-2" onClick={() => window.open(submissao.arte_final_url, "_blank")}>
-                <Download className="h-4 w-4" /> Download Arte 下载终稿
-              </Button>
-              {(submissao as any).ean_display && (
-                <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
-                  <Barcode className="h-4 w-4 text-muted-foreground" />
-                  Display: {(submissao as any).ean_display}
-                </div>
-              )}
-              {submissao.ean_caixa_master && (
-                <div className="px-4 py-2 bg-card border rounded-lg font-mono text-sm font-bold flex items-center gap-2">
-                  <Barcode className="h-5 w-5 text-muted-foreground" />
-                  Master: {submissao.ean_caixa_master}
-                </div>
-              )}
-            </div>
-            {submissao.arte_final_enviada_em && (
-              <p className="text-xs text-muted-foreground">
-                Enviada em 发送于: {new Date(submissao.arte_final_enviada_em).toLocaleDateString("pt-BR")}
-              </p>
-            )}
-          </Card>
-        )}
+        {/* Transferências Oficiais ao Brasil */}
+        <TransferenciasOficiaisSection submissaoId={id!} documentos={documentos} isBrasilUser={isBrasilUser} eanCaixaMaster={submissao.ean_caixa_master} />
 
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
