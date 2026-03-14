@@ -1280,6 +1280,104 @@ export type Database = {
           },
         ]
       }
+      china_checklist_custom_categorias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fluxo: string
+          id: string
+          label_cn: string | null
+          label_pt: string
+          ordem: number
+          submissao_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fluxo?: string
+          id?: string
+          label_cn?: string | null
+          label_pt: string
+          ordem?: number
+          submissao_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fluxo?: string
+          id?: string
+          label_cn?: string | null
+          label_pt?: string
+          ordem?: number
+          submissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_checklist_custom_categorias_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_checklist_custom_itens: {
+        Row: {
+          accept: string | null
+          categoria_custom_id: string | null
+          categoria_default_key: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label_cn: string | null
+          label_pt: string
+          multiple: boolean | null
+          submissao_id: string
+          tipo_key: string
+        }
+        Insert: {
+          accept?: string | null
+          categoria_custom_id?: string | null
+          categoria_default_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_cn?: string | null
+          label_pt: string
+          multiple?: boolean | null
+          submissao_id: string
+          tipo_key: string
+        }
+        Update: {
+          accept?: string | null
+          categoria_custom_id?: string | null
+          categoria_default_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_cn?: string | null
+          label_pt?: string
+          multiple?: boolean | null
+          submissao_id?: string
+          tipo_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_checklist_custom_itens_categoria_custom_id_fkey"
+            columns: ["categoria_custom_id"]
+            isOneToOne: false
+            referencedRelation: "china_checklist_custom_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_checklist_custom_itens_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_doc_revisoes: {
         Row: {
           acao_por_nome: string | null
