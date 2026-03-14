@@ -266,6 +266,7 @@ function Configuracoes() {
               {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="categorias-dre">Categorias DRE</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cobranca">Cobrança Auto</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="cofre-produto">Cofre do Produto</TabsTrigger>}
               {isAdmin && <TabsTrigger value="integracao-erp">Integrações ERP</TabsTrigger>}
               {isAdmin && <TabsTrigger value="acessos">Acessos</TabsTrigger>}
               {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
