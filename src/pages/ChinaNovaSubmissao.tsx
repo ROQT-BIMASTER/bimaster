@@ -326,7 +326,7 @@ export default function ChinaNovaSubmissao() {
       console.error("Validation confirm error:", err);
       toast.error(err.message || "Erro ao salvar dados validados");
     }
-  }, [pendingSourceFile]);
+  }, [pendingSourceFile, submissaoId]);
 
   // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
