@@ -43,7 +43,7 @@ export default function ChinaFichaProduto() {
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
-  const [arteFile, setArteFile] = useState<File | null>(null);
+  const [arteFile, setArteFile] = useState<File | null>(null); // kept for backward compat
   const [sendingArte, setSendingArte] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
