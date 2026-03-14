@@ -465,64 +465,75 @@ export function ChinaChecklistFocusMode({
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {[
-                    { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
-                    { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
-                  ].map(({ categories, headerPt, headerCn, icon, color }, idx) => (
+                    { categories: chinaEnviaCats, fluxo: "china_envia" as const, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
+                    { categories: brasilEnviaCats, fluxo: "brasil_envia" as const, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
+                  ].map(({ categories, fluxo, headerPt, headerCn, icon, color }, idx) => (
                     <div key={headerPt}>
                       {idx > 0 && <div className="my-2 border-t border-border" />}
                       <div className={cn("flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-wide", color)}>
                         {icon}
                         <span>{headerPt}</span>
                         <span className="font-normal opacity-60">{headerCn}</span>
+                        <button
+                          onClick={() => openAddCategory(fluxo)}
+                          className="ml-auto p-0.5 rounded hover:bg-accent/50 transition-colors"
+                          title="Nova categoria"
+                        >
+                          <FolderPlus className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                       {categories.map((cat) => {
                         const stats = getCatStats(cat);
                         const isActive = activeCat === cat.key;
 
                         return (
-                          <button
-                            key={cat.key}
-                            onClick={() => setActiveCat(cat.key)}
-                            className={cn(
-                              "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
-                              isActive
-                                ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
-                                : "hover:bg-accent/50 text-foreground"
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="truncate">{cat.labelPt}</span>
-                              <span className={cn(
-                                "text-[10px] font-medium",
-                                stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "text-success" : "text-muted-foreground"
-                              )}>
-                                {stats.filledTipos}/{stats.catTotal}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
-                            {/* Mini progress bar */}
-                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-                              <div
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  stats.rejeitados > 0 ? "bg-destructive" :
-                                  stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "bg-success" :
-                                  "bg-primary"
-                                )}
-                                style={{ width: `${stats.pct}%` }}
-                              />
-                            </div>
-                            {/* Indicators */}
-                            <div className="flex gap-1 mt-1">
-                              {stats.rejeitados > 0 && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">{stats.rejeitados}✗</Badge>}
-                              {stats.rascunhos > 0 && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{stats.rascunhos}📝</Badge>}
-                              {stats.comPrevisao > 0 && (
-                                <span className="inline-flex items-center gap-0.5 text-[9px] text-primary">
-                                  <CalendarIcon className="h-2.5 w-2.5" />{stats.comPrevisao}
-                                </span>
+                          <div key={cat.key} className="relative group">
+                            <button
+                              onClick={() => setActiveCat(cat.key)}
+                              className={cn(
+                                "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
+                                isActive
+                                  ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
+                                  : "hover:bg-accent/50 text-foreground"
                               )}
-                            </div>
-                          </button>
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="truncate flex items-center gap-1">
+                                  {cat.isCustom && <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">Custom</Badge>}
+                                  {cat.labelPt}
+                                </span>
+                                <span className={cn(
+                                  "text-[10px] font-medium",
+                                  stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "text-success" : "text-muted-foreground"
+                                )}>
+                                  {stats.filledTipos}/{stats.catTotal}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
+                              {/* Mini progress bar */}
+                              <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-500",
+                                    stats.rejeitados > 0 ? "bg-destructive" :
+                                    stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "bg-success" :
+                                    "bg-primary"
+                                  )}
+                                  style={{ width: `${stats.pct}%` }}
+                                />
+                              </div>
+                              {/* Indicators */}
+                              <div className="flex gap-1 mt-1">
+                                {stats.rejeitados > 0 && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">{stats.rejeitados}✗</Badge>}
+                                {stats.rascunhos > 0 && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{stats.rascunhos}📝</Badge>}
+                                {stats.comPrevisao > 0 && (
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] text-primary">
+                                    <CalendarIcon className="h-2.5 w-2.5" />{stats.comPrevisao}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
