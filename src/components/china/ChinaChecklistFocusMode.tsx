@@ -739,6 +739,18 @@ export function ChinaChecklistFocusMode({
                     );
                   })}
                 </div>
+
+                {/* Add new item button */}
+                {activeCatObj && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 gap-1.5 text-xs border-dashed"
+                    onClick={() => openAddItem(activeCatObj.key, activeCatObj.isCustom ? activeCatObj.customId : undefined)}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Novo item em "{activeCatObj.labelPt}"
+                  </Button>
+                )}
               </div>
             </ScrollArea>
           </div>
@@ -766,6 +778,106 @@ export function ChinaChecklistFocusMode({
         onClose={() => { setPreviewFile(null); setPreviewTipo(null); }}
         onConfirm={handleConfirmUpload}
       />
+
+      {/* Add Category Dialog */}
+      <Dialog open={addCatOpen} onOpenChange={setAddCatOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5 text-primary" />
+              Nova Categoria de Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome (Português)</Label>
+              <Input
+                value={addCatLabelPt}
+                onChange={(e) => setAddCatLabelPt(e.target.value)}
+                placeholder="Ex: Certificações, Laudos Técnicos..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={addCatLabelCn}
+                onChange={(e) => setAddCatLabelCn(e.target.value)}
+                placeholder="Ex: 认证文件"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Badge
+                variant={addCatFluxo === "china_envia" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setAddCatFluxo("china_envia")}
+              >
+                China Envia
+              </Badge>
+              <Badge
+                variant={addCatFluxo === "brasil_envia" ? "default" : "secondary"}
+                className="cursor-pointer"
+                onClick={() => setAddCatFluxo("brasil_envia")}
+              >
+                Brasil Envia
+              </Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddCatOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createCategory.mutate()}
+              disabled={!addCatLabelPt.trim() || createCategory.isPending}
+            >
+              {createCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FolderPlus className="h-4 w-4 mr-1" />}
+              Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Item Dialog */}
+      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Novo Item no Checklist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs">Nome do Item (Português)</Label>
+              <Input
+                value={addItemLabelPt}
+                onChange={(e) => setAddItemLabelPt(e.target.value)}
+                placeholder="Ex: Laudo Microbiológico, Certificado INMETRO..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (Chinês) — opcional</Label>
+              <Input
+                value={addItemLabelCn}
+                onChange={(e) => setAddItemLabelCn(e.target.value)}
+                placeholder="Ex: 微生物报告"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddItemOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createItem.mutate()}
+              disabled={!addItemLabelPt.trim() || createItem.isPending}
+            >
+              {createItem.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+              Adicionar Item
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
