@@ -400,6 +400,14 @@ export default function ChinaFichaProduto() {
           />
         )}
 
+        {/* Cofre Dialog */}
+        <CofreSubmissaoDialog
+          submissaoId={id!}
+          produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
+          open={cofreOpen}
+          onOpenChange={setCofreOpen}
+        />
+
         {/* Documents Summary + Focus Mode */}
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
