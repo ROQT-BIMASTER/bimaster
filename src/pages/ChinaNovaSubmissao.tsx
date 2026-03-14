@@ -15,7 +15,7 @@ import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, MANDATORY_DOCS } from "@/lib
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
