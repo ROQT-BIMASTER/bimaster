@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
 import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
+import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +49,7 @@ export default function ChinaFichaProduto() {
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [painelAprovacaoOpen, setPainelAprovacaoOpen] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
@@ -351,7 +353,7 @@ export default function ChinaFichaProduto() {
                   </p>
                 </div>
               )}
-              <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => navigate(`/dashboard/fabrica/cofre`)}>
+              <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => setCofreOpen(true)}>
                 <FolderOpen className="h-4 w-4" /> Cofre de Documentos 文件保险箱
               </Button>
             </div>
@@ -397,6 +399,14 @@ export default function ChinaFichaProduto() {
             onClose={() => setPainelAprovacaoOpen(false)}
           />
         )}
+
+        {/* Cofre Dialog */}
+        <CofreSubmissaoDialog
+          submissaoId={id!}
+          produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
+          open={cofreOpen}
+          onOpenChange={setCofreOpen}
+        />
 
         {/* Documents Summary + Focus Mode */}
         <Card className="p-6 space-y-4">
