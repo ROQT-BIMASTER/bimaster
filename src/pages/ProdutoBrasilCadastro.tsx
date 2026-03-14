@@ -69,6 +69,14 @@ export default function ProdutoBrasilCadastro() {
       {/* Approval card - only when linked to China submission */}
       {produto.submissao_china_id && <AprovacaoSubmissaoChina produto={produto} />}
 
+      {/* Brasil documents signing */}
+      {produto.submissao_china_id && (
+        <DocumentosBrasilAssinatura
+          submissaoId={produto.submissao_china_id}
+          produtoNome={produto.nome_brasil || produto.china_nome || "Produto"}
+        />
+      )}
+
       {/* Main Tabbed Content */}
       <Tabs defaultValue="identificacao" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
