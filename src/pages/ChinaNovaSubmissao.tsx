@@ -234,29 +234,42 @@ export default function ChinaNovaSubmissao() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: validatedData.produto_codigo || "UNKNOWN",
-          produto_nome: validatedData.produto_nome || "UNKNOWN",
-          numero_item: validatedData.numero_item || null,
-          numero_ordem: validatedData.numero_ordem || null,
-          formula_codigo: validatedData.formula_codigo || null,
-          qty_total: validatedData.qty_total || null,
-          peso_bruto_g: validatedData.peso_bruto_g || null,
-          peso_liquido_g: validatedData.peso_liquido_g || null,
-          tipo_material_plastico: validatedData.tipo_material_plastico || null,
-          ean_display: validatedData.ean_display || null,
-          ean_caixa_master: validatedData.ean_caixa_master || null,
-          dados_excel: validatedData,
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
+      const submissaoPayload = {
+        produto_codigo: validatedData.produto_codigo || "UNKNOWN",
+        produto_nome: validatedData.produto_nome || "UNKNOWN",
+        numero_item: validatedData.numero_item || null,
+        numero_ordem: validatedData.numero_ordem || null,
+        formula_codigo: validatedData.formula_codigo || null,
+        qty_total: validatedData.qty_total || null,
+        peso_bruto_g: validatedData.peso_bruto_g || null,
+        peso_liquido_g: validatedData.peso_liquido_g || null,
+        tipo_material_plastico: validatedData.tipo_material_plastico || null,
+        ean_display: validatedData.ean_display || null,
+        ean_caixa_master: validatedData.ean_caixa_master || null,
+        dados_excel: validatedData,
+        status: "rascunho",
+      };
 
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
+      let activeSubId = submissaoId;
+
+      if (activeSubId) {
+        // Update existing submission
+        const { error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .update(submissaoPayload as any)
+          .eq("id", activeSubId);
+        if (error) throw error;
+      } else {
+        // Create new submission
+        const { data: sub, error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .insert({ ...submissaoPayload, created_by: session.user.id } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        activeSubId = (sub as any).id;
+        setSubmissaoId(activeSubId);
+      }
 
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
@@ -274,10 +287,10 @@ export default function ChinaNovaSubmissao() {
 
       if (pendingSourceFile) {
         const { file, type } = pendingSourceFile;
-        const path = `${(sub as any).id}/${type}/${file.name}`;
+        const path = `${activeSubId}/${type}/${file.name}`;
         const { signedUrl } = await uploadAndGetSignedUrl("china-documentos", path, file);
         await supabase.from("china_produto_documentos" as any).insert({
-          submissao_id: (sub as any).id,
+          submissao_id: activeSubId,
           tipo_documento: type,
           arquivo_url: signedUrl,
           arquivo_path: path,
@@ -289,7 +302,7 @@ export default function ChinaNovaSubmissao() {
       }
 
       if (photoFiles && Object.keys(photoFiles).length > 0) {
-        const subId = (sub as any).id;
+        const subId = activeSubId!;
         for (const [tipo, files] of Object.entries(photoFiles)) {
           for (const file of files) {
             const path = `${subId}/${tipo}/${file.name}`;
@@ -313,7 +326,7 @@ export default function ChinaNovaSubmissao() {
       console.error("Validation confirm error:", err);
       toast.error(err.message || "Erro ao salvar dados validados");
     }
-  }, [pendingSourceFile]);
+  }, [pendingSourceFile, submissaoId]);
 
   // Step 1: Parse Excel with AI
   const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -413,24 +426,35 @@ export default function ChinaNovaSubmissao() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: manualData.produto_codigo,
-          produto_nome: manualData.produto_nome,
-          numero_item: manualData.numero_item || null,
-          numero_ordem: manualData.numero_ordem || null,
-          formula_codigo: manualData.formula_codigo || null,
-          qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
-          dados_excel: { _manual: true, ...manualData },
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
+      const payload = {
+        produto_codigo: manualData.produto_codigo,
+        produto_nome: manualData.produto_nome,
+        numero_item: manualData.numero_item || null,
+        numero_ordem: manualData.numero_ordem || null,
+        formula_codigo: manualData.formula_codigo || null,
+        qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
+        dados_excel: { _manual: true, ...manualData },
+        status: "rascunho",
+      };
 
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
+      if (submissaoId) {
+        // Update existing submission
+        const { error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .update(payload as any)
+          .eq("id", submissaoId);
+        if (error) throw error;
+      } else {
+        // Create new submission
+        const { data: sub, error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .insert({ ...payload, created_by: session.user.id } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setSubmissaoId((sub as any).id);
+      }
+
       setParsedData({ _manual: true, ...manualData });
       toast.success("Dados salvos! 数据已保存！");
       setStep(1);
@@ -439,7 +463,7 @@ export default function ChinaNovaSubmissao() {
     } finally {
       setParsing(false);
     }
-  }, [manualData]);
+  }, [manualData, submissaoId]);
 
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {
