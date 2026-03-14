@@ -445,10 +445,15 @@ export function ChinaDataValidationDialog({
                 </div>
 
                 {hasMismatch && (
-                  <div className="flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    Soma das cores ({colorSum.toLocaleString()}) difere da quantidade por caixa ({qtyPerDisplay.toLocaleString()}).
-                    颜色总量与每箱数量不匹配。
+                  <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Soma das cores ({colorSum.toLocaleString()}) difere da quantidade por caixa ({qtyPerDisplay.toLocaleString()}).
+                      颜色总量与每箱数量不匹配。
+                    </div>
+                    <div className="text-xs text-destructive/80 pl-6">
+                      Cálculo: {cores.map(c => `${c.cor_nome}: ${c.quantidade.toLocaleString()}`).join(' + ')} = {colorSum.toLocaleString()} · QTY/Caixa = {qtyPerDisplay.toLocaleString()}
+                    </div>
                   </div>
                 )}
               </>
