@@ -117,7 +117,7 @@ export function DocumentosBrasilAssinatura({ submissaoId, produtoNome }: Props) 
 
   const handleOpenSign = (docId: string) => {
     setSelectedDocId(docId);
-    setNomeCompleto(profile?.nome_completo || "");
+    setNomeCompleto(profile?.nome || "");
     setSenha("");
     setSignDialogOpen(true);
   };
