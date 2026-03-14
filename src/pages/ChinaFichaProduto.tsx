@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
-  ShoppingCart, Upload, Barcode, Send, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert
+  ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck
 } from "lucide-react";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
