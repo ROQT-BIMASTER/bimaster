@@ -19,6 +19,7 @@ import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
 import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
+import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
