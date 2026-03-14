@@ -178,39 +178,52 @@ export function ChinaChecklistFocusMode({
             <div className="w-56 border-r bg-muted/20 flex flex-col shrink-0">
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
-                  {DOCUMENT_CATEGORIES.map((cat) => {
-                    const catDocs = documentos.filter((d) => cat.tipos.includes(d.tipo_documento));
-                    const catTotal = CHINA_DOCUMENT_TYPES.filter((d) => cat.tipos.includes(d.tipo)).length;
-                    const catFilled = new Set(catDocs.map((d) => d.tipo_documento)).size;
-                    const hasRejected = catDocs.some((d) => d.status === "rejeitado");
-                    const hasDrafts = catDocs.some((d) => d.status === "rascunho");
-                    const allApproved = catFilled === catTotal && catDocs.length > 0 && catDocs.every((d) => d.status === "aprovado");
-                    const isActive = activeCat === cat.key;
+                  {[
+                    { categories: CATEGORIES_CHINA_ENVIA, headerPt: "China Envia", headerCn: "中国发送", icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: "text-primary" },
+                    { categories: CATEGORIES_BRASIL_ENVIA, headerPt: "Brasil Envia", headerCn: "巴西发送", icon: <ArrowDownLeft className="h-3.5 w-3.5" />, color: "text-success" },
+                  ].map(({ categories, headerPt, headerCn, icon, color }, idx) => (
+                    <div key={headerPt}>
+                      {idx > 0 && <div className="my-2 border-t border-border" />}
+                      <div className={cn("flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-wide", color)}>
+                        {icon}
+                        <span>{headerPt}</span>
+                        <span className="font-normal opacity-60">{headerCn}</span>
+                      </div>
+                      {categories.map((cat) => {
+                        const catDocs = documentos.filter((d) => cat.tipos.includes(d.tipo_documento));
+                        const catTotal = CHINA_DOCUMENT_TYPES.filter((d) => cat.tipos.includes(d.tipo)).length;
+                        const catFilled = new Set(catDocs.map((d) => d.tipo_documento)).size;
+                        const hasRejected = catDocs.some((d) => d.status === "rejeitado");
+                        const hasDrafts = catDocs.some((d) => d.status === "rascunho");
+                        const allApproved = catFilled === catTotal && catDocs.length > 0 && catDocs.every((d) => d.status === "aprovado");
+                        const isActive = activeCat === cat.key;
 
-                    return (
-                      <button
-                        key={cat.key}
-                        onClick={() => setActiveCat(cat.key)}
-                        className={cn(
-                          "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
-                          isActive
-                            ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
-                            : "hover:bg-accent/50 text-foreground"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="truncate">{cat.labelPt}</span>
-                          <span className="text-[10px] text-muted-foreground">{catFilled}/{catTotal}</span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
-                        <div className="flex gap-1 mt-1">
-                          {allApproved && <Badge variant="success" className="text-[9px] px-1 py-0 h-4">✓</Badge>}
-                          {hasRejected && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">✗</Badge>}
-                          {hasDrafts && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">📝</Badge>}
-                        </div>
-                      </button>
-                    );
-                  })}
+                        return (
+                          <button
+                            key={cat.key}
+                            onClick={() => setActiveCat(cat.key)}
+                            className={cn(
+                              "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
+                              isActive
+                                ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
+                                : "hover:bg-accent/50 text-foreground"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="truncate">{cat.labelPt}</span>
+                              <span className="text-[10px] text-muted-foreground">{catFilled}/{catTotal}</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
+                            <div className="flex gap-1 mt-1">
+                              {allApproved && <Badge variant="success" className="text-[9px] px-1 py-0 h-4">✓</Badge>}
+                              {hasRejected && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">✗</Badge>}
+                              {hasDrafts && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">📝</Badge>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </ScrollArea>
               {draftDocs.length > 0 && (
