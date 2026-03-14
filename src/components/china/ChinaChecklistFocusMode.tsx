@@ -1,19 +1,23 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
   FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
+  Plus, FolderPlus,
 } from "lucide-react";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
+import type { DocumentSlotConfig } from "@/components/china/ChinaDocumentSlot";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +25,8 @@ import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createElement } from "react";
 
 interface DocRecord {
   id: string;
@@ -59,6 +65,28 @@ const statusBorders: Record<string, string> = {
   planejado: "border-l-primary border-l-4 border-dashed",
 };
 
+// Merged category type used internally
+interface MergedCategory {
+  key: string;
+  labelPt: string;
+  labelCn: string;
+  tipos: string[];
+  fluxo: "china_envia" | "brasil_envia";
+  isCustom?: boolean;
+  customId?: string;
+}
+
+// Merged document type used internally
+interface MergedDocType {
+  tipo: string;
+  labelPt: string;
+  labelCn: string;
+  icon: React.ReactNode;
+  accept?: string;
+  multiple?: boolean;
+  isCustom?: boolean;
+}
+
 export function ChinaChecklistFocusMode({
   submissaoId,
   documentos,
@@ -73,16 +101,106 @@ export function ChinaChecklistFocusMode({
   const [submitting, setSubmitting] = useState(false);
   const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const queryClient = useQueryClient();
 
   // Preview dialog state
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewTipo, setPreviewTipo] = useState<{ tipo: string; pt: string; cn: string } | null>(null);
 
+  // Add category/item dialogs
+  const [addCatOpen, setAddCatOpen] = useState(false);
+  const [addCatFluxo, setAddCatFluxo] = useState<"china_envia" | "brasil_envia">("china_envia");
+  const [addCatLabelPt, setAddCatLabelPt] = useState("");
+  const [addCatLabelCn, setAddCatLabelCn] = useState("");
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [addItemCatKey, setAddItemCatKey] = useState("");
+  const [addItemCustomCatId, setAddItemCustomCatId] = useState<string | null>(null);
+  const [addItemLabelPt, setAddItemLabelPt] = useState("");
+  const [addItemLabelCn, setAddItemLabelCn] = useState("");
+
+  // Fetch custom categories
+  const { data: customCategories = [] } = useQuery({
+    queryKey: ["checklist-custom-cats", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_custom_categorias" as any)
+        .select("*")
+        .eq("submissao_id", submissaoId)
+        .order("ordem") as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  // Fetch custom items
+  const { data: customItems = [] } = useQuery({
+    queryKey: ["checklist-custom-items", submissaoId],
+    enabled: !!submissaoId && isOpen,
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_checklist_custom_itens" as any)
+        .select("*")
+        .eq("submissao_id", submissaoId)
+        .order("created_at") as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  // Merge categories: default + custom
+  const allCategories = useMemo(() => {
+    const defaultCats: MergedCategory[] = DOCUMENT_CATEGORIES.map(c => ({
+      ...c,
+      isCustom: false,
+    }));
+    const customCats: MergedCategory[] = customCategories.map((c: any) => ({
+      key: `custom_${c.id}`,
+      labelPt: c.label_pt,
+      labelCn: c.label_cn || "",
+      tipos: customItems.filter((i: any) => i.categoria_custom_id === c.id).map((i: any) => i.tipo_key),
+      fluxo: c.fluxo,
+      isCustom: true,
+      customId: c.id,
+    }));
+    return [...defaultCats, ...customCats];
+  }, [customCategories, customItems]);
+
+  // Merge doc types: default + custom items added to default categories
+  const allDocTypes = useMemo(() => {
+    const defaults: MergedDocType[] = CHINA_DOCUMENT_TYPES.map(d => ({ ...d, isCustom: false }));
+    const customs: MergedDocType[] = customItems.map((i: any) => ({
+      tipo: i.tipo_key,
+      labelPt: i.label_pt,
+      labelCn: i.label_cn || "",
+      icon: createElement(FileText, { className: "h-5 w-5 text-muted-foreground" }),
+      accept: i.accept || undefined,
+      multiple: i.multiple || false,
+      isCustom: true,
+    }));
+    return [...defaults, ...customs];
+  }, [customItems]);
+
+  // Add custom items to default categories
+  const enrichedCategories = useMemo(() => {
+    return allCategories.map(cat => {
+      if (cat.isCustom) return cat;
+      // Find custom items assigned to this default category
+      const extraItems = customItems
+        .filter((i: any) => i.categoria_default_key === cat.key && !i.categoria_custom_id)
+        .map((i: any) => i.tipo_key);
+      return { ...cat, tipos: [...cat.tipos, ...extraItems] };
+    });
+  }, [allCategories, customItems]);
+
+  const chinaEnviaCats = enrichedCategories.filter(c => c.fluxo === "china_envia");
+  const brasilEnviaCats = enrichedCategories.filter(c => c.fluxo === "brasil_envia");
+
   // Counters for header
   const counters = useMemo(() => {
     const realDocs = documentos.filter(d => d.status !== "planejado");
     const filledTipos = new Set(realDocs.map(d => d.tipo_documento));
-    const allTipos = CHINA_DOCUMENT_TYPES.length;
+    const allTipos = allDocTypes.length;
     return {
       total: allTipos,
       aprovados: realDocs.filter(d => d.status === "aprovado" || d.status === "ciencia").length,
@@ -94,7 +212,7 @@ export function ChinaChecklistFocusMode({
       filled: filledTipos.size,
       progressPct: allTipos > 0 ? Math.round((filledTipos.size / allTipos) * 100) : 0,
     };
-  }, [documentos]);
+  }, [documentos, allDocTypes]);
 
   const draftDocs = useMemo(() => documentos.filter((d) => d.status === "rascunho"), [documentos]);
 
