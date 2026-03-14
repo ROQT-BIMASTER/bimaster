@@ -426,24 +426,35 @@ export default function ChinaNovaSubmissao() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: manualData.produto_codigo,
-          produto_nome: manualData.produto_nome,
-          numero_item: manualData.numero_item || null,
-          numero_ordem: manualData.numero_ordem || null,
-          formula_codigo: manualData.formula_codigo || null,
-          qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
-          dados_excel: { _manual: true, ...manualData },
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
+      const payload = {
+        produto_codigo: manualData.produto_codigo,
+        produto_nome: manualData.produto_nome,
+        numero_item: manualData.numero_item || null,
+        numero_ordem: manualData.numero_ordem || null,
+        formula_codigo: manualData.formula_codigo || null,
+        qty_total: manualData.qty_total ? parseInt(manualData.qty_total) : null,
+        dados_excel: { _manual: true, ...manualData },
+        status: "rascunho",
+      };
 
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
+      if (submissaoId) {
+        // Update existing submission
+        const { error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .update(payload as any)
+          .eq("id", submissaoId);
+        if (error) throw error;
+      } else {
+        // Create new submission
+        const { data: sub, error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .insert({ ...payload, created_by: session.user.id } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setSubmissaoId((sub as any).id);
+      }
+
       setParsedData({ _manual: true, ...manualData });
       toast.success("Dados salvos! 数据已保存！");
       setStep(1);
@@ -452,7 +463,7 @@ export default function ChinaNovaSubmissao() {
     } finally {
       setParsing(false);
     }
-  }, [manualData]);
+  }, [manualData, submissaoId]);
 
   // Step 2: Upload documents
   const handleDocUpload = useCallback(async (tipo: string, file: File) => {
