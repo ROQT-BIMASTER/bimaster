@@ -124,6 +124,7 @@ export const CATEGORIES_CHINA_ENVIA = DOCUMENT_CATEGORIES.filter(c => c.fluxo ==
 export const CATEGORIES_BRASIL_ENVIA = DOCUMENT_CATEGORIES.filter(c => c.fluxo === "brasil_envia");
 
 export const STATUS_LABELS: Record<string, { pt: string; cn: string; variant: "default" | "secondary" | "success" | "destructive" | "warning" }> = {
+  planejado: { pt: "Planejado", cn: "已计划", variant: "default" },
   rascunho: { pt: "Rascunho", cn: "草稿", variant: "secondary" },
   pendente: { pt: "Pendente", cn: "待审核", variant: "warning" },
   enviado: { pt: "Enviado", cn: "已发送", variant: "warning" },
