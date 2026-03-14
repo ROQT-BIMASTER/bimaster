@@ -1691,11 +1691,17 @@ export type Database = {
         Row: {
           arquivo_path: string | null
           arquivo_url: string | null
+          assinado_em: string | null
+          assinado_por: string | null
+          assinatura_nome: string | null
           cofre_item_id: string | null
           created_at: string
           id: string
           nome_arquivo: string | null
           observacao: string | null
+          oficializado: boolean
+          oficializado_em: string | null
+          oficializado_por: string | null
           previsao_envio: string | null
           status: string
           submissao_id: string
@@ -1704,11 +1710,17 @@ export type Database = {
         Insert: {
           arquivo_path?: string | null
           arquivo_url?: string | null
+          assinado_em?: string | null
+          assinado_por?: string | null
+          assinatura_nome?: string | null
           cofre_item_id?: string | null
           created_at?: string
           id?: string
           nome_arquivo?: string | null
           observacao?: string | null
+          oficializado?: boolean
+          oficializado_em?: string | null
+          oficializado_por?: string | null
           previsao_envio?: string | null
           status?: string
           submissao_id: string
@@ -1717,11 +1729,17 @@ export type Database = {
         Update: {
           arquivo_path?: string | null
           arquivo_url?: string | null
+          assinado_em?: string | null
+          assinado_por?: string | null
+          assinatura_nome?: string | null
           cofre_item_id?: string | null
           created_at?: string
           id?: string
           nome_arquivo?: string | null
           observacao?: string | null
+          oficializado?: boolean
+          oficializado_em?: string | null
+          oficializado_por?: string | null
           previsao_envio?: string | null
           status?: string
           submissao_id?: string
