@@ -757,9 +757,7 @@ function CofreDoProdutoSection({
             <DialogTitle>Adicionar Itens ao Cofre</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 max-h-[300px] overflow-y-auto py-2">
-            {configs.filter(c => c.status === "ativo").map(c => {
-              const alreadyExists = activeConfigs.some(ac => ac.id === c.id);
-              return (
+            {configs.filter(c => !activeConfigs.some(ac => ac.id === c.id)).map(c => (
                 <label key={c.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 cursor-pointer">
                   <Checkbox
                     checked={selectedToAdd.includes(c.id)}
@@ -777,13 +775,16 @@ function CofreDoProdutoSection({
                     {c.obrigatorio ? "Obrigatório" : "Opcional"}
                   </Badge>
                 </label>
-              );
-            })}
+              ))}
+              {configs.filter(c => !activeConfigs.some(ac => ac.id === c.id)).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Todos os itens já estão no cofre</p>
+              )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
             <Button
               onClick={() => {
+                setExtraConfigIds(prev => [...prev, ...selectedToAdd]);
                 toast.success(`${selectedToAdd.length} item(ns) adicionado(s)`);
                 setSelectedToAdd([]);
                 setAddDialogOpen(false);
