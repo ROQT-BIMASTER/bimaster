@@ -5,18 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BilingualLabel } from "./BilingualLabel";
 import { ChinaUploadPreviewDialog } from "./ChinaUploadPreviewDialog";
 import {
   Maximize2, X, Send, Save, Upload, Loader2, CheckCircle2, Clock, XCircle,
-  FileText, Eye, Trash2, Image as ImageIcon,
+  FileText, Eye, Trash2, Image as ImageIcon, CalendarIcon, AlertCircle,
 } from "lucide-react";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES, CATEGORIES_CHINA_ENVIA, CATEGORIES_BRASIL_ENVIA, STATUS_LABELS } from "@/lib/china-document-types";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadAndGetSignedUrl, getSignedUrl } from "@/lib/utils/storage-helper";
+import { uploadAndGetSignedUrl } from "@/lib/utils/storage-helper";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface DocRecord {
   id: string;
@@ -26,6 +30,7 @@ interface DocRecord {
   observacao: string | null;
   arquivo_url: string | null;
   arquivo_path: string | null;
+  previsao_envio?: string | null;
 }
 
 interface ChinaChecklistFocusModeProps {
@@ -38,10 +43,20 @@ interface ChinaChecklistFocusModeProps {
 }
 
 const statusIcons: Record<string, React.ReactNode> = {
+  planejado: <CalendarIcon className="h-3.5 w-3.5 text-primary" />,
   rascunho: <Save className="h-3.5 w-3.5 text-muted-foreground" />,
   pendente: <Clock className="h-3.5 w-3.5 text-warning" />,
   aprovado: <CheckCircle2 className="h-3.5 w-3.5 text-success" />,
   rejeitado: <XCircle className="h-3.5 w-3.5 text-destructive" />,
+};
+
+// Visual border colors per status
+const statusBorders: Record<string, string> = {
+  aprovado: "border-l-success border-l-4",
+  rejeitado: "border-l-destructive border-l-4",
+  pendente: "border-l-warning border-l-4",
+  rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
+  planejado: "border-l-primary border-l-4 border-dashed",
 };
 
 export function ChinaChecklistFocusMode({
@@ -63,15 +78,25 @@ export function ChinaChecklistFocusMode({
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewTipo, setPreviewTipo] = useState<{ tipo: string; pt: string; cn: string } | null>(null);
 
-  const draftDocs = useMemo(() => documentos.filter((d) => d.status === "rascunho"), [documentos]);
-
-  const allTipos = CHINA_DOCUMENT_TYPES.length;
-  const filledTipos = useMemo(() => {
-    const filled = new Set<string>();
-    documentos.forEach((d) => filled.add(d.tipo_documento));
-    return filled.size;
+  // Counters for header
+  const counters = useMemo(() => {
+    const realDocs = documentos.filter(d => d.status !== "planejado");
+    const filledTipos = new Set(realDocs.map(d => d.tipo_documento));
+    const allTipos = CHINA_DOCUMENT_TYPES.length;
+    return {
+      total: allTipos,
+      aprovados: realDocs.filter(d => d.status === "aprovado" || d.status === "ciencia").length,
+      enviados: realDocs.filter(d => d.status === "pendente" || d.status === "enviado").length,
+      rascunhos: realDocs.filter(d => d.status === "rascunho").length,
+      rejeitados: realDocs.filter(d => d.status === "rejeitado").length,
+      faltando: allTipos - filledTipos.size,
+      comPrevisao: documentos.filter(d => d.previsao_envio).length,
+      filled: filledTipos.size,
+      progressPct: allTipos > 0 ? Math.round((filledTipos.size / allTipos) * 100) : 0,
+    };
   }, [documentos]);
-  const progressPct = allTipos > 0 ? Math.round((filledTipos / allTipos) * 100) : 0;
+
+  const draftDocs = useMemo(() => documentos.filter((d) => d.status === "rascunho"), [documentos]);
 
   const toggleSelect = useCallback((docId: string) => {
     setSelected((prev) => {
@@ -113,14 +138,26 @@ export function ChinaChecklistFocusMode({
       const path = `${submissaoId}/${previewTipo.tipo}/${Date.now()}_${file.name}`;
       const { signedUrl, error } = await uploadAndGetSignedUrl("china-documentos", path, file);
       if (error) { toast.error("Erro no upload 上传错误"); return; }
-      await supabase.from("china_produto_documentos" as any).insert({
-        submissao_id: submissaoId,
-        tipo_documento: previewTipo.tipo,
-        arquivo_url: signedUrl,
-        arquivo_path: path,
-        nome_arquivo: file.name,
-        status,
-      } as any);
+
+      // Check if there's a "planejado" placeholder to update instead of insert
+      const existingPlaceholder = documentos.find(d => d.tipo_documento === previewTipo.tipo && d.status === "planejado");
+      if (existingPlaceholder) {
+        await supabase.from("china_produto_documentos" as any).update({
+          arquivo_url: signedUrl,
+          arquivo_path: path,
+          nome_arquivo: file.name,
+          status,
+        } as any).eq("id", existingPlaceholder.id);
+      } else {
+        await supabase.from("china_produto_documentos" as any).insert({
+          submissao_id: submissaoId,
+          tipo_documento: previewTipo.tipo,
+          arquivo_url: signedUrl,
+          arquivo_path: path,
+          nome_arquivo: file.name,
+          status,
+        } as any);
+      }
       onRefresh();
       toast.success(status === "rascunho" ? "Salvo como rascunho 已保存为草稿" : "Enviado ao Brasil 已发送至巴西");
     } finally {
@@ -130,9 +167,64 @@ export function ChinaChecklistFocusMode({
     }
   };
 
+  const handleSetPrevisao = async (tipo: string, date: Date | undefined) => {
+    if (!date) return;
+    const dateStr = format(date, "yyyy-MM-dd");
+    // Check if a placeholder already exists
+    const existing = documentos.find(d => d.tipo_documento === tipo && (d.status === "planejado" || !d.arquivo_path));
+    try {
+      if (existing) {
+        await supabase.from("china_produto_documentos" as any)
+          .update({ previsao_envio: dateStr } as any)
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("china_produto_documentos" as any).insert({
+          submissao_id: submissaoId,
+          tipo_documento: tipo,
+          status: "planejado",
+          previsao_envio: dateStr,
+        } as any);
+      }
+      onRefresh();
+      toast.success("Previsão definida 预计日期已设置");
+    } catch {
+      toast.error("Erro ao definir previsão");
+    }
+  };
+
+  const handleClearPrevisao = async (docId: string) => {
+    try {
+      const doc = documentos.find(d => d.id === docId);
+      if (doc?.status === "planejado") {
+        // Remove the placeholder entirely
+        await supabase.from("china_produto_documentos" as any).delete().eq("id", docId);
+      } else {
+        await supabase.from("china_produto_documentos" as any)
+          .update({ previsao_envio: null } as any).eq("id", docId);
+      }
+      onRefresh();
+    } catch {
+      toast.error("Erro ao limpar previsão");
+    }
+  };
+
   // Active category data
   const activeCatObj = DOCUMENT_CATEGORIES.find((c) => c.key === activeCat)!;
   const activeCatTypes = CHINA_DOCUMENT_TYPES.filter((d) => activeCatObj.tipos.includes(d.tipo));
+
+  // Sidebar category stats helper
+  const getCatStats = (cat: typeof DOCUMENT_CATEGORIES[0]) => {
+    const catDocs = documentos.filter(d => cat.tipos.includes(d.tipo_documento));
+    const realDocs = catDocs.filter(d => d.status !== "planejado");
+    const catTotal = cat.tipos.length;
+    const filledTipos = new Set(realDocs.map(d => d.tipo_documento)).size;
+    const aprovados = realDocs.filter(d => d.status === "aprovado" || d.status === "ciencia").length;
+    const rejeitados = realDocs.filter(d => d.status === "rejeitado").length;
+    const rascunhos = realDocs.filter(d => d.status === "rascunho").length;
+    const comPrevisao = catDocs.filter(d => d.previsao_envio).length;
+    const pct = catTotal > 0 ? Math.round((filledTipos / catTotal) * 100) : 0;
+    return { catTotal, filledTipos, aprovados, rejeitados, rascunhos, comPrevisao, pct };
+  };
 
   return (
     <>
@@ -144,38 +236,44 @@ export function ChinaChecklistFocusMode({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden flex flex-col">
           {/* Header */}
-          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur flex-row items-center justify-between space-y-0 shrink-0">
-            <div>
-              <DialogTitle className="text-xl font-bold">Checklist de Documentos 文件清单</DialogTitle>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs text-muted-foreground">{filledTipos}/{allTipos} tipos preenchidos</span>
-                <Progress value={progressPct} gradient className="h-1.5 w-32" />
-                <span className="text-xs font-medium text-foreground">{progressPct}%</span>
+          <DialogHeader className="px-6 py-4 border-b bg-background/95 backdrop-blur shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold">Checklist de Documentos 文件清单</DialogTitle>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <Progress value={counters.progressPct} gradient className="h-2 w-40" />
+                  <span className="text-xs font-medium text-foreground">{counters.filled}/{counters.total} · {counters.progressPct}%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {selected.size > 0 && (
+                  <Button variant="gradient" size="sm" disabled={submitting} onClick={handleSubmitSelected} className="gap-2">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Submeter {selected.size} ao Brasil
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {selected.size > 0 && (
-                <Button
-                  variant="gradient"
-                  size="sm"
-                  disabled={submitting}
-                  onClick={handleSubmitSelected}
-                  className="gap-2"
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Submeter {selected.size} ao Brasil
-                </Button>
+            {/* Counter chips */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <CounterChip icon={<CheckCircle2 className="h-3 w-3" />} label="Aprovados" value={counters.aprovados} colorClass="text-success bg-success/10" />
+              <CounterChip icon={<Clock className="h-3 w-3" />} label="Enviados" value={counters.enviados} colorClass="text-warning bg-warning/10" />
+              <CounterChip icon={<Save className="h-3 w-3" />} label="Rascunhos" value={counters.rascunhos} colorClass="text-muted-foreground bg-muted" />
+              <CounterChip icon={<XCircle className="h-3 w-3" />} label="Rejeitados" value={counters.rejeitados} colorClass="text-destructive bg-destructive/10" />
+              <CounterChip icon={<Upload className="h-3 w-3" />} label="Faltando" value={counters.faltando} colorClass="text-foreground bg-secondary" />
+              {counters.comPrevisao > 0 && (
+                <CounterChip icon={<CalendarIcon className="h-3 w-3" />} label="Com Previsão" value={counters.comPrevisao} colorClass="text-primary bg-primary/10" />
               )}
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           </DialogHeader>
 
           {/* Body: Sidebar + Main */}
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar */}
-            <div className="w-56 border-r bg-muted/20 flex flex-col shrink-0">
+            <div className="w-60 border-r bg-muted/20 flex flex-col shrink-0">
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {[
@@ -190,12 +288,7 @@ export function ChinaChecklistFocusMode({
                         <span className="font-normal opacity-60">{headerCn}</span>
                       </div>
                       {categories.map((cat) => {
-                        const catDocs = documentos.filter((d) => cat.tipos.includes(d.tipo_documento));
-                        const catTotal = CHINA_DOCUMENT_TYPES.filter((d) => cat.tipos.includes(d.tipo)).length;
-                        const catFilled = new Set(catDocs.map((d) => d.tipo_documento)).size;
-                        const hasRejected = catDocs.some((d) => d.status === "rejeitado");
-                        const hasDrafts = catDocs.some((d) => d.status === "rascunho");
-                        const allApproved = catFilled === catTotal && catDocs.length > 0 && catDocs.every((d) => d.status === "aprovado");
+                        const stats = getCatStats(cat);
                         const isActive = activeCat === cat.key;
 
                         return (
@@ -211,13 +304,35 @@ export function ChinaChecklistFocusMode({
                           >
                             <div className="flex items-center justify-between">
                               <span className="truncate">{cat.labelPt}</span>
-                              <span className="text-[10px] text-muted-foreground">{catFilled}/{catTotal}</span>
+                              <span className={cn(
+                                "text-[10px] font-medium",
+                                stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "text-success" : "text-muted-foreground"
+                              )}>
+                                {stats.filledTipos}/{stats.catTotal}
+                              </span>
                             </div>
                             <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
+                            {/* Mini progress bar */}
+                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-500",
+                                  stats.rejeitados > 0 ? "bg-destructive" :
+                                  stats.filledTipos === stats.catTotal && stats.catTotal > 0 ? "bg-success" :
+                                  "bg-primary"
+                                )}
+                                style={{ width: `${stats.pct}%` }}
+                              />
+                            </div>
+                            {/* Indicators */}
                             <div className="flex gap-1 mt-1">
-                              {allApproved && <Badge variant="success" className="text-[9px] px-1 py-0 h-4">✓</Badge>}
-                              {hasRejected && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">✗</Badge>}
-                              {hasDrafts && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">📝</Badge>}
+                              {stats.rejeitados > 0 && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">{stats.rejeitados}✗</Badge>}
+                              {stats.rascunhos > 0 && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{stats.rascunhos}📝</Badge>}
+                              {stats.comPrevisao > 0 && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] text-primary">
+                                  <CalendarIcon className="h-2.5 w-2.5" />{stats.comPrevisao}
+                                </span>
+                              )}
                             </div>
                           </button>
                         );
@@ -242,23 +357,45 @@ export function ChinaChecklistFocusMode({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeCatTypes.map((config) => {
                     const typeDocs = documentos.filter((d) => d.tipo_documento === config.tipo);
-                    const typeDrafts = typeDocs.filter((d) => d.status === "rascunho");
+                    const realDocs = typeDocs.filter(d => d.status !== "planejado");
                     const isUploading = uploadingTipo === config.tipo;
                     const hasImage = config.accept?.includes("image");
+
+                    // Determine card visual state
+                    const hasRejected = realDocs.some(d => d.status === "rejeitado");
+                    const allApproved = realDocs.length > 0 && realDocs.every(d => d.status === "aprovado" || d.status === "ciencia");
+                    const hasPending = realDocs.some(d => d.status === "pendente");
+                    const hasDraft = realDocs.some(d => d.status === "rascunho");
+                    const isEmpty = realDocs.length === 0;
+
+                    const cardBorder = hasRejected ? statusBorders.rejeitado
+                      : allApproved ? statusBorders.aprovado
+                      : hasPending ? statusBorders.pendente
+                      : hasDraft ? statusBorders.rascunho
+                      : isEmpty && typeDocs.some(d => d.status === "planejado") ? statusBorders.planejado
+                      : "";
+
+                    // Previsão
+                    const previsaoDoc = typeDocs.find(d => d.previsao_envio);
+                    const previsaoDate = previsaoDoc?.previsao_envio ? new Date(previsaoDoc.previsao_envio + "T12:00:00") : undefined;
+                    const isOverdue = previsaoDate && previsaoDate < new Date() && isEmpty;
 
                     return (
                       <div
                         key={config.tipo}
                         className={cn(
                           "border rounded-xl bg-card p-4 space-y-3 transition-all",
-                          typeDocs.some((d) => d.status === "rejeitado") && "border-destructive/40",
-                          typeDocs.length === 0 && "border-dashed border-muted-foreground/30"
+                          cardBorder,
+                          isEmpty && !typeDocs.some(d => d.status === "planejado") && "border-dashed border-muted-foreground/30 bg-muted/5",
                         )}
                       >
                         {/* Card header */}
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                            <div className={cn(
+                              "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                              allApproved ? "bg-success/10" : hasRejected ? "bg-destructive/10" : "bg-secondary"
+                            )}>
                               {config.icon || <FileText className="h-5 w-5 text-muted-foreground" />}
                             </div>
                             <div>
@@ -266,16 +403,31 @@ export function ChinaChecklistFocusMode({
                               <p className="text-xs text-muted-foreground">{config.labelCn}</p>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs gap-1 shrink-0"
-                            disabled={isUploading}
-                            onClick={() => fileInputRefs.current[config.tipo]?.click()}
-                          >
-                            {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                            Upload
-                          </Button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Previsão badge */}
+                            {previsaoDate && (
+                              <Badge
+                                variant={isOverdue ? "destructive" : "default"}
+                                className="text-[9px] px-1.5 py-0 h-5 gap-1 cursor-pointer"
+                                onClick={() => previsaoDoc && handleClearPrevisao(previsaoDoc.id)}
+                                title="Clique para remover previsão"
+                              >
+                                <CalendarIcon className="h-2.5 w-2.5" />
+                                {format(previsaoDate, "dd/MM", { locale: ptBR })}
+                                {isOverdue && <AlertCircle className="h-2.5 w-2.5" />}
+                              </Badge>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs gap-1"
+                              disabled={isUploading}
+                              onClick={() => fileInputRefs.current[config.tipo]?.click()}
+                            >
+                              {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                              Upload
+                            </Button>
+                          </div>
                           <input
                             ref={(el) => { fileInputRefs.current[config.tipo] = el; }}
                             type="file"
@@ -295,9 +447,9 @@ export function ChinaChecklistFocusMode({
                         </div>
 
                         {/* Files list */}
-                        {typeDocs.length > 0 ? (
+                        {realDocs.length > 0 ? (
                           <div className="space-y-1.5">
-                            {typeDocs.map((d) => {
+                            {realDocs.map((d) => {
                               const label = STATUS_LABELS[d.status] || STATUS_LABELS.rascunho;
                               const isDraft = d.status === "rascunho";
                               const isImg = hasImage && d.arquivo_url;
@@ -350,10 +502,31 @@ export function ChinaChecklistFocusMode({
                             })}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-                            <Upload className="h-8 w-8 mb-2 opacity-30" />
+                          <div className="flex flex-col items-center justify-center py-5 text-muted-foreground">
+                            <Upload className="h-7 w-7 mb-2 opacity-20" />
                             <p className="text-xs">Nenhum arquivo 无文件</p>
-                            <p className="text-[10px]">Arraste ou clique em Upload</p>
+                            <p className="text-[10px] mb-2">Arraste ou clique em Upload</p>
+                            {/* Previsão de envio inline datepicker */}
+                            {!previsaoDate && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-[10px] h-6 gap-1 text-primary hover:text-primary">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    Definir previsão de envio
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="center">
+                                  <Calendar
+                                    mode="single"
+                                    selected={undefined}
+                                    onSelect={(date) => date && handleSetPrevisao(config.tipo, date)}
+                                    disabled={(date) => date < new Date()}
+                                    initialFocus
+                                    className="p-3 pointer-events-auto"
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            )}
                           </div>
                         )}
 
@@ -377,13 +550,7 @@ export function ChinaChecklistFocusMode({
               <span className="text-sm text-foreground">
                 <strong>{selected.size}</strong> documento(s) selecionado(s) para submissão
               </span>
-              <Button
-                variant="gradient"
-                size="sm"
-                disabled={submitting}
-                onClick={handleSubmitSelected}
-                className="gap-2"
-              >
+              <Button variant="gradient" size="sm" disabled={submitting} onClick={handleSubmitSelected} className="gap-2">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Submeter ao Brasil 提交至巴西
               </Button>
@@ -401,5 +568,16 @@ export function ChinaChecklistFocusMode({
         onConfirm={handleConfirmUpload}
       />
     </>
+  );
+}
+
+/** Small counter chip for header */
+function CounterChip({ icon, label, value, colorClass }: { icon: React.ReactNode; label: string; value: number; colorClass: string }) {
+  return (
+    <div className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium", colorClass)}>
+      {icon}
+      <span className="font-bold">{value}</span>
+      <span>{label}</span>
+    </div>
   );
 }
