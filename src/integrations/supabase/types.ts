@@ -1696,6 +1696,7 @@ export type Database = {
           id: string
           nome_arquivo: string | null
           observacao: string | null
+          previsao_envio: string | null
           status: string
           submissao_id: string
           tipo_documento: string
@@ -1708,6 +1709,7 @@ export type Database = {
           id?: string
           nome_arquivo?: string | null
           observacao?: string | null
+          previsao_envio?: string | null
           status?: string
           submissao_id: string
           tipo_documento: string
@@ -1720,6 +1722,7 @@ export type Database = {
           id?: string
           nome_arquivo?: string | null
           observacao?: string | null
+          previsao_envio?: string | null
           status?: string
           submissao_id?: string
           tipo_documento?: string

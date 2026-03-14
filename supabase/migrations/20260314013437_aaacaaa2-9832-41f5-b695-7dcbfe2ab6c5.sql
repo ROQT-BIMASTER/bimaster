@@ -1,0 +1,1 @@
+ALTER TABLE china_produto_documentos ADD COLUMN IF NOT EXISTS previsao_envio DATE;
