@@ -18,7 +18,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   em_revisao: { label: "Em Revisão", variant: "default" },
   aprovado: { label: "Aprovado", variant: "success" },
   rejeitado: { label: "Rejeitado", variant: "destructive" },
-  arte_enviada: { label: "Arte Enviada", variant: "default" },
+  arte_enviada: { label: "Docs Enviados", variant: "default" },
 };
 
 interface Props {

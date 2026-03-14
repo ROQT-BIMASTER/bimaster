@@ -66,7 +66,7 @@ function getStatusLabel(status: string): string {
     case "enviado": return "Enviado";
     case "em_revisao": return "Em Revisão";
     case "aprovado": return "Aprovado";
-    case "arte_enviada": return "Arte Enviada";
+    case "arte_enviada": return "Docs Enviados";
     case "rejeitado": return "Rejeitado";
     default: return status;
   }

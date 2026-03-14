@@ -10,7 +10,7 @@ const STATUS_LABELS: Record<string, { pt: string; cn: string; variant: "default"
   em_revisao: { pt: "Em Revisão", cn: "审核中", variant: "warning" },
   aprovado: { pt: "Aprovado", cn: "已批准", variant: "success" },
   rejeitado: { pt: "Rejeitado", cn: "已拒绝", variant: "destructive" },
-  arte_enviada: { pt: "Arte Enviada", cn: "终稿已发送", variant: "success" },
+  arte_enviada: { pt: "Docs Enviados", cn: "文件已发送", variant: "success" },
 };
 
 interface ChinaProdutoWidgetProps {
