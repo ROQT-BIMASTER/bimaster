@@ -49,6 +49,7 @@ export default function ChinaFichaProduto() {
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [painelAprovacaoOpen, setPainelAprovacaoOpen] = useState(false);
+  const [cofreOpen, setCofreOpen] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
