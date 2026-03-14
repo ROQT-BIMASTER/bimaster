@@ -20,6 +20,7 @@ import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegul
 import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
 import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
+import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/DocumentosBrasilAssinatura";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
