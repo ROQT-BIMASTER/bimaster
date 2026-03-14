@@ -383,6 +383,12 @@ function Configuracoes() {
             )}
 
             {isAdmin && (
+              <TabsContent value="cofre-produto">
+                <CofreProdutoConfig />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
               <TabsContent value="integracao-erp">
                 <DocumentacaoIntegracaoERP />
               </TabsContent>

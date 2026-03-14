@@ -578,6 +578,225 @@ export function ChinaDataValidationDialog({
   );
 }
 
+// ─── Cofre do Produto Section (Dynamic) ───
+function CofreDoProdutoSection({
+  photos,
+  photoPreviews,
+  onPhotoUpload,
+  onRemovePhoto,
+}: {
+  photos: Record<string, File[]>;
+  photoPreviews: Record<string, string[]>;
+  onPhotoUpload: (key: string, files: FileList | null) => void;
+  onRemovePhoto: (key: string, index: number) => void;
+}) {
+  const { configs, loading } = useCofreProdutoConfig();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedToAdd, setSelectedToAdd] = useState<string[]>([]);
+
+  const activeConfigs = configs.filter(c => c.status === "ativo");
+
+  // Progress calculation
+  const totalItems = activeConfigs.length;
+  const filledItems = activeConfigs.filter(c => {
+    const key = `cofre_${c.id}`;
+    return (photos[key]?.length || 0) >= c.qtd_minima;
+  }).length;
+  const requiredItems = activeConfigs.filter(c => c.obrigatorio);
+  const requiredFilled = requiredItems.filter(c => {
+    const key = `cofre_${c.id}`;
+    return (photos[key]?.length || 0) >= c.qtd_minima;
+  }).length;
+  const allRequiredFilled = requiredFilled === requiredItems.length;
+  const progressPercent = totalItems > 0 ? (filledItems / totalItems) * 100 : 0;
+
+  const getAcceptByType = (tipo: string) => {
+    switch (tipo) {
+      case "foto": return "image/*";
+      case "video": return "video/*";
+      case "documento": return "application/pdf,.doc,.docx,.xlsx,.xls,.csv";
+      default: return "image/*,application/pdf,.doc,.docx,.xlsx,.xls,.csv,video/*";
+    }
+  };
+
+  const getTipoIcon = (tipo: string) => {
+    switch (tipo) {
+      case "foto": return <Camera className="h-5 w-5 text-muted-foreground" />;
+      case "video": return <Video className="h-5 w-5 text-muted-foreground" />;
+      case "documento": return <FileText className="h-5 w-5 text-muted-foreground" />;
+      default: return <File className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2 border-b border-border pb-1">
+        <FolderOpen className="h-4 w-4 text-primary" />
+        <BilingualLabel pt="Cofre do Produto" cn="产品保险库附件" size="md" />
+      </div>
+
+      {/* Progress Bar */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            {filledItems}/{totalItems} itens preenchidos
+            {!allRequiredFilled && (
+              <span className="text-destructive ml-2">
+                ({requiredItems.length - requiredFilled} obrigatório(s) pendente(s))
+              </span>
+            )}
+          </span>
+          <span className="font-medium">{Math.round(progressPercent)}%</span>
+        </div>
+        <Progress value={progressPercent} className="h-2" gradient />
+      </div>
+
+      <div className="flex items-center gap-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+        <Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
+        <p className="text-[10px] text-muted-foreground">
+          Fotos e documentos enviados aqui vão para o <strong className="text-foreground">Cofre do Produto</strong> com status <Badge variant="warning" className="text-[9px] px-1 py-0 inline">Pendente</Badge> para aprovação do Brasil.
+          上传的照片和文件将进入<strong>产品保险库</strong>，等待巴西审批。
+        </p>
+      </div>
+
+      {/* Dynamic grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {activeConfigs.map(config => {
+          const key = `cofre_${config.id}`;
+          const fieldFiles = photos[key] || [];
+          const previews = photoPreviews[key] || [];
+          const isFilled = fieldFiles.length >= config.qtd_minima;
+
+          return (
+            <div key={config.id} className="space-y-1">
+              <div className="flex items-center gap-1">
+                <Label className="text-[10px] leading-tight block flex-1">
+                  {config.nome_pt}
+                  {config.nome_zh && <span className="text-muted-foreground ml-1">{config.nome_zh}</span>}
+                </Label>
+                <Badge
+                  variant={config.obrigatorio ? "destructive" : "secondary"}
+                  className="text-[7px] px-1 py-0 shrink-0"
+                >
+                  {config.obrigatorio ? "🔴" : "⚪"}
+                </Badge>
+              </div>
+              <div className={cn(
+                "relative border-2 border-dashed rounded-lg p-2 hover:border-primary/50 transition-colors min-h-[60px] flex flex-col items-center justify-center gap-1",
+                isFilled ? "border-success/50 bg-success/5" : config.obrigatorio && fieldFiles.length === 0 ? "border-destructive/30 bg-destructive/5" : "border-muted-foreground/30"
+              )}>
+                {fieldFiles.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 w-full">
+                    {fieldFiles.map((file, i) => {
+                      const isImage = file.type.startsWith("image/");
+                      return (
+                        <div key={i} className="relative">
+                          {isImage && previews[i] ? (
+                            <img src={previews[i]} alt="" className="w-12 h-12 object-cover rounded border" />
+                          ) : (
+                            <div className="w-12 h-12 rounded border bg-muted flex flex-col items-center justify-center">
+                              <Paperclip className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-[6px] text-muted-foreground truncate max-w-[44px]">{file.name.split('.').pop()?.toUpperCase()}</span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onRemovePhoto(key, i)}
+                            className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  getTipoIcon(config.tipo_anexo)
+                )}
+                <input
+                  type="file"
+                  accept={getAcceptByType(config.tipo_anexo)}
+                  multiple
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={e => onPhotoUpload(key, e.target.files)}
+                />
+                {fieldFiles.length > 0 ? (
+                  <Badge variant="secondary" className="text-[8px] px-1 py-0">{fieldFiles.length} arquivo{fieldFiles.length > 1 ? "s" : ""}</Badge>
+                ) : (
+                  <span className="text-[8px] text-muted-foreground">
+                    + Anexar · Mín: {config.qtd_minima} {config.tipo_anexo !== "qualquer" ? config.tipo_anexo : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Add Item Button */}
+        <div className="space-y-1">
+          <Label className="text-[10px] leading-tight block text-transparent">.</Label>
+          <button
+            type="button"
+            onClick={() => setAddDialogOpen(true)}
+            className="w-full border-2 border-dashed border-primary/30 rounded-lg p-2 min-h-[60px] flex flex-col items-center justify-center gap-1 hover:border-primary/60 hover:bg-primary/5 transition-colors"
+          >
+            <Plus className="h-5 w-5 text-primary/60" />
+            <span className="text-[9px] text-primary/60 font-medium">+ Adicionar Item</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Add Item Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Itens ao Cofre</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto py-2">
+            {configs.filter(c => c.status === "ativo").map(c => {
+              const alreadyExists = activeConfigs.some(ac => ac.id === c.id);
+              return (
+                <label key={c.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 cursor-pointer">
+                  <Checkbox
+                    checked={selectedToAdd.includes(c.id)}
+                    onCheckedChange={v => {
+                      setSelectedToAdd(prev =>
+                        v ? [...prev, c.id] : prev.filter(id => id !== c.id)
+                      );
+                    }}
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{c.nome_pt}</p>
+                    {c.nome_zh && <p className="text-xs text-muted-foreground">{c.nome_zh}</p>}
+                  </div>
+                  <Badge variant={c.obrigatorio ? "destructive" : "secondary"} className="text-[9px]">
+                    {c.obrigatorio ? "Obrigatório" : "Opcional"}
+                  </Badge>
+                </label>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                toast.success(`${selectedToAdd.length} item(ns) adicionado(s)`);
+                setSelectedToAdd([]);
+                setAddDialogOpen(false);
+              }}
+              disabled={selectedToAdd.length === 0}
+            >
+              Adicionar Selecionados ({selectedToAdd.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
+
 // Password prompt for edit mode
 export function usePasswordProtectedEdit() {
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
