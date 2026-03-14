@@ -81,7 +81,7 @@ interface MergedDocType {
   tipo: string;
   labelPt: string;
   labelCn: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   accept?: string;
   multiple?: boolean;
   isCustom?: boolean;
