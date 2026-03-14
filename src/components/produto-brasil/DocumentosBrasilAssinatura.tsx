@@ -48,7 +48,7 @@ export function DocumentosBrasilAssinatura({ submissaoId, produtoNome }: Props) 
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("nome_completo")
+        .select("nome")
         .eq("id", user!.id)
         .single();
       return data;
