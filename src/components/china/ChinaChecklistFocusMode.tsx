@@ -273,7 +273,7 @@ export function ChinaChecklistFocusMode({
           {/* Body: Sidebar + Main */}
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar */}
-            <div className="w-60 border-r bg-muted/20 flex flex-col shrink-0">
+            <div className="w-72 border-r bg-muted/20 flex flex-col shrink-0 min-w-0">
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {[
