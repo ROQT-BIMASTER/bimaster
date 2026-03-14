@@ -234,29 +234,42 @@ export default function ChinaNovaSubmissao() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const { data: sub, error } = await supabase
-        .from("china_produto_submissoes" as any)
-        .insert({
-          produto_codigo: validatedData.produto_codigo || "UNKNOWN",
-          produto_nome: validatedData.produto_nome || "UNKNOWN",
-          numero_item: validatedData.numero_item || null,
-          numero_ordem: validatedData.numero_ordem || null,
-          formula_codigo: validatedData.formula_codigo || null,
-          qty_total: validatedData.qty_total || null,
-          peso_bruto_g: validatedData.peso_bruto_g || null,
-          peso_liquido_g: validatedData.peso_liquido_g || null,
-          tipo_material_plastico: validatedData.tipo_material_plastico || null,
-          ean_display: validatedData.ean_display || null,
-          ean_caixa_master: validatedData.ean_caixa_master || null,
-          dados_excel: validatedData,
-          created_by: session.user.id,
-          status: "rascunho",
-        } as any)
-        .select("id")
-        .single();
+      const submissaoPayload = {
+        produto_codigo: validatedData.produto_codigo || "UNKNOWN",
+        produto_nome: validatedData.produto_nome || "UNKNOWN",
+        numero_item: validatedData.numero_item || null,
+        numero_ordem: validatedData.numero_ordem || null,
+        formula_codigo: validatedData.formula_codigo || null,
+        qty_total: validatedData.qty_total || null,
+        peso_bruto_g: validatedData.peso_bruto_g || null,
+        peso_liquido_g: validatedData.peso_liquido_g || null,
+        tipo_material_plastico: validatedData.tipo_material_plastico || null,
+        ean_display: validatedData.ean_display || null,
+        ean_caixa_master: validatedData.ean_caixa_master || null,
+        dados_excel: validatedData,
+        status: "rascunho",
+      };
 
-      if (error) throw error;
-      setSubmissaoId((sub as any).id);
+      let activeSubId = submissaoId;
+
+      if (activeSubId) {
+        // Update existing submission
+        const { error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .update(submissaoPayload as any)
+          .eq("id", activeSubId);
+        if (error) throw error;
+      } else {
+        // Create new submission
+        const { data: sub, error } = await supabase
+          .from("china_produto_submissoes" as any)
+          .insert({ ...submissaoPayload, created_by: session.user.id } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        activeSubId = (sub as any).id;
+        setSubmissaoId(activeSubId);
+      }
 
       if (validatedData.cores?.length > 0) {
         const parsed: GradeItem[] = validatedData.cores.map((c: any) => ({
