@@ -233,8 +233,8 @@ export default function ChinaFichaProduto() {
 
   const statusInfo = STATUS_LABELS[submissao.status] || STATUS_LABELS.rascunho;
   const canApprove = !["aprovado", "arte_enviada"].includes(submissao.status);
-  const showArteSection = submissao.status === "aprovado";
-  const showArteDownload = submissao.status === "arte_enviada" && submissao.arte_final_url;
+  const showArteSection = false; // Legacy — replaced by TransferenciasOficiaisSection
+  const showArteDownload = false;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
