@@ -30,6 +30,7 @@ import { getSignedUrl, uploadAndGetSignedUrl } from "@/lib/utils/storage-helper"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
+import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusMode";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -417,7 +418,22 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Documents by Category */}
+        {/* Focus Mode + Documents by Category */}
+        <div className="flex items-center justify-between">
+          <BilingualLabel pt="Documentos" cn="文件" size="md" />
+          <ChinaChecklistFocusMode
+            submissaoId={id!}
+            documentos={documentos as any}
+            onUpload={handleDocUpload}
+            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] })}
+            onRemoveFile={async (fileId) => {
+              await supabase.from("china_produto_documentos" as any).delete().eq("id", fileId);
+              queryClient.invalidateQueries({ queryKey: ["china-ficha-docs", id] });
+              toast.success("Documento removido 文件已删除");
+            }}
+            onViewDoc={handleViewDoc}
+          />
+        </div>
         {DOCUMENT_CATEGORIES.map((cat) => {
           const catDocTypes = CHINA_DOCUMENT_TYPES.filter(d => cat.tipos.includes(d.tipo));
           return (
