@@ -19,6 +19,7 @@ import { ColunaChina } from "@/components/produto-brasil/ColunaChina";
 import { ChecklistRegulatorio } from "@/components/produto-brasil/ChecklistRegulatorio";
 import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtividades";
 import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
+import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +64,9 @@ export default function ProdutoBrasilCadastro() {
 
       {/* Status Pipeline - 12 stages */}
       <StatusPipeline currentStatus={produto.status} />
+
+      {/* Approval card - only when linked to China submission */}
+      {produto.submissao_china_id && <AprovacaoSubmissaoChina produto={produto} />}
 
       {/* Main Tabbed Content */}
       <Tabs defaultValue="identificacao" className="w-full">

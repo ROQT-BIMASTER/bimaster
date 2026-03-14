@@ -326,31 +326,6 @@ export default function ChinaFichaProduto() {
                     <ShoppingCart className="h-4 w-4 mr-1" /> Emitir OC 下采购单
                   </Button>
                 )}
-                {isBrasilUser && canApprove && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="success"
-                      onClick={() => {
-                        const missingMandatory = MANDATORY_DOCS.some(tipo => !documentos.find((d: any) => d.tipo_documento === tipo));
-                        if (missingMandatory) {
-                          toast.error("Foto e vídeo da amostra são obrigatórios! 照片和视频样品是必需的！");
-                          return;
-                        }
-                        updateSubStatus.mutate({ status: "aprovado" });
-                      }}
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar 批准
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => updateSubStatus.mutate({ status: "rejeitado" })}
-                    >
-                      <XCircle className="h-4 w-4 mr-1" /> Rejeitar 拒绝
-                    </Button>
-                  </>
-                )}
               </div>
             </div>
 
