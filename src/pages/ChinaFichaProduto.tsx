@@ -353,7 +353,7 @@ export default function ChinaFichaProduto() {
                   </p>
                 </div>
               )}
-              <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => navigate(`/dashboard/fabrica/cofre`)}>
+              <Button variant="outline" className="w-full gap-2 text-sm" onClick={() => setCofreOpen(true)}>
                 <FolderOpen className="h-4 w-4" /> Cofre de Documentos 文件保险箱
               </Button>
             </div>
