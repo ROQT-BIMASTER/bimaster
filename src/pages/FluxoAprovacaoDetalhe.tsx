@@ -11,6 +11,8 @@ import {
   Loader2, Palette, User, MessageSquare
 } from "lucide-react";
 import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { FluxoAnexosPanel } from "@/components/aprovacao/FluxoAnexosPanel";
+import { FluxoVinculosPanel } from "@/components/aprovacao/FluxoVinculosPanel";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
