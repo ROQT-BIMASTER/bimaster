@@ -300,6 +300,19 @@ export default function FluxoAprovacaoDetalhe() {
         </div>
       )}
 
+      {/* Documentos */}
+      <FluxoAnexosPanel
+        instanciaId={instancia.id}
+        etapaId={etapaAtual?.id}
+        readOnly={isFinished}
+      />
+
+      {/* Vínculos */}
+      <FluxoVinculosPanel
+        instanciaId={instancia.id}
+        readOnly={isFinished}
+      />
+
       {/* Timeline */}
       <Card>
         <CardHeader>
