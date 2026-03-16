@@ -105,7 +105,7 @@ export default function FluxoAprovacaoConfig() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left: Config list */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">

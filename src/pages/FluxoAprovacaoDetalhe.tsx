@@ -11,6 +11,8 @@ import {
   Loader2, Palette, User, MessageSquare
 } from "lucide-react";
 import { useFluxoInstanciaDetail, useAprovarEtapa, useReprovarEtapa, useDevolverEtapaAprovacao, type FluxoTransicao, type FluxoAprovador } from "@/hooks/useFluxoAprovacaoArtes";
+import { FluxoAnexosPanel } from "@/components/aprovacao/FluxoAnexosPanel";
+import { FluxoVinculosPanel } from "@/components/aprovacao/FluxoVinculosPanel";
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
@@ -110,8 +112,11 @@ export default function FluxoAprovacaoDetalhe() {
         <div className="p-2 rounded-lg bg-primary/10">
           <Palette className="h-5 w-5 text-primary" />
         </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">{instancia.config?.nome || "Fluxo de Aprovação"}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg md:text-xl font-bold truncate">{instancia.titulo || instancia.config?.nome || "Fluxo de Aprovação"}</h1>
+          {instancia.titulo && instancia.config?.nome && (
+            <p className="text-xs text-muted-foreground">{instancia.config.nome}</p>
+          )}
           <div className="flex items-center gap-2 mt-0.5">
             <StatusBadge status={instancia.status} />
             {instancia.rodada > 1 && (
@@ -294,6 +299,19 @@ export default function FluxoAprovacaoDetalhe() {
           )}
         </div>
       )}
+
+      {/* Documentos */}
+      <FluxoAnexosPanel
+        instanciaId={instancia.id}
+        etapaId={etapaAtual?.id}
+        readOnly={isFinished}
+      />
+
+      {/* Vínculos */}
+      <FluxoVinculosPanel
+        instanciaId={instancia.id}
+        readOnly={isFinished}
+      />
 
       {/* Timeline */}
       <Card>

@@ -34,6 +34,8 @@ export interface FluxoInstancia {
   submissao_id: string | null;
   projeto_id: string | null;
   produto_brasil_id: string | null;
+  titulo: string | null;
+  descricao: string | null;
   etapa_atual_ordem: number;
   status: string;
   rodada: number;
@@ -43,6 +45,7 @@ export interface FluxoInstancia {
   config?: FluxoConfig;
   etapa_atual?: FluxoEtapa;
   aprovadores?: FluxoAprovador[];
+  transicoes?: FluxoTransicao[];
 }
 
 export interface FluxoTransicao {
@@ -68,6 +71,31 @@ export interface FluxoAprovador {
   observacao: string | null;
   created_at: string;
   usuario?: { nome: string; avatar_url: string | null };
+}
+
+export interface FluxoAnexo {
+  id: string;
+  instancia_id: string;
+  etapa_id: string | null;
+  nome_arquivo: string;
+  arquivo_url: string;
+  tipo: string;
+  versao: number;
+  substituido_por: string | null;
+  uploaded_by: string | null;
+  observacao: string | null;
+  created_at: string;
+  uploaded_by_nome?: string;
+}
+
+export interface FluxoVinculo {
+  id: string;
+  instancia_id: string;
+  tipo_vinculo: string;
+  ref_id: string;
+  ref_label: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 // Hooks
@@ -223,7 +251,6 @@ export function useFluxoInstancias(filters?: { status?: string }) {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Enrich with config names
       const instancias = (data || []) as unknown as FluxoInstancia[];
       if (instancias.length === 0) return instancias;
 
@@ -257,7 +284,6 @@ export function useFluxoInstanciaDetail(instanciaId: string | undefined) {
 
       const instancia = inst as unknown as FluxoInstancia;
 
-      // Get config with stages
       const { data: config } = await supabase
         .from("fluxo_aprovacao_config" as any)
         .select("*")
@@ -270,20 +296,17 @@ export function useFluxoInstanciaDetail(instanciaId: string | undefined) {
         .eq("config_id", instancia.config_id)
         .order("ordem");
 
-      // Get approvers for current stage
       const { data: aprovadores } = await supabase
         .from("fluxo_aprovacao_aprovadores" as any)
         .select("*")
         .eq("instancia_id", instanciaId);
 
-      // Get transition history
       const { data: transicoes } = await supabase
         .from("fluxo_aprovacao_transicoes" as any)
         .select("*")
         .eq("instancia_id", instanciaId)
         .order("created_at", { ascending: false });
 
-      // Enrich with user names
       const userIds = [
         ...new Set([
           ...(aprovadores || []).map((a: any) => a.usuario_id).filter(Boolean),
@@ -329,17 +352,23 @@ export function useIniciarFluxo() {
   return useMutation({
     mutationFn: async (payload: {
       config_id: string;
+      titulo?: string;
+      descricao?: string;
       submissao_id?: string;
       projeto_id?: string;
       produto_brasil_id?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Create instance
       const { data: inst, error } = await supabase
         .from("fluxo_aprovacao_instancias" as any)
         .insert({
-          ...payload,
+          config_id: payload.config_id,
+          titulo: payload.titulo || null,
+          descricao: payload.descricao || null,
+          submissao_id: payload.submissao_id || null,
+          projeto_id: payload.projeto_id || null,
+          produto_brasil_id: payload.produto_brasil_id || null,
           etapa_atual_ordem: 0,
           status: "em_andamento",
           created_by: user?.id,
@@ -350,7 +379,6 @@ export function useIniciarFluxo() {
 
       const instanciaId = (inst as any).id;
 
-      // Get first stage
       const { data: etapas } = await supabase
         .from("fluxo_aprovacao_etapas" as any)
         .select("*")
@@ -362,7 +390,6 @@ export function useIniciarFluxo() {
       const firstStage = (etapas || [])[0] as any;
 
       if (firstStage) {
-        // Create approvers if parallel
         if (firstStage.tipo_aprovacao === "paralela") {
           const approvers = [
             { responsavel_tipo: "principal", usuario_id: firstStage.responsavel_id },
@@ -380,7 +407,6 @@ export function useIniciarFluxo() {
           }
         }
 
-        // Log transition
         await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
           instancia_id: instanciaId,
           etapa_id: firstStage.id,
@@ -405,28 +431,18 @@ export function useAprovarEtapa() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      instanciaId,
-      etapaId,
-      etapaNome,
-      observacao,
-      aprovadorId,
+      instanciaId, etapaId, etapaNome, observacao, aprovadorId,
     }: {
-      instanciaId: string;
-      etapaId: string;
-      etapaNome: string;
-      observacao?: string;
-      aprovadorId?: string;
+      instanciaId: string; etapaId: string; etapaNome: string; observacao?: string; aprovadorId?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // If parallel, update specific approver
       if (aprovadorId) {
         await supabase
           .from("fluxo_aprovacao_aprovadores" as any)
           .update({ status: "aprovado", observacao, updated_at: new Date().toISOString() } as any)
           .eq("id", aprovadorId);
 
-        // Check if all approvers for this stage are approved
         const { data: allApprovers } = await supabase
           .from("fluxo_aprovacao_aprovadores" as any)
           .select("status")
@@ -435,40 +451,30 @@ export function useAprovarEtapa() {
 
         const allApproved = ((allApprovers || []) as any[]).every((a: any) => a.status === "aprovado");
         if (!allApproved) {
-          // Log partial approval
           await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
-            instancia_id: instanciaId,
-            etapa_id: etapaId,
-            etapa_nome: etapaNome,
-            usuario_id: user?.id,
-            acao: "aprovar",
-            observacao: `Aprovação parcial: ${observacao || ""}`,
-            rodada: 1,
+            instancia_id: instanciaId, etapa_id: etapaId, etapa_nome: etapaNome,
+            usuario_id: user?.id, acao: "aprovar",
+            observacao: `Aprovação parcial: ${observacao || ""}`, rodada: 1,
           } as any);
           return { advanced: false };
         }
       }
 
-      // Get instance and advance to next stage
       const { data: inst } = await supabase
         .from("fluxo_aprovacao_instancias" as any)
         .select("*")
         .eq("id", instanciaId)
         .single();
-
       const instancia = inst as any;
 
-      // Get current stage for destino_aprovacao
       const { data: currentStage } = await supabase
         .from("fluxo_aprovacao_etapas" as any)
         .select("*")
         .eq("id", etapaId)
         .single();
-
       const stage = currentStage as any;
       const nextOrdem = stage?.destino_aprovacao_ordem ?? (instancia.etapa_atual_ordem + 1);
 
-      // Check if next stage exists
       const { data: nextStages } = await supabase
         .from("fluxo_aprovacao_etapas" as any)
         .select("*")
@@ -479,46 +485,32 @@ export function useAprovarEtapa() {
       const nextStage = ((nextStages || []) as any[])[0];
 
       if (nextStage) {
-        // Advance to next stage
         await supabase
           .from("fluxo_aprovacao_instancias" as any)
           .update({ etapa_atual_ordem: nextOrdem, updated_at: new Date().toISOString() } as any)
           .eq("id", instanciaId);
 
-        // Create approvers for next stage if parallel
         if (nextStage.tipo_aprovacao === "paralela") {
           const approvers = [
             { responsavel_tipo: "principal", usuario_id: nextStage.responsavel_id },
             { responsavel_tipo: "secundario", usuario_id: nextStage.responsavel_secundario_id },
           ].filter(a => a.usuario_id);
-
           if (approvers.length > 0) {
             await supabase.from("fluxo_aprovacao_aprovadores" as any).insert(
-              approvers.map(a => ({
-                instancia_id: instanciaId,
-                etapa_id: nextStage.id,
-                ...a,
-              })) as any
+              approvers.map(a => ({ instancia_id: instanciaId, etapa_id: nextStage.id, ...a })) as any
             );
           }
         }
       } else {
-        // No more stages — mark as approved
         await supabase
           .from("fluxo_aprovacao_instancias" as any)
           .update({ status: "aprovado", updated_at: new Date().toISOString() } as any)
           .eq("id", instanciaId);
       }
 
-      // Log transition
       await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
-        instancia_id: instanciaId,
-        etapa_id: etapaId,
-        etapa_nome: etapaNome,
-        usuario_id: user?.id,
-        acao: "aprovar",
-        observacao,
-        rodada: instancia.rodada,
+        instancia_id: instanciaId, etapa_id: etapaId, etapa_nome: etapaNome,
+        usuario_id: user?.id, acao: "aprovar", observacao, rodada: instancia.rodada,
       } as any);
 
       return { advanced: true };
@@ -539,11 +531,8 @@ export function useDevolverEtapaAprovacao() {
     mutationFn: async ({
       instanciaId, etapaId, etapaNome, etapaDestinoOrdem, justificativa, userInfo,
     }: {
-      instanciaId: string;
-      etapaId: string;
-      etapaNome: string;
-      etapaDestinoOrdem: number;
-      justificativa: string;
+      instanciaId: string; etapaId: string; etapaNome: string;
+      etapaDestinoOrdem: number; justificativa: string;
       userInfo: { id: string; email: string; nome: string };
     }) => {
       const { data: inst } = await supabase
@@ -564,11 +553,8 @@ export function useDevolverEtapaAprovacao() {
         .eq("id", instanciaId);
 
       await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
-        instancia_id: instanciaId,
-        etapa_id: etapaId,
-        etapa_nome: etapaNome,
-        usuario_id: userInfo.id,
-        acao: "devolucao",
+        instancia_id: instanciaId, etapa_id: etapaId, etapa_nome: etapaNome,
+        usuario_id: userInfo.id, acao: "devolucao",
         observacao: `[Devolução com senha] ${justificativa}`,
         rodada: instancia.rodada,
       } as any);
@@ -586,21 +572,12 @@ export function useReprovarEtapa() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      instanciaId,
-      etapaId,
-      etapaNome,
-      observacao,
-      aprovadorId,
+      instanciaId, etapaId, etapaNome, observacao, aprovadorId,
     }: {
-      instanciaId: string;
-      etapaId: string;
-      etapaNome: string;
-      observacao: string;
-      aprovadorId?: string;
+      instanciaId: string; etapaId: string; etapaNome: string; observacao: string; aprovadorId?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Update approver if parallel
       if (aprovadorId) {
         await supabase
           .from("fluxo_aprovacao_aprovadores" as any)
@@ -608,56 +585,43 @@ export function useReprovarEtapa() {
           .eq("id", aprovadorId);
       }
 
-      // Get current stage for destino_reprovacao
       const { data: currentStage } = await supabase
         .from("fluxo_aprovacao_etapas" as any)
         .select("*")
         .eq("id", etapaId)
         .single();
-
       const stage = currentStage as any;
+
       const { data: inst } = await supabase
         .from("fluxo_aprovacao_instancias" as any)
         .select("*")
         .eq("id", instanciaId)
         .single();
-
       const instancia = inst as any;
 
       if (stage?.destino_reprovacao_ordem !== null && stage?.destino_reprovacao_ordem !== undefined) {
-        // Go back to specific stage
         await supabase
           .from("fluxo_aprovacao_instancias" as any)
           .update({
             etapa_atual_ordem: stage.destino_reprovacao_ordem,
-            status: "devolvido",
-            rodada: instancia.rodada + 1,
+            status: "devolvido", rodada: instancia.rodada + 1,
             updated_at: new Date().toISOString(),
           } as any)
           .eq("id", instanciaId);
       } else {
-        // Default: go back one step
         const prevOrdem = Math.max(0, instancia.etapa_atual_ordem - 1);
         await supabase
           .from("fluxo_aprovacao_instancias" as any)
           .update({
-            etapa_atual_ordem: prevOrdem,
-            status: "devolvido",
-            rodada: instancia.rodada + 1,
-            updated_at: new Date().toISOString(),
+            etapa_atual_ordem: prevOrdem, status: "devolvido",
+            rodada: instancia.rodada + 1, updated_at: new Date().toISOString(),
           } as any)
           .eq("id", instanciaId);
       }
 
-      // Log transition
       await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
-        instancia_id: instanciaId,
-        etapa_id: etapaId,
-        etapa_nome: etapaNome,
-        usuario_id: user?.id,
-        acao: "reprovar",
-        observacao,
-        rodada: instancia.rodada,
+        instancia_id: instanciaId, etapa_id: etapaId, etapa_nome: etapaNome,
+        usuario_id: user?.id, acao: "reprovar", observacao, rodada: instancia.rodada,
       } as any);
     },
     onSuccess: () => {
@@ -666,5 +630,188 @@ export function useReprovarEtapa() {
       toast.success("Etapa reprovada e devolvida!");
     },
     onError: () => toast.error("Erro ao reprovar"),
+  });
+}
+
+// Anexos hooks
+
+export function useFluxoAnexos(instanciaId: string | undefined) {
+  return useQuery({
+    queryKey: ["fluxo-aprovacao-anexos", instanciaId],
+    enabled: !!instanciaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fluxo_aprovacao_anexos" as any)
+        .select("*")
+        .eq("instancia_id", instanciaId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const anexos = (data || []) as unknown as FluxoAnexo[];
+      const userIds = [...new Set(anexos.map(a => a.uploaded_by).filter(Boolean))];
+      let userMap = new Map();
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("id, nome").in("id", userIds);
+        userMap = new Map((profiles || []).map((p: any) => [p.id, p.nome]));
+      }
+      return anexos.map(a => ({ ...a, uploaded_by_nome: userMap.get(a.uploaded_by) || "—" }));
+    },
+  });
+}
+
+export function useUploadFluxoAnexo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ instanciaId, etapaId, file, tipo, observacao }: {
+      instanciaId: string; etapaId?: string; file: File; tipo: string; observacao?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const filePath = `${instanciaId}/${Date.now()}_${file.name}`;
+      const { error: uploadErr } = await supabase.storage.from("aprovacao-artes").upload(filePath, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("aprovacao-artes").getPublicUrl(filePath);
+
+      const { error } = await supabase.from("fluxo_aprovacao_anexos" as any).insert({
+        instancia_id: instanciaId,
+        etapa_id: etapaId || null,
+        nome_arquivo: file.name,
+        arquivo_url: urlData.publicUrl,
+        tipo,
+        uploaded_by: user?.id,
+        observacao: observacao || null,
+      } as any);
+      if (error) throw error;
+
+      // Log transition
+      await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
+        instancia_id: instanciaId,
+        etapa_id: etapaId || null,
+        etapa_nome: null,
+        usuario_id: user?.id,
+        acao: "anexo",
+        observacao: `Documento anexado: ${file.name}`,
+        rodada: 1,
+      } as any);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-anexos"] });
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-instancia"] });
+      toast.success("Documento anexado!");
+    },
+    onError: () => toast.error("Erro ao anexar documento"),
+  });
+}
+
+export function useSubstituirFluxoAnexo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ anexoAntigoId, instanciaId, etapaId, file, tipo, observacao }: {
+      anexoAntigoId: string; instanciaId: string; etapaId?: string; file: File; tipo: string; observacao?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Get old version
+      const { data: old } = await supabase
+        .from("fluxo_aprovacao_anexos" as any)
+        .select("versao")
+        .eq("id", anexoAntigoId)
+        .single();
+
+      const newVersao = ((old as any)?.versao || 1) + 1;
+      const filePath = `${instanciaId}/${Date.now()}_${file.name}`;
+      const { error: uploadErr } = await supabase.storage.from("aprovacao-artes").upload(filePath, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("aprovacao-artes").getPublicUrl(filePath);
+
+      const { data: newAnexo, error } = await supabase.from("fluxo_aprovacao_anexos" as any).insert({
+        instancia_id: instanciaId,
+        etapa_id: etapaId || null,
+        nome_arquivo: file.name,
+        arquivo_url: urlData.publicUrl,
+        tipo,
+        versao: newVersao,
+        uploaded_by: user?.id,
+        observacao: observacao || null,
+      } as any).select("id").single();
+      if (error) throw error;
+
+      // Update old to point to new
+      await supabase.from("fluxo_aprovacao_anexos" as any)
+        .update({ substituido_por: (newAnexo as any).id } as any)
+        .eq("id", anexoAntigoId);
+
+      // Audit trail
+      await supabase.from("fluxo_aprovacao_transicoes" as any).insert({
+        instancia_id: instanciaId,
+        usuario_id: user?.id,
+        acao: "substituicao_doc",
+        observacao: `Documento substituído: ${file.name} (v${newVersao})`,
+        rodada: 1,
+      } as any);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-anexos"] });
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-instancia"] });
+      toast.success("Documento substituído com nova versão!");
+    },
+    onError: () => toast.error("Erro ao substituir documento"),
+  });
+}
+
+// Vinculos hooks
+
+export function useFluxoVinculos(instanciaId: string | undefined) {
+  return useQuery({
+    queryKey: ["fluxo-aprovacao-vinculos", instanciaId],
+    enabled: !!instanciaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fluxo_aprovacao_vinculos" as any)
+        .select("*")
+        .eq("instancia_id", instanciaId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as FluxoVinculo[];
+    },
+  });
+}
+
+export function useCreateFluxoVinculo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      instancia_id: string; tipo_vinculo: string; ref_id: string; ref_label: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("fluxo_aprovacao_vinculos" as any).insert({
+        ...params, created_by: user?.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-vinculos"] });
+      toast.success("Vínculo criado!");
+    },
+    onError: () => toast.error("Erro ao criar vínculo"),
+  });
+}
+
+export function useDeleteFluxoVinculo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("fluxo_aprovacao_vinculos" as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fluxo-aprovacao-vinculos"] });
+      toast.success("Vínculo removido.");
+    },
+    onError: () => toast.error("Erro ao remover vínculo"),
   });
 }
