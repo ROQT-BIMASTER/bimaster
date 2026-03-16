@@ -11001,6 +11001,70 @@ export type Database = {
           },
         ]
       }
+      fluxo_aprovacao_anexos: {
+        Row: {
+          arquivo_url: string
+          created_at: string
+          etapa_id: string | null
+          id: string
+          instancia_id: string
+          nome_arquivo: string
+          observacao: string | null
+          substituido_por: string | null
+          tipo: string
+          uploaded_by: string | null
+          versao: number
+        }
+        Insert: {
+          arquivo_url: string
+          created_at?: string
+          etapa_id?: string | null
+          id?: string
+          instancia_id: string
+          nome_arquivo: string
+          observacao?: string | null
+          substituido_por?: string | null
+          tipo?: string
+          uploaded_by?: string | null
+          versao?: number
+        }
+        Update: {
+          arquivo_url?: string
+          created_at?: string
+          etapa_id?: string | null
+          id?: string
+          instancia_id?: string
+          nome_arquivo?: string
+          observacao?: string | null
+          substituido_por?: string | null
+          tipo?: string
+          uploaded_by?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_anexos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_anexos_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluxo_aprovacao_anexos_substituido_por_fkey"
+            columns: ["substituido_por"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_anexos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fluxo_aprovacao_aprovadores: {
         Row: {
           created_at: string
@@ -11143,6 +11207,7 @@ export type Database = {
           config_id: string
           created_at: string
           created_by: string | null
+          descricao: string | null
           etapa_atual_ordem: number
           id: string
           produto_brasil_id: string | null
@@ -11150,12 +11215,14 @@ export type Database = {
           rodada: number
           status: string
           submissao_id: string | null
+          titulo: string | null
           updated_at: string
         }
         Insert: {
           config_id: string
           created_at?: string
           created_by?: string | null
+          descricao?: string | null
           etapa_atual_ordem?: number
           id?: string
           produto_brasil_id?: string | null
@@ -11163,12 +11230,14 @@ export type Database = {
           rodada?: number
           status?: string
           submissao_id?: string | null
+          titulo?: string | null
           updated_at?: string
         }
         Update: {
           config_id?: string
           created_at?: string
           created_by?: string | null
+          descricao?: string | null
           etapa_atual_ordem?: number
           id?: string
           produto_brasil_id?: string | null
@@ -11176,6 +11245,7 @@ export type Database = {
           rodada?: number
           status?: string
           submissao_id?: string | null
+          titulo?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11232,6 +11302,44 @@ export type Database = {
           },
           {
             foreignKeyName: "fluxo_aprovacao_transicoes_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "fluxo_aprovacao_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluxo_aprovacao_vinculos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          instancia_id: string
+          ref_id: string
+          ref_label: string
+          tipo_vinculo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instancia_id: string
+          ref_id: string
+          ref_label: string
+          tipo_vinculo: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instancia_id?: string
+          ref_id?: string
+          ref_label?: string
+          tipo_vinculo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluxo_aprovacao_vinculos_instancia_id_fkey"
             columns: ["instancia_id"]
             isOneToOne: false
             referencedRelation: "fluxo_aprovacao_instancias"
