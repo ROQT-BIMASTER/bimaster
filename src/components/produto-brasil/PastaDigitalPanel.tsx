@@ -55,7 +55,7 @@ export function PastaDigitalPanel({ produtoBrasilId }: PastaDigitalPanelProps) {
   const [viewerLoading, setViewerLoading] = useState(false);
 
   // Add form state
-  const [newFase, setNewFase] = useState(FASES_PASTA[0].key);
+  const [newFase, setNewFase] = useState<string>(FASES_PASTA[0].key);
   const [newTitulo, setNewTitulo] = useState("");
   const [newPaginas, setNewPaginas] = useState("");
   const [newDepartamentoId, setNewDepartamentoId] = useState("");
