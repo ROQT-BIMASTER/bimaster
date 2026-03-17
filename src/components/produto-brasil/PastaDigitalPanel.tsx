@@ -48,7 +48,7 @@ export function PastaDigitalPanel({ produtoBrasilId }: PastaDigitalPanelProps) {
   const deleteItem = useDeletePastaDigitalItem();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_PASTA.map(f => f.key)));
+  const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_PASTA.map(f => f.key as string)));
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [parecerDialogOpen, setParecerDialogOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
