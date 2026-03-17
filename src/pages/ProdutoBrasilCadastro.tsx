@@ -137,6 +137,10 @@ export default function ProdutoBrasilCadastro() {
           <FichaCustoImportado produtoBrasilId={produto.id} produtoNome={produto.nome_brasil || produto.china_nome || "Produto"} />
         </TabsContent>
 
+        <TabsContent value="pasta" className="mt-4">
+          <PastaDigitalPanel produtoBrasilId={produto.id} />
+        </TabsContent>
+
         <TabsContent value="imagens" className="mt-4">
           <ImagemTimeline produto={produto} />
         </TabsContent>
