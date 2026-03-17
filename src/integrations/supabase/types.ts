@@ -16156,6 +16156,85 @@ export type Database = {
           },
         ]
       }
+      produto_brasil_pasta_digital: {
+        Row: {
+          arquivo_path: string | null
+          arquivo_url: string | null
+          created_at: string
+          created_by: string | null
+          departamento_id: string | null
+          fase: string
+          id: string
+          ordem: number
+          paginas: string | null
+          parecer_data: string | null
+          parecer_observacao: string | null
+          parecer_por: string | null
+          parecer_status: string
+          parent_id: string | null
+          produto_brasil_id: string
+          titulo: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          fase?: string
+          id?: string
+          ordem?: number
+          paginas?: string | null
+          parecer_data?: string | null
+          parecer_observacao?: string | null
+          parecer_por?: string | null
+          parecer_status?: string
+          parent_id?: string | null
+          produto_brasil_id: string
+          titulo: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          fase?: string
+          id?: string
+          ordem?: number
+          paginas?: string | null
+          parecer_data?: string | null
+          parecer_observacao?: string | null
+          parecer_por?: string | null
+          parecer_status?: string
+          parent_id?: string | null
+          produto_brasil_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_brasil_pasta_digital_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_brasil_pasta_digital_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "produto_brasil_pasta_digital_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "produto_brasil_pasta_digital"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_brasil_skus: {
         Row: {
           codigo_interno: string | null
