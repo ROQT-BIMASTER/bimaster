@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
+import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import {
   useSubmissoesChina,
@@ -36,16 +38,17 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
+
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
 const STATUS_FILTERS = [
-  { value: "todos", label: "Todos" },
-  { value: "rascunho", label: "Rascunho" },
-  { value: "enviado", label: "Enviado" },
-  { value: "em_revisao", label: "Em Revisão" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "arte_enviada", label: "Docs Enviados" },
-  { value: "rejeitado", label: "Rejeitado" },
+  { value: "todos", label: "Todos", labelCn: "全部" },
+  { value: "rascunho", label: "Rascunho", labelCn: "草稿" },
+  { value: "enviado", label: "Enviado", labelCn: "已发送" },
+  { value: "em_revisao", label: "Em Revisão", labelCn: "审核中" },
+  { value: "aprovado", label: "Aprovado", labelCn: "已批准" },
+  { value: "arte_enviada", label: "Docs Enviados", labelCn: "文件已发" },
+  { value: "rejeitado", label: "Rejeitado", labelCn: "已拒绝" },
 ];
 
 function getStatusBadgeVariant(status: string): "secondary" | "default" | "warning" | "success" | "destructive" | "outline" {
@@ -72,6 +75,16 @@ function getStatusLabel(status: string): string {
   }
 }
 
+// Status border style (matching ChinaChecklistFocusMode)
+const statusBorders: Record<string, string> = {
+  aprovado: "border-l-success border-l-4",
+  rejeitado: "border-l-destructive border-l-4",
+  enviado: "border-l-primary border-l-4",
+  em_revisao: "border-l-warning border-l-4",
+  rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
+  arte_enviada: "border-l-success/60 border-l-4",
+};
+
 export default function ProjetoVincularChina() {
   const navigate = useNavigate();
   const { isAdmin } = usePermissions();
@@ -88,6 +101,8 @@ export default function ProjetoVincularChina() {
   const [gradeOpen, setGradeOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [vinculosOpen, setVinculosOpen] = useState(false);
+  // Sidebar active category
+  const [activeSidebarCat, setActiveSidebarCat] = useState<"todas" | "vinculadas" | "nao_vinculadas">("todas");
 
   // Submissão & projeto queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina(search);
@@ -106,7 +121,7 @@ export default function ProjetoVincularChina() {
   const createDocVinculo = useCreateDocVinculo();
   const deleteDocVinculo = useDeleteDocVinculo();
 
-  // Filter out invalid submissions and apply status filter
+  // Filter submissions
   const filteredSubmissoes = useMemo(() => {
     return submissoes.filter((s: any) => {
       if (!s.produto_codigo || !s.produto_nome || s.produto_codigo === "null") return false;
@@ -135,6 +150,13 @@ export default function ProjetoVincularChina() {
   const vinculadasCount = useMemo(() => {
     return filteredSubmissoes.filter((s: any) => submissaoVinculadas.has(s.id)).length;
   }, [filteredSubmissoes, submissaoVinculadas]);
+
+  // Apply sidebar category filter
+  const displayedSubmissoes = useMemo(() => {
+    if (activeSidebarCat === "vinculadas") return filteredSubmissoes.filter((s: any) => submissaoVinculadas.has(s.id));
+    if (activeSidebarCat === "nao_vinculadas") return filteredSubmissoes.filter((s: any) => !submissaoVinculadas.has(s.id));
+    return filteredSubmissoes;
+  }, [filteredSubmissoes, activeSidebarCat, submissaoVinculadas]);
 
   // Doc vinculos indexed by "docId-tarefaId"
   const docVinculoMap = useMemo(() => {
@@ -171,7 +193,6 @@ export default function ProjetoVincularChina() {
   const handleVincular = async () => {
     if (!selectedSubmissaoId || !selectedProjetoId || checkedTarefas.size === 0) return;
 
-    // Start audit in background (non-blocking)
     const firstTarefaId = Array.from(checkedTarefas)[0];
     const firstTarefa = tarefas.find((t: any) => t.id === firstTarefaId);
 
@@ -196,7 +217,6 @@ export default function ProjetoVincularChina() {
       }).catch(() => null);
     }
 
-    // Create vínculos immediately without waiting for audit
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
       if (vinculosByTarefa.has(tarefaId)) continue;
@@ -209,7 +229,6 @@ export default function ProjetoVincularChina() {
     }
     setCheckedTarefas(new Set());
 
-    // Auto-create produto_brasil record after linking
     if (selectedSubmissao && selectedProjetoId) {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
@@ -222,7 +241,6 @@ export default function ProjetoVincularChina() {
           china_descricao: selectedSubmissao.observacoes_brasil || null,
           status: "aguardando_precadastro",
         }) as any);
-        // Populate checklist
         const { data: prodBrasil } = await (supabase
           .from("produtos_brasil" as any)
           .select("id")
@@ -247,9 +265,8 @@ export default function ProjetoVincularChina() {
       }
     }
 
-    // Update audit result in background when ready (informational only)
     if (auditPromise) {
-      auditPromise.then(() => {/* result already set via hook state */});
+      auditPromise.then(() => {});
     }
   };
 
@@ -289,9 +306,18 @@ export default function ProjetoVincularChina() {
     return <AccessDenied message="Acesso restrito à equipe de desenvolvimento." />;
   }
 
+  // Sidebar category stats
+  const sidebarCategories = [
+    { key: "todas" as const, labelPt: "Todas Submissões", labelCn: "全部提交", count: filteredSubmissoes.length, icon: <Package className="h-3.5 w-3.5" />, color: "text-primary" },
+    { key: "vinculadas" as const, labelPt: "Vinculadas", labelCn: "已关联", count: vinculadasCount, icon: <Link2 className="h-3.5 w-3.5" />, color: "text-success" },
+    { key: "nao_vinculadas" as const, labelPt: "Não Vinculadas", labelCn: "未关联", count: filteredSubmissoes.length - vinculadasCount, icon: <Unlink className="h-3.5 w-3.5" />, color: "text-warning" },
+  ];
+
+  const progressPct = filteredSubmissoes.length > 0 ? Math.round((vinculadasCount / filteredSubmissoes.length) * 100) : 0;
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="p-6 space-y-4 max-w-[1400px] mx-auto">
+      {/* Header — matching checklist style */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
           <ArrowLeft className="h-5 w-5" />
@@ -299,352 +325,343 @@ export default function ProjetoVincularChina() {
         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Link2 className="h-5 w-5 text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Vincular Envio China</h1>
-          <p className="text-sm text-muted-foreground">
-            Associe submissões e documentos da fábrica China a tarefas e seções do projeto
-          </p>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold text-foreground">Vincular Envio China 关联中国发货</h1>
+          <div className="flex items-center gap-3 mt-1">
+            <Progress value={progressPct} className="h-2 w-40" />
+            <span className="text-xs font-medium text-foreground">{vinculadasCount}/{filteredSubmissoes.length} · {progressPct}%</span>
+          </div>
         </div>
       </div>
 
-      {/* Main content - two panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left panel - China submissions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Package className="h-4 w-4 text-primary" />
-                Submissões China
-              </CardTitle>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BarChart3 className="h-3.5 w-3.5" />
-                <span className="font-medium">{filteredSubmissoes.length}</span> submissões
-                <span className="text-muted-foreground/50">|</span>
-                <span className="font-medium text-success">{vinculadasCount}</span> vinculadas
-              </div>
-            </div>
+      {/* Counter chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge className="text-[10px] bg-success/10 text-success border-success/20 border">
+          <CheckCircle2 className="h-3 w-3 mr-1" />{vinculadasCount} Vinculadas
+        </Badge>
+        <Badge variant="secondary" className="text-[10px]">
+          <Package className="h-3 w-3 mr-1" />{filteredSubmissoes.length} Total
+        </Badge>
+        {allVinculos.length > 0 && (
+          <Badge variant="outline" className="text-[10px]">
+            <ShieldCheck className="h-3 w-3 mr-1" />{allVinculos.length} Vínculos
+          </Badge>
+        )}
+      </div>
 
-            {/* Status filter chips */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
+      {/* Main layout: Sidebar + Submissions + Project panel */}
+      <div className="flex gap-0 border rounded-xl overflow-hidden bg-card" style={{ height: "680px" }}>
+        {/* Left Sidebar — Categories (China checklist style) */}
+        <div className="w-56 border-r bg-muted/20 flex flex-col shrink-0">
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {/* China Envia header */}
+              <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-primary">
+                <ArrowUpRight className="h-3.5 w-3.5" />
+                <span>China Envia</span>
+                <span className="font-normal opacity-60">中国发送</span>
+              </div>
+
+              {sidebarCategories.map((cat) => {
+                const isActive = activeSidebarCat === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveSidebarCat(cat.key)}
+                    className={cn(
+                      "w-full text-left rounded-lg px-3 py-2.5 transition-all text-xs",
+                      isActive
+                        ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
+                        : "hover:bg-accent/50 text-foreground"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate flex items-center gap-1.5">
+                        {cat.icon}
+                        {cat.labelPt}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] font-medium",
+                        cat.key === "vinculadas" && cat.count > 0 ? "text-success" : "text-muted-foreground"
+                      )}>
+                        {cat.count}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground block">{cat.labelCn}</span>
+                  </button>
+                );
+              })}
+
+              <div className="my-2 border-t border-border" />
+
+              {/* Status filters as sidebar items */}
+              <div className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-success">
+                <ArrowDownLeft className="h-3.5 w-3.5" />
+                <span>Filtro Status</span>
+                <span className="font-normal opacity-60">状态筛选</span>
+              </div>
+
               {STATUS_FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setStatusFilter(f.value)}
                   className={cn(
-                    "px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors",
+                    "w-full text-left rounded-lg px-3 py-2 transition-all text-xs",
                     statusFilter === f.value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted/50 text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-primary/10 border border-primary/30 text-primary font-semibold"
+                      : "hover:bg-accent/50 text-foreground"
                   )}
                 >
-                  {f.label}
+                  <div className="flex items-center justify-between">
+                    <span>{f.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{f.labelCn}</span>
+                  </div>
                 </button>
               ))}
             </div>
+          </ScrollArea>
+        </div>
 
+        {/* Center: Submission cards (checklist-style cards) */}
+        <div className="flex-1 flex flex-col min-w-0 border-r">
+          {/* Search bar */}
+          <div className="p-3 border-b bg-background/95">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por código ou nome..."
+                placeholder="Buscar por código ou nome... 搜索代码或名称..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[500px]">
-              {loadingSub ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredSubmissoes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
-              ) : (
-                <div className="divide-y">
-                  {filteredSubmissoes.map((sub: any) => {
-                    const isSelected = selectedSubmissaoId === sub.id;
-                    const isExpanded = expandedSubmissaoId === sub.id;
-                    const isLinked = submissaoVinculadas.has(sub.id);
-                    return (
-                      <div key={sub.id}>
-                        <button
-                          onClick={() => {
-                            setSelectedSubmissaoId(sub.id);
-                            setExpandedSubmissaoId(isExpanded ? null : sub.id);
-                            setSelectedTarefaForDocs(null);
-                          }}
-                          className={cn(
-                            "w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3",
-                            isSelected && "bg-primary/5 border-l-2 border-l-primary"
-                          )}
-                        >
+          </div>
+
+          <ScrollArea className="flex-1">
+            {loadingSub ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : displayedSubmissoes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
+            ) : (
+              <div className="p-3 grid grid-cols-1 gap-3">
+                {displayedSubmissoes.map((sub: any) => {
+                  const isSelected = selectedSubmissaoId === sub.id;
+                  const isExpanded = expandedSubmissaoId === sub.id;
+                  const isLinked = submissaoVinculadas.has(sub.id);
+
+                  return (
+                    <div key={sub.id}>
+                      <button
+                        onClick={() => {
+                          setSelectedSubmissaoId(sub.id);
+                          setExpandedSubmissaoId(isExpanded ? null : sub.id);
+                          setSelectedTarefaForDocs(null);
+                        }}
+                        className={cn(
+                          "w-full text-left border rounded-xl p-4 transition-all",
+                          statusBorders[sub.status] || "",
+                          isSelected
+                            ? "bg-primary/5 border-primary/30 shadow-sm"
+                            : "bg-card hover:bg-accent/30",
+                          !isLinked && "border-dashed",
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Icon */}
+                          <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                            isLinked ? "bg-success/10" : "bg-secondary"
+                          )}>
+                            <Package className={cn("h-5 w-5", isLinked ? "text-success" : "text-muted-foreground")} />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono font-bold text-primary">{sub.produto_codigo}</span>
-                              {isLinked && (
-                                <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Já vinculada" />
-                              )}
+                              {isLinked && <span className="h-2 w-2 rounded-full bg-success shrink-0" title="Vinculada" />}
                             </div>
-                            <p className="text-sm text-foreground truncate">{sub.produto_nome}</p>
+                            <p className="text-sm font-semibold text-foreground truncate">{sub.produto_nome}</p>
                             {sub.numero_ordem && (
                               <p className="text-[10px] text-muted-foreground">OC: {sub.numero_ordem}</p>
                             )}
                           </div>
-                          <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px] shrink-0">
-                            {getStatusLabel(sub.status)}
-                          </Badge>
-                          <ChevronDown className={cn(
-                            "h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200",
-                            isExpanded && "rotate-180"
-                          )} />
-                        </button>
-                        {isExpanded && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px]">
+                              {getStatusLabel(sub.status)}
+                            </Badge>
+                            <ChevronDown className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                              isExpanded && "rotate-180"
+                            )} />
+                          </div>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="mt-1 ml-4">
                           <ChinaSubmissaoExpandido
                             submissao={sub}
                             onPreviewDoc={setPreviewDoc}
                           />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
 
-        {/* Right panel - Project sections & tasks */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <FolderKanban className="h-4 w-4 text-primary" />
-                Projeto & Tarefas
-              </CardTitle>
+        {/* Right panel: Project & Tasks */}
+        <div className="w-[380px] flex flex-col shrink-0">
+          <div className="p-3 border-b bg-background/95">
+            <div className="flex items-center justify-between mb-2">
+              <BilingualLabel pt="Projeto & Tarefas" cn="项目和任务" size="sm" />
               {selectedSubmissaoId && cores.length > 0 && (
-                <Button variant="outline" size="sm" onClick={() => setGradeOpen(true)}>
-                  <Grid3X3 className="h-3.5 w-3.5 mr-1.5" />
-                  Ver Grade
+                <Button variant="outline" size="sm" onClick={() => setGradeOpen(true)} className="h-7 text-[10px]">
+                  <Grid3X3 className="h-3 w-3 mr-1" />
+                  Grade
                 </Button>
               )}
             </div>
             <Select value={selectedProjetoId || ""} onValueChange={(v) => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); setSelectedTarefaForDocs(null); }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um projeto..." />
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Selecione um projeto 选择项目..." />
               </SelectTrigger>
               <SelectContent>
                 {projetos.map((p: any) => (
                   <SelectItem key={p.id} value={p.id}>
                     <span className="flex items-center gap-2">
-                      {p.cor && (
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: p.cor }}
-                        />
-                      )}
+                      {p.cor && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: p.cor }} />}
                       {p.nome}
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[320px]">
-              {!selectedProjetoId && !selectedSubmissaoId ? (
-                <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão e um projeto</p>
-              ) : !selectedProjetoId && selectedSubmissao ? (
-                /* Submission summary when no project is selected */
-                <div className="px-4 py-4 space-y-3">
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">{selectedSubmissao.produto_nome}</span>
+          </div>
+
+          <ScrollArea className="flex-1">
+            {!selectedProjetoId && !selectedSubmissaoId ? (
+              <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão e um projeto</p>
+            ) : !selectedProjetoId && selectedSubmissao ? (
+              <div className="px-4 py-4 space-y-3">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">{selectedSubmissao.produto_nome}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Código:</span>{" "}
+                      <span className="font-mono font-bold text-primary">{selectedSubmissao.produto_codigo}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Código:</span>{" "}
-                        <span className="font-mono font-bold text-primary">{selectedSubmissao.produto_codigo}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Status:</span>{" "}
-                        <Badge variant={getStatusBadgeVariant(selectedSubmissao.status)} className="text-[10px] ml-1">
-                          {getStatusLabel(selectedSubmissao.status)}
-                        </Badge>
-                      </div>
-                      {selectedSubmissao.formula_codigo && (
-                        <div>
-                          <span className="text-muted-foreground">Fórmula:</span>{" "}
-                          <span className="font-mono">{selectedSubmissao.formula_codigo}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.qty_total && (
-                        <div>
-                          <span className="text-muted-foreground">Qtd Total:</span>{" "}
-                          <span className="font-semibold">{selectedSubmissao.qty_total.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.ean_unidade && (
-                        <div>
-                          <span className="text-muted-foreground">EAN Unid:</span>{" "}
-                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_unidade}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.ean_display && (
-                        <div>
-                          <span className="text-muted-foreground">EAN Display:</span>{" "}
-                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_display}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.ean_caixa_master && (
-                        <div>
-                          <span className="text-muted-foreground">EAN Cx Master:</span>{" "}
-                          <span className="font-mono text-[11px]">{selectedSubmissao.ean_caixa_master}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.peso_liquido_g && (
-                        <div>
-                          <span className="text-muted-foreground">P. Líq:</span>{" "}
-                          <span>{selectedSubmissao.peso_liquido_g}g</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.peso_bruto_g && (
-                        <div>
-                          <span className="text-muted-foreground">P. Bruto:</span>{" "}
-                          <span>{selectedSubmissao.peso_bruto_g}g</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.numero_ordem && (
-                        <div>
-                          <span className="text-muted-foreground">Nº Ordem:</span>{" "}
-                          <span>{selectedSubmissao.numero_ordem}</span>
-                        </div>
-                      )}
-                      {selectedSubmissao.numero_item && (
-                        <div>
-                          <span className="text-muted-foreground">Nº Item:</span>{" "}
-                          <span>{selectedSubmissao.numero_item}</span>
-                        </div>
-                      )}
+                    <div>
+                      <span className="text-muted-foreground">Status:</span>{" "}
+                      <Badge variant={getStatusBadgeVariant(selectedSubmissao.status)} className="text-[10px] ml-1">
+                        {getStatusLabel(selectedSubmissao.status)}
+                      </Badge>
                     </div>
-                    {(selectedSubmissao.observacoes_brasil || selectedSubmissao.observacoes_china) && (
-                      <div className="space-y-1 pt-1 border-t border-border/50">
-                        {selectedSubmissao.observacoes_brasil && (
-                          <p className="text-[11px] text-muted-foreground">
-                            <span className="font-medium">🇧🇷 Brasil:</span> {selectedSubmissao.observacoes_brasil}
-                          </p>
-                        )}
-                        {selectedSubmissao.observacoes_china && (
-                          <p className="text-[11px] text-muted-foreground">
-                            <span className="font-medium">🇨🇳 China:</span> {selectedSubmissao.observacoes_china}
-                          </p>
-                        )}
+                    {selectedSubmissao.formula_codigo && (
+                      <div>
+                        <span className="text-muted-foreground">Fórmula:</span>{" "}
+                        <span className="font-mono">{selectedSubmissao.formula_codigo}</span>
+                      </div>
+                    )}
+                    {selectedSubmissao.qty_total && (
+                      <div>
+                        <span className="text-muted-foreground">Qtd Total:</span>{" "}
+                        <span className="font-semibold">{selectedSubmissao.qty_total.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Selecione um projeto acima para vincular
-                  </p>
                 </div>
-              ) : !selectedSubmissaoId ? (
-                <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão à esquerda</p>
-              ) : secoes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">Nenhuma seção encontrada</p>
-              ) : (
-                <div className="px-4 py-2 space-y-3">
-                  {secoes.map((secao: any) => {
-                    const secaoTarefas = tarefas.filter((t: any) => t.secao_id === secao.id);
-                    if (secaoTarefas.length === 0) return null;
-                    return (
-                      <div key={secao.id}>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                          {secao.nome}
-                        </p>
-                        <div className="space-y-1">
-                          {secaoTarefas.map((tarefa: any) => {
-                            const isLinked = vinculosByTarefa.has(tarefa.id);
-                            const isChecked = checkedTarefas.has(tarefa.id);
-                            const isDocTarget = selectedTarefaForDocs === tarefa.id;
-                            const docCount = docVinculos.filter((dv) => dv.tarefa_id === tarefa.id).length;
-                            return (
-                              <div
-                                key={tarefa.id}
-                                className={cn(
-                                  "flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors",
-                                  isLinked && "bg-success/5",
-                                  isDocTarget && "ring-1 ring-primary/30 bg-primary/5"
+                <p className="text-xs text-muted-foreground text-center">Selecione um projeto acima para vincular</p>
+              </div>
+            ) : !selectedSubmissaoId ? (
+              <p className="text-sm text-muted-foreground text-center py-10">Selecione uma submissão à esquerda</p>
+            ) : secoes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">Nenhuma seção encontrada</p>
+            ) : (
+              <div className="px-3 py-2 space-y-3">
+                {secoes.map((secao: any) => {
+                  const secaoTarefas = tarefas.filter((t: any) => t.secao_id === secao.id);
+                  if (secaoTarefas.length === 0) return null;
+                  return (
+                    <div key={secao.id}>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {secao.nome}
+                      </p>
+                      <div className="space-y-1">
+                        {secaoTarefas.map((tarefa: any) => {
+                          const isLinked = vinculosByTarefa.has(tarefa.id);
+                          const isChecked = checkedTarefas.has(tarefa.id);
+                          const isDocTarget = selectedTarefaForDocs === tarefa.id;
+                          const docCount = docVinculos.filter((dv) => dv.tarefa_id === tarefa.id).length;
+                          return (
+                            <div
+                              key={tarefa.id}
+                              className={cn(
+                                "flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors",
+                                isLinked && "bg-success/5",
+                                isDocTarget && "ring-1 ring-primary/30 bg-primary/5"
+                              )}
+                            >
+                              <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+                                {isLinked ? (
+                                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                                ) : (
+                                  <Checkbox checked={isChecked} onCheckedChange={() => handleToggleTarefa(tarefa.id)} />
                                 )}
-                              >
-                                <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-                                  {isLinked ? (
-                                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                                  ) : (
-                                    <Checkbox
-                                      checked={isChecked}
-                                      onCheckedChange={() => handleToggleTarefa(tarefa.id)}
-                                    />
-                                  )}
-                                  <span className="text-sm text-foreground">{tarefa.titulo}</span>
-                                  {tarefa.codigo && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">{tarefa.codigo}</span>
-                                  )}
-                                </label>
-                                {docCount > 0 && (
-                                  <Badge variant="secondary" className="text-[10px]">
-                                    <FileText className="h-3 w-3 mr-0.5" />
-                                    {docCount}
-                                  </Badge>
-                                )}
-                                {isLinked && (
-                                  <>
-                                    <Button
-                                      variant={isDocTarget ? "default" : "ghost"}
-                                      size="sm"
-                                      className="h-7 px-2 text-[10px]"
-                                      onClick={() => setSelectedTarefaForDocs(isDocTarget ? null : tarefa.id)}
-                                    >
-                                      <FileText className="h-3 w-3 mr-1" />
-                                      Docs
-                                    </Button>
-                                    <Badge variant="outline" className="text-[10px] text-success border-success/30">
-                                      Vinculada
-                                    </Badge>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                                <span className="text-sm text-foreground">{tarefa.titulo}</span>
+                                {tarefa.codigo && <span className="text-[10px] text-muted-foreground font-mono">{tarefa.codigo}</span>}
+                              </label>
+                              {docCount > 0 && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  <FileText className="h-3 w-3 mr-0.5" />{docCount}
+                                </Badge>
+                              )}
+                              {isLinked && (
+                                <>
+                                  <Button
+                                    variant={isDocTarget ? "default" : "ghost"}
+                                    size="sm"
+                                    className="h-7 px-2 text-[10px]"
+                                    onClick={() => setSelectedTarefaForDocs(isDocTarget ? null : tarefa.id)}
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />Docs
+                                  </Button>
+                                  <Badge variant="outline" className="text-[10px] text-success border-success/30">Vinculada</Badge>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </ScrollArea>
-
-            {/* Audit + Action bar */}
-            {selectedSubmissaoId && selectedProjetoId && (
-              <div className="border-t px-4 py-3 space-y-2">
-                <AuditChinaVinculoBadge result={auditResult} loading={auditLoading} />
-                <Button
-                  onClick={handleVincular}
-                  disabled={checkedTarefas.size === 0 || createVinculo.isPending}
-                  className="w-full"
-                  size="sm"
-                >
-                  {createVinculo.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Link2 className="h-4 w-4 mr-2" />
-                  )}
-                  Vincular {checkedTarefas.size > 0 ? `(${checkedTarefas.size})` : ""}
-                </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </ScrollArea>
+
+          {/* Action bar */}
+          {selectedSubmissaoId && selectedProjetoId && (
+            <div className="border-t px-3 py-3 space-y-2">
+              <AuditChinaVinculoBadge result={auditResult} loading={auditLoading} />
+              <Button
+                onClick={handleVincular}
+                disabled={checkedTarefas.size === 0 || createVinculo.isPending}
+                className="w-full"
+                size="sm"
+              >
+                {createVinculo.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Link2 className="h-4 w-4 mr-2" />}
+                Vincular 关联 {checkedTarefas.size > 0 ? `(${checkedTarefas.size})` : ""}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Documents panel - shows when a linked tarefa is selected for docs */}
@@ -656,9 +673,7 @@ export default function ProjetoVincularChina() {
                 <FileText className="h-4 w-4 text-primary" />
                 Documentos da Submissão — vincular à tarefa selecionada
               </CardTitle>
-              <Badge variant="secondary" className="text-xs">
-                {documentos.length} documento(s)
-              </Badge>
+              <Badge variant="secondary" className="text-xs">{documentos.length} documento(s)</Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -686,25 +701,11 @@ export default function ProjetoVincularChina() {
                             disabled={createDocVinculo.isPending || deleteDocVinculo.isPending}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground truncate">
-                              {doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {getDocTypeLabel(doc.tipo_documento)}
-                            </p>
+                            <p className="text-sm text-foreground truncate">{doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}</p>
+                            <p className="text-[10px] text-muted-foreground">{getDocTypeLabel(doc.tipo_documento)}</p>
                           </div>
-                          <Badge
-                            variant={doc.status === "aprovado" ? "success" : "secondary"}
-                            className="text-[10px] shrink-0"
-                          >
-                            {doc.status}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => setPreviewDoc(doc)}
-                          >
+                          <Badge variant={doc.status === "aprovado" ? "success" : "secondary"} className="text-[10px] shrink-0">{doc.status}</Badge>
+                          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setPreviewDoc(doc)}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -718,7 +719,7 @@ export default function ProjetoVincularChina() {
         </Card>
       )}
 
-      {/* Existing vinculos - collapsible, hidden when empty */}
+      {/* Existing vinculos */}
       {allVinculos.length > 0 && (
         <Collapsible open={vinculosOpen} onOpenChange={setVinculosOpen}>
           <Card>
@@ -727,10 +728,8 @@ export default function ProjetoVincularChina() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-primary" />
-                    Vínculos Existentes
-                    <Badge variant="secondary" className="text-[10px] ml-1">
-                      {allVinculos.length}
-                    </Badge>
+                    Vínculos Existentes 现有关联
+                    <Badge variant="secondary" className="text-[10px] ml-1">{allVinculos.length}</Badge>
                   </CardTitle>
                   <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", vinculosOpen && "rotate-90")} />
                 </div>
@@ -745,22 +744,16 @@ export default function ProjetoVincularChina() {
                       <div key={v.id} className="flex items-center gap-3 py-2.5">
                         <Package className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <span className="text-xs font-mono font-bold text-primary">
-                            {v.submissao?.produto_codigo || "—"}
-                          </span>
+                          <span className="text-xs font-mono font-bold text-primary">{v.submissao?.produto_codigo || "—"}</span>
                           <span className="text-xs text-muted-foreground mx-1.5">→</span>
-                          <span className="text-sm text-foreground">
-                            {projeto?.nome || v.projeto_id}
-                          </span>
+                          <span className="text-sm text-foreground">{projeto?.nome || v.projeto_id}</span>
                         </div>
                         {v.submissao?.status && (
                           <Badge variant={getStatusBadgeVariant(v.submissao.status)} className="text-[10px]">
                             {getStatusLabel(v.submissao.status)}
                           </Badge>
                         )}
-                        {v.audit_result && (
-                          <AuditChinaVinculoBadge result={v.audit_result} compact />
-                        )}
+                        {v.audit_result && <AuditChinaVinculoBadge result={v.audit_result} compact />}
                         <Button
                           variant="ghost"
                           size="sm"
