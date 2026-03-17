@@ -91,6 +91,7 @@ export default function ProdutoBrasilCadastro() {
           <TabsTrigger value="datas" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Datas</TabsTrigger>
           <TabsTrigger value="grade" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Grade/SKUs</TabsTrigger>
           <TabsTrigger value="custos" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Custos</TabsTrigger>
+          <TabsTrigger value="pasta" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Pasta Digital</TabsTrigger>
           <TabsTrigger value="imagens" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Imagens</TabsTrigger>
           <TabsTrigger value="china" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Dados China</TabsTrigger>
           <TabsTrigger value="historico" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Histórico</TabsTrigger>
