@@ -76,8 +76,8 @@ export function PastaDigitalPanel({ produtoBrasilId }: PastaDigitalPanelProps) {
       if (faseItems.length > 0) map[fase.key] = faseItems;
     }
     // Unknown fases
-    const knownKeys = new Set(FASES_PASTA.map(f => f.key));
-    const unknownItems = items.filter(i => !knownKeys.has(i.fase));
+    const knownKeys = new Set(FASES_PASTA.map(f => f.key as string));
+    const unknownItems = items.filter(i => !knownKeys.has(i.fase as string));
     if (unknownItems.length > 0) map["_outros"] = unknownItems;
     return map;
   }, [items]);
