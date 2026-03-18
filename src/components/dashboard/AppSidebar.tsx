@@ -990,11 +990,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       </SidebarContent>
       
       {/* Footer */}
-      <SidebarFooter className="border-t border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
+      <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
         <Collapsible open={footerOpen} onOpenChange={setFooterOpen}>
           {userName && (
             <CollapsibleTrigger asChild>
-              <button className="w-full px-4 py-2 border-b border-white/5 hover:bg-white/5 transition-colors duration-150 cursor-pointer">
+              <button className="w-full px-4 py-2 hover:bg-[var(--sidebar-item-hover-raw)] transition-colors duration-150 cursor-pointer" style={{ borderBottom: '1px solid var(--sidebar-border-raw)' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
                     <span className="text-xs font-bold text-white">
