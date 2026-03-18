@@ -882,39 +882,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  // ============ CATEGORY DEFINITIONS ============
-  const categories = [
-    {
-      key: "comercial_vendas",
-      label: "Comercial & Vendas",
-      icon: Briefcase,
-      modules: ["prospects", "comercial", "precos"],
-    },
-    {
-      key: "trade_marketing",
-      label: "Trade & Marketing",
-      icon: Store,
-      modules: ["trade", "marketing", "eventos"],
-    },
-    {
-      key: "producao_qualidade",
-      label: "Produção & Qualidade",
-      icon: Factory,
-      modules: ["fabrica", "china", "composicao", "amostras", "analise_embalagem", "etiqueta_bula", "aprovacao_artes"],
-    },
-    {
-      key: "financeiro_admin",
-      label: "Financeiro & Admin",
-      icon: DollarSign,
-      modules: ["financeiro", "departamentos", "estoque"],
-    },
-    {
-      key: "gestao_projetos",
-      label: "Gestão & Projetos",
-      icon: FolderKanban,
-      modules: ["projetos", "reunioes"],
-    },
-  ];
+  // ============ CATEGORY DEFINITIONS (from DB) ============
+  const categories = useMemo(() => 
+    dbCategories.map(cat => ({
+      key: cat.key,
+      label: cat.label,
+      icon: iconMap[cat.icon] || Briefcase,
+      modules: cat.modules.map(m => m.module_code),
+    })),
+    [dbCategories]
+  );
 
   return (
     <Sidebar side={side} className={cn("border-sidebar-border", isRTL ? "border-l" : "border-r")}>
