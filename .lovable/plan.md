@@ -1,49 +1,37 @@
 
 
-# Plano: Restringir Acesso ao Módulo Tabelas de Preço
+# Plano: Seta expansível no nome do usuário (footer da sidebar)
 
-## Problema Identificado
+## O que muda
 
-O módulo `precos` está sendo concedido por **permissão de role** para os papéis `supervisor` e `gerente` na tabela `role_permissoes_modulos`. Isso significa que **todos os 4 supervisores e 6 gerentes** recebem acesso automaticamente ao módulo de Tabelas de Preço, mesmo que não devam ter.
+Transformar a área do nome do usuário no footer da sidebar em um **Collapsible trigger** com uma seta (ChevronUp/ChevronDown). Ao clicar no nome ou na seta, os links do footer (Configurações, LGPD, Config. Menu, etc.) expandem/recolhem. Os links ficam ocultos por padrão.
 
-A regra correta do sistema é: **módulo sem configuração individual deve ficar bloqueado**.
+## Implementação
 
-### Dados atuais de acesso ao módulo `precos`:
-- **Por role**: admin (2), supervisor (4), gerente (6) — todos recebem acesso
-- **Por departamento**: Comercial (0 usuários atualmente)
-- **Individual**: F. Cazarotti, Lucas Machado, Ricardo Flausino, Erika, Ahmad (5 usuários)
+### Arquivo: `src/components/dashboard/AppSidebar.tsx` (footer, linhas ~990-1096)
 
-## Solução
+1. Envolver o footer com um `Collapsible` controlado por estado local (`footerOpen`)
+2. O bloco do avatar/nome do usuário (linhas 993-1006) vira o `CollapsibleTrigger`, adicionando um ícone `ChevronUp` que rotaciona conforme o estado
+3. O `SidebarMenu` com os links (linhas 1009-1095) fica dentro de `CollapsibleContent`
+4. Manter o bloco de Privacidade/Termos sempre visível fora do collapsible
+5. O `ThemeSelectorPopover` permanece ao lado da seta
 
-### Passo 1 — Remover permissão de role para `precos`
-Remover as entradas em `role_permissoes_modulos` que concedem `precos` para `supervisor` e `gerente`. Admins continuam com acesso total (via lógica `isAdmin`).
-
-### Passo 2 — Remover permissão de departamento para `precos`
-Remover a entrada em `departamento_permissoes_modulos` que concede `precos` ao departamento Comercial (atualmente sem usuários, mas previne acessos futuros indevidos).
-
-### Passo 3 — Manter permissões individuais
-Os 5 usuários com permissão individual (`usuario_permissoes_modulos`) continuam com acesso — esses foram configurados intencionalmente.
-
-### Resultado esperado
-Após a mudança, apenas terão acesso ao módulo `precos`:
-- **Admins** (via lógica isAdmin no código)
-- **5 usuários individuais** já configurados (F. Cazarotti, Lucas Machado, Ricardo Flausino, Erika, Ahmad)
-
-### Impacto
-- **Zero** alterações de código — a lógica de `hasModulePermission`, `showModule`, `ModuleRoute` e `ScreenRoute` já funciona corretamente
-- Apenas remoção de registros no banco que estão concedendo acesso amplo indevido
-- As rotas `/dashboard/precos/*` já estão protegidas por `ModuleRoute` e `ScreenRoute`
-- A sidebar já filtra via `showModule` → `hasModulePermission`
-
-### Migração SQL
-```sql
--- Remover permissão de role para precos (supervisor e gerente)
-DELETE FROM role_permissoes_modulos 
-WHERE modulo_id = (SELECT id FROM modulos_sistema WHERE codigo = 'precos')
-  AND role IN ('supervisor', 'gerente');
-
--- Remover permissão de departamento para precos
-DELETE FROM departamento_permissoes_modulos
-WHERE modulo_id = (SELECT id FROM modulos_sistema WHERE codigo = 'precos');
+### Estrutura resultante:
+```text
+┌─────────────────────────┐
+│ [Avatar] Nome      🎨 ▲ │  ← clicável, expande/recolhe
+│         Conectado       │
+├─────────────────────────┤
+│  Configurações          │  ← aparece ao expandir
+│  LGPD                   │
+│  Config. Menu           │
+│  Rel. Segurança         │
+│  Rel. Desenvolvimento   │
+│  Sair                   │
+├─────────────────────────┤
+│  Privacidade | Termos   │  ← sempre visível
+└─────────────────────────┘
 ```
+
+Zero alterações funcionais ou de permissão.
 
