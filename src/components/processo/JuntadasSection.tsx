@@ -37,9 +37,10 @@ interface Props {
 }
 
 export function JuntadasSection({ processId }: Props) {
-  const { juntadas, isLoading, addJuntada } = useProcessJuntadas(processId);
+  const { juntadas, isLoading, addJuntada, despacharJuntada } = useProcessJuntadas(processId);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedJuntada, setSelectedJuntada] = useState<ProcessJuntada | null>(null);
+  const [despachoJuntada, setDespachoJuntada] = useState<ProcessJuntada | null>(null);
 
   // Form state
   const [titulo, setTitulo] = useState("");
