@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Eye, FileText, Camera, Link2, Loader2, Send } from "lucide-react";
+import { Eye, FileText, Camera, Link2, Loader2, Send, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useDocumentosDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
@@ -45,6 +46,8 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
   const [vincularCatKey, setVincularCatKey] = useState("");
   const [despachoDoc, setDespachoDoc] = useState<any>(null);
   const [despachoCatKey, setDespachoCatKey] = useState("");
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const [batchDespachoOpen, setBatchDespachoOpen] = useState(false);
 
   // Build anexo numbering map: documento_id → numero_anexo
   const anexoMap = useMemo(() => {
@@ -90,6 +93,31 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
     if (ungrouped.length > 0) grouped["_outros"] = ungrouped;
     return grouped;
   }, [documentos]);
+
+  // Docs not yet dispatched
+  const undispatchedDocs = useMemo(() => 
+    documentos.filter((d: any) => !statusMap[d.id]),
+  [documentos, statusMap]);
+
+  const toggleDocSelect = (docId: string) => {
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId); else next.add(docId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDocs.size === undispatchedDocs.length) {
+      setSelectedDocs(new Set());
+    } else {
+      setSelectedDocs(new Set(undispatchedDocs.map((d: any) => d.id)));
+    }
+  };
+
+  const selectedDocsData = useMemo(() =>
+    documentos.filter((d: any) => selectedDocs.has(d.id)),
+  [documentos, selectedDocs]);
 
   const getCategoryLabel = (key: string) => {
     if (key === "_outros") return "Outros";
@@ -194,6 +222,26 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         </div>
       )}
 
+      {/* Batch action bar */}
+      {selectedDocs.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-xs font-medium text-primary">{selectedDocs.size} selecionado(s)</span>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-6 text-xs gap-1 ml-auto"
+            onClick={() => setBatchDespachoOpen(true)}
+          >
+            <Send className="h-3 w-3" />
+            Despachar {selectedDocs.size} doc(s)
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setSelectedDocs(new Set())}>
+            Limpar
+          </Button>
+        </div>
+      )}
+
       {/* Documents */}
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
@@ -203,6 +251,19 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         <p className="text-[11px] text-muted-foreground italic py-2">Nenhum documento enviado</p>
       ) : (
         <div className="space-y-2">
+          {/* Select all undispatched */}
+          {undispatchedDocs.length > 1 && (
+            <div className="flex items-center gap-2 px-2">
+              <Checkbox
+                checked={selectedDocs.size === undispatchedDocs.length && undispatchedDocs.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Selecionar todos ({undispatchedDocs.length} pendentes)
+              </span>
+            </div>
+          )}
           {Object.entries(docsByCategory).map(([catKey, catDocs]) => {
             const photoDocs = catDocs.filter((d: any) => isImageType(d.tipo_documento));
             const fileDocs = catDocs.filter((d: any) => !isImageType(d.tipo_documento));
@@ -228,6 +289,14 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                           key={doc.id}
                           className={`flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group ${borderClass ? `border-l-2 ${borderClass}` : ""}`}
                         >
+                          {!despachoStatus && (
+                            <Checkbox
+                              checked={selectedDocs.has(doc.id)}
+                              onCheckedChange={() => toggleDocSelect(doc.id)}
+                              className="h-3.5 w-3.5 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
                           <span className="text-[9px] font-mono text-muted-foreground shrink-0 w-8">
                             {String(docNumberMap[doc.id] || 0).padStart(2, "0")}
                           </span>
@@ -339,14 +408,23 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         categoriaKey={vincularCatKey}
       />
 
-      {/* Despacho Dialog */}
+      {/* Despacho Dialog (single) */}
       <DespachoDocumentoDialog
         open={!!despachoDoc}
         onOpenChange={(open) => { if (!open) setDespachoDoc(null); }}
-        documento={despachoDoc}
+        documentos={despachoDoc ? [despachoDoc] : []}
         submissaoId={submissao.id}
         processoId={processoId}
         categoriaChecklist={despachoCatKey}
+      />
+
+      {/* Batch Despacho Dialog */}
+      <DespachoDocumentoDialog
+        open={batchDespachoOpen}
+        onOpenChange={(open) => { if (!open) { setBatchDespachoOpen(false); setSelectedDocs(new Set()); } }}
+        documentos={selectedDocsData}
+        submissaoId={submissao.id}
+        processoId={processoId}
       />
     </div>
   );

@@ -15861,6 +15861,9 @@ export type Database = {
       process_despacho_documento: {
         Row: {
           categoria_checklist: string | null
+          ciencia_em: string | null
+          ciencia_por: string | null
+          ciencia_por_nome: string | null
           created_at: string
           created_by: string | null
           departamento_destino_id: string | null
@@ -15869,12 +15872,14 @@ export type Database = {
           documento_id: string
           etapa_atual: number
           id: string
+          lote_despacho_id: string | null
           modulo_destino: string | null
           numero_anexo: number
           parecer_data: string | null
           parecer_por: string | null
           parecer_por_nome: string | null
           parecer_texto: string | null
+          prazo_ciencia_horas: number
           processo_id: string | null
           status: string
           submissao_id: string
@@ -15882,6 +15887,9 @@ export type Database = {
         }
         Insert: {
           categoria_checklist?: string | null
+          ciencia_em?: string | null
+          ciencia_por?: string | null
+          ciencia_por_nome?: string | null
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
@@ -15890,12 +15898,14 @@ export type Database = {
           documento_id: string
           etapa_atual?: number
           id?: string
+          lote_despacho_id?: string | null
           modulo_destino?: string | null
           numero_anexo?: number
           parecer_data?: string | null
           parecer_por?: string | null
           parecer_por_nome?: string | null
           parecer_texto?: string | null
+          prazo_ciencia_horas?: number
           processo_id?: string | null
           status?: string
           submissao_id: string
@@ -15903,6 +15913,9 @@ export type Database = {
         }
         Update: {
           categoria_checklist?: string | null
+          ciencia_em?: string | null
+          ciencia_por?: string | null
+          ciencia_por_nome?: string | null
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
@@ -15911,12 +15924,14 @@ export type Database = {
           documento_id?: string
           etapa_atual?: number
           id?: string
+          lote_despacho_id?: string | null
           modulo_destino?: string | null
           numero_anexo?: number
           parecer_data?: string | null
           parecer_por?: string | null
           parecer_por_nome?: string | null
           parecer_texto?: string | null
+          prazo_ciencia_horas?: number
           processo_id?: string | null
           status?: string
           submissao_id?: string

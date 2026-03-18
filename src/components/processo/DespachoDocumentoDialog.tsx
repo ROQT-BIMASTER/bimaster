@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, Loader2, Plus } from "lucide-react";
+import { Send, Loader2, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { useCriarDespacho } from "@/hooks/useDespachoDocumentos";
+import { useCriarDespachoLote } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
 import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
 
 interface DespachoDocumentoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  documento: any;
+  documentos: any[];
   submissaoId: string;
   processoId?: string;
   categoriaChecklist?: string;
@@ -24,7 +24,7 @@ interface DespachoDocumentoDialogProps {
 export function DespachoDocumentoDialog({
   open,
   onOpenChange,
-  documento,
+  documentos,
   submissaoId,
   processoId,
   categoriaChecklist,
@@ -32,25 +32,31 @@ export function DespachoDocumentoDialog({
   const [modulo, setModulo] = useState<string>(DESPACHO_MODULOS_PROCESSO[0].key);
   const [workflowId, setWorkflowId] = useState("none");
   const [observacao, setObservacao] = useState("");
+  const [prazoHoras, setPrazoHoras] = useState(48);
   const [showNewWorkflow, setShowNewWorkflow] = useState(false);
   const [newWorkflowNome, setNewWorkflowNome] = useState("");
-  const criarDespacho = useCriarDespacho();
+  const criarLote = useCriarDespachoLote();
   const { configs: workflows, addConfig } = useDocWorkflowConfigs();
 
   const handleDespachar = async () => {
-    await criarDespacho.mutateAsync({
+    if (documentos.length === 0) return;
+    await criarLote.mutateAsync({
       submissao_id: submissaoId,
-      documento_id: documento.id,
+      documento_ids: documentos.map((d: any) => d.id),
       processo_id: processoId,
-      categoria_checklist: categoriaChecklist,
+      categorias_checklist: categoriaChecklist
+        ? Object.fromEntries(documentos.map((d: any) => [d.id, categoriaChecklist]))
+        : undefined,
       modulo_destino: modulo,
       workflow_config_id: workflowId !== "none" ? workflowId : undefined,
       observacao: observacao || undefined,
+      prazo_ciencia_horas: prazoHoras,
     });
     onOpenChange(false);
     setModulo(DESPACHO_MODULOS_PROCESSO[0].key);
     setWorkflowId("none");
     setObservacao("");
+    setPrazoHoras(48);
   };
 
   const handleCreateWorkflow = async () => {
@@ -64,7 +70,7 @@ export function DespachoDocumentoDialog({
     setShowNewWorkflow(false);
   };
 
-  if (!documento) return null;
+  if (documentos.length === 0) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,14 +78,20 @@ export function DespachoDocumentoDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-4 w-4 text-primary" />
-            Despachar Documento
+            Despachar {documentos.length > 1 ? `${documentos.length} Documentos` : "Documento"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1">
-            <p className="font-medium text-foreground">{documento.nome_arquivo || documento.tipo_documento}</p>
+          {/* Documents being dispatched */}
+          <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1 max-h-32 overflow-y-auto">
+            {documentos.map((doc: any, i: number) => (
+              <div key={doc.id} className="flex items-center gap-2">
+                <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="text-foreground truncate">{doc.nome_arquivo || doc.tipo_documento}</span>
+              </div>
+            ))}
             {categoriaChecklist && (
-              <Badge variant="outline" className="text-[9px]">{categoriaChecklist}</Badge>
+              <Badge variant="outline" className="text-[9px] mt-1">{categoriaChecklist}</Badge>
             )}
           </div>
 
@@ -95,6 +107,26 @@ export function DespachoDocumentoDialog({
                 </div>
               ))}
             </RadioGroup>
+          </div>
+
+          {/* Prazo para ciência */}
+          <div>
+            <Label className="text-xs font-medium">Prazo para ciência e recebimento</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Select value={String(prazoHoras)} onValueChange={(v) => setPrazoHoras(Number(v))}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24">24 horas</SelectItem>
+                  <SelectItem value="48">48 horas</SelectItem>
+                  <SelectItem value="72">72 horas</SelectItem>
+                  <SelectItem value="120">5 dias</SelectItem>
+                  <SelectItem value="168">7 dias</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-[10px] text-muted-foreground">para dar ciência</span>
+            </div>
           </div>
 
           <div>
@@ -153,9 +185,9 @@ export function DespachoDocumentoDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleDespachar} disabled={criarDespacho.isPending} className="gap-1.5">
-            {criarDespacho.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Despachar
+          <Button onClick={handleDespachar} disabled={criarLote.isPending} className="gap-1.5">
+            {criarLote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Despachar {documentos.length > 1 ? `(${documentos.length})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
