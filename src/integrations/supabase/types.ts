@@ -4247,6 +4247,74 @@ export type Database = {
         }
         Relationships: []
       }
+      departamento_campo_visibilidade: {
+        Row: {
+          campo_codigo: string
+          configurado_por: string | null
+          created_at: string
+          departamento_alvo_id: string
+          departamento_controlador_id: string
+          editavel: boolean
+          id: string
+          tela_codigo: string
+          updated_at: string
+          visivel: boolean
+        }
+        Insert: {
+          campo_codigo: string
+          configurado_por?: string | null
+          created_at?: string
+          departamento_alvo_id: string
+          departamento_controlador_id: string
+          editavel?: boolean
+          id?: string
+          tela_codigo: string
+          updated_at?: string
+          visivel?: boolean
+        }
+        Update: {
+          campo_codigo?: string
+          configurado_por?: string | null
+          created_at?: string
+          departamento_alvo_id?: string
+          departamento_controlador_id?: string
+          editavel?: boolean
+          id?: string
+          tela_codigo?: string
+          updated_at?: string
+          visivel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamento_campo_visibilidad_departamento_controlador_id_fkey"
+            columns: ["departamento_controlador_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departamento_campo_visibilidad_departamento_controlador_id_fkey"
+            columns: ["departamento_controlador_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "departamento_campo_visibilidade_departamento_alvo_id_fkey"
+            columns: ["departamento_alvo_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departamento_campo_visibilidade_departamento_alvo_id_fkey"
+            columns: ["departamento_alvo_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
       departamento_permissoes_modulos: {
         Row: {
           created_at: string | null
@@ -4329,6 +4397,53 @@ export type Database = {
             columns: ["tela_id"]
             isOneToOne: false
             referencedRelation: "telas_sistema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departamento_visibilidade_audit: {
+        Row: {
+          acao: string
+          alterado_por: string | null
+          campo_codigo: string
+          campo_visibilidade_id: string | null
+          created_at: string
+          departamento_alvo_id: string
+          id: string
+          tela_codigo: string
+          valor_anterior: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          acao: string
+          alterado_por?: string | null
+          campo_codigo: string
+          campo_visibilidade_id?: string | null
+          created_at?: string
+          departamento_alvo_id: string
+          id?: string
+          tela_codigo: string
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          acao?: string
+          alterado_por?: string | null
+          campo_codigo?: string
+          campo_visibilidade_id?: string | null
+          created_at?: string
+          departamento_alvo_id?: string
+          id?: string
+          tela_codigo?: string
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departamento_visibilidade_audit_campo_visibilidade_id_fkey"
+            columns: ["campo_visibilidade_id"]
+            isOneToOne: false
+            referencedRelation: "departamento_campo_visibilidade"
             referencedColumns: ["id"]
           },
         ]
@@ -25675,6 +25790,14 @@ export type Database = {
         }[]
       }
       calculate_visit_points: { Args: { visit_id: string }; Returns: number }
+      campo_visivel_para_departamento: {
+        Args: {
+          p_campo_codigo: string
+          p_departamento_id: string
+          p_tela_codigo: string
+        }
+        Returns: boolean
+      }
       can_access_ads_account: {
         Args: { account_user_id: string; viewer_id: string }
         Returns: boolean
