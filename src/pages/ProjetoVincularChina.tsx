@@ -39,6 +39,8 @@ import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
+import { DespachosPanel } from "@/components/processo/DespachosPanel";
+import { useDocumentosDaSubmissao as useDocsSub } from "@/hooks/useChinaDocumentoVinculos";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
