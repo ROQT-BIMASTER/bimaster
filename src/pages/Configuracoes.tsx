@@ -41,6 +41,7 @@ import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs"
 import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
 import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
 import DeptVisibilityControlPanel from "@/components/admin/DeptVisibilityControlPanel";
+import GestaoPermissoesUnificada from "@/components/admin/GestaoPermissoesUnificada";
 
 interface Profile {
   id: string;
@@ -444,6 +445,10 @@ function Configuracoes() {
                         <Eye className="h-4 w-4" />
                         Visibilidade
                       </TabsTrigger>
+                      <TabsTrigger value="sub-ui-permissions" className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Permissões UI
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
@@ -483,6 +488,10 @@ function Configuracoes() {
 
                     <TabsContent value="sub-storage">
                       <StorageManagementPanel />
+                    </TabsContent>
+
+                    <TabsContent value="sub-ui-permissions">
+                      <GestaoPermissoesUnificada />
                     </TabsContent>
                   </Tabs>
                 </TabsContent>

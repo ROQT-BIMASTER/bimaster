@@ -3,6 +3,8 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProdutoBrasil } from "@/hooks/useProdutoBrasil";
+import { useFieldVisibility } from "@/hooks/useFieldVisibility";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { StatusPipeline } from "@/components/produto-brasil/StatusPipeline";
 import { ProjetoVinculoBanner } from "@/components/produto-brasil/ProjetoVinculoBanner";
 import { TabIdentificacao } from "@/components/produto-brasil/tabs/TabIdentificacao";
@@ -27,6 +29,8 @@ export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: produto, isLoading } = useProdutoBrasil(id);
+  const { isFieldVisible } = useFieldVisibility("projetos_produto_brasil");
+  const { canView } = useUIPermissions("projetos_produto_brasil");
 
   if (isLoading) {
     return (
@@ -82,15 +86,21 @@ export default function ProdutoBrasilCadastro() {
       <Tabs defaultValue="identificacao" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
           <TabsTrigger value="identificacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Identificação</TabsTrigger>
-          <TabsTrigger value="formulacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Formulação</TabsTrigger>
+          {canView("tab_formulacao") && (
+            <TabsTrigger value="formulacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Formulação</TabsTrigger>
+          )}
           <TabsTrigger value="classificacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Classificação</TabsTrigger>
           <TabsTrigger value="testes" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Testes</TabsTrigger>
           <TabsTrigger value="checklist" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Checklist</TabsTrigger>
           <TabsTrigger value="anvisa" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">ANVISA</TabsTrigger>
           <TabsTrigger value="aprovacao" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Aprovação</TabsTrigger>
           <TabsTrigger value="datas" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Datas</TabsTrigger>
-          <TabsTrigger value="grade" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Grade/SKUs</TabsTrigger>
-          <TabsTrigger value="custos" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Custos</TabsTrigger>
+          {isFieldVisible("grade_skus") && (
+            <TabsTrigger value="grade" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Grade/SKUs</TabsTrigger>
+          )}
+          {canView("tab_custos") && isFieldVisible("custos_brasil") && (
+            <TabsTrigger value="custos" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Custos</TabsTrigger>
+          )}
           <TabsTrigger value="pasta" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Pasta Digital</TabsTrigger>
           <TabsTrigger value="imagens" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Imagens</TabsTrigger>
           <TabsTrigger value="china" className="text-xs data-[state=active]:bg-primary/10 rounded-full px-3 py-1.5">Dados China</TabsTrigger>
@@ -101,9 +111,11 @@ export default function ProdutoBrasilCadastro() {
           <TabIdentificacao produto={produto} />
         </TabsContent>
 
-        <TabsContent value="formulacao" className="mt-4">
-          <TabFormulacao produto={produto} />
-        </TabsContent>
+        {canView("tab_formulacao") && (
+          <TabsContent value="formulacao" className="mt-4">
+            <TabFormulacao produto={produto} />
+          </TabsContent>
+        )}
 
         <TabsContent value="classificacao" className="mt-4">
           <TabClassificacao produto={produto} />
@@ -129,13 +141,17 @@ export default function ProdutoBrasilCadastro() {
           <TabDatasProcesso produto={produto} />
         </TabsContent>
 
-        <TabsContent value="grade" className="mt-4">
-          <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
-        </TabsContent>
+        {isFieldVisible("grade_skus") && (
+          <TabsContent value="grade" className="mt-4">
+            <SkuTable produtoBrasilId={produto.id} submissaoChinaId={produto.submissao_china_id} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="custos" className="mt-4">
-          <FichaCustoImportado produtoBrasilId={produto.id} produtoNome={produto.nome_brasil || produto.china_nome || "Produto"} />
-        </TabsContent>
+        {canView("tab_custos") && isFieldVisible("custos_brasil") && (
+          <TabsContent value="custos" className="mt-4">
+            <FichaCustoImportado produtoBrasilId={produto.id} produtoNome={produto.nome_brasil || produto.china_nome || "Produto"} />
+          </TabsContent>
+        )}
 
         <TabsContent value="pasta" className="mt-4">
           <PastaDigitalPanel produtoBrasilId={produto.id} />
