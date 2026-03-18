@@ -395,26 +395,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["/dashboard/reunioes"],
   }), []);
 
-  const moduleToCategoryMap: Record<string, string> = useMemo(() => ({
-    prospects: "comercial_vendas",
-    comercial: "comercial_vendas",
-    precos: "comercial_vendas",
-    trade: "trade_marketing",
-    marketing: "trade_marketing",
-    eventos: "trade_marketing",
-    fabrica: "producao_qualidade",
-    china: "producao_qualidade",
-    composicao: "producao_qualidade",
-    amostras: "producao_qualidade",
-    analise_embalagem: "producao_qualidade",
-    etiqueta_bula: "producao_qualidade",
-    aprovacao_artes: "producao_qualidade",
-    financeiro: "financeiro_admin",
-    departamentos: "financeiro_admin",
-    estoque: "financeiro_admin",
-    projetos: "gestao_projetos",
-    reunioes: "gestao_projetos",
-  }), []);
+  // Dynamic moduleToCategoryMap from DB config
+  const moduleToCategoryMap: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {};
+    dbCategories.forEach(cat => {
+      cat.modules.forEach(m => {
+        map[m.module_code] = cat.key;
+      });
+    });
+    return map;
+  }, [dbCategories]);
 
   // Auto-expand based on current route
   useEffect(() => {
