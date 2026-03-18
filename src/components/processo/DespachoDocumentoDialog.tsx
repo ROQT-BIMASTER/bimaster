@@ -54,7 +54,7 @@ export function DespachoDocumentoDialog({
       processo_id: processoId,
       categoria_checklist: categoriaChecklist,
       departamento_destino_id: departamentoId || undefined,
-      workflow_config_id: workflowId || undefined,
+      workflow_config_id: workflowId && workflowId !== "none" ? workflowId : undefined,
       observacao: observacao || undefined,
     });
     onOpenChange(false);
@@ -103,7 +103,7 @@ export function DespachoDocumentoDialog({
                 <SelectValue placeholder="Sem workflow específico" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {workflows.map((w: any) => (
                   <SelectItem key={w.id} value={w.id}>{w.nome}</SelectItem>
                 ))}
