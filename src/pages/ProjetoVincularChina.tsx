@@ -885,6 +885,47 @@ export default function ProjetoVincularChina() {
         nomeArquivo={previewDoc?.nome_arquivo}
         tipoDocumento={getDocTypeLabel(previewDoc?.tipo_documento || "")}
       />
+
+      {/* Focus Mode Dialog */}
+      <Dialog open={!!focusSubmissao} onOpenChange={(open) => { if (!open) setFocusSubmissao(null); }}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-primary">{focusSubmissao?.produto_codigo}</span>
+                  <Badge variant={getStatusBadgeVariant(focusSubmissao?.status || "")}>
+                    {getStatusLabel(focusSubmissao?.status || "")}
+                  </Badge>
+                </div>
+                <p className="text-base font-semibold">{focusSubmissao?.produto_nome}</p>
+              </div>
+              {focusSubmissao?.numero_ordem && (
+                <Badge variant="outline" className="ml-auto text-xs">OC: {focusSubmissao.numero_ordem}</Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 overflow-auto">
+            <div className="p-6">
+              {focusSubmissao && (
+                <ChinaSubmissaoExpandido
+                  submissao={focusSubmissao}
+                  onPreviewDoc={setPreviewDoc}
+                  processoId={undefined}
+                />
+              )}
+              {focusSubmissao && (
+                <div className="mt-4">
+                  <DespachosActiveSection submissaoId={focusSubmissao.id} />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
