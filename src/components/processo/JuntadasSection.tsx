@@ -261,6 +261,56 @@ export function JuntadasSection({ processId }: Props) {
           setDespachoJuntada(null);
         }}
       />
+
+      {/* Novo Tipo de Documento Dialog */}
+      <Dialog open={showNewTipo} onOpenChange={setShowNewTipo}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              Novo Tipo de Documento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nome do Tipo</Label>
+              <Input value={novoTipoLabel} onChange={e => setNovoTipoLabel(e.target.value)} placeholder="Ex: Certificado de Origem" />
+            </div>
+            <div>
+              <Label>Módulo (opcional)</Label>
+              <Select value={novoTipoModulo} onValueChange={setNovoTipoModulo}>
+                <SelectTrigger><SelectValue placeholder="Todos os módulos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os módulos</SelectItem>
+                  {DESPACHO_MODULOS_PROCESSO.map(m => (
+                    <SelectItem key={m.key} value={m.key}>{m.icon} {m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewTipo(false)}>Cancelar</Button>
+            <Button
+              disabled={!novoTipoLabel.trim() || addTipo.isPending}
+              onClick={() => {
+                addTipo.mutate({
+                  label: novoTipoLabel.trim(),
+                  modulo: novoTipoModulo && novoTipoModulo !== "todos" ? novoTipoModulo : undefined,
+                }, {
+                  onSuccess: () => {
+                    setShowNewTipo(false);
+                    setNovoTipoLabel("");
+                    setNovoTipoModulo("");
+                  },
+                });
+              }}
+            >
+              Criar Tipo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

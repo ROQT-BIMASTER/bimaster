@@ -9,18 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas } from "@/hooks/useDocWorkflow";
+import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-
-const TIPOS_DOCUMENTO = [
-  { value: "embalagem", label: "Embalagem" },
-  { value: "rotulo", label: "Rótulo" },
-  { value: "arte", label: "Arte" },
-  { value: "ficha_tecnica", label: "Ficha Técnica" },
-  { value: "regulatorio", label: "Regulatório" },
-  { value: "outro", label: "Outro" },
-];
+import { DESPACHO_MODULOS_PROCESSO } from "@/components/processo/DespachoDialog";
 
 const TIPOS_ACAO = [
   { value: "criar", label: "Criar" },
