@@ -316,6 +316,24 @@ function JuntadaDetail({ juntada, onDespachar }: { juntada: ProcessJuntada; onDe
         </div>
       </div>
 
+      {/* Despacho info or button */}
+      {juntada.despacho_modulo ? (
+        <div className="bg-muted/30 rounded-lg p-3 text-sm border-l-2 border-primary/30">
+          <span className="text-[11px] text-muted-foreground block mb-1">Despachado para</span>
+          <span className="font-medium">
+            {DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo)?.icon}{" "}
+            {DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo)?.label || juntada.despacho_modulo}
+          </span>
+          {juntada.despacho_descricao && (
+            <p className="text-xs text-muted-foreground mt-1 italic">"{juntada.despacho_descricao}"</p>
+          )}
+        </div>
+      ) : onDespachar ? (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={onDespachar}>
+          <Send className="h-3.5 w-3.5" /> Despachar para Módulo
+        </Button>
+      ) : null}
+
       {juntada.parecer && (
         <div className="bg-muted/30 rounded-lg p-3 text-sm text-foreground italic border-l-2 border-primary/30">
           "{juntada.parecer}"
