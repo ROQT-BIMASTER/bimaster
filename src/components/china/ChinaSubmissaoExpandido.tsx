@@ -1,14 +1,17 @@
 import { useState, useMemo } from "react";
-import { Eye, FileText, Camera, Link2, Loader2 } from "lucide-react";
+import { Eye, FileText, Camera, Link2, Loader2, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDocumentosDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
+import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ChinaDocVincularDialog } from "./ChinaDocVincularDialog";
+import { DespachoDocumentoDialog } from "@/components/processo/DespachoDocumentoDialog";
 
 interface ChinaSubmissaoExpandidoProps {
   submissao: any;
   onPreviewDoc: (doc: any) => void;
+  processoId?: string;
 }
 
 function getDocTypeLabel(tipo: string) {
@@ -27,10 +30,54 @@ function getCategoryKeyForTipo(tipo: string): string {
   return "_outros";
 }
 
-export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmissaoExpandidoProps) {
+const DESPACHO_STATUS_COLORS: Record<string, string> = {
+  pendente: "border-l-yellow-400",
+  em_analise: "border-l-blue-400",
+  aprovado: "border-l-green-500",
+  rejeitado: "border-l-red-500",
+  devolvido_china: "border-l-emerald-600",
+};
+
+export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }: ChinaSubmissaoExpandidoProps) {
   const { data: documentos = [], isLoading } = useDocumentosDaSubmissao(submissao.id);
+  const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
   const [vincularDoc, setVincularDoc] = useState<any>(null);
   const [vincularCatKey, setVincularCatKey] = useState("");
+  const [despachoDoc, setDespachoDoc] = useState<any>(null);
+  const [despachoCatKey, setDespachoCatKey] = useState("");
+
+  // Build anexo numbering map: documento_id → numero_anexo
+  const anexoMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    despachos.forEach((d: any) => { map[d.documento_id] = d.numero_anexo; });
+    return map;
+  }, [despachos]);
+
+  // Build status map: documento_id → status
+  const statusMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    despachos.forEach((d: any) => { map[d.documento_id] = d.status; });
+    return map;
+  }, [despachos]);
+
+  // Auto-number all docs sequentially for display
+  const docNumberMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    let counter = 1;
+    for (const cat of DOCUMENT_CATEGORIES) {
+      const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
+      catDocs.forEach((d: any) => {
+        map[d.id] = anexoMap[d.id] || counter;
+        counter++;
+      });
+    }
+    const allTipos = DOCUMENT_CATEGORIES.flatMap((c) => c.tipos);
+    documentos.filter((d: any) => !allTipos.includes(d.tipo_documento)).forEach((d: any) => {
+      map[d.id] = anexoMap[d.id] || counter;
+      counter++;
+    });
+    return map;
+  }, [documentos, anexoMap]);
 
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};
@@ -58,6 +105,35 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
   const handleOpenVincular = (doc: any) => {
     setVincularCatKey(getCategoryKeyForTipo(doc.tipo_documento));
     setVincularDoc(doc);
+  };
+
+  const handleOpenDespacho = (doc: any, catKey: string) => {
+    setDespachoCatKey(catKey);
+    setDespachoDoc(doc);
+  };
+
+  const getStatusBadge = (docId: string) => {
+    const status = statusMap[docId];
+    if (!status) return null;
+    const labels: Record<string, string> = {
+      pendente: "Pendente",
+      em_analise: "Análise",
+      aprovado: "Aprovado",
+      rejeitado: "Rejeitado",
+      devolvido_china: "✓ China",
+    };
+    const variants: Record<string, "warning" | "default" | "success" | "destructive" | "outline"> = {
+      pendente: "warning",
+      em_analise: "default",
+      aprovado: "success",
+      rejeitado: "destructive",
+      devolvido_china: "outline",
+    };
+    return (
+      <Badge variant={variants[status] || "secondary"} className="text-[8px] h-3.5 px-1 shrink-0">
+        {labels[status] || status}
+      </Badge>
+    );
   };
 
   return (
@@ -144,40 +220,59 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
                 {/* File documents as compact list */}
                 {fileDocs.length > 0 && (
                   <div className="space-y-0.5">
-                    {fileDocs.map((doc: any) => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group"
-                      >
-                        <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="flex-1 min-w-0 truncate text-foreground">
-                          {doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
-                        </span>
-                        <Badge
-                          variant={doc.status === "aprovado" ? "success" : "secondary"}
-                          className="text-[9px] h-4 px-1 shrink-0"
+                    {fileDocs.map((doc: any) => {
+                      const despachoStatus = statusMap[doc.id];
+                      const borderClass = despachoStatus ? DESPACHO_STATUS_COLORS[despachoStatus] || "" : "";
+                      return (
+                        <div
+                          key={doc.id}
+                          className={`flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group ${borderClass ? `border-l-2 ${borderClass}` : ""}`}
                         >
-                          {doc.status}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
-                        >
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
-                          onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
-                          title="Vincular a tarefa"
-                        >
-                          <Link2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                          <span className="text-[9px] font-mono text-muted-foreground shrink-0 w-8">
+                            {String(docNumberMap[doc.id] || 0).padStart(2, "0")}
+                          </span>
+                          <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="flex-1 min-w-0 truncate text-foreground">
+                            {doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
+                          </span>
+                          {getStatusBadge(doc.id)}
+                          <Badge
+                            variant={doc.status === "aprovado" ? "success" : "secondary"}
+                            className="text-[9px] h-4 px-1 shrink-0"
+                          >
+                            {doc.status}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+                            onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
+                            title="Vincular a tarefa"
+                          >
+                            <Link2 className="h-3 w-3" />
+                          </Button>
+                          {!statusMap[doc.id] && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-orange-500"
+                              onClick={(e) => { e.stopPropagation(); handleOpenDespacho(doc, catKey); }}
+                              title="Despachar documento"
+                            >
+                              <Send className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -189,7 +284,7 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
                         <button
                           onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
                           className="h-10 w-10 rounded border border-border bg-muted/50 flex items-center justify-center hover:ring-1 hover:ring-primary/50 transition-all overflow-hidden"
-                          title={doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
+                          title={`Ax ${String(docNumberMap[doc.id] || 0).padStart(2, "0")} — ${doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}`}
                         >
                           {doc.arquivo_url ? (
                             <img
@@ -204,13 +299,27 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
                             <Camera className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
-                          className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Vincular"
-                        >
-                          <Link2 className="h-2.5 w-2.5" />
-                        </button>
+                        <span className="absolute -bottom-1 left-0 text-[7px] font-mono bg-background/80 px-0.5 rounded">
+                          {String(docNumberMap[doc.id] || 0).padStart(2, "0")}
+                        </span>
+                        <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
+                            className="h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                            title="Vincular"
+                          >
+                            <Link2 className="h-2.5 w-2.5" />
+                          </button>
+                          {!statusMap[doc.id] && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleOpenDespacho(doc, catKey); }}
+                              className="h-4 w-4 rounded-full bg-orange-500 text-white flex items-center justify-center"
+                              title="Despachar"
+                            >
+                              <Send className="h-2.5 w-2.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -227,6 +336,16 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc }: ChinaSubmis
         onOpenChange={(open) => { if (!open) setVincularDoc(null); }}
         documento={vincularDoc}
         categoriaKey={vincularCatKey}
+      />
+
+      {/* Despacho Dialog */}
+      <DespachoDocumentoDialog
+        open={!!despachoDoc}
+        onOpenChange={(open) => { if (!open) setDespachoDoc(null); }}
+        documento={despachoDoc}
+        submissaoId={submissao.id}
+        processoId={processoId}
+        categoriaChecklist={despachoCatKey}
       />
     </div>
   );
