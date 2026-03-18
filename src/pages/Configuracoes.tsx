@@ -489,6 +489,10 @@ function Configuracoes() {
                     <TabsContent value="sub-storage">
                       <StorageManagementPanel />
                     </TabsContent>
+
+                    <TabsContent value="sub-ui-permissions">
+                      <GestaoPermissoesUnificada />
+                    </TabsContent>
                   </Tabs>
                 </TabsContent>
               </>
