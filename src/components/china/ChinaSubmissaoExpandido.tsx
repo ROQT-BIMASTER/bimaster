@@ -261,13 +261,14 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                           </Button>
                           {!statusMap[doc.id] && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-orange-500"
+                              className="h-5 px-1.5 text-[9px] gap-0.5 shrink-0 text-orange-600 border-orange-300 hover:bg-orange-50"
                               onClick={(e) => { e.stopPropagation(); handleOpenDespacho(doc, catKey); }}
                               title="Despachar documento"
                             >
-                              <Send className="h-3 w-3" />
+                              <Send className="h-2.5 w-2.5" />
+                              Despachar
                             </Button>
                           )}
                         </div>
