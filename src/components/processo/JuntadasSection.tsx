@@ -15,15 +15,7 @@ import { cn } from "@/lib/utils";
 import { useProcessJuntadas, type ProcessJuntada } from "@/hooks/useProcessJuntadas";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas, useDocWorkflowInstance } from "@/hooks/useDocWorkflow";
 import { DespachoDialog, DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
-
-const TIPOS_DOCUMENTO = [
-  { value: "embalagem", label: "Embalagem" },
-  { value: "rotulo", label: "Rótulo" },
-  { value: "arte", label: "Arte" },
-  { value: "ficha_tecnica", label: "Ficha Técnica" },
-  { value: "regulatorio", label: "Regulatório" },
-  { value: "outro", label: "Outro" },
-];
+import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 
 const PARECER_STYLES: Record<string, { icon: any; color: string; label: string }> = {
   pendente: { icon: Clock, color: "text-amber-500", label: "Pendente" },
