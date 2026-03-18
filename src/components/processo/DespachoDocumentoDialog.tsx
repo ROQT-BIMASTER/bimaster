@@ -15,9 +15,6 @@ import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
 import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
 import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 import { toast } from "sonner";
-import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
-import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 
 interface DespachoDocumentoDialogProps {
   open: boolean;
