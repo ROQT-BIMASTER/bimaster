@@ -257,6 +257,11 @@ export default function ChinaFichaProduto() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" className="flex-1" />
+          {isBrasilUser && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
+              <Send className="h-4 w-4" /> Despachar
+            </Button>
+          )}
           <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
