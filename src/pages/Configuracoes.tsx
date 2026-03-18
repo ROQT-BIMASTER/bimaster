@@ -41,6 +41,7 @@ import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs"
 import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
 import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
 import DeptVisibilityControlPanel from "@/components/admin/DeptVisibilityControlPanel";
+import GestaoPermissoesUnificada from "@/components/admin/GestaoPermissoesUnificada";
 
 interface Profile {
   id: string;
