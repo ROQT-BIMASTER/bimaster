@@ -1009,7 +1009,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     <ThemeSelectorPopover />
                   </div>
                   <ChevronUp className={cn(
-                    "h-4 w-4 text-[#8896ab] transition-transform duration-200",
+                    "h-4 w-4 text-[var(--sidebar-text-raw)] transition-transform duration-200",
                     !footerOpen && "rotate-180"
                   )} />
                 </div>
