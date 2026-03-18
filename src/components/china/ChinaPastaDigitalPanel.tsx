@@ -89,7 +89,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
       const faseItems = items.filter(i => i.fase === fase.key);
       if (faseItems.length > 0) map[fase.key] = faseItems;
     }
-    const knownKeys = new Set(FASES_CHINA_PASTA.map(f => f.key));
+    const knownKeys = new Set(FASES_CHINA_PASTA.map(f => f.key as string));
     const unknownItems = items.filter(i => !knownKeys.has(i.fase));
     if (unknownItems.length > 0) map["_outros"] = unknownItems;
     return map;

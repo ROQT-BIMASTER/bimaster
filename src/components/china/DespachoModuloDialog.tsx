@@ -16,7 +16,7 @@ interface DespachoModuloDialogProps {
 }
 
 export function DespachoModuloDialog({ open, onOpenChange, itemId, submissaoId, itemTitulo }: DespachoModuloDialogProps) {
-  const [modulo, setModulo] = useState(DESPACHO_MODULOS[0].key);
+  const [modulo, setModulo] = useState<string>(DESPACHO_MODULOS[0].key);
   const [descricao, setDescricao] = useState("");
   const despachar = useDespacharModulo();
 
