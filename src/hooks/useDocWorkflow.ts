@@ -18,6 +18,10 @@ export interface DocWorkflowEtapa {
   departamento_responsavel_id: string | null;
   ordem: number;
   tipo_acao: string;
+  aprovadores_ids: string[];
+  aprovadores_nomes: string[];
+  modulo_aprovacao: string | null;
+  modulo_recusa: string | null;
   created_at: string;
 }
 
