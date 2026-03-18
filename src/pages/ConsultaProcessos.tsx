@@ -328,7 +328,7 @@ export default function ConsultaProcessos() {
                       const isPast = i < etapaAtualIndex;
                       return (
                         <Badge
-                          key={etapa.key}
+                          key={etapa.etapa_key}
                           variant="outline"
                           className={cn(
                             "text-[9px] px-1.5 py-0 h-5 transition-all",
