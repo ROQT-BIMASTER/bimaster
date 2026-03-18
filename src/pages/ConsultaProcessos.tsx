@@ -323,8 +323,8 @@ export default function ConsultaProcessos() {
                 <div className="space-y-2">
                   <Progress value={progressPercent} className="h-2" />
                   <div className="flex flex-wrap gap-1">
-                    {ETAPAS_CICLO_VIDA.map((etapa, i) => {
-                      const isCurrent = etapa.key === selectedProcess.etapa_atual;
+                    {etapas.map((etapa, i) => {
+                      const isCurrent = etapa.etapa_key === selectedProcess.etapa_atual;
                       const isPast = i < etapaAtualIndex;
                       return (
                         <Badge
