@@ -69,21 +69,23 @@ export function useDespachosPorProcesso(processoId: string | null) {
   });
 }
 
-export function useCriarDespacho() {
+export function useCriarDespachoLote() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: {
       submissao_id: string;
-      documento_id: string;
+      documento_ids: string[];
       processo_id?: string;
-      categoria_checklist?: string;
-      departamento_destino_id?: string;
+      categorias_checklist?: Record<string, string>;
       modulo_destino?: string;
       workflow_config_id?: string;
       observacao?: string;
+      prazo_ciencia_horas?: number;
     }) => {
+      const loteId = crypto.randomUUID();
+
       // Get next anexo number
       const { data: existing } = await (supabase
         .from("process_despacho_documento" as any)
@@ -92,47 +94,98 @@ export function useCriarDespacho() {
         .order("numero_anexo", { ascending: false })
         .limit(1) as any);
 
-      const nextAnexo = existing && existing.length > 0 ? (existing[0] as any).numero_anexo + 1 : 1;
+      let nextAnexo = existing && existing.length > 0 ? (existing[0] as any).numero_anexo + 1 : 1;
 
-      const { data, error } = await (supabase
-        .from("process_despacho_documento" as any)
-        .insert({
-          submissao_id: input.submissao_id,
-          documento_id: input.documento_id,
-          processo_id: input.processo_id || null,
-          numero_anexo: nextAnexo,
-          categoria_checklist: input.categoria_checklist || null,
-          departamento_destino_id: input.departamento_destino_id || null,
-          modulo_destino: input.modulo_destino || null,
-          workflow_config_id: input.workflow_config_id || null,
-          status: "pendente",
-          created_by: user?.id,
-        })
-        .select()
-        .single() as any);
-      if (error) throw error;
+      const results: DespachoDocumento[] = [];
 
-      // Create transition record
-      await (supabase
-        .from("process_despacho_transicoes" as any)
-        .insert({
-          despacho_id: (data as any).id,
-          etapa_nome: "Despacho Inicial",
-          acao: "despachar",
-          usuario_id: user?.id,
-          usuario_nome: user?.email,
-          departamento_id: input.departamento_destino_id || null,
-          observacao: input.observacao || null,
-        }) as any);
+      for (const docId of input.documento_ids) {
+        const { data, error } = await (supabase
+          .from("process_despacho_documento" as any)
+          .insert({
+            submissao_id: input.submissao_id,
+            documento_id: docId,
+            processo_id: input.processo_id || null,
+            numero_anexo: nextAnexo,
+            categoria_checklist: input.categorias_checklist?.[docId] || null,
+            modulo_destino: input.modulo_destino || null,
+            workflow_config_id: input.workflow_config_id || null,
+            status: "pendente",
+            prazo_ciencia_horas: input.prazo_ciencia_horas || 48,
+            lote_despacho_id: loteId,
+            created_by: user?.id,
+          })
+          .select()
+          .single() as any);
+        if (error) throw error;
 
-      return data as DespachoDocumento;
+        // Transition record
+        await (supabase
+          .from("process_despacho_transicoes" as any)
+          .insert({
+            despacho_id: (data as any).id,
+            etapa_nome: "Despacho Inicial",
+            acao: "despachar",
+            usuario_id: user?.id,
+            usuario_nome: user?.email,
+            observacao: input.observacao || null,
+          }) as any);
+
+        // Create process event if processo_id exists
+        if (input.processo_id) {
+          await (supabase
+            .from("process_events" as any)
+            .insert({
+              processo_id: input.processo_id,
+              tipo: "despacho",
+              descricao: `Documento despachado para ${input.modulo_destino || "módulo"} — Anexo ${String(nextAnexo).padStart(2, "0")}`,
+              usuario_id: user?.id,
+              usuario_nome: user?.email,
+              metadata: { despacho_id: (data as any).id, documento_id: docId, modulo: input.modulo_destino, prazo_horas: input.prazo_ciencia_horas || 48 },
+            }) as any);
+        }
+
+        results.push(data as DespachoDocumento);
+        nextAnexo++;
+      }
+
+      return results;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["despachos-submissao", vars.submissao_id] });
       queryClient.invalidateQueries({ queryKey: ["despachos-processo"] });
-      toast.success("Documento despachado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["process-events"] });
+      toast.success(`${vars.documento_ids.length} documento(s) despachado(s)`);
     },
   });
+}
+
+// Keep single dispatch as convenience wrapper
+export function useCriarDespacho() {
+  const lote = useCriarDespachoLote();
+  return {
+    ...lote,
+    mutateAsync: async (input: {
+      submissao_id: string;
+      documento_id: string;
+      processo_id?: string;
+      categoria_checklist?: string;
+      modulo_destino?: string;
+      workflow_config_id?: string;
+      observacao?: string;
+    }) => {
+      const results = await lote.mutateAsync({
+        submissao_id: input.submissao_id,
+        documento_ids: [input.documento_id],
+        processo_id: input.processo_id,
+        categorias_checklist: input.categoria_checklist ? { [input.documento_id]: input.categoria_checklist } : undefined,
+        modulo_destino: input.modulo_destino,
+        workflow_config_id: input.workflow_config_id,
+        observacao: input.observacao,
+      });
+      return results[0];
+    },
+    isPending: lote.isPending,
+  };
 }
 
 export function useRegistrarParecer() {
