@@ -288,6 +288,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   const { isAdminOrSupervisor, isAdmin } = useUserRole();
   const { user } = useAuth();
+  const { categories: dbCategories, isLoading: configLoading } = useSidebarConfig();
   const { data: userDepartments = [] } = useUserDepartments();
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
