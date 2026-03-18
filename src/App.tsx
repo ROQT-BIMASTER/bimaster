@@ -240,6 +240,7 @@ const FluxoArtesMotor = lazyWithRetry(() => import("./pages/FluxoArtesMotor"));
 const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"));
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
+const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
 
 // Loading component
 const PageLoader = () => (
@@ -579,6 +580,7 @@ function AppContent() {
              {/* Consulta de Processos */}
              <Route path="/dashboard/processos/consulta" element={<ProtectedRoute><ConsultaProcessos /></ProtectedRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ProtectedRoute><ConfigEtapasProcesso /></ProtectedRoute>} />
+             <Route path="/dashboard/processos/workflows" element={<ProtectedRoute><ConfigDocWorkflows /></ProtectedRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
