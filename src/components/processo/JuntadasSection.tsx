@@ -127,7 +127,7 @@ export function JuntadasSection({ processId }: Props) {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[9px] shrink-0">
-                        {TIPOS_DOCUMENTO.find(t => t.value === j.tipo_documento)?.label || j.tipo_documento}
+                        {tiposDocumento.find(t => t.valor === j.tipo_documento)?.label || j.tipo_documento}
                       </Badge>
                     </button>
                     {despachoMod ? (
