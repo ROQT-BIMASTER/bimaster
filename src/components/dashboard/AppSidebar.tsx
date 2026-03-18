@@ -263,12 +263,12 @@ const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
     "hover:bg-[var(--sidebar-hover-raw)]",
     isOpen ? "bg-[var(--sidebar-hover-raw)]" : ""
   )}>
-    <Icon className="h-4 w-4 text-[#8896ab]" />
-    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[#4a5a70] flex-1">
+    <Icon className="h-4 w-4 text-[var(--sidebar-text-raw)]" />
+    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[var(--sidebar-text-muted-raw)] flex-1">
       {title}
     </span>
     <ChevronRight className={cn(
-      "h-3.5 w-3.5 text-[#4a5a70] transition-transform duration-200",
+      "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
       isOpen && "rotate-90"
     )} />
   </div>
