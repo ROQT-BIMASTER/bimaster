@@ -10719,6 +10719,42 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          departamentos_permitidos: string[] | null
+          descricao: string | null
+          id: string
+          nome: string
+          roles_permitidos: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          departamentos_permitidos?: string[] | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          roles_permitidos?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          departamentos_permitidos?: string[] | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          roles_permitidos?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fila_cobrancas: {
         Row: {
           agendado_para: string | null
@@ -24076,6 +24112,96 @@ export type Database = {
           },
         ]
       }
+      ui_permissions: {
+        Row: {
+          componente_codigo: string
+          configurado_por: string | null
+          created_at: string
+          departamento_id: string | null
+          editavel: boolean
+          id: string
+          role: string | null
+          tela_codigo: string
+          updated_at: string
+          visivel: boolean
+        }
+        Insert: {
+          componente_codigo: string
+          configurado_por?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          editavel?: boolean
+          id?: string
+          role?: string | null
+          tela_codigo: string
+          updated_at?: string
+          visivel?: boolean
+        }
+        Update: {
+          componente_codigo?: string
+          configurado_por?: string | null
+          created_at?: string
+          departamento_id?: string | null
+          editavel?: boolean
+          id?: string
+          role?: string | null
+          tela_codigo?: string
+          updated_at?: string
+          visivel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ui_permissions_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ui_permissions_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
+      ui_permissions_audit: {
+        Row: {
+          acao: string
+          alterado_por: string | null
+          componente_codigo: string
+          created_at: string
+          id: string
+          tela_codigo: string
+          ui_permission_id: string | null
+          valor_anterior: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          acao: string
+          alterado_por?: string | null
+          componente_codigo: string
+          created_at?: string
+          id?: string
+          tela_codigo: string
+          ui_permission_id?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          acao?: string
+          alterado_por?: string | null
+          componente_codigo?: string
+          created_at?: string
+          id?: string
+          tela_codigo?: string
+          ui_permission_id?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: []
+      }
       user_challenge_progress: {
         Row: {
           bonus_awarded: boolean | null
@@ -25877,6 +26003,14 @@ export type Database = {
           p_sync_id: string
         }
         Returns: undefined
+      }
+      componente_editavel: {
+        Args: { p_componente: string; p_tela: string }
+        Returns: boolean
+      }
+      componente_permitido: {
+        Args: { p_componente: string; p_tela: string }
+        Returns: boolean
       }
       consume_budget_credit: {
         Args: { p_amount: number; p_budget_id: string }
