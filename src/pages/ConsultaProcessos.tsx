@@ -15,7 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { ETAPAS_CICLO_VIDA, type ProductProcess, type ProcessEvent, type ProcessStepHistory } from "@/hooks/useProductProcess";
+import { type ProductProcess, type ProcessEvent, type ProcessStepHistory } from "@/hooks/useProductProcess";
+import { useEtapasConfig } from "@/hooks/useEtapasConfig";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
