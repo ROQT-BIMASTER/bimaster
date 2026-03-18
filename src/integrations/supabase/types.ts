@@ -15858,6 +15858,166 @@ export type Database = {
         }
         Relationships: []
       }
+      process_despacho_documento: {
+        Row: {
+          categoria_checklist: string | null
+          created_at: string
+          created_by: string | null
+          departamento_destino_id: string | null
+          devolvido_china: boolean
+          devolvido_china_data: string | null
+          documento_id: string
+          etapa_atual: number
+          id: string
+          modulo_destino: string | null
+          numero_anexo: number
+          parecer_data: string | null
+          parecer_por: string | null
+          parecer_por_nome: string | null
+          parecer_texto: string | null
+          processo_id: string | null
+          status: string
+          submissao_id: string
+          workflow_config_id: string | null
+        }
+        Insert: {
+          categoria_checklist?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_destino_id?: string | null
+          devolvido_china?: boolean
+          devolvido_china_data?: string | null
+          documento_id: string
+          etapa_atual?: number
+          id?: string
+          modulo_destino?: string | null
+          numero_anexo?: number
+          parecer_data?: string | null
+          parecer_por?: string | null
+          parecer_por_nome?: string | null
+          parecer_texto?: string | null
+          processo_id?: string | null
+          status?: string
+          submissao_id: string
+          workflow_config_id?: string | null
+        }
+        Update: {
+          categoria_checklist?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_destino_id?: string | null
+          devolvido_china?: boolean
+          devolvido_china_data?: string | null
+          documento_id?: string
+          etapa_atual?: number
+          id?: string
+          modulo_destino?: string | null
+          numero_anexo?: number
+          parecer_data?: string | null
+          parecer_por?: string | null
+          parecer_por_nome?: string | null
+          parecer_texto?: string | null
+          processo_id?: string | null
+          status?: string
+          submissao_id?: string
+          workflow_config_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_despacho_documento_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "product_process"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_despacho_transicoes: {
+        Row: {
+          acao: string
+          created_at: string
+          departamento_id: string | null
+          despacho_id: string
+          etapa_nome: string | null
+          id: string
+          observacao: string | null
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          departamento_id?: string | null
+          despacho_id: string
+          etapa_nome?: string | null
+          id?: string
+          observacao?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          departamento_id?: string | null
+          despacho_id?: string
+          etapa_nome?: string | null
+          id?: string
+          observacao?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_despacho_transicoes_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_transicoes_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "process_despacho_transicoes_despacho_id_fkey"
+            columns: ["despacho_id"]
+            isOneToOne: false
+            referencedRelation: "process_despacho_documento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_doc_workflow_config: {
         Row: {
           ativo: boolean
