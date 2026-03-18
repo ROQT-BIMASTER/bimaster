@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Eye, FileText, Camera, Link2, Loader2, Send } from "lucide-react";
+import { Eye, FileText, Camera, Link2, Loader2, Send, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useDocumentosDaSubmissao } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
