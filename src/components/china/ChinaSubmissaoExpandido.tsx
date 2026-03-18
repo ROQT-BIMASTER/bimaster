@@ -84,17 +84,36 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
     return map;
   }, [documentos, anexoMap]);
 
+  // Create a virtual "ficha" document entry representing the submission itself
+  const fichaVirtualDoc = useMemo(() => ({
+    id: `ficha_${submissao.id}`,
+    tipo_documento: "ficha_produto",
+    nome_arquivo: `Ficha do Produto — ${submissao.produto_codigo} ${submissao.produto_nome}`,
+    status: submissao.status === "aprovado" ? "aprovado" : submissao.status === "rejeitado" ? "rejeitado" : "pendente",
+    submissao_id: submissao.id,
+    is_ficha_virtual: true,
+  }), [submissao]);
+
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     for (const cat of DOCUMENT_CATEGORIES) {
       const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
-      if (catDocs.length > 0) grouped[cat.key] = catDocs;
+      if (cat.key === "dados_oficiais") {
+        // Always include the ficha virtual doc in dados_oficiais
+        grouped[cat.key] = [fichaVirtualDoc, ...catDocs];
+      } else if (catDocs.length > 0) {
+        grouped[cat.key] = catDocs;
+      }
+    }
+    // Ensure dados_oficiais exists even if no other docs
+    if (!grouped["dados_oficiais"]) {
+      grouped["dados_oficiais"] = [fichaVirtualDoc];
     }
     const allTipos = DOCUMENT_CATEGORIES.flatMap((c) => c.tipos);
     const ungrouped = documentos.filter((d: any) => !allTipos.includes(d.tipo_documento));
     if (ungrouped.length > 0) grouped["_outros"] = ungrouped;
     return grouped;
-  }, [documentos]);
+  }, [documentos, fichaVirtualDoc]);
 
   // Docs not yet dispatched
   const undispatchedDocs = useMemo(() => 
