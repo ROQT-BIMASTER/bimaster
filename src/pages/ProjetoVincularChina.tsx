@@ -39,6 +39,8 @@ import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
+import { DespachosPanel } from "@/components/processo/DespachosPanel";
+import { useDocumentosDaSubmissao as useDocsSub } from "@/hooks/useChinaDocumentoVinculos";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
@@ -85,6 +87,11 @@ const statusBorders: Record<string, string> = {
   rascunho: "border-l-muted-foreground/40 border-l-4 border-dashed",
   arte_enviada: "border-l-success/60 border-l-4",
 };
+
+function DespachosActiveSection({ submissaoId }: { submissaoId: string }) {
+  const { data: docs = [] } = useDocsSub(submissaoId);
+  return <DespachosPanel submissaoId={submissaoId} documentos={docs} />;
+}
 
 export default function ProjetoVincularChina() {
   const navigate = useNavigate();
@@ -835,11 +842,14 @@ export default function ProjetoVincularChina() {
 
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
       {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
-        <ProcessOrchestrationPanel
-          submissaoId={selectedSubmissaoId}
-          submissaoNome={selectedSubmissao?.produto_nome}
-          submissaoCodigo={selectedSubmissao?.produto_codigo}
-        />
+        <>
+          <ProcessOrchestrationPanel
+            submissaoId={selectedSubmissaoId}
+            submissaoNome={selectedSubmissao?.produto_nome}
+            submissaoCodigo={selectedSubmissao?.produto_codigo}
+          />
+          <DespachosActiveSection submissaoId={selectedSubmissaoId} />
+        </>
       )}
 
       <Dialog open={gradeOpen} onOpenChange={setGradeOpen}>
