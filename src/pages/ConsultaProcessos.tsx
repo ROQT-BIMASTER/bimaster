@@ -304,7 +304,7 @@ export default function ConsultaProcessos() {
                   <div className="bg-muted/50 rounded-lg p-3">
                     <span className="text-[11px] text-muted-foreground block">Etapa Atual</span>
                     <span className="font-medium text-foreground">
-                      {ETAPAS_CICLO_VIDA.find(e => e.key === selectedProcess.etapa_atual)?.label || selectedProcess.etapa_atual}
+                      {etapas.find(e => e.etapa_key === selectedProcess.etapa_atual)?.etapa_label || selectedProcess.etapa_atual}
                     </span>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3">
