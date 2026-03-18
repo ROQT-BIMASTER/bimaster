@@ -29,6 +29,8 @@ export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: produto, isLoading } = useProdutoBrasil(id);
+  const { isFieldVisible } = useFieldVisibility("projetos_produto_brasil");
+  const { canView } = useUIPermissions("projetos_produto_brasil");
 
   if (isLoading) {
     return (
