@@ -146,12 +146,15 @@ export default function ConsultaProcessos() {
       .filter((item, index, arr) => arr.findIndex(x => x.id === item.id) === index);
   }, [events, timelineEvents]);
 
+  // Dynamic etapas for selected process type
+  const etapas = selectedProcess ? etapasForTipo(selectedProcess.produto_tipo) : [];
+
   // Progress calc
   const etapaAtualIndex = selectedProcess
-    ? ETAPAS_CICLO_VIDA.findIndex(e => e.key === selectedProcess.etapa_atual)
+    ? etapas.findIndex(e => e.etapa_key === selectedProcess.etapa_atual)
     : -1;
   const progressPercent = etapaAtualIndex >= 0
-    ? Math.round(((etapaAtualIndex + 1) / ETAPAS_CICLO_VIDA.length) * 100)
+    ? Math.round(((etapaAtualIndex + 1) / etapas.length) * 100)
     : 0;
 
   function formatDuration(minutes: number | null): string {
