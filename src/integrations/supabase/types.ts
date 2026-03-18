@@ -25496,10 +25496,19 @@ export type Database = {
     }
     Functions: {
       archive_old_audit_logs: { Args: never; Returns: undefined }
-      atualizar_perfil_credito_cliente: {
-        Args: { p_cliente_codigo: string }
-        Returns: string
-      }
+      atualizar_perfil_credito_cliente:
+        | {
+            Args: { p_cliente_codigo: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { p_cliente_codigo: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.atualizar_perfil_credito_cliente(p_cliente_codigo => text), public.atualizar_perfil_credito_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       bulk_upsert_contas_pagar_v2: {
         Args: { p_force_update?: boolean; p_records: Json }
         Returns: Json
@@ -25589,10 +25598,19 @@ export type Database = {
             Returns: number
           }
         | { Args: { p_ordem_producao_id: string }; Returns: number }
-      calcular_score_cliente: {
-        Args: { p_cliente_codigo: string }
-        Returns: number
-      }
+      calcular_score_cliente:
+        | {
+            Args: { p_cliente_codigo: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.calcular_score_cliente(p_cliente_codigo => text), public.calcular_score_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { p_cliente_codigo: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.calcular_score_cliente(p_cliente_codigo => text), public.calcular_score_cliente(p_cliente_codigo => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       calcular_status_financeiro:
         | {
             Args: {
