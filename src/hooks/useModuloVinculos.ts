@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ModuloType = "composicao" | "amostras" | "analise_embalagem" | "etiqueta_bula" | "fluxo_artes" | "aprovacao_artes";
+export type ModuloType = "composicao" | "amostras" | "analise_embalagem" | "etiqueta_bula" | "fluxo_artes" | "aprovacao_artes" | "ficha_china";
 
 export interface ModuloVinculo {
   id: string;
