@@ -6,9 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useRegistrarParecer, useDevolverChina, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
+import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
 
 interface ParecerDialogProps {
   open: boolean;
@@ -27,23 +26,10 @@ const ACOES = [
 export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: ParecerDialogProps) {
   const [acao, setAcao] = useState<string>("aprovar");
   const [texto, setTexto] = useState("");
-  const [novoDeptId, setNovoDeptId] = useState("");
+  const [novoModulo, setNovoModulo] = useState("");
   const [devolverChina, setDevolverChina] = useState(false);
   const registrarParecer = useRegistrarParecer();
   const devolverChinaMut = useDevolverChina();
-
-  const { data: departamentos = [] } = useQuery({
-    queryKey: ["departamentos-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departamentos")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   const handleSubmit = async () => {
     if (!despacho) return;
@@ -52,7 +38,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
       despacho_id: despacho.id,
       acao: acao as any,
       parecer_texto: texto,
-      novo_departamento_id: acao === "encaminhar" ? novoDeptId : undefined,
+      novo_departamento_id: acao === "encaminhar" ? novoModulo : undefined,
     });
 
     if (acao === "aprovar" && devolverChina) {
@@ -109,14 +95,18 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
 
           {acao === "encaminhar" && (
             <div>
-              <Label className="text-xs">Encaminhar para departamento</Label>
-              <Select value={novoDeptId} onValueChange={setNovoDeptId}>
+              <Label className="text-xs">Encaminhar para módulo</Label>
+              <Select value={novoModulo} onValueChange={setNovoModulo}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione o módulo..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {departamentos.map((d: any) => (
-                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                  {DESPACHO_MODULOS_PROCESSO.map((m) => (
+                    <SelectItem key={m.key} value={m.key}>
+                      <span className="flex items-center gap-1.5">
+                        <span>{m.icon}</span> {m.label}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -152,7 +142,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={handleSubmit}
-            disabled={isPending || (requiresText && !texto.trim()) || (acao === "encaminhar" && !novoDeptId)}
+            disabled={isPending || (requiresText && !texto.trim()) || (acao === "encaminhar" && !novoModulo)}
             className="gap-1.5"
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
