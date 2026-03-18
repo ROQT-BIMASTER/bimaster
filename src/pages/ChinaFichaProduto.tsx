@@ -851,7 +851,17 @@ function ChinaProjetosVinculadosSection({ submissao, onVincular }: { submissao: 
 
   return (
     <Card className="p-6 space-y-4">
-      <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
+      <div className="flex items-center justify-between">
+        <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
+        {onVincular && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={onVincular}>
+            <Link2 className="h-4 w-4" /> Vincular a Projeto
+          </Button>
+        )}
+      </div>
+
+      {/* Vínculos via módulo */}
+      <VinculoProjetoBadges modulo="ficha_china" registroId={submissao?.id} />
 
       {/* AI Audit result */}
       {(auditing || auditResult) && (
