@@ -262,7 +262,7 @@ export function JuntadasSection({ processId }: Props) {
   );
 }
 
-function JuntadaDetail({ juntada }: { juntada: ProcessJuntada }) {
+function JuntadaDetail({ juntada, onDespachar }: { juntada: ProcessJuntada; onDespachar?: () => void }) {
   const { configs } = useDocWorkflowConfigs();
   const { instancia, transicoes, iniciarWorkflow, registrarTransicao } = useDocWorkflowInstance(juntada.id);
   const [showIniciarWf, setShowIniciarWf] = useState(false);
