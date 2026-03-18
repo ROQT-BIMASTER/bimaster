@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useCriarDespacho } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
+import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
 
 interface DespachoDocumentoDialogProps {
   open: boolean;
@@ -28,24 +29,13 @@ export function DespachoDocumentoDialog({
   processoId,
   categoriaChecklist,
 }: DespachoDocumentoDialogProps) {
-  const [departamentoId, setDepartamentoId] = useState("");
-  const [workflowId, setWorkflowId] = useState("");
+  const [modulo, setModulo] = useState(DESPACHO_MODULOS_PROCESSO[0].key);
+  const [workflowId, setWorkflowId] = useState("none");
   const [observacao, setObservacao] = useState("");
+  const [showNewWorkflow, setShowNewWorkflow] = useState(false);
+  const [newWorkflowNome, setNewWorkflowNome] = useState("");
   const criarDespacho = useCriarDespacho();
-  const { configs: workflows } = useDocWorkflowConfigs();
-
-  const { data: departamentos = [] } = useQuery({
-    queryKey: ["departamentos-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departamentos")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { configs: workflows, addConfig } = useDocWorkflowConfigs();
 
   const handleDespachar = async () => {
     await criarDespacho.mutateAsync({
@@ -53,14 +43,25 @@ export function DespachoDocumentoDialog({
       documento_id: documento.id,
       processo_id: processoId,
       categoria_checklist: categoriaChecklist,
-      departamento_destino_id: departamentoId || undefined,
-      workflow_config_id: workflowId && workflowId !== "none" ? workflowId : undefined,
+      modulo_destino: modulo,
+      workflow_config_id: workflowId !== "none" ? workflowId : undefined,
       observacao: observacao || undefined,
     });
     onOpenChange(false);
-    setDepartamentoId("");
-    setWorkflowId("");
+    setModulo(DESPACHO_MODULOS_PROCESSO[0].key);
+    setWorkflowId("none");
     setObservacao("");
+  };
+
+  const handleCreateWorkflow = async () => {
+    if (!newWorkflowNome.trim()) return;
+    const result = await addConfig.mutateAsync({
+      tipo_documento: categoriaChecklist || "geral",
+      nome: newWorkflowNome.trim(),
+    });
+    if (result?.id) setWorkflowId(result.id);
+    setNewWorkflowNome("");
+    setShowNewWorkflow(false);
   };
 
   if (!documento) return null;
@@ -83,21 +84,50 @@ export function DespachoDocumentoDialog({
           </div>
 
           <div>
-            <Label className="text-xs font-medium">Departamento de destino</Label>
-            <Select value={departamentoId} onValueChange={setDepartamentoId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Selecione o departamento..." />
-              </SelectTrigger>
-              <SelectContent>
-                {departamentos.map((d: any) => (
-                  <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs font-medium">Módulo de destino</Label>
+            <RadioGroup value={modulo} onValueChange={setModulo} className="mt-2 grid grid-cols-2 gap-1.5">
+              {DESPACHO_MODULOS_PROCESSO.map((m) => (
+                <div key={m.key} className="flex items-center gap-2">
+                  <RadioGroupItem value={m.key} id={`desp-doc-${m.key}`} />
+                  <Label htmlFor={`desp-doc-${m.key}`} className="text-xs cursor-pointer flex items-center gap-1.5">
+                    <span>{m.icon}</span> {m.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
 
           <div>
-            <Label className="text-xs font-medium">Workflow documental (opcional)</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">Workflow documental (opcional)</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 text-[10px] gap-1 text-primary"
+                onClick={() => setShowNewWorkflow(!showNewWorkflow)}
+              >
+                <Plus className="h-3 w-3" />
+                Novo fluxo
+              </Button>
+            </div>
+            {showNewWorkflow && (
+              <div className="flex gap-1.5 mt-1.5 mb-1.5">
+                <Input
+                  value={newWorkflowNome}
+                  onChange={(e) => setNewWorkflowNome(e.target.value)}
+                  placeholder="Nome do novo fluxo..."
+                  className="h-8 text-xs"
+                />
+                <Button
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                  onClick={handleCreateWorkflow}
+                  disabled={!newWorkflowNome.trim() || addConfig.isPending}
+                >
+                  {addConfig.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Criar"}
+                </Button>
+              </div>
+            )}
             <Select value={workflowId} onValueChange={setWorkflowId}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Sem workflow específico" />
@@ -116,14 +146,14 @@ export function DespachoDocumentoDialog({
             <Textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Instruções para o departamento..."
+              placeholder="Instruções para o módulo..."
               rows={3}
             />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleDespachar} disabled={criarDespacho.isPending || !departamentoId} className="gap-1.5">
+          <Button onClick={handleDespachar} disabled={criarDespacho.isPending} className="gap-1.5">
             {criarDespacho.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Despachar
           </Button>
