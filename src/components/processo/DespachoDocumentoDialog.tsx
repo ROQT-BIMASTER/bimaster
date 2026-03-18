@@ -29,7 +29,7 @@ export function DespachoDocumentoDialog({
   processoId,
   categoriaChecklist,
 }: DespachoDocumentoDialogProps) {
-  const [modulo, setModulo] = useState(DESPACHO_MODULOS_PROCESSO[0].key);
+  const [modulo, setModulo] = useState<string>(DESPACHO_MODULOS_PROCESSO[0].key);
   const [workflowId, setWorkflowId] = useState("none");
   const [observacao, setObservacao] = useState("");
   const [showNewWorkflow, setShowNewWorkflow] = useState(false);
