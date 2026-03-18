@@ -578,6 +578,7 @@ function AppContent() {
 
              {/* Consulta de Processos */}
              <Route path="/dashboard/processos/consulta" element={<ProtectedRoute><ConsultaProcessos /></ProtectedRoute>} />
+             <Route path="/dashboard/processos/etapas" element={<ProtectedRoute><ConfigEtapasProcesso /></ProtectedRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
