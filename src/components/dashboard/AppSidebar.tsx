@@ -1013,8 +1013,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <NavLink 
                   to="/dashboard/configuracoes"
                   className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                    isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                   )}
                 >
                   <Settings className="h-4 w-4" />
@@ -1030,8 +1030,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/configuracoes/lgpd"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Shield className="h-4 w-4" />
@@ -1044,8 +1044,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/configuracoes/menu"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <LayoutGrid className="h-4 w-4" />
@@ -1058,8 +1058,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/relatorio-seguranca"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Shield className="h-4 w-4" />
@@ -1072,8 +1072,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/relatorio-desenvolvimento"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Package className="h-4 w-4" />
@@ -1086,7 +1086,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-150"
             >
               <LogOut className="h-4 w-4" />
               <span>{t("nav.logout")}</span>
