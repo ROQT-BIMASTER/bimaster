@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Eye, FileText, Camera, Link2, Loader2, Send, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const DESPACHO_STATUS_COLORS: Record<string, string> = {
 };
 
 export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }: ChinaSubmissaoExpandidoProps) {
+  const navigate = useNavigate();
   const { data: documentos = [], isLoading } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
   const [vincularDoc, setVincularDoc] = useState<any>(null);
@@ -82,17 +84,36 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
     return map;
   }, [documentos, anexoMap]);
 
+  // Create a virtual "ficha" document entry representing the submission itself
+  const fichaVirtualDoc = useMemo(() => ({
+    id: `ficha_${submissao.id}`,
+    tipo_documento: "ficha_produto",
+    nome_arquivo: `Ficha do Produto — ${submissao.produto_codigo} ${submissao.produto_nome}`,
+    status: submissao.status === "aprovado" ? "aprovado" : submissao.status === "rejeitado" ? "rejeitado" : "pendente",
+    submissao_id: submissao.id,
+    is_ficha_virtual: true,
+  }), [submissao]);
+
   const docsByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     for (const cat of DOCUMENT_CATEGORIES) {
       const catDocs = documentos.filter((d: any) => cat.tipos.includes(d.tipo_documento));
-      if (catDocs.length > 0) grouped[cat.key] = catDocs;
+      if (cat.key === "dados_oficiais") {
+        // Always include the ficha virtual doc in dados_oficiais
+        grouped[cat.key] = [fichaVirtualDoc, ...catDocs];
+      } else if (catDocs.length > 0) {
+        grouped[cat.key] = catDocs;
+      }
+    }
+    // Ensure dados_oficiais exists even if no other docs
+    if (!grouped["dados_oficiais"]) {
+      grouped["dados_oficiais"] = [fichaVirtualDoc];
     }
     const allTipos = DOCUMENT_CATEGORIES.flatMap((c) => c.tipos);
     const ungrouped = documentos.filter((d: any) => !allTipos.includes(d.tipo_documento));
     if (ungrouped.length > 0) grouped["_outros"] = ungrouped;
     return grouped;
-  }, [documentos]);
+  }, [documentos, fichaVirtualDoc]);
 
   // Docs not yet dispatched
   const undispatchedDocs = useMemo(() => 
@@ -282,14 +303,15 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                 {fileDocs.length > 0 && (
                   <div className="space-y-0.5">
                     {fileDocs.map((doc: any) => {
-                      const despachoStatus = statusMap[doc.id];
+                      const isVirtual = doc.is_ficha_virtual;
+                      const despachoStatus = isVirtual ? null : statusMap[doc.id];
                       const borderClass = despachoStatus ? DESPACHO_STATUS_COLORS[despachoStatus] || "" : "";
                       return (
                         <div
                           key={doc.id}
-                          className={`flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group ${borderClass ? `border-l-2 ${borderClass}` : ""}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group ${borderClass ? `border-l-2 ${borderClass}` : ""} ${isVirtual ? "border-l-2 border-l-primary bg-primary/5" : ""}`}
                         >
-                          {!despachoStatus && (
+                          {!despachoStatus && !isVirtual && (
                             <Checkbox
                               checked={selectedDocs.has(doc.id)}
                               onCheckedChange={() => toggleDocSelect(doc.id)}
@@ -298,47 +320,59 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                             />
                           )}
                           <span className="text-[9px] font-mono text-muted-foreground shrink-0 w-8">
-                            {String(docNumberMap[doc.id] || 0).padStart(2, "0")}
+                            {isVirtual ? "📋" : String(docNumberMap[doc.id] || 0).padStart(2, "0")}
                           </span>
                           <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                          <span className="flex-1 min-w-0 truncate text-foreground">
+                          <span className={`flex-1 min-w-0 truncate ${isVirtual ? "font-semibold text-primary" : "text-foreground"}`}>
                             {doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}
                           </span>
-                          {getStatusBadge(doc.id)}
+                          {!isVirtual && getStatusBadge(doc.id)}
                           <Badge
-                            variant={doc.status === "aprovado" ? "success" : "secondary"}
+                            variant={doc.status === "aprovado" ? "success" : isVirtual ? "outline" : "secondary"}
                             className="text-[9px] h-4 px-1 shrink-0"
                           >
-                            {doc.status}
+                            {isVirtual ? "Ficha Oficial" : doc.status}
                           </Badge>
                           <Button
-                            variant="ghost"
+                            variant={isVirtual ? "outline" : "ghost"}
                             size="sm"
-                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); onPreviewDoc(doc); }}
+                            className={`h-5 px-1.5 text-[9px] gap-0.5 shrink-0 ${isVirtual ? "opacity-100" : "w-5 p-0 opacity-0 group-hover:opacity-100"} transition-opacity`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isVirtual) {
+                                navigate(`/dashboard/fabrica-china/ficha/${submissao.id}`);
+                              } else {
+                                onPreviewDoc(doc);
+                              }
+                            }}
                           >
                             <Eye className="h-3 w-3" />
+                            {isVirtual && "Abrir Ficha"}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
-                            onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
-                            title="Vincular a tarefa"
-                          >
-                            <Link2 className="h-3 w-3" />
-                          </Button>
-                          {!statusMap[doc.id] && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-5 px-1.5 text-[9px] gap-0.5 shrink-0 text-orange-600 border-orange-300 hover:bg-orange-50"
-                              onClick={(e) => { e.stopPropagation(); handleOpenDespacho(doc, catKey); }}
-                              title="Despachar documento"
-                            >
-                              <Send className="h-2.5 w-2.5" />
-                              Despachar
-                            </Button>
+                          {!isVirtual && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+                                onClick={(e) => { e.stopPropagation(); handleOpenVincular(doc); }}
+                                title="Vincular a tarefa"
+                              >
+                                <Link2 className="h-3 w-3" />
+                              </Button>
+                              {!statusMap[doc.id] && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-5 px-1.5 text-[9px] gap-0.5 shrink-0 text-orange-600 border-orange-300 hover:bg-orange-50"
+                                  onClick={(e) => { e.stopPropagation(); handleOpenDespacho(doc, catKey); }}
+                                  title="Despachar documento"
+                                >
+                                  <Send className="h-2.5 w-2.5" />
+                                  Despachar
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       );
