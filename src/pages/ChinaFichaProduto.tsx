@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck,
+  Send, Users, Link2, UserPlus, X
 } from "lucide-react";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
@@ -38,6 +39,11 @@ import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { ChinaPastaDigitalPanel } from "@/components/china/ChinaPastaDigitalPanel";
 import { ProcessoTimeline } from "@/components/processo/ProcessoTimeline";
 import { ProcessoResumo } from "@/components/processo/ProcessoResumo";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
+import { DespachoFichaDialog } from "@/components/china/DespachoFichaDialog";
+import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +60,8 @@ export default function ChinaFichaProduto() {
   const [deleting, setDeleting] = useState(false);
   const [painelAprovacaoOpen, setPainelAprovacaoOpen] = useState(false);
   const [cofreOpen, setCofreOpen] = useState(false);
+  const [vincularOpen, setVincularOpen] = useState(false);
+  const [despachoOpen, setDespachoOpen] = useState(false);
 
   // Fetch submission
   const { data: submissao, isLoading } = useQuery({
@@ -249,6 +257,11 @@ export default function ChinaFichaProduto() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <BilingualLabel pt="Ficha do Produto" cn="产品档案" size="lg" className="flex-1" />
+          {isBrasilUser && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDespachoOpen(true)}>
+              <Send className="h-4 w-4" /> Despachar
+            </Button>
+          )}
           <ManualFabricaDrawer screen="china-ficha-produto" />
         </div>
 
@@ -549,8 +562,26 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Projetos Vinculados */}
-        {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
+        {/* Projetos Vinculados + Visibilidade */}
+        {isBrasilUser && (
+          <>
+            <ChinaProjetosVinculadosSection submissao={submissao} onVincular={() => setVincularOpen(true)} />
+            <FichaVisibilidadeSection submissaoId={id!} />
+          </>
+        )}
+
+        {/* Dialogs */}
+        {id && (
+          <>
+            <VincularProjetoDialog modulo="ficha_china" registroId={id} open={vincularOpen} onOpenChange={setVincularOpen} />
+            <DespachoFichaDialog
+              submissaoId={id}
+              produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
+              open={despachoOpen}
+              onOpenChange={setDespachoOpen}
+            />
+          </>
+        )}
 
         {/* Checklist Pré-Lançamento do Projeto Brasil */}
         {isBrasilUser && <ChinaProjetoChecklist submissaoId={submissao.id} />}
@@ -756,7 +787,7 @@ export default function ChinaFichaProduto() {
 }
 
 /** Inline component for linked projects section */
-function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
+function ChinaProjetosVinculadosSection({ submissao, onVincular }: { submissao: any; onVincular?: () => void }) {
   const navigate = useNavigate();
   const { data: projetos = [], isLoading } = useChinaProjetosVinculados(submissao?.id);
   const criarProjeto = useCriarProjetoChina();
@@ -820,7 +851,17 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
 
   return (
     <Card className="p-6 space-y-4">
-      <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
+      <div className="flex items-center justify-between">
+        <BilingualLabel pt="Projetos Vinculados" cn="关联项目" size="md" />
+        {onVincular && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={onVincular}>
+            <Link2 className="h-4 w-4" /> Vincular a Projeto
+          </Button>
+        )}
+      </div>
+
+      {/* Vínculos via módulo */}
+      <VinculoProjetoBadges modulo="ficha_china" registroId={submissao?.id} />
 
       {/* AI Audit result */}
       {(auditing || auditResult) && (
@@ -885,6 +926,87 @@ function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
             {(criarProjeto.isPending || auditing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
             Criar outro projeto 创建其他项目
           </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── Visibilidade da Ficha ───
+function FichaVisibilidadeSection({ submissaoId }: { submissaoId: string }) {
+  const { data: visibilidade = [], isLoading } = useFichaVisibilidade(submissaoId);
+  const addVisibilidade = useAddFichaVisibilidade();
+  const removeVisibilidade = useRemoveFichaVisibilidade();
+  const [selectedUserId, setSelectedUserId] = useState("");
+
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["profiles-for-visibility"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, nome_completo, email")
+        .eq("aprovado", true)
+        .order("nome_completo");
+      return (data || []) as any[];
+    },
+  });
+
+  const existingUserIds = new Set(visibilidade.map((v: any) => v.user_id));
+  const availableProfiles = allProfiles.filter((p: any) => !existingUserIds.has(p.id));
+
+  const handleAdd = () => {
+    if (!selectedUserId) return;
+    addVisibilidade.mutate(
+      { submissao_id: submissaoId, user_id: selectedUserId },
+      { onSuccess: () => setSelectedUserId("") }
+    );
+  };
+
+  return (
+    <Card className="p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-5 w-5 text-primary" />
+        <BilingualLabel pt="Acesso e Visibilidade" cn="访问与可见性" size="md" />
+        <Badge variant="secondary" className="ml-auto">{visibilidade.length} usuário(s)</Badge>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Selecionar usuário..." />
+          </SelectTrigger>
+          <SelectContent>
+            {availableProfiles.map((p: any) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.nome_completo || p.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={handleAdd} disabled={!selectedUserId || addVisibilidade.isPending} className="gap-1">
+          <UserPlus className="h-4 w-4" /> Conceder
+        </Button>
+      </div>
+
+      {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+
+      {visibilidade.length > 0 && (
+        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          {visibilidade.map((v: any) => (
+            <div key={v.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30 text-xs">
+              <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="flex-1 truncate">{v.user_nome}</span>
+              <span className="text-muted-foreground truncate">{v.user_email}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => removeVisibilidade.mutate(v.id)}
+              >
+                <X className="h-3 w-3 text-destructive" />
+              </Button>
+            </div>
+          ))}
         </div>
       )}
     </Card>
