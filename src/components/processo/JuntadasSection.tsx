@@ -15,15 +15,7 @@ import { cn } from "@/lib/utils";
 import { useProcessJuntadas, type ProcessJuntada } from "@/hooks/useProcessJuntadas";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas, useDocWorkflowInstance } from "@/hooks/useDocWorkflow";
 import { DespachoDialog, DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
-
-const TIPOS_DOCUMENTO = [
-  { value: "embalagem", label: "Embalagem" },
-  { value: "rotulo", label: "Rótulo" },
-  { value: "arte", label: "Arte" },
-  { value: "ficha_tecnica", label: "Ficha Técnica" },
-  { value: "regulatorio", label: "Regulatório" },
-  { value: "outro", label: "Outro" },
-];
+import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 
 const PARECER_STYLES: Record<string, { icon: any; color: string; label: string }> = {
   pendente: { icon: Clock, color: "text-amber-500", label: "Pendente" },
@@ -38,6 +30,7 @@ interface Props {
 
 export function JuntadasSection({ processId }: Props) {
   const { juntadas, isLoading, addJuntada, despacharJuntada } = useProcessJuntadas(processId);
+  const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedJuntada, setSelectedJuntada] = useState<ProcessJuntada | null>(null);
   const [despachoJuntada, setDespachoJuntada] = useState<ProcessJuntada | null>(null);
@@ -48,6 +41,11 @@ export function JuntadasSection({ processId }: Props) {
   const [tipo, setTipo] = useState("embalagem");
   const [parecer, setParecer] = useState("");
   const [parecerStatus, setParecerStatus] = useState("pendente");
+
+  // Novo tipo inline
+  const [showNewTipo, setShowNewTipo] = useState(false);
+  const [novoTipoLabel, setNovoTipoLabel] = useState("");
+  const [novoTipoModulo, setNovoTipoModulo] = useState("");
 
   const handleSubmit = () => {
     if (!titulo.trim()) return;
@@ -129,7 +127,7 @@ export function JuntadasSection({ processId }: Props) {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[9px] shrink-0">
-                        {TIPOS_DOCUMENTO.find(t => t.value === j.tipo_documento)?.label || j.tipo_documento}
+                        {tiposDocumento.find(t => t.valor === j.tipo_documento)?.label || j.tipo_documento}
                       </Badge>
                     </button>
                     {despachoMod ? (
@@ -179,12 +177,17 @@ export function JuntadasSection({ processId }: Props) {
                 <Input value={folhas} onChange={e => setFolhas(e.target.value)} placeholder="Ex: 35-36" />
               </div>
               <div>
-                <Label>Tipo de Documento</Label>
+                <Label className="flex items-center justify-between">
+                  Tipo de Documento
+                  <Button type="button" variant="ghost" size="sm" className="h-5 px-1 text-[10px] text-primary" onClick={() => setShowNewTipo(true)}>
+                    <Plus className="h-3 w-3 mr-0.5" /> Novo Tipo
+                  </Button>
+                </Label>
                 <Select value={tipo} onValueChange={setTipo}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TIPOS_DOCUMENTO.map(t => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    {tiposDocumento.map(t => (
+                      <SelectItem key={t.valor} value={t.valor}>{t.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -258,6 +261,56 @@ export function JuntadasSection({ processId }: Props) {
           setDespachoJuntada(null);
         }}
       />
+
+      {/* Novo Tipo de Documento Dialog */}
+      <Dialog open={showNewTipo} onOpenChange={setShowNewTipo}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              Novo Tipo de Documento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nome do Tipo</Label>
+              <Input value={novoTipoLabel} onChange={e => setNovoTipoLabel(e.target.value)} placeholder="Ex: Certificado de Origem" />
+            </div>
+            <div>
+              <Label>Módulo (opcional)</Label>
+              <Select value={novoTipoModulo} onValueChange={setNovoTipoModulo}>
+                <SelectTrigger><SelectValue placeholder="Todos os módulos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os módulos</SelectItem>
+                  {DESPACHO_MODULOS_PROCESSO.map(m => (
+                    <SelectItem key={m.key} value={m.key}>{m.icon} {m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewTipo(false)}>Cancelar</Button>
+            <Button
+              disabled={!novoTipoLabel.trim() || addTipo.isPending}
+              onClick={() => {
+                addTipo.mutate({
+                  label: novoTipoLabel.trim(),
+                  modulo: novoTipoModulo && novoTipoModulo !== "todos" ? novoTipoModulo : undefined,
+                }, {
+                  onSuccess: () => {
+                    setShowNewTipo(false);
+                    setNovoTipoLabel("");
+                    setNovoTipoModulo("");
+                  },
+                });
+              }}
+            >
+              Criar Tipo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

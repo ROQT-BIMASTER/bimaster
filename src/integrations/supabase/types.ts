@@ -16222,6 +16222,50 @@ export type Database = {
           },
         ]
       }
+      process_tipos_documento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          modulo: string | null
+          origem: string
+          projeto_id: string | null
+          valor: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          modulo?: string | null
+          origem?: string
+          projeto_id?: string | null
+          valor: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          modulo?: string | null
+          origem?: string
+          projeto_id?: string | null
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_tipos_documento_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_comparisons: {
         Row: {
           comparison_notes: string | null

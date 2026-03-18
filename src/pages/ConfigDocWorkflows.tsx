@@ -9,18 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas } from "@/hooks/useDocWorkflow";
+import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-
-const TIPOS_DOCUMENTO = [
-  { value: "embalagem", label: "Embalagem" },
-  { value: "rotulo", label: "Rótulo" },
-  { value: "arte", label: "Arte" },
-  { value: "ficha_tecnica", label: "Ficha Técnica" },
-  { value: "regulatorio", label: "Regulatório" },
-  { value: "outro", label: "Outro" },
-];
+import { DESPACHO_MODULOS_PROCESSO } from "@/components/processo/DespachoDialog";
 
 const TIPOS_ACAO = [
   { value: "criar", label: "Criar" },
@@ -30,6 +23,7 @@ const TIPOS_ACAO = [
 
 export default function ConfigDocWorkflows() {
   const navigate = useNavigate();
+  const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
   const { configs, isLoading, addConfig, deleteConfig } = useDocWorkflowConfigs();
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -123,7 +117,7 @@ export default function ConfigDocWorkflows() {
                   <div>
                     <span className="font-medium text-foreground">{c.nome}</span>
                     <Badge variant="outline" className="ml-2 text-[9px]">
-                      {TIPOS_DOCUMENTO.find(t => t.value === c.tipo_documento)?.label || c.tipo_documento}
+                      {tiposDocumento.find(t => t.valor === c.tipo_documento)?.label || c.tipo_documento}
                     </Badge>
                   </div>
                   <Button
@@ -220,12 +214,24 @@ export default function ConfigDocWorkflows() {
               <Input value={newNome} onChange={e => setNewNome(e.target.value)} placeholder="Ex: Aprovação de Embalagem" />
             </div>
             <div>
-              <Label>Tipo de Documento</Label>
+              <Label className="flex items-center justify-between">
+                Tipo de Documento
+                <Button type="button" variant="ghost" size="sm" className="h-5 px-1 text-[10px] text-primary"
+                  onClick={() => {
+                    const label = prompt("Nome do novo tipo de documento:");
+                    if (label?.trim()) {
+                      addTipo.mutate({ label: label.trim() });
+                    }
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" /> Novo
+                </Button>
+              </Label>
               <Select value={newTipo} onValueChange={setNewTipo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TIPOS_DOCUMENTO.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {tiposDocumento.map(t => (
+                    <SelectItem key={t.valor} value={t.valor}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
