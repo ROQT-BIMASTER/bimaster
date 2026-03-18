@@ -1094,12 +1094,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarMenuItem>
         </SidebarMenu>
         
-        <div className="px-4 py-2 border-t border-sidebar-border/50 flex gap-3">
-          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+        <div className="px-4 py-2 border-t border-white/5 flex gap-3">
+          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Privacidade
           </a>
-          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Termos
           </a>
