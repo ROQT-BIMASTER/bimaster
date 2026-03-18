@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCriarDespachoLote } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
 import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 
 interface DespachoDocumentoDialogProps {
   open: boolean;
