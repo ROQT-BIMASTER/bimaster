@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3, HardDrive } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3, HardDrive, Eye } from "lucide-react";
 
 // Direct imports
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
@@ -40,6 +40,7 @@ import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAP
 import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
 import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
 import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
+import DeptVisibilityControlPanel from "@/components/admin/DeptVisibilityControlPanel";
 
 interface Profile {
   id: string;
@@ -439,6 +440,10 @@ function Configuracoes() {
                         <HardDrive className="h-4 w-4" />
                         Storage
                       </TabsTrigger>
+                      <TabsTrigger value="sub-visibility" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Visibilidade
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
@@ -470,6 +475,10 @@ function Configuracoes() {
 
                     <TabsContent value="sub-monitoring">
                       <MonitoramentoAPIs />
+                    </TabsContent>
+
+                    <TabsContent value="sub-visibility">
+                      <DeptVisibilityControlPanel />
                     </TabsContent>
 
                     <TabsContent value="sub-storage">
