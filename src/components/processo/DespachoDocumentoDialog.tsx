@@ -103,7 +103,7 @@ export function DespachoDocumentoDialog({
                 <SelectValue placeholder="Sem workflow específico" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {workflows.map((w: any) => (
                   <SelectItem key={w.id} value={w.id}>{w.nome}</SelectItem>
                 ))}
