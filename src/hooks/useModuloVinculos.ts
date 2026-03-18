@@ -26,6 +26,7 @@ export const MODULO_LABELS: Record<string, { label: string; icon: string; route:
   etiqueta_bula: { label: "Etiqueta / Bula", icon: "🏷️", route: "/dashboard/etiqueta-bula" },
   fluxo_artes: { label: "Motor de Artes", icon: "🎨", route: "/dashboard/fluxo-artes" },
   aprovacao_artes: { label: "Aprovação de Artes", icon: "✅", route: "/dashboard/aprovacao-artes" },
+  ficha_china: { label: "Ficha do Produto China", icon: "📋", route: "/dashboard/fabrica-china/recebimentos" },
 };
 
 export function useVinculosDoRegistro(modulo: ModuloType, registroId: string | undefined) {
