@@ -558,6 +558,15 @@ export default function ProjetoVincularChina() {
                             <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px]">
                               {getStatusLabel(sub.status)}
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => { e.stopPropagation(); setFocusSubmissao(sub); }}
+                              title="Modo Foco"
+                            >
+                              <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                             <ChevronDown className={cn(
                               "h-4 w-4 text-muted-foreground transition-transform duration-200",
                               isExpanded && "rotate-180"
