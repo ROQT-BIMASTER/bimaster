@@ -194,6 +194,7 @@ async function upsertRecords(supabase: any, records: any[]): Promise<{ processed
       
       if (error) {
         console.error(`[UPSERT] Batch error: ${error.code} - ${error.message}`);
+        console.error('[UPSERT] First record in failed batch:', JSON.stringify(batch[0]).substring(0, 500));
         // Tentar registro por registro se batch falhar
         for (const record of batch) {
           try {
