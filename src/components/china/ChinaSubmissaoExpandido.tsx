@@ -46,6 +46,8 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
   const [vincularCatKey, setVincularCatKey] = useState("");
   const [despachoDoc, setDespachoDoc] = useState<any>(null);
   const [despachoCatKey, setDespachoCatKey] = useState("");
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const [batchDespachoOpen, setBatchDespachoOpen] = useState(false);
 
   // Build anexo numbering map: documento_id → numero_anexo
   const anexoMap = useMemo(() => {
