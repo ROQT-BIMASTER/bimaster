@@ -574,7 +574,10 @@ function AppContent() {
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/precos" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
-            
+
+             {/* Consulta de Processos */}
+             <Route path="/dashboard/processos/consulta" element={<ProtectedRoute><ConsultaProcessos /></ProtectedRoute>} />
+
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
