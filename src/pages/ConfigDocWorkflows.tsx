@@ -23,6 +23,7 @@ const TIPOS_ACAO = [
 
 export default function ConfigDocWorkflows() {
   const navigate = useNavigate();
+  const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
   const { configs, isLoading, addConfig, deleteConfig } = useDocWorkflowConfigs();
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
