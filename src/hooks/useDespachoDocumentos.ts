@@ -135,9 +135,10 @@ export function useCriarDespachoLote() {
           await (supabase
             .from("process_events" as any)
             .insert({
-              processo_id: input.processo_id,
-              tipo: "despacho",
+              process_id: input.processo_id,
+              tipo_evento: "despacho",
               descricao: `Documento despachado para ${input.modulo_destino || "módulo"} — Anexo ${String(nextAnexo).padStart(2, "0")}`,
+              modulo_origem: "despacho",
               usuario_id: user?.id,
               usuario_nome: user?.email,
               metadata: { despacho_id: (data as any).id, documento_id: docId, modulo: input.modulo_destino, prazo_horas: input.prazo_ciencia_horas || 48 },
