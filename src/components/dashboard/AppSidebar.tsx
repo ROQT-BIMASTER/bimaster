@@ -1002,8 +1002,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium truncate text-white">{userName}</p>
-                    <p className="text-xs text-[#8896ab]">{t("nav.connected")}</p>
+                    <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
+                    <p className="text-xs text-[var(--sidebar-text-raw)]">{t("nav.connected")}</p>
                   </div>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <ThemeSelectorPopover />
