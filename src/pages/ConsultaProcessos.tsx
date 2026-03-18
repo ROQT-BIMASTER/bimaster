@@ -513,6 +513,9 @@ export default function ConsultaProcessos() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Juntadas / Documentos Oficiais */}
+            <JuntadasSection processId={selectedProcess.id} />
           </div>
         )}
       </div>
