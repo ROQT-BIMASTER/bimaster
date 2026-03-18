@@ -20697,6 +20697,80 @@ export type Database = {
           },
         ]
       }
+      sidebar_categories: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          icon: string
+          id: string
+          key: string
+          label: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          icon?: string
+          id?: string
+          key: string
+          label: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          icon?: string
+          id?: string
+          key?: string
+          label?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sidebar_category_modules: {
+        Row: {
+          ativo: boolean
+          category_id: string
+          created_at: string
+          icon_override: string | null
+          id: string
+          label_override: string | null
+          module_code: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          category_id: string
+          created_at?: string
+          icon_override?: string | null
+          id?: string
+          label_override?: string | null
+          module_code: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          category_id?: string
+          created_at?: string
+          icon_override?: string | null
+          id?: string
+          label_override?: string | null
+          module_code?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sidebar_category_modules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "sidebar_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulacao_cenarios_preco: {
         Row: {
           created_at: string | null

@@ -65,6 +65,7 @@ const Prospects = lazyWithRetry(() => import("./pages/Prospects"));
 const Municipios = lazyWithRetry(() => import("./pages/Municipios"));
 const Atividades = lazyWithRetry(() => import("./pages/Atividades"));
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
+const MenuConfig = lazyWithRetry(() => import("./pages/dashboard/configuracoes/MenuConfig"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
@@ -562,6 +563,7 @@ function AppContent() {
               </ScreenRoute>
             } />
             <Route path="/dashboard/configuracoes/api-health" element={<ScreenRoute screenCode="admin"><APIHealthCheck /></ScreenRoute>} />
+            <Route path="/dashboard/configuracoes/menu" element={<ScreenRoute screenCode="admin"><MenuConfig /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/lgpd" element={<ScreenRoute screenCode="admin"><LGPDAdmin /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />

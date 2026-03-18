@@ -7,6 +7,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSidebarConfig } from "@/hooks/useSidebarConfig";
 import logoUnion from "@/assets/logo-union.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -117,7 +118,18 @@ const moduleColors = {
   },
 };
 
-// Fábrica module grouped menus
+// Icon name to component mapping for dynamic config
+const iconMap: Record<string, React.ElementType> = {
+  Home, Users, Building2, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin,
+  MessageSquare, Activity, Clock, Store, Calendar, Camera, Tag, TrendingUp, Brain,
+  Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3,
+  Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle,
+  AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket,
+  PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic,
+  Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, LogOut,
+};
+
+
 const fabricaGroups = [
   {
     label: "Entrada",
@@ -276,6 +288,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { hasModulePermission, loading: modulesLoading } = useModulePermissions();
   const { isAdminOrSupervisor, isAdmin } = useUserRole();
   const { user } = useAuth();
+  const { categories: dbCategories, isLoading: configLoading } = useSidebarConfig();
   const { data: userDepartments = [] } = useUserDepartments();
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
@@ -297,7 +310,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     );
   }, [selectedModules]);
 
-  const loading = permissionsLoading || modulesLoading;
+  const loading = permissionsLoading || modulesLoading || configLoading;
 
   // Build available modules list based on permissions
   const moduleFilterOptions = useMemo(() => {
@@ -382,26 +395,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     reunioes: ["/dashboard/reunioes"],
   }), []);
 
-  const moduleToCategoryMap: Record<string, string> = useMemo(() => ({
-    prospects: "comercial_vendas",
-    comercial: "comercial_vendas",
-    precos: "comercial_vendas",
-    trade: "trade_marketing",
-    marketing: "trade_marketing",
-    eventos: "trade_marketing",
-    fabrica: "producao_qualidade",
-    china: "producao_qualidade",
-    composicao: "producao_qualidade",
-    amostras: "producao_qualidade",
-    analise_embalagem: "producao_qualidade",
-    etiqueta_bula: "producao_qualidade",
-    aprovacao_artes: "producao_qualidade",
-    financeiro: "financeiro_admin",
-    departamentos: "financeiro_admin",
-    estoque: "financeiro_admin",
-    projetos: "gestao_projetos",
-    reunioes: "gestao_projetos",
-  }), []);
+  // Dynamic moduleToCategoryMap from DB config
+  const moduleToCategoryMap: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {};
+    dbCategories.forEach(cat => {
+      cat.modules.forEach(m => {
+        map[m.module_code] = cat.key;
+      });
+    });
+    return map;
+  }, [dbCategories]);
 
   // Auto-expand based on current route
   useEffect(() => {
@@ -460,6 +463,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     toast({ title: t("logout.title"), description: t("logout.description") });
     navigate("/auth/login");
   };
+  // ============ CATEGORY DEFINITIONS (from DB) ============
+  const categories = useMemo(() => 
+    dbCategories.map(cat => ({
+      key: cat.key,
+      label: cat.label,
+      icon: iconMap[cat.icon] || Briefcase,
+      modules: cat.modules.map(m => m.module_code),
+    })),
+    [dbCategories]
+  );
 
   if (loading) {
     return (
@@ -879,39 +892,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  // ============ CATEGORY DEFINITIONS ============
-  const categories = [
-    {
-      key: "comercial_vendas",
-      label: "Comercial & Vendas",
-      icon: Briefcase,
-      modules: ["prospects", "comercial", "precos"],
-    },
-    {
-      key: "trade_marketing",
-      label: "Trade & Marketing",
-      icon: Store,
-      modules: ["trade", "marketing", "eventos"],
-    },
-    {
-      key: "producao_qualidade",
-      label: "Produção & Qualidade",
-      icon: Factory,
-      modules: ["fabrica", "china", "composicao", "amostras", "analise_embalagem", "etiqueta_bula", "aprovacao_artes"],
-    },
-    {
-      key: "financeiro_admin",
-      label: "Financeiro & Admin",
-      icon: DollarSign,
-      modules: ["financeiro", "departamentos", "estoque"],
-    },
-    {
-      key: "gestao_projetos",
-      label: "Gestão & Projetos",
-      icon: FolderKanban,
-      modules: ["projetos", "reunioes"],
-    },
-  ];
+
+
 
   return (
     <Sidebar side={side} className={cn("border-sidebar-border", isRTL ? "border-l" : "border-r")}>
@@ -1059,6 +1041,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   >
                     <Shield className="h-4 w-4" />
                     <span>LGPD</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/dashboard/configuracoes/menu"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span>Config. Menu</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
