@@ -41,6 +41,7 @@ const DESPACHO_STATUS_COLORS: Record<string, string> = {
 };
 
 export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }: ChinaSubmissaoExpandidoProps) {
+  const navigate = useNavigate();
   const { data: documentos = [], isLoading } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
   const [vincularDoc, setVincularDoc] = useState<any>(null);
