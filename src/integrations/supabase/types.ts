@@ -1677,6 +1677,79 @@ export type Database = {
           },
         ]
       }
+      china_ficha_despachos: {
+        Row: {
+          created_at: string
+          despachado_por: string | null
+          id: string
+          modulo_destino: string
+          observacao: string | null
+          submissao_id: string
+          usuario_destino_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          despachado_por?: string | null
+          id?: string
+          modulo_destino: string
+          observacao?: string | null
+          submissao_id: string
+          usuario_destino_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          despachado_por?: string | null
+          id?: string
+          modulo_destino?: string
+          observacao?: string | null
+          submissao_id?: string
+          usuario_destino_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_ficha_despachos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      china_ficha_visibilidade: {
+        Row: {
+          concedido_por: string | null
+          created_at: string
+          id: string
+          pode_despachar: boolean
+          submissao_id: string
+          user_id: string
+        }
+        Insert: {
+          concedido_por?: string | null
+          created_at?: string
+          id?: string
+          pode_despachar?: boolean
+          submissao_id: string
+          user_id: string
+        }
+        Update: {
+          concedido_por?: string | null
+          created_at?: string
+          id?: string
+          pode_despachar?: boolean
+          submissao_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_ficha_visibilidade_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_ordens_compra: {
         Row: {
           aprovado_em: string | null
