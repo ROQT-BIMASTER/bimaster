@@ -289,6 +289,14 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                           key={doc.id}
                           className={`flex items-center gap-2 px-2 py-1 rounded text-[11px] hover:bg-accent/50 transition-colors group ${borderClass ? `border-l-2 ${borderClass}` : ""}`}
                         >
+                          {!despachoStatus && (
+                            <Checkbox
+                              checked={selectedDocs.has(doc.id)}
+                              onCheckedChange={() => toggleDocSelect(doc.id)}
+                              className="h-3.5 w-3.5 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
                           <span className="text-[9px] font-mono text-muted-foreground shrink-0 w-8">
                             {String(docNumberMap[doc.id] || 0).padStart(2, "0")}
                           </span>
