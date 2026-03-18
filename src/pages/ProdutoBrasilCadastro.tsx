@@ -3,6 +3,8 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProdutoBrasil } from "@/hooks/useProdutoBrasil";
+import { useFieldVisibility } from "@/hooks/useFieldVisibility";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
 import { StatusPipeline } from "@/components/produto-brasil/StatusPipeline";
 import { ProjetoVinculoBanner } from "@/components/produto-brasil/ProjetoVinculoBanner";
 import { TabIdentificacao } from "@/components/produto-brasil/tabs/TabIdentificacao";
