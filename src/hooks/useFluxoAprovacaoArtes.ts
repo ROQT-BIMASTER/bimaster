@@ -670,13 +670,13 @@ export function useUploadFluxoAnexo() {
       const { error: uploadErr } = await supabase.storage.from("aprovacao-artes").upload(filePath, file);
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from("aprovacao-artes").getPublicUrl(filePath);
+      const { data: signedData } = await supabase.storage.from("aprovacao-artes").createSignedUrl(filePath, 31536000);
 
       const { error } = await supabase.from("fluxo_aprovacao_anexos" as any).insert({
         instancia_id: instanciaId,
         etapa_id: etapaId || null,
         nome_arquivo: file.name,
-        arquivo_url: urlData.publicUrl,
+        arquivo_url: signedData?.signedUrl || filePath,
         tipo,
         uploaded_by: user?.id,
         observacao: observacao || null,
