@@ -440,6 +440,10 @@ function Configuracoes() {
                         <HardDrive className="h-4 w-4" />
                         Storage
                       </TabsTrigger>
+                      <TabsTrigger value="sub-visibility" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Visibilidade
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
