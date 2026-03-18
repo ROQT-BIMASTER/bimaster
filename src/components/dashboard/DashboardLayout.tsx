@@ -93,10 +93,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className={cn("min-h-screen flex w-full", isImpersonating && "pt-12")} dir={dir}>
         <AppSidebar side={isRTL ? "right" : "left"} />
         <main className="flex-1">
-          <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
+          <header className="h-[52px] border-b border-[#dde1e9] flex items-center justify-between px-4 bg-white">
             <div className="flex items-center gap-4">
               <SidebarTrigger aria-label="Alternar menu lateral" />
-              <h1 className="text-lg font-semibold">{t("system.title")}</h1>
+              <h1 className="text-[20px] font-bold text-foreground">{t("system.title")}</h1>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSelector />
