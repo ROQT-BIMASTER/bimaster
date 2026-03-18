@@ -95,14 +95,18 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
 
           {acao === "encaminhar" && (
             <div>
-              <Label className="text-xs">Encaminhar para departamento</Label>
-              <Select value={novoDeptId} onValueChange={setNovoDeptId}>
+              <Label className="text-xs">Encaminhar para módulo</Label>
+              <Select value={novoModulo} onValueChange={setNovoModulo}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione o módulo..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {departamentos.map((d: any) => (
-                    <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>
+                  {DESPACHO_MODULOS_PROCESSO.map((m) => (
+                    <SelectItem key={m.key} value={m.key}>
+                      <span className="flex items-center gap-1.5">
+                        <span>{m.icon}</span> {m.label}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
