@@ -39,6 +39,7 @@ import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAc
 import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
 import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
 import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
+import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
 
 interface Profile {
   id: string;
