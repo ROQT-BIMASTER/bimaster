@@ -310,7 +310,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     );
   }, [selectedModules]);
 
-  const loading = permissionsLoading || modulesLoading;
+  const loading = permissionsLoading || modulesLoading || configLoading;
 
   // Build available modules list based on permissions
   const moduleFilterOptions = useMemo(() => {
