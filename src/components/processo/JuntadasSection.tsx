@@ -30,6 +30,7 @@ interface Props {
 
 export function JuntadasSection({ processId }: Props) {
   const { juntadas, isLoading, addJuntada, despacharJuntada } = useProcessJuntadas(processId);
+  const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedJuntada, setSelectedJuntada] = useState<ProcessJuntada | null>(null);
   const [despachoJuntada, setDespachoJuntada] = useState<ProcessJuntada | null>(null);
@@ -40,6 +41,11 @@ export function JuntadasSection({ processId }: Props) {
   const [tipo, setTipo] = useState("embalagem");
   const [parecer, setParecer] = useState("");
   const [parecerStatus, setParecerStatus] = useState("pendente");
+
+  // Novo tipo inline
+  const [showNewTipo, setShowNewTipo] = useState(false);
+  const [novoTipoLabel, setNovoTipoLabel] = useState("");
+  const [novoTipoModulo, setNovoTipoModulo] = useState("");
 
   const handleSubmit = () => {
     if (!titulo.trim()) return;
