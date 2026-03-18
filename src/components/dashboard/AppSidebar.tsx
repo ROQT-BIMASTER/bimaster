@@ -1026,7 +1026,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       to="/dashboard/configuracoes"
                       className={({ isActive }) => cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                        isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                        isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                       )}
                     >
                       <Settings className="h-4 w-4" />
@@ -1043,7 +1043,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/configuracoes/lgpd"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Shield className="h-4 w-4" />
@@ -1057,7 +1057,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/configuracoes/menu"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -1071,7 +1071,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/relatorio-seguranca"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Shield className="h-4 w-4" />
@@ -1085,7 +1085,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/relatorio-desenvolvimento"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Package className="h-4 w-4" />
