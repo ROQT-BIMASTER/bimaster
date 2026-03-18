@@ -358,8 +358,8 @@ export async function uploadEtiquetaFile(folder: string, file: File) {
     .from("etiqueta-bula")
     .upload(path, file, { cacheControl: "3600", upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from("etiqueta-bula").getPublicUrl(path);
-  return data.publicUrl;
+  const { data } = await supabase.storage.from("etiqueta-bula").createSignedUrl(path, 31536000);
+  return data?.signedUrl || path;
 }
 
 // ── Helpers ──

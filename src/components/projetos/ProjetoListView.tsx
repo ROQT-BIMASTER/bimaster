@@ -147,13 +147,13 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
                     .from("projeto-documentos")
                     .upload(path, file);
                   if (!uploadError) {
-                    const { data: urlData } = supabase.storage
+                    const { data: signedData } = await supabase.storage
                       .from("projeto-documentos")
-                      .getPublicUrl(path);
+                      .createSignedUrl(path, 31536000);
                     await supabase.from("projeto_tarefa_documentos" as any).insert({
                       tarefa_id: created.id,
                       nome_arquivo: file.name,
-                      url: urlData.publicUrl,
+                      url: signedData?.signedUrl || path,
                       tipo_arquivo: file.type,
                       tamanho: file.size,
                     });

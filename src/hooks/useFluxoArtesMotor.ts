@@ -483,8 +483,8 @@ export async function uploadFluxoArteFile(folder: string, file: File) {
     .from("fluxo-artes")
     .upload(path, file, { cacheControl: "3600", upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from("fluxo-artes").getPublicUrl(path);
-  return data.publicUrl;
+  const { data } = await supabase.storage.from("fluxo-artes").createSignedUrl(path, 31536000);
+  return data?.signedUrl || path;
 }
 
 export function useDevolverEtapaArte() {

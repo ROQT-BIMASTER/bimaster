@@ -119,13 +119,13 @@ export function PaymentChatPanel({ paymentQueueId, userType, className, compact 
       return null;
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: signedData } = await supabase.storage
       .from("payment-chat-files")
-      .getPublicUrl(path);
+      .createSignedUrl(path, 31536000);
 
     return {
       name: file.name,
-      url: urlData.publicUrl,
+      url: signedData?.signedUrl || path,
       type: file.type,
       size: file.size,
     };
