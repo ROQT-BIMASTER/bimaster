@@ -227,8 +227,6 @@ interface MenuItemLinkProps {
 }
 
 const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemLinkProps) => {
-  const colors = colorKey ? moduleColors[colorKey] : null;
-  
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
@@ -236,13 +234,10 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           to={to}
           end={end}
           className={({ isActive }) => cn(
-            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-200 text-[13px]",
+            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-150 text-[13px]",
             isActive
-              ? cn(
-                  "font-medium",
-                  colors ? cn(colors.bgLight, colors.text, "ltr:border-l-2 rtl:border-r-2", colors.border) : "bg-sidebar-accent text-sidebar-accent-foreground ltr:border-l-2 rtl:border-r-2 border-primary"
-                )
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-white ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
+              : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
           )}
         >
           <Icon className="h-3.5 w-3.5" />
