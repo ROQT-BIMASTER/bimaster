@@ -314,6 +314,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Diagnóstico do body recebido
+    console.log('[SYNC] Body keys:', Object.keys(body));
+    console.log('[SYNC] Body type:', typeof body, Array.isArray(body) ? 'array' : 'not-array');
+    if (body.contas) console.log('[SYNC] contas length:', body.contas.length);
+
     // Extrair registros de qualquer formato
     const rawRecords = extractRecords(body);
     
