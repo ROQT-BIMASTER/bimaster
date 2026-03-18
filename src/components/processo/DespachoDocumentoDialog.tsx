@@ -8,11 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { useCriarDespachoLote } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
 import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
@@ -35,7 +30,7 @@ export function DespachoDocumentoDialog({
   processoId,
   categoriaChecklist,
 }: DespachoDocumentoDialogProps) {
-  const [modulo, setModulo] = useState<string>(DESPACHO_MODULOS_PROCESSO[0].key);
+  const [modulos, setModulos] = useState<string[]>([DESPACHO_MODULOS_PROCESSO[0].key]);
   const [workflowId, setWorkflowId] = useState("none");
   const [observacao, setObservacao] = useState("");
   const [prazoHoras, setPrazoHoras] = useState(48);
@@ -44,22 +39,36 @@ export function DespachoDocumentoDialog({
   const criarLote = useCriarDespachoLote();
   const { configs: workflows, addConfig } = useDocWorkflowConfigs();
 
-  const handleDespachar = async () => {
-    if (documentos.length === 0) return;
-    await criarLote.mutateAsync({
-      submissao_id: submissaoId,
-      documento_ids: documentos.map((d: any) => d.id),
-      processo_id: processoId,
-      categorias_checklist: categoriaChecklist
-        ? Object.fromEntries(documentos.map((d: any) => [d.id, categoriaChecklist]))
-        : undefined,
-      modulo_destino: modulo,
-      workflow_config_id: workflowId !== "none" ? workflowId : undefined,
-      observacao: observacao || undefined,
-      prazo_ciencia_horas: prazoHoras,
+  const toggleModulo = (key: string) => {
+    setModulos((prev) => {
+      if (prev.includes(key)) {
+        if (prev.length === 1) return prev; // keep at least one
+        return prev.filter((m) => m !== key);
+      }
+      return [...prev, key];
     });
+  };
+
+  const handleDespachar = async () => {
+    if (documentos.length === 0 || modulos.length === 0) return;
+
+    for (const modulo of modulos) {
+      await criarLote.mutateAsync({
+        submissao_id: submissaoId,
+        documento_ids: documentos.map((d: any) => d.id),
+        processo_id: processoId,
+        categorias_checklist: categoriaChecklist
+          ? Object.fromEntries(documentos.map((d: any) => [d.id, categoriaChecklist]))
+          : undefined,
+        modulo_destino: modulo,
+        workflow_config_id: workflowId !== "none" ? workflowId : undefined,
+        observacao: observacao || undefined,
+        prazo_ciencia_horas: prazoHoras,
+      });
+    }
+
     onOpenChange(false);
-    setModulo(DESPACHO_MODULOS_PROCESSO[0].key);
+    setModulos([DESPACHO_MODULOS_PROCESSO[0].key]);
     setWorkflowId("none");
     setObservacao("");
     setPrazoHoras(48);
@@ -78,6 +87,8 @@ export function DespachoDocumentoDialog({
 
   if (documentos.length === 0) return null;
 
+  const totalDespachos = documentos.length * modulos.length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -90,7 +101,7 @@ export function DespachoDocumentoDialog({
         <div className="space-y-4">
           {/* Documents being dispatched */}
           <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1 max-h-32 overflow-y-auto">
-            {documentos.map((doc: any, i: number) => (
+            {documentos.map((doc: any) => (
               <div key={doc.id} className="flex items-center gap-2">
                 <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                 <span className="text-foreground truncate">{doc.nome_arquivo || doc.tipo_documento}</span>
@@ -102,17 +113,37 @@ export function DespachoDocumentoDialog({
           </div>
 
           <div>
-            <Label className="text-xs font-medium">Módulo de destino</Label>
-            <RadioGroup value={modulo} onValueChange={setModulo} className="mt-2 grid grid-cols-2 gap-1.5">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs font-medium">Módulos de destino</Label>
+              {modulos.length > 1 && (
+                <Badge variant="secondary" className="text-[9px]">
+                  {modulos.length} módulos selecionados
+                </Badge>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
               {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                <div key={m.key} className="flex items-center gap-2">
-                  <RadioGroupItem value={m.key} id={`desp-doc-${m.key}`} />
-                  <Label htmlFor={`desp-doc-${m.key}`} className="text-xs cursor-pointer flex items-center gap-1.5">
+                <label
+                  key={m.key}
+                  className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5"
+                >
+                  <Checkbox
+                    checked={modulos.includes(m.key)}
+                    onCheckedChange={() => toggleModulo(m.key)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span className="text-xs flex items-center gap-1.5">
                     <span>{m.icon}</span> {m.label}
-                  </Label>
-                </div>
+                  </span>
+                </label>
               ))}
-            </RadioGroup>
+            </div>
+            {modulos.length > 1 && (
+              <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                O mesmo fluxo será aplicado em todos os módulos selecionados.
+                Serão criados {totalDespachos} despachos no total.
+              </p>
+            )}
           </div>
 
           {/* Prazo para ciência */}
@@ -199,9 +230,13 @@ export function DespachoDocumentoDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleDespachar} disabled={criarLote.isPending} className="gap-1.5">
+          <Button
+            onClick={handleDespachar}
+            disabled={criarLote.isPending || modulos.length === 0}
+            className="gap-1.5"
+          >
             {criarLote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Despachar {documentos.length > 1 ? `(${documentos.length})` : ""}
+            Despachar {totalDespachos > 1 ? `(${totalDespachos})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
