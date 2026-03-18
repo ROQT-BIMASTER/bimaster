@@ -264,6 +264,65 @@ export default function ProjetoVincularChina() {
       } catch (e) {
         console.error("Erro ao criar produto Brasil:", e);
       }
+
+      // Register vinculação event in the unified process
+      try {
+        const { supabase: sb } = await import("@/integrations/supabase/client");
+        const { data: existingProcess } = await (sb
+          .from("product_process" as any)
+          .select("id")
+          .eq("produto_tipo", "china")
+          .eq("produto_ref_id", selectedSubmissaoId)
+          .maybeSingle() as any);
+
+        let processId = existingProcess?.id;
+        if (!processId) {
+          const { data: { user } } = await sb.auth.getUser();
+          const { data: newProcess } = await (sb
+            .from("product_process" as any)
+            .insert({
+              produto_tipo: "china",
+              produto_ref_id: selectedSubmissaoId,
+              criado_por: user?.id,
+              etapa_atual: "projeto",
+            })
+            .select("id")
+            .single() as any);
+          processId = newProcess?.id;
+        } else {
+          await (sb
+            .from("product_process" as any)
+            .update({ etapa_atual: "projeto" })
+            .eq("id", processId)
+            .eq("etapa_atual", "ideia") as any);
+        }
+
+        if (processId) {
+          const { data: { user } } = await sb.auth.getUser();
+          const { data: profile } = await sb.from("profiles").select("nome").eq("id", user!.id).maybeSingle();
+          const projetoNome = projetos.find((p: any) => p.id === selectedProjetoId)?.nome || selectedProjetoId;
+
+          await (sb.from("process_events" as any).insert({
+            process_id: processId,
+            tipo_evento: "vinculacao",
+            descricao: `Vinculado ao projeto: ${projetoNome}`,
+            modulo_origem: "processo",
+            usuario_id: user?.id,
+            usuario_nome: profile?.nome || user?.email,
+            metadata: { projeto_id: selectedProjetoId, projeto_nome: projetoNome },
+          }) as any);
+
+          await (sb.from("process_step_history" as any).insert({
+            process_id: processId,
+            etapa: "projeto",
+            status: "em_andamento",
+            responsavel_id: user?.id,
+            data_inicio: new Date().toISOString(),
+          }) as any);
+        }
+      } catch (e) {
+        console.error("Erro ao registrar processo:", e);
+      }
     }
 
     if (auditPromise) {
