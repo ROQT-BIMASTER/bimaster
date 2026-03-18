@@ -774,7 +774,15 @@ export default function ProjetoVincularChina() {
         </Collapsible>
       )}
 
-      {/* Grade Dialog */}
+      {/* Process Orchestration Panel — appears when a linked submission is selected */}
+      {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
+        <ProcessOrchestrationPanel
+          submissaoId={selectedSubmissaoId}
+          submissaoNome={selectedSubmissao?.produto_nome}
+          submissaoCodigo={selectedSubmissao?.produto_codigo}
+        />
+      )}
+
       <Dialog open={gradeOpen} onOpenChange={setGradeOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
