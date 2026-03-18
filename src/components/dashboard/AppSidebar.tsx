@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -388,6 +388,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     estoque: ["/dashboard/estoque"],
     projetos: ["/dashboard/projetos"],
     reunioes: ["/dashboard/reunioes"],
+    processos: ["/dashboard/processos"],
   }), []);
 
   // Dynamic moduleToCategoryMap from DB config
@@ -877,6 +878,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <CollapsibleContent>
               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
                 <MenuItemLink to="/dashboard/reunioes" icon={Mic} title="Reuniões" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "processos":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Scale} title="Processos" isOpen={isModuleOpen} colorKey="comercial" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
               </SidebarMenu>
             </CollapsibleContent>
           </Collapsible>
