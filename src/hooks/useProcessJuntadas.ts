@@ -16,6 +16,10 @@ export interface ProcessJuntada {
   juntado_por: string | null;
   juntado_por_nome: string | null;
   departamento_id: string | null;
+  despacho_modulo: string | null;
+  despacho_descricao: string | null;
+  despacho_data: string | null;
+  despacho_por: string | null;
   created_at: string;
 }
 
