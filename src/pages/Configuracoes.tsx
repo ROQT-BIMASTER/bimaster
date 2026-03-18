@@ -335,6 +335,7 @@ function Configuracoes() {
             </TabsContent>
 
             <TabsContent value="personalizacao">
+              <ThemeSelector />
               <PersonalizarCores />
             </TabsContent>
 
