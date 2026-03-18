@@ -237,8 +237,8 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           className={({ isActive }) => cn(
             "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-150 text-[13px]",
             isActive
-              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-white ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
-              : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)] ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
+              : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
           )}
         >
           <Icon className="h-3.5 w-3.5" />
