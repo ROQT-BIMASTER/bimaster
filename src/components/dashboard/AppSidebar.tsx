@@ -988,19 +988,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       </SidebarContent>
       
       {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-accent/20">
+      <SidebarFooter className="border-t border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
         {userName && (
-          <div className="px-4 py-2 border-b border-sidebar-border/50">
+          <div className="px-4 py-2 border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
                 <span className="text-xs font-bold text-white">
                   {userName.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{userName}</p>
-                <p className="text-xs text-muted-foreground">{t("nav.connected")}</p>
+                <p className="text-sm font-medium truncate text-white">{userName}</p>
+                <p className="text-xs text-[#8896ab]">{t("nav.connected")}</p>
               </div>
+              <ThemeSelectorPopover />
             </div>
           </div>
         )}
