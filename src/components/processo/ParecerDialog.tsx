@@ -142,7 +142,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={handleSubmit}
-            disabled={isPending || (requiresText && !texto.trim()) || (acao === "encaminhar" && !novoDeptId)}
+            disabled={isPending || (requiresText && !texto.trim()) || (acao === "encaminhar" && !novoModulo)}
             className="gap-1.5"
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
