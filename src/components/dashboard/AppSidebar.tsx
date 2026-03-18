@@ -388,6 +388,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     estoque: ["/dashboard/estoque"],
     projetos: ["/dashboard/projetos"],
     reunioes: ["/dashboard/reunioes"],
+    processos: ["/dashboard/processos"],
   }), []);
 
   // Dynamic moduleToCategoryMap from DB config
