@@ -932,6 +932,87 @@ function ChinaProjetosVinculadosSection({ submissao, onVincular }: { submissao: 
   );
 }
 
+// ─── Visibilidade da Ficha ───
+function FichaVisibilidadeSection({ submissaoId }: { submissaoId: string }) {
+  const { data: visibilidade = [], isLoading } = useFichaVisibilidade(submissaoId);
+  const addVisibilidade = useAddFichaVisibilidade();
+  const removeVisibilidade = useRemoveFichaVisibilidade();
+  const [selectedUserId, setSelectedUserId] = useState("");
+
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["profiles-for-visibility"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, nome_completo, email")
+        .eq("aprovado", true)
+        .order("nome_completo");
+      return (data || []) as any[];
+    },
+  });
+
+  const existingUserIds = new Set(visibilidade.map((v: any) => v.user_id));
+  const availableProfiles = allProfiles.filter((p: any) => !existingUserIds.has(p.id));
+
+  const handleAdd = () => {
+    if (!selectedUserId) return;
+    addVisibilidade.mutate(
+      { submissao_id: submissaoId, user_id: selectedUserId },
+      { onSuccess: () => setSelectedUserId("") }
+    );
+  };
+
+  return (
+    <Card className="p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-5 w-5 text-primary" />
+        <BilingualLabel pt="Acesso e Visibilidade" cn="访问与可见性" size="md" />
+        <Badge variant="secondary" className="ml-auto">{visibilidade.length} usuário(s)</Badge>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Selecionar usuário..." />
+          </SelectTrigger>
+          <SelectContent>
+            {availableProfiles.map((p: any) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.nome_completo || p.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={handleAdd} disabled={!selectedUserId || addVisibilidade.isPending} className="gap-1">
+          <UserPlus className="h-4 w-4" /> Conceder
+        </Button>
+      </div>
+
+      {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+
+      {visibilidade.length > 0 && (
+        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          {visibilidade.map((v: any) => (
+            <div key={v.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30 text-xs">
+              <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="flex-1 truncate">{v.user_nome}</span>
+              <span className="text-muted-foreground truncate">{v.user_email}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() => removeVisibilidade.mutate(v.id)}
+              >
+                <X className="h-3 w-3 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ─── Transferências Oficiais ao Brasil ───
 function TransferenciasOficiaisSection({ submissaoId, documentos, isBrasilUser, eanCaixaMaster }: {
   submissaoId: string;
