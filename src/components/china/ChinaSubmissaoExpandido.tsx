@@ -408,14 +408,23 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         categoriaKey={vincularCatKey}
       />
 
-      {/* Despacho Dialog */}
+      {/* Despacho Dialog (single) */}
       <DespachoDocumentoDialog
         open={!!despachoDoc}
         onOpenChange={(open) => { if (!open) setDespachoDoc(null); }}
-        documento={despachoDoc}
+        documentos={despachoDoc ? [despachoDoc] : []}
         submissaoId={submissao.id}
         processoId={processoId}
         categoriaChecklist={despachoCatKey}
+      />
+
+      {/* Batch Despacho Dialog */}
+      <DespachoDocumentoDialog
+        open={batchDespachoOpen}
+        onOpenChange={(open) => { if (!open) { setBatchDespachoOpen(false); setSelectedDocs(new Set()); } }}
+        documentos={selectedDocsData}
+        submissaoId={submissao.id}
+        processoId={processoId}
       />
     </div>
   );
