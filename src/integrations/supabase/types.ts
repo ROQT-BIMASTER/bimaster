@@ -15858,6 +15858,103 @@ export type Database = {
         }
         Relationships: []
       }
+      process_events: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          metadata: Json | null
+          modulo_origem: string
+          process_id: string
+          ref_entity_id: string | null
+          ref_entity_table: string | null
+          tipo_evento: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo_origem?: string
+          process_id: string
+          ref_entity_id?: string | null
+          ref_entity_table?: string | null
+          tipo_evento: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo_origem?: string
+          process_id?: string
+          ref_entity_id?: string | null
+          ref_entity_table?: string | null
+          tipo_evento?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_events_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "product_process"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_step_history: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          etapa: string
+          id: string
+          observacao: string | null
+          process_id: string
+          responsavel_id: string | null
+          status: string
+          tempo_permanencia_minutos: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          etapa: string
+          id?: string
+          observacao?: string | null
+          process_id: string
+          responsavel_id?: string | null
+          status?: string
+          tempo_permanencia_minutos?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          etapa?: string
+          id?: string
+          observacao?: string | null
+          process_id?: string
+          responsavel_id?: string | null
+          status?: string
+          tempo_permanencia_minutos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_step_history_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "product_process"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_comparisons: {
         Row: {
           comparison_notes: string | null
@@ -15902,6 +15999,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_process: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          etapa_atual: string | null
+          id: string
+          numero_processo: string | null
+          produto_ref_id: string
+          produto_tipo: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          etapa_atual?: string | null
+          id?: string
+          numero_processo?: string | null
+          produto_ref_id: string
+          produto_tipo: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          etapa_atual?: string | null
+          id?: string
+          numero_processo?: string | null
+          produto_ref_id?: string
+          produto_tipo?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -25881,6 +26014,20 @@ export type Database = {
           uf: string | null
           valor_total_aberto: number | null
           vencimento_mais_antigo: string | null
+        }
+        Relationships: []
+      }
+      vw_process_timeline: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          entity_id: string | null
+          id: string | null
+          metadata: Json | null
+          modulo_origem: string | null
+          tipo_evento: string | null
+          usuario_id: string | null
+          usuario_nome: string | null
         }
         Relationships: []
       }
