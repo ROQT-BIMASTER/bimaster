@@ -3,6 +3,7 @@ import {
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
   Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical
 } from "lucide-react";
+import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -197,9 +198,8 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
   
   return (
     <div className={cn(
-      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200",
-      colors.bgLight,
-      colors.hover
+      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-150",
+      "hover:bg-[var(--sidebar-hover-raw)]"
     )}>
       <div className={cn(
         "flex items-center justify-center w-7 h-7 rounded-md",
@@ -207,12 +207,11 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
       )}>
         <Icon className="h-3.5 w-3.5 text-white" />
       </div>
-      <span className={cn("font-medium text-sm flex-1", colors.text)}>
+      <span className="font-medium text-sm flex-1 text-[#c8d3e0]">
         {title}
       </span>
       <ChevronDown className={cn(
-        "h-3.5 w-3.5 transition-transform duration-200",
-        colors.text,
+        "h-3.5 w-3.5 text-[#8896ab] transition-transform duration-200",
         !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
     </div>
@@ -229,8 +228,6 @@ interface MenuItemLinkProps {
 }
 
 const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemLinkProps) => {
-  const colors = colorKey ? moduleColors[colorKey] : null;
-  
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
@@ -238,13 +235,10 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           to={to}
           end={end}
           className={({ isActive }) => cn(
-            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-200 text-[13px]",
+            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-150 text-[13px]",
             isActive
-              ? cn(
-                  "font-medium",
-                  colors ? cn(colors.bgLight, colors.text, "ltr:border-l-2 rtl:border-r-2", colors.border) : "bg-sidebar-accent text-sidebar-accent-foreground ltr:border-l-2 rtl:border-r-2 border-primary"
-                )
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-white ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
+              : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
           )}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -265,16 +259,16 @@ interface CategoryHeaderProps {
 
 const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
   <div className={cn(
-    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-200",
-    "hover:bg-sidebar-accent/50",
-    isOpen ? "bg-sidebar-accent/30" : ""
+    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-150",
+    "hover:bg-[var(--sidebar-hover-raw)]",
+    isOpen ? "bg-[var(--sidebar-hover-raw)]" : ""
   )}>
-    <Icon className="h-4 w-4 text-muted-foreground" />
-    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground flex-1">
+    <Icon className="h-4 w-4 text-[#8896ab]" />
+    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[#4a5a70] flex-1">
       {title}
     </span>
     <ChevronRight className={cn(
-      "h-3.5 w-3.5 text-muted-foreground/70 transition-transform duration-200",
+      "h-3.5 w-3.5 text-[#4a5a70] transition-transform duration-200",
       isOpen && "rotate-90"
     )} />
   </div>
@@ -896,21 +890,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
 
   return (
-    <Sidebar side={side} className={cn("border-sidebar-border", isRTL ? "border-l" : "border-r")}>
+    <Sidebar side={side} className={cn("border-none", isRTL ? "border-l" : "border-r")} style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
       {/* Header with logo */}
-      <div className="p-4 border-b border-sidebar-border bg-gradient-to-b from-sidebar-background to-sidebar-accent/30">
+      <div className="p-4 border-b border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
         <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
       </div>
 
       {/* Module filter */}
       {moduleFilterOptions.length > 1 && (
-        <div className="px-3 py-2 border-b border-sidebar-border">
+        <div className="px-3 py-2 border-b border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-9 justify-between text-xs bg-sidebar-accent/30 border-sidebar-border"
+                className="w-full h-9 justify-between text-xs border-white/10 bg-white/5 text-[#8896ab] hover:bg-white/10 hover:text-[#c8d3e0]"
               >
                 <span className="truncate">{filterLabel}</span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -994,19 +988,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       </SidebarContent>
       
       {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-accent/20">
+      <SidebarFooter className="border-t border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
         {userName && (
-          <div className="px-4 py-2 border-b border-sidebar-border/50">
+          <div className="px-4 py-2 border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
                 <span className="text-xs font-bold text-white">
                   {userName.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{userName}</p>
-                <p className="text-xs text-muted-foreground">{t("nav.connected")}</p>
+                <p className="text-sm font-medium truncate text-white">{userName}</p>
+                <p className="text-xs text-[#8896ab]">{t("nav.connected")}</p>
               </div>
+              <ThemeSelectorPopover />
             </div>
           </div>
         )}
@@ -1018,8 +1013,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <NavLink 
                   to="/dashboard/configuracoes"
                   className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                    isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                   )}
                 >
                   <Settings className="h-4 w-4" />
@@ -1035,8 +1030,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/configuracoes/lgpd"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Shield className="h-4 w-4" />
@@ -1049,8 +1044,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/configuracoes/menu"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <LayoutGrid className="h-4 w-4" />
@@ -1063,8 +1058,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/relatorio-seguranca"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Shield className="h-4 w-4" />
@@ -1077,8 +1072,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   <NavLink 
                     to="/dashboard/relatorio-desenvolvimento"
                     className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                      isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
                     )}
                   >
                     <Package className="h-4 w-4" />
@@ -1091,7 +1086,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-150"
             >
               <LogOut className="h-4 w-4" />
               <span>{t("nav.logout")}</span>
@@ -1099,12 +1094,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarMenuItem>
         </SidebarMenu>
         
-        <div className="px-4 py-2 border-t border-sidebar-border/50 flex gap-3">
-          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+        <div className="px-4 py-2 border-t border-white/5 flex gap-3">
+          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Privacidade
           </a>
-          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Termos
           </a>

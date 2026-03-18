@@ -17896,6 +17896,7 @@ export type Database = {
           nome: string
           status: string
           supervisor_id: string | null
+          theme_key: string | null
           updated_at: string | null
         }
         Insert: {
@@ -17909,6 +17910,7 @@ export type Database = {
           nome: string
           status?: string
           supervisor_id?: string | null
+          theme_key?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -17922,6 +17924,7 @@ export type Database = {
           nome?: string
           status?: string
           supervisor_id?: string | null
+          theme_key?: string | null
           updated_at?: string | null
         }
         Relationships: [

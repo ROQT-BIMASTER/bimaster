@@ -9,11 +9,11 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Typography */
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
     
-    /* Core colors - Refined blue palette */
-    --background: 220 20% 98%;
+    /* Core colors - Redesign #eef0f5 base */
+    --background: 222 18% 95%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -22,14 +22,14 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 221 83% 53%;
+    --primary: 221 72% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 11%;
 
     --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted-foreground: 218 15% 46%;
 
     --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
@@ -43,28 +43,28 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 26 83% 14%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 222 14% 88%;
+    --input: 222 14% 88%;
+    --ring: 221 72% 55%;
 
     --radius: 0.625rem;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(262, 83%, 58%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(221, 72%, 55%) 0%, hsl(262, 83%, 58%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(220, 14%, 96%) 0%, hsl(220, 20%, 92%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(220, 20%, 99%) 100%);
     --gradient-shine: linear-gradient(110deg, transparent 25%, hsla(0, 0%, 100%, 0.3) 50%, transparent 75%);
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsla(222, 47%, 11%, 0.05);
-    --shadow-md: 0 4px 6px -1px hsla(222, 47%, 11%, 0.07), 0 2px 4px -2px hsla(222, 47%, 11%, 0.05);
-    --shadow-lg: 0 10px 15px -3px hsla(222, 47%, 11%, 0.08), 0 4px 6px -4px hsla(222, 47%, 11%, 0.05);
-    --shadow-xl: 0 20px 25px -5px hsla(222, 47%, 11%, 0.1), 0 8px 10px -6px hsla(222, 47%, 11%, 0.05);
-    --shadow-glow: 0 0 20px hsla(221, 83%, 53%, 0.25);
-    --shadow-inner: inset 0 2px 4px 0 hsla(222, 47%, 11%, 0.05);
+    /* Shadows - subtle, using rgba(15,22,35,0.08) */
+    --shadow-sm: 0 1px 2px 0 rgba(15, 22, 35, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(15, 22, 35, 0.07), 0 2px 4px -2px rgba(15, 22, 35, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 22, 35, 0.08), 0 4px 6px -4px rgba(15, 22, 35, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(15, 22, 35, 0.1), 0 8px 10px -6px rgba(15, 22, 35, 0.05);
+    --shadow-glow: 0 0 20px hsla(221, 72%, 55%, 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgba(15, 22, 35, 0.05);
 
-    /* Chart colors - vivid and harmonious */
-    --chart-1: 221 83% 53%;
+    /* Chart colors */
+    --chart-1: 221 72% 55%;
     --chart-2: 152 76% 36%;
     --chart-3: 38 92% 50%;
     --chart-4: 262 83% 58%;
@@ -73,15 +73,24 @@ All colors MUST be HSL.
     --chart-7: 45 93% 47%;
     --chart-8: 330 70% 50%;
     
-    /* Sidebar - Light elegant */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 221 83% 53%;
+    /* Sidebar - Dark navy (overridden by theme) */
+    --sidebar-background: 222 44% 10%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 221 72% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-accent: 222 30% 16%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 30% 16%;
+    --sidebar-ring: 221 72% 55%;
+
+    /* Raw theme colors (defaults - overridden by ThemeContext) */
+    --sidebar-bg-raw: #0f1623;
+    --sidebar-hover-raw: #1c2638;
+    --sidebar-active-bg-raw: rgba(56,114,224,0.15);
+    --color-primary-raw: #3872e0;
+    --color-primary-dark-raw: #2459c0;
+    --color-primary-light: #eef3fd;
+    --color-primary-badge-border: #c3d6fa;
     
     /* Module semantic colors */
     --module-prospects: 217 91% 60%;
@@ -177,6 +186,9 @@ All colors MUST be HSL.
 @layer base {
   * {
     @apply border-border;
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+    transition-duration: 0.12s;
+    transition-timing-function: ease;
   }
 
   html {
@@ -188,12 +200,15 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    font-size: 13px;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply font-semibold tracking-tight;
   }
+
+  h1 { font-size: 20px; font-weight: 700; }
 }
 
 @layer components {
