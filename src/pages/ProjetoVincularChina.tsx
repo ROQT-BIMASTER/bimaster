@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft, Scale } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft, Scale, Maximize2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +108,7 @@ export default function ProjetoVincularChina() {
   const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [focusSubmissao, setFocusSubmissao] = useState<any>(null);
   const [vinculosOpen, setVinculosOpen] = useState(false);
   // Sidebar active category
   const [activeSidebarCat, setActiveSidebarCat] = useState<"todas" | "vinculadas" | "nao_vinculadas">("todas");
@@ -557,6 +558,15 @@ export default function ProjetoVincularChina() {
                             <Badge variant={getStatusBadgeVariant(sub.status)} className="text-[10px]">
                               {getStatusLabel(sub.status)}
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => { e.stopPropagation(); setFocusSubmissao(sub); }}
+                              title="Modo Foco"
+                            >
+                              <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                             <ChevronDown className={cn(
                               "h-4 w-4 text-muted-foreground transition-transform duration-200",
                               isExpanded && "rotate-180"
@@ -875,6 +885,47 @@ export default function ProjetoVincularChina() {
         nomeArquivo={previewDoc?.nome_arquivo}
         tipoDocumento={getDocTypeLabel(previewDoc?.tipo_documento || "")}
       />
+
+      {/* Focus Mode Dialog */}
+      <Dialog open={!!focusSubmissao} onOpenChange={(open) => { if (!open) setFocusSubmissao(null); }}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-primary">{focusSubmissao?.produto_codigo}</span>
+                  <Badge variant={getStatusBadgeVariant(focusSubmissao?.status || "")}>
+                    {getStatusLabel(focusSubmissao?.status || "")}
+                  </Badge>
+                </div>
+                <p className="text-base font-semibold">{focusSubmissao?.produto_nome}</p>
+              </div>
+              {focusSubmissao?.numero_ordem && (
+                <Badge variant="outline" className="ml-auto text-xs">OC: {focusSubmissao.numero_ordem}</Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 overflow-auto">
+            <div className="p-6">
+              {focusSubmissao && (
+                <ChinaSubmissaoExpandido
+                  submissao={focusSubmissao}
+                  onPreviewDoc={setPreviewDoc}
+                  processoId={undefined}
+                />
+              )}
+              {focusSubmissao && (
+                <div className="mt-4">
+                  <DespachosActiveSection submissaoId={focusSubmissao.id} />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
