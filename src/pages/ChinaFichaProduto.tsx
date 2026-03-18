@@ -787,7 +787,7 @@ export default function ChinaFichaProduto() {
 }
 
 /** Inline component for linked projects section */
-function ChinaProjetosVinculadosSection({ submissao }: { submissao: any }) {
+function ChinaProjetosVinculadosSection({ submissao, onVincular }: { submissao: any; onVincular?: () => void }) {
   const navigate = useNavigate();
   const { data: projetos = [], isLoading } = useChinaProjetosVinculados(submissao?.id);
   const criarProjeto = useCriarProjetoChina();
