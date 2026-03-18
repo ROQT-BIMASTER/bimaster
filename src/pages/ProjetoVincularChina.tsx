@@ -108,6 +108,7 @@ export default function ProjetoVincularChina() {
   const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [focusSubmissao, setFocusSubmissao] = useState<any>(null);
   const [vinculosOpen, setVinculosOpen] = useState(false);
   // Sidebar active category
   const [activeSidebarCat, setActiveSidebarCat] = useState<"todas" | "vinculadas" | "nao_vinculadas">("todas");
