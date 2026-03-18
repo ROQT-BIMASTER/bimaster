@@ -477,6 +477,10 @@ function Configuracoes() {
                       <MonitoramentoAPIs />
                     </TabsContent>
 
+                    <TabsContent value="sub-visibility">
+                      <DeptVisibilityControlPanel />
+                    </TabsContent>
+
                     <TabsContent value="sub-storage">
                       <StorageManagementPanel />
                     </TabsContent>
