@@ -118,7 +118,18 @@ const moduleColors = {
   },
 };
 
-// Fábrica module grouped menus
+// Icon name to component mapping for dynamic config
+const iconMap: Record<string, React.ElementType> = {
+  Home, Users, Building2, Settings, Upload, Shield, LayoutGrid, CheckSquare, MapPin,
+  MessageSquare, Activity, Clock, Store, Calendar, Camera, Tag, TrendingUp, Brain,
+  Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3,
+  Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle,
+  AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket,
+  PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic,
+  Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, LogOut,
+};
+
+
 const fabricaGroups = [
   {
     label: "Entrada",
