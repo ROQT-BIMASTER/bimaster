@@ -165,6 +165,7 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
         onOpenChange={(open) => { if (!open) setParecerDespacho(null); }}
         despacho={parecerDespacho}
         documentoNome={parecerDespacho ? getDocName(parecerDespacho.documento_id) : undefined}
+        documentoData={parecerDespacho ? documentos.find((d: any) => d.id === parecerDespacho.documento_id) : undefined}
       />
     </>
   );
