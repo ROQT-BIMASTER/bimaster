@@ -21341,12 +21341,15 @@ export type Database = {
           entidade: string
           erro_mensagem: string | null
           id: string
+          offset_cursor: number
           registros_atualizados: number | null
           registros_ignorados: number | null
           registros_inseridos: number | null
+          registros_ultima_sync: number | null
           status: string | null
           total_registros: number | null
           ultima_sync: string | null
+          workflow_name: string | null
         }
         Insert: {
           created_at?: string | null
@@ -21355,12 +21358,15 @@ export type Database = {
           entidade: string
           erro_mensagem?: string | null
           id?: string
+          offset_cursor?: number
           registros_atualizados?: number | null
           registros_ignorados?: number | null
           registros_inseridos?: number | null
+          registros_ultima_sync?: number | null
           status?: string | null
           total_registros?: number | null
           ultima_sync?: string | null
+          workflow_name?: string | null
         }
         Update: {
           created_at?: string | null
@@ -21369,12 +21375,15 @@ export type Database = {
           entidade?: string
           erro_mensagem?: string | null
           id?: string
+          offset_cursor?: number
           registros_atualizados?: number | null
           registros_ignorados?: number | null
           registros_inseridos?: number | null
+          registros_ultima_sync?: number | null
           status?: string | null
           total_registros?: number | null
           ultima_sync?: string | null
+          workflow_name?: string | null
         }
         Relationships: []
       }
