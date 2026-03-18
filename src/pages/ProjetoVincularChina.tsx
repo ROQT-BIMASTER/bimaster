@@ -88,6 +88,11 @@ const statusBorders: Record<string, string> = {
   arte_enviada: "border-l-success/60 border-l-4",
 };
 
+function DespachosActiveSection({ submissaoId }: { submissaoId: string }) {
+  const { data: docs = [] } = useDocsSub(submissaoId);
+  return <DespachosPanel submissaoId={submissaoId} documentos={docs} />;
+}
+
 export default function ProjetoVincularChina() {
   const navigate = useNavigate();
   const { isAdmin } = usePermissions();
