@@ -562,8 +562,26 @@ export default function ChinaFichaProduto() {
           </Card>
         )}
 
-        {/* Projetos Vinculados */}
-        {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
+        {/* Projetos Vinculados + Visibilidade */}
+        {isBrasilUser && (
+          <>
+            <ChinaProjetosVinculadosSection submissao={submissao} onVincular={() => setVincularOpen(true)} />
+            <FichaVisibilidadeSection submissaoId={id!} />
+          </>
+        )}
+
+        {/* Dialogs */}
+        {id && (
+          <>
+            <VincularProjetoDialog modulo="ficha_china" registroId={id} open={vincularOpen} onOpenChange={setVincularOpen} />
+            <DespachoFichaDialog
+              submissaoId={id}
+              produtoNome={`${submissao.produto_codigo} — ${submissao.produto_nome}`}
+              open={despachoOpen}
+              onOpenChange={setDespachoOpen}
+            />
+          </>
+        )}
 
         {/* Checklist Pré-Lançamento do Projeto Brasil */}
         {isBrasilUser && <ChinaProjetoChecklist submissaoId={submissao.id} />}
