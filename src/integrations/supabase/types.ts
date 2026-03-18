@@ -15858,6 +15858,168 @@ export type Database = {
         }
         Relationships: []
       }
+      process_doc_workflow_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo_documento: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo_documento: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo_documento?: string
+        }
+        Relationships: []
+      }
+      process_doc_workflow_etapas: {
+        Row: {
+          config_id: string
+          created_at: string
+          departamento_responsavel_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          tipo_acao: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          departamento_responsavel_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          tipo_acao?: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          departamento_responsavel_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo_acao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_doc_workflow_etapas_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "process_doc_workflow_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_doc_workflow_etapas_departamento_responsavel_id_fkey"
+            columns: ["departamento_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_doc_workflow_etapas_departamento_responsavel_id_fkey"
+            columns: ["departamento_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+        ]
+      }
+      process_doc_workflow_instancias: {
+        Row: {
+          config_id: string
+          created_at: string
+          etapa_atual: number
+          id: string
+          juntada_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          etapa_atual?: number
+          id?: string
+          juntada_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          etapa_atual?: number
+          id?: string
+          juntada_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_doc_workflow_instancias_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "process_doc_workflow_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_doc_workflow_instancias_juntada_id_fkey"
+            columns: ["juntada_id"]
+            isOneToOne: false
+            referencedRelation: "process_juntadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_doc_workflow_transicoes: {
+        Row: {
+          acao: string
+          created_at: string
+          etapa_nome: string
+          id: string
+          instancia_id: string
+          observacao: string | null
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          etapa_nome: string
+          id?: string
+          instancia_id: string
+          observacao?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          etapa_nome?: string
+          id?: string
+          instancia_id?: string
+          observacao?: string | null
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_doc_workflow_transicoes_instancia_id_fkey"
+            columns: ["instancia_id"]
+            isOneToOne: false
+            referencedRelation: "process_doc_workflow_instancias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_etapas_config: {
         Row: {
           created_at: string
@@ -15935,6 +16097,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_process"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_juntadas: {
+        Row: {
+          created_at: string
+          departamento_id: string | null
+          documento_path: string | null
+          documento_titulo: string
+          documento_url: string | null
+          folhas: string | null
+          id: string
+          juntado_por: string | null
+          juntado_por_nome: string | null
+          parecer: string | null
+          parecer_status: string
+          process_id: string
+          tipo_documento: string
+        }
+        Insert: {
+          created_at?: string
+          departamento_id?: string | null
+          documento_path?: string | null
+          documento_titulo: string
+          documento_url?: string | null
+          folhas?: string | null
+          id?: string
+          juntado_por?: string | null
+          juntado_por_nome?: string | null
+          parecer?: string | null
+          parecer_status?: string
+          process_id: string
+          tipo_documento?: string
+        }
+        Update: {
+          created_at?: string
+          departamento_id?: string | null
+          documento_path?: string | null
+          documento_titulo?: string
+          documento_url?: string | null
+          folhas?: string | null
+          id?: string
+          juntado_por?: string | null
+          juntado_por_nome?: string | null
+          parecer?: string | null
+          parecer_status?: string
+          process_id?: string
+          tipo_documento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_juntadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_juntadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
           },
         ]
       }
