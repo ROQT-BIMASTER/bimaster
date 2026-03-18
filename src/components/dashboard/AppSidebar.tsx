@@ -197,9 +197,8 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
   
   return (
     <div className={cn(
-      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200",
-      colors.bgLight,
-      colors.hover
+      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-150",
+      "hover:bg-[var(--sidebar-hover-raw)]"
     )}>
       <div className={cn(
         "flex items-center justify-center w-7 h-7 rounded-md",
@@ -207,12 +206,11 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
       )}>
         <Icon className="h-3.5 w-3.5 text-white" />
       </div>
-      <span className={cn("font-medium text-sm flex-1", colors.text)}>
+      <span className="font-medium text-sm flex-1 text-[#c8d3e0]">
         {title}
       </span>
       <ChevronDown className={cn(
-        "h-3.5 w-3.5 transition-transform duration-200",
-        colors.text,
+        "h-3.5 w-3.5 text-[#8896ab] transition-transform duration-200",
         !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
     </div>
