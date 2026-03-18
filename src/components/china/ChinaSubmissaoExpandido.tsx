@@ -94,6 +94,31 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
     return grouped;
   }, [documentos]);
 
+  // Docs not yet dispatched
+  const undispatchedDocs = useMemo(() => 
+    documentos.filter((d: any) => !statusMap[d.id]),
+  [documentos, statusMap]);
+
+  const toggleDocSelect = (docId: string) => {
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId); else next.add(docId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDocs.size === undispatchedDocs.length) {
+      setSelectedDocs(new Set());
+    } else {
+      setSelectedDocs(new Set(undispatchedDocs.map((d: any) => d.id)));
+    }
+  };
+
+  const selectedDocsData = useMemo(() =>
+    documentos.filter((d: any) => selectedDocs.has(d.id)),
+  [documentos, selectedDocs]);
+
   const getCategoryLabel = (key: string) => {
     if (key === "_outros") return "Outros";
     const cat = DOCUMENT_CATEGORIES.find((c) => c.key === key);
