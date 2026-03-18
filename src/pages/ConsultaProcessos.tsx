@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { type ProductProcess, type ProcessEvent, type ProcessStepHistory } from "@/hooks/useProductProcess";
 import { useEtapasConfig } from "@/hooks/useEtapasConfig";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { JuntadasSection } from "@/components/processo/JuntadasSection";
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   em_andamento: { bg: "bg-blue-500/10", text: "text-blue-600", label: "Em Andamento" },
