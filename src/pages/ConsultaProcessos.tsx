@@ -63,6 +63,7 @@ export default function ConsultaProcessos() {
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [movimentacoesLimit, setMovimentacoesLimit] = useState(50);
+  const { etapasForTipo } = useEtapasConfig();
 
   // Search processes
   const { data: processos = [], isLoading: searchLoading } = useQuery({
