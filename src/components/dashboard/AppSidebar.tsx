@@ -7,6 +7,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSidebarConfig } from "@/hooks/useSidebarConfig";
 import logoUnion from "@/assets/logo-union.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
