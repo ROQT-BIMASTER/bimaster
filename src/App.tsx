@@ -357,7 +357,7 @@ function AppContent() {
             <Route path="/dashboard/prospects/atividades" element={<ModuleRoute moduleCode="prospects"><Atividades /></ModuleRoute>} />
             <Route path="/dashboard/prospects/mapa" element={<ModuleRoute moduleCode="prospects"><Mapa /></ModuleRoute>} />
             <Route path="/dashboard/prospects/municipios" element={<ModuleRoute moduleCode="prospects"><Municipios /></ModuleRoute>} />
-            <Route path="/dashboard/demandas" element={<ProtectedRoute><InternalTicketsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/demandas" element={<ScreenRoute screenCode="admin"><InternalTicketsPage /></ScreenRoute>} />
             
             {/* Outras funcionalidades */}
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><Ranking /></ModuleRoute>} />
