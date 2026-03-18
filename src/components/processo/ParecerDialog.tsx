@@ -38,7 +38,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: P
       despacho_id: despacho.id,
       acao: acao as any,
       parecer_texto: texto,
-      novo_departamento_id: acao === "encaminhar" ? novoDeptId : undefined,
+      novo_departamento_id: acao === "encaminhar" ? novoModulo : undefined,
     });
 
     if (acao === "aprovar" && devolverChina) {
