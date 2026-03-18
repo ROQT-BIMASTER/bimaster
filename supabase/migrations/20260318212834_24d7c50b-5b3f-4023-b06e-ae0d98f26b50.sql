@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme_key TEXT DEFAULT 'navy-blue';
