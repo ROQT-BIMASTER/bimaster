@@ -1047,6 +1047,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink 
+                    to="/dashboard/configuracoes/menu"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span>Config. Menu</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
                     to="/dashboard/relatorio-seguranca"
                     className={({ isActive }) => cn(
                       "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
