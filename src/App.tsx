@@ -510,7 +510,7 @@ function AppContent() {
             <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesDetalhe /></ModuleRoute>} />
 
             {/* Simulação de Dados */}
-            <Route path="/dashboard/simulacao" element={<SimulacaoDados />} />
+            <Route path="/dashboard/simulacao" element={<ScreenRoute screenCode="admin"><SimulacaoDados /></ScreenRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
