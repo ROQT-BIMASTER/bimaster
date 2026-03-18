@@ -231,10 +231,33 @@ export function JuntadasSection({ processId }: Props) {
             </DrawerTitle>
           </DrawerHeader>
           {selectedJuntada && (
-            <JuntadaDetail juntada={selectedJuntada} />
+            <JuntadaDetail
+              juntada={selectedJuntada}
+              onDespachar={() => {
+                setSelectedJuntada(null);
+                setDespachoJuntada(selectedJuntada);
+              }}
+            />
           )}
         </DrawerContent>
       </Drawer>
+
+      {/* Despacho Dialog */}
+      <DespachoDialog
+        open={!!despachoJuntada}
+        onOpenChange={(open) => !open && setDespachoJuntada(null)}
+        documentoTitulo={despachoJuntada?.documento_titulo || ""}
+        isPending={despacharJuntada.isPending}
+        onDespachar={async (modulo, descricao) => {
+          if (!despachoJuntada) return;
+          await despacharJuntada.mutateAsync({
+            juntada_id: despachoJuntada.id,
+            despacho_modulo: modulo,
+            despacho_descricao: descricao || undefined,
+          });
+          setDespachoJuntada(null);
+        }}
+      />
     </>
   );
 }
