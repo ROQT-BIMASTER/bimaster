@@ -97,36 +97,61 @@ export function JuntadasSection({ processId }: Props) {
               {juntadas.map(j => {
                 const ps = PARECER_STYLES[j.parecer_status] || PARECER_STYLES.pendente;
                 const Icon = ps.icon;
+                const despachoMod = j.despacho_modulo
+                  ? DESPACHO_MODULOS_PROCESSO.find(m => m.key === j.despacho_modulo)
+                  : null;
                 return (
-                  <button
+                  <div
                     key={j.id}
-                    onClick={() => setSelectedJuntada(j)}
                     className="w-full text-left px-3 py-2.5 rounded-lg border bg-background hover:bg-muted/50 transition-all flex items-center gap-3"
                   >
-                    <Icon className={cn("h-4 w-4 shrink-0", ps.color)} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {j.documento_titulo}
-                        </span>
-                        {j.folhas && (
-                          <Badge variant="outline" className="text-[9px] shrink-0">
-                            fls. {j.folhas}
-                          </Badge>
-                        )}
+                    <button
+                      onClick={() => setSelectedJuntada(j)}
+                      className="flex-1 min-w-0 flex items-center gap-3"
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0", ps.color)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {j.documento_titulo}
+                          </span>
+                          {j.folhas && (
+                            <Badge variant="outline" className="text-[9px] shrink-0">
+                              fls. {j.folhas}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                          <UserCircle className="h-3 w-3" />
+                          <span>{j.juntado_por_nome}</span>
+                          <span>•</span>
+                          <span>{format(new Date(j.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
-                        <UserCircle className="h-3 w-3" />
-                        <span>{j.juntado_por_nome}</span>
-                        <span>•</span>
-                        <span>{format(new Date(j.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[9px] shrink-0">
-                      {TIPOS_DOCUMENTO.find(t => t.value === j.tipo_documento)?.label || j.tipo_documento}
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </button>
+                      <Badge variant="outline" className="text-[9px] shrink-0">
+                        {TIPOS_DOCUMENTO.find(t => t.value === j.tipo_documento)?.label || j.tipo_documento}
+                      </Badge>
+                    </button>
+                    {despachoMod ? (
+                      <Badge variant="secondary" className="text-[9px] shrink-0 gap-1">
+                        <Send className="h-2.5 w-2.5" />
+                        {despachoMod.icon} {despachoMod.label}
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="shrink-0 h-7 px-2 text-xs gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDespachoJuntada(j);
+                        }}
+                      >
+                        <Send className="h-3 w-3" /> Despachar
+                      </Button>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 cursor-pointer" onClick={() => setSelectedJuntada(j)} />
+                  </div>
                 );
               })}
             </div>
