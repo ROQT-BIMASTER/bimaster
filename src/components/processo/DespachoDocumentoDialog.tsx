@@ -54,7 +54,7 @@ export function DespachoDocumentoDialog({
       processo_id: processoId,
       categoria_checklist: categoriaChecklist,
       departamento_destino_id: departamentoId || undefined,
-      workflow_config_id: workflowId || undefined,
+      workflow_config_id: workflowId && workflowId !== "none" ? workflowId : undefined,
       observacao: observacao || undefined,
     });
     onOpenChange(false);
