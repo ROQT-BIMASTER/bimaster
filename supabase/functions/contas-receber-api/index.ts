@@ -194,6 +194,7 @@ async function upsertRecords(supabase: any, records: any[]): Promise<{ processed
       
       if (error) {
         console.error(`[UPSERT] Batch error: ${error.code} - ${error.message}`);
+        console.error('[UPSERT] First record in failed batch:', JSON.stringify(batch[0]).substring(0, 500));
         // Tentar registro por registro se batch falhar
         for (const record of batch) {
           try {
@@ -313,6 +314,11 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    // Diagnóstico do body recebido
+    console.log('[SYNC] Body keys:', Object.keys(body));
+    console.log('[SYNC] Body type:', typeof body, Array.isArray(body) ? 'array' : 'not-array');
+    if (body.contas) console.log('[SYNC] contas length:', body.contas.length);
 
     // Extrair registros de qualquer formato
     const rawRecords = extractRecords(body);
