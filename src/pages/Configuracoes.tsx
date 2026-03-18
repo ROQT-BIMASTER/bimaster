@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3 } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3, HardDrive } from "lucide-react";
 
 // Direct imports
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
