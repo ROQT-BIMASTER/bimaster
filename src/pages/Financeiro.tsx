@@ -17,8 +17,17 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 export default function Financeiro() {
+  const { hasModulePermission, hasScreenPermission } = useImpersonation();
+
+  // Permissões granulares
+  const canAccessTrade = hasModulePermission("trade");
+  const canAccessContasPagar = hasScreenPermission("financeiro_contas_pagar");
+  const canAccessContasReceber = hasScreenPermission("financeiro_contas_receber");
+  const canAccessTradeAdmin = hasScreenPermission("trade_admin");
+
   // Buscar estatísticas financeiras
   const { data: stats } = useQuery({
     queryKey: ['financial-stats'],
@@ -83,17 +92,19 @@ export default function Financeiro() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Contas Pendentes</CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats?.contasPendentes || 0}
-              </div>
-            </CardContent>
-          </Card>
+          {canAccessContasPagar && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Contas Pendentes</CardTitle>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  {stats?.contasPendentes || 0}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -128,142 +139,149 @@ export default function Financeiro() {
           </Link>
         </div>
 
-        {/* Navegação Rápida - Gestão de Verbas e Investimentos */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Gestão de Verbas e Investimentos</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Link to="/dashboard/trade/financeiro">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Gestão de Verbas</CardTitle>
-                  <Store className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Verbas, investimentos por PDV e plano de contas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+        {/* Gestão de Verbas e Investimentos — requer módulo Trade */}
+        {canAccessTrade && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Gestão de Verbas e Investimentos</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Link to="/dashboard/trade/financeiro">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Gestão de Verbas</CardTitle>
+                    <Store className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Verbas, investimentos por PDV e plano de contas
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-primary">
+                      Acessar <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link to="/dashboard/trade/financeiro/extrato">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Meu Extrato</CardTitle>
-                  <FileText className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Histórico de lançamentos e aprovações
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Ver extrato <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/extrato">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Meu Extrato</CardTitle>
+                    <FileText className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Histórico de lançamentos e aprovações
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-primary">
+                      Ver extrato <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link to="/dashboard/trade/financeiro/aprovacoes">
-              <Card className="hover:border-orange-500 cursor-pointer transition-colors border-orange-500/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Aprovações</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-orange-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Revisar e aprovar lançamentos pendentes
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-orange-600">
-                    Revisar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/aprovacoes">
+                <Card className="hover:border-orange-500 cursor-pointer transition-colors border-orange-500/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Aprovações</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-orange-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Revisar e aprovar lançamentos pendentes
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-orange-600">
+                      Revisar <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Campanhas e Lançamentos</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/trade/financeiro/campanhas">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Campanhas</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão administrativa de campanhas
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+        {/* Campanhas e Lançamentos — requer módulo Trade */}
+        {canAccessTrade && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Campanhas e Lançamentos</h2>
+            <div className="grid gap-4 md:grid-cols-4">
+              {canAccessTradeAdmin && (
+                <Link to="/dashboard/trade/financeiro/campanhas">
+                  <Card className="hover:border-primary cursor-pointer transition-colors">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Campanhas</CardTitle>
+                      <BarChart3 className="h-4 w-4 text-purple-600" />
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Gestão administrativa de campanhas
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
 
-            <Link to="/dashboard/trade/financeiro/lancamentos-campanhas">
-              <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Painel de Lançamentos</CardTitle>
-                  <FileText className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Resultados e execução de campanhas
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Acessar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/lancamentos-campanhas">
+                <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Painel de Lançamentos</CardTitle>
+                    <FileText className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Resultados e execução de campanhas
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-primary">
+                      Acessar <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link to="/dashboard/trade/financeiro/contas">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Contas Correntes</CardTitle>
-                  <Wallet className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de contas correntes por cliente
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/contas">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Contas Correntes</CardTitle>
+                    <Wallet className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Gestão de contas correntes por cliente
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link to="/dashboard/trade/financeiro/verbas">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Verbas Semestrais</CardTitle>
-                  <Calendar className="h-4 w-4 text-cyan-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Planejamento e acompanhamento semestral
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/verbas">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Verbas Semestrais</CardTitle>
+                    <Calendar className="h-4 w-4 text-cyan-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Planejamento e acompanhamento semestral
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link to="/dashboard/trade/financeiro/lancamentos">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
-                  <FileText className="h-4 w-4 text-indigo-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Todos os lançamentos financeiros
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+              <Link to="/dashboard/trade/financeiro/lancamentos">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Lançamentos</CardTitle>
+                    <FileText className="h-4 w-4 text-indigo-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Todos os lançamentos financeiros
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Navegação Rápida - Contas a Pagar e Receber */}
+        {/* Contas a Pagar e Receber */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Contas a Pagar e Receber</h2>
           <div className="grid gap-4 md:grid-cols-4">
@@ -283,39 +301,44 @@ export default function Financeiro() {
                 </CardContent>
               </Card>
             </Link>
-            <Link to="/dashboard/financeiro/contas-a-pagar">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
-                  <Receipt className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de contas a pagar e orçamentos
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
 
-            <Link to="/dashboard/financeiro/contas-a-receber">
-              <Card className="hover:border-primary cursor-pointer transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
-                  <Receipt className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Gestão de recebimentos e clientes
-                  </p>
-                  <div className="mt-2 flex items-center text-xs text-primary">
-                    Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            {canAccessContasPagar && (
+              <Link to="/dashboard/financeiro/contas-a-pagar">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
+                    <Receipt className="h-4 w-4 text-red-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Gestão de contas a pagar e orçamentos
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-primary">
+                      Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
+
+            {canAccessContasReceber && (
+              <Link to="/dashboard/financeiro/contas-a-receber">
+                <Card className="hover:border-primary cursor-pointer transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
+                    <Receipt className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Gestão de recebimentos e clientes
+                    </p>
+                    <div className="mt-2 flex items-center text-xs text-primary">
+                      Gerenciar <ArrowRight className="h-3 w-3 ml-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
             <Link to="/dashboard/financeiro/cobranca">
               <Card className="hover:border-destructive cursor-pointer transition-colors border-destructive/30">
@@ -353,11 +376,11 @@ export default function Financeiro() {
           </div>
         </div>
 
-        {/* Navegação Rápida - Análises */}
+        {/* Análises e Relatórios */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Análises e Relatórios</h2>
           <div className="grid gap-4 md:grid-cols-4">
-            <Link to="/dashboard/financeiro/fluxo-caixa">
+            <Link to="/dashboard/financeiro/fluxo-de-caixa">
               <Card className="hover:border-primary cursor-pointer transition-colors border-primary/30 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Fluxo de Caixa</CardTitle>
