@@ -68,5 +68,31 @@ export function useProcessJuntadas(processId: string | null) {
     },
   });
 
-  return { juntadas, isLoading, addJuntada };
+  const despacharJuntada = useMutation({
+    mutationFn: async (input: {
+      juntada_id: string;
+      despacho_modulo: string;
+      despacho_descricao?: string;
+    }) => {
+      const { error } = await (supabase
+        .from("process_juntadas" as any)
+        .update({
+          despacho_modulo: input.despacho_modulo,
+          despacho_descricao: input.despacho_descricao || null,
+          despacho_data: new Date().toISOString(),
+          despacho_por: user?.id,
+        })
+        .eq("id", input.juntada_id) as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["process-juntadas", processId] });
+      toast.success("Documento despachado com sucesso");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao despachar documento: " + err.message);
+    },
+  });
+
+  return { juntadas, isLoading, addJuntada, despacharJuntada };
 }

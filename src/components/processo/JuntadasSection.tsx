@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Plus, UserCircle, ChevronRight, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { FileText, Plus, UserCircle, ChevronRight, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { cn } from "@/lib/utils";
 import { useProcessJuntadas, type ProcessJuntada } from "@/hooks/useProcessJuntadas";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas, useDocWorkflowInstance } from "@/hooks/useDocWorkflow";
+import { DespachoDialog, DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
 
 const TIPOS_DOCUMENTO = [
   { value: "embalagem", label: "Embalagem" },
