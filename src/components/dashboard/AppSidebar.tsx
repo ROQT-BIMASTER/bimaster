@@ -893,6 +893,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
                 <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
                 <MenuItemLink to="/dashboard/processos/etapas" icon={Settings} title="Configurar Etapas" end />
+                <MenuItemLink to="/dashboard/processos/workflows" icon={Layers} title="Workflows Documentais" end />
               </SidebarMenu>
             </CollapsibleContent>
           </Collapsible>
