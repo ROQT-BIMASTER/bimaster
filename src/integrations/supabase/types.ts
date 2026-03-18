@@ -1751,6 +1751,114 @@ export type Database = {
           },
         ]
       }
+      china_pasta_digital: {
+        Row: {
+          arquivo_path: string | null
+          arquivo_url: string | null
+          created_at: string
+          created_by: string | null
+          departamento_id: string | null
+          despacho_data: string | null
+          despacho_descricao: string | null
+          despacho_modulo: string | null
+          despacho_por: string | null
+          documento_origem_id: string | null
+          fase: string
+          id: string
+          ordem: number
+          paginas: string | null
+          parecer_data: string | null
+          parecer_observacao: string | null
+          parecer_por: string | null
+          parecer_status: string
+          parent_id: string | null
+          submissao_id: string
+          titulo: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          despacho_data?: string | null
+          despacho_descricao?: string | null
+          despacho_modulo?: string | null
+          despacho_por?: string | null
+          documento_origem_id?: string | null
+          fase: string
+          id?: string
+          ordem?: number
+          paginas?: string | null
+          parecer_data?: string | null
+          parecer_observacao?: string | null
+          parecer_por?: string | null
+          parecer_status?: string
+          parent_id?: string | null
+          submissao_id: string
+          titulo: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          departamento_id?: string | null
+          despacho_data?: string | null
+          despacho_descricao?: string | null
+          despacho_modulo?: string | null
+          despacho_por?: string | null
+          documento_origem_id?: string | null
+          fase?: string
+          id?: string
+          ordem?: number
+          paginas?: string | null
+          parecer_data?: string | null
+          parecer_observacao?: string | null
+          parecer_por?: string | null
+          parecer_status?: string
+          parent_id?: string | null
+          submissao_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "china_pasta_digital_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_pasta_digital_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_analise_departamentos"
+            referencedColumns: ["departamento_id"]
+          },
+          {
+            foreignKeyName: "china_pasta_digital_documento_origem_id_fkey"
+            columns: ["documento_origem_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_pasta_digital_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "china_pasta_digital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "china_pasta_digital_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_producao_apontamentos: {
         Row: {
           cor_nome: string
