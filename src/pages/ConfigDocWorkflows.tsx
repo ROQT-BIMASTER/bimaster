@@ -117,7 +117,7 @@ export default function ConfigDocWorkflows() {
                   <div>
                     <span className="font-medium text-foreground">{c.nome}</span>
                     <Badge variant="outline" className="ml-2 text-[9px]">
-                      {TIPOS_DOCUMENTO.find(t => t.value === c.tipo_documento)?.label || c.tipo_documento}
+                      {tiposDocumento.find(t => t.valor === c.tipo_documento)?.label || c.tipo_documento}
                     </Badge>
                   </div>
                   <Button
