@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3 } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3, HardDrive } from "lucide-react";
 
 // Direct imports
 import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
@@ -39,6 +39,7 @@ import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAc
 import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
 import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
 import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
+import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
 
 interface Profile {
   id: string;
@@ -434,6 +435,10 @@ function Configuracoes() {
                         <BarChart3 className="h-4 w-4" />
                         Monitoramento
                       </TabsTrigger>
+                      <TabsTrigger value="sub-storage" className="flex items-center gap-2">
+                        <HardDrive className="h-4 w-4" />
+                        Storage
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
@@ -465,6 +470,10 @@ function Configuracoes() {
 
                     <TabsContent value="sub-monitoring">
                       <MonitoramentoAPIs />
+                    </TabsContent>
+
+                    <TabsContent value="sub-storage">
+                      <StorageManagementPanel />
                     </TabsContent>
                   </Tabs>
                 </TabsContent>

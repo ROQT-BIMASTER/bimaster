@@ -256,12 +256,12 @@ export async function uploadAmostraFile(
     .upload(path, file, { cacheControl: "3600", upsert: false });
   if (uploadError) throw uploadError;
 
-  const { data: urlData } = supabase.storage.from("amostras").getPublicUrl(path);
+  const { data: signedData } = await supabase.storage.from("amostras").createSignedUrl(path, 31536000);
 
   const { data, error } = await supabase.from("produto_amostra_fotos").insert({
     amostra_id: amostraId,
     arquivo_path: path,
-    arquivo_url: urlData.publicUrl,
+    arquivo_url: signedData?.signedUrl || path,
     angle_type: angleType,
     tipo,
     checklist_item_key: checklistItemKey || null,

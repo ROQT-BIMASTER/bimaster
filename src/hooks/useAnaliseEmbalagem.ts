@@ -408,8 +408,8 @@ export async function uploadEmbalagemFile(folder: string, file: File) {
     .from("embalagem-analise")
     .upload(path, file, { cacheControl: "3600", upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from("embalagem-analise").getPublicUrl(path);
-  return data.publicUrl;
+  const { data } = await supabase.storage.from("embalagem-analise").createSignedUrl(path, 31536000);
+  return data?.signedUrl || path;
 }
 
 // ── SLA helpers ──

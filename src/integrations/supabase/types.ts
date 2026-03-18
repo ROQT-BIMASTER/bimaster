@@ -24541,6 +24541,48 @@ export type Database = {
           },
         ]
       }
+      visibility_audit_log: {
+        Row: {
+          changed_by: string | null
+          changed_by_name: string | null
+          created_at: string
+          entity_id: string | null
+          entity_name: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          new_visibility: string
+          old_visibility: string
+          reason: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_name: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          new_visibility: string
+          old_visibility: string
+          reason?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          new_visibility?: string
+          old_visibility?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       visits: {
         Row: {
           atribuido_por: string | null
@@ -25678,6 +25720,10 @@ export type Database = {
       can_view_profile: {
         Args: { target_profile_id: string; viewer_id: string }
         Returns: boolean
+      }
+      change_bucket_visibility: {
+        Args: { p_bucket_id: string; p_make_public: boolean; p_reason?: string }
+        Returns: Json
       }
       check_account_lockout: { Args: { p_email: string }; Returns: Json }
       check_user_access: {
