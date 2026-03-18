@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft, Scale } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
+import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
@@ -262,6 +263,65 @@ export default function ProjetoVincularChina() {
         }
       } catch (e) {
         console.error("Erro ao criar produto Brasil:", e);
+      }
+
+      // Register vinculação event in the unified process
+      try {
+        const { supabase: sb } = await import("@/integrations/supabase/client");
+        const { data: existingProcess } = await (sb
+          .from("product_process" as any)
+          .select("id")
+          .eq("produto_tipo", "china")
+          .eq("produto_ref_id", selectedSubmissaoId)
+          .maybeSingle() as any);
+
+        let processId = existingProcess?.id;
+        if (!processId) {
+          const { data: { user } } = await sb.auth.getUser();
+          const { data: newProcess } = await (sb
+            .from("product_process" as any)
+            .insert({
+              produto_tipo: "china",
+              produto_ref_id: selectedSubmissaoId,
+              criado_por: user?.id,
+              etapa_atual: "projeto",
+            })
+            .select("id")
+            .single() as any);
+          processId = newProcess?.id;
+        } else {
+          await (sb
+            .from("product_process" as any)
+            .update({ etapa_atual: "projeto" })
+            .eq("id", processId)
+            .eq("etapa_atual", "ideia") as any);
+        }
+
+        if (processId) {
+          const { data: { user } } = await sb.auth.getUser();
+          const { data: profile } = await sb.from("profiles").select("nome").eq("id", user!.id).maybeSingle();
+          const projetoNome = projetos.find((p: any) => p.id === selectedProjetoId)?.nome || selectedProjetoId;
+
+          await (sb.from("process_events" as any).insert({
+            process_id: processId,
+            tipo_evento: "vinculacao",
+            descricao: `Vinculado ao projeto: ${projetoNome}`,
+            modulo_origem: "processo",
+            usuario_id: user?.id,
+            usuario_nome: profile?.nome || user?.email,
+            metadata: { projeto_id: selectedProjetoId, projeto_nome: projetoNome },
+          }) as any);
+
+          await (sb.from("process_step_history" as any).insert({
+            process_id: processId,
+            etapa: "projeto",
+            status: "em_andamento",
+            responsavel_id: user?.id,
+            data_inicio: new Date().toISOString(),
+          }) as any);
+        }
+      } catch (e) {
+        console.error("Erro ao registrar processo:", e);
       }
     }
 
@@ -773,7 +833,15 @@ export default function ProjetoVincularChina() {
         </Collapsible>
       )}
 
-      {/* Grade Dialog */}
+      {/* Process Orchestration Panel — appears when a linked submission is selected */}
+      {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
+        <ProcessOrchestrationPanel
+          submissaoId={selectedSubmissaoId}
+          submissaoNome={selectedSubmissao?.produto_nome}
+          submissaoCodigo={selectedSubmissao?.produto_codigo}
+        />
+      )}
+
       <Dialog open={gradeOpen} onOpenChange={setGradeOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
