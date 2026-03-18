@@ -26,23 +26,10 @@ const ACOES = [
 export function ParecerDialog({ open, onOpenChange, despacho, documentoNome }: ParecerDialogProps) {
   const [acao, setAcao] = useState<string>("aprovar");
   const [texto, setTexto] = useState("");
-  const [novoDeptId, setNovoDeptId] = useState("");
+  const [novoModulo, setNovoModulo] = useState("");
   const [devolverChina, setDevolverChina] = useState(false);
   const registrarParecer = useRegistrarParecer();
   const devolverChinaMut = useDevolverChina();
-
-  const { data: departamentos = [] } = useQuery({
-    queryKey: ["departamentos-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departamentos")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   const handleSubmit = async () => {
     if (!despacho) return;
