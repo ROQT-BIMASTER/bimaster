@@ -883,6 +883,20 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </Collapsible>
         );
 
+      case "processos":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Scale} title="Processos" isOpen={isModuleOpen} colorKey="comercial" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
       default:
         return null;
     }
