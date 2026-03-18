@@ -882,16 +882,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  // ============ CATEGORY DEFINITIONS (from DB) ============
-  const categories = useMemo(() => 
-    dbCategories.map(cat => ({
-      key: cat.key,
-      label: cat.label,
-      icon: iconMap[cat.icon] || Briefcase,
-      modules: cat.modules.map(m => m.module_code),
-    })),
-    [dbCategories]
-  );
+
+
 
   return (
     <Sidebar side={side} className={cn("border-sidebar-border", isRTL ? "border-l" : "border-r")}>
