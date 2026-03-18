@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Package, Eye, CheckCircle2, XCircle, Clock, Loader2,
   ShoppingCart, Upload, Barcode, Download, FileText, TrendingUp,
-  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck
+  FolderOpen, Briefcase, ExternalLink, PenLine, Lock, Trash2, ShieldAlert, PackageCheck,
+  Send, Users, Link2, UserPlus, X
 } from "lucide-react";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
@@ -38,6 +39,11 @@ import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { ChinaPastaDigitalPanel } from "@/components/china/ChinaPastaDigitalPanel";
 import { ProcessoTimeline } from "@/components/processo/ProcessoTimeline";
 import { ProcessoResumo } from "@/components/processo/ProcessoResumo";
+import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
+import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
+import { DespachoFichaDialog } from "@/components/china/DespachoFichaDialog";
+import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
