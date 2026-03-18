@@ -239,6 +239,7 @@ const ChecklistEtiquetaBula = lazyWithRetry(() => import("./pages/ChecklistEtiqu
 const FluxoArtesMotor = lazyWithRetry(() => import("./pages/FluxoArtesMotor"));
 const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"));
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
+const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 
 // Loading component
 const PageLoader = () => (
