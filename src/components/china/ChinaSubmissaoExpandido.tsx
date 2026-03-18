@@ -222,6 +222,26 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         </div>
       )}
 
+      {/* Batch action bar */}
+      {selectedDocs.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-xs font-medium text-primary">{selectedDocs.size} selecionado(s)</span>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-6 text-xs gap-1 ml-auto"
+            onClick={() => setBatchDespachoOpen(true)}
+          >
+            <Send className="h-3 w-3" />
+            Despachar {selectedDocs.size} doc(s)
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setSelectedDocs(new Set())}>
+            Limpar
+          </Button>
+        </div>
+      )}
+
       {/* Documents */}
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
@@ -231,6 +251,19 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         <p className="text-[11px] text-muted-foreground italic py-2">Nenhum documento enviado</p>
       ) : (
         <div className="space-y-2">
+          {/* Select all undispatched */}
+          {undispatchedDocs.length > 1 && (
+            <div className="flex items-center gap-2 px-2">
+              <Checkbox
+                checked={selectedDocs.size === undispatchedDocs.length && undispatchedDocs.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Selecionar todos ({undispatchedDocs.length} pendentes)
+              </span>
+            </div>
+          )}
           {Object.entries(docsByCategory).map(([catKey, catDocs]) => {
             const photoDocs = catDocs.filter((d: any) => isImageType(d.tipo_documento));
             const fileDocs = catDocs.filter((d: any) => !isImageType(d.tipo_documento));
