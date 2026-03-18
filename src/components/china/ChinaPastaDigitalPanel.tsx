@@ -52,7 +52,7 @@ export function ChinaPastaDigitalPanel({ submissaoId }: ChinaPastaDigitalPanelPr
   const autoImport = useAutoImportChinaDocs();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_CHINA_PASTA.map(f => f.key)));
+  const [expandedFases, setExpandedFases] = useState<Set<string>>(new Set(FASES_CHINA_PASTA.map(f => f.key as string)));
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [parecerDialogOpen, setParecerDialogOpen] = useState(false);
   const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
