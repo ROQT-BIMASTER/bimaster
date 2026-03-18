@@ -435,6 +435,10 @@ function Configuracoes() {
                         <BarChart3 className="h-4 w-4" />
                         Monitoramento
                       </TabsTrigger>
+                      <TabsTrigger value="sub-storage" className="flex items-center gap-2">
+                        <HardDrive className="h-4 w-4" />
+                        Storage
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="api-keys">
