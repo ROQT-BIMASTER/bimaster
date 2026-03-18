@@ -16104,6 +16104,10 @@ export type Database = {
         Row: {
           created_at: string
           departamento_id: string | null
+          despacho_data: string | null
+          despacho_descricao: string | null
+          despacho_modulo: string | null
+          despacho_por: string | null
           documento_path: string | null
           documento_titulo: string
           documento_url: string | null
@@ -16119,6 +16123,10 @@ export type Database = {
         Insert: {
           created_at?: string
           departamento_id?: string | null
+          despacho_data?: string | null
+          despacho_descricao?: string | null
+          despacho_modulo?: string | null
+          despacho_por?: string | null
           documento_path?: string | null
           documento_titulo: string
           documento_url?: string | null
@@ -16134,6 +16142,10 @@ export type Database = {
         Update: {
           created_at?: string
           departamento_id?: string | null
+          despacho_data?: string | null
+          despacho_descricao?: string | null
+          despacho_modulo?: string | null
+          despacho_por?: string | null
           documento_path?: string | null
           documento_titulo?: string
           documento_url?: string | null
