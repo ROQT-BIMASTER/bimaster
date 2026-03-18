@@ -1,41 +1,39 @@
 
 
-## Diagnóstico: Permissões Excessivas para Lucas Machado
+## Diagnóstico: Fábrica China aparecendo para departamentos não autorizados
 
-### Problema Identificado
+### Causa Raiz
 
-O problema **não foi causado pelas alterações recentes** (Pasta Digital, Processo Unificado, Orquestração). Essas mudanças apenas adicionaram componentes dentro de páginas já protegidas por `ModuleRoute`.
+A tabela `departamento_permissoes_modulos` concede o módulo `china` a **3 departamentos**:
 
-O problema está na **configuração do banco de dados**: a tabela `role_permissoes_modulos` concede automaticamente 3 módulos a **todos** os usuários com role `vendedor`:
-
-| Fonte | Módulo |
+| Departamento | Deveria ter? |
 |---|---|
-| role `vendedor` | `dashboard` |
-| role `vendedor` | `prospects` |
-| role `vendedor` | `comercial` |
-| individual | `precos` (correto) |
+| Fábrica China | Depende da decisão |
+| Projetos | Depende da decisão |
+| **Compras e Faturamento** | **NÃO** |
 
-Lucas deveria ver **apenas `precos`**, mas herda `prospects`, `comercial` e `dashboard` porque é `vendedor`.
+Além disso, `departamento_permissoes_telas` concede todas as telas China (dashboard, submissões, recebimentos, ordens, fichas) ao departamento "Compras e Faturamento".
+
+A função `get_all_user_permissions` agrega permissões por **role + departamento + individual**, então o usuário "Compras" herda acesso ao módulo China via departamento.
 
 ### Solução
 
-Remover as permissões de módulo da role `vendedor` na tabela `role_permissoes_modulos`, mantendo apenas as permissões individuais por usuário (via `usuario_permissoes_modulos`).
+Executar migration SQL para:
 
-**Ação**: Executar migration para remover os registros de `role_permissoes_modulos` onde `role = 'vendedor'` para os módulos `prospects` e `comercial`.
-
-> **Nota**: `dashboard` provavelmente deve permanecer para que vendedores possam acessar a tela inicial. Mas `prospects` e `comercial` devem ser atribuídos individualmente.
+1. **Remover** o módulo `china` de `departamento_permissoes_modulos` para **todos** os departamentos (já que admins têm acesso automático a tudo)
+2. **Remover** todas as telas `china_*` de `departamento_permissoes_telas` para os departamentos que não devem ter acesso
+3. Também remover as telas china do `role_permissoes_telas` para roles que não deveriam ver (se houver)
 
 ### Impacto
 
-Todos os usuários `vendedor` que **dependem** dessas permissões de role perderão acesso a `prospects` e `comercial`. Será necessário verificar quais vendedores realmente precisam desses módulos e atribuir individualmente.
+- **Admins**: Continuam vendo tudo (o código já retorna todos os módulos para admin)
+- **Departamento Fábrica China**: Perderá acesso via departamento. Se for necessário manter, precisará de permissões individuais por usuário
+- **Compras e Faturamento**: Perderá acesso ao módulo China (correto)
+- **Projetos**: Perderá acesso ao módulo China via departamento
 
 ### Arquivos
 
 | Arquivo | Ação |
 |---|---|
-| 1 migration SQL | Remover `prospects` e `comercial` de `role_permissoes_modulos` para role `vendedor` |
-
-### Alternativa Mais Segura
-
-Se não quiser impactar outros vendedores, a opção é **remover a permissão de role para Lucas especificamente** criando uma regra de exceção, ou migrar o Lucas para uma role diferente (ex: `consultor_precos`).
+| 1 migration SQL | DELETE de `departamento_permissoes_modulos` e `departamento_permissoes_telas` para china |
 
