@@ -258,16 +258,16 @@ interface CategoryHeaderProps {
 
 const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
   <div className={cn(
-    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-200",
-    "hover:bg-sidebar-accent/50",
-    isOpen ? "bg-sidebar-accent/30" : ""
+    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-150",
+    "hover:bg-[var(--sidebar-hover-raw)]",
+    isOpen ? "bg-[var(--sidebar-hover-raw)]" : ""
   )}>
-    <Icon className="h-4 w-4 text-muted-foreground" />
-    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground flex-1">
+    <Icon className="h-4 w-4 text-[#8896ab]" />
+    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[#4a5a70] flex-1">
       {title}
     </span>
     <ChevronRight className={cn(
-      "h-3.5 w-3.5 text-muted-foreground/70 transition-transform duration-200",
+      "h-3.5 w-3.5 text-[#4a5a70] transition-transform duration-200",
       isOpen && "rotate-90"
     )} />
   </div>

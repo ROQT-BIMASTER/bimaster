@@ -627,6 +627,7 @@ const App = () => {
         <PWAProvider>
           <LanguageProvider>
           <AuthProvider>
+            <ThemeProvider>
             <PermissionsProvider>
               <ImpersonationProvider>
                 <MeetingRecordingProvider>
@@ -640,6 +641,7 @@ const App = () => {
                 </MeetingRecordingProvider>
               </ImpersonationProvider>
             </PermissionsProvider>
+            </ThemeProvider>
           </AuthProvider>
           </LanguageProvider>
         </PWAProvider>
