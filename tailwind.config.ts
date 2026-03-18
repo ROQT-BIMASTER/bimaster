@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        sans: ["'Segoe UI'", 'system-ui', '-apple-system', 'sans-serif'],
+        display: ["'Segoe UI'", 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ["'Consolas'", 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
