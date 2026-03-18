@@ -463,6 +463,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     toast({ title: t("logout.title"), description: t("logout.description") });
     navigate("/auth/login");
   };
+  // ============ CATEGORY DEFINITIONS (from DB) ============
+  const categories = useMemo(() => 
+    dbCategories.map(cat => ({
+      key: cat.key,
+      label: cat.label,
+      icon: iconMap[cat.icon] || Briefcase,
+      modules: cat.modules.map(m => m.module_code),
+    })),
+    [dbCategories]
+  );
 
   if (loading) {
     return (
