@@ -172,6 +172,14 @@ export function DespachoDocumentoDialog({
                 ))}
               </SelectContent>
             </Select>
+            {workflowId && workflowId !== "none" && (
+              <div className="mt-2">
+                <WorkflowEtapasConfigurator
+                  configId={workflowId}
+                  configNome={workflows.find((w: any) => w.id === workflowId)?.nome || ""}
+                />
+              </div>
+            )}
           </div>
 
           <div>
