@@ -6,15 +6,8 @@ import {
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import logoUnion from "@/assets/logo-union.png";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Popover,
@@ -27,14 +20,10 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -196,21 +185,21 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
   
   return (
     <div className={cn(
-      "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
+      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-200",
       colors.bgLight,
       colors.hover
     )}>
       <div className={cn(
-        "flex items-center justify-center w-8 h-8 rounded-lg",
+        "flex items-center justify-center w-7 h-7 rounded-md",
         colors.bg
       )}>
-        <Icon className="h-4 w-4 text-white" />
+        <Icon className="h-3.5 w-3.5 text-white" />
       </div>
-      <span className={cn("font-semibold text-sm flex-1", colors.text)}>
+      <span className={cn("font-medium text-sm flex-1", colors.text)}>
         {title}
       </span>
       <ChevronDown className={cn(
-        "h-4 w-4 transition-transform duration-200",
+        "h-3.5 w-3.5 transition-transform duration-200",
         colors.text,
         !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
@@ -237,7 +226,7 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           to={to}
           end={end}
           className={({ isActive }) => cn(
-            "relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
+            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-200 text-[13px]",
             isActive
               ? cn(
                   "font-medium",
@@ -246,7 +235,7 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-3.5 w-3.5" />
           <span className="flex-1">{title}</span>
           {badge}
         </NavLink>
@@ -254,6 +243,30 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
     </SidebarMenuItem>
   );
 };
+
+// Category header - more subtle than module headers
+interface CategoryHeaderProps {
+  icon: React.ElementType;
+  title: string;
+  isOpen: boolean;
+}
+
+const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
+  <div className={cn(
+    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-200",
+    "hover:bg-sidebar-accent/50",
+    isOpen ? "bg-sidebar-accent/30" : ""
+  )}>
+    <Icon className="h-4 w-4 text-muted-foreground" />
+    <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground flex-1">
+      {title}
+    </span>
+    <ChevronRight className={cn(
+      "h-3.5 w-3.5 text-muted-foreground/70 transition-transform duration-200",
+      isOpen && "rotate-90"
+    )} />
+  </div>
+);
 
 export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const navigate = useNavigate();
@@ -267,16 +280,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
   
-  const [prospectsOpen, setProspectsOpen] = useState(true);
-  const [financeiroOpen, setFinanceiroOpen] = useState(true);
-  const [tradeOpen, setTradeOpen] = useState(true);
-  const [marketingOpen, setMarketingOpen] = useState(true);
-  const [fabricaOpen, setFabricaOpen] = useState(true);
-  const [comercialOpen, setComercialOpen] = useState(true);
-  const [chinaOpen, setChinaOpen] = useState(true);
-  const [eventosOpen, setEventosOpen] = useState(true);
-  const [departamentosOpen, setDepartamentosOpen] = useState(true); // Mantido para compatibilidade futura
-  const [precosOpen, setPrecosOpen] = useState(true);
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(() => {
@@ -320,19 +324,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return allModules.filter(m => hasModulePermission(m.code));
   }, [hasModulePermission]);
 
-  // Empty set = show all (no filter active)
-  // showModule já inclui verificação de permissão automaticamente
-  // Qualquer novo módulo usando showModule("código") estará protegido por padrão
   const showModule = (code: string) => hasModulePermission(code) && (selectedModules.size === 0 || selectedModules.has(code));
 
   const toggleModule = (code: string) => {
     setSelectedModules(prev => {
       const next = new Set(prev);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
       return next;
     });
   };
@@ -346,67 +344,120 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return `${selectedModules.size} ${t("nav.n_modules")}`;
   }, [selectedModules, moduleFilterOptions]);
 
+  // Toggle module open/close
+  const toggleModuleOpen = useCallback((code: string) => {
+    setOpenModules(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }, []);
+
+  // Accordion for categories - only one open at a time
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const toggleCategory = useCallback((cat: string) => {
+    setOpenCategory(prev => prev === cat ? null : cat);
+  }, []);
+
+  // Route-based module/category mapping for auto-expand
+  const moduleRouteMap: Record<string, string[]> = useMemo(() => ({
+    prospects: ["/dashboard/prospects", "/dashboard/tarefas", "/dashboard/demandas"],
+    comercial: ["/dashboard/comercial"],
+    precos: ["/dashboard/precos"],
+    trade: ["/dashboard/trade"],
+    marketing: ["/dashboard/marketing"],
+    eventos: ["/dashboard/eventos"],
+    fabrica: ["/dashboard/fabrica", "/dashboard/agente-huggs", "/dashboard/qa-agent"],
+    china: ["/dashboard/fabrica-china"],
+    composicao: ["/dashboard/composicao"],
+    amostras: ["/dashboard/amostras"],
+    analise_embalagem: ["/dashboard/analise-embalagem"],
+    etiqueta_bula: ["/dashboard/etiqueta-bula"],
+    aprovacao_artes: ["/dashboard/aprovacao-artes", "/dashboard/fluxo-artes"],
+    financeiro: ["/dashboard/financeiro"],
+    departamentos: ["/dashboard/departamentos"],
+    estoque: ["/dashboard/estoque"],
+    projetos: ["/dashboard/projetos"],
+    reunioes: ["/dashboard/reunioes"],
+  }), []);
+
+  const moduleToCategoryMap: Record<string, string> = useMemo(() => ({
+    prospects: "comercial_vendas",
+    comercial: "comercial_vendas",
+    precos: "comercial_vendas",
+    trade: "trade_marketing",
+    marketing: "trade_marketing",
+    eventos: "trade_marketing",
+    fabrica: "producao_qualidade",
+    china: "producao_qualidade",
+    composicao: "producao_qualidade",
+    amostras: "producao_qualidade",
+    analise_embalagem: "producao_qualidade",
+    etiqueta_bula: "producao_qualidade",
+    aprovacao_artes: "producao_qualidade",
+    financeiro: "financeiro_admin",
+    departamentos: "financeiro_admin",
+    estoque: "financeiro_admin",
+    projetos: "gestao_projetos",
+    reunioes: "gestao_projetos",
+  }), []);
+
+  // Auto-expand based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    for (const [moduleCode, routes] of Object.entries(moduleRouteMap)) {
+      if (routes.some(r => path.startsWith(r))) {
+        setOpenModules(prev => {
+          const next = new Set(prev);
+          next.add(moduleCode);
+          return next;
+        });
+        const cat = moduleToCategoryMap[moduleCode];
+        if (cat) setOpenCategory(cat);
+        break;
+      }
+    }
+  }, [location.pathname, moduleRouteMap, moduleToCategoryMap]);
+
   // Fetch user name
   useEffect(() => {
     const fetchUserName = async () => {
       if (!user?.id) return;
-      
       const { data } = await supabase
         .from("profiles")
         .select("nome")
         .eq("id", user.id)
         .single();
-      
-      if (data?.nome) {
-        setUserName(data.nome.split(" ")[0]);
-      }
+      if (data?.nome) setUserName(data.nome.split(" ")[0]);
     };
-    
     fetchUserName();
   }, [user?.id]);
 
-  // Buscar tabelas pendentes - APENAS se tiver permissão do módulo de preços
+  // Buscar tabelas pendentes
   useEffect(() => {
     if (loading || !hasModulePermission("precos")) {
       setTabelasPendentes(0);
       return;
     }
-
     const fetchPendentes = async () => {
       const { count } = await supabase
         .from("fabrica_tabelas_preco")
         .select("*", { count: "exact", head: true })
         .eq("status", "pending_approval");
-      
       setTabelasPendentes(count || 0);
     };
-
     fetchPendentes();
-
     const channel = supabase
       .channel('sidebar-tabelas-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'fabrica_tabelas_preco',
-        },
-        () => fetchPendentes()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fabrica_tabelas_preco' }, () => fetchPendentes())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [loading, hasModulePermission]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({
-      title: t("logout.title"),
-      description: t("logout.description"),
-    });
+    toast({ title: t("logout.title"), description: t("logout.description") });
     navigate("/auth/login");
   };
 
@@ -422,6 +473,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     );
   }
 
+  // ============ SUB-MENU DATA ============
   const prospectsSubMenus = [
     { title: t("nav.dashboard"), url: "/dashboard", icon: Home, screenCode: "dashboard" },
     { title: t("prospects.list"), url: "/dashboard/prospects/list", icon: Users, screenCode: "PROSPECTS_LISTA" },
@@ -477,6 +529,388 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("precos.approval"), url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
     { title: t("precos.client_portal"), url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
     { title: t("precos.access_control"), url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
+  ];
+
+  // ============ MODULE RENDERERS ============
+  const renderModuleContent = (moduleCode: string) => {
+    const isModuleOpen = openModules.has(moduleCode);
+
+    switch (moduleCode) {
+      case "prospects":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Users} title={t("module.prospects")} isOpen={isModuleOpen} colorKey="prospects" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                {hasPermission("PROSPECTS_DASHBOARD") && (
+                  <MenuItemLink to="/dashboard/prospects" icon={Home} title={t("prospects.overview")} colorKey="prospects" end />
+                )}
+                {prospectsSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                  <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="prospects" />
+                ))}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "comercial":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Briefcase} title={t("module.comercial")} isOpen={isModuleOpen} colorKey="comercial" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                {hasPermission("comercial_dashboard") && (
+                  <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
+                )}
+                {hasPermission("comercial_lancamentos") && (
+                  <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
+                )}
+                <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/reativacao" icon={AlertTriangle} title={t("comercial.reactivation")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "precos":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={DollarSign} title={t("module.precos")} isOpen={isModuleOpen} colorKey="precos" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                {precosSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                  <MenuItemLink 
+                    key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="precos" end={item.end}
+                    badge={item.title === "Aprovação" && tabelasPendentes > 0 ? (
+                      <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs h-5 min-w-5 flex items-center justify-center">{tabelasPendentes}</Badge>
+                    ) : undefined}
+                  />
+                ))}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "trade":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Store} title={t("module.trade")} isOpen={isModuleOpen} colorKey="trade" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ScrollArea className="max-h-64">
+                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                  {hasPermission("TRADE_DASHBOARD") && (
+                    <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
+                  )}
+                  {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (
+                    <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
+                  ))}
+                </SidebarMenu>
+              </ScrollArea>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "marketing":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={BarChart3} title={t("module.marketing")} isOpen={isModuleOpen} colorKey="marketing" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                {hasPermission("MARKETING_DASHBOARD") && (
+                  <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
+                )}
+                {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                  <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
+                ))}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "eventos":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={PartyPopper} title={t("module.eventos")} isOpen={isModuleOpen} colorKey="eventos" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                {hasPermission("eventos_dashboard") && (
+                  <MenuItemLink to="/dashboard/eventos" icon={Home} title={t("eventos.events")} colorKey="eventos" end />
+                )}
+                {hasPermission("eventos_analytics") && (
+                  <MenuItemLink to="/dashboard/eventos/dashboard" icon={BarChart3} title={t("eventos.dashboard")} colorKey="eventos" />
+                )}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "fabrica":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Factory} title={t("module.fabrica")} isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ScrollArea className="max-h-72">
+                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                  {hasPermission("fabrica_dashboard") && (
+                    <MenuItemLink to="/dashboard/fabrica" icon={Home} title={t("fabrica.dashboard")} colorKey="fabrica" end />
+                  )}
+                  {fabricaGroups.map(group => {
+                    const filteredItems = group.items.filter(item => isAdmin || hasPermission(item.screenCode));
+                    if (filteredItems.length === 0) return null;
+                    return (
+                      <div key={group.label} className="mt-2 first:mt-0">
+                        <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                          {group.label}
+                        </span>
+                        {filteredItems.map(item => (
+                          <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="fabrica" />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </SidebarMenu>
+              </ScrollArea>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "china":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Globe} title="Fábrica China 中国工厂" isOpen={isModuleOpen} colorKey="china" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
+                <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
+                <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
+                <MenuItemLink to="/dashboard/fabrica-china/ordens" icon={ShoppingCart} title="Ordens de Compra 采购订单" colorKey="china" />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "composicao":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={FlaskConical} title="Composição" isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/composicao" icon={Home} title="Checklist Composição" colorKey="fabrica" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "amostras":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Package} title="Amostras" isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/amostras" icon={Home} title="Recebimento de Amostras" colorKey="fabrica" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "analise_embalagem":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Layers} title="Embalagem" isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/analise-embalagem" icon={Home} title="Análise de Embalagem" colorKey="fabrica" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "etiqueta_bula":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Tag} title="Etiqueta / Bula" isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/etiqueta-bula" icon={Home} title="Checklist Etiqueta/Bula" colorKey="fabrica" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "aprovacao_artes":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Palette} title="Aprovação de Artes" isOpen={isModuleOpen} colorKey="fabrica" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
+                <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
+                <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "financeiro":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={DollarSign} title={t("module.financeiro")} isOpen={isModuleOpen} colorKey="financeiro" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ScrollArea className="max-h-64">
+                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                  {financeiroSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                    <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" end={item.end} />
+                  ))}
+                </SidebarMenu>
+              </ScrollArea>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "departamentos":
+        return userDepartments.length > 0 ? (
+          <>
+            {userDepartments.map((dept) => (
+              <Collapsible key={dept.id} open={openModules.has(`dept_${dept.id}`)} onOpenChange={() => toggleModuleOpen(`dept_${dept.id}`)}>
+                <CollapsibleTrigger className="w-full">
+                  <ModuleHeader icon={Building2} title={dept.nome} isOpen={openModules.has(`dept_${dept.id}`)} colorKey="departamentos" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                    <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
+                    <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
+                  </SidebarMenu>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </>
+        ) : null;
+
+      case "estoque":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Package} title="Estoque" isOpen={isModuleOpen} colorKey="financeiro" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/estoque" icon={Home} title="Painel" end />
+                <MenuItemLink to="/dashboard/estoque/distribuidoras" icon={Building2} title="Distribuidoras" />
+                <MenuItemLink to="/dashboard/estoque/produtos-master" icon={Package} title="Produtos Master" />
+                <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
+                <MenuItemLink to="/dashboard/estoque/consolidado" icon={BarChart3} title="Consolidado" />
+                <MenuItemLink to="/dashboard/estoque/vinculacoes" icon={Send} title="Vinculações" />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "projetos":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={FolderKanban} title="Projetos" isOpen={isModuleOpen} colorKey="comercial" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
+                <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
+                {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
+                  <>
+                    <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
+                    <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Produtos Importados" />
+                  </>
+                )}
+                {isAdminOrSupervisor && (
+                  <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
+                )}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      case "reunioes":
+        return (
+          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <CollapsibleTrigger className="w-full">
+              <ModuleHeader icon={Mic} title="Reuniões" isOpen={isModuleOpen} colorKey="comercial" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/reunioes" icon={Mic} title="Reuniões" end />
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ============ CATEGORY DEFINITIONS ============
+  const categories = [
+    {
+      key: "comercial_vendas",
+      label: "Comercial & Vendas",
+      icon: Briefcase,
+      modules: ["prospects", "comercial", "precos"],
+    },
+    {
+      key: "trade_marketing",
+      label: "Trade & Marketing",
+      icon: Store,
+      modules: ["trade", "marketing", "eventos"],
+    },
+    {
+      key: "producao_qualidade",
+      label: "Produção & Qualidade",
+      icon: Factory,
+      modules: ["fabrica", "china", "composicao", "amostras", "analise_embalagem", "etiqueta_bula", "aprovacao_artes"],
+    },
+    {
+      key: "financeiro_admin",
+      label: "Financeiro & Admin",
+      icon: DollarSign,
+      modules: ["financeiro", "departamentos", "estoque"],
+    },
+    {
+      key: "gestao_projetos",
+      label: "Gestão & Projetos",
+      icon: FolderKanban,
+      modules: ["projetos", "reunioes"],
+    },
   ];
 
   return (
@@ -538,12 +972,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         {/* Geral */}
         <SidebarGroup className="py-2">
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1 px-2">
+            <SidebarMenu className="space-y-0.5 px-2">
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
-              
-              {/* Instalar App - visível para todos os usuários */}
               <MenuItemLink to="/dashboard/instalar-app" icon={Download} title={t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
@@ -551,756 +983,36 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
         <Separator className="mx-4 w-auto" />
 
-        {/* Módulo de Prospects */}
-        {showModule("prospects") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={prospectsOpen} onOpenChange={setProspectsOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Users} 
-                  title={t("module.prospects")} 
-                  isOpen={prospectsOpen} 
-                  colorKey="prospects" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {hasPermission("PROSPECTS_DASHBOARD") && (
-                      <MenuItemLink 
-                        to="/dashboard/prospects" 
-                        icon={Home} 
-                        title={t("prospects.overview")} 
-                        colorKey="prospects"
-                        end 
-                      />
-                    )}
-                    {prospectsSubMenus
-                      .filter((item) => hasPermission(item.screenCode))
-                      .map((item) => (
-                        <MenuItemLink 
-                          key={item.url}
-                          to={item.url} 
-                          icon={item.icon} 
-                          title={item.title} 
-                          colorKey="prospects"
-                        />
-                      ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
+        {/* Categories with accordion */}
+        {categories.map(cat => {
+          const visibleModules = cat.modules.filter(m => showModule(m));
+          if (visibleModules.length === 0) return null;
 
-        {/* Módulo Financeiro */}
-        {showModule("financeiro") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={financeiroOpen} onOpenChange={setFinanceiroOpen} defaultOpen>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={DollarSign} 
-                  title={t("module.financeiro")} 
-                  isOpen={financeiroOpen} 
-                  colorKey="financeiro" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {financeiroSubMenus
-                      .filter((item) => hasPermission(item.screenCode))
-                      .map((item) => (
-                        <MenuItemLink 
-                          key={item.url}
-                          to={item.url} 
-                          icon={item.icon} 
-                          title={item.title} 
-                          colorKey="financeiro"
-                          end={item.end}
-                        />
-                      ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
+          const isCatOpen = openCategory === cat.key;
 
-        {/* Módulo de Marketing */}
-        {showModule("marketing") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={BarChart3} 
-                  title={t("module.marketing")} 
-                  isOpen={marketingOpen} 
-                  colorKey="marketing" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {hasPermission("MARKETING_DASHBOARD") && (
-                      <MenuItemLink 
-                        to="/dashboard/marketing" 
-                        icon={Home} 
-                        title={t("marketing.overview")} 
-                        colorKey="marketing"
-                        end 
-                      />
-                    )}
-                    {marketingSubMenus
-                      .filter((item) => hasPermission(item.screenCode))
-                      .map((item) => (
-                        <MenuItemLink 
-                          key={item.url}
-                          to={item.url} 
-                          icon={item.icon} 
-                          title={item.title} 
-                          colorKey="marketing"
-                        />
-                      ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Trade Marketing */}
-        {showModule("trade") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={tradeOpen} onOpenChange={setTradeOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Store} 
-                  title={t("module.trade")} 
-                  isOpen={tradeOpen} 
-                  colorKey="trade" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <ScrollArea className="max-h-64">
-                    <SidebarMenu className="space-y-0.5 ps-2">
-                      {hasPermission("TRADE_DASHBOARD") && (
-                        <MenuItemLink 
-                          to="/dashboard/trade" 
-                          icon={Home} 
-                          title={t("prospects.overview")} 
-                          colorKey="trade"
-                          end 
-                        />
-                      )}
-                      {tradeSubMenus
-                        .filter((item) => hasPermission(item.screenCode) && (!item.requireAdminOrSupervisor || isAdminOrSupervisor))
-                        .map((item) => (
-                          <MenuItemLink 
-                            key={item.url}
-                            to={item.url} 
-                            icon={item.icon} 
-                            title={item.title} 
-                            colorKey="trade"
-                          />
-                        ))}
-                    </SidebarMenu>
-                  </ScrollArea>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Fábrica - Com grupos */}
-        {showModule("fabrica") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={fabricaOpen} onOpenChange={setFabricaOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Factory} 
-                  title={t("module.fabrica")} 
-                  isOpen={fabricaOpen} 
-                  colorKey="fabrica" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <ScrollArea className="max-h-72">
-                    <SidebarMenu className="space-y-0.5 ps-2">
-                      {hasPermission("fabrica_dashboard") && (
-                        <MenuItemLink 
-                          to="/dashboard/fabrica" 
-                          icon={Home} 
-                          title={t("fabrica.dashboard")} 
-                          colorKey="fabrica"
-                          end 
-                        />
-                      )}
-                      
-                      {fabricaGroups.map((group) => {
-                        const filteredItems = group.items.filter((item) => isAdmin || hasPermission(item.screenCode));
-                        if (filteredItems.length === 0) return null;
-                        
-                        return (
-                          <div key={group.label} className="mt-2 first:mt-0">
-                            <span className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                              {group.label}
-                            </span>
-                            {filteredItems.map((item) => (
-                              <MenuItemLink 
-                                key={item.url}
-                                to={item.url} 
-                                icon={item.icon} 
-                                title={item.title} 
-                                colorKey="fabrica"
-                              />
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </SidebarMenu>
-                  </ScrollArea>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo Fábrica China */}
-        {showModule("china") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={chinaOpen} onOpenChange={setChinaOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Globe} 
-                  title="Fábrica China 中国工厂" 
-                  isOpen={chinaOpen} 
-                  colorKey="china" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink 
-                      to="/dashboard/fabrica-china" 
-                      icon={Home} 
-                      title="Painel 面板" 
-                      colorKey="china"
-                      end 
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/fabrica-china/nova" 
-                      icon={Upload} 
-                      title="Nova Submissão 新提交" 
-                      colorKey="china"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/fabrica-china/recebimentos" 
-                      icon={Package} 
-                      title="Submissões 提交" 
-                      colorKey="china"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/fabrica-china/ordens" 
-                      icon={ShoppingCart} 
-                      title="Ordens de Compra 采购订单" 
-                      colorKey="china"
-                    />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-
-        {showModule("comercial") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={comercialOpen} onOpenChange={setComercialOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={Briefcase} 
-                  title={t("module.comercial")} 
-                  isOpen={comercialOpen} 
-                  colorKey="comercial" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {hasPermission("comercial_dashboard") && (
-                      <MenuItemLink 
-                        to="/dashboard/comercial" 
-                        icon={Home} 
-                        title={t("comercial.dashboard")} 
-                        colorKey="comercial"
-                        end 
-                      />
-                    )}
-                    {hasPermission("comercial_lancamentos") && (
-                      <MenuItemLink 
-                        to="/dashboard/comercial/lancamentos" 
-                        icon={Rocket} 
-                        title={t("comercial.launches")} 
-                        colorKey="comercial"
-                      />
-                    )}
-                    <MenuItemLink 
-                      to="/dashboard/comercial/ibge" 
-                      icon={MapPin} 
-                      title={t("comercial.ibge")} 
-                      colorKey="comercial"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/comercial/mineracao" 
-                      icon={Pickaxe} 
-                      title={t("comercial.mining")} 
-                      colorKey="comercial"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/comercial/reativacao" 
-                      icon={AlertTriangle} 
-                      title={t("comercial.reactivation")} 
-                      colorKey="comercial"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/comercial/municipios-inteligencia" 
-                      icon={Building2} 
-                      title={t("comercial.municipalities")} 
-                      colorKey="comercial"
-                    />
-                    <MenuItemLink 
-                      to="/dashboard/comercial/whitespace" 
-                      icon={Compass} 
-                      title={t("comercial.whitespace")} 
-                      colorKey="comercial"
-                    />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Eventos Corporativos */}
-        {showModule("eventos") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={eventosOpen} onOpenChange={setEventosOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={PartyPopper} 
-                  title={t("module.eventos")} 
-                  isOpen={eventosOpen} 
-                  colorKey="eventos" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {hasPermission("eventos_dashboard") && (
-                      <MenuItemLink 
-                        to="/dashboard/eventos" 
-                        icon={Home} 
-                        title={t("eventos.events")} 
-                        colorKey="eventos"
-                        end 
-                      />
-                    )}
-                    {hasPermission("eventos_analytics") && (
-                      <MenuItemLink 
-                        to="/dashboard/eventos/dashboard" 
-                        icon={BarChart3} 
-                        title={t("eventos.dashboard")} 
-                        colorKey="eventos"
-                      />
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Departamentos - Cada departamento com submenu */}
-        {showModule("departamentos") && userDepartments.length > 0 && userDepartments.map((dept, index) => {
-          // Cores harmoniosas para cada departamento
-          const deptColors = [
-            { bg: "bg-blue-500", bgLight: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", hover: "hover:bg-blue-100 dark:hover:bg-blue-900/40" },
-            { bg: "bg-emerald-500", bgLight: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", hover: "hover:bg-emerald-100 dark:hover:bg-emerald-900/40" },
-            { bg: "bg-amber-500", bgLight: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", hover: "hover:bg-amber-100 dark:hover:bg-amber-900/40" },
-            { bg: "bg-violet-500", bgLight: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", hover: "hover:bg-violet-100 dark:hover:bg-violet-900/40" },
-            { bg: "bg-rose-500", bgLight: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", hover: "hover:bg-rose-100 dark:hover:bg-rose-900/40" },
-            { bg: "bg-cyan-500", bgLight: "bg-cyan-50 dark:bg-cyan-950/30", text: "text-cyan-600 dark:text-cyan-400", hover: "hover:bg-cyan-100 dark:hover:bg-cyan-900/40" },
-            { bg: "bg-orange-500", bgLight: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-600 dark:text-orange-400", hover: "hover:bg-orange-100 dark:hover:bg-orange-900/40" },
-            { bg: "bg-teal-500", bgLight: "bg-teal-50 dark:bg-teal-950/30", text: "text-teal-600 dark:text-teal-400", hover: "hover:bg-teal-100 dark:hover:bg-teal-900/40" },
-          ];
-          const color = deptColors[index % deptColors.length];
-          
           return (
-            <SidebarGroup key={dept.id} className="py-2 px-2">
-              <Collapsible defaultOpen={false}>
+            <SidebarGroup key={cat.key} className="py-1 px-2">
+              <Collapsible open={isCatOpen} onOpenChange={() => toggleCategory(cat.key)}>
                 <CollapsibleTrigger className="w-full">
-                  <div className={cn(
-                    "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                    color.bgLight,
-                    color.hover
-                  )}>
-                    <div className={cn(
-                      "flex items-center justify-center w-8 h-8 rounded-lg",
-                      color.bg
-                    )}>
-                      <Building2 className="h-4 w-4 text-white" />
-                    </div>
-                    <span className={cn("font-semibold text-sm flex-1 text-left", color.text)}>
-                      {dept.nome}
-                    </span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      color.text
-                    )} />
-                  </div>
+                  <CategoryHeader icon={cat.icon} title={cat.label} isOpen={isCatOpen} />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <SidebarGroupContent className="mt-1">
-                    <SidebarMenu className="space-y-0.5 ps-2">
-                      <MenuItemLink 
-                        to={`/dashboard/departamentos/${dept.id}`} 
-                        icon={FileText} 
-                        title={t("dept.expenses")} 
-                        colorKey="departamentos"
-                        end
-                      />
-                      <MenuItemLink 
-                        to={`/dashboard/departamentos/${dept.id}/dashboard`} 
-                        icon={BarChart3} 
-                        title={t("dept.dashboard")} 
-                        colorKey="departamentos"
-                      />
-                    </SidebarMenu>
-                  </SidebarGroupContent>
+                  <div className="space-y-1 mt-1 ps-1">
+                    {visibleModules.map(moduleCode => (
+                      <div key={moduleCode}>
+                        {renderModuleContent(moduleCode)}
+                      </div>
+                    ))}
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
             </SidebarGroup>
           );
         })}
-
-        {/* Módulo de Projetos */}
-        {showModule("projetos") && (
-        <SidebarGroup className="py-2 px-2">
-          <Collapsible defaultOpen={false}>
-            <CollapsibleTrigger className="w-full">
-              <div className={cn(
-                "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                "bg-indigo-50 dark:bg-indigo-950/30",
-                "hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
-              )}>
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500">
-                  <FolderKanban className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-semibold text-sm flex-1 text-indigo-600 dark:text-indigo-400">Projetos</span>
-                <ChevronDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="mt-1">
-                <SidebarMenu className="space-y-0.5 ps-2">
-                  <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
-                  <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
-                  {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
-                    <>
-                      <MenuItemLink to="/dashboard/projetos/vincular-china" icon={Globe} title="Vincular China" />
-                      <MenuItemLink to="/dashboard/projetos/produto-brasil" icon={Package} title="Produtos Importados" />
-                    </>
-                  )}
-                  {isAdminOrSupervisor && (
-                    <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
-        )}
-
-        {/* Módulo de Reuniões */}
-        {showModule("reunioes") && (
-        <SidebarGroup className="py-2 px-2">
-          <Collapsible defaultOpen={false}>
-            <CollapsibleTrigger className="w-full">
-              <div className={cn(
-                "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                "bg-teal-50 dark:bg-teal-950/30",
-                "hover:bg-teal-100 dark:hover:bg-teal-900/40"
-              )}>
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500">
-                  <Mic className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-semibold text-sm flex-1 text-teal-600 dark:text-teal-400">Reuniões</span>
-                <ChevronDown className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="mt-1">
-                <SidebarMenu className="space-y-0.5 ps-2">
-                  <MenuItemLink to="/dashboard/reunioes" icon={Mic} title="Reuniões" end />
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
-        )}
-
-        {/* Módulo de Estoque */}
-        {showModule("estoque") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-emerald-50 dark:bg-emerald-950/30",
-                  "hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500">
-                    <Package className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-emerald-600 dark:text-emerald-400">Estoque</span>
-                  <ChevronDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/estoque" icon={Home} title="Painel" end />
-                    <MenuItemLink to="/dashboard/estoque/distribuidoras" icon={Building2} title="Distribuidoras" />
-                    <MenuItemLink to="/dashboard/estoque/produtos-master" icon={Package} title="Produtos Master" />
-                    <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
-                    <MenuItemLink to="/dashboard/estoque/consolidado" icon={BarChart3} title="Consolidado" />
-                    <MenuItemLink to="/dashboard/estoque/vinculacoes" icon={Send} title="Vinculações" />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo de Aprovação de Artes */}
-        {showModule("aprovacao_artes") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-violet-50 dark:bg-violet-950/30",
-                  "hover:bg-violet-100 dark:hover:bg-violet-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500">
-                    <Palette className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-violet-600 dark:text-violet-400">Aprovação de Artes</span>
-                  <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/aprovacao-artes" icon={Home} title="Painel" end />
-                    <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Settings} title="Configuração" />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-
-        {/* Módulo Composição */}
-        {showModule("composicao") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-emerald-50 dark:bg-emerald-950/30",
-                  "hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500">
-                    <FlaskConical className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-emerald-600 dark:text-emerald-400">Composição</span>
-                  <ChevronDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/composicao" icon={Home} title="Checklist Composição" end />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo Amostras */}
-        {showModule("amostras") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-amber-50 dark:bg-amber-950/30",
-                  "hover:bg-amber-100 dark:hover:bg-amber-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500">
-                    <Package className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-amber-600 dark:text-amber-400">Amostras</span>
-                  <ChevronDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/amostras" icon={Home} title="Recebimento de Amostras" end />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo Análise de Embalagem */}
-        {showModule("analise_embalagem") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-violet-50 dark:bg-violet-950/30",
-                  "hover:bg-violet-100 dark:hover:bg-violet-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500">
-                    <Layers className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-violet-600 dark:text-violet-400">Embalagem</span>
-                  <ChevronDown className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/analise-embalagem" icon={Home} title="Análise de Embalagem" end />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Módulo Etiqueta/Bula */}
-        {showModule("etiqueta_bula") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-rose-50 dark:bg-rose-950/30",
-                  "hover:bg-rose-100 dark:hover:bg-rose-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500">
-                    <Tag className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-rose-600 dark:text-rose-400">Etiqueta / Bula</span>
-                  <ChevronDown className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/etiqueta-bula" icon={Home} title="Checklist Etiqueta/Bula" end />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Motor de Aprovação de Artes */}
-        {showModule("aprovacao_artes") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="w-full">
-                <div className={cn(
-                  "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-200",
-                  "bg-indigo-50 dark:bg-indigo-950/30",
-                  "hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
-                )}>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500">
-                    <Palette className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="font-semibold text-sm flex-1 text-indigo-600 dark:text-indigo-400">Aprovação Artes</span>
-                  <ChevronDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" end />
-                    <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" end />
-                    <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" end />
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {showModule("precos") && (
-          <SidebarGroup className="py-2 px-2">
-            <Collapsible open={precosOpen} onOpenChange={setPrecosOpen}>
-              <CollapsibleTrigger className="w-full">
-                <ModuleHeader 
-                  icon={DollarSign} 
-                  title={t("module.precos")} 
-                  isOpen={precosOpen} 
-                  colorKey="precos" 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="mt-1">
-                  <SidebarMenu className="space-y-0.5 ps-2">
-                    {precosSubMenus
-                      .filter((item) => hasPermission(item.screenCode))
-                      .map((item) => (
-                        <MenuItemLink 
-                          key={item.url}
-                          to={item.url} 
-                          icon={item.icon} 
-                          title={item.title} 
-                          colorKey="precos"
-                          end={item.end}
-                          badge={
-                            item.title === "Aprovação" && tabelasPendentes > 0 ? (
-                              <Badge className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-xs h-5 min-w-5 flex items-center justify-center">
-                                {tabelasPendentes}
-                              </Badge>
-                            ) : undefined
-                          }
-                        />
-                      ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
       </SidebarContent>
       
-      {/* Footer profissional */}
+      {/* Footer */}
       <SidebarFooter className="border-t border-sidebar-border bg-gradient-to-t from-sidebar-background to-sidebar-accent/20">
-        {/* User info */}
         {userName && (
           <div className="px-4 py-2 border-b border-sidebar-border/50">
             <div className="flex items-center gap-3">
@@ -1325,9 +1037,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   to="/dashboard/configuracoes"
                   className={({ isActive }) => cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <Settings className="h-4 w-4" />
@@ -1337,58 +1047,50 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </SidebarMenuItem>
           )}
           {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <NavLink 
-                  to="/dashboard/configuracoes/lgpd"
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <Shield className="h-4 w-4" />
-                  <span>LGPD</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <NavLink 
-                  to="/dashboard/relatorio-seguranca"
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <Shield className="h-4 w-4" />
-                  <span>Rel. Segurança</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          {isAdmin && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <NavLink 
-                  to="/dashboard/relatorio-desenvolvimento"
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Rel. Desenvolvimento</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/dashboard/configuracoes/lgpd"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>LGPD</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/dashboard/relatorio-seguranca"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>Rel. Segurança</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/dashboard/relatorio-desenvolvimento"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Package className="h-4 w-4" />
+                    <span>Rel. Desenvolvimento</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
           )}
           <SidebarMenuItem>
             <SidebarMenuButton 
@@ -1401,7 +1103,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </SidebarMenuItem>
         </SidebarMenu>
         
-        {/* Links legais LGPD */}
         <div className="px-4 py-2 border-t border-sidebar-border/50 flex gap-3">
           <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
             <FileText className="h-3 w-3" />
