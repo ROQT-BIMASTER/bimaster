@@ -15,7 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { ETAPAS_CICLO_VIDA, type ProductProcess, type ProcessEvent, type ProcessStepHistory } from "@/hooks/useProductProcess";
+import { type ProductProcess, type ProcessEvent, type ProcessStepHistory } from "@/hooks/useProductProcess";
+import { useEtapasConfig } from "@/hooks/useEtapasConfig";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
@@ -62,6 +63,7 @@ export default function ConsultaProcessos() {
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [movimentacoesLimit, setMovimentacoesLimit] = useState(50);
+  const { etapasForTipo } = useEtapasConfig();
 
   // Search processes
   const { data: processos = [], isLoading: searchLoading } = useQuery({
@@ -144,12 +146,15 @@ export default function ConsultaProcessos() {
       .filter((item, index, arr) => arr.findIndex(x => x.id === item.id) === index);
   }, [events, timelineEvents]);
 
+  // Dynamic etapas for selected process type
+  const etapas = selectedProcess ? etapasForTipo(selectedProcess.produto_tipo) : [];
+
   // Progress calc
   const etapaAtualIndex = selectedProcess
-    ? ETAPAS_CICLO_VIDA.findIndex(e => e.key === selectedProcess.etapa_atual)
+    ? etapas.findIndex(e => e.etapa_key === selectedProcess.etapa_atual)
     : -1;
   const progressPercent = etapaAtualIndex >= 0
-    ? Math.round(((etapaAtualIndex + 1) / ETAPAS_CICLO_VIDA.length) * 100)
+    ? Math.round(((etapaAtualIndex + 1) / etapas.length) * 100)
     : 0;
 
   function formatDuration(minutes: number | null): string {
@@ -299,7 +304,7 @@ export default function ConsultaProcessos() {
                   <div className="bg-muted/50 rounded-lg p-3">
                     <span className="text-[11px] text-muted-foreground block">Etapa Atual</span>
                     <span className="font-medium text-foreground">
-                      {ETAPAS_CICLO_VIDA.find(e => e.key === selectedProcess.etapa_atual)?.label || selectedProcess.etapa_atual}
+                      {etapas.find(e => e.etapa_key === selectedProcess.etapa_atual)?.etapa_label || selectedProcess.etapa_atual}
                     </span>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3">
@@ -318,12 +323,12 @@ export default function ConsultaProcessos() {
                 <div className="space-y-2">
                   <Progress value={progressPercent} className="h-2" />
                   <div className="flex flex-wrap gap-1">
-                    {ETAPAS_CICLO_VIDA.map((etapa, i) => {
-                      const isCurrent = etapa.key === selectedProcess.etapa_atual;
+                    {etapas.map((etapa, i) => {
+                      const isCurrent = etapa.etapa_key === selectedProcess.etapa_atual;
                       const isPast = i < etapaAtualIndex;
                       return (
                         <Badge
-                          key={etapa.key}
+                          key={etapa.etapa_key}
                           variant="outline"
                           className={cn(
                             "text-[9px] px-1.5 py-0 h-5 transition-all",
@@ -333,7 +338,7 @@ export default function ConsultaProcessos() {
                           )}
                         >
                           {isPast && <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
-                          {etapa.label}
+                          {etapa.etapa_label}
                         </Badge>
                       );
                     })}
@@ -459,12 +464,12 @@ export default function ConsultaProcessos() {
                     </TableHeader>
                     <TableBody>
                       {stepHistory.map(step => {
-                        const etapaInfo = ETAPAS_CICLO_VIDA.find(e => e.key === step.etapa);
+                        const etapaInfo = etapas.find(e => e.etapa_key === step.etapa);
                         const isActive = step.status === "em_andamento";
                         return (
                           <TableRow key={step.id} className={isActive ? "bg-primary/5" : ""}>
                             <TableCell className="text-xs font-medium">
-                              {etapaInfo?.label || step.etapa}
+                              {etapaInfo?.etapa_label || step.etapa}
                             </TableCell>
                             <TableCell>
                               <Badge

@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Scale, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProductProcess, ETAPAS_CICLO_VIDA } from "@/hooks/useProductProcess";
+import { useProductProcess } from "@/hooks/useProductProcess";
+import { useEtapasConfig } from "@/hooks/useEtapasConfig";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,7 +21,8 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> 
 };
 
 export function ProcessoResumo({ produtoTipo, produtoRefId }: Props) {
-  const { process, processLoading, slaByStep, events } = useProductProcess(produtoTipo, produtoRefId);
+  const { process, processLoading, events } = useProductProcess(produtoTipo, produtoRefId);
+  const { etapas } = useEtapasConfig(produtoTipo);
 
   if (processLoading) {
     return (
@@ -32,9 +34,9 @@ export function ProcessoResumo({ produtoTipo, produtoRefId }: Props) {
 
   if (!process) return null;
 
-  const etapaAtualIndex = ETAPAS_CICLO_VIDA.findIndex(e => e.key === process.etapa_atual);
+  const etapaAtualIndex = etapas.findIndex(e => e.etapa_key === process.etapa_atual);
   const progressPercent = etapaAtualIndex >= 0
-    ? Math.round(((etapaAtualIndex + 1) / ETAPAS_CICLO_VIDA.length) * 100)
+    ? Math.round(((etapaAtualIndex + 1) / etapas.length) * 100)
     : 0;
 
   const statusStyle = STATUS_STYLE[process.status] || STATUS_STYLE.em_andamento;
@@ -66,12 +68,12 @@ export function ProcessoResumo({ produtoTipo, produtoRefId }: Props) {
 
       {/* Step pills */}
       <div className="flex flex-wrap gap-1">
-        {ETAPAS_CICLO_VIDA.map((etapa, i) => {
-          const isCurrent = etapa.key === process.etapa_atual;
+        {etapas.map((etapa, i) => {
+          const isCurrent = etapa.etapa_key === process.etapa_atual;
           const isPast = i < etapaAtualIndex;
           return (
             <Badge
-              key={etapa.key}
+              key={etapa.etapa_key}
               variant="outline"
               className={cn(
                 "text-[9px] px-1.5 py-0 h-5 transition-all",
@@ -81,7 +83,7 @@ export function ProcessoResumo({ produtoTipo, produtoRefId }: Props) {
               )}
             >
               {isPast && <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
-              {etapa.label}
+              {etapa.etapa_label}
             </Badge>
           );
         })}
@@ -94,7 +96,7 @@ export function ProcessoResumo({ produtoTipo, produtoRefId }: Props) {
           <div className="text-[10px] text-muted-foreground">Eventos</div>
         </div>
         <div className="bg-muted/50 rounded-md p-2">
-          <div className="text-lg font-bold text-foreground">{etapaAtualIndex + 1}/{ETAPAS_CICLO_VIDA.length}</div>
+          <div className="text-lg font-bold text-foreground">{etapaAtualIndex + 1}/{etapas.length}</div>
           <div className="text-[10px] text-muted-foreground">Etapa</div>
         </div>
         <div className="bg-muted/50 rounded-md p-2">
