@@ -41,11 +41,12 @@ export function DespachoDocumentoDialog({
   const [newWorkflowNome, setNewWorkflowNome] = useState("");
   const criarLote = useCriarDespachoLote();
   const { configs: workflows, addConfig } = useDocWorkflowConfigs();
+  const { user } = useAuth();
 
   const toggleModulo = (key: string) => {
     setModulos((prev) => {
       if (prev.includes(key)) {
-        if (prev.length === 1) return prev; // keep at least one
+        if (prev.length === 1) return prev;
         return prev.filter((m) => m !== key);
       }
       return [...prev, key];
@@ -68,6 +69,37 @@ export function DespachoDocumentoDialog({
         observacao: observacao || undefined,
         prazo_ciencia_horas: prazoHoras,
       });
+    }
+
+    // Generate official AI dispatch and publish to process timeline
+    if (processoId) {
+      try {
+        const selectedWorkflow = workflows.find((w: any) => w.id === workflowId);
+        const modulosLabels = modulos.map(
+          (k) => DESPACHO_MODULOS_PROCESSO.find((m) => m.key === k)?.label || k
+        );
+
+        await supabase.functions.invoke("gerar-despacho-oficial", {
+          body: {
+            processo_id: processoId,
+            documentos: documentos.map((d: any) => ({
+              nome: d.nome_arquivo || d.tipo_documento || "Documento",
+              tipo: d.tipo_documento,
+            })),
+            modulos_destino: modulosLabels,
+            workflow_nome: selectedWorkflow?.nome || null,
+            observacao: observacao || null,
+            prazo_horas: prazoHoras,
+            usuario_nome: user?.email || "Usuário",
+            etapa_atual: categoriaChecklist || null,
+            produto_nome: null,
+          },
+        });
+        toast.success("Despacho oficial publicado na timeline do processo");
+      } catch (err) {
+        console.error("Erro ao gerar despacho oficial:", err);
+        // Non-blocking — dispatch already happened
+      }
     }
 
     onOpenChange(false);
