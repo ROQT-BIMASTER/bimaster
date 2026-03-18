@@ -357,7 +357,7 @@ function AppContent() {
             <Route path="/dashboard/prospects/atividades" element={<ModuleRoute moduleCode="prospects"><Atividades /></ModuleRoute>} />
             <Route path="/dashboard/prospects/mapa" element={<ModuleRoute moduleCode="prospects"><Mapa /></ModuleRoute>} />
             <Route path="/dashboard/prospects/municipios" element={<ModuleRoute moduleCode="prospects"><Municipios /></ModuleRoute>} />
-            <Route path="/dashboard/demandas" element={<ProtectedRoute><InternalTicketsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/demandas" element={<ScreenRoute screenCode="admin"><InternalTicketsPage /></ScreenRoute>} />
             
             {/* Outras funcionalidades */}
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><Ranking /></ModuleRoute>} />
@@ -448,7 +448,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/revisao-fichas" element={<ScreenRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ScreenRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ScreenRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenRoute>} />
-            <Route path="/dashboard/fabrica/manual" element={<ProtectedRoute><FabricaManualPage /></ProtectedRoute>} />
+            <Route path="/dashboard/fabrica/manual" element={<ModuleRoute moduleCode="fabrica"><FabricaManualPage /></ModuleRoute>} />
 
             {/* Módulo Fábrica China */}
             <Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ChinaFabrica /></ModuleRoute>} />
@@ -510,7 +510,7 @@ function AppContent() {
             <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesDetalhe /></ModuleRoute>} />
 
             {/* Simulação de Dados */}
-            <Route path="/dashboard/simulacao" element={<SimulacaoDados />} />
+            <Route path="/dashboard/simulacao" element={<ScreenRoute screenCode="admin"><SimulacaoDados /></ScreenRoute>} />
 
             {/* Módulo Financeiro - Protegido por módulo */}
             <Route path="/dashboard/financeiro" element={<ModuleRoute moduleCode="financeiro"><Financeiro /></ModuleRoute>} />
@@ -562,7 +562,7 @@ function AppContent() {
               </ScreenRoute>
             } />
             <Route path="/dashboard/configuracoes/api-health" element={<ScreenRoute screenCode="admin"><APIHealthCheck /></ScreenRoute>} />
-            <Route path="/dashboard/configuracoes/lgpd" element={<ProtectedRoute><LGPDAdmin /></ProtectedRoute>} />
+            <Route path="/dashboard/configuracoes/lgpd" element={<ScreenRoute screenCode="admin"><LGPDAdmin /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             
@@ -577,8 +577,7 @@ function AppContent() {
             <Route path="/cofre-share" element={<CofreSharePage />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
-            <Route path="/relatorio-seguranca" element={<RelatorioSeguranca />} />
-            <Route path="/relatorio-desenvolvimento" element={<RelatorioDesenvolvimento />} />
+            {/* Rotas públicas de relatório REMOVIDAS por segurança — usar /dashboard/relatorio-* */}
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}
