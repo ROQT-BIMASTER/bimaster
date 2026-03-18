@@ -842,14 +842,16 @@ export default function ProjetoVincularChina() {
 
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
       {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
-        <>
-          <ProcessOrchestrationPanel
-            submissaoId={selectedSubmissaoId}
-            submissaoNome={selectedSubmissao?.produto_nome}
-            submissaoCodigo={selectedSubmissao?.produto_codigo}
-          />
-          <DespachosActiveSection submissaoId={selectedSubmissaoId} />
-        </>
+        <ProcessOrchestrationPanel
+          submissaoId={selectedSubmissaoId}
+          submissaoNome={selectedSubmissao?.produto_nome}
+          submissaoCodigo={selectedSubmissao?.produto_codigo}
+        />
+      )}
+
+      {/* Despachos Panel — appears for any selected submission */}
+      {selectedSubmissaoId && (
+        <DespachosActiveSection submissaoId={selectedSubmissaoId} />
       )}
 
       <Dialog open={gradeOpen} onOpenChange={setGradeOpen}>
