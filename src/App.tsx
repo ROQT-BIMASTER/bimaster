@@ -19,6 +19,7 @@ import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { TourProvider } from "@/components/tour";
