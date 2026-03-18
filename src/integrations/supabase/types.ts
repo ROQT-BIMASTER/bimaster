@@ -16059,28 +16059,40 @@ export type Database = {
       }
       process_doc_workflow_etapas: {
         Row: {
+          aprovadores_ids: string[] | null
+          aprovadores_nomes: string[] | null
           config_id: string
           created_at: string
           departamento_responsavel_id: string | null
           id: string
+          modulo_aprovacao: string | null
+          modulo_recusa: string | null
           nome: string
           ordem: number
           tipo_acao: string
         }
         Insert: {
+          aprovadores_ids?: string[] | null
+          aprovadores_nomes?: string[] | null
           config_id: string
           created_at?: string
           departamento_responsavel_id?: string | null
           id?: string
+          modulo_aprovacao?: string | null
+          modulo_recusa?: string | null
           nome: string
           ordem?: number
           tipo_acao?: string
         }
         Update: {
+          aprovadores_ids?: string[] | null
+          aprovadores_nomes?: string[] | null
           config_id?: string
           created_at?: string
           departamento_responsavel_id?: string | null
           id?: string
+          modulo_aprovacao?: string | null
+          modulo_recusa?: string | null
           nome?: string
           ordem?: number
           tipo_acao?: string
