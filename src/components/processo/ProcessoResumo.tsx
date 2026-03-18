@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Scale, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProductProcess, ETAPAS_CICLO_VIDA } from "@/hooks/useProductProcess";
+import { useProductProcess } from "@/hooks/useProductProcess";
+import { useEtapasConfig } from "@/hooks/useEtapasConfig";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

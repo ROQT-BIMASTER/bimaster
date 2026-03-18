@@ -469,7 +469,7 @@ export default function ConsultaProcessos() {
                         return (
                           <TableRow key={step.id} className={isActive ? "bg-primary/5" : ""}>
                             <TableCell className="text-xs font-medium">
-                              {etapaInfo?.label || step.etapa}
+                              {etapaInfo?.etapa_label || step.etapa}
                             </TableCell>
                             <TableCell>
                               <Badge
