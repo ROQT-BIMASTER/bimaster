@@ -899,13 +899,14 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       {/* Module filter */}
       {moduleFilterOptions.length > 1 && (
-        <div className="px-3 py-2 border-b border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
+        <div className="px-3 py-2" style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderBottom: '1px solid var(--sidebar-border-raw)' }}>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-9 justify-between text-xs border-white/10 bg-white/5 text-[#8896ab] hover:bg-white/10 hover:text-[#c8d3e0]"
+                className="w-full h-9 justify-between text-xs text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
+                style={{ borderColor: 'var(--sidebar-border-raw)', backgroundColor: 'var(--sidebar-item-hover-raw)' }}
               >
                 <span className="truncate">{filterLabel}</span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
