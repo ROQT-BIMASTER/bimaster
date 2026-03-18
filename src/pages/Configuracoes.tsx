@@ -471,6 +471,10 @@ function Configuracoes() {
                     <TabsContent value="sub-monitoring">
                       <MonitoramentoAPIs />
                     </TabsContent>
+
+                    <TabsContent value="sub-storage">
+                      <StorageManagementPanel />
+                    </TabsContent>
                   </Tabs>
                 </TabsContent>
               </>
