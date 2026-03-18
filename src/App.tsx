@@ -238,6 +238,7 @@ const AnaliseEmbalagem = lazyWithRetry(() => import("./pages/AnaliseEmbalagem"))
 const ChecklistEtiquetaBula = lazyWithRetry(() => import("./pages/ChecklistEtiquetaBula"));
 const FluxoArtesMotor = lazyWithRetry(() => import("./pages/FluxoArtesMotor"));
 const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"));
+const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 
 // Loading component
 const PageLoader = () => (
@@ -573,7 +574,10 @@ function AppContent() {
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/precos" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
-            
+
+             {/* Consulta de Processos */}
+             <Route path="/dashboard/processos/consulta" element={<ProtectedRoute><ConsultaProcessos /></ProtectedRoute>} />
+
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
