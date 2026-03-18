@@ -15858,6 +15858,36 @@ export type Database = {
         }
         Relationships: []
       }
+      process_etapas_config: {
+        Row: {
+          created_at: string
+          etapa_key: string
+          etapa_label: string
+          id: string
+          ordem: number
+          produto_tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_key: string
+          etapa_label: string
+          id?: string
+          ordem?: number
+          produto_tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          etapa_key?: string
+          etapa_label?: string
+          id?: string
+          ordem?: number
+          produto_tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       process_events: {
         Row: {
           created_at: string
