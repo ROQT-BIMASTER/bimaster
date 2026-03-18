@@ -577,8 +577,7 @@ function AppContent() {
             <Route path="/cofre-share" element={<CofreSharePage />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
-            <Route path="/relatorio-seguranca" element={<RelatorioSeguranca />} />
-            <Route path="/relatorio-desenvolvimento" element={<RelatorioDesenvolvimento />} />
+            {/* Rotas públicas de relatório REMOVIDAS por segurança — usar /dashboard/relatorio-* */}
 
             <Route path="/not-found" element={<NotFound />} />
             {/* Catch-all route - must be last */}
