@@ -35,6 +35,7 @@ import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusM
 import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
 import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
+import { ChinaPastaDigitalPanel } from "@/components/china/ChinaPastaDigitalPanel";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
@@ -538,6 +539,13 @@ export default function ChinaFichaProduto() {
             })),
           ]}
         />
+
+        {/* Pasta Digital China — TJSP */}
+        {isBrasilUser && (
+          <Card className="p-6">
+            <ChinaPastaDigitalPanel submissaoId={id!} />
+          </Card>
+        )}
 
         {/* Projetos Vinculados */}
         {isBrasilUser && <ChinaProjetosVinculadosSection submissao={submissao} />}
