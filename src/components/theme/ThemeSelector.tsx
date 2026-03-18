@@ -29,7 +29,7 @@ export const ThemeSelector = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {themes.map((theme) => (
             <button
               key={theme.key}
@@ -50,9 +50,9 @@ export const ThemeSelector = () => {
                   style={{ backgroundColor: theme.sidebarBg }}
                 >
                   <div className="w-4 h-1 rounded-full" style={{ backgroundColor: theme.primary, opacity: 0.6 }} />
-                  <div className="w-5 h-1 rounded-full bg-white/20" />
-                  <div className="w-5 h-1 rounded-full bg-white/10" />
-                  <div className="w-5 h-1 rounded-full bg-white/10" />
+                  <div className="w-5 h-1 rounded-full" style={{ backgroundColor: theme.sidebarText, opacity: 0.3 }} />
+                  <div className="w-5 h-1 rounded-full" style={{ backgroundColor: theme.sidebarText, opacity: 0.2 }} />
+                  <div className="w-5 h-1 rounded-full" style={{ backgroundColor: theme.sidebarText, opacity: 0.2 }} />
                 </div>
                 {/* Content preview */}
                 <div className="flex-1 bg-[#eef0f5] flex flex-col items-center justify-center gap-1 p-2">

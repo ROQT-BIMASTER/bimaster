@@ -205,13 +205,13 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps
         "flex items-center justify-center w-7 h-7 rounded-md",
         colors.bg
       )}>
-        <Icon className="h-3.5 w-3.5 text-white" />
+      <Icon className="h-3.5 w-3.5 text-white" />
       </div>
-      <span className="font-medium text-sm flex-1 text-[#c8d3e0]">
+      <span className="font-medium text-sm flex-1 text-[var(--sidebar-text-hover-raw)]">
         {title}
       </span>
       <ChevronDown className={cn(
-        "h-3.5 w-3.5 text-[#8896ab] transition-transform duration-200",
+        "h-3.5 w-3.5 text-[var(--sidebar-text-raw)] transition-transform duration-200",
         !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
     </div>
@@ -237,8 +237,8 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           className={({ isActive }) => cn(
             "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-150 text-[13px]",
             isActive
-              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-white ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
-              : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)] ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
+              : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
           )}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -263,12 +263,12 @@ const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
     "hover:bg-[var(--sidebar-hover-raw)]",
     isOpen ? "bg-[var(--sidebar-hover-raw)]" : ""
   )}>
-    <Icon className="h-4 w-4 text-[#8896ab]" />
-    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[#4a5a70] flex-1">
+    <Icon className="h-4 w-4 text-[var(--sidebar-text-raw)]" />
+    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[var(--sidebar-text-muted-raw)] flex-1">
       {title}
     </span>
     <ChevronRight className={cn(
-      "h-3.5 w-3.5 text-[#4a5a70] transition-transform duration-200",
+      "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
       isOpen && "rotate-90"
     )} />
   </div>
@@ -891,21 +891,22 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
 
   return (
-    <Sidebar side={side} className={cn("border-none", isRTL ? "border-l" : "border-r")} style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+    <Sidebar side={side} className={cn("border-none", isRTL ? "border-l" : "border-r")} style={{ borderRight: '1px solid var(--sidebar-border-raw)' }}>
       {/* Header with logo */}
-      <div className="p-4 border-b border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
+      <div className="p-4" style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderBottom: '1px solid var(--sidebar-border-raw)' }}>
         <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
       </div>
 
       {/* Module filter */}
       {moduleFilterOptions.length > 1 && (
-        <div className="px-3 py-2 border-b border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
+        <div className="px-3 py-2" style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderBottom: '1px solid var(--sidebar-border-raw)' }}>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-9 justify-between text-xs border-white/10 bg-white/5 text-[#8896ab] hover:bg-white/10 hover:text-[#c8d3e0]"
+                className="w-full h-9 justify-between text-xs text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
+                style={{ borderColor: 'var(--sidebar-border-raw)', backgroundColor: 'var(--sidebar-item-hover-raw)' }}
               >
                 <span className="truncate">{filterLabel}</span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -989,11 +990,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       </SidebarContent>
       
       {/* Footer */}
-      <SidebarFooter className="border-t border-white/5" style={{ backgroundColor: 'var(--sidebar-bg-raw)' }}>
+      <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
         <Collapsible open={footerOpen} onOpenChange={setFooterOpen}>
           {userName && (
             <CollapsibleTrigger asChild>
-              <button className="w-full px-4 py-2 border-b border-white/5 hover:bg-white/5 transition-colors duration-150 cursor-pointer">
+              <button className="w-full px-4 py-2 hover:bg-[var(--sidebar-item-hover-raw)] transition-colors duration-150 cursor-pointer" style={{ borderBottom: '1px solid var(--sidebar-border-raw)' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
                     <span className="text-xs font-bold text-white">
@@ -1001,14 +1002,14 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium truncate text-white">{userName}</p>
-                    <p className="text-xs text-[#8896ab]">{t("nav.connected")}</p>
+                    <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
+                    <p className="text-xs text-[var(--sidebar-text-raw)]">{t("nav.connected")}</p>
                   </div>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <ThemeSelectorPopover />
                   </div>
                   <ChevronUp className={cn(
-                    "h-4 w-4 text-[#8896ab] transition-transform duration-200",
+                    "h-4 w-4 text-[var(--sidebar-text-raw)] transition-transform duration-200",
                     !footerOpen && "rotate-180"
                   )} />
                 </div>
@@ -1025,7 +1026,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       to="/dashboard/configuracoes"
                       className={({ isActive }) => cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                        isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                        isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                       )}
                     >
                       <Settings className="h-4 w-4" />
@@ -1042,7 +1043,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/configuracoes/lgpd"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Shield className="h-4 w-4" />
@@ -1056,7 +1057,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/configuracoes/menu"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -1070,7 +1071,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/relatorio-seguranca"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Shield className="h-4 w-4" />
@@ -1084,7 +1085,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         to="/dashboard/relatorio-desenvolvimento"
                         className={({ isActive }) => cn(
                           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-white" : "text-[#8896ab] hover:text-[#c8d3e0] hover:bg-[var(--sidebar-hover-raw)]"
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
                         )}
                       >
                         <Package className="h-4 w-4" />
@@ -1107,12 +1108,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </CollapsibleContent>
         </Collapsible>
         
-        <div className="px-4 py-2 border-t border-white/5 flex gap-3">
-          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
+        <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
+          <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Privacidade
           </a>
-          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[#4a5a70] hover:text-[#8896ab] flex items-center gap-1">
+          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
             <FileText className="h-3 w-3" />
             Termos
           </a>

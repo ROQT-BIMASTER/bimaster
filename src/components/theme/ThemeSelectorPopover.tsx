@@ -17,7 +17,7 @@ export const ThemeSelectorPopover = () => {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 hover:bg-[var(--sidebar-hover-raw)] text-[#8896ab] hover:text-[#c8d3e0]"
+          className="flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 hover:bg-[var(--sidebar-item-hover-raw)] text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
           title="Escolher tema"
         >
           <Palette className="h-4 w-4" />
@@ -26,9 +26,10 @@ export const ThemeSelectorPopover = () => {
       <PopoverContent
         side="top"
         align="end"
-        className="w-56 p-2 bg-[var(--sidebar-bg-raw)] border border-white/10 shadow-xl"
+        className="w-56 p-2 bg-[var(--sidebar-bg-raw)] border shadow-xl"
+        style={{ borderColor: 'var(--sidebar-border-raw)' }}
       >
-        <p className="text-[10px] uppercase tracking-wider font-bold text-[#4a5a70] mb-2 px-2">
+        <p className="text-[10px] uppercase tracking-wider font-bold mb-2 px-2" style={{ color: 'var(--sidebar-text-muted-raw)' }}>
           Tema de Cores
         </p>
         <div className="space-y-0.5">
@@ -39,23 +40,24 @@ export const ThemeSelectorPopover = () => {
               className={cn(
                 "flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm transition-all duration-150",
                 currentTheme === theme.key
-                  ? "bg-white/10 text-white"
-                  : "text-[#8896ab] hover:bg-white/5 hover:text-[#c8d3e0]"
+                  ? "text-[var(--sidebar-text-active-raw)]"
+                  : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
               )}
+              style={currentTheme === theme.key ? { backgroundColor: 'var(--sidebar-item-hover-raw)' } : undefined}
             >
               <div className="flex items-center gap-1.5">
                 <div
-                  className="w-4 h-4 rounded-full border border-white/20"
+                  className="w-4 h-4 rounded-full border border-black/10"
                   style={{ backgroundColor: theme.primary }}
                 />
                 <div
-                  className="w-3 h-3 rounded-full border border-white/10"
+                  className="w-3 h-3 rounded-full border border-black/10"
                   style={{ backgroundColor: theme.sidebarBg }}
                 />
               </div>
               <span className="flex-1 text-left">{theme.label}</span>
               {currentTheme === theme.key && (
-                <Check className="h-3.5 w-3.5 text-white" />
+                <Check className="h-3.5 w-3.5" style={{ color: 'var(--sidebar-text-active-raw)' }} />
               )}
             </button>
           ))}
