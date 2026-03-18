@@ -338,7 +338,7 @@ export default function ConsultaProcessos() {
                           )}
                         >
                           {isPast && <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />}
-                          {etapa.label}
+                          {etapa.etapa_label}
                         </Badge>
                       );
                     })}
