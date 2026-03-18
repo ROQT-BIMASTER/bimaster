@@ -26,6 +26,7 @@ import { GerenciamentoPontuacao } from "@/components/configuracoes/Gerenciamento
 import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
 import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
 import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
+import { ThemeSelector } from "@/components/theme/ThemeSelector";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { MFASettings } from "@/components/configuracoes/MFASettings";
 import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
