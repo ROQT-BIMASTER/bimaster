@@ -36,6 +36,8 @@ import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
 import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
 import { ChinaPastaDigitalPanel } from "@/components/china/ChinaPastaDigitalPanel";
+import { ProcessoTimeline } from "@/components/processo/ProcessoTimeline";
+import { ProcessoResumo } from "@/components/processo/ProcessoResumo";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
