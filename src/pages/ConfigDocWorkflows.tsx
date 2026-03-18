@@ -214,12 +214,24 @@ export default function ConfigDocWorkflows() {
               <Input value={newNome} onChange={e => setNewNome(e.target.value)} placeholder="Ex: Aprovação de Embalagem" />
             </div>
             <div>
-              <Label>Tipo de Documento</Label>
+              <Label className="flex items-center justify-between">
+                Tipo de Documento
+                <Button type="button" variant="ghost" size="sm" className="h-5 px-1 text-[10px] text-primary"
+                  onClick={() => {
+                    const label = prompt("Nome do novo tipo de documento:");
+                    if (label?.trim()) {
+                      addTipo.mutate({ label: label.trim() });
+                    }
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" /> Novo
+                </Button>
+              </Label>
               <Select value={newTipo} onValueChange={setNewTipo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TIPOS_DOCUMENTO.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {tiposDocumento.map(t => (
+                    <SelectItem key={t.valor} value={t.valor}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
