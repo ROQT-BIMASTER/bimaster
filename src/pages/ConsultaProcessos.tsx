@@ -464,7 +464,7 @@ export default function ConsultaProcessos() {
                     </TableHeader>
                     <TableBody>
                       {stepHistory.map(step => {
-                        const etapaInfo = ETAPAS_CICLO_VIDA.find(e => e.key === step.etapa);
+                        const etapaInfo = etapas.find(e => e.etapa_key === step.etapa);
                         const isActive = step.status === "em_andamento";
                         return (
                           <TableRow key={step.id} className={isActive ? "bg-primary/5" : ""}>
