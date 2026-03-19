@@ -1,18 +1,49 @@
 
 
-# Migration 6: Adicionar colunas ERP à `financial_payment_queue`
+# Migration 7: Complementar erp_export_queue + Reforçar RLS na erp_sync_log
 
-A tabela `financial_payment_queue` ainda não possui nenhuma coluna ERP. Com base no que você descreveu até agora e no padrão das outras tabelas, a migration adicionará:
+## Situação Atual
 
-- `titulo_numero` (varchar, nullable) — número do título retornado pelo ERP
+### erp_export_queue
+- Já possui: `erp_titulo_id` (varchar 50), `erp_response_code` (varchar 20), `response` (jsonb)
+- **Falta**: `titulo_numero` (varchar), `erp_sync_status` (varchar 20, default 'pending')
+- A coluna `response` já serve como "resposta completa do ERP" (jsonb)
 
-Porém, parece que você ainda está listando as colunas uma a uma. Para evitar múltiplas migrations, seria ideal receber a lista completa. Com base no padrão ERP já aplicado nas outras tabelas, as colunas prováveis seriam:
+### erp_sync_log
+- RLS habilitada, mas apenas com:
+  - SELECT para `authenticated`
+  - INSERT para `service_role`
+- **Falta**: policies de UPDATE e DELETE para `service_role`, e policy de INSERT para `authenticated` (Edge Functions rodando como authenticated)
 
-- `erp_titulo_id` (varchar 50) — ID do título no ERP
-- `erp_response_code` (varchar 20) — código de resposta do ERP
-- `titulo_numero` (varchar) — número do título retornado pelo ERP
-- `erp_synced_at` (timestamptz) — última sincronização
-- `erp_sync_status` (varchar 20, default 'pending')
+## O que será feito
 
-**Aguardando confirmação**: por favor envie a lista completa de colunas que deseja adicionar à `financial_payment_queue` para que eu crie uma única migration limpa com todas elas.
+### Parte 1: Adicionar colunas à erp_export_queue
+```sql
+ALTER TABLE public.erp_export_queue
+  ADD COLUMN IF NOT EXISTS titulo_numero varchar,
+  ADD COLUMN IF NOT EXISTS erp_sync_status varchar(20) DEFAULT 'pending';
+```
+
+### Parte 2: Completar RLS na erp_sync_log
+Seguindo o padrão da `erp_export_queue` (que usa `can_access_payment_queue`):
+```sql
+-- Authenticated users can insert (for Edge Functions)
+CREATE POLICY "Authenticated users can insert erp_sync_log"
+  ON public.erp_sync_log FOR INSERT
+  TO authenticated WITH CHECK (true);
+
+-- Service role can update
+CREATE POLICY "Service role can update erp_sync_log"
+  ON public.erp_sync_log FOR UPDATE
+  TO service_role USING (true);
+
+-- Service role can delete
+CREATE POLICY "Service role can delete erp_sync_log"
+  ON public.erp_sync_log FOR DELETE
+  TO service_role USING (true);
+```
+
+### Arquivos afetados
+- Nova migration SQL
+- `types.ts` será atualizado automaticamente
 
