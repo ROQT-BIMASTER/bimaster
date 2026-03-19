@@ -133,7 +133,7 @@ export function JuntadasSection({ processId }: Props) {
                     {despachoMod ? (
                       <Badge variant="secondary" className="text-[9px] shrink-0 gap-1">
                         <Send className="h-2.5 w-2.5" />
-                        {despachoMod.icon} {despachoMod.label}
+                        <despachoMod.icon className={`h-2.5 w-2.5 ${despachoMod.color}`} /> {despachoMod.label}
                       </Badge>
                     ) : (
                       <Button
@@ -282,9 +282,10 @@ export function JuntadasSection({ processId }: Props) {
                 <SelectTrigger><SelectValue placeholder="Todos os módulos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os módulos</SelectItem>
-                  {DESPACHO_MODULOS_PROCESSO.map(m => (
-                    <SelectItem key={m.key} value={m.key}>{m.icon} {m.label}</SelectItem>
-                  ))}
+                  {DESPACHO_MODULOS_PROCESSO.map(m => {
+                    const MIcon = m.icon;
+                    return <SelectItem key={m.key} value={m.key}><span className="flex items-center gap-1.5"><MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}</span></SelectItem>;
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -373,9 +374,8 @@ function JuntadaDetail({ juntada, onDespachar }: { juntada: ProcessJuntada; onDe
       {juntada.despacho_modulo ? (
         <div className="bg-muted/30 rounded-lg p-3 text-sm border-l-2 border-primary/30">
           <span className="text-[11px] text-muted-foreground block mb-1">Despachado para</span>
-          <span className="font-medium">
-            {DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo)?.icon}{" "}
-            {DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo)?.label || juntada.despacho_modulo}
+          <span className="font-medium flex items-center gap-1.5">
+            {(() => { const mod = DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo); if (!mod) return juntada.despacho_modulo; const MIcon = mod.icon; return <><MIcon className={`h-4 w-4 ${mod.color}`} /> {mod.label}</>; })()}
           </span>
           {juntada.despacho_descricao && (
             <p className="text-xs text-muted-foreground mt-1 italic">"{juntada.despacho_descricao}"</p>

@@ -67,7 +67,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                 {DESPACHO_MODULOS_PROCESSO.map((m) => (
                   <SelectItem key={m.key} value={m.key}>
                     <span className="flex items-center gap-1.5">
-                      <span>{m.icon}</span> {m.label}
+                      <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
                     </span>
                   </SelectItem>
                 ))}
@@ -127,7 +127,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                     <div key={d.id} className="p-2.5 rounded-md border bg-muted/30 text-xs space-y-1">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className="text-[10px] gap-1">
-                          {moduloInfo?.icon} {moduloInfo?.label || d.modulo_destino}
+                          {moduloInfo && (() => { const MIcon = moduloInfo.icon; return <MIcon className={`h-3 w-3 ${moduloInfo.color}`} />; })()} {moduloInfo?.label || d.modulo_destino}
                         </Badge>
                         <span className="text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
