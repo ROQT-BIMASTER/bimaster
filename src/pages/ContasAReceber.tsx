@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { DashboardContasReceberAggregated } from "@/components/financeiro/DashboardContasReceberAggregated";
 import { CalendarioRecebimentosAggregated } from "@/components/financeiro/CalendarioRecebimentosAggregated";
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface ContaReceber {
   id: string;
