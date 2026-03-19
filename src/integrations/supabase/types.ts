@@ -4984,6 +4984,7 @@ export type Database = {
           config_key: string
           config_value: string | null
           description: string | null
+          empresa_id: number | null
           id: string
           is_secret: boolean | null
           updated_at: string | null
@@ -4993,6 +4994,7 @@ export type Database = {
           config_key: string
           config_value?: string | null
           description?: string | null
+          empresa_id?: number | null
           id?: string
           is_secret?: boolean | null
           updated_at?: string | null
@@ -5002,18 +5004,28 @@ export type Database = {
           config_key?: string
           config_value?: string | null
           description?: string | null
+          empresa_id?: number | null
           id?: string
           is_secret?: boolean | null
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "erp_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       erp_export_queue: {
         Row: {
           attempts: number
           created_at: string
           created_by: string | null
+          empresa_id: number | null
           erp_response_code: string | null
           erp_sync_status: string | null
           erp_titulo_id: string | null
@@ -5033,6 +5045,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          empresa_id?: number | null
           erp_response_code?: string | null
           erp_sync_status?: string | null
           erp_titulo_id?: string | null
@@ -5052,6 +5065,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          empresa_id?: number | null
           erp_response_code?: string | null
           erp_sync_status?: string | null
           erp_titulo_id?: string | null
@@ -5069,6 +5083,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "erp_export_queue_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "erp_export_queue_payment_queue_id_fkey"
             columns: ["payment_queue_id"]
             isOneToOne: false
@@ -5084,6 +5105,7 @@ export type Database = {
           created_by: string | null
           direction: string
           duration_ms: number | null
+          empresa_id: number | null
           entity_id: string
           entity_type: string
           error_message: string | null
@@ -5099,6 +5121,7 @@ export type Database = {
           created_by?: string | null
           direction?: string
           duration_ms?: number | null
+          empresa_id?: number | null
           entity_id: string
           entity_type: string
           error_message?: string | null
@@ -5114,6 +5137,7 @@ export type Database = {
           created_by?: string | null
           direction?: string
           duration_ms?: number | null
+          empresa_id?: number | null
           entity_id?: string
           entity_type?: string
           error_message?: string | null
@@ -5123,7 +5147,15 @@ export type Database = {
           response_status?: number | null
           success?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "erp_sync_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estoque_distribuidoras: {
         Row: {
