@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useDocWorkflowEtapas } from "@/hooks/useDocWorkflow";
 import { useApproverProfiles } from "@/hooks/useApproverProfiles";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 

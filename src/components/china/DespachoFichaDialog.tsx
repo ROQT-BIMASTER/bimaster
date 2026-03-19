@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2, Clock, User } from "lucide-react";
-import { DESPACHO_MODULOS_PROCESSO } from "@/components/processo/DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { useCreateFichaDespacho, useFichaDespachos, useFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
 import { format } from "date-fns";
 

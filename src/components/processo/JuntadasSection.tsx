@@ -14,7 +14,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { cn } from "@/lib/utils";
 import { useProcessJuntadas, type ProcessJuntada } from "@/hooks/useProcessJuntadas";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas, useDocWorkflowInstance } from "@/hooks/useDocWorkflow";
-import { DespachoDialog, DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { DespachoDialog } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 
 const PARECER_STYLES: Record<string, { icon: any; color: string; label: string }> = {
