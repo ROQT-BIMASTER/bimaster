@@ -15957,6 +15957,8 @@ export type Database = {
           processo_id: string | null
           status: string
           submissao_id: string
+          vinculo_projeto_id: string | null
+          vinculo_tarefa_id: string | null
           workflow_config_id: string | null
         }
         Insert: {
@@ -15984,6 +15986,8 @@ export type Database = {
           processo_id?: string | null
           status?: string
           submissao_id: string
+          vinculo_projeto_id?: string | null
+          vinculo_tarefa_id?: string | null
           workflow_config_id?: string | null
         }
         Update: {
@@ -16011,6 +16015,8 @@ export type Database = {
           processo_id?: string | null
           status?: string
           submissao_id?: string
+          vinculo_projeto_id?: string | null
+          vinculo_tarefa_id?: string | null
           workflow_config_id?: string | null
         }
         Relationships: [
@@ -16047,6 +16053,20 @@ export type Database = {
             columns: ["submissao_id"]
             isOneToOne: false
             referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_vinculo_projeto_id_fkey"
+            columns: ["vinculo_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_despacho_documento_vinculo_tarefa_id_fkey"
+            columns: ["vinculo_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
             referencedColumns: ["id"]
           },
         ]

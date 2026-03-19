@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye, AlertTriangle, FolderOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,9 @@ import { CienciaTimer } from "./CienciaTimer";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DespachosPanelProps {
   submissaoId: string;
@@ -121,10 +124,35 @@ function ChecklistPendentes({ documentos }: { documentos: any[] }) {
 export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps) {
   const { data: despachos = [], isLoading } = useDespachosPorSubmissao(submissaoId);
   const darCiencia = useDarCiencia();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
   const [parecerDespacho, setParecerDespacho] = useState<DespachoDocumento | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Fetch project/task names for linked despachos
+  const vinculoIds = useMemo(() => {
+    const projetoIds = [...new Set(despachos.map((d: any) => d.vinculo_projeto_id).filter(Boolean))];
+    const tarefaIds = [...new Set(despachos.map((d: any) => d.vinculo_tarefa_id).filter(Boolean))];
+    return { projetoIds, tarefaIds };
+  }, [despachos]);
+
+  const { data: vinculoNomes } = useQuery({
+    queryKey: ["despacho-vinculo-nomes", vinculoIds.projetoIds, vinculoIds.tarefaIds],
+    enabled: vinculoIds.projetoIds.length > 0,
+    queryFn: async () => {
+      const [projRes, tarRes] = await Promise.all([
+        supabase.from("projetos").select("id, nome").in("id", vinculoIds.projetoIds),
+        vinculoIds.tarefaIds.length > 0
+          ? supabase.from("projeto_tarefas").select("id, titulo, codigo").in("id", vinculoIds.tarefaIds)
+          : { data: [] },
+      ]);
+      return {
+        projetos: Object.fromEntries((projRes.data || []).map(p => [p.id, p.nome])),
+        tarefas: Object.fromEntries(((tarRes as any).data || []).map((t: any) => [t.id, { titulo: t.titulo, codigo: t.codigo }])),
+      };
+    },
+  });
 
   if (despachos.length === 0 && !isLoading) return null;
 
@@ -218,6 +246,11 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                         {desp.modulo_destino && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.modulo_destino}</Badge>
                         )}
+                        {(desp as any).vinculo_projeto_id && (
+                          <span className="inline-flex items-center shrink-0" title="Vinculado ao projeto">
+                            <FolderOpen className="h-3 w-3 text-primary" />
+                          </span>
+                        )}
                         {desp.categoria_checklist && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.categoria_checklist}</Badge>
                         )}
@@ -268,6 +301,31 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                             )}
                             {desp.ciencia_em && <CienciaTimer cienciaEm={desp.ciencia_em} />}
                           </div>
+
+                          {/* Vínculo com Projeto */}
+                          {(desp as any).vinculo_projeto_id && vinculoNomes && (
+                            <div
+                              className="flex items-center gap-1.5 text-[10px] bg-primary/5 border border-primary/20 rounded px-2 py-1 cursor-pointer hover:bg-primary/10 transition-colors w-fit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/projetos/${(desp as any).vinculo_projeto_id}`);
+                              }}
+                            >
+                              <FolderOpen className="h-3 w-3 text-primary shrink-0" />
+                              <span className="text-primary font-medium">
+                                {vinculoNomes.projetos?.[(desp as any).vinculo_projeto_id] || "Projeto"}
+                              </span>
+                              {(desp as any).vinculo_tarefa_id && vinculoNomes.tarefas?.[(desp as any).vinculo_tarefa_id] && (
+                                <span className="text-muted-foreground">
+                                  {" › "}
+                                  {vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id]?.codigo
+                                    ? `${vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id].codigo} — `
+                                    : ""}
+                                  {vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id]?.titulo}
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {!desp.ciencia_em && desp.status === "pendente" && (
                             <Button
