@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye, AlertTriangle, FolderOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
