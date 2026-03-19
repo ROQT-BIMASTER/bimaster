@@ -101,6 +101,34 @@ serve(async (req: Request) => {
     filaAtualizada = !error;
   }
 
+  // AJUSTE 2: Baixa automática em contas_pagar quando evento = baixa_confirmada
+  let contaJaPaga = false;
+  let contaAtualizada = false;
+  if (payload.evento === "baixa_confirmada" && contaPagarId) {
+    const { data: contaAtual } = await supabase
+      .from("contas_pagar")
+      .select("status, valor_original")
+      .eq("id", contaPagarId)
+      .maybeSingle();
+
+    if (contaAtual && contaAtual.status === "pago") {
+      contaJaPaga = true;
+    } else if (contaAtual) {
+      const valorPago = payload.valor_processado || contaAtual.valor_original || 0;
+      const { error: updErr } = await supabase
+        .from("contas_pagar")
+        .update({
+          valor_pago: valorPago,
+          valor_aberto: 0,
+          baixa_origem: "erp_webhook",
+          data_baixa: payload.data_processamento,
+          data_pagamento: payload.data_processamento,
+        })
+        .eq("id", contaPagarId);
+      contaAtualizada = !updErr;
+    }
+  }
+
   const { data: logEntry } = await supabase
     .from("erp_sync_log")
     .insert({
@@ -115,6 +143,8 @@ serve(async (req: Request) => {
       conta_pagar_id: contaPagarId,
       payload_entrada: payload,
       fila_atualizada: filaAtualizada,
+      conta_atualizada: contaAtualizada,
+      conta_ja_paga: contaJaPaga,
       idempotency_key: idempotencyKey || null,
       data_processamento_erp: payload.data_processamento,
       success: true,

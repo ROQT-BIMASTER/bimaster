@@ -98,17 +98,23 @@ serve(async (req) => {
       return await handleGetItems(supabase, url, "paid");
     } else if (req.method === "GET" && path === "pending") {
       return await handleGetItems(supabase, url, "accepted");
+    } else if (req.method === "GET" && path === "cancelled") {
+      return await handleGetCancelledItems(supabase, url);
     } else if (req.method === "POST" && path === "confirm") {
       return await handleConfirm(supabase, req);
     } else if (req.method === "GET" && path === "status") {
       return await handleStatus(supabase);
     } else {
       if (req.method === "GET") {
-        // Default: return both accepted + paid via status param
+        // Check if ?status includes cancelado
+        const statusParam = url.searchParams.get("status");
+        if (statusParam && statusParam.split(",").map(s => s.trim()).includes("cancelado")) {
+          return await handleGetCancelledItems(supabase, url);
+        }
         return await handleGetItems(supabase, url, null);
       }
       return jsonResponse({
-        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, POST /confirm, GET /status",
+        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, GET /cancelled, POST /confirm, GET /status",
       }, 404);
     }
   } catch (err) {
@@ -305,6 +311,75 @@ async function handleStatus(supabase: ReturnType<typeof createClient>) {
     resumo: {
       total_pendentes_exportacao: pendingRegistrations + pendingPayments,
     },
+  });
+}
+
+/**
+ * GET /cancelled — títulos cancelados pendentes de exportação
+ */
+async function handleGetCancelledItems(
+  supabase: ReturnType<typeof createClient>,
+  url: URL
+) {
+  const limit = parseInt(url.searchParams.get("limit") || "100");
+  const offset = parseInt(url.searchParams.get("offset") || "0");
+
+  const { data: items, error: fetchErr } = await supabase
+    .from("contas_pagar")
+    .select("id, empresa_id, fornecedor, numero_documento, tipo_documento, valor_original, data_vencimento, descricao, departamento, updated_at")
+    .eq("status", "cancelado")
+    .order("updated_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (fetchErr) {
+    return jsonResponse({ error: "Erro ao buscar cancelados: " + fetchErr.message }, 500);
+  }
+
+  if (!items || items.length === 0) {
+    return jsonResponse({ data: [], total: 0, message: "Nenhum título cancelado encontrado" });
+  }
+
+  // Check which have already been exported as cancellation
+  const ids = items.map((i: Record<string, unknown>) => i.id);
+  const { data: exportedItems } = await supabase
+    .from("erp_export_queue")
+    .select("conta_pagar_id")
+    .in("conta_pagar_id", ids)
+    .eq("export_type", "cancellation")
+    .eq("export_status", "exported");
+
+  const exportedSet = new Set((exportedItems || []).map((e: Record<string, unknown>) => e.conta_pagar_id));
+  const pendingItems = items.filter((item: Record<string, unknown>) => !exportedSet.has(item.id));
+
+  const cleanData = pendingItems.map((item: Record<string, unknown>) => ({
+    api_version: "1.0",
+    generated_at: new Date().toISOString(),
+    id: item.id,
+    empresa_id: item.empresa_id || 1,
+    export_type: "cancellation",
+    fornecedor: {
+      nome: item.fornecedor || null,
+    },
+    documento: {
+      tipo: item.tipo_documento || null,
+      numero: item.numero_documento || null,
+    },
+    pagamento: {
+      valor: Number(item.valor_original) || 0,
+      moeda: "BRL",
+      data_vencimento: item.data_vencimento || null,
+    },
+    departamento: item.departamento || null,
+    descricao: item.descricao || null,
+    data_cancelamento: item.updated_at || null,
+    status: "Cancelado",
+  }));
+
+  return jsonResponse({
+    data: cleanData,
+    total: cleanData.length,
+    offset,
+    limit,
   });
 }
 
