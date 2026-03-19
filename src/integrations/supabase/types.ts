@@ -24303,6 +24303,9 @@ export type Database = {
           departamento_definido_manualmente: boolean | null
           departamento_id: string | null
           description: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
           id: string
           is_active: boolean | null
           is_group: boolean | null
@@ -24325,6 +24328,9 @@ export type Database = {
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
           description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           id?: string
           is_active?: boolean | null
           is_group?: boolean | null
@@ -24347,6 +24353,9 @@ export type Database = {
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
           description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           id?: string
           is_active?: boolean | null
           is_group?: boolean | null
