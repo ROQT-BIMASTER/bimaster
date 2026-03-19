@@ -35,6 +35,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/components/tour";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface ContaPagar {
   id: string;
