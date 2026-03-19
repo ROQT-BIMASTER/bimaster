@@ -286,8 +286,9 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                           )}
 
                           {desp.parecer_texto && (
-                            <p className="text-[10px] text-muted-foreground italic">
-                              💬 {desp.parecer_texto}
+                            <p className="text-[10px] text-muted-foreground italic inline-flex items-start gap-1">
+                              <FileText className="h-3 w-3 shrink-0 mt-0.5" />
+                              {desp.parecer_texto}
                               {desp.parecer_por_nome && <span className="ml-1">— {desp.parecer_por_nome}</span>}
                             </p>
                           )}
