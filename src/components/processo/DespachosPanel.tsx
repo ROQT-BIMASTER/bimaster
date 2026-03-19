@@ -124,10 +124,35 @@ function ChecklistPendentes({ documentos }: { documentos: any[] }) {
 export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps) {
   const { data: despachos = [], isLoading } = useDespachosPorSubmissao(submissaoId);
   const darCiencia = useDarCiencia();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
   const [parecerDespacho, setParecerDespacho] = useState<DespachoDocumento | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Fetch project/task names for linked despachos
+  const vinculoIds = useMemo(() => {
+    const projetoIds = [...new Set(despachos.map((d: any) => d.vinculo_projeto_id).filter(Boolean))];
+    const tarefaIds = [...new Set(despachos.map((d: any) => d.vinculo_tarefa_id).filter(Boolean))];
+    return { projetoIds, tarefaIds };
+  }, [despachos]);
+
+  const { data: vinculoNomes } = useQuery({
+    queryKey: ["despacho-vinculo-nomes", vinculoIds.projetoIds, vinculoIds.tarefaIds],
+    enabled: vinculoIds.projetoIds.length > 0,
+    queryFn: async () => {
+      const [projRes, tarRes] = await Promise.all([
+        supabase.from("projetos").select("id, nome").in("id", vinculoIds.projetoIds),
+        vinculoIds.tarefaIds.length > 0
+          ? supabase.from("projeto_tarefas").select("id, titulo, codigo").in("id", vinculoIds.tarefaIds)
+          : { data: [] },
+      ]);
+      return {
+        projetos: Object.fromEntries((projRes.data || []).map(p => [p.id, p.nome])),
+        tarefas: Object.fromEntries(((tarRes as any).data || []).map((t: any) => [t.id, { titulo: t.titulo, codigo: t.codigo }])),
+      };
+    },
+  });
 
   if (despachos.length === 0 && !isLoading) return null;
 
