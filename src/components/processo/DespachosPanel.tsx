@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useDespachosPorSubmissao, useTransicoesDespacho, useDarCiencia, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
+import { CATEGORIES_CHINA_ENVIA, CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { ParecerDialog } from "./ParecerDialog";
 import { CienciaTimer } from "./CienciaTimer";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,71 @@ function DespachoTimeline({ despachoId }: { despachoId: string }) {
   );
 }
 
+function ChecklistPendentes({ documentos }: { documentos: any[] }) {
+  const uploadedTipos = useMemo(() => {
+    const set = new Set<string>();
+    documentos.forEach((d: any) => set.add(d.tipo_documento));
+    return set;
+  }, [documentos]);
+
+  const pendentes = useMemo(() => {
+    const result: { categoria: string; itens: { tipo: string; label: string }[] }[] = [];
+
+    for (const cat of CATEGORIES_CHINA_ENVIA) {
+      const missing = cat.tipos
+        .filter((tipo) => !uploadedTipos.has(tipo))
+        .map((tipo) => {
+          const dt = CHINA_DOCUMENT_TYPES.find((d) => d.tipo === tipo);
+          return { tipo, label: dt?.labelPt || tipo };
+        });
+
+      if (missing.length > 0) {
+        result.push({ categoria: cat.labelPt, itens: missing });
+      }
+    }
+    return result;
+  }, [uploadedTipos]);
+
+  const totalTipos = CATEGORIES_CHINA_ENVIA.reduce((sum, c) => sum + c.tipos.length, 0);
+  const totalEnviados = CATEGORIES_CHINA_ENVIA.reduce(
+    (sum, c) => sum + c.tipos.filter((t) => uploadedTipos.has(t)).length, 0
+  );
+  const percent = totalTipos > 0 ? Math.round((totalEnviados / totalTipos) * 100) : 0;
+
+  if (pendentes.length === 0) return null;
+
+  return (
+    <div className="border border-destructive/20 rounded-md p-3 bg-destructive/5 space-y-2">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+        <span className="text-xs font-medium text-destructive">
+          Itens Pendentes na China
+        </span>
+        <span className="text-[10px] text-muted-foreground ml-auto">
+          {totalEnviados}/{totalTipos} enviados
+        </span>
+        <Progress value={percent} className="w-16 h-1.5" />
+        <span className="text-[10px] font-mono text-muted-foreground">{percent}%</span>
+      </div>
+
+      <div className="space-y-1.5">
+        {pendentes.map((cat) => (
+          <div key={cat.categoria}>
+            <span className="text-[10px] font-medium text-muted-foreground">{cat.categoria}</span>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {cat.itens.map((item) => (
+                <Badge key={item.tipo} variant="outline" className="text-[9px] h-4 px-1.5 border-destructive/30 text-destructive">
+                  {item.label}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps) {
   const { data: despachos = [], isLoading } = useDespachosPorSubmissao(submissaoId);
   const darCiencia = useDarCiencia();
@@ -64,7 +130,6 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
 
   const filtered = filterStatus === "todos" ? despachos : despachos.filter((d) => d.status === filterStatus);
 
-  // Calculate overall completion
   const totalPercent = despachos.length > 0
     ? Math.round(despachos.reduce((sum, d) => sum + (STATUS_CONFIG[d.status]?.percent ?? 0), 0) / despachos.length)
     : 0;
@@ -104,7 +169,10 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="pt-0 px-4 pb-3 space-y-2">
+            <CardContent className="pt-0 px-4 pb-3 space-y-3">
+              {/* Checklist items missing from China */}
+              <ChecklistPendentes documentos={documentos} />
+
               <div className="flex items-center gap-2">
                 <Filter className="h-3 w-3 text-muted-foreground" />
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -132,7 +200,7 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                       <div
                         className={cn(
                           "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] hover:bg-accent/50 transition-colors cursor-pointer group",
-                          desp.devolvido_china && "bg-green-50/50 dark:bg-green-950/20"
+                          desp.devolvido_china && "bg-accent/30"
                         )}
                         onClick={() => setExpandedId(isExpanded ? null : desp.id)}
                       >
@@ -171,14 +239,12 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                       </div>
                       {isExpanded && (
                         <div className="ml-14 mb-2 space-y-2 bg-muted/20 rounded-md p-2">
-                          {/* Fase + Progress */}
                           <div className="flex items-center gap-3">
                             <span className="text-[10px] text-muted-foreground">{faseLabel}</span>
                             <Progress value={cfg.percent} className="flex-1 h-1.5 max-w-32" />
                             <span className="text-[10px] font-mono text-muted-foreground">{cfg.percent}%</span>
                           </div>
 
-                          {/* Destinatário details */}
                           <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
                             {desp.despachado_para_nome && (
                               <span className="inline-flex items-center gap-1">
@@ -203,7 +269,6 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                             {desp.ciencia_em && <CienciaTimer cienciaEm={desp.ciencia_em} />}
                           </div>
 
-                          {/* Dar Ciência button */}
                           {!desp.ciencia_em && desp.status === "pendente" && (
                             <Button
                               variant="outline"
