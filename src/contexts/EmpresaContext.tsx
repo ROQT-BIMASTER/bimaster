@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import { useUserEmpresas, useAllEmpresas, type Empresa, type UserEmpresa } from "@/hooks/useUserEmpresas";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EmpresaContextType {
   /** Currently selected empresa, or null meaning "all user's empresas" */
@@ -44,23 +47,60 @@ function storeEmpresaId(userId: string, empresaId: number | null) {
 export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { isAdmin } = usePermissions();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
   const { data: userEmpresas, isLoading: loadingUserEmpresas } = useUserEmpresas();
   const { data: allEmpresas, isLoading: loadingAllEmpresas } = useAllEmpresas();
+
+  // When impersonating, fetch the impersonated user's empresas
+  const impersonatedUserId = isImpersonating ? impersonatedUser?.id : null;
+  const { data: impersonatedEmpresas, isLoading: loadingImpersonatedEmpresas } = useQuery({
+    queryKey: ["impersonated-user-empresas", impersonatedUserId],
+    queryFn: async () => {
+      if (!impersonatedUserId) return [];
+      const { data, error } = await supabase
+        .from("user_empresas")
+        .select(`
+          empresa_id,
+          is_primary,
+          empresa:empresas(id, nome, cnpj, uf, ativa)
+        `)
+        .eq("user_id", impersonatedUserId);
+
+      if (error) throw error;
+      return (data || []).map(item => ({
+        empresa_id: item.empresa_id,
+        is_primary: item.is_primary,
+        empresa: item.empresa as unknown as Empresa,
+      })) as UserEmpresa[];
+    },
+    enabled: !!impersonatedUserId,
+  });
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   // Determine the list of empresas the user can see
   const empresasDoUsuario = useMemo(() => {
+    // When impersonating, always use the impersonated user's empresas
+    if (isImpersonating && impersonatedEmpresas) {
+      return impersonatedEmpresas.map(ue => ue.empresa).filter(e => e.ativa);
+    }
     if (isAdmin) {
       return allEmpresas || [];
     }
     return (userEmpresas || []).map(ue => ue.empresa).filter(e => e.ativa);
-  }, [isAdmin, allEmpresas, userEmpresas]);
+  }, [isAdmin, isImpersonating, allEmpresas, userEmpresas, impersonatedEmpresas]);
 
   // Initialize selection from localStorage or primary empresa
+  // Determine effective empresas list for initialization
+  const effectiveUserEmpresas = isImpersonating ? impersonatedEmpresas : userEmpresas;
+
   useEffect(() => {
-    if (!user?.id || (isAdmin ? loadingAllEmpresas : loadingUserEmpresas)) return;
+    const isLoading = isImpersonating 
+      ? loadingImpersonatedEmpresas 
+      : (isAdmin ? loadingAllEmpresas : loadingUserEmpresas);
+    
+    if (!user?.id || isLoading) return;
     if (initialized) return;
 
     const storedId = getStoredEmpresaId(user.id);
@@ -68,9 +108,9 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     // Check if stored ID is valid (user still has access)
     if (storedId !== null && empresasDoUsuario.some(e => e.id === storedId)) {
       setSelectedId(storedId);
-    } else if (!isAdmin && userEmpresas) {
-      // Auto-select primary empresa for non-admins
-      const primary = userEmpresas.find(ue => ue.is_primary);
+    } else if ((!isAdmin || isImpersonating) && effectiveUserEmpresas) {
+      // Auto-select primary empresa for non-admins or when impersonating
+      const primary = effectiveUserEmpresas.find(ue => ue.is_primary);
       if (primary) {
         setSelectedId(primary.empresa_id);
         storeEmpresaId(user.id, primary.empresa_id);
@@ -78,13 +118,13 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     }
     
     setInitialized(true);
-  }, [user?.id, empresasDoUsuario, userEmpresas, isAdmin, loadingAllEmpresas, loadingUserEmpresas, initialized]);
+  }, [user?.id, empresasDoUsuario, effectiveUserEmpresas, isAdmin, isImpersonating, loadingAllEmpresas, loadingUserEmpresas, loadingImpersonatedEmpresas, initialized]);
 
-  // Reset when user changes
+  // Reset when user changes or impersonation changes
   useEffect(() => {
     setInitialized(false);
     setSelectedId(null);
-  }, [user?.id]);
+  }, [user?.id, impersonatedUserId]);
 
   const empresaSelecionada = useMemo(() => {
     if (selectedId === null) return null;
@@ -105,7 +145,9 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.id]);
 
-  const loading = isAdmin ? loadingAllEmpresas : loadingUserEmpresas;
+  const loading = isImpersonating 
+    ? loadingImpersonatedEmpresas 
+    : (isAdmin ? loadingAllEmpresas : loadingUserEmpresas);
 
   const value = useMemo(() => ({
     empresaSelecionada,
