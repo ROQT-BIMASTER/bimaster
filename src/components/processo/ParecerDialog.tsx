@@ -105,7 +105,6 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
   const moduloInfo = despacho.modulo_destino
     ? modulosDisponiveis.find((m) => m.key === despacho.modulo_destino)
     : null;
-    : null;
 
   const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(docUrl);
   const isPdf = docUrl && /\.pdf(\?|$)/i.test(docUrl);

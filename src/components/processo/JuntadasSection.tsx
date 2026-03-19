@@ -100,7 +100,6 @@ export function JuntadasSection({ processId }: Props) {
                 const despachoMod = j.despacho_modulo
                   ? modulosDisponiveis.find(m => m.key === j.despacho_modulo)
                   : null;
-                  : null;
                 return (
                   <div
                     key={j.id}

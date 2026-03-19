@@ -75,8 +75,8 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                     </SelectItem>
                   );
                 })}
-                  </SelectItem>
-                ))}
+              </SelectContent>
+            </Select>
               </SelectContent>
             </Select>
           </div>
