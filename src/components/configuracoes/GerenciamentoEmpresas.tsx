@@ -358,8 +358,10 @@ export function GerenciamentoEmpresas() {
                   {loadingEmpresas ? (
                     <div className="p-2 text-center text-sm text-muted-foreground">Carregando...</div>
                   ) : empresasDisponiveis?.length === 0 ? (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
-                      {selectedUserId ? "Usuário já vinculado a todas as empresas" : "Selecione um usuário primeiro"}
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {selectedUserId 
+                        ? "Este usuário já está vinculado a todas as empresas disponíveis" 
+                        : "Selecione um usuário primeiro para ver as empresas disponíveis"}
                     </div>
                   ) : (
                     empresasDisponiveis?.map((emp) => (
