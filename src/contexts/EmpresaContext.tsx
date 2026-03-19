@@ -145,7 +145,9 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.id]);
 
-  const loading = isAdmin ? loadingAllEmpresas : loadingUserEmpresas;
+  const loading = isImpersonating 
+    ? loadingImpersonatedEmpresas 
+    : (isAdmin ? loadingAllEmpresas : loadingUserEmpresas);
 
   const value = useMemo(() => ({
     empresaSelecionada,
