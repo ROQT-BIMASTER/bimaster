@@ -1,20 +1,20 @@
 import { useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, FlaskConical, ShieldCheck, CheckCircle2, Palette, Package, Tag, ClipboardList, Truck, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export const DESPACHO_MODULOS_PROCESSO = [
-  { key: "composicao", label: "Composição INCI", icon: "🧪" },
-  { key: "regulatorio", label: "Regulatório", icon: "🛡️" },
-  { key: "qualidade", label: "Qualidade", icon: "✅" },
-  { key: "fluxo_artes", label: "Motor de Artes", icon: "🎨" },
-  { key: "embalagem", label: "Embalagem", icon: "📦" },
-  { key: "etiqueta_bula", label: "Etiqueta / Bula", icon: "🏷️" },
-  { key: "cadastro", label: "Cadastro", icon: "📋" },
-  { key: "logistica", label: "Logística", icon: "🚛" },
+export const DESPACHO_MODULOS_PROCESSO: readonly { key: string; label: string; icon: LucideIcon; color: string }[] = [
+  { key: "composicao", label: "Composição INCI", icon: FlaskConical, color: "text-primary" },
+  { key: "regulatorio", label: "Regulatório", icon: ShieldCheck, color: "text-primary" },
+  { key: "qualidade", label: "Qualidade", icon: CheckCircle2, color: "text-success" },
+  { key: "fluxo_artes", label: "Motor de Artes", icon: Palette, color: "text-accent-foreground" },
+  { key: "embalagem", label: "Embalagem", icon: Package, color: "text-primary" },
+  { key: "etiqueta_bula", label: "Etiqueta / Bula", icon: Tag, color: "text-primary" },
+  { key: "cadastro", label: "Cadastro", icon: ClipboardList, color: "text-primary" },
+  { key: "logistica", label: "Logística", icon: Truck, color: "text-primary" },
 ] as const;
 
 interface DespachoDialogProps {
@@ -51,14 +51,17 @@ export function DespachoDialog({ open, onOpenChange, documentoTitulo, isPending,
           <div>
             <Label className="text-xs font-medium">Módulo de destino</Label>
             <RadioGroup value={modulo} onValueChange={setModulo} className="mt-2 space-y-2">
-              {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                <div key={m.key} className="flex items-center gap-2">
-                  <RadioGroupItem value={m.key} id={`desp-proc-${m.key}`} />
-                  <Label htmlFor={`desp-proc-${m.key}`} className="text-sm cursor-pointer flex items-center gap-2">
-                    <span>{m.icon}</span> {m.label}
-                  </Label>
-                </div>
-              ))}
+              {DESPACHO_MODULOS_PROCESSO.map((m) => {
+                const ModIcon = m.icon;
+                return (
+                  <div key={m.key} className="flex items-center gap-2">
+                    <RadioGroupItem value={m.key} id={`desp-proc-${m.key}`} />
+                    <Label htmlFor={`desp-proc-${m.key}`} className="text-sm cursor-pointer flex items-center gap-2">
+                      <ModIcon className={`h-4 w-4 ${m.color}`} /> {m.label}
+                    </Label>
+                  </div>
+                );
+              })}
             </RadioGroup>
           </div>
           <div>
