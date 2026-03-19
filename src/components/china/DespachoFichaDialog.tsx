@@ -126,7 +126,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
               <Label className="text-xs text-muted-foreground">Histórico de Despachos</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {despachos.map((d: any) => {
-                  const moduloInfo = DESPACHO_MODULOS_PROCESSO.find((m) => m.key === d.modulo_destino);
+                  const moduloInfo = modulosDisponiveis.find((m) => m.key === d.modulo_destino);
                   return (
                     <div key={d.id} className="p-2.5 rounded-md border bg-muted/30 text-xs space-y-1">
                       <div className="flex items-center justify-between">
