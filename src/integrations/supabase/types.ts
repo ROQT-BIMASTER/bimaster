@@ -4981,6 +4981,8 @@ export type Database = {
       }
       erp_config: {
         Row: {
+          api_key: string | null
+          ativo: boolean | null
           config_key: string
           config_value: string | null
           description: string | null
@@ -4991,6 +4993,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          api_key?: string | null
+          ativo?: boolean | null
           config_key: string
           config_value?: string | null
           description?: string | null
@@ -5001,6 +5005,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          api_key?: string | null
+          ativo?: boolean | null
           config_key?: string
           config_value?: string | null
           description?: string | null
