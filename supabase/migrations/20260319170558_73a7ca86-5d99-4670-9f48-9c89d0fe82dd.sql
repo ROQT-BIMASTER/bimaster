@@ -1,0 +1,1 @@
+ALTER TABLE erp_sync_log ALTER COLUMN entity_id DROP NOT NULL;
