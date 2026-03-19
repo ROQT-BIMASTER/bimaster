@@ -77,7 +77,8 @@ export function DespachoDocumentoDialog({
       try {
         const selectedWorkflow = workflows.find((w: any) => w.id === workflowId);
         const modulosLabels = modulos.map(
-          (k) => DESPACHO_MODULOS_PROCESSO.find((m) => m.key === k)?.label || k
+          (k) => modulosDisponiveis.find((m) => m.key === k)?.label || k
+        );
         );
 
         await supabase.functions.invoke("gerar-despacho-oficial", {
