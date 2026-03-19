@@ -4957,6 +4957,36 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_config: {
+        Row: {
+          config_key: string
+          config_value: string | null
+          description: string | null
+          id: string
+          is_secret: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       erp_export_queue: {
         Row: {
           attempts: number
