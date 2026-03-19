@@ -30,6 +30,7 @@ import { ThemeSelector } from "@/components/theme/ThemeSelector";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { MFASettings } from "@/components/configuracoes/MFASettings";
 import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
+import { GerenciamentoEmpresas } from "@/components/configuracoes/GerenciamentoEmpresas";
 import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
 import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
 import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
