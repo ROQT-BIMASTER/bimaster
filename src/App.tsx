@@ -642,6 +642,7 @@ const App = () => {
             <ThemeProvider>
             <PermissionsProvider>
               <ImpersonationProvider>
+                <EmpresaProvider>
                 <MeetingRecordingProvider>
                 <TourProvider>
                   <TooltipProvider delayDuration={0}>
@@ -651,6 +652,7 @@ const App = () => {
                   </TooltipProvider>
                 </TourProvider>
                 </MeetingRecordingProvider>
+                </EmpresaProvider>
               </ImpersonationProvider>
             </PermissionsProvider>
             </ThemeProvider>
