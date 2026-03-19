@@ -37,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, documentoData }: ParecerDialogProps) {
+  const modulosDisponiveis = useModulosDespachoResolved();
   const [acao, setAcao] = useState<string>("aprovar");
   const [texto, setTexto] = useState("");
   const [novoModulo, setNovoModulo] = useState("");
