@@ -30,6 +30,9 @@ export interface DespachoDocumento {
   prazo_ciencia_horas: number | null;
   // Destinatário
   despachado_para_nome: string | null;
+  // Vínculo com projeto
+  vinculo_projeto_id: string | null;
+  vinculo_tarefa_id: string | null;
 }
 
 export interface DespachoTransicao {
