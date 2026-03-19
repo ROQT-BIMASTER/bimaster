@@ -372,6 +372,12 @@ function Configuracoes() {
             )}
 
             {isAdmin && (
+              <TabsContent value="empresas">
+                <GerenciamentoEmpresas />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
               <TabsContent value="pontuacao">
                 <GerenciamentoPontuacao />
               </TabsContent>
