@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useDocWorkflowEtapas } from "@/hooks/useDocWorkflow";
 import { useApproverProfiles } from "@/hooks/useApproverProfiles";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -27,6 +27,7 @@ interface WorkflowEtapasConfiguratorProps {
 
 export function WorkflowEtapasConfigurator({ configId, configNome }: WorkflowEtapasConfiguratorProps) {
   const { etapas, isLoading, addEtapa, deleteEtapa } = useDocWorkflowEtapas(configId);
+  const modulosDisponiveis = useModulosDespachoResolved();
   const { data: approvers = [] } = useApproverProfiles();
   const queryClient = useQueryClient();
   const [novaEtapa, setNovaEtapa] = useState("");
@@ -163,7 +164,7 @@ export function WorkflowEtapasConfigurator({ configId, configNome }: WorkflowEta
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="nenhum" className="text-xs">Próxima fase</SelectItem>
-                              {DESPACHO_MODULOS_PROCESSO.map(m => {
+                              {modulosDisponiveis.map(m => {
                                 const MIcon = m.icon;
                                 return <SelectItem key={m.key} value={m.key} className="text-xs"><span className="flex items-center gap-1.5"><MIcon className={`h-3 w-3 ${m.color}`} /> {m.label}</span></SelectItem>;
                               })}
@@ -183,7 +184,7 @@ export function WorkflowEtapasConfigurator({ configId, configNome }: WorkflowEta
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="nenhum" className="text-xs">Retornar ao remetente</SelectItem>
-                              {DESPACHO_MODULOS_PROCESSO.map(m => {
+                              {modulosDisponiveis.map(m => {
                                 const MIcon = m.icon;
                                 return <SelectItem key={m.key} value={m.key} className="text-xs"><span className="flex items-center gap-1.5"><MIcon className={`h-3 w-3 ${m.color}`} /> {m.label}</span></SelectItem>;
                               })}

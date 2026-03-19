@@ -14,7 +14,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { cn } from "@/lib/utils";
 import { useProcessJuntadas, type ProcessJuntada } from "@/hooks/useProcessJuntadas";
 import { useDocWorkflowConfigs, useDocWorkflowEtapas, useDocWorkflowInstance } from "@/hooks/useDocWorkflow";
-import { DespachoDialog, DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { DespachoDialog } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 
 const PARECER_STYLES: Record<string, { icon: any; color: string; label: string }> = {
@@ -31,6 +32,7 @@ interface Props {
 export function JuntadasSection({ processId }: Props) {
   const { juntadas, isLoading, addJuntada, despacharJuntada } = useProcessJuntadas(processId);
   const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
+  const modulosDisponiveis = useModulosDespachoResolved();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedJuntada, setSelectedJuntada] = useState<ProcessJuntada | null>(null);
   const [despachoJuntada, setDespachoJuntada] = useState<ProcessJuntada | null>(null);
@@ -96,7 +98,7 @@ export function JuntadasSection({ processId }: Props) {
                 const ps = PARECER_STYLES[j.parecer_status] || PARECER_STYLES.pendente;
                 const Icon = ps.icon;
                 const despachoMod = j.despacho_modulo
-                  ? DESPACHO_MODULOS_PROCESSO.find(m => m.key === j.despacho_modulo)
+                  ? modulosDisponiveis.find(m => m.key === j.despacho_modulo)
                   : null;
                 return (
                   <div
@@ -282,7 +284,7 @@ export function JuntadasSection({ processId }: Props) {
                 <SelectTrigger><SelectValue placeholder="Todos os módulos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os módulos</SelectItem>
-                  {DESPACHO_MODULOS_PROCESSO.map(m => {
+                  {modulosDisponiveis.map(m => {
                     const MIcon = m.icon;
                     return <SelectItem key={m.key} value={m.key}><span className="flex items-center gap-1.5"><MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}</span></SelectItem>;
                   })}
@@ -318,6 +320,7 @@ export function JuntadasSection({ processId }: Props) {
 
 function JuntadaDetail({ juntada, onDespachar }: { juntada: ProcessJuntada; onDespachar?: () => void }) {
   const { configs } = useDocWorkflowConfigs();
+  const modulosDisponiveis = useModulosDespachoResolved();
   const { instancia, transicoes, iniciarWorkflow, registrarTransicao } = useDocWorkflowInstance(juntada.id);
   const [showIniciarWf, setShowIniciarWf] = useState(false);
   const [selectedConfigId, setSelectedConfigId] = useState("");
@@ -375,7 +378,7 @@ function JuntadaDetail({ juntada, onDespachar }: { juntada: ProcessJuntada; onDe
         <div className="bg-muted/30 rounded-lg p-3 text-sm border-l-2 border-primary/30">
           <span className="text-[11px] text-muted-foreground block mb-1">Despachado para</span>
           <span className="font-medium flex items-center gap-1.5">
-            {(() => { const mod = DESPACHO_MODULOS_PROCESSO.find(m => m.key === juntada.despacho_modulo); if (!mod) return juntada.despacho_modulo; const MIcon = mod.icon; return <><MIcon className={`h-4 w-4 ${mod.color}`} /> {mod.label}</>; })()}
+            {(() => { const mod = modulosDisponiveis.find(m => m.key === juntada.despacho_modulo); if (!mod) return juntada.despacho_modulo; const MIcon = mod.icon; return <><MIcon className={`h-4 w-4 ${mod.color}`} /> {mod.label}</>; })()}
           </span>
           {juntada.despacho_descricao && (
             <p className="text-xs text-muted-foreground mt-1 italic">"{juntada.despacho_descricao}"</p>

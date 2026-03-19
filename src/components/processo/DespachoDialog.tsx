@@ -1,21 +1,19 @@
 import { useState } from "react";
-import { Loader2, Send, FlaskConical, ShieldCheck, CheckCircle2, Palette, Package, Tag, ClipboardList, Truck, type LucideIcon } from "lucide-react";
+import { Loader2, Send, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useModulosDespachoResolved, type ModuloDespachoResolved } from "@/hooks/useModulosDespacho";
 
-export const DESPACHO_MODULOS_PROCESSO: readonly { key: string; label: string; icon: LucideIcon; color: string }[] = [
-  { key: "composicao", label: "Composição INCI", icon: FlaskConical, color: "text-primary" },
-  { key: "regulatorio", label: "Regulatório", icon: ShieldCheck, color: "text-primary" },
-  { key: "qualidade", label: "Qualidade", icon: CheckCircle2, color: "text-success" },
-  { key: "fluxo_artes", label: "Motor de Artes", icon: Palette, color: "text-accent-foreground" },
-  { key: "embalagem", label: "Embalagem", icon: Package, color: "text-primary" },
-  { key: "etiqueta_bula", label: "Etiqueta / Bula", icon: Tag, color: "text-primary" },
-  { key: "cadastro", label: "Cadastro", icon: ClipboardList, color: "text-primary" },
-  { key: "logistica", label: "Logística", icon: Truck, color: "text-primary" },
-] as const;
+// Re-export for backward compatibility — now dynamic from DB
+export function useDespachoModulos(): ModuloDespachoResolved[] {
+  return useModulosDespachoResolved();
+}
+
+// Legacy constant kept as fallback — consumers should migrate to useDespachoModulos()
+export const DESPACHO_MODULOS_PROCESSO: readonly { key: string; label: string; icon: LucideIcon; color: string }[] = [];
 
 interface DespachoDialogProps {
   open: boolean;
@@ -26,8 +24,14 @@ interface DespachoDialogProps {
 }
 
 export function DespachoDialog({ open, onOpenChange, documentoTitulo, isPending, onDespachar }: DespachoDialogProps) {
-  const [modulo, setModulo] = useState<string>(DESPACHO_MODULOS_PROCESSO[0].key);
+  const modulos = useModulosDespachoResolved();
+  const [modulo, setModulo] = useState<string>("");
   const [descricao, setDescricao] = useState("");
+
+  // Set default when modulos load
+  if (!modulo && modulos.length > 0) {
+    setModulo(modulos[0].key);
+  }
 
   const handleDespachar = async () => {
     await onDespachar(modulo, descricao);
@@ -51,7 +55,7 @@ export function DespachoDialog({ open, onOpenChange, documentoTitulo, isPending,
           <div>
             <Label className="text-xs font-medium">Módulo de destino</Label>
             <RadioGroup value={modulo} onValueChange={setModulo} className="mt-2 space-y-2">
-              {DESPACHO_MODULOS_PROCESSO.map((m) => {
+              {modulos.map((m) => {
                 const ModIcon = m.icon;
                 return (
                   <div key={m.key} className="flex items-center gap-2">

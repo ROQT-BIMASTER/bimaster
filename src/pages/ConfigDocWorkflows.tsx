@@ -13,7 +13,7 @@ import { useProcessTiposDocumento } from "@/hooks/useProcessTiposDocumento";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { DESPACHO_MODULOS_PROCESSO } from "@/components/processo/DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 
 const TIPOS_ACAO = [
   { value: "criar", label: "Criar" },

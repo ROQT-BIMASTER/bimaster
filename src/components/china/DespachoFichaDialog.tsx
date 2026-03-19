@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2, Clock, User } from "lucide-react";
-import { DESPACHO_MODULOS_PROCESSO } from "@/components/processo/DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { useCreateFichaDespacho, useFichaDespachos, useFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
 import { format } from "date-fns";
 
@@ -25,6 +25,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
   const { data: visibilidade = [] } = useFichaVisibilidade(submissaoId);
   const { data: despachos = [] } = useFichaDespachos(submissaoId);
   const createDespacho = useCreateFichaDespacho();
+  const modulosDisponiveis = useModulosDespachoResolved();
 
   const handleDespachar = () => {
     if (!modulo) return;
@@ -64,13 +65,16 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                 <SelectValue placeholder="Selecionar módulo..." />
               </SelectTrigger>
               <SelectContent>
-                {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                  <SelectItem key={m.key} value={m.key}>
-                    <span className="flex items-center gap-1.5">
-                      <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
-                    </span>
-                  </SelectItem>
-                ))}
+                {modulosDisponiveis.map((m) => {
+                  const MIcon = m.icon;
+                  return (
+                    <SelectItem key={m.key} value={m.key}>
+                      <span className="flex items-center gap-1.5">
+                        <MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -122,7 +126,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
               <Label className="text-xs text-muted-foreground">Histórico de Despachos</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {despachos.map((d: any) => {
-                  const moduloInfo = DESPACHO_MODULOS_PROCESSO.find((m) => m.key === d.modulo_destino);
+                  const moduloInfo = modulosDisponiveis.find((m) => m.key === d.modulo_destino);
                   return (
                     <div key={d.id} className="p-2.5 rounded-md border bg-muted/30 text-xs space-y-1">
                       <div className="flex items-center justify-between">

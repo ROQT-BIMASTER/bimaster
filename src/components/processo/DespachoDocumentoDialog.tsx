@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCriarDespachoLote } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 import { toast } from "sonner";
 
@@ -33,7 +33,8 @@ export function DespachoDocumentoDialog({
   processoId,
   categoriaChecklist,
 }: DespachoDocumentoDialogProps) {
-  const [modulos, setModulos] = useState<string[]>([DESPACHO_MODULOS_PROCESSO[0].key]);
+  const modulosDisponiveis = useModulosDespachoResolved();
+  const [modulos, setModulos] = useState<string[]>([]);
   const [workflowId, setWorkflowId] = useState("none");
   const [observacao, setObservacao] = useState("");
   const [prazoHoras, setPrazoHoras] = useState(48);
@@ -76,7 +77,7 @@ export function DespachoDocumentoDialog({
       try {
         const selectedWorkflow = workflows.find((w: any) => w.id === workflowId);
         const modulosLabels = modulos.map(
-          (k) => DESPACHO_MODULOS_PROCESSO.find((m) => m.key === k)?.label || k
+          (k) => modulosDisponiveis.find((m) => m.key === k)?.label || k
         );
 
         await supabase.functions.invoke("gerar-despacho-oficial", {
@@ -103,7 +104,7 @@ export function DespachoDocumentoDialog({
     }
 
     onOpenChange(false);
-    setModulos([DESPACHO_MODULOS_PROCESSO[0].key]);
+    setModulos(modulosDisponiveis.length > 0 ? [modulosDisponiveis[0].key] : []);
     setWorkflowId("none");
     setObservacao("");
     setPrazoHoras(48);
@@ -157,21 +158,24 @@ export function DespachoDocumentoDialog({
               )}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                <label
-                  key={m.key}
-                  className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5"
-                >
-                  <Checkbox
-                    checked={modulos.includes(m.key)}
-                    onCheckedChange={() => toggleModulo(m.key)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="text-xs flex items-center gap-1.5">
-                    <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
-                  </span>
-                </label>
-              ))}
+              {modulosDisponiveis.map((m) => {
+                const MIcon = m.icon;
+                return (
+                  <label
+                    key={m.key}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5"
+                  >
+                    <Checkbox
+                      checked={modulos.includes(m.key)}
+                      onCheckedChange={() => toggleModulo(m.key)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-xs flex items-center gap-1.5">
+                      <MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             {modulos.length > 1 && (
               <p className="text-[10px] text-muted-foreground mt-1.5 italic">

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useRegistrarParecer, useDevolverChina, useTransicoesDespacho, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, documentoData }: ParecerDialogProps) {
+  const modulosDisponiveis = useModulosDespachoResolved();
   const [acao, setAcao] = useState<string>("aprovar");
   const [texto, setTexto] = useState("");
   const [novoModulo, setNovoModulo] = useState("");
@@ -102,7 +103,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
   if (!despacho) return null;
 
   const moduloInfo = despacho.modulo_destino
-    ? DESPACHO_MODULOS_PROCESSO.find((m) => m.key === despacho.modulo_destino)
+    ? modulosDisponiveis.find((m) => m.key === despacho.modulo_destino)
     : null;
 
   const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(docUrl);
@@ -210,7 +211,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
                       <SelectValue placeholder="Selecione o módulo..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {DESPACHO_MODULOS_PROCESSO.map((m) => {
+                      {modulosDisponiveis.map((m) => {
                         const MIcon = m.icon;
                         return (
                           <SelectItem key={m.key} value={m.key}>
