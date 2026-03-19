@@ -30,6 +30,7 @@ import { ThemeSelector } from "@/components/theme/ThemeSelector";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { MFASettings } from "@/components/configuracoes/MFASettings";
 import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
+import { GerenciamentoEmpresas } from "@/components/configuracoes/GerenciamentoEmpresas";
 import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
 import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
 import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
@@ -265,6 +266,7 @@ function Configuracoes() {
               <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cnpj">Gerenciar CNPJs</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="empresas">Empresas / Filiais</TabsTrigger>}
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
@@ -366,6 +368,12 @@ function Configuracoes() {
             {isAdmin && (
               <TabsContent value="cnpj">
                 <GerenciamentoCNPJ />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="empresas">
+                <GerenciamentoEmpresas />
               </TabsContent>
             )}
 
