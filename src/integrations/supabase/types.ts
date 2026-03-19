@@ -3515,6 +3515,7 @@ export type Database = {
           confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
+          data_competencia: string | null
           data_emissao: string | null
           data_hash: string | null
           data_pagamento: string | null
@@ -3528,14 +3529,18 @@ export type Database = {
           fornecedor_nome: string | null
           id: string
           numero_documento: string | null
+          numero_parcela: number | null
           parcela: number | null
           plano_contas_codigo: string | null
           plano_contas_id: string | null
           plano_contas_nome: string | null
           portador: string | null
+          portador_codigo_erp: string | null
+          portador_id: string | null
           sincronizado_em: string | null
           status: string | null
           tipo_documento: string | null
+          total_parcelas: number | null
           updated_at: string | null
           valor_aberto: number | null
           valor_ajustes: number | null
@@ -3557,6 +3562,7 @@ export type Database = {
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
@@ -3570,14 +3576,18 @@ export type Database = {
           fornecedor_nome?: string | null
           id?: string
           numero_documento?: string | null
+          numero_parcela?: number | null
           parcela?: number | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
           plano_contas_nome?: string | null
           portador?: string | null
+          portador_codigo_erp?: string | null
+          portador_id?: string | null
           sincronizado_em?: string | null
           status?: string | null
           tipo_documento?: string | null
+          total_parcelas?: number | null
           updated_at?: string | null
           valor_aberto?: number | null
           valor_ajustes?: number | null
@@ -3599,6 +3609,7 @@ export type Database = {
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
@@ -3612,14 +3623,18 @@ export type Database = {
           fornecedor_nome?: string | null
           id?: string
           numero_documento?: string | null
+          numero_parcela?: number | null
           parcela?: number | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
           plano_contas_nome?: string | null
           portador?: string | null
+          portador_codigo_erp?: string | null
+          portador_id?: string | null
           sincronizado_em?: string | null
           status?: string | null
           tipo_documento?: string | null
+          total_parcelas?: number | null
           updated_at?: string | null
           valor_aberto?: number | null
           valor_ajustes?: number | null
@@ -3648,6 +3663,13 @@ export type Database = {
             columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_portador_id_fkey"
+            columns: ["portador_id"]
+            isOneToOne: false
+            referencedRelation: "portadores"
             referencedColumns: ["id"]
           },
         ]
@@ -16038,6 +16060,59 @@ export type Database = {
             columns: ["bank_connection_id"]
             isOneToOne: false
             referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portadores: {
+        Row: {
+          agencia: string | null
+          ativo: boolean | null
+          banco_codigo: string | null
+          banco_nome: string | null
+          codigo_erp: string | null
+          conta: string | null
+          created_at: string | null
+          empresa_id: number | null
+          id: string
+          nome: string
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          codigo_erp?: string | null
+          conta?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          id?: string
+          nome: string
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean | null
+          banco_codigo?: string | null
+          banco_nome?: string | null
+          codigo_erp?: string | null
+          conta?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          id?: string
+          nome?: string
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portadores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
