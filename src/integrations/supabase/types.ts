@@ -16438,6 +16438,45 @@ export type Database = {
           },
         ]
       }
+      process_modulos_despacho: {
+        Row: {
+          ativo: boolean
+          color: string
+          created_at: string
+          created_by: string | null
+          icon_name: string
+          id: string
+          key: string
+          label: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          icon_name?: string
+          id?: string
+          key: string
+          label: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          icon_name?: string
+          id?: string
+          key?: string
+          label?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       process_step_history: {
         Row: {
           created_at: string
