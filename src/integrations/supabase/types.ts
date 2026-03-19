@@ -4962,6 +4962,8 @@ export type Database = {
           attempts: number
           created_at: string
           created_by: string | null
+          erp_response_code: string | null
+          erp_titulo_id: string | null
           error_message: string | null
           export_channel: string
           export_status: string
@@ -4977,6 +4979,8 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          erp_response_code?: string | null
+          erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
           export_status?: string
@@ -4992,6 +4996,8 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          erp_response_code?: string | null
+          erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
           export_status?: string
