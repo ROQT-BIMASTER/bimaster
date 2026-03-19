@@ -17,6 +17,7 @@ import { DashboardRedirect } from "@/components/auth/DashboardRedirect";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
+import { EmpresaProvider } from "@/contexts/EmpresaContext";
 import { PWAProvider, usePWA } from "@/contexts/PWAContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
