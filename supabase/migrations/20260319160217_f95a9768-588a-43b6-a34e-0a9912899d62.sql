@@ -1,0 +1,1 @@
+ALTER TABLE portadores ADD CONSTRAINT uq_portadores_empresa_codigo_erp UNIQUE (empresa_id, codigo_erp);
