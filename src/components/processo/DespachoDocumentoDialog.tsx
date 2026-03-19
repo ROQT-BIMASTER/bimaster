@@ -105,7 +105,7 @@ export function DespachoDocumentoDialog({
     }
 
     onOpenChange(false);
-    setModulos([DESPACHO_MODULOS_PROCESSO[0].key]);
+    setModulos(modulosDisponiveis.length > 0 ? [modulosDisponiveis[0].key] : []);
     setWorkflowId("none");
     setObservacao("");
     setPrazoHoras(48);
