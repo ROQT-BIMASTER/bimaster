@@ -98,17 +98,23 @@ serve(async (req) => {
       return await handleGetItems(supabase, url, "paid");
     } else if (req.method === "GET" && path === "pending") {
       return await handleGetItems(supabase, url, "accepted");
+    } else if (req.method === "GET" && path === "cancelled") {
+      return await handleGetCancelledItems(supabase, url);
     } else if (req.method === "POST" && path === "confirm") {
       return await handleConfirm(supabase, req);
     } else if (req.method === "GET" && path === "status") {
       return await handleStatus(supabase);
     } else {
       if (req.method === "GET") {
-        // Default: return both accepted + paid via status param
+        // Check if ?status includes cancelado
+        const statusParam = url.searchParams.get("status");
+        if (statusParam && statusParam.split(",").map(s => s.trim()).includes("cancelado")) {
+          return await handleGetCancelledItems(supabase, url);
+        }
         return await handleGetItems(supabase, url, null);
       }
       return jsonResponse({
-        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, POST /confirm, GET /status",
+        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, GET /cancelled, POST /confirm, GET /status",
       }, 404);
     }
   } catch (err) {

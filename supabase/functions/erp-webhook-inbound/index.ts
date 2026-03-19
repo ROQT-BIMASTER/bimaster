@@ -143,6 +143,8 @@ serve(async (req: Request) => {
       conta_pagar_id: contaPagarId,
       payload_entrada: payload,
       fila_atualizada: filaAtualizada,
+      conta_atualizada: contaAtualizada,
+      conta_ja_paga: contaJaPaga,
       idempotency_key: idempotencyKey || null,
       data_processamento_erp: payload.data_processamento,
       success: true,
