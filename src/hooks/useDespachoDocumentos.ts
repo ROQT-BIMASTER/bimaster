@@ -23,6 +23,13 @@ export interface DespachoDocumento {
   etapa_atual: number;
   created_by: string | null;
   created_at: string;
+  // Ciência fields
+  ciencia_em: string | null;
+  ciencia_por: string | null;
+  ciencia_por_nome: string | null;
+  prazo_ciencia_horas: number | null;
+  // Destinatário
+  despachado_para_nome: string | null;
 }
 
 export interface DespachoTransicao {
@@ -83,10 +90,10 @@ export function useCriarDespachoLote() {
       workflow_config_id?: string;
       observacao?: string;
       prazo_ciencia_horas?: number;
+      despachado_para_nome?: string;
     }) => {
       const loteId = crypto.randomUUID();
 
-      // Get next anexo number
       const { data: existing } = await (supabase
         .from("process_despacho_documento" as any)
         .select("numero_anexo")
@@ -113,12 +120,12 @@ export function useCriarDespachoLote() {
             prazo_ciencia_horas: input.prazo_ciencia_horas || 48,
             lote_despacho_id: loteId,
             created_by: user?.id,
+            despachado_para_nome: input.despachado_para_nome || null,
           })
           .select()
           .single() as any);
         if (error) throw error;
 
-        // Transition record
         await (supabase
           .from("process_despacho_transicoes" as any)
           .insert({
@@ -130,7 +137,6 @@ export function useCriarDespachoLote() {
             observacao: input.observacao || null,
           }) as any);
 
-        // Create process event if processo_id exists
         if (input.processo_id) {
           await (supabase
             .from("process_events" as any)
@@ -160,7 +166,6 @@ export function useCriarDespachoLote() {
   });
 }
 
-// Keep single dispatch as convenience wrapper
 export function useCriarDespacho() {
   const lote = useCriarDespachoLote();
   return {
@@ -173,6 +178,7 @@ export function useCriarDespacho() {
       modulo_destino?: string;
       workflow_config_id?: string;
       observacao?: string;
+      despachado_para_nome?: string;
     }) => {
       const results = await lote.mutateAsync({
         submissao_id: input.submissao_id,
@@ -182,11 +188,50 @@ export function useCriarDespacho() {
         modulo_destino: input.modulo_destino,
         workflow_config_id: input.workflow_config_id,
         observacao: input.observacao,
+        despachado_para_nome: input.despachado_para_nome,
       });
       return results[0];
     },
     isPending: lote.isPending,
   };
+}
+
+export function useDarCiencia() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: { despacho_id: string; submissao_id: string }) => {
+      const now = new Date().toISOString();
+
+      const { error } = await (supabase
+        .from("process_despacho_documento" as any)
+        .update({
+          ciencia_em: now,
+          ciencia_por: user?.id,
+          ciencia_por_nome: user?.email,
+          status: "em_analise",
+        })
+        .eq("id", input.despacho_id) as any);
+      if (error) throw error;
+
+      await (supabase
+        .from("process_despacho_transicoes" as any)
+        .insert({
+          despacho_id: input.despacho_id,
+          etapa_nome: "Ciência",
+          acao: "dar_ciencia",
+          usuario_id: user?.id,
+          usuario_nome: user?.email,
+          observacao: "Usuário deu ciência ao despacho",
+        }) as any);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["despachos-submissao", vars.submissao_id] });
+      queryClient.invalidateQueries({ queryKey: ["despachos-processo"] });
+      toast.success("Ciência registrada");
+    },
+  });
 }
 
 export function useRegistrarParecer() {
@@ -225,7 +270,6 @@ export function useRegistrarParecer() {
         .eq("id", input.despacho_id) as any);
       if (error) throw error;
 
-      // Transition record
       await (supabase
         .from("process_despacho_transicoes" as any)
         .insert({
@@ -252,7 +296,6 @@ export function useDevolverChina() {
 
   return useMutation({
     mutationFn: async (input: { despacho_id: string; documento_id: string }) => {
-      // Mark despacho as returned
       const { error } = await (supabase
         .from("process_despacho_documento" as any)
         .update({
@@ -263,13 +306,11 @@ export function useDevolverChina() {
         .eq("id", input.despacho_id) as any);
       if (error) throw error;
 
-      // Update original china document status
       await supabase
         .from("china_produto_documentos")
         .update({ status: "aprovado" } as any)
         .eq("id", input.documento_id);
 
-      // Transition record
       await (supabase
         .from("process_despacho_transicoes" as any)
         .insert({
