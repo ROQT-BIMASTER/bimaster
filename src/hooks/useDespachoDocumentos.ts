@@ -91,6 +91,7 @@ export function useCriarDespachoLote() {
       observacao?: string;
       prazo_ciencia_horas?: number;
       despachado_para_nome?: string;
+      vinculo_projeto?: { projeto_id: string; secao_id?: string; tarefa_id?: string };
     }) => {
       const loteId = crypto.randomUUID();
 
