@@ -156,6 +156,23 @@ export function useCriarDespachoLote() {
         nextAnexo++;
       }
 
+      // Auto-register activity in project task if linked
+      if (input.vinculo_projeto?.tarefa_id) {
+        const { registrarMovimentacaoNaTarefa, buscarNumeroProcesso } = await import("@/lib/registrarMovimentacaoProjeto");
+        const numeroProcesso = input.processo_id
+          ? (await (supabase.from("product_process" as any).select("numero_processo").eq("id", input.processo_id).maybeSingle() as any)).data?.numero_processo
+          : await buscarNumeroProcesso(input.submissao_id);
+
+        await registrarMovimentacaoNaTarefa({
+          tarefa_id: input.vinculo_projeto.tarefa_id,
+          projeto_id: input.vinculo_projeto.projeto_id,
+          user_id: user?.id || "",
+          modulo_destino: input.modulo_destino || "módulo",
+          descricao_despacho: input.observacao,
+          numero_processo: numeroProcesso || undefined,
+        });
+      }
+
       return results;
     },
     onSuccess: (_, vars) => {
