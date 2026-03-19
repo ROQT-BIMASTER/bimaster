@@ -327,7 +327,7 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                             </div>
                           )}
 
-
+                          {!desp.ciencia_em && desp.status === "pendente" && (
                             <Button
                               variant="outline"
                               size="sm"
