@@ -159,21 +159,24 @@ export function DespachoDocumentoDialog({
               )}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                <label
-                  key={m.key}
-                  className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5"
-                >
-                  <Checkbox
-                    checked={modulos.includes(m.key)}
-                    onCheckedChange={() => toggleModulo(m.key)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="text-xs flex items-center gap-1.5">
-                    <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
-                  </span>
-                </label>
-              ))}
+              {modulosDisponiveis.map((m) => {
+                const MIcon = m.icon;
+                return (
+                  <label
+                    key={m.key}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5"
+                  >
+                    <Checkbox
+                      checked={modulos.includes(m.key)}
+                      onCheckedChange={() => toggleModulo(m.key)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-xs flex items-center gap-1.5">
+                      <MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             {modulos.length > 1 && (
               <p className="text-[10px] text-muted-foreground mt-1.5 italic">
