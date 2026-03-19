@@ -5101,53 +5101,90 @@ export type Database = {
       erp_sync_log: {
         Row: {
           action: string
+          conta_pagar_id: string | null
           created_at: string | null
           created_by: string | null
+          data_processamento_erp: string | null
           direction: string
           duration_ms: number | null
           empresa_id: number | null
           entity_id: string
           entity_type: string
+          erp_codigo_erro: string | null
+          erp_mensagem: string | null
           error_message: string | null
+          evento: string | null
+          fila_atualizada: boolean | null
           id: string
+          idempotency_key: string | null
+          payload_entrada: Json | null
+          referencia_erp: string | null
           request_payload: Json | null
           response_payload: Json | null
           response_status: number | null
           success: boolean | null
+          tipo: string | null
         }
         Insert: {
           action: string
+          conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          data_processamento_erp?: string | null
           direction?: string
           duration_ms?: number | null
           empresa_id?: number | null
           entity_id: string
           entity_type: string
+          erp_codigo_erro?: string | null
+          erp_mensagem?: string | null
           error_message?: string | null
+          evento?: string | null
+          fila_atualizada?: boolean | null
           id?: string
+          idempotency_key?: string | null
+          payload_entrada?: Json | null
+          referencia_erp?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
           success?: boolean | null
+          tipo?: string | null
         }
         Update: {
           action?: string
+          conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          data_processamento_erp?: string | null
           direction?: string
           duration_ms?: number | null
           empresa_id?: number | null
           entity_id?: string
           entity_type?: string
+          erp_codigo_erro?: string | null
+          erp_mensagem?: string | null
           error_message?: string | null
+          evento?: string | null
+          fila_atualizada?: boolean | null
           id?: string
+          idempotency_key?: string | null
+          payload_entrada?: Json | null
+          referencia_erp?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
           success?: boolean | null
+          tipo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "erp_sync_log_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "erp_sync_log_empresa_id_fkey"
             columns: ["empresa_id"]
