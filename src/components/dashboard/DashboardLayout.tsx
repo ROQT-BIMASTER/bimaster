@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { EmpresaSelector } from "@/components/shared/EmpresaSelector";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
