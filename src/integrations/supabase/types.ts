@@ -7163,64 +7163,97 @@ export type Database = {
         Row: {
           agencia: string | null
           ativo: boolean | null
+          bairro: string | null
           banco: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
+          complemento: string | null
           conta: string | null
           contato: string | null
           created_at: string | null
           email: string | null
           endereco: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
           favorecido: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
           linha_digitavel: string | null
           nome_fantasia: string | null
+          numero: string | null
           pix_chave: string | null
           pix_tipo: string | null
           razao_social: string
           telefone: string | null
           tipo_conta: string | null
+          uf: string | null
           updated_at: string | null
         }
         Insert: {
           agencia?: string | null
           ativo?: boolean | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           favorecido?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           linha_digitavel?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social: string
           telefone?: string | null
           tipo_conta?: string | null
+          uf?: string | null
           updated_at?: string | null
         }
         Update: {
           agencia?: string | null
           ativo?: boolean | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           favorecido?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           linha_digitavel?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social?: string
           telefone?: string | null
           tipo_conta?: string | null
+          uf?: string | null
           updated_at?: string | null
         }
         Relationships: []
