@@ -104,16 +104,20 @@ serve(async (req: Request) => {
   const { data: logEntry } = await supabase
     .from("erp_sync_log")
     .insert({
+      entity_type: "conta_pagar",
+      entity_id: contaPagarId || null,
+      action: payload.evento,
+      direction: "inbound",
       empresa_id: payload.empresa_id,
       tipo: "inbound_webhook",
       evento: payload.evento,
       referencia_erp: payload.referencia_erp,
       conta_pagar_id: contaPagarId,
-      status: novoStatus,
       payload_entrada: payload,
       fila_atualizada: filaAtualizada,
       idempotency_key: idempotencyKey || null,
       data_processamento_erp: payload.data_processamento,
+      success: true,
     })
     .select("id")
     .single();

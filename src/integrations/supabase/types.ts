@@ -5114,7 +5114,7 @@ export type Database = {
           direction: string
           duration_ms: number | null
           empresa_id: number | null
-          entity_id: string
+          entity_id: string | null
           entity_type: string
           erp_codigo_erro: string | null
           erp_mensagem: string | null
@@ -5140,7 +5140,7 @@ export type Database = {
           direction?: string
           duration_ms?: number | null
           empresa_id?: number | null
-          entity_id: string
+          entity_id?: string | null
           entity_type: string
           erp_codigo_erro?: string | null
           erp_mensagem?: string | null
@@ -5166,7 +5166,7 @@ export type Database = {
           direction?: string
           duration_ms?: number | null
           empresa_id?: number | null
-          entity_id?: string
+          entity_id?: string | null
           entity_type?: string
           erp_codigo_erro?: string | null
           erp_mensagem?: string | null
