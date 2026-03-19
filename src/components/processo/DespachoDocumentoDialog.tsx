@@ -168,7 +168,7 @@ export function DespachoDocumentoDialog({
                     className="h-3.5 w-3.5"
                   />
                   <span className="text-xs flex items-center gap-1.5">
-                    <span>{m.icon}</span> {m.label}
+                    <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
                   </span>
                 </label>
               ))}

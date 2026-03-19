@@ -210,13 +210,16 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
                       <SelectValue placeholder="Selecione o módulo..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {DESPACHO_MODULOS_PROCESSO.map((m) => (
-                        <SelectItem key={m.key} value={m.key}>
-                          <span className="flex items-center gap-1.5">
-                            <span>{m.icon}</span> {m.label}
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {DESPACHO_MODULOS_PROCESSO.map((m) => {
+                        const MIcon = m.icon;
+                        return (
+                          <SelectItem key={m.key} value={m.key}>
+                            <span className="flex items-center gap-1.5">
+                              <MIcon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>

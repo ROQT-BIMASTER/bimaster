@@ -67,7 +67,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                 {DESPACHO_MODULOS_PROCESSO.map((m) => (
                   <SelectItem key={m.key} value={m.key}>
                     <span className="flex items-center gap-1.5">
-                      <span>{m.icon}</span> {m.label}
+                      <m.icon className={`h-3.5 w-3.5 ${m.color}`} /> {m.label}
                     </span>
                   </SelectItem>
                 ))}
