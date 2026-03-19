@@ -4957,11 +4957,43 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_config: {
+        Row: {
+          config_key: string
+          config_value: string | null
+          description: string | null
+          id: string
+          is_secret: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: string | null
+          description?: string | null
+          id?: string
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       erp_export_queue: {
         Row: {
           attempts: number
           created_at: string
           created_by: string | null
+          erp_response_code: string | null
+          erp_titulo_id: string | null
           error_message: string | null
           export_channel: string
           export_status: string
@@ -4977,6 +5009,8 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          erp_response_code?: string | null
+          erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
           export_status?: string
@@ -4992,6 +5026,8 @@ export type Database = {
           attempts?: number
           created_at?: string
           created_by?: string | null
+          erp_response_code?: string | null
+          erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
           export_status?: string
@@ -5012,6 +5048,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      erp_sync_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          created_by: string | null
+          direction: string
+          duration_ms: number | null
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          response_status: number | null
+          success: boolean | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          created_by?: string | null
+          direction?: string
+          duration_ms?: number | null
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          success?: boolean | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          created_by?: string | null
+          direction?: string
+          duration_ms?: number | null
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          success?: boolean | null
+        }
+        Relationships: []
       }
       estoque_distribuidoras: {
         Row: {
@@ -7163,64 +7247,97 @@ export type Database = {
         Row: {
           agencia: string | null
           ativo: boolean | null
+          bairro: string | null
           banco: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
+          complemento: string | null
           conta: string | null
           contato: string | null
           created_at: string | null
           email: string | null
           endereco: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
           favorecido: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
           linha_digitavel: string | null
           nome_fantasia: string | null
+          numero: string | null
           pix_chave: string | null
           pix_tipo: string | null
           razao_social: string
           telefone: string | null
           tipo_conta: string | null
+          uf: string | null
           updated_at: string | null
         }
         Insert: {
           agencia?: string | null
           ativo?: boolean | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           favorecido?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           linha_digitavel?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social: string
           telefone?: string | null
           tipo_conta?: string | null
+          uf?: string | null
           updated_at?: string | null
         }
         Update: {
           agencia?: string | null
           ativo?: boolean | null
+          bairro?: string | null
           banco?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           conta?: string | null
           contato?: string | null
           created_at?: string | null
           email?: string | null
           endereco?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           favorecido?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
           linha_digitavel?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           pix_chave?: string | null
           pix_tipo?: string | null
           razao_social?: string
           telefone?: string | null
           tipo_conta?: string | null
+          uf?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -24270,6 +24387,9 @@ export type Database = {
           departamento_definido_manualmente: boolean | null
           departamento_id: string | null
           description: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
           id: string
           is_active: boolean | null
           is_group: boolean | null
@@ -24292,6 +24412,9 @@ export type Database = {
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
           description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           id?: string
           is_active?: boolean | null
           is_group?: boolean | null
@@ -24314,6 +24437,9 @@ export type Database = {
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
           description?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           id?: string
           is_active?: boolean | null
           is_group?: boolean | null
