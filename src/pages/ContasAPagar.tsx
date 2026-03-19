@@ -78,11 +78,21 @@ type SortDirection = 'asc' | 'desc';
 export default function ContasAPagar() {
   const queryClient = useQueryClient();
   const { userType, isAdmin } = useUserRole();
+  const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
   
   // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+
+  // Inicializar filterEmpresas com as empresas do contexto
+  const empresaInitRef = useRef(false);
+  useEffect(() => {
+    if (!loadingEmpresas && contextEmpresaIds.length > 0 && !empresaInitRef.current) {
+      empresaInitRef.current = true;
+      setFilterEmpresas(contextEmpresaIds);
+    }
+  }, [loadingEmpresas, contextEmpresaIds]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");

@@ -107,8 +107,8 @@ export default function FinancialPaymentCentral() {
     },
   });
 
-  // Fetch empresas for the filter
-  const { data: empresas = [] } = useAllEmpresas();
+  // Fetch empresas for the filter — scoped to user's accessible empresas
+  const { empresasDoUsuario: empresas } = useEmpresaFilter();
 
   const { 
     items, 

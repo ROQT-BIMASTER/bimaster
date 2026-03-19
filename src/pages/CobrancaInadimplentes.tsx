@@ -108,8 +108,18 @@ function calcularScore(cliente: ClienteAgrupado): { score: number; prioridade: '
 }
 
 export default function CobrancaInadimplentes() {
+  const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
   const [searchCliente, setSearchCliente] = useState("");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+
+  // Inicializar filterEmpresas com as empresas do contexto
+  const empresaInitRef = useRef(false);
+  useEffect(() => {
+    if (!loadingEmpresas && contextEmpresaIds.length > 0 && !empresaInitRef.current) {
+      empresaInitRef.current = true;
+      setFilterEmpresas(contextEmpresaIds);
+    }
+  }, [loadingEmpresas, contextEmpresaIds]);
   const [filterDiasAtraso, setFilterDiasAtraso] = useState<string>("all");
   const [filterPrioridade, setFilterPrioridade] = useState<string>("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteAgrupado | null>(null);
