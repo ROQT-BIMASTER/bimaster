@@ -92,8 +92,15 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
   }, [isAdmin, isImpersonating, allEmpresas, userEmpresas, impersonatedEmpresas]);
 
   // Initialize selection from localStorage or primary empresa
+  // Determine effective empresas list for initialization
+  const effectiveUserEmpresas = isImpersonating ? impersonatedEmpresas : userEmpresas;
+
   useEffect(() => {
-    if (!user?.id || (isAdmin ? loadingAllEmpresas : loadingUserEmpresas)) return;
+    const isLoading = isImpersonating 
+      ? loadingImpersonatedEmpresas 
+      : (isAdmin ? loadingAllEmpresas : loadingUserEmpresas);
+    
+    if (!user?.id || isLoading) return;
     if (initialized) return;
 
     const storedId = getStoredEmpresaId(user.id);
@@ -101,9 +108,9 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     // Check if stored ID is valid (user still has access)
     if (storedId !== null && empresasDoUsuario.some(e => e.id === storedId)) {
       setSelectedId(storedId);
-    } else if (!isAdmin && userEmpresas) {
-      // Auto-select primary empresa for non-admins
-      const primary = userEmpresas.find(ue => ue.is_primary);
+    } else if ((!isAdmin || isImpersonating) && effectiveUserEmpresas) {
+      // Auto-select primary empresa for non-admins or when impersonating
+      const primary = effectiveUserEmpresas.find(ue => ue.is_primary);
       if (primary) {
         setSelectedId(primary.empresa_id);
         storeEmpresaId(user.id, primary.empresa_id);
@@ -111,13 +118,13 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     }
     
     setInitialized(true);
-  }, [user?.id, empresasDoUsuario, userEmpresas, isAdmin, loadingAllEmpresas, loadingUserEmpresas, initialized]);
+  }, [user?.id, empresasDoUsuario, effectiveUserEmpresas, isAdmin, isImpersonating, loadingAllEmpresas, loadingUserEmpresas, loadingImpersonatedEmpresas, initialized]);
 
-  // Reset when user changes
+  // Reset when user changes or impersonation changes
   useEffect(() => {
     setInitialized(false);
     setSelectedId(null);
-  }, [user?.id]);
+  }, [user?.id, impersonatedUserId]);
 
   const empresaSelecionada = useMemo(() => {
     if (selectedId === null) return null;
