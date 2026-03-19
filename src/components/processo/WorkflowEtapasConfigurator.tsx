@@ -27,6 +27,7 @@ interface WorkflowEtapasConfiguratorProps {
 
 export function WorkflowEtapasConfigurator({ configId, configNome }: WorkflowEtapasConfiguratorProps) {
   const { etapas, isLoading, addEtapa, deleteEtapa } = useDocWorkflowEtapas(configId);
+  const modulosDisponiveis = useModulosDespachoResolved();
   const { data: approvers = [] } = useApproverProfiles();
   const queryClient = useQueryClient();
   const [novaEtapa, setNovaEtapa] = useState("");
