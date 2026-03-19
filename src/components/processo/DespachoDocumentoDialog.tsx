@@ -79,7 +79,6 @@ export function DespachoDocumentoDialog({
         const modulosLabels = modulos.map(
           (k) => modulosDisponiveis.find((m) => m.key === k)?.label || k
         );
-        );
 
         await supabase.functions.invoke("gerar-despacho-oficial", {
           body: {
