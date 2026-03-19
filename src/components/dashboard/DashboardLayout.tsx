@@ -100,6 +100,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <h1 className="text-[20px] font-bold text-foreground">{t("system.title")}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <EmpresaSelector compact />
               <LanguageSelector />
               <ImpersonationSelector />
               <NotificationBell />
