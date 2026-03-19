@@ -32,6 +32,7 @@ interface Props {
 export function JuntadasSection({ processId }: Props) {
   const { juntadas, isLoading, addJuntada, despacharJuntada } = useProcessJuntadas(processId);
   const { tipos: tiposDocumento, addTipo } = useProcessTiposDocumento();
+  const modulosDisponiveis = useModulosDespachoResolved();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedJuntada, setSelectedJuntada] = useState<ProcessJuntada | null>(null);
   const [despachoJuntada, setDespachoJuntada] = useState<ProcessJuntada | null>(null);
