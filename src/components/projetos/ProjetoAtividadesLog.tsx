@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowRight, Clock, User, Target, RotateCcw, Calendar } from "lucide-react";
+import { ArrowRight, Clock, User, Target, RotateCcw, Calendar, Send } from "lucide-react";
 
 interface Atividade {
   id: string;
@@ -28,6 +28,7 @@ const TIPO_ICONS: Record<string, React.ReactNode> = {
   prazo_change: <Calendar className="h-3 w-3" />,
   estagio_change: <ArrowRight className="h-3 w-3" />,
   retrabalho: <RotateCcw className="h-3 w-3" />,
+  despacho_processo: <Send className="h-3 w-3 text-primary" />,
 };
 
 interface ProjetoAtividadesLogProps {
