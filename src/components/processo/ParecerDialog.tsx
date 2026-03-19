@@ -124,11 +124,14 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
                   {despacho.categoria_checklist && (
                     <Badge variant="outline" className="text-[9px] h-4">{despacho.categoria_checklist}</Badge>
                   )}
-                  {moduloInfo && (
-                    <Badge variant="secondary" className="text-[9px] h-4 gap-0.5">
-                      {moduloInfo.icon} {moduloInfo.label}
-                    </Badge>
-                  )}
+                  {moduloInfo && (() => {
+                    const MIcon = moduloInfo.icon;
+                    return (
+                      <Badge variant="secondary" className="text-[9px] h-4 gap-0.5">
+                        <MIcon className={`h-2.5 w-2.5 ${moduloInfo.color}`} /> {moduloInfo.label}
+                      </Badge>
+                    );
+                  })()}
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[despacho.status] || STATUS_COLORS.pendente}`}>
                     {despacho.status}
                   </span>
