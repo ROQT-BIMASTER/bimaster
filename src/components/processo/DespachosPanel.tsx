@@ -218,6 +218,11 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                         {desp.modulo_destino && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.modulo_destino}</Badge>
                         )}
+                        {(desp as any).vinculo_projeto_id && (
+                          <span className="inline-flex items-center shrink-0" title="Vinculado ao projeto">
+                            <FolderOpen className="h-3 w-3 text-primary" />
+                          </span>
+                        )}
                         {desp.categoria_checklist && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.categoria_checklist}</Badge>
                         )}
