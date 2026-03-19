@@ -125,6 +125,8 @@ export function useCriarDespachoLote() {
             lote_despacho_id: loteId,
             created_by: user?.id,
             despachado_para_nome: input.despachado_para_nome || null,
+            vinculo_projeto_id: input.vinculo_projeto?.projeto_id || null,
+            vinculo_tarefa_id: input.vinculo_projeto?.tarefa_id || null,
           })
           .select()
           .single() as any);
