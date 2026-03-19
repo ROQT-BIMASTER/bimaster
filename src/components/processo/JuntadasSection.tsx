@@ -133,7 +133,7 @@ export function JuntadasSection({ processId }: Props) {
                     {despachoMod ? (
                       <Badge variant="secondary" className="text-[9px] shrink-0 gap-1">
                         <Send className="h-2.5 w-2.5" />
-                        {despachoMod.icon} {despachoMod.label}
+                        <despachoMod.icon className={`h-2.5 w-2.5 ${despachoMod.color}`} /> {despachoMod.label}
                       </Badge>
                     ) : (
                       <Button
