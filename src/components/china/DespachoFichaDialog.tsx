@@ -77,8 +77,6 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                 })}
               </SelectContent>
             </Select>
-              </SelectContent>
-            </Select>
           </div>
 
           {visibilidade.length > 0 && (
