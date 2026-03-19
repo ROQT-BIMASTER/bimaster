@@ -302,7 +302,32 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                             {desp.ciencia_em && <CienciaTimer cienciaEm={desp.ciencia_em} />}
                           </div>
 
-                          {!desp.ciencia_em && desp.status === "pendente" && (
+                          {/* Vínculo com Projeto */}
+                          {(desp as any).vinculo_projeto_id && vinculoNomes && (
+                            <div
+                              className="flex items-center gap-1.5 text-[10px] bg-primary/5 border border-primary/20 rounded px-2 py-1 cursor-pointer hover:bg-primary/10 transition-colors w-fit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/projetos/${(desp as any).vinculo_projeto_id}`);
+                              }}
+                            >
+                              <FolderOpen className="h-3 w-3 text-primary shrink-0" />
+                              <span className="text-primary font-medium">
+                                {vinculoNomes.projetos?.[(desp as any).vinculo_projeto_id] || "Projeto"}
+                              </span>
+                              {(desp as any).vinculo_tarefa_id && vinculoNomes.tarefas?.[(desp as any).vinculo_tarefa_id] && (
+                                <span className="text-muted-foreground">
+                                  {" › "}
+                                  {vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id]?.codigo
+                                    ? `${vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id].codigo} — `
+                                    : ""}
+                                  {vinculoNomes.tarefas[(desp as any).vinculo_tarefa_id]?.titulo}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+
                             <Button
                               variant="outline"
                               size="sm"
