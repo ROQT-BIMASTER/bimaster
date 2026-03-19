@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ import { CobrancaDashboard } from "@/components/cobranca/CobrancaDashboard";
 import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
 import { Cliente360Drawer } from "@/components/financeiro/cliente360";
 import { CobrancaAutomaticaPanel } from "@/components/cobranca/CobrancaAutomaticaPanel";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface ContaVencida {
   id: string;
@@ -107,8 +108,18 @@ function calcularScore(cliente: ClienteAgrupado): { score: number; prioridade: '
 }
 
 export default function CobrancaInadimplentes() {
+  const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
   const [searchCliente, setSearchCliente] = useState("");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+
+  // Inicializar filterEmpresas com as empresas do contexto
+  const empresaInitRef = useRef(false);
+  useEffect(() => {
+    if (!loadingEmpresas && contextEmpresaIds.length > 0 && !empresaInitRef.current) {
+      empresaInitRef.current = true;
+      setFilterEmpresas(contextEmpresaIds);
+    }
+  }, [loadingEmpresas, contextEmpresaIds]);
   const [filterDiasAtraso, setFilterDiasAtraso] = useState<string>("all");
   const [filterPrioridade, setFilterPrioridade] = useState<string>("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteAgrupado | null>(null);

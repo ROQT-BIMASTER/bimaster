@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/components/tour";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface ContaPagar {
   id: string;
@@ -77,11 +78,21 @@ type SortDirection = 'asc' | 'desc';
 export default function ContasAPagar() {
   const queryClient = useQueryClient();
   const { userType, isAdmin } = useUserRole();
+  const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
   
   // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+
+  // Inicializar filterEmpresas com as empresas do contexto
+  const empresaInitRef = useRef(false);
+  useEffect(() => {
+    if (!loadingEmpresas && contextEmpresaIds.length > 0 && !empresaInitRef.current) {
+      empresaInitRef.current = true;
+      setFilterEmpresas(contextEmpresaIds);
+    }
+  }, [loadingEmpresas, contextEmpresaIds]);
   const [filterAno, setFilterAno] = useState<string>(new Date().getFullYear().toString());
   const [filterMes, setFilterMes] = useState<string>("all");
   const [filterDepartamento, setFilterDepartamento] = useState<string>("all");

@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { ImpersonationSelector } from "@/components/admin/ImpersonationSelector";
+import { EmpresaSelector } from "@/components/shared/EmpresaSelector";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -99,6 +100,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <h1 className="text-[20px] font-bold text-foreground">{t("system.title")}</h1>
             </div>
             <div className="flex items-center gap-3">
+              <EmpresaSelector compact />
               <LanguageSelector />
               <ImpersonationSelector />
               <NotificationBell />

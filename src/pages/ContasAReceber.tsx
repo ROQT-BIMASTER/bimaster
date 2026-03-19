@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { DashboardContasReceberAggregated } from "@/components/financeiro/DashboardContasReceberAggregated";
 import { CalendarioRecebimentosAggregated } from "@/components/financeiro/CalendarioRecebimentosAggregated";
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface ContaReceber {
   id: string;
@@ -60,11 +61,21 @@ type SortDirection = 'asc' | 'desc';
 export default function ContasAReceber() {
   const { isAdmin } = useUserRole();
   const queryClient = useQueryClient();
+  const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
   
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
+
+  // Inicializar filterEmpresas com as empresas do contexto
+  const empresaInitRef = useRef(false);
+  useEffect(() => {
+    if (!loadingEmpresas && contextEmpresaIds.length > 0 && !empresaInitRef.current) {
+      empresaInitRef.current = true;
+      setFilterEmpresas(contextEmpresaIds);
+    }
+  }, [loadingEmpresas, contextEmpresaIds]);
   const [filterAnos, setFilterAnos] = useState<number[]>([new Date().getFullYear()]);
   const [filterMeses, setFilterMeses] = useState<number[]>([]);
   const [filterConta, setFilterConta] = useState<string>("all");

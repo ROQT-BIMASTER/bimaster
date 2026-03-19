@@ -17,6 +17,7 @@ import { PaymentQueueTable } from "@/components/financeiro/payments/PaymentQueue
 import { PaymentReviewDialog } from "@/components/financeiro/payments/PaymentReviewDialog";
 import { useFinancialPaymentQueue, type PaymentQueueItem, type PaymentQueueStatus, type SourceType } from "@/hooks/useFinancialPaymentQueue";
 import { useAllEmpresas } from "@/hooks/useUserEmpresas";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { supabase } from "@/integrations/supabase/client";
 import { exportPaymentQueueToExcel } from "@/lib/exportExpenses";
 import { toast } from "sonner";
@@ -106,8 +107,8 @@ export default function FinancialPaymentCentral() {
     },
   });
 
-  // Fetch empresas for the filter
-  const { data: empresas = [] } = useAllEmpresas();
+  // Fetch empresas for the filter — scoped to user's accessible empresas
+  const { empresasDoUsuario: empresas } = useEmpresaFilter();
 
   const { 
     items, 
