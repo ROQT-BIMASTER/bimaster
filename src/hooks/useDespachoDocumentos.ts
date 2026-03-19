@@ -91,6 +91,7 @@ export function useCriarDespachoLote() {
       observacao?: string;
       prazo_ciencia_horas?: number;
       despachado_para_nome?: string;
+      vinculo_projeto?: { projeto_id: string; secao_id?: string; tarefa_id?: string };
     }) => {
       const loteId = crypto.randomUUID();
 
@@ -153,6 +154,23 @@ export function useCriarDespachoLote() {
 
         results.push(data as DespachoDocumento);
         nextAnexo++;
+      }
+
+      // Auto-register activity in project task if linked
+      if (input.vinculo_projeto?.tarefa_id) {
+        const { registrarMovimentacaoNaTarefa, buscarNumeroProcesso } = await import("@/lib/registrarMovimentacaoProjeto");
+        const numeroProcesso = input.processo_id
+          ? (await (supabase.from("product_process" as any).select("numero_processo").eq("id", input.processo_id).maybeSingle() as any)).data?.numero_processo
+          : await buscarNumeroProcesso(input.submissao_id);
+
+        await registrarMovimentacaoNaTarefa({
+          tarefa_id: input.vinculo_projeto.tarefa_id,
+          projeto_id: input.vinculo_projeto.projeto_id,
+          user_id: user?.id || "",
+          modulo_destino: input.modulo_destino || "módulo",
+          descricao_despacho: input.observacao,
+          numero_processo: numeroProcesso || undefined,
+        });
       }
 
       return results;

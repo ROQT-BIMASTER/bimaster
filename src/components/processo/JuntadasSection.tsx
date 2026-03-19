@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileText, Plus, UserCircle, ChevronRight, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Send } from "lucide-react";
@@ -253,13 +254,28 @@ export function JuntadasSection({ processId }: Props) {
         onOpenChange={(open) => !open && setDespachoJuntada(null)}
         documentoTitulo={despachoJuntada?.documento_titulo || ""}
         isPending={despacharJuntada.isPending}
-        onDespachar={async (modulo, descricao) => {
+        onDespachar={async (modulo, descricao, vinculoProjeto) => {
           if (!despachoJuntada) return;
           await despacharJuntada.mutateAsync({
             juntada_id: despachoJuntada.id,
             despacho_modulo: modulo,
             despacho_descricao: descricao || undefined,
           });
+          // Registrar movimentação na tarefa do projeto se vinculado
+          if (vinculoProjeto?.tarefa_id) {
+            const { registrarMovimentacaoNaTarefa } = await import("@/lib/registrarMovimentacaoProjeto");
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await registrarMovimentacaoNaTarefa({
+                tarefa_id: vinculoProjeto.tarefa_id,
+                projeto_id: vinculoProjeto.projeto_id,
+                user_id: user.id,
+                modulo_destino: modulo,
+                descricao_despacho: descricao,
+                documento_titulo: despachoJuntada.documento_titulo,
+              });
+            }
+          }
           setDespachoJuntada(null);
         }}
       />
