@@ -341,6 +341,20 @@ function Configuracoes() {
 
             {isAdmin && (
               <TabsContent value="permissoes" className="space-y-6">
+                <Card className="border-dashed border-primary/30 bg-primary/5">
+                  <CardContent className="flex items-center justify-between py-4">
+                    <div className="flex items-center gap-3">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">Permissões por Módulo</p>
+                        <p className="text-xs text-muted-foreground">Gerencie permissões de cada módulo individualmente</p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                      <a href="/dashboard/configuracoes/permissoes-modulo">Abrir</a>
+                    </Button>
+                  </CardContent>
+                </Card>
                 <PermissoesDeAcesso />
                 <GerenciadorOrdemModulos />
                 <GerenciamentoPermissoesModulos />
