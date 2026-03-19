@@ -98,7 +98,8 @@ export function JuntadasSection({ processId }: Props) {
                 const ps = PARECER_STYLES[j.parecer_status] || PARECER_STYLES.pendente;
                 const Icon = ps.icon;
                 const despachoMod = j.despacho_modulo
-                  ? DESPACHO_MODULOS_PROCESSO.find(m => m.key === j.despacho_modulo)
+                  ? modulosDisponiveis.find(m => m.key === j.despacho_modulo)
+                  : null;
                   : null;
                 return (
                   <div
