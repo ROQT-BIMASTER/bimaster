@@ -266,6 +266,7 @@ function Configuracoes() {
               <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
               {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
               {isAdmin && <TabsTrigger value="cnpj">Gerenciar CNPJs</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="empresas">Empresas / Filiais</TabsTrigger>}
               {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
               {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
               {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
