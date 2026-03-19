@@ -1,39 +1,73 @@
 
 
-## Plan: Add `api_key` and `ativo` columns to `erp_config` + insert test data
+# Plano: 3 Ajustes para Arquitetura Bilateral Completa
 
-### Context
+## Contexto Crítico Descoberto
 
-The `erp_config` table currently uses a key-value pattern (`config_key` / `config_value`). Three Edge Functions (portadores, plano-contas, fornecedores-query) authenticate using this pattern and work fine. However, `erp-webhook-inbound` queries `api_key` and `ativo` as direct columns, which don't exist yet.
+A coluna `status` em `contas_pagar` é calculada por um **trigger** (`calcular_status_conta_pagar`) que sobrescreve o valor em todo INSERT/UPDATE. O trigger só conhece: `pago`, `parcial`, `vencido`, `pendente`. Isso significa:
 
-### Step 1 — Database migration (additive, safe)
+- **Cancelado** nunca será preservado se não atualizarmos o trigger
+- **Baixa via ERP** precisa zerar `valor_aberto` para que o trigger calcule `pago` (ou o trigger precisa respeitar overrides)
 
-Add two nullable columns to `erp_config`:
+A export API (`contas-pagar-export-api`) consulta `financial_payment_queue`, não `contas_pagar`. Para títulos cancelados, precisamos adicionar uma rota que consulte `contas_pagar` diretamente.
 
-```sql
-ALTER TABLE erp_config
-  ADD COLUMN IF NOT EXISTS api_key TEXT,
-  ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT true;
-```
+---
 
-### Step 2 — Insert test record
-
-Insert a test row for empresa_id = 1 with a generated API key, populating both the new columns and the existing key-value pattern so all Edge Functions work:
+## AJUSTE 1 — Migration
 
 ```sql
-INSERT INTO erp_config (empresa_id, config_key, config_value, api_key, ativo, description)
-VALUES (1, 'api_key', 'test-erp-key-2026', 'test-erp-key-2026', true, 'Chave de teste para integração ERP');
+-- Novas colunas
+ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS pluggy_transaction_id TEXT;
+ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS baixa_origem TEXT;
+ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS data_baixa TIMESTAMPTZ;
+
+-- Atualizar trigger para suportar 'cancelado' (preservar se explicitamente definido)
+CREATE OR REPLACE FUNCTION calcular_status_conta_pagar()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Preservar status 'cancelado' se definido explicitamente
+  IF NEW.status = 'cancelado' THEN
+    RETURN NEW;
+  END IF;
+  NEW.status := CASE 
+    WHEN NEW.valor_aberto = 0 OR NEW.valor_aberto IS NULL THEN 'pago'
+    WHEN NEW.valor_pago > 0 AND NEW.valor_aberto > 0 THEN 'parcial'
+    WHEN NEW.data_vencimento < CURRENT_DATE AND NEW.valor_aberto > 0 THEN 'vencido'
+    ELSE 'pendente'
+  END;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-This ensures:
-- **erp-webhook-inbound** can query `.eq("api_key", apiKey).eq("ativo", true)` ✅
-- **erp-portadores-api, erp-plano-contas-api, erp-fornecedores-query** can query `.eq("config_key", "api_key").eq("config_value", apiKey)` ✅
+Nota: Não usamos CHECK constraint em `baixa_origem` — usamos validação no código para evitar problemas com restauração de backups.
 
-### Result
+## AJUSTE 2 — Edge Function `erp-webhook-inbound`
 
-After this, you can test any ERP Edge Function with:
-```
-curl -H "x-api-key: test-erp-key-2026" \
-  https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/erp-portadores-api/
-```
+Adicionar bloco após a atualização da fila (linha ~102) e antes do log (linha ~104):
+
+Quando `payload.evento === 'baixa_confirmada'` e `contaPagarId` existe:
+1. Buscar a conta atual (`status`)
+2. Se status ≠ `pago` → atualizar:
+   - `valor_pago = payload.valor_processado || valor_original`
+   - `valor_aberto = 0` (para que o trigger calcule `pago`)
+   - `baixa_origem = 'erp_webhook'`
+   - `data_baixa = payload.data_processamento`
+   - `data_pagamento = payload.data_processamento`
+3. Se já `pago` → ignorar (Pluggy ou outra fonte já processou), registrar no log com flag `conta_ja_paga: true`
+
+## AJUSTE 3 — Edge Function `contas-pagar-export-api`
+
+Adicionar suporte a `?status=cancelado` no `handleGetItems`:
+
+Quando `statuses` contém `cancelado`:
+1. Consultar `contas_pagar` (não `financial_payment_queue`) filtrando `status = 'cancelado'`
+2. Verificar na `erp_export_queue` quais já foram exportados como `cancellation`
+3. Retornar payload limpo com os dados do título cancelado (fornecedor, documento, valor, data_cancelamento)
+4. O endpoint POST `/confirm` com `export_type = 'cancellation'` já funcionará para marcar como exportado
+
+### Arquivos modificados
+- **1 migration SQL** (3 colunas + trigger atualizado)
+- `supabase/functions/erp-webhook-inbound/index.ts` (bloco de baixa automática)
+- `supabase/functions/contas-pagar-export-api/index.ts` (rota cancelado)
 
