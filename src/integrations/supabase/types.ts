@@ -3504,6 +3504,7 @@ export type Database = {
       contas_pagar: {
         Row: {
           ativo_dre: boolean | null
+          baixa_origem: string | null
           categoria_codigo: string | null
           categoria_nome: string | null
           classificacao_corrigida_em: string | null
@@ -3515,6 +3516,7 @@ export type Database = {
           confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
+          data_baixa: string | null
           data_competencia: string | null
           data_emissao: string | null
           data_hash: string | null
@@ -3534,6 +3536,7 @@ export type Database = {
           plano_contas_codigo: string | null
           plano_contas_id: string | null
           plano_contas_nome: string | null
+          pluggy_transaction_id: string | null
           portador: string | null
           portador_codigo_erp: string | null
           portador_id: string | null
@@ -3551,6 +3554,7 @@ export type Database = {
         }
         Insert: {
           ativo_dre?: boolean | null
+          baixa_origem?: string | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
           classificacao_corrigida_em?: string | null
@@ -3562,6 +3566,7 @@ export type Database = {
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
+          data_baixa?: string | null
           data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
@@ -3581,6 +3586,7 @@ export type Database = {
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
           plano_contas_nome?: string | null
+          pluggy_transaction_id?: string | null
           portador?: string | null
           portador_codigo_erp?: string | null
           portador_id?: string | null
@@ -3598,6 +3604,7 @@ export type Database = {
         }
         Update: {
           ativo_dre?: boolean | null
+          baixa_origem?: string | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
           classificacao_corrigida_em?: string | null
@@ -3609,6 +3616,7 @@ export type Database = {
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
+          data_baixa?: string | null
           data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
@@ -3628,6 +3636,7 @@ export type Database = {
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
           plano_contas_nome?: string | null
+          pluggy_transaction_id?: string | null
           portador?: string | null
           portador_codigo_erp?: string | null
           portador_id?: string | null
