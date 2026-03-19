@@ -15940,6 +15940,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           departamento_destino_id: string | null
+          despachado_para_nome: string | null
           devolvido_china: boolean
           devolvido_china_data: string | null
           documento_id: string
@@ -15966,6 +15967,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
+          despachado_para_nome?: string | null
           devolvido_china?: boolean
           devolvido_china_data?: string | null
           documento_id: string
@@ -15992,6 +15994,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento_destino_id?: string | null
+          despachado_para_nome?: string | null
           devolvido_china?: boolean
           devolvido_china_data?: string | null
           documento_id?: string

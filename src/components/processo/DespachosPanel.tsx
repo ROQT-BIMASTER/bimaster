@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter } from "lucide-react";
+import { ChevronDown, ChevronRight, Send, CheckCircle2, XCircle, Clock, Undo2, FileText, Filter, User, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDespachosPorSubmissao, useTransicoesDespacho, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
+import { Progress } from "@/components/ui/progress";
+import { useDespachosPorSubmissao, useTransicoesDespacho, useDarCiencia, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
 import { ParecerDialog } from "./ParecerDialog";
+import { CienciaTimer } from "./CienciaTimer";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,12 +18,20 @@ interface DespachosPanelProps {
   documentos: any[];
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "secondary" | "default" | "warning" | "success" | "destructive" | "outline"; icon: any }> = {
-  pendente: { label: "Pendente", variant: "warning", icon: Clock },
-  em_analise: { label: "Em Análise", variant: "default", icon: Send },
-  aprovado: { label: "Aprovado", variant: "success", icon: CheckCircle2 },
-  rejeitado: { label: "Rejeitado", variant: "destructive", icon: XCircle },
-  devolvido_china: { label: "Devolvido China", variant: "outline", icon: Undo2 },
+const STATUS_CONFIG: Record<string, { label: string; variant: "secondary" | "default" | "warning" | "success" | "destructive" | "outline"; icon: any; percent: number }> = {
+  pendente: { label: "Pendente", variant: "warning", icon: Clock, percent: 0 },
+  em_analise: { label: "Em Análise", variant: "default", icon: Send, percent: 50 },
+  aprovado: { label: "Aprovado", variant: "success", icon: CheckCircle2, percent: 100 },
+  rejeitado: { label: "Rejeitado", variant: "destructive", icon: XCircle, percent: 100 },
+  devolvido_china: { label: "Devolvido China", variant: "outline", icon: Undo2, percent: 100 },
+};
+
+const FASE_LABELS: Record<string, string> = {
+  pendente: "Aguardando Ciência",
+  em_analise: "Análise em Andamento",
+  aprovado: "Concluído — Aprovado",
+  rejeitado: "Concluído — Rejeitado",
+  devolvido_china: "Devolvido à China",
 };
 
 function DespachoTimeline({ despachoId }: { despachoId: string }) {
@@ -44,6 +54,7 @@ function DespachoTimeline({ despachoId }: { despachoId: string }) {
 
 export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps) {
   const { data: despachos = [], isLoading } = useDespachosPorSubmissao(submissaoId);
+  const darCiencia = useDarCiencia();
   const [isOpen, setIsOpen] = useState(true);
   const [filterStatus, setFilterStatus] = useState("todos");
   const [parecerDespacho, setParecerDespacho] = useState<DespachoDocumento | null>(null);
@@ -52,6 +63,11 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
   if (despachos.length === 0 && !isLoading) return null;
 
   const filtered = filterStatus === "todos" ? despachos : despachos.filter((d) => d.status === filterStatus);
+
+  // Calculate overall completion
+  const totalPercent = despachos.length > 0
+    ? Math.round(despachos.reduce((sum, d) => sum + (STATUS_CONFIG[d.status]?.percent ?? 0), 0) / despachos.length)
+    : 0;
 
   const getDocName = (docId: string) => {
     const doc = documentos.find((d: any) => d.id === docId);
@@ -71,7 +87,9 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                   Despachos do Processo
                   <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{despachos.length}</Badge>
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground font-normal">{totalPercent}%</span>
+                  <Progress value={totalPercent} className="w-16 h-1.5" />
                   {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
                     const count = despachos.filter((d) => d.status === key).length;
                     if (!count) return null;
@@ -107,6 +125,7 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                   const cfg = STATUS_CONFIG[desp.status] || STATUS_CONFIG.pendente;
                   const Icon = cfg.icon;
                   const isExpanded = expandedId === desp.id;
+                  const faseLabel = FASE_LABELS[desp.status] || desp.status;
 
                   return (
                     <div key={desp.id}>
@@ -122,6 +141,15 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                         </span>
                         <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="flex-1 min-w-0 truncate">{getDocName(desp.documento_id)}</span>
+                        {desp.despachado_para_nome && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground shrink-0">
+                            <User className="h-2.5 w-2.5" />
+                            {desp.despachado_para_nome}
+                          </span>
+                        )}
+                        {desp.modulo_destino && (
+                          <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.modulo_destino}</Badge>
+                        )}
                         {desp.categoria_checklist && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.categoria_checklist}</Badge>
                         )}
@@ -129,6 +157,7 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                           <Icon className="h-2.5 w-2.5" />
                           {cfg.label}
                         </Badge>
+                        {desp.ciencia_em && <CienciaTimer cienciaEm={desp.ciencia_em} />}
                         {desp.status !== "devolvido_china" && (
                           <Button
                             variant="ghost"
@@ -141,9 +170,58 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                         )}
                       </div>
                       {isExpanded && (
-                        <div className="ml-14 mb-1">
+                        <div className="ml-14 mb-2 space-y-2 bg-muted/20 rounded-md p-2">
+                          {/* Fase + Progress */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-muted-foreground">{faseLabel}</span>
+                            <Progress value={cfg.percent} className="flex-1 h-1.5 max-w-32" />
+                            <span className="text-[10px] font-mono text-muted-foreground">{cfg.percent}%</span>
+                          </div>
+
+                          {/* Destinatário details */}
+                          <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+                            {desp.despachado_para_nome && (
+                              <span className="inline-flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                Despachado para: <span className="text-foreground font-medium">{desp.despachado_para_nome}</span>
+                              </span>
+                            )}
+                            {desp.prazo_ciencia_horas && (
+                              <span>Prazo: {desp.prazo_ciencia_horas}h</span>
+                            )}
+                            {desp.ciencia_por_nome && (
+                              <span className="inline-flex items-center gap-1">
+                                <Eye className="h-3 w-3" />
+                                Ciência por: <span className="text-foreground font-medium">{desp.ciencia_por_nome}</span>
+                                {desp.ciencia_em && (
+                                  <span className="text-muted-foreground">
+                                    em {format(new Date(desp.ciencia_em), "dd/MM HH:mm", { locale: ptBR })}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                            {desp.ciencia_em && <CienciaTimer cienciaEm={desp.ciencia_em} />}
+                          </div>
+
+                          {/* Dar Ciência button */}
+                          {!desp.ciencia_em && desp.status === "pendente" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] gap-1"
+                              disabled={darCiencia.isPending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                darCiencia.mutate({ despacho_id: desp.id, submissao_id: submissaoId });
+                              }}
+                            >
+                              <Eye className="h-3 w-3" />
+                              Dar Ciência
+                            </Button>
+                          )}
+
                           {desp.parecer_texto && (
-                            <p className="text-[10px] text-muted-foreground mt-1 italic">
+                            <p className="text-[10px] text-muted-foreground italic">
                               💬 {desp.parecer_texto}
                               {desp.parecer_por_nome && <span className="ml-1">— {desp.parecer_por_nome}</span>}
                             </p>

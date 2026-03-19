@@ -1,0 +1,1 @@
+ALTER TABLE public.process_despacho_documento ADD COLUMN IF NOT EXISTS despachado_para_nome TEXT;
