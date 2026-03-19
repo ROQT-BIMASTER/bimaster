@@ -224,6 +224,7 @@ const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
+const RelatorioAPIs = lazyWithRetry(() => import("./pages/RelatorioAPIs"));
 const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
@@ -574,6 +575,7 @@ function AppContent() {
             <Route path="/dashboard/configuracoes/permissoes-modulo/:moduleCode" element={<ScreenRoute screenCode="admin"><PermissoesModulo /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/lgpd" element={<ScreenRoute screenCode="admin"><LGPDAdmin /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
+            <Route path="/dashboard/relatorio-apis" element={<ScreenRoute screenCode="admin"><RelatorioAPIs /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
