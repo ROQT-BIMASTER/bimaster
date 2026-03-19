@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileText, Plus, UserCircle, ChevronRight, CheckCircle2, Clock, XCircle, AlertTriangle, Loader2, Send } from "lucide-react";
