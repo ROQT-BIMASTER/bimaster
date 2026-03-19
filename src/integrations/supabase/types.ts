@@ -4993,6 +4993,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           erp_response_code: string | null
+          erp_sync_status: string | null
           erp_titulo_id: string | null
           error_message: string | null
           export_channel: string
@@ -5004,12 +5005,14 @@ export type Database = {
           payload: Json | null
           payment_queue_id: string
           response: Json | null
+          titulo_numero: string | null
         }
         Insert: {
           attempts?: number
           created_at?: string
           created_by?: string | null
           erp_response_code?: string | null
+          erp_sync_status?: string | null
           erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
@@ -5021,12 +5024,14 @@ export type Database = {
           payload?: Json | null
           payment_queue_id: string
           response?: Json | null
+          titulo_numero?: string | null
         }
         Update: {
           attempts?: number
           created_at?: string
           created_by?: string | null
           erp_response_code?: string | null
+          erp_sync_status?: string | null
           erp_titulo_id?: string | null
           error_message?: string | null
           export_channel?: string
@@ -5038,6 +5043,7 @@ export type Database = {
           payload?: Json | null
           payment_queue_id?: string
           response?: Json | null
+          titulo_numero?: string | null
         }
         Relationships: [
           {
