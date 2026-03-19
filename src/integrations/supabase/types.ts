@@ -5019,6 +5019,54 @@ export type Database = {
           },
         ]
       }
+      erp_sync_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          created_by: string | null
+          direction: string
+          duration_ms: number | null
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          response_status: number | null
+          success: boolean | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          created_by?: string | null
+          direction?: string
+          duration_ms?: number | null
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          success?: boolean | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          created_by?: string | null
+          direction?: string
+          duration_ms?: number | null
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       estoque_distribuidoras: {
         Row: {
           ativo: boolean | null
