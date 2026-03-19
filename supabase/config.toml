@@ -79,6 +79,8 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.erp-fornecedores-query]
     verify_jwt = false
+  [functions.erp-webhook-inbound]
+    verify_jwt = false
   [functions.erp-plano-contas-api]
     verify_jwt = false
   [functions.erp-portadores-api]
