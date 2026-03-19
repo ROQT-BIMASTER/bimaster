@@ -314,6 +314,75 @@ async function handleStatus(supabase: ReturnType<typeof createClient>) {
   });
 }
 
+/**
+ * GET /cancelled — títulos cancelados pendentes de exportação
+ */
+async function handleGetCancelledItems(
+  supabase: ReturnType<typeof createClient>,
+  url: URL
+) {
+  const limit = parseInt(url.searchParams.get("limit") || "100");
+  const offset = parseInt(url.searchParams.get("offset") || "0");
+
+  const { data: items, error: fetchErr } = await supabase
+    .from("contas_pagar")
+    .select("id, empresa_id, fornecedor, numero_documento, tipo_documento, valor_original, data_vencimento, descricao, departamento, updated_at")
+    .eq("status", "cancelado")
+    .order("updated_at", { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (fetchErr) {
+    return jsonResponse({ error: "Erro ao buscar cancelados: " + fetchErr.message }, 500);
+  }
+
+  if (!items || items.length === 0) {
+    return jsonResponse({ data: [], total: 0, message: "Nenhum título cancelado encontrado" });
+  }
+
+  // Check which have already been exported as cancellation
+  const ids = items.map((i: Record<string, unknown>) => i.id);
+  const { data: exportedItems } = await supabase
+    .from("erp_export_queue")
+    .select("conta_pagar_id")
+    .in("conta_pagar_id", ids)
+    .eq("export_type", "cancellation")
+    .eq("export_status", "exported");
+
+  const exportedSet = new Set((exportedItems || []).map((e: Record<string, unknown>) => e.conta_pagar_id));
+  const pendingItems = items.filter((item: Record<string, unknown>) => !exportedSet.has(item.id));
+
+  const cleanData = pendingItems.map((item: Record<string, unknown>) => ({
+    api_version: "1.0",
+    generated_at: new Date().toISOString(),
+    id: item.id,
+    empresa_id: item.empresa_id || 1,
+    export_type: "cancellation",
+    fornecedor: {
+      nome: item.fornecedor || null,
+    },
+    documento: {
+      tipo: item.tipo_documento || null,
+      numero: item.numero_documento || null,
+    },
+    pagamento: {
+      valor: Number(item.valor_original) || 0,
+      moeda: "BRL",
+      data_vencimento: item.data_vencimento || null,
+    },
+    departamento: item.departamento || null,
+    descricao: item.descricao || null,
+    data_cancelamento: item.updated_at || null,
+    status: "Cancelado",
+  }));
+
+  return jsonResponse({
+    data: cleanData,
+    total: cleanData.length,
+    offset,
+    limit,
+  });
+}
+
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
