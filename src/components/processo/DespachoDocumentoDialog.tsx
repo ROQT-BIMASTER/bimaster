@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCriarDespachoLote } from "@/hooks/useDespachoDocumentos";
 import { useDocWorkflowConfigs } from "@/hooks/useDocWorkflow";
-import { DESPACHO_MODULOS_PROCESSO } from "./DespachoDialog";
+import { useModulosDespachoResolved } from "@/hooks/useModulosDespacho";
 import { WorkflowEtapasConfigurator } from "./WorkflowEtapasConfigurator";
 import { toast } from "sonner";
 
