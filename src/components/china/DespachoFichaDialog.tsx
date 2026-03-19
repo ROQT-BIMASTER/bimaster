@@ -25,6 +25,7 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
   const { data: visibilidade = [] } = useFichaVisibilidade(submissaoId);
   const { data: despachos = [] } = useFichaDespachos(submissaoId);
   const createDespacho = useCreateFichaDespacho();
+  const modulosDisponiveis = useModulosDespachoResolved();
 
   const handleDespachar = () => {
     if (!modulo) return;
