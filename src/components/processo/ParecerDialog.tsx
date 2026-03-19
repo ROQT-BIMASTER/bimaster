@@ -212,7 +212,7 @@ export function ParecerDialog({ open, onOpenChange, despacho, documentoNome, doc
                       <SelectValue placeholder="Selecione o módulo..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {DESPACHO_MODULOS_PROCESSO.map((m) => {
+                      {modulosDisponiveis.map((m) => {
                         const MIcon = m.icon;
                         return (
                           <SelectItem key={m.key} value={m.key}>

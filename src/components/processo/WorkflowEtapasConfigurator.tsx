@@ -184,7 +184,7 @@ export function WorkflowEtapasConfigurator({ configId, configNome }: WorkflowEta
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="nenhum" className="text-xs">Retornar ao remetente</SelectItem>
-                              {DESPACHO_MODULOS_PROCESSO.map(m => {
+                              {modulosDisponiveis.map(m => {
                                 const MIcon = m.icon;
                                 return <SelectItem key={m.key} value={m.key} className="text-xs"><span className="flex items-center gap-1.5"><MIcon className={`h-3 w-3 ${m.color}`} /> {m.label}</span></SelectItem>;
                               })}
