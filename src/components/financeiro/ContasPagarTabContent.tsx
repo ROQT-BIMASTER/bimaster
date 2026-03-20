@@ -349,13 +349,6 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   const hasFilters = search || statusFilter !== "all" || erpFilter !== "all" || dateFrom || dateTo;
 
-  // ERP filter on client side
-  const filtered = useMemo(() => {
-    let items = contas || [];
-    if (erpFilter === "sincronizado") items = items.filter((c: any) => c.importado_api === true);
-    if (erpFilter === "pendente") items = items.filter((c: any) => !c.importado_api);
-    return items;
-  }, [contas, erpFilter]);
 
   return (
     <div className="space-y-4">
