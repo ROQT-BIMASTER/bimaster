@@ -44,6 +44,8 @@ export default function Financeiro() {
       const endOfMonth = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
       const today = format(now, "yyyy-MM-dd");
 
+      console.log('[Financeiro] Buscando KPIs do mês:', startOfMonth, 'até', endOfMonth);
+
       const [pagar, receber] = await Promise.all([
         fetchAllRows(
           "contas_pagar",
@@ -56,6 +58,8 @@ export default function Financeiro() {
           (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
         ),
       ]);
+
+      console.log('[Financeiro] contas_pagar rows:', pagar.length, '| contas_receber rows:', receber.length);
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const totalReceber = receber.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
