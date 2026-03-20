@@ -37,6 +37,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isRTL = dir === "rtl";
   useSyncOfflineData();
   usePageTracking();
+  useErpSyncQueue();
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
