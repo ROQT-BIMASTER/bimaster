@@ -1,26 +1,38 @@
 
 
-## Fix: Dashboard KPIs Showing R$0
+## Fix: Visão Geral Financeira KPIs — Correct Column Names + Handle 1000-Row Limit
 
-### Root Cause Analysis
+### Problems
 
-All 10 `get_contas_receber_*` database functions were verified to work correctly at the SQL level — returning ~39,000 records with ~R$52M in values. The `search_path=public` fix from the previous migration IS deployed and functional.
+1. **1000-row limit**: The query fetches rows directly and aggregates in JS, but Supabase caps at 1000 rows. With 38K+ records in `contas_receber`, the KPIs only reflect a tiny fraction of the data.
+2. **`contas_pagar` columns are correct** (`valor_pago`), **`contas_receber` columns are now correct** (`valor_recebido` — fixed in prior edit). But both queries still hit the 1000-row cap.
+3. **"Títulos Vencidos" count** only checks `contas_pagar` — should also count overdue `contas_receber`.
 
-**Most likely cause**: PostgREST (the API layer between the frontend and database) has a **stale schema cache**. After the previous migration recreated all 10 functions, PostgREST may not have reloaded its internal schema, causing API calls from the frontend to fail silently (returning null/empty).
+### Solution
 
-### Evidence
-- `get_contas_receber_dashboard_kpis(NULL, 2026, ...)` returns valid data when called via SQL
-- All 5 dashboard RPCs (kpis, evolucao, top_clientes, aging, status_dist) return correct data
-- Only one version of each function exists (no overload conflicts)
-- `search_path=public` is correctly set on all functions
+Use `fetchAllRows` (already exists in the project) to paginate through all records in batches of 1000, then aggregate client-side. This is the same pattern used elsewhere in the app.
 
-### Fix
+### File changed: `src/pages/Financeiro.tsx`
 
-**Single migration** that sends a `NOTIFY pgrst, 'reload schema'` signal to force PostgREST to reload its function catalog. This is a no-data-change migration — it only refreshes the API layer.
+**KPI query rewrite:**
+- Import `fetchAllRows` from `@/lib/utils/fetchAllRows`
+- Replace both direct `.from().select()` calls with `fetchAllRows()` calls, passing date filters via `buildQuery` callback
+- Column mapping stays as-is:
+  - `contas_pagar`: `valor_original, valor_pago, valor_aberto, status, data_vencimento`
+  - `contas_receber`: `valor_original, valor_recebido, valor_aberto, status, data_vencimento`
+- Aggregation logic unchanged (sum `valor_aberto`, count vencidas)
+- Add `contas_receber` overdue count to "Títulos Vencidos" (currently only counts `contas_pagar`)
 
-Additionally, as a belt-and-suspenders approach: `DROP` and re-`CREATE` the `get_contas_receber_dashboard_kpis` function (identical logic) to force PostgREST to recognize the latest signature.
+**No other changes** — greeting, recent activities, layout, styling all stay the same.
 
-### Files changed
-- 1 new migration file (schema reload signal + function re-creation)
-- No frontend changes
+### Technical detail
+
+```typescript
+// Before (hits 1000-row limit):
+supabase.from("contas_receber").select("...").gte(...).lte(...)
+
+// After (fetches all rows in batches):
+fetchAllRows("contas_receber", "valor_original,valor_recebido,valor_aberto,status,data_vencimento", 
+  (q) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth))
+```
 
