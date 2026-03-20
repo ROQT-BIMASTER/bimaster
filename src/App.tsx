@@ -585,6 +585,8 @@ function AppContent() {
             <Route path="/dashboard/integracao-erp" element={<ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute>} />
             <Route path="/dashboard/fornecedores" element={<ScreenRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenRoute>} />
             <Route path="/dashboard/pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><Pagamentos /></ScreenRoute>} />
+            <Route path="/dashboard/empresas" element={<ScreenRoute screenCode="financeiro_empresas"><Empresas /></ScreenRoute>} />
+            <Route path="/dashboard/centros-custo" element={<ScreenRoute screenCode="financeiro_centros_custo"><CentrosCusto /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
