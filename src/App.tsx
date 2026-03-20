@@ -251,6 +251,8 @@ const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
 const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
+const ContasPagarModule = lazyWithRetry(() => import("./pages/financeiro/ContasPagarModule"));
+const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/financeiro/ContaPagarDetalhe"));
 
 // Loading component
 const PageLoader = () => (
