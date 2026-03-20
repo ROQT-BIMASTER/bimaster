@@ -327,6 +327,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       empresa_id: c.empresa_id || 1,
       empresa_nome: c.empresa_nome || "",
       observacoes: "",
+      codigo_integracao: c.codigo_integracao || "",
     });
     setDrawerOpen(true);
   }
