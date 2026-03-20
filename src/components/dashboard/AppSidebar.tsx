@@ -513,6 +513,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "financeiro_empresas" },
     { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "financeiro_centros_custo" },
     { title: "Plano de Contas", url: "/dashboard/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+    { title: "Contas a Pagar", url: "/dashboard/contas-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar_gestao" },
   ];
 
   const tradeSubMenus = [

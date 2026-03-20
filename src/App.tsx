@@ -249,6 +249,7 @@ const FluxoArtesDetalhe = lazyWithRetry(() => import("./pages/FluxoArtesDetalhe"
 const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"));
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
+const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
 
 // Loading component
 const PageLoader = () => (
@@ -587,6 +588,7 @@ function AppContent() {
             <Route path="/dashboard/pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><Pagamentos /></ScreenRoute>} />
             <Route path="/dashboard/empresas" element={<ScreenRoute screenCode="financeiro_empresas"><Empresas /></ScreenRoute>} />
             <Route path="/dashboard/centros-custo" element={<ScreenRoute screenCode="financeiro_centros_custo"><CentrosCusto /></ScreenRoute>} />
+            <Route path="/dashboard/contas-pagar" element={<ScreenRoute screenCode="financeiro_contas_pagar_gestao"><ContasPagarGestao /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
