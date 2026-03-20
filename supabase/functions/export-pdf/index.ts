@@ -1,25 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody, sanitizeString } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const ExportPdfSchema = z.object({
+  reportType: z.string().max(200).optional(),
+  data: z.array(z.record(z.string(), z.unknown())).min(1).max(5000),
+  fileName: z.string().max(200).optional(),
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { reportType, data, fileName } = await req.json();
+    // SEG-1: Auth
+    const auth = await validateJWT(req);
 
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Nenhum dado para exportar' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // SEG-5: Rate limit (20/min for generation)
+    await checkRateLimit({ prefix: "export-pdf", limit: 20, req, userId: auth.userId });
+
+    const body = await req.json();
+
+    // SEG-4: Input validation
+    const { reportType, data, fileName } = validateBody(body, ExportPdfSchema);
 
     // Extract columns from the first data row
     const columns = Object.keys(data[0]);
@@ -31,7 +40,7 @@ serve(async (req) => {
     const usableWidth = pageWidth - margin * 2;
 
     // Title
-    const title = fileName || `Relatório ${reportType || ''}`;
+    const title = sanitizeString(fileName || `Relatório ${reportType || ''}`, 200);
     doc.setFontSize(16);
     doc.text(title, margin, 20);
 
@@ -46,7 +55,6 @@ serve(async (req) => {
     const rowHeight = 8;
     let y = 35;
 
-    // Truncate column header text
     const truncate = (text: string, maxLen: number) => {
       const str = String(text ?? '');
       return str.length > maxLen ? str.substring(0, maxLen - 2) + '..' : str;
@@ -72,7 +80,6 @@ serve(async (req) => {
       if (y + rowHeight > pageHeight - 15) {
         doc.addPage();
         y = 20;
-        // Re-draw header on new page
         doc.setFont("helvetica", "bold");
         doc.setFillColor(41, 65, 122);
         doc.setTextColor(255, 255, 255);
@@ -85,7 +92,6 @@ serve(async (req) => {
         doc.setTextColor(0, 0, 0);
       }
 
-      // Zebra striping
       if (rowIdx % 2 === 0) {
         doc.setFillColor(245, 245, 245);
         doc.rect(margin, y - 5, usableWidth, rowHeight, 'F');
@@ -111,7 +117,6 @@ serve(async (req) => {
       doc.text(`Total de registros: ${data.length}`, margin, pageHeight - 8);
     }
 
-    // Output as base64
     const pdfBase64 = doc.output('datauristring').split(',')[1];
 
     return new Response(
@@ -119,10 +124,6 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro ao gerar PDF' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return handleError(error, corsHeaders);
   }
 });

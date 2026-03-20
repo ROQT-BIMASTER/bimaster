@@ -5012,6 +5012,7 @@ export type Database = {
           api_key_anterior: string | null
           api_key_anterior_expira_em: string | null
           api_key_expira_em: string | null
+          api_key_hash: string | null
           ativo: boolean | null
           config_key: string
           config_value: string | null
@@ -5027,6 +5028,7 @@ export type Database = {
           api_key_anterior?: string | null
           api_key_anterior_expira_em?: string | null
           api_key_expira_em?: string | null
+          api_key_hash?: string | null
           ativo?: boolean | null
           config_key: string
           config_value?: string | null
@@ -5042,6 +5044,7 @@ export type Database = {
           api_key_anterior?: string | null
           api_key_anterior_expira_em?: string | null
           api_key_expira_em?: string | null
+          api_key_hash?: string | null
           ativo?: boolean | null
           config_key?: string
           config_value?: string | null
@@ -27801,6 +27804,7 @@ export type Database = {
         Args: { check_user_id: string }
         Returns: boolean
       }
+      hash_api_key: { Args: { key: string }; Returns: string }
       icms_gera_credito: { Args: { p_cst: string }; Returns: boolean }
       icms_tipo_credito: { Args: { p_cst: string }; Returns: string }
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }

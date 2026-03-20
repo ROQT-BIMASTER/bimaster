@@ -1,43 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const SentimentSchema = z.object({
+  conversationId: z.string().min(1).max(200),
+});
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { conversationId } = await req.json();
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "analyze-sentiment", limit: 20, req, userId: auth.userId });
 
-    if (!conversationId) {
-      return new Response(
-        JSON.stringify({ error: 'conversationId é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const body = await req.json();
+    const { conversationId } = validateBody(body, SentimentSchema);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Buscar mensagens da conversa
     const { data: messages, error: messagesError } = await supabase
       .from('whatsapp_messages')
       .select('message_text, sender, timestamp')
       .eq('conversation_id', conversationId)
       .order('timestamp', { ascending: true });
 
-    if (messagesError) {
-      console.error('Erro ao buscar mensagens:', messagesError);
-      throw messagesError;
-    }
+    if (messagesError) throw messagesError;
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -46,12 +42,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Preparar contexto da conversa para análise
     const conversationText = messages
       .map(m => `${m.sender}: ${m.message_text}`)
       .join('\n');
 
-    // Chamar Lovable AI para análise de sentimento
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,19 +82,9 @@ Considere o contexto geral e a evolução da conversa.`
               parameters: {
                 type: "object",
                 properties: {
-                  sentiment: {
-                    type: "string",
-                    enum: ["positive", "neutral", "negative"],
-                    description: "Classificação do sentimento"
-                  },
-                  score: {
-                    type: "number",
-                    description: "Score numérico de -1 (muito negativo) a 1 (muito positivo)"
-                  },
-                  reason: {
-                    type: "string",
-                    description: "Breve explicação da análise"
-                  }
+                  sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                  score: { type: "number" },
+                  reason: { type: "string" }
                 },
                 required: ["sentiment", "score", "reason"],
                 additionalProperties: false
@@ -113,38 +97,27 @@ Considere o contexto geral e a evolução da conversa.`
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Erro na API Lovable AI:', aiResponse.status, errorText);
-      
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Limite de requisições excedido.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
         );
       }
-      
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos ao workspace.' }),
+          JSON.stringify({ error: 'Créditos insuficientes.' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
       throw new Error(`Erro na API: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    console.log('Resposta da IA:', JSON.stringify(aiData));
-
-    // Extrair análise do tool call
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
-      throw new Error('Resposta da IA não contém análise de sentimento');
-    }
+    if (!toolCall) throw new Error('Resposta da IA não contém análise');
 
     const analysis = JSON.parse(toolCall.function.arguments);
 
-    // Atualizar conversa com análise de sentimento
     const { error: updateError } = await supabase
       .from('whatsapp_conversations')
       .update({
@@ -154,10 +127,7 @@ Considere o contexto geral e a evolução da conversa.`
       })
       .eq('id', conversationId);
 
-    if (updateError) {
-      console.error('Erro ao atualizar sentimento:', updateError);
-      throw updateError;
-    }
+    if (updateError) throw updateError;
 
     return new Response(
       JSON.stringify({
@@ -168,12 +138,7 @@ Considere o contexto geral e a evolução da conversa.`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
-  } catch (error: any) {
-    console.error('Erro na análise de sentimento:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Erro ao analisar sentimento' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  } catch (error) {
+    return handleError(error, getCorsHeaders(req));
   }
 });

@@ -1,22 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody, sanitizeString } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const MarketingInsightsSchema = z.object({
+  question: z.string().min(1).max(5000),
+  dashboardContext: z.string().max(20000).optional().default(""),
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { question, dashboardContext } = await req.json();
-    
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "marketing-insights", limit: 20, req, userId: auth.userId });
+
+    const body = await req.json();
+    const { question, dashboardContext } = validateBody(body, MarketingInsightsSchema);
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY não configurada');
-    }
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY não configurada');
 
     const systemPrompt = `Você é um analista de marketing sênior especializado em performance digital e growth.
 
@@ -41,7 +48,7 @@ Para visualizações, use:
 - Inclua métricas percentuais e variações
 
 ## CONTEXTO DOS DASHBOARDS:
-${dashboardContext}
+${sanitizeString(dashboardContext, 20000)}
 
 Responda em português brasileiro, seja estratégico e orientado a resultados.`;
 
@@ -55,7 +62,7 @@ Responda em português brasileiro, seja estratégico e orientado a resultados.`;
         model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: question }
+          { role: 'user', content: sanitizeString(question, 5000) }
         ],
         temperature: 0.7,
       }),
@@ -65,7 +72,7 @@ Responda em português brasileiro, seja estratégico e orientado a resultados.`;
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
         );
       }
       if (response.status === 402) {
@@ -82,18 +89,11 @@ Responda em português brasileiro, seja estratégico e orientado a resultados.`;
     const data = await response.json();
     const insight = data.choices[0].message.content;
 
-    console.log('Insight gerado com sucesso');
-
     return new Response(
       JSON.stringify({ insight }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
-  } catch (error: any) {
-    console.error('Erro em marketing-insights:', error);
-    return new Response(
-      JSON.stringify({ error: error?.message || 'Erro ao gerar insights' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  } catch (error) {
+    return handleError(error, getCorsHeaders(req));
   }
 });

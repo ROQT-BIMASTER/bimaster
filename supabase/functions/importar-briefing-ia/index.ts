@@ -1,22 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody, sanitizeString } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ImportBriefingSchema = z.object({
+  textoExtraido: z.string().min(1).max(100000),
+});
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { textoExtraido } = await req.json();
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "importar-briefing", limit: 20, req, userId: auth.userId });
 
-    if (!textoExtraido) {
-      return new Response(JSON.stringify({ error: "textoExtraido é obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json();
+    const { textoExtraido } = validateBody(body, ImportBriefingSchema);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
@@ -45,7 +48,7 @@ Regras:
 5. Identifique a sigla de responsabilidade quando presente
 6. Mantenha a ordem lógica dos campos dentro de cada categoria`;
 
-    const userPrompt = `Texto extraído da planilha de Briefing:\n\n${textoExtraido}`;
+    const userPrompt = `Texto extraído da planilha de Briefing:\n\n${sanitizeString(textoExtraido, 100000)}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -73,10 +76,10 @@ Regras:
                     items: {
                       type: "object",
                       properties: {
-                        categoria: { type: "string", description: "Categoria/seção do briefing: PRODUTO, ROTULAGEM, COMPRAS E EMBALAGEM, etc." },
-                        campo: { type: "string", description: "Nome do campo como aparece na planilha" },
-                        valor: { type: "string", description: "Valor preenchido no campo" },
-                        responsabilidade: { type: "string", description: "Sigla de responsabilidade: D, C, R, E, COMP ou vazio" },
+                        categoria: { type: "string" },
+                        campo: { type: "string" },
+                        valor: { type: "string" },
+                        responsabilidade: { type: "string" },
                       },
                       required: ["categoria", "campo", "valor"],
                       additionalProperties: false,
@@ -95,8 +98,8 @@ Regras:
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
         });
       }
       if (response.status === 402) {
@@ -113,7 +116,7 @@ Regras:
 
     const result = await response.json();
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     if (!toolCall?.function?.arguments) {
       return new Response(JSON.stringify({ error: "IA não retornou campos estruturados" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -126,9 +129,6 @@ Regras:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("importar-briefing-ia error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return handleError(e, getCorsHeaders(req));
   }
 });

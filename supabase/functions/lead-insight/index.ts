@@ -1,23 +1,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const LeadInsightSchema = z.object({
+  prospect_id: z.string().uuid(),
+});
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { prospect_id } = await req.json();
-    if (!prospect_id) throw new Error("prospect_id é obrigatório");
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "lead-insight", limit: 20, req, userId: auth.userId });
+
+    const body = await req.json();
+    const { prospect_id } = validateBody(body, LeadInsightSchema);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Buscar dados do prospect
     const { data: prospect } = await supabase
       .from("prospects")
       .select("*")
@@ -26,7 +34,6 @@ serve(async (req) => {
 
     if (!prospect) throw new Error("Prospect não encontrado");
 
-    // Buscar atividades
     const { data: atividades } = await supabase
       .from("atividades")
       .select("*")
@@ -34,7 +41,6 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(10);
 
-    // Buscar subtarefas
     const { data: subtasks } = await supabase
       .from("lead_subtasks")
       .select("*")
@@ -55,10 +61,8 @@ Dados do Lead:
 - Status: ${prospect.status}
 - Categoria: ${prospect.categoria || "Não definida"}
 - Porte: ${prospect.porte_empresa || "Não informado"}
-- CNPJ: ${prospect.cnpj || "Não informado"}
 - Último contato: ${prospect.ultimo_contato || "Nunca"}
 - Próxima ação: ${prospect.proxima_acao || "Não definida"}
-- Observações: ${prospect.observacoes || "Nenhuma"}
 - Subtarefas: ${subtasksSummary}
 
 Histórico de Atividades:
@@ -85,11 +89,9 @@ Gere um resumo prático: qual é o momento do lead, quais riscos e oportunidades
     });
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit atingido, tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "Rate limit atingido" }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
         });
       }
       throw new Error("Erro ao chamar IA");
@@ -102,9 +104,6 @@ Gere um resumo prático: qual é o momento do lead, quais riscos e oportunidades
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("lead-insight error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return handleError(e, getCorsHeaders(req));
   }
 });
