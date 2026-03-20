@@ -3619,6 +3619,7 @@ export type Database = {
           classificacao_manual: boolean | null
           classificado_automaticamente: boolean | null
           classificado_em: string | null
+          codigo_integracao: string | null
           confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
@@ -3636,6 +3637,7 @@ export type Database = {
           fornecedor_codigo: string | null
           fornecedor_nome: string | null
           id: string
+          importado_api: boolean | null
           numero_documento: string | null
           numero_parcela: number | null
           parcela: number | null
@@ -3669,6 +3671,7 @@ export type Database = {
           classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
+          codigo_integracao?: string | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
@@ -3686,6 +3689,7 @@ export type Database = {
           fornecedor_codigo?: string | null
           fornecedor_nome?: string | null
           id?: string
+          importado_api?: boolean | null
           numero_documento?: string | null
           numero_parcela?: number | null
           parcela?: number | null
@@ -3719,6 +3723,7 @@ export type Database = {
           classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
+          codigo_integracao?: string | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
@@ -3736,6 +3741,7 @@ export type Database = {
           fornecedor_codigo?: string | null
           fornecedor_nome?: string | null
           id?: string
+          importado_api?: boolean | null
           numero_documento?: string | null
           numero_parcela?: number | null
           parcela?: number | null
