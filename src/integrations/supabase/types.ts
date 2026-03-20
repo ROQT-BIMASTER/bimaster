@@ -817,6 +817,24 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limit: {
+        Row: {
+          chave: string
+          contador: number
+          janela: string
+        }
+        Insert: {
+          chave: string
+          contador?: number
+          janela?: string
+        }
+        Update: {
+          chave?: string
+          contador?: number
+          janela?: string
+        }
+        Relationships: []
+      }
       api_security_log: {
         Row: {
           api_key_used: boolean | null
@@ -4991,6 +5009,9 @@ export type Database = {
       erp_config: {
         Row: {
           api_key: string | null
+          api_key_anterior: string | null
+          api_key_anterior_expira_em: string | null
+          api_key_expira_em: string | null
           ativo: boolean | null
           config_key: string
           config_value: string | null
@@ -5003,6 +5024,9 @@ export type Database = {
         }
         Insert: {
           api_key?: string | null
+          api_key_anterior?: string | null
+          api_key_anterior_expira_em?: string | null
+          api_key_expira_em?: string | null
           ativo?: boolean | null
           config_key: string
           config_value?: string | null
@@ -5015,6 +5039,9 @@ export type Database = {
         }
         Update: {
           api_key?: string | null
+          api_key_anterior?: string | null
+          api_key_anterior_expira_em?: string | null
+          api_key_expira_em?: string | null
           ativo?: boolean | null
           config_key?: string
           config_value?: string | null
@@ -27246,6 +27273,10 @@ export type Database = {
         Returns: Json
       }
       check_account_lockout: { Args: { p_email: string }; Returns: Json }
+      check_and_increment_rate_limit: {
+        Args: { p_chave: string; p_limite: number }
+        Returns: boolean
+      }
       check_user_access: {
         Args: { _module_code?: string; _user_id: string }
         Returns: boolean
@@ -27262,6 +27293,7 @@ export type Database = {
       cleanup_ddos_rate_limits: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_rate_limit: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
           p_duration_ms?: number
