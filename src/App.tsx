@@ -598,7 +598,7 @@ function AppContent() {
              <Route path="/dashboard/processos/consulta" element={<ProtectedRoute><ConsultaProcessos /></ProtectedRoute>} />
              <Route path="/dashboard/processos/etapas" element={<ProtectedRoute><ConfigEtapasProcesso /></ProtectedRoute>} />
              <Route path="/dashboard/processos/workflows" element={<ProtectedRoute><ConfigDocWorkflows /></ProtectedRoute>} />
-const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
+
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
