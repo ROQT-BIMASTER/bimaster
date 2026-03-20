@@ -162,7 +162,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const { data: centrosCusto } = useQuery({
     queryKey: ["centros-custo-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("centros_custo").select("id,nome,codigo").eq("status", "ativo").order("nome");
+      const { data } = await (supabase as any).from("centros_custo").select("id,nome,codigo").eq("status", "ativo").order("nome");
       return data || [];
     },
   });
