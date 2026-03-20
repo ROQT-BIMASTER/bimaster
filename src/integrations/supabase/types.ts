@@ -27613,6 +27613,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_empresa_ids_do_usuario: { Args: never; Returns: number[] }
       get_estoque_consolidado_por_produto_master: {
         Args: never
         Returns: {
