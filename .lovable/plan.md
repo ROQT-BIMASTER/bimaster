@@ -1,52 +1,37 @@
 
 
-## Migration Part 2/2: Issues Found & Corrected Plan
+## Fix: All Contas a Receber RPCs Broken — Empty `search_path`
 
-### Problems in the provided SQL
+### Root Cause
 
-The SQL references `contas_a_pagar` but the actual table is **`contas_pagar`**. Additionally, `contas_pagar` is missing several columns that the functions/views reference:
+All 10 `get_contas_receber_*` database functions have `SET search_path TO ''` (empty string). This means they cannot resolve the `contas_receber` table, causing every RPC call to fail with `relation "contas_receber" does not exist`. The dashboard shows R$0 because all queries silently error out.
 
-| Referenced Column | Exists? | Actual Column |
-|---|---|---|
-| `contas_a_pagar` (table) | NO | `contas_pagar` |
-| `contas_pagar.valor_liquido` | NO | `valor_aberto` (similar) |
-| `contas_pagar.inativo` | NO | — |
-| `contas_pagar.num_parcelas` | NO | `total_parcelas` |
-| `contas_pagar.valor_pago` | YES | ✓ |
+### Solution
 
-`contas_receber` has the expected columns (`inativo`, `valor_liquido`, `num_parcelas`, `data_alt`, `hora_alt`).
+A single database migration that recreates all 10 functions with `SET search_path = public` instead of the empty string. The SQL logic inside each function is correct — only the `search_path` setting needs to change.
 
-### Plan: Apply corrected migration
+### Functions to fix (all same change: `search_path TO ''` → `search_path TO 'public'`)
 
-**Single migration** with these fixes applied:
+| Function | Params |
+|---|---|
+| `get_contas_receber_dashboard_kpis` | 5 params (drop this overload, keep 7-param) |
+| `get_contas_receber_dashboard_kpis` | 7 params |
+| `get_contas_receber_evolucao_mensal` | 4 params |
+| `get_contas_receber_top_clientes` | 5 params |
+| `get_contas_receber_aging` | 5 params |
+| `get_contas_receber_status_dist` | 5 params |
+| `get_contas_receber_pmr_detalhes` | 5 params |
+| `get_contas_receber_calendario` | 4 params |
+| `get_contas_receber_filter_options` | 1 param |
+| `get_contas_receber_filtros` | 1 param |
 
-1. **Triggers** (D) — Apply as-is. The audit trigger on `contas_receber`, `parcelas_receber`, `recebimentos`, `lancamentos_conta_corrente` will work since those tables have `data_alt`/`hora_alt`. Skip trigger on tables that lack those columns.
+### Additional cleanup
+- Drop the duplicate 5-param `get_contas_receber_dashboard_kpis` (the 7-param version supersedes it and handles all cases)
 
-2. **fn_sync_titulo_receber_status** — Apply as-is (only touches `contas_receber` + `parcelas_receber`).
-
-3. **fn_criar_titulo_receber** (E1) — Apply as-is.
-
-4. **fn_registrar_recebimento** (E2) — Apply as-is.
-
-5. **fn_enfileirar_erp** (E3) — Apply as-is (uses `erp_sync_log` which now has `tabela_origem`, `registro_id`, `proximo_envio`).
-
-6. **fn_resumo_financeiro** (E4) — Fix all `contas_a_pagar` → `contas_pagar`, `valor_liquido` → `valor_aberto`, `inativo=FALSE` → `TRUE` (or remove), `num_parcelas` → `total_parcelas`.
-
-7. **fn_pesquisar_titulos** (E5) — Same fixes: `contas_a_pagar` → `contas_pagar`, adapt column names to match actual schema (`valor_liquido` → `valor_aberto`, `num_parcelas` → `total_parcelas`, `importado_api` for `enviado_erp`).
-
-8. **vw_contas_receber_completo** (F1) — Apply as-is (only uses `contas_receber` + `fornecedores`).
-
-9. **vw_extrato_conta_corrente** (F2) — Fix `contas_a_pagar` → `contas_pagar`, verify `parcelas` join columns match (`parcelas.id` = `pag.parcela_id`, `parcelas.conta_pagar_id`).
-
-10. **GRANTs** (G) — Apply as-is.
+### Approach
+1. Single migration: DROP + CREATE OR REPLACE for each function, preserving all existing SQL logic but fixing `search_path`
+2. No frontend changes — the existing code will work once RPCs return data
 
 ### Files changed
-- **Migration only** — no frontend files modified
-
-### Technical detail
-The corrected SQL will use these column mappings for `contas_pagar`:
-- `valor_liquido` → `valor_aberto`
-- `inativo` → omitted (column doesn't exist; filter removed)
-- `num_parcelas` → `total_parcelas`
-- `importado_api` → `importado_api` (exists ✓)
+- 1 new migration file only
 
