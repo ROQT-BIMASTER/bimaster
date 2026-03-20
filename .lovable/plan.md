@@ -1,73 +1,65 @@
 
 
-# Plano: 3 Ajustes para Arquitetura Bilateral Completa
+## Plan: Enhance "Contas a Pagar" Tab + Detail Page
 
-## Contexto Crítico Descoberto
+### Scope
+1. **Replace the content of the "contas" tab** (lines ~1310-1619 in ContasAPagar.tsx) with an upgraded version
+2. **Create a new detail page** at `/dashboard/financeiro/contas-a-pagar/:id`
+3. **Create the `fn_criar_titulo_com_parcelas` RPC** (does not exist yet)
 
-A coluna `status` em `contas_pagar` é calculada por um **trigger** (`calcular_status_conta_pagar`) que sobrescreve o valor em todo INSERT/UPDATE. O trigger só conhece: `pago`, `parcial`, `vencido`, `pendente`. Isso significa:
-
-- **Cancelado** nunca será preservado se não atualizarmos o trigger
-- **Baixa via ERP** precisa zerar `valor_aberto` para que o trigger calcule `pago` (ou o trigger precisa respeitar overrides)
-
-A export API (`contas-pagar-export-api`) consulta `financial_payment_queue`, não `contas_pagar`. Para títulos cancelados, precisamos adicionar uma rota que consulte `contas_pagar` diretamente.
+### What stays untouched
+- Header, KPIs, global filters, all other tabs (Dashboard, Calendario, Orcamentos, Classificacao IA, DRE, Comunicacao, Central de Pagamentos)
+- Top buttons (Modulo Financeiro, Plano de Contas, Sincronizacao ERP, Auditoria IA)
 
 ---
 
-## AJUSTE 1 — Migration
+### Step 1: Database - Create RPC `fn_criar_titulo_com_parcelas`
 
-```sql
--- Novas colunas
-ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS pluggy_transaction_id TEXT;
-ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS baixa_origem TEXT;
-ALTER TABLE contas_pagar ADD COLUMN IF NOT EXISTS data_baixa TIMESTAMPTZ;
+SQL function that:
+- Receives title fields (fornecedor_nome, fornecedor_codigo, tipo_documento, numero_documento, descricao, data_emissao, data_vencimento, valor_original, empresa_id, numero_parcelas, etc.)
+- Inserts into `contas_pagar` with `total_parcelas`, `numero_parcela = 1`, generates `erp_id` as UUID
+- If `numero_parcelas > 1`, generates rows in `parcelas` table with evenly split values and monthly due dates
+- Returns the new `contas_pagar.id`
 
--- Atualizar trigger para suportar 'cancelado' (preservar se explicitamente definido)
-CREATE OR REPLACE FUNCTION calcular_status_conta_pagar()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Preservar status 'cancelado' se definido explicitamente
-  IF NEW.status = 'cancelado' THEN
-    RETURN NEW;
-  END IF;
-  NEW.status := CASE 
-    WHEN NEW.valor_aberto = 0 OR NEW.valor_aberto IS NULL THEN 'pago'
-    WHEN NEW.valor_pago > 0 AND NEW.valor_aberto > 0 THEN 'parcial'
-    WHEN NEW.data_vencimento < CURRENT_DATE AND NEW.valor_aberto > 0 THEN 'vencido'
-    ELSE 'pendente'
-  END;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+### Step 2: Extract "Contas a Pagar" tab into a component
+
+Create `src/components/financeiro/ContasPagarTabContent.tsx`:
+
+- **"+ Novo Titulo" button** top-right of the tab area
+- **Search bar**: text search on fornecedor/documento/descricao + status filter (Todos/Pendente/Parcial/Pago/Cancelado/Vencido) + date range pickers (De/Ate for data_vencimento) + "Limpar" button
+- **Paginated table** (20/page) querying `contas_pagar` directly with columns: Fornecedor, Documento, Descricao, Vencimento (red text if vencido), Valor Original, Valor Pago, Saldo (valor_aberto), Status (colored badge), Parcelas (numero_parcela/total_parcelas), Actions (Eye -> navigate to detail, Pencil -> edit drawer, X -> cancel with confirmation)
+- **Drawer (600px)** for create/edit with fields: fornecedor (autocomplete from `fornecedores` table), tipo_documento, numero_documento, descricao, data_emissao, data_vencimento, valor_original, valor_desconto, valor_juros, valor_ajustes, valor_liquido (auto-calculated: original - desconto + juros + ajustes), numero_parcelas (1-12 select), conta_bancaria_id (select from `contas_bancarias`), categoria_nome, centro_custo (select from `centros_custo`), observacoes
+- On create with parcelas > 1: call RPC `fn_criar_titulo_com_parcelas`
+- On create with 1 parcela: direct INSERT into `contas_pagar`
+- On edit: UPDATE `contas_pagar`
+
+Props will receive the existing global filter state and query invalidation function from the parent.
+
+### Step 3: Create detail page `src/pages/ContaPagarDetalhe.tsx`
+
+Route: `/dashboard/financeiro/contas-a-pagar/:id`
+
+Two-column layout:
+- **Left column**: Card with full title data (fornecedor, documento, emissao, vencimento, valores, status, portador, categoria, departamento, plano de contas, observacoes)
+- **Right column**: 
+  - Card listing parcelas from `parcelas` table (where `conta_pagar_id = id`) with numero_parcela, valor, data_vencimento, status badge, and "Pagar" button per parcela
+  - Card listing payment history from `pagamentos` table (where `conta_pagar_id = id`)
+  - "Registrar Pagamento" modal: valor, data_pagamento (default today), forma_pagamento select (PIX/TED/DOC/boleto/cheque/dinheiro/cartao), conta_bancaria_id select, observacoes
+  - On save payment: INSERT into `pagamentos`, UPDATE parcela status to 'pago', recalculate `contas_pagar.valor_aberto` and `valor_pago`, update status via existing trigger logic
+
+### Step 4: Update ContasAPagar.tsx
+
+Replace the `TabsContent value="contas"` block (lines ~1310-1619) with the new `<ContasPagarTabContent />` component, passing necessary props.
+
+### Step 5: Update App.tsx
+
+Add route:
+```tsx
+<Route path="/dashboard/financeiro/contas-a-pagar/:id" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContaPagarDetalhe /></ScreenRoute>} />
 ```
 
-Nota: Não usamos CHECK constraint em `baixa_origem` — usamos validação no código para evitar problemas com restauração de backups.
-
-## AJUSTE 2 — Edge Function `erp-webhook-inbound`
-
-Adicionar bloco após a atualização da fila (linha ~102) e antes do log (linha ~104):
-
-Quando `payload.evento === 'baixa_confirmada'` e `contaPagarId` existe:
-1. Buscar a conta atual (`status`)
-2. Se status ≠ `pago` → atualizar:
-   - `valor_pago = payload.valor_processado || valor_original`
-   - `valor_aberto = 0` (para que o trigger calcule `pago`)
-   - `baixa_origem = 'erp_webhook'`
-   - `data_baixa = payload.data_processamento`
-   - `data_pagamento = payload.data_processamento`
-3. Se já `pago` → ignorar (Pluggy ou outra fonte já processou), registrar no log com flag `conta_ja_paga: true`
-
-## AJUSTE 3 — Edge Function `contas-pagar-export-api`
-
-Adicionar suporte a `?status=cancelado` no `handleGetItems`:
-
-Quando `statuses` contém `cancelado`:
-1. Consultar `contas_pagar` (não `financial_payment_queue`) filtrando `status = 'cancelado'`
-2. Verificar na `erp_export_queue` quais já foram exportados como `cancellation`
-3. Retornar payload limpo com os dados do título cancelado (fornecedor, documento, valor, data_cancelamento)
-4. O endpoint POST `/confirm` com `export_type = 'cancellation'` já funcionará para marcar como exportado
-
-### Arquivos modificados
-- **1 migration SQL** (3 colunas + trigger atualizado)
-- `supabase/functions/erp-webhook-inbound/index.ts` (bloco de baixa automática)
-- `supabase/functions/contas-pagar-export-api/index.ts` (rota cancelado)
+### Files changed
+- **Created**: `src/components/financeiro/ContasPagarTabContent.tsx`, `src/pages/ContaPagarDetalhe.tsx`
+- **Modified**: `src/pages/ContasAPagar.tsx` (replace tab content), `src/App.tsx` (add route)
+- **Migration**: Create `fn_criar_titulo_com_parcelas` function
 
