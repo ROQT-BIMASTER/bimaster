@@ -58,18 +58,18 @@ const MarketingModule = () => {
   const secondaryModules = {
     "Conteúdo e Criação": [
       { title: "ElevenLabs Studio", to: "/dashboard/marketing/elevenlabs", icon: Volume2, color: "text-purple-600", disabled: false },
-      { title: "Calendário Editorial", to: "#", icon: Calendar, color: "text-orange-600", disabled: true },
+      { title: "Calendário Editorial", to: "/dashboard/marketing/social", icon: Calendar, color: "text-orange-600", disabled: false },
       { title: "Gerador de Imagens", to: "#", icon: Image, color: "text-purple-600", disabled: true },
-      { title: "Monitoramento", to: "#", icon: Users, color: "text-green-600", disabled: true },
+      { title: "Monitoramento", to: "/dashboard/marketing/social", icon: Users, color: "text-green-600", disabled: false },
     ],
     "Inteligência Artificial": [
       { title: "Agente IA", to: "#", icon: Brain, color: "text-purple-600", disabled: true },
-      { title: "Análise de Sentimento", to: "#", icon: Sparkles, color: "text-indigo-600", disabled: true },
+      { title: "Análise de Sentimento", to: "/dashboard/marketing/social", icon: Sparkles, color: "text-indigo-600", disabled: false },
     ],
     "Analytics e BI": [
-      { title: "DashCortex Reports", to: "#", icon: LineChart, color: "text-blue-600", disabled: true },
-      { title: "Power BI", to: "#", icon: BarChart3, color: "text-yellow-600", disabled: true },
-      { title: "Looker Studio", to: "#", icon: Activity, color: "text-orange-600", disabled: true },
+      { title: "DashCortex Reports", to: "/dashboard/marketing/social", icon: LineChart, color: "text-blue-600", disabled: false },
+      { title: "Power BI", to: "/dashboard/marketing/social", icon: BarChart3, color: "text-yellow-600", disabled: false },
+      { title: "Looker Studio", to: "/dashboard/marketing/social", icon: Activity, color: "text-orange-600", disabled: false },
     ],
   };
 
