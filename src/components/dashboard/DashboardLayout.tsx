@@ -23,7 +23,6 @@ import { InactivityModal } from "@/components/auth/InactivityModal";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { TermsAcceptanceModal } from "@/components/auth/TermsAcceptanceModal";
 import { FloatingRecordingBar } from "@/components/meetings/FloatingRecordingBar";
-import { useErpSyncQueue } from "@/hooks/useErpSyncQueue";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -37,7 +36,6 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isRTL = dir === "rtl";
   useSyncOfflineData();
   usePageTracking();
-  useErpSyncQueue();
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
 
