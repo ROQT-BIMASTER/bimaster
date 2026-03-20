@@ -61,8 +61,8 @@ const TradeInsights = () => {
       .select("id, nome")
       .eq("ativo", true)
       .order("nome")
-      .then(({ data }) => {
-        setTeamUsers(data || []);
+      .then(({ data }: { data: any[] | null }) => {
+        setTeamUsers((data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
       });
   }, []);
 
