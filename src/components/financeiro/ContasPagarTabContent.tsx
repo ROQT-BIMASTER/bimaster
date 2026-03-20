@@ -60,6 +60,7 @@ interface FormData {
   empresa_id: number;
   empresa_nome: string;
   observacoes: string;
+  codigo_integracao: string;
 }
 
 const emptyForm: FormData = {
