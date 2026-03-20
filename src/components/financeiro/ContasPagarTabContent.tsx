@@ -22,7 +22,8 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ interface FormData {
   empresa_id: number;
   empresa_nome: string;
   observacoes: string;
+  codigo_integracao: string;
 }
 
 const emptyForm: FormData = {
@@ -67,6 +69,7 @@ const emptyForm: FormData = {
   data_vencimento: "", valor_original: 0, valor_desconto: 0, valor_juros: 0,
   valor_ajustes: 0, numero_parcelas: 1, categoria_nome: "", departamento_id: "",
   portador_id: "", conta: "", empresa_id: 1, empresa_nome: "", observacoes: "",
+  codigo_integracao: "",
 };
 
 function statusBadge(s: string | null) {
@@ -93,6 +96,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [erpFilter, setErpFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
@@ -175,8 +179,15 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     },
   });
 
+  // ERP filter on client side
+  const filtered = useMemo(() => {
+    let items = contas || [];
+    if (erpFilter === "sincronizado") items = items.filter((c: any) => c.importado_api === true);
+    if (erpFilter === "pendente") items = items.filter((c: any) => !c.importado_api);
+    return items;
+  }, [contas, erpFilter]);
+
   // ----- Pagination -----
-  const filtered = contas || [];
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -318,6 +329,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       empresa_id: c.empresa_id || 1,
       empresa_nome: c.empresa_nome || "",
       observacoes: "",
+      codigo_integracao: c.codigo_integracao || "",
     });
     setDrawerOpen(true);
   }
@@ -332,12 +344,14 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   function clearFilters() {
     setSearch("");
     setStatusFilter("all");
+    setErpFilter("all");
     setDateFrom(undefined);
     setDateTo(undefined);
     setPage(1);
   }
 
-  const hasFilters = search || statusFilter !== "all" || dateFrom || dateTo;
+  const hasFilters = search || statusFilter !== "all" || erpFilter !== "all" || dateFrom || dateTo;
+
 
   return (
     <div className="space-y-4">
@@ -361,6 +375,16 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <SelectItem value="parcial">Parcial</SelectItem>
               <SelectItem value="pago">Pago</SelectItem>
               <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={erpFilter} onValueChange={v => { setErpFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-44 h-9 text-sm">
+              <SelectValue placeholder="Sinc. ERP" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ERP: Todos</SelectItem>
+              <SelectItem value="sincronizado">Sincronizado</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
             </SelectContent>
           </Select>
           <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={d => { setDateFrom(d); setPage(1); }} onDateToChange={d => { setDateTo(d); setPage(1); }} />
@@ -394,6 +418,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                       <TableHead className="text-right">Pago</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="hidden md:table-cell text-center">ERP</TableHead>
                       <TableHead className="hidden md:table-cell">Parcelas</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -411,6 +436,23 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_pago || 0)}</TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_aberto || 0)}</TableCell>
                         <TableCell>{statusBadge(c.status)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-center">
+                          {(c as any).importado_api && (c as any).codigo_integracao ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span><CheckCircle2 className="h-4 w-4 text-emerald-500 inline-block" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Cód: {(c as any).codigo_integracao}</p></TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span><Clock className="h-4 w-4 text-amber-500 inline-block" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Pendente de envio ao ERP</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-center">{c.numero_parcela || 1}/{c.total_parcelas || 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
@@ -594,6 +636,20 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <Label>Observações</Label>
               <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
             </div>
+
+            {/* ERP Integration Code - readonly */}
+            {editingId && (
+              <div className="space-y-1.5">
+                <Label>Cód. Integração ERP</Label>
+                <Input
+                  value={form.codigo_integracao || ""}
+                  readOnly
+                  disabled
+                  placeholder="Preenchido automaticamente ao enviar ao ERP"
+                  className="bg-muted/50"
+                />
+              </div>
+            )}
           </div>
           <SheetFooter className="gap-2">
             <Button variant="outline" onClick={closeDrawer}>Cancelar</Button>

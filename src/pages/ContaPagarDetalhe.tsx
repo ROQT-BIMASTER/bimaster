@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, CreditCard, FileText, Calendar, Building2, DollarSign } from "lucide-react";
+import { ArrowLeft, CreditCard, FileText, Calendar, Building2, DollarSign, CloudUpload, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -211,6 +211,50 @@ export default function ContaPagarDetalhe() {
               <Row label="Portador" value={titulo.portador} />
               <Row label="Plano de Contas" value={titulo.plano_contas_nome ? `${titulo.plano_contas_codigo} - ${titulo.plano_contas_nome}` : null} />
               <Row label="Origem Baixa" value={titulo.baixa_origem} />
+              {/* ERP Status */}
+              <div className="border-t pt-2 space-y-1">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Status ERP</span>
+                  <div className="flex items-center gap-2">
+                    {(titulo as any).importado_api ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-xs gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Sincronizado
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0 text-xs gap-1">
+                        <Clock className="h-3 w-3" /> Pendente de envio
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {(titulo as any).codigo_integracao && (
+                  <Row label="Cód. Integração" value={(titulo as any).codigo_integracao} />
+                )}
+                {!(titulo as any).importado_api && titulo.status !== "cancelado" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-1 gap-2 text-xs"
+                    onClick={async () => {
+                      try {
+                        await supabase.from("erp_sync_log" as any).insert({
+                          entity_type: "conta_pagar",
+                          entity_id: titulo.id,
+                          action: "export_titulo",
+                          direction: "outbound",
+                          status: "pendente",
+                        });
+                        toast.success("Título adicionado à fila de envio ao ERP");
+                        qc.invalidateQueries({ queryKey: ["cp-detalhe", id] });
+                      } catch {
+                        toast.error("Erro ao enfileirar envio");
+                      }
+                    }}
+                  >
+                    <CloudUpload className="h-3.5 w-3.5" /> Enviar ao ERP
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
