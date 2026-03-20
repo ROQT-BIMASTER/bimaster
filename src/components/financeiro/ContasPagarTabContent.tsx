@@ -433,6 +433,23 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_pago || 0)}</TableCell>
                         <TableCell className="text-right text-sm">{BRL.format(c.valor_aberto || 0)}</TableCell>
                         <TableCell>{statusBadge(c.status)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-center">
+                          {(c as any).importado_api && (c as any).codigo_integracao ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span><CheckCircle2 className="h-4 w-4 text-emerald-500 inline-block" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Cód: {(c as any).codigo_integracao}</p></TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span><Clock className="h-4 w-4 text-amber-500 inline-block" /></span>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Pendente de envio ao ERP</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-center">{c.numero_parcela || 1}/{c.total_parcelas || 1}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
