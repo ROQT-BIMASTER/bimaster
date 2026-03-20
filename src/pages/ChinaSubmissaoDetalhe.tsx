@@ -11,10 +11,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
+import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 
 export default function ChinaSubmissaoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  // ADV-6: Field visibility — hide cost/financial sections for restricted profiles
+  const { isFieldVisible } = useFieldVisibility("china_ficha");
 
   const { data: submissao, isLoading } = useQuery({
     queryKey: ["china-submissao", id],

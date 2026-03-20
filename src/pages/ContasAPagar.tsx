@@ -36,6 +36,7 @@ import { calculateFinancialStatus } from "@/hooks/useFinancialStatus";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/components/tour";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
 
 interface ContaPagar {
   id: string;
@@ -79,6 +80,8 @@ export default function ContasAPagar() {
   const queryClient = useQueryClient();
   const { userType, isAdmin } = useUserRole();
   const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
+  // ADV-7: UI permission for payment approval
+  const { canEdit: canApprovePayment } = useUIPermissions("financeiro_contas_pagar");
   
   // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");

@@ -4,6 +4,8 @@ import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z, validateBody } from "../_shared/validate.ts";
 import { handleError } from "../_shared/error-handler.ts";
+import { validateExternalUrl } from "../_shared/ssrf-guard.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
 const AnalyzeWebsiteSchema = z.object({
   url: z.string().url().max(2000),
@@ -20,6 +22,9 @@ serve(async (req) => {
 
     const body = await req.json();
     const { url } = validateBody(body, AnalyzeWebsiteSchema);
+
+    // ADV-3: SSRF guard — block internal/private URLs
+    validateExternalUrl(url);
 
     console.log('Analisando site:', url);
 
@@ -44,7 +49,7 @@ Baseado neste site, crie conteúdo visual relevante e profissional.`;
 
     return new Response(
       JSON.stringify({ analysis, metadata: { title, description, h1, url } }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: withSecurityHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }) }
     );
   } catch (error) {
     return handleError(error, getCorsHeaders(req));
