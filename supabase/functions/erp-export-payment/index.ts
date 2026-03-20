@@ -284,12 +284,55 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
       return { success: true, response: body };
 
     } else if (channel === "sql_direct") {
-      const sqlHost = Deno.env.get("ERP_SQL_HOST");
-      if (!sqlHost) {
-        return { success: false, error: "ERP_SQL_HOST não configurado." };
+      // sql_direct: query the local Supabase database directly using service role
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const { createClient } = await import("npm:@supabase/supabase-js@2");
+      const directClient = createClient(supabaseUrl, serviceKey);
+
+      const empresaId = payload.empresa_id || 1;
+      const exportType = payload.export_type;
+
+      try {
+        // Build query for contas_pagar based on export type
+        let query = directClient
+          .from("contas_pagar")
+          .select("*")
+          .eq("empresa_id", empresaId);
+
+        if (exportType === "registration") {
+          query = query.in("status", ["pendente", "aguardando_pagamento"]);
+        } else {
+          query = query.eq("status", "pago");
+        }
+
+        // Apply date filters from payload if present
+        const pagamento = payload.pagamento as Record<string, unknown> | undefined;
+        if (pagamento?.data_vencimento) {
+          query = query.eq("data_vencimento", pagamento.data_vencimento);
+        }
+
+        const { data: rows, error: queryError } = await query.limit(100);
+
+        if (queryError) {
+          return { success: false, error: `Erro na consulta SQL Direct: ${queryError.message}` };
+        }
+
+        // Log the export in erp_export_queue-compatible format
+        console.log(`SQL Direct: ${rows?.length || 0} registros encontrados para empresa ${empresaId}`);
+
+        return {
+          success: true,
+          response: {
+            channel: "sql_direct",
+            records_found: rows?.length || 0,
+            data: rows || [],
+            exported_at: new Date().toISOString(),
+          },
+        };
+      } catch (sqlErr: any) {
+        return { success: false, error: `Erro SQL Direct: ${sqlErr.message}` };
       }
-      console.log("SQL Direct payload:", JSON.stringify(payload));
-      return { success: false, error: "Canal SQL Direct ainda não implementado. Use N8N ou REST API." };
 
     } else {
       return { success: false, error: `Canal desconhecido: ${channel}` };
