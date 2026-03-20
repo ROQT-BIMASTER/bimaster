@@ -44,6 +44,8 @@ import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog
 import { DespachoFichaDialog } from "@/components/china/DespachoFichaDialog";
 import { useFichaVisibilidade, useAddFichaVisibilidade, useRemoveFichaVisibilidade } from "@/hooks/useChinaFichaVisibilidade";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFieldVisibility } from "@/hooks/useFieldVisibility";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
 
 export default function ChinaFichaProduto() {
   const { id } = useParams<{ id: string }>();
