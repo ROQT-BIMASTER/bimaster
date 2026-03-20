@@ -1,11 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 
-const mockChannel = {
-  on: vi.fn().mockReturnThis(),
-  subscribe: vi.fn().mockReturnThis(),
-};
-
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn().mockReturnValue({
@@ -23,7 +18,10 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: "test" } }, error: null }),
     },
-    channel: vi.fn().mockReturnValue(mockChannel),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
+      subscribe: vi.fn(),
+    }),
     removeChannel: vi.fn(),
   },
 }));
