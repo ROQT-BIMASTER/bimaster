@@ -326,7 +326,7 @@ async function handleGetCancelledItems(
 
   const { data: items, error: fetchErr } = await supabase
     .from("contas_pagar")
-    .select("id, empresa_id, fornecedor, numero_documento, tipo_documento, valor_original, data_vencimento, descricao, departamento, updated_at")
+    .select("id, empresa_id, fornecedor_nome, fornecedor_codigo, numero_documento, tipo_documento, valor_original, data_vencimento, departamento_nome, updated_at")
     .eq("status", "cancelado")
     .order("updated_at", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -358,7 +358,8 @@ async function handleGetCancelledItems(
     empresa_id: item.empresa_id || 1,
     export_type: "cancellation",
     fornecedor: {
-      nome: item.fornecedor || null,
+      nome: item.fornecedor_nome || null,
+      codigo: item.fornecedor_codigo || null,
     },
     documento: {
       tipo: item.tipo_documento || null,
@@ -369,8 +370,8 @@ async function handleGetCancelledItems(
       moeda: "BRL",
       data_vencimento: item.data_vencimento || null,
     },
-    departamento: item.departamento || null,
-    descricao: item.descricao || null,
+    departamento: item.departamento_nome || null,
+    descricao: null,
     data_cancelamento: item.updated_at || null,
     status: "Cancelado",
   }));
