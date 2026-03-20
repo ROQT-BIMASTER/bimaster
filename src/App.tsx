@@ -200,6 +200,7 @@ const SaldosBancarios = lazyWithRetry(() => import("./pages/SaldosBancarios"));
 const ContasReceberSyncPage = lazyWithRetry(() => import("./pages/financeiro/ContasReceberSyncPage"));
 const ContasPagarSyncPage = lazyWithRetry(() => import("./pages/financeiro/ContasPagarSyncPage"));
 const FinancialPaymentCentral = lazyWithRetry(() => import("./pages/FinancialPaymentCentral"));
+const ContaPagarDetalhe = lazyWithRetry(() => import("./pages/ContaPagarDetalhe"));
 const FinanceiroConsolidadoDashboard = lazyWithRetry(() => import("./pages/FinanceiroConsolidadoDashboard"));
 const ConciliacaoBancaria = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoBancaria"));
 const InvestimentosCorporativos = lazyWithRetry(() => import("./pages/financeiro/InvestimentosCorporativos"));
@@ -534,6 +535,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/trade" element={<ModuleRoute moduleCode="financeiro"><TradeFinanceiro /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasAPagar /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/:id" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContaPagarDetalhe /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ModuleRoute moduleCode="financeiro"><ContasAReceber /></ModuleRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ModuleRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleRoute>} />

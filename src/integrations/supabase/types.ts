@@ -5276,6 +5276,7 @@ export type Database = {
       erp_sync_log: {
         Row: {
           action: string
+          atualizado_em: string | null
           conta_pagar_id: string | null
           created_at: string | null
           created_by: string | null
@@ -5292,16 +5293,21 @@ export type Database = {
           fila_atualizada: boolean | null
           id: string
           idempotency_key: string | null
+          operacao: string | null
           payload_entrada: Json | null
           referencia_erp: string | null
           request_payload: Json | null
           response_payload: Json | null
           response_status: number | null
           success: boolean | null
+          sync_status: string | null
+          tabela: string | null
+          tentativas: number | null
           tipo: string | null
         }
         Insert: {
           action: string
+          atualizado_em?: string | null
           conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5318,16 +5324,21 @@ export type Database = {
           fila_atualizada?: boolean | null
           id?: string
           idempotency_key?: string | null
+          operacao?: string | null
           payload_entrada?: Json | null
           referencia_erp?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
           success?: boolean | null
+          sync_status?: string | null
+          tabela?: string | null
+          tentativas?: number | null
           tipo?: string | null
         }
         Update: {
           action?: string
+          atualizado_em?: string | null
           conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5344,12 +5355,16 @@ export type Database = {
           fila_atualizada?: boolean | null
           id?: string
           idempotency_key?: string | null
+          operacao?: string | null
           payload_entrada?: Json | null
           referencia_erp?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
           success?: boolean | null
+          sync_status?: string | null
+          tabela?: string | null
+          tentativas?: number | null
           tipo?: string | null
         }
         Relationships: [
@@ -27702,6 +27717,32 @@ export type Database = {
         Returns: string
       }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
+      fn_criar_titulo_com_parcelas: {
+        Args: {
+          p_categoria_nome?: string
+          p_centro_custo?: string
+          p_conta?: string
+          p_data_emissao?: string
+          p_data_vencimento?: string
+          p_departamento_id?: string
+          p_departamento_nome?: string
+          p_descricao?: string
+          p_empresa_id?: number
+          p_empresa_nome?: string
+          p_fornecedor_codigo?: string
+          p_fornecedor_nome: string
+          p_numero_documento?: string
+          p_numero_parcelas?: number
+          p_observacoes?: string
+          p_portador_id?: string
+          p_tipo_documento?: string
+          p_valor_ajustes?: number
+          p_valor_desconto?: number
+          p_valor_juros?: number
+          p_valor_original?: number
+        }
+        Returns: string
+      }
       fn_get_cidades_sem_match: { Args: never; Returns: Json }
       fn_get_municipios_intelligence: {
         Args: {
