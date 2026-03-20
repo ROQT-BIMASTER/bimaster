@@ -1,42 +1,52 @@
 
 
-## Migration Analysis: Schema Conflicts Found
+## Migration Part 2/2: Issues Found & Corrected Plan
 
-### Problem
-Three tables in the SQL already exist with **different schemas**. `CREATE TABLE IF NOT EXISTS` will silently skip them, but the subsequent `CREATE INDEX` statements will **fail** because they reference columns that don't exist in the current tables.
+### Problems in the provided SQL
 
-| Table | Status | Conflict |
-|-------|--------|----------|
-| `erp_sync_log` | EXISTS | Has `entity_type`, `entity_id`, `action`, `direction` — migration expects `tabela_origem`, `registro_id`, `status`, `payload_enviado` |
-| `contas_receber` | EXISTS | Has `erp_id`, `cliente_codigo`, `cliente_nome`, `parcela` — migration expects `cliente_id`, `num_parcelas`, `codigo_integracao`, `inativo` |
-| `contas_bancarias` | EXISTS | Has `banco`, `agencia`, `conta`, `tipo` — migration's ALTER ADD COLUMN will work for new columns, but some like `agencia`, `numero_conta` overlap with existing `agencia`/`conta` |
+The SQL references `contas_a_pagar` but the actual table is **`contas_pagar`**. Additionally, `contas_pagar` is missing several columns that the functions/views reference:
 
-### What will work as-is
-- **New tables** (6): `parcelas_receber`, `recebimentos`, `lancamentos_conta_corrente`, `bancos`, `tipos_documento`, `tipos_conta_corrente`, `origens_titulo`, `bandeiras_cartao`, `finalidades_transferencia` — all fine
-- **contas_bancarias ALTER** — partially fine (some columns already exist under slightly different names)
+| Referenced Column | Exists? | Actual Column |
+|---|---|---|
+| `contas_a_pagar` (table) | NO | `contas_pagar` |
+| `contas_pagar.valor_liquido` | NO | `valor_aberto` (similar) |
+| `contas_pagar.inativo` | NO | — |
+| `contas_pagar.num_parcelas` | NO | `total_parcelas` |
+| `contas_pagar.valor_pago` | YES | ✓ |
 
-### What will fail
-- Indexes on `erp_sync_log` referencing `tabela_origem`, `registro_id`, `proximo_envio` — columns don't exist
-- Indexes on `contas_receber` referencing `cliente_id`, `codigo_integracao`, `inativo` — columns don't exist
-- GRANT on `erp_sync_log` and `contas_receber` will succeed (harmless)
+`contas_receber` has the expected columns (`inativo`, `valor_liquido`, `num_parcelas`, `data_alt`, `hora_alt`).
 
-### Proposed Approach
+### Plan: Apply corrected migration
 
-**Split into two migrations:**
+**Single migration** with these fixes applied:
 
-**Migration 1** — Safe parts (new tables + seed data + contas_bancarias alterations):
-- Create `parcelas_receber`, `recebimentos`, `lancamentos_conta_corrente`
-- Create lookup tables: `bancos`, `tipos_documento`, `tipos_conta_corrente`, `origens_titulo`, `bandeiras_cartao`, `finalidades_transferencia`
-- Seed data for all lookup tables
-- ALTER `contas_bancarias` to add missing columns (skipping `agencia` which already exists, renaming `numero_conta` addition since `conta` exists)
-- All GRANTs
+1. **Triggers** (D) — Apply as-is. The audit trigger on `contas_receber`, `parcelas_receber`, `recebimentos`, `lancamentos_conta_corrente` will work since those tables have `data_alt`/`hora_alt`. Skip trigger on tables that lack those columns.
 
-**Migration 2** — Add missing columns to existing tables via ALTER TABLE:
-- `contas_receber`: ADD COLUMN IF NOT EXISTS for `cliente_id`, `conta_bancaria_id`, `descricao` (if missing), `data_competencia`, `valor_acrescimo`, `valor_liquido`, `num_parcelas`, `categoria`, `plano_conta_id`, `centro_custo_id`, `tags`, `observacoes`, `codigo_integracao`, `enviado_erp`, `bloqueado`, `inativo`, `data_inc`, `hora_inc`, `user_inc`, `data_alt`, `hora_alt`, `user_alt`
-- Then create the indexes on `contas_receber` for the newly added columns
-- `erp_sync_log`: ADD COLUMN IF NOT EXISTS for `tabela_origem`, `registro_id`, `payload_enviado`, `resposta_erp`, `codigo_erp`, `max_tentativas`, `proximo_envio`, `enviado_em`, `erro_mensagem`
-- Then create the indexes on `erp_sync_log` for the newly added columns
+2. **fn_sync_titulo_receber_status** — Apply as-is (only touches `contas_receber` + `parcelas_receber`).
 
-### No frontend changes
-Zero file modifications — database only.
+3. **fn_criar_titulo_receber** (E1) — Apply as-is.
+
+4. **fn_registrar_recebimento** (E2) — Apply as-is.
+
+5. **fn_enfileirar_erp** (E3) — Apply as-is (uses `erp_sync_log` which now has `tabela_origem`, `registro_id`, `proximo_envio`).
+
+6. **fn_resumo_financeiro** (E4) — Fix all `contas_a_pagar` → `contas_pagar`, `valor_liquido` → `valor_aberto`, `inativo=FALSE` → `TRUE` (or remove), `num_parcelas` → `total_parcelas`.
+
+7. **fn_pesquisar_titulos** (E5) — Same fixes: `contas_a_pagar` → `contas_pagar`, adapt column names to match actual schema (`valor_liquido` → `valor_aberto`, `num_parcelas` → `total_parcelas`, `importado_api` for `enviado_erp`).
+
+8. **vw_contas_receber_completo** (F1) — Apply as-is (only uses `contas_receber` + `fornecedores`).
+
+9. **vw_extrato_conta_corrente** (F2) — Fix `contas_a_pagar` → `contas_pagar`, verify `parcelas` join columns match (`parcelas.id` = `pag.parcela_id`, `parcelas.conta_pagar_id`).
+
+10. **GRANTs** (G) — Apply as-is.
+
+### Files changed
+- **Migration only** — no frontend files modified
+
+### Technical detail
+The corrected SQL will use these column mappings for `contas_pagar`:
+- `valor_liquido` → `valor_aberto`
+- `inativo` → omitted (column doesn't exist; filter removed)
+- `num_parcelas` → `total_parcelas`
+- `importado_api` → `importado_api` (exists ✓)
 
