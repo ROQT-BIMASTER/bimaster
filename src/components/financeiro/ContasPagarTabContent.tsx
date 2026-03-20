@@ -154,7 +154,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const { data: contasBancarias } = useQuery({
     queryKey: ["contas-bancarias-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id,banco,agencia,conta,tipo").eq("status", "ativo").order("banco");
+      const { data } = await (supabase as any).from("contas_bancarias").select("id,banco,agencia,conta,tipo").eq("status", "ativo").order("banco");
       return data || [];
     },
   });
