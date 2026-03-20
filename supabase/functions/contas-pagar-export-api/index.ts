@@ -358,7 +358,8 @@ async function handleGetCancelledItems(
     empresa_id: item.empresa_id || 1,
     export_type: "cancellation",
     fornecedor: {
-      nome: item.fornecedor || null,
+      nome: item.fornecedor_nome || null,
+      codigo: item.fornecedor_codigo || null,
     },
     documento: {
       tipo: item.tipo_documento || null,
@@ -369,8 +370,8 @@ async function handleGetCancelledItems(
       moeda: "BRL",
       data_vencimento: item.data_vencimento || null,
     },
-    departamento: item.departamento || null,
-    descricao: item.descricao || null,
+    departamento: item.departamento_nome || null,
+    descricao: null,
     data_cancelamento: item.updated_at || null,
     status: "Cancelado",
   }));
