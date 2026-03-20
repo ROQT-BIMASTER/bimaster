@@ -170,7 +170,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const { data: departamentos } = useQuery({
     queryKey: ["departamentos-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("departamentos").select("id,nome").eq("ativo", true).order("nome");
+      const { data } = await (supabase as any).from("departamentos").select("id,nome").eq("ativo", true).order("nome");
       return data || [];
     },
   });
