@@ -37,27 +37,54 @@ export const ExportControls = ({ reportType, data }: ExportControlsProps) => {
   };
 
   const handleExportPDF = async () => {
+    if (!data || data.length === 0) {
+      toast({
+        title: "Sem dados",
+        description: "Não há dados para exportar",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setExporting(true);
     try {
-      const { data: pdfData, error } = await supabase.functions.invoke('export-pdf', {
-        body: {
-          reportType,
-          data,
-          fileName: `relatorio_${reportType}_${new Date().toISOString().split('T')[0]}`
-        }
+      const fileName = `relatorio_${reportType}_${new Date().toISOString().split('T')[0]}`;
+
+      const { data: result, error } = await supabase.functions.invoke('export-pdf', {
+        body: { reportType, data, fileName },
       });
 
       if (error) throw error;
+      if (!result?.pdf) throw new Error('PDF não retornado pela função');
+
+      // Decode base64 and trigger download
+      const byteCharacters = atob(result.pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
-        title: "Exportação em PDF",
-        description: "A funcionalidade de exportação em PDF será implementada em breve",
+        title: "PDF exportado",
+        description: "O relatório foi baixado com sucesso",
       });
     } catch (error) {
       console.error('Error exporting to PDF:', error);
       toast({
-        title: "Exportação em desenvolvimento",
-        description: "A exportação em PDF estará disponível em breve",
+        title: "Erro na exportação",
+        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
+        variant: "destructive",
       });
     } finally {
       setExporting(false);
