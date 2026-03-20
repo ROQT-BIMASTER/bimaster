@@ -162,6 +162,8 @@ const FichaRevisaoDiretoria = lazyWithRetry(() => import("./pages/FichaRevisaoDi
 const FabricaComunicacaoRevisoes = lazyWithRetry(() => import("./pages/FabricaComunicacaoRevisoes"));
 const Fornecedores = lazyWithRetry(() => import("./pages/Fornecedores"));
 const Pagamentos = lazyWithRetry(() => import("./pages/Pagamentos"));
+const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
+const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
 const TabelasPrecosModule = lazyWithRetry(() => import("./pages/modules/TabelasPrecosModule"));
 const FabricaTabelasPreco = lazyWithRetry(() => import("./pages/FabricaTabelasPreco"));
 const FabricaAprovacaoPrecos = lazyWithRetry(() => import("./pages/FabricaAprovacaoPrecos"));
