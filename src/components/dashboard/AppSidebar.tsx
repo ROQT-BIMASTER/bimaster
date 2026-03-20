@@ -508,6 +508,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("financeiro.classify_bank"), url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
     { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
+    { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
+    { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
   ];
 
   const tradeSubMenus = [
