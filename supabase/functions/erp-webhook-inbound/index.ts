@@ -1,60 +1,83 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
+import { AuthError } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, x-idempotency-key",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ErpWebhookSchema = z.object({
+  evento: z.enum(["provisao_registrada", "baixa_confirmada", "estorno_processado", "erro_processamento"]),
+  empresa_id: z.string().min(1).max(200),
+  referencia_erp: z.string().min(1).max(500),
+  status_erp: z.string().min(1).max(100),
+  data_processamento: z.string().min(1).max(100),
+  conta_pagar_id: z.string().max(200).optional().nullable(),
+  erp_export_queue_id: z.string().max(200).optional().nullable(),
+  mensagem: z.string().max(2000).optional().nullable(),
+  valor_processado: z.number().optional().nullable(),
+});
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405);
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405, corsHeaders);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Auth: API Key validation with hash support (SEG-2)
   const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) return json({ sucesso: false, mensagem: "x-api-key obrigatório" }, 401);
+  if (!apiKey) return json({ sucesso: false, mensagem: "x-api-key obrigatório" }, 401, corsHeaders);
 
+  // Hash the incoming key for comparison
+  const keyData = new TextEncoder().encode(apiKey);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", keyData);
+  const apiKeyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  let rawBody: string;
   let payload: any;
-  try { payload = await req.json(); } catch { return json({ sucesso: false, mensagem: "Body inválido" }, 400); }
-
-  for (const campo of ["evento", "empresa_id", "referencia_erp", "status_erp", "data_processamento"]) {
-    if (payload[campo] == null) return json({ sucesso: false, mensagem: "Campo obrigatório ausente: " + campo }, 400);
+  try {
+    rawBody = await req.text();
+    payload = JSON.parse(rawBody);
+  } catch {
+    return json({ sucesso: false, mensagem: "Body inválido" }, 400, corsHeaders);
   }
 
-  const eventosValidos = ["provisao_registrada", "baixa_confirmada", "estorno_processado", "erro_processamento"];
-  if (!eventosValidos.includes(payload.evento)) {
-    return json({ sucesso: false, mensagem: "Evento inválido: " + payload.evento }, 400);
+  // Validate payload with Zod (SEG-4)
+  try {
+    payload = validateBody(payload, ErpWebhookSchema);
+  } catch (e: any) {
+    return json({ sucesso: false, mensagem: "Payload inválido", details: e.issues }, 400, corsHeaders);
   }
 
-  // FIX7: Validar API key com suporte a rotação (api_key OU api_key_anterior ainda válida)
+  // Validate API key: hash-based first, plaintext fallback during transition (SEG-2)
   const { data: erpConfig } = await supabase
     .from("erp_config")
     .select("id, empresa_id")
     .eq("ativo", true)
-    .or(`api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
+    .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
     .maybeSingle();
 
-  if (!erpConfig) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401);
+  if (!erpConfig) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401, corsHeaders);
 
   if (erpConfig.empresa_id !== payload.empresa_id) {
-    return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403);
+    return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403, corsHeaders);
   }
 
-  // FIX6: Rate limiting — 60 req/min por empresa_id
+  // Rate limiting (SEG-5)
   const { data: permitido } = await supabase.rpc("check_and_increment_rate_limit", {
     p_chave: `erp-webhook-${payload.empresa_id}`,
     p_limite: 60,
   });
   if (permitido === false) {
-    return json({ sucesso: false, erro: "limite_excedido", mensagem: "Limite de 60 requisições/minuto excedido" }, 429);
+    return json({ sucesso: false, erro: "limite_excedido", mensagem: "Limite de 60 requisições/minuto excedido" }, 429, { ...corsHeaders, "Retry-After": "60" });
   }
 
-  // FIX4: Idempotência reforçada — header OU fallback gerado do payload
+  // Idempotency
   const headerIdempotencyKey = req.headers.get("x-idempotency-key");
   const idempotencyKey = headerIdempotencyKey
     ?? `${payload.empresa_id}-${payload.evento}-${payload.referencia_erp}-${payload.data_processamento}`;
@@ -67,7 +90,7 @@ serve(async (req: Request) => {
     .eq("idempotency_key", idempotencyKey)
     .gte("created_at", seteDiasAtras)
     .maybeSingle();
-  if (existe) return json({ sucesso: true, status: "ja_processado", id: existe.id, idempotente: true }, 200);
+  if (existe) return json({ sucesso: true, status: "ja_processado", id: existe.id, idempotente: true }, 200, corsHeaders);
 
   const statusMap: Record<string, string> = {
     provisao_registrada: "confirmado_erp",
@@ -116,7 +139,7 @@ serve(async (req: Request) => {
     filaAtualizada = !error;
   }
 
-  // AJUSTE 2: Baixa automática em contas_pagar quando evento = baixa_confirmada
+  // Auto-payment on baixa_confirmada
   let contaJaPaga = false;
   let contaAtualizada = false;
   if (payload.evento === "baixa_confirmada" && contaPagarId) {
@@ -172,12 +195,12 @@ serve(async (req: Request) => {
     mensagem: "Evento '" + payload.evento + "' processado com sucesso",
     evento_id: logEntry?.id ?? "sem-log",
     fila_atualizada: filaAtualizada,
-  }, 200);
+  }, 200, corsHeaders);
 });
 
-function json(body: unknown, status: number) {
+function json(body: unknown, status: number, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
