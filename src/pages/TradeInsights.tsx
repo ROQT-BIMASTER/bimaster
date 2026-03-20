@@ -598,6 +598,49 @@ const TradeInsights = () => {
           onOpenChange={setInsightDetailOpen}
           onUpdate={fetchInsights}
         />
+        {/* Assignment Dialog */}
+        <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Atribuir Insight</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {assigningInsight && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-medium text-sm">{assigningInsight.title}</p>
+                  {assigningInsight.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {assigningInsight.description}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Atribuir para</Label>
+                <Select value={assignUserId} onValueChange={setAssignUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAssignInsight} disabled={!assignUserId || assignLoading}>
+                {assignLoading ? "Atribuindo..." : "Confirmar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
