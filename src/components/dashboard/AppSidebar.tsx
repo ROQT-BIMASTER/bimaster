@@ -511,28 +511,67 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("prospects.demands"), url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
   ];
 
-  const financeiroSubMenus = [
-    { title: t("financeiro.overview"), url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
-    { title: t("financeiro.consolidated"), url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
-    { title: t("financeiro.dre"), url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
-    { title: t("financeiro.departments"), url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
-    { title: t("financeiro.trade_budget"), url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
-    { title: t("financeiro.payments_center"), url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
-    { title: t("financeiro.dept_approvals"), url: "/dashboard/departamentos/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_aprovacoes_depts" },
-    { title: t("financeiro.payables"), url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
-    { title: t("financeiro.receivables"), url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
-    { title: t("financeiro.cashflow"), url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
-    { title: t("financeiro.bank_balances"), url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
-    { title: t("financeiro.chart_accounts"), url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
-    { title: t("financeiro.classify_bank"), url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
-    { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
+  // Financeiro subgroups definition
+  const financeiroTopItems = [
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: "Dashboard Consolidado", url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
+  ];
+
+  const finSubgroups = [
+    {
+      key: "verbas",
+      label: "Verbas e Investimentos",
+      icon: TrendingUp,
+      items: [
+        { title: "Gestão de Verbas", url: "/dashboard/trade/financeiro", icon: Store, screenCode: "financeiro_verbas" },
+        { title: "Meu Extrato", url: "/dashboard/trade/financeiro/extrato", icon: FileText, screenCode: "financeiro_verbas" },
+        { title: "Aprovações", url: "/dashboard/trade/financeiro/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_verbas" },
+        { title: "Verbas Semestrais", url: "/dashboard/trade/financeiro/verbas", icon: Calendar, screenCode: "financeiro_verbas" },
+      ],
+    },
+    {
+      key: "campanhas",
+      label: "Campanhas e Lançamentos",
+      icon: Megaphone,
+      items: [
+        { title: "Campanhas", url: "/dashboard/trade/financeiro/campanhas", icon: Megaphone, screenCode: "trade_admin" },
+        { title: "Painel de Lançamentos", url: "/dashboard/trade/financeiro/lancamentos-campanhas", icon: FileText, screenCode: "trade_admin" },
+        { title: "Contas Correntes", url: "/dashboard/trade/financeiro/contas", icon: Wallet, screenCode: "trade_admin" },
+        { title: "Lançamentos", url: "/dashboard/trade/financeiro/lancamentos", icon: FileText, screenCode: "trade_admin" },
+      ],
+    },
+    {
+      key: "contas",
+      label: "Contas a Pagar e Receber",
+      icon: CreditCard,
+      items: [
+        { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+        { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
+        { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
+        { title: "Cobrança Inadimplentes", url: "/dashboard/financeiro/cobranca", icon: AlertTriangle, screenCode: "financeiro_contas_receber" },
+        { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+      ],
+    },
+    {
+      key: "analises",
+      label: "Análises e Relatórios",
+      icon: BarChart2,
+      items: [
+        { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
+        { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
+        { title: "Visão Departamental", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
+        { title: "Classificação IA", url: "/dashboard/financeiro/classificar-banco", icon: Brain, screenCode: "financeiro_classificar" },
+      ],
+    },
+  ];
+
+  const finBottomItems = [
+    { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
+    { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
     { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
-    { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
     { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "financeiro_empresas" },
     { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "financeiro_centros_custo" },
-    { title: "Plano de Contas", url: "/dashboard/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
-    { title: "Contas a Pagar", url: "/dashboard/contas-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar_gestao" },
   ];
 
   const tradeSubMenus = [
