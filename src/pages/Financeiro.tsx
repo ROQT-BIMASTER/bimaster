@@ -48,7 +48,7 @@ export default function Financeiro() {
           .lte("data_vencimento", endOfMonth) as any,
         supabase
           .from("contas_receber")
-          .select("valor_original, valor_pago, valor_aberto, status, data_vencimento")
+          .select("valor_original, valor_recebido, valor_aberto, status, data_vencimento")
           .gte("data_vencimento", startOfMonth)
           .lte("data_vencimento", endOfMonth) as any,
       ]);
