@@ -2872,6 +2872,13 @@ export type Database = {
             referencedRelation: "contas_receber"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_receber_completo"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cobrancas_enviadas: {
@@ -11611,6 +11618,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fila_cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_receber_completo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fila_cobrancas_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -12596,6 +12610,13 @@ export type Database = {
             columns: ["conta_receber_id"]
             isOneToOne: false
             referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_cobrancas_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_receber_completo"
             referencedColumns: ["id"]
           },
         ]
@@ -16315,6 +16336,13 @@ export type Database = {
             columns: ["conta_receber_id"]
             isOneToOne: false
             referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcelas_receber_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_receber_completo"
             referencedColumns: ["id"]
           },
         ]
@@ -27988,6 +28016,58 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_contas_receber_completo: {
+        Row: {
+          bloqueado: boolean | null
+          cliente_documento: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          codigo_integracao: string | null
+          created_at: string | null
+          data_alt: string | null
+          data_competencia: string | null
+          data_emissao: string | null
+          data_inc: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          empresa_id: number | null
+          enviado_erp: boolean | null
+          esta_vencido: boolean | null
+          hora_alt: string | null
+          hora_inc: string | null
+          id: string | null
+          inativo: boolean | null
+          num_parcelas: number | null
+          numero_documento: string | null
+          parcelas_pendentes: number | null
+          parcelas_recebidas: number | null
+          status: string | null
+          updated_at: string | null
+          user_alt: string | null
+          user_inc: string | null
+          valor_desconto: number | null
+          valor_juros: number | null
+          valor_liquido: number | null
+          valor_original: number | null
+          valor_recebido: number | null
+          valor_saldo: number | null
+        }
+        Relationships: []
+      }
+      vw_extrato_conta_corrente: {
+        Row: {
+          conta_bancaria_id: string | null
+          conta_nome: string | null
+          data_movimento: string | null
+          descricao: string | null
+          numero_documento: string | null
+          origem: string | null
+          referencia_id: string | null
+          tipo_movimento: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_process_timeline: {
         Row: {
           created_at: string | null
@@ -28281,6 +28361,16 @@ export type Database = {
         }
         Returns: string
       }
+      fn_criar_titulo_receber: { Args: { payload: Json }; Returns: Json }
+      fn_enfileirar_erp: {
+        Args: {
+          p_empresa_id: string
+          p_payload?: Json
+          p_registro_id: string
+          p_tabela: string
+        }
+        Returns: string
+      }
       fn_get_cidades_sem_match: { Args: never; Returns: Json }
       fn_get_municipios_intelligence: {
         Args: {
@@ -28404,6 +28494,23 @@ export type Database = {
         }[]
       }
       fn_normalizar_municipios_clientes: { Args: never; Returns: Json }
+      fn_pesquisar_titulos: {
+        Args: {
+          p_data_fim?: string
+          p_data_ini?: string
+          p_empresa_id: string
+          p_limite?: number
+          p_offset?: number
+          p_status?: string
+          p_tipo?: string
+        }
+        Returns: Json
+      }
+      fn_registrar_recebimento: { Args: { payload: Json }; Returns: Json }
+      fn_resumo_financeiro: {
+        Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
+        Returns: Json
+      }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
