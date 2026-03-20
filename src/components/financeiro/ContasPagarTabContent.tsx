@@ -94,6 +94,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [erpFilter, setErpFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
