@@ -1260,6 +1260,47 @@ export type Database = {
           },
         ]
       }
+      centros_custo: {
+        Row: {
+          codigo: string | null
+          created_at: string | null
+          descricao: string | null
+          empresa_id: number | null
+          id: string
+          nome: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          id?: string
+          nome: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number | null
+          id?: string
+          nome?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "centros_custo_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       china_categoria_responsaveis: {
         Row: {
           categoria_key: string
@@ -3518,6 +3559,53 @@ export type Database = {
           whatsapp_verify_token?: string | null
         }
         Relationships: []
+      }
+      contas_bancarias: {
+        Row: {
+          agencia: string | null
+          banco: string
+          conta: string | null
+          created_at: string | null
+          empresa_id: number | null
+          id: string
+          pix_key: string | null
+          status: string | null
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agencia?: string | null
+          banco: string
+          conta?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          id?: string
+          pix_key?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agencia?: string | null
+          banco?: string
+          conta?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          id?: string
+          pix_key?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contas_pagar: {
         Row: {
@@ -11995,6 +12083,62 @@ export type Database = {
           },
         ]
       }
+      fornecedores: {
+        Row: {
+          cnpj: string
+          codigo_externo: string | null
+          created_at: string | null
+          email: string | null
+          empresa_id: number | null
+          endereco: string | null
+          fonte_erp: string | null
+          id: string
+          nome: string
+          razao_social: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnpj: string
+          codigo_externo?: string | null
+          created_at?: string | null
+          email?: string | null
+          empresa_id?: number | null
+          endereco?: string | null
+          fonte_erp?: string | null
+          id?: string
+          nome: string
+          razao_social?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnpj?: string
+          codigo_externo?: string | null
+          created_at?: string | null
+          email?: string | null
+          empresa_id?: number | null
+          endereco?: string | null
+          fonte_erp?: string | null
+          id?: string
+          nome?: string
+          razao_social?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string | null
@@ -15624,6 +15768,117 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos: {
+        Row: {
+          comprovante_url: string | null
+          conta_bancaria_id: string | null
+          conta_pagar_id: string | null
+          created_at: string | null
+          data_pagamento: string
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          parcela_id: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          comprovante_url?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          data_pagamento: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela_id?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          comprovante_url?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela_id?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcelas: {
+        Row: {
+          conta_pagar_id: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          id: string
+          numero_parcela: number
+          status: string | null
+          updated_at: string | null
+          valor: number
+          valor_pago: number | null
+        }
+        Insert: {
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          id?: string
+          numero_parcela: number
+          status?: string | null
+          updated_at?: string | null
+          valor: number
+          valor_pago?: number | null
+        }
+        Update: {
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          id?: string
+          numero_parcela?: number
+          status?: string | null
+          updated_at?: string | null
+          valor?: number
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelas_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_analysis_queue: {
         Row: {
           attempts: number | null
@@ -15844,6 +16099,60 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plano_contas: {
+        Row: {
+          codigo: string
+          conta_pai_id: string | null
+          created_at: string | null
+          descricao: string
+          empresa_id: number | null
+          id: string
+          nivel: number | null
+          status: string | null
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          codigo: string
+          conta_pai_id?: string | null
+          created_at?: string | null
+          descricao: string
+          empresa_id?: number | null
+          id?: string
+          nivel?: number | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          codigo?: string
+          conta_pai_id?: string | null
+          created_at?: string | null
+          descricao?: string
+          empresa_id?: number | null
+          id?: string
+          nivel?: number | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_contas_conta_pai_id_fkey"
+            columns: ["conta_pai_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_contas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
