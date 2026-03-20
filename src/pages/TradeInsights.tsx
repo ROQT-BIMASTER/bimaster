@@ -508,9 +508,12 @@ const TradeInsights = () => {
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toast.info("Funcionalidade de atribuição em desenvolvimento");
+                            setAssigningInsight(insight);
+                            setAssignUserId("");
+                            setAssignDialogOpen(true);
                           }}
                         >
+                          <UserPlus className="h-3 w-3 mr-1" />
                           Atribuir
                         </Button>
                         <Button 
