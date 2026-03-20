@@ -860,10 +860,59 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <ModuleHeader icon={DollarSign} title={t("module.financeiro")} isOpen={isModuleOpen} colorKey="financeiro" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ScrollArea className="max-h-64">
+              <ScrollArea className="max-h-[420px]">
                 <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                  {financeiroSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                  {/* Top-level items */}
+                  {financeiroTopItems.filter(i => hasPermission(i.screenCode)).map(item => (
                     <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" end={item.end} />
+                  ))}
+
+                  {/* Collapsible subgroups */}
+                  {finSubgroups.map(sg => {
+                    const visibleItems = sg.items.filter(i => hasPermission(i.screenCode));
+                    if (visibleItems.length === 0) return null;
+                    const isSgOpen = openFinSubgroups.has(sg.key);
+                    return (
+                      <div key={sg.key} className="mt-1.5">
+                        <Collapsible open={isSgOpen} onOpenChange={() => {
+                          setOpenFinSubgroups(prev => {
+                            const next = new Set(prev);
+                            if (next.has(sg.key)) next.delete(sg.key);
+                            else next.add(sg.key);
+                            return next;
+                          });
+                        }}>
+                          <CollapsibleTrigger className="w-full">
+                            <div className={cn(
+                              "flex items-center gap-2 w-full px-3 py-1.5 rounded-md transition-all duration-150 text-[11px]",
+                              "hover:bg-[var(--sidebar-hover-raw)]",
+                              isSgOpen && "bg-[var(--sidebar-hover-raw)]"
+                            )}>
+                              <sg.icon className="h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)]" />
+                              <span className="font-semibold uppercase tracking-wider text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
+                                {sg.label}
+                              </span>
+                              <ChevronRight className={cn(
+                                "h-3 w-3 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
+                                isSgOpen && "rotate-90"
+                              )} />
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="ps-2 space-y-0.5 mt-0.5">
+                              {visibleItems.map(item => (
+                                <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    );
+                  })}
+
+                  {/* Bottom standalone items */}
+                  {finBottomItems.filter(i => hasPermission(i.screenCode)).map(item => (
+                    <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
                   ))}
                 </SidebarMenu>
               </ScrollArea>
