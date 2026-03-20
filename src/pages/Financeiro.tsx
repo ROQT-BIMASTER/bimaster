@@ -44,29 +44,51 @@ export default function Financeiro() {
       const endOfMonth = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
       const today = format(now, "yyyy-MM-dd");
 
-      console.log('[Financeiro] Buscando KPIs do mês:', startOfMonth, 'até', endOfMonth);
+      // Fetch contas_pagar via fetchAllRows (working)
+      const pagar = await fetchAllRows(
+        "contas_pagar",
+        "valor_original, valor_pago, valor_aberto, status, data_vencimento",
+        (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
+      );
 
-      const [pagar, receber] = await Promise.all([
-        fetchAllRows(
-          "contas_pagar",
-          "valor_original, valor_pago, valor_aberto, status, data_vencimento",
-          (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
-        ),
-        fetchAllRows(
-          "contas_receber",
-          "valor_original, valor_recebido, valor_aberto, status, data_vencimento",
-          (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
-        ),
-      ]);
+      // Fetch contas_receber manually with explicit error handling
+      // fetchAllRows may silently fail for this table
+      const receberAll: any[] = [];
+      let offset = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("contas_receber" as any)
+          .select("valor_original, valor_recebido, valor_aberto, status, data_vencimento")
+          .gte("data_vencimento", startOfMonth)
+          .lte("data_vencimento", endOfMonth)
+          .order("id" as any, { ascending: true })
+          .range(offset, offset + batchSize - 1);
 
-      console.log('[Financeiro] contas_pagar rows:', pagar.length, '| contas_receber rows:', receber.length);
+        if (error) {
+          console.error('[Financeiro] Erro ao buscar contas_receber:', error);
+          break;
+        }
+        if (data && data.length > 0) {
+          receberAll.push(...data);
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log('[Financeiro] contas_pagar:', pagar.length, '| contas_receber:', receberAll.length);
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
-      const totalReceber = receber.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
+      const totalReceber = receberAll.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const saldo = totalReceber - totalPagar;
       const vencidasPagar = pagar.filter((r: any) => r.data_vencimento < today && r.status !== "pago" && r.status !== "cancelado").length;
-      const vencidasReceber = receber.filter((r: any) => r.data_vencimento < today && r.status !== "recebido" && r.status !== "cancelado").length;
+      const vencidasReceber = receberAll.filter((r: any) => r.data_vencimento < today && r.status !== "recebido" && r.status !== "cancelado").length;
       const vencidas = vencidasPagar + vencidasReceber;
+
+      console.log('[Financeiro] totalPagar:', totalPagar, '| totalReceber:', totalReceber);
 
       return { totalPagar, totalReceber, saldo, vencidas };
     },
