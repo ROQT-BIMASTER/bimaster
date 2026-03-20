@@ -44,6 +44,13 @@ const TradeInsights = () => {
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
   const [insightDetailOpen, setInsightDetailOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Assignment dialog state
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningInsight, setAssigningInsight] = useState<Insight | null>(null);
+  const [assignUserId, setAssignUserId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [teamUsers, setTeamUsers] = useState<{ id: string; nome: string }[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
