@@ -153,31 +153,6 @@ export default function IntegracaoERP() {
             Gerencie chaves de API para integração com sistemas ERP externos
           </p>
         </div>
-      </div>
-
-      <Card className="border-[#dde1e9]">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Testar a API</CardTitle>
-          <CardDescription>Importe a collection oficial Huggs ERP v1 direto no Postman</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <a
-            href="https://app.getpostman.com/run-collection/44798020-ec42a04e-73ac-463f-a6c3-b058bbda994e"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button
-              type="button"
-              className="gap-2 text-white font-semibold shadow-soft hover:brightness-110"
-              style={{ backgroundColor: '#FF6C37' }}
-            >
-              <Play className="h-4 w-4 fill-current" />
-              Run in Postman
-              <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-            </Button>
-          </a>
-        </CardContent>
-      </Card>
 
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
