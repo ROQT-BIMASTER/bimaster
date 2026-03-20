@@ -226,6 +226,7 @@ const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
 const RelatorioAPIs = lazyWithRetry(() => import("./pages/RelatorioAPIs"));
 const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
+const IntegracaoERP = lazyWithRetry(() => import("./pages/IntegracaoERP"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
@@ -577,6 +578,7 @@ function AppContent() {
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-apis" element={<ScreenRoute screenCode="admin"><RelatorioAPIs /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
+            <Route path="/dashboard/integracao-erp" element={<ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute>} />
             
             {/* Portal do Cliente - Rotas isoladas */}
             <Route path="/portal" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
