@@ -37,8 +37,11 @@ export default function Financeiro() {
     queryKey: ["financeiro-overview-kpis"],
     queryFn: async () => {
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+      const startOfMonth = `${y}-${m}-01`;
+      const endOfMonth = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
       const today = format(now, "yyyy-MM-dd");
 
       const [pagar, receber] = await Promise.all([
