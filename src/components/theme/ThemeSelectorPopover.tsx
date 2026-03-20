@@ -16,12 +16,14 @@ export const ThemeSelectorPopover = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          className="flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 hover:bg-[var(--sidebar-item-hover-raw)] text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
+        <div
+          role="button"
+          tabIndex={0}
+          className="flex items-center justify-center w-8 h-8 rounded-md transition-all duration-150 cursor-pointer hover:bg-[var(--sidebar-item-hover-raw)] text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)]"
           title="Escolher tema"
         >
           <Palette className="h-4 w-4" />
-        </button>
+        </div>
       </PopoverTrigger>
       <PopoverContent
         side="top"
