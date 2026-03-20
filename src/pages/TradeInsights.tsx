@@ -56,14 +56,11 @@ const TradeInsights = () => {
       setCurrentUserId(data.user?.id || null);
     });
     // Load team users for assignment
-    supabase
-      .from("profiles")
-      .select("id, nome")
-      .eq("ativo", true)
-      .order("nome")
-      .then(({ data }: { data: any[] | null }) => {
-        setTeamUsers((data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
-      });
+    const loadTeam = async () => {
+      const { data } = await (supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome") as any);
+      setTeamUsers((data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
+    };
+    loadTeam();
   }, []);
 
   useEffect(() => {
