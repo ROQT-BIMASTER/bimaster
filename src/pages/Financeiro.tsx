@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 
 export default function Financeiro() {
   const { user } = useAuth();
@@ -40,26 +41,25 @@ export default function Financeiro() {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
       const today = format(now, "yyyy-MM-dd");
 
-      const [pagarRes, receberRes] = await Promise.all([
-        supabase
-          .from("contas_pagar")
-          .select("valor_original, valor_pago, valor_aberto, status, data_vencimento")
-          .gte("data_vencimento", startOfMonth)
-          .lte("data_vencimento", endOfMonth) as any,
-        supabase
-          .from("contas_receber")
-          .select("valor_original, valor_recebido, valor_aberto, status, data_vencimento")
-          .gte("data_vencimento", startOfMonth)
-          .lte("data_vencimento", endOfMonth) as any,
+      const [pagar, receber] = await Promise.all([
+        fetchAllRows(
+          "contas_pagar",
+          "valor_original, valor_pago, valor_aberto, status, data_vencimento",
+          (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
+        ),
+        fetchAllRows(
+          "contas_receber",
+          "valor_original, valor_recebido, valor_aberto, status, data_vencimento",
+          (q: any) => q.gte("data_vencimento", startOfMonth).lte("data_vencimento", endOfMonth)
+        ),
       ]);
-
-      const pagar = pagarRes.data || [];
-      const receber = receberRes.data || [];
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const totalReceber = receber.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const saldo = totalReceber - totalPagar;
-      const vencidas = pagar.filter((r: any) => r.data_vencimento < today && r.status !== "pago" && r.status !== "cancelado").length;
+      const vencidasPagar = pagar.filter((r: any) => r.data_vencimento < today && r.status !== "pago" && r.status !== "cancelado").length;
+      const vencidasReceber = receber.filter((r: any) => r.data_vencimento < today && r.status !== "recebido" && r.status !== "cancelado").length;
+      const vencidas = vencidasPagar + vencidasReceber;
 
       return { totalPagar, totalReceber, saldo, vencidas };
     },
