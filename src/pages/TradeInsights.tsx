@@ -57,8 +57,8 @@ const TradeInsights = () => {
     });
     // Load team users for assignment
     const loadTeam = async () => {
-      const { data } = await (supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome") as any);
-      setTeamUsers((data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
+      const res = await (supabase as any).from("profiles").select("id, nome").eq("ativo", true).order("nome");
+      setTeamUsers((res.data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
     };
     loadTeam();
   }, []);
