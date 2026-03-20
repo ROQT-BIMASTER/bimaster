@@ -177,6 +177,14 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     },
   });
 
+  // ERP filter on client side
+  const filtered = useMemo(() => {
+    let items = contas || [];
+    if (erpFilter === "sincronizado") items = items.filter((c: any) => c.importado_api === true);
+    if (erpFilter === "pendente") items = items.filter((c: any) => !c.importado_api);
+    return items;
+  }, [contas, erpFilter]);
+
   // ----- Pagination -----
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
