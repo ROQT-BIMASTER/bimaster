@@ -204,7 +204,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
         if (error) throw error;
       } else if (form.numero_parcelas > 1) {
         // Create with RPC
-        const { error } = await supabase.rpc("fn_criar_titulo_com_parcelas", {
+        const { error } = await (supabase as any).rpc("fn_criar_titulo_com_parcelas", {
           p_fornecedor_nome: form.fornecedor_nome,
           p_fornecedor_codigo: form.fornecedor_codigo || null,
           p_tipo_documento: form.tipo_documento || null,
