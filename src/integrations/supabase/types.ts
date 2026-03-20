@@ -5006,6 +5006,48 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_api_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          expires_at: string
+          id: string
+          key_hash: string
+          key_preview: string
+          max_requests: number
+          nome_responsavel: string
+          request_count: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          expires_at: string
+          id?: string
+          key_hash: string
+          key_preview: string
+          max_requests?: number
+          nome_responsavel: string
+          request_count?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          expires_at?: string
+          id?: string
+          key_hash?: string
+          key_preview?: string
+          max_requests?: number
+          nome_responsavel?: string
+          request_count?: number
+        }
+        Relationships: []
+      }
       erp_config: {
         Row: {
           api_key: string | null
@@ -27998,6 +28040,14 @@ export type Database = {
       validar_creditos_nota_fiscal: {
         Args: { p_nota_id: string }
         Returns: Json
+      }
+      validate_erp_api_key: {
+        Args: { p_key_hash: string }
+        Returns: {
+          empresa_id: string
+          id: string
+          valid: boolean
+        }[]
       }
     }
     Enums: {
