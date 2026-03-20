@@ -633,6 +633,20 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <Label>Observações</Label>
               <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
             </div>
+
+            {/* ERP Integration Code - readonly */}
+            {editingId && (
+              <div className="space-y-1.5">
+                <Label>Cód. Integração ERP</Label>
+                <Input
+                  value={(form as any).codigo_integracao || ""}
+                  readOnly
+                  disabled
+                  placeholder="Preenchido automaticamente ao enviar ao ERP"
+                  className="bg-muted/50"
+                />
+              </div>
+            )}
           </div>
           <SheetFooter className="gap-2">
             <Button variant="outline" onClick={closeDrawer}>Cancelar</Button>
