@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -288,6 +288,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const isRTL = dir === "rtl";
   
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
+  const [openFinSubgroups, setOpenFinSubgroups] = useState<Set<string>>(new Set());
   const [footerOpen, setFooterOpen] = useState(false);
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
@@ -417,6 +418,24 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         break;
       }
     }
+    // Auto-expand financeiro subgroups based on route
+    if (path.startsWith("/dashboard/financeiro") || path.startsWith("/dashboard/trade/financeiro")) {
+      const finSubgroupRoutes: Record<string, string[]> = {
+        verbas: ["/dashboard/trade/financeiro", "/dashboard/financeiro/verbas", "/dashboard/financeiro/extrato", "/dashboard/financeiro/aprovacoes", "/dashboard/financeiro/verbas-semestrais"],
+        campanhas: ["/dashboard/trade/financeiro/campanhas", "/dashboard/trade/financeiro/lancamentos", "/dashboard/trade/financeiro/contas", "/dashboard/financeiro/painel-lancamentos", "/dashboard/financeiro/campanhas", "/dashboard/financeiro/contas-correntes", "/dashboard/financeiro/lancamentos"],
+        contas: ["/dashboard/financeiro/contas-a-pagar", "/dashboard/financeiro/contas-a-receber", "/dashboard/financeiro/conciliacao", "/dashboard/financeiro/cobranca", "/dashboard/financeiro/plano-contas"],
+        analises: ["/dashboard/financeiro/fluxo", "/dashboard/financeiro/dre", "/dashboard/financeiro/visao-departamentos", "/dashboard/financeiro/classificar", "/dashboard/financeiro/classificacao-ia"],
+      };
+      for (const [sg, routes] of Object.entries(finSubgroupRoutes)) {
+        if (routes.some(r => path.startsWith(r))) {
+          setOpenFinSubgroups(prev => {
+            const next = new Set(prev);
+            next.add(sg);
+            return next;
+          });
+        }
+      }
+    }
   }, [location.pathname, moduleRouteMap, moduleToCategoryMap]);
 
   // Fetch user name
@@ -492,28 +511,67 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("prospects.demands"), url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
   ];
 
-  const financeiroSubMenus = [
-    { title: t("financeiro.overview"), url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
-    { title: t("financeiro.consolidated"), url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
-    { title: t("financeiro.dre"), url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
-    { title: t("financeiro.departments"), url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
-    { title: t("financeiro.trade_budget"), url: "/dashboard/financeiro/trade", icon: Store, screenCode: "financeiro_verbas" },
-    { title: t("financeiro.payments_center"), url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
-    { title: t("financeiro.dept_approvals"), url: "/dashboard/departamentos/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_aprovacoes_depts" },
-    { title: t("financeiro.payables"), url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
-    { title: t("financeiro.receivables"), url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
-    { title: t("financeiro.cashflow"), url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
-    { title: t("financeiro.bank_balances"), url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
-    { title: t("financeiro.chart_accounts"), url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
-    { title: t("financeiro.classify_bank"), url: "/dashboard/financeiro/classificar-banco", icon: ClipboardCheck, screenCode: "financeiro_classificar" },
-    { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
+  // Financeiro subgroups definition
+  const financeiroTopItems = [
+    { title: "Visão Geral", url: "/dashboard/financeiro", icon: Home, end: true, screenCode: "financeiro_dashboard" },
+    { title: "Dashboard Consolidado", url: "/dashboard/financeiro/consolidado", icon: Layers, screenCode: "financeiro_dashboard" },
+  ];
+
+  const finSubgroups = [
+    {
+      key: "verbas",
+      label: "Verbas e Investimentos",
+      icon: TrendingUp,
+      items: [
+        { title: "Gestão de Verbas", url: "/dashboard/trade/financeiro", icon: Store, screenCode: "financeiro_verbas" },
+        { title: "Meu Extrato", url: "/dashboard/trade/financeiro/extrato", icon: FileText, screenCode: "financeiro_verbas" },
+        { title: "Aprovações", url: "/dashboard/trade/financeiro/aprovacoes", icon: ClipboardCheck, screenCode: "financeiro_verbas" },
+        { title: "Verbas Semestrais", url: "/dashboard/trade/financeiro/verbas", icon: Calendar, screenCode: "financeiro_verbas" },
+      ],
+    },
+    {
+      key: "campanhas",
+      label: "Campanhas e Lançamentos",
+      icon: Megaphone,
+      items: [
+        { title: "Campanhas", url: "/dashboard/trade/financeiro/campanhas", icon: Megaphone, screenCode: "trade_admin" },
+        { title: "Painel de Lançamentos", url: "/dashboard/trade/financeiro/lancamentos-campanhas", icon: FileText, screenCode: "trade_admin" },
+        { title: "Contas Correntes", url: "/dashboard/trade/financeiro/contas", icon: Wallet, screenCode: "trade_admin" },
+        { title: "Lançamentos", url: "/dashboard/trade/financeiro/lancamentos", icon: FileText, screenCode: "trade_admin" },
+      ],
+    },
+    {
+      key: "contas",
+      label: "Contas a Pagar e Receber",
+      icon: CreditCard,
+      items: [
+        { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+        { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
+        { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
+        { title: "Cobrança Inadimplentes", url: "/dashboard/financeiro/cobranca", icon: AlertTriangle, screenCode: "financeiro_contas_receber" },
+        { title: "Plano de Contas", url: "/dashboard/financeiro/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
+      ],
+    },
+    {
+      key: "analises",
+      label: "Análises e Relatórios",
+      icon: BarChart2,
+      items: [
+        { title: "Fluxo de Caixa", url: "/dashboard/financeiro/fluxo-de-caixa", icon: TrendingUp, screenCode: "financeiro_fluxo_caixa" },
+        { title: "DRE Analítico", url: "/dashboard/financeiro/dre-analitico", icon: FileText, screenCode: "financeiro_dre" },
+        { title: "Visão Departamental", url: "/dashboard/financeiro/visao-departamentos", icon: Building2, screenCode: "financeiro_departamentos" },
+        { title: "Classificação IA", url: "/dashboard/financeiro/classificar-banco", icon: Brain, screenCode: "financeiro_classificar" },
+      ],
+    },
+  ];
+
+  const finBottomItems = [
+    { title: "Central de Pagamentos", url: "/dashboard/financeiro/central-pagamentos", icon: CreditCard, screenCode: "financeiro_contas_pagar" },
+    { title: "Saldos Bancários", url: "/dashboard/financeiro/saldos-bancarios", icon: Wallet, screenCode: "financeiro_saldos_bancarios" },
     { title: "Investimentos", url: "/dashboard/financeiro/investimentos", icon: TrendingUp, screenCode: "financeiro_saldos_bancarios" },
     { title: "Fornecedores", url: "/dashboard/fornecedores", icon: Users, screenCode: "financeiro_fornecedores" },
-    { title: "Pagamentos", url: "/dashboard/pagamentos", icon: CreditCard, screenCode: "financeiro_pagamentos" },
     { title: "Empresas", url: "/dashboard/empresas", icon: Building2, screenCode: "financeiro_empresas" },
     { title: "Centros de Custo", url: "/dashboard/centros-custo", icon: Layers, screenCode: "financeiro_centros_custo" },
-    { title: "Plano de Contas", url: "/dashboard/plano-contas", icon: List, screenCode: "financeiro_plano_contas" },
-    { title: "Contas a Pagar", url: "/dashboard/contas-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar_gestao" },
   ];
 
   const tradeSubMenus = [
@@ -802,10 +860,59 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <ModuleHeader icon={DollarSign} title={t("module.financeiro")} isOpen={isModuleOpen} colorKey="financeiro" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ScrollArea className="max-h-64">
+              <ScrollArea className="max-h-[420px]">
                 <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                  {financeiroSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
+                  {/* Top-level items */}
+                  {financeiroTopItems.filter(i => hasPermission(i.screenCode)).map(item => (
                     <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" end={item.end} />
+                  ))}
+
+                  {/* Collapsible subgroups */}
+                  {finSubgroups.map(sg => {
+                    const visibleItems = sg.items.filter(i => hasPermission(i.screenCode));
+                    if (visibleItems.length === 0) return null;
+                    const isSgOpen = openFinSubgroups.has(sg.key);
+                    return (
+                      <div key={sg.key} className="mt-1.5">
+                        <Collapsible open={isSgOpen} onOpenChange={() => {
+                          setOpenFinSubgroups(prev => {
+                            const next = new Set(prev);
+                            if (next.has(sg.key)) next.delete(sg.key);
+                            else next.add(sg.key);
+                            return next;
+                          });
+                        }}>
+                          <CollapsibleTrigger className="w-full">
+                            <div className={cn(
+                              "flex items-center gap-2 w-full px-3 py-1.5 rounded-md transition-all duration-150 text-[11px]",
+                              "hover:bg-[var(--sidebar-hover-raw)]",
+                              isSgOpen && "bg-[var(--sidebar-hover-raw)]"
+                            )}>
+                              <sg.icon className="h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)]" />
+                              <span className="font-semibold uppercase tracking-wider text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
+                                {sg.label}
+                              </span>
+                              <ChevronRight className={cn(
+                                "h-3 w-3 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
+                                isSgOpen && "rotate-90"
+                              )} />
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="ps-2 space-y-0.5 mt-0.5">
+                              {visibleItems.map(item => (
+                                <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    );
+                  })}
+
+                  {/* Bottom standalone items */}
+                  {finBottomItems.filter(i => hasPermission(i.screenCode)).map(item => (
+                    <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
                   ))}
                 </SidebarMenu>
               </ScrollArea>
