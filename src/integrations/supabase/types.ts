@@ -1153,6 +1153,57 @@ export type Database = {
           },
         ]
       }
+      bancos: {
+        Row: {
+          ativo: boolean
+          codigo_compe: string | null
+          id: string
+          ispb: string | null
+          nome: string
+          nome_curto: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_compe?: string | null
+          id?: string
+          ispb?: string | null
+          nome: string
+          nome_curto?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo_compe?: string | null
+          id?: string
+          ispb?: string | null
+          nome?: string
+          nome_curto?: string | null
+        }
+        Relationships: []
+      }
+      bandeiras_cartao: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          id?: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       bank_connections: {
         Row: {
           account_type: string | null
@@ -3564,38 +3615,83 @@ export type Database = {
         Row: {
           agencia: string | null
           banco: string
+          codigo_integracao: string | null
           conta: string | null
           created_at: string | null
+          data_alt: string | null
+          data_inc: string | null
+          data_saldo_inicial: string | null
+          digito: string | null
           empresa_id: number | null
+          enviado_erp: boolean
+          hora_alt: string | null
+          hora_inc: string | null
           id: string
+          inativo: boolean
+          numero_conta: string | null
           pix_key: string | null
+          saldo_atual: number | null
+          saldo_inicial: number | null
           status: string | null
           tipo: string | null
+          tipo_conta: string | null
           updated_at: string | null
+          user_alt: string | null
+          user_inc: string | null
         }
         Insert: {
           agencia?: string | null
           banco: string
+          codigo_integracao?: string | null
           conta?: string | null
           created_at?: string | null
+          data_alt?: string | null
+          data_inc?: string | null
+          data_saldo_inicial?: string | null
+          digito?: string | null
           empresa_id?: number | null
+          enviado_erp?: boolean
+          hora_alt?: string | null
+          hora_inc?: string | null
           id?: string
+          inativo?: boolean
+          numero_conta?: string | null
           pix_key?: string | null
+          saldo_atual?: number | null
+          saldo_inicial?: number | null
           status?: string | null
           tipo?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
+          user_alt?: string | null
+          user_inc?: string | null
         }
         Update: {
           agencia?: string | null
           banco?: string
+          codigo_integracao?: string | null
           conta?: string | null
           created_at?: string | null
+          data_alt?: string | null
+          data_inc?: string | null
+          data_saldo_inicial?: string | null
+          digito?: string | null
           empresa_id?: number | null
+          enviado_erp?: boolean
+          hora_alt?: string | null
+          hora_inc?: string | null
           id?: string
+          inativo?: boolean
+          numero_conta?: string | null
           pix_key?: string | null
+          saldo_atual?: number | null
+          saldo_inicial?: number | null
           status?: string | null
           tipo?: string | null
+          tipo_conta?: string | null
           updated_at?: string | null
+          user_alt?: string | null
+          user_inc?: string | null
         }
         Relationships: [
           {
@@ -11433,6 +11529,27 @@ export type Database = {
           },
         ]
       }
+      finalidades_transferencia: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          id?: string
+        }
+        Relationships: []
+      }
       financial_correction_rules: {
         Row: {
           created_at: string
@@ -13430,6 +13547,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lancamentos_conta_corrente: {
+        Row: {
+          categoria: string | null
+          centro_custo_id: string | null
+          codigo_integracao: string | null
+          conta_bancaria_id: string
+          conta_destino_id: string | null
+          created_at: string
+          data_alt: string | null
+          data_competencia: string | null
+          data_inc: string | null
+          data_lancamento: string
+          descricao: string
+          empresa_id: string
+          enviado_erp: boolean
+          hora_alt: string | null
+          hora_inc: string | null
+          id: string
+          inativo: boolean
+          lancamento_par_id: string | null
+          numero_documento: string | null
+          observacoes: string | null
+          origem: string
+          plano_conta_id: string | null
+          tipo: string
+          titulo_pagar_id: string | null
+          titulo_receber_id: string | null
+          updated_at: string
+          user_alt: string | null
+          user_inc: string | null
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          centro_custo_id?: string | null
+          codigo_integracao?: string | null
+          conta_bancaria_id: string
+          conta_destino_id?: string | null
+          created_at?: string
+          data_alt?: string | null
+          data_competencia?: string | null
+          data_inc?: string | null
+          data_lancamento?: string
+          descricao: string
+          empresa_id: string
+          enviado_erp?: boolean
+          hora_alt?: string | null
+          hora_inc?: string | null
+          id?: string
+          inativo?: boolean
+          lancamento_par_id?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          origem?: string
+          plano_conta_id?: string | null
+          tipo: string
+          titulo_pagar_id?: string | null
+          titulo_receber_id?: string | null
+          updated_at?: string
+          user_alt?: string | null
+          user_inc?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          centro_custo_id?: string | null
+          codigo_integracao?: string | null
+          conta_bancaria_id?: string
+          conta_destino_id?: string | null
+          created_at?: string
+          data_alt?: string | null
+          data_competencia?: string | null
+          data_inc?: string | null
+          data_lancamento?: string
+          descricao?: string
+          empresa_id?: string
+          enviado_erp?: boolean
+          hora_alt?: string | null
+          hora_inc?: string | null
+          id?: string
+          inativo?: boolean
+          lancamento_par_id?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          origem?: string
+          plano_conta_id?: string | null
+          tipo?: string
+          titulo_pagar_id?: string | null
+          titulo_receber_id?: string | null
+          updated_at?: string
+          user_alt?: string | null
+          user_inc?: string | null
+          valor?: number
+        }
+        Relationships: []
       }
       lancamentos_distribuidores: {
         Row: {
@@ -15714,6 +15927,27 @@ export type Database = {
         }
         Relationships: []
       }
+      origens_titulo: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          id?: string
+        }
+        Relationships: []
+      }
       our_brands: {
         Row: {
           active: boolean | null
@@ -15896,6 +16130,101 @@ export type Database = {
             columns: ["conta_pagar_id"]
             isOneToOne: false
             referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcelas_receber: {
+        Row: {
+          bloqueado: boolean
+          codigo_barras: string | null
+          conta_bancaria_id: string | null
+          conta_receber_id: string
+          created_at: string
+          data_alt: string | null
+          data_inc: string | null
+          data_recebimento: string | null
+          data_vencimento: string
+          descricao: string | null
+          empresa_id: string | null
+          hora_alt: string | null
+          hora_inc: string | null
+          id: string
+          inativo: boolean
+          numero_parcela: number
+          observacoes: string | null
+          recebimento_id: string | null
+          status: string
+          updated_at: string
+          user_alt: string | null
+          user_inc: string | null
+          valor_desconto: number
+          valor_juros: number
+          valor_original: number
+          valor_recebido: number
+        }
+        Insert: {
+          bloqueado?: boolean
+          codigo_barras?: string | null
+          conta_bancaria_id?: string | null
+          conta_receber_id: string
+          created_at?: string
+          data_alt?: string | null
+          data_inc?: string | null
+          data_recebimento?: string | null
+          data_vencimento: string
+          descricao?: string | null
+          empresa_id?: string | null
+          hora_alt?: string | null
+          hora_inc?: string | null
+          id?: string
+          inativo?: boolean
+          numero_parcela?: number
+          observacoes?: string | null
+          recebimento_id?: string | null
+          status?: string
+          updated_at?: string
+          user_alt?: string | null
+          user_inc?: string | null
+          valor_desconto?: number
+          valor_juros?: number
+          valor_original: number
+          valor_recebido?: number
+        }
+        Update: {
+          bloqueado?: boolean
+          codigo_barras?: string | null
+          conta_bancaria_id?: string | null
+          conta_receber_id?: string
+          created_at?: string
+          data_alt?: string | null
+          data_inc?: string | null
+          data_recebimento?: string | null
+          data_vencimento?: string
+          descricao?: string | null
+          empresa_id?: string | null
+          hora_alt?: string | null
+          hora_inc?: string | null
+          id?: string
+          inativo?: boolean
+          numero_parcela?: number
+          observacoes?: string | null
+          recebimento_id?: string | null
+          status?: string
+          updated_at?: string
+          user_alt?: string | null
+          user_inc?: string | null
+          valor_desconto?: number
+          valor_juros?: number
+          valor_original?: number
+          valor_recebido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelas_receber_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
             referencedColumns: ["id"]
           },
         ]
@@ -20980,6 +21309,77 @@ export type Database = {
         }
         Relationships: []
       }
+      recebimentos: {
+        Row: {
+          autenticacao: string | null
+          conta_bancaria_id: string | null
+          created_at: string
+          data_inc: string | null
+          data_recebimento: string
+          empresa_id: string | null
+          forma_recebimento: string
+          hora_inc: string | null
+          id: string
+          numero_documento: string | null
+          observacoes: string | null
+          parcela_receber_id: string | null
+          status: string
+          updated_at: string
+          user_inc: string | null
+          valor_desconto: number
+          valor_juros: number
+          valor_recebido: number
+        }
+        Insert: {
+          autenticacao?: string | null
+          conta_bancaria_id?: string | null
+          created_at?: string
+          data_inc?: string | null
+          data_recebimento?: string
+          empresa_id?: string | null
+          forma_recebimento?: string
+          hora_inc?: string | null
+          id?: string
+          numero_documento?: string | null
+          observacoes?: string | null
+          parcela_receber_id?: string | null
+          status?: string
+          updated_at?: string
+          user_inc?: string | null
+          valor_desconto?: number
+          valor_juros?: number
+          valor_recebido: number
+        }
+        Update: {
+          autenticacao?: string | null
+          conta_bancaria_id?: string | null
+          created_at?: string
+          data_inc?: string | null
+          data_recebimento?: string
+          empresa_id?: string | null
+          forma_recebimento?: string
+          hora_inc?: string | null
+          id?: string
+          numero_documento?: string | null
+          observacoes?: string | null
+          parcela_receber_id?: string | null
+          status?: string
+          updated_at?: string
+          user_inc?: string | null
+          valor_desconto?: number
+          valor_juros?: number
+          valor_recebido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_parcela_receber_id_fkey"
+            columns: ["parcela_receber_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas_receber"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_cobranca: {
         Row: {
           ativo: boolean | null
@@ -23701,6 +24101,48 @@ export type Database = {
           id?: string
           ip_address?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      tipos_conta_corrente: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      tipos_documento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          id?: string
         }
         Relationships: []
       }
