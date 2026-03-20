@@ -374,6 +374,16 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={erpFilter} onValueChange={v => { setErpFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-44 h-9 text-sm">
+              <SelectValue placeholder="Sinc. ERP" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ERP: Todos</SelectItem>
+              <SelectItem value="sincronizado">Sincronizado</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+            </SelectContent>
+          </Select>
           <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={d => { setDateFrom(d); setPage(1); }} onDateToChange={d => { setDateTo(d); setPage(1); }} />
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">Limpar</Button>
