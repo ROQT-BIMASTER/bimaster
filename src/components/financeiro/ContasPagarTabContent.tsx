@@ -642,7 +642,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               <div className="space-y-1.5">
                 <Label>Cód. Integração ERP</Label>
                 <Input
-                  value={(form as any).codigo_integracao || ""}
+                  value={form.codigo_integracao || ""}
                   readOnly
                   disabled
                   placeholder="Preenchido automaticamente ao enviar ao ERP"
