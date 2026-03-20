@@ -21197,6 +21197,27 @@ export type Database = {
         }
         Relationships: []
       }
+      session_invalidation_queue: {
+        Row: {
+          id: string
+          invalidated_at: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invalidated_at?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invalidated_at?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       shelf_measurement_brands: {
         Row: {
           brand_id: string
@@ -27297,6 +27318,7 @@ export type Database = {
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_rate_limit: { Args: never; Returns: undefined }
+      cleanup_session_invalidation_queue: { Args: never; Returns: undefined }
       complete_sync: {
         Args: {
           p_duration_ms?: number
