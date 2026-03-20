@@ -31,18 +31,27 @@ serve(async (req: Request) => {
     return json({ sucesso: false, mensagem: "Evento inválido: " + payload.evento }, 400);
   }
 
-  // FIX1: Validar API key primeiro, depois empresa_id separadamente
+  // FIX7: Validar API key com suporte a rotação (api_key OU api_key_anterior ainda válida)
   const { data: erpConfig } = await supabase
     .from("erp_config")
     .select("id, empresa_id")
-    .eq("api_key", apiKey)
     .eq("ativo", true)
+    .or(`api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
     .maybeSingle();
 
   if (!erpConfig) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401);
 
   if (erpConfig.empresa_id !== payload.empresa_id) {
     return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403);
+  }
+
+  // FIX6: Rate limiting — 60 req/min por empresa_id
+  const { data: permitido } = await supabase.rpc("check_and_increment_rate_limit", {
+    p_chave: `erp-webhook-${payload.empresa_id}`,
+    p_limite: 60,
+  });
+  if (permitido === false) {
+    return json({ sucesso: false, erro: "limite_excedido", mensagem: "Limite de 60 requisições/minuto excedido" }, 429);
   }
 
   // FIX4: Idempotência reforçada — header OU fallback gerado do payload
