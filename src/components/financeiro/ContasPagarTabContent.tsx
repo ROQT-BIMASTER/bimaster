@@ -415,6 +415,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
                       <TableHead className="text-right">Pago</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="hidden md:table-cell text-center">ERP</TableHead>
                       <TableHead className="hidden md:table-cell">Parcelas</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
