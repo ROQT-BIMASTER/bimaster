@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
