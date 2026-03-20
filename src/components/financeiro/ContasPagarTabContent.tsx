@@ -138,7 +138,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const { data: fornecedores } = useQuery({
     queryKey: ["fornecedores-autocomplete"],
     queryFn: async () => {
-      const { data } = await supabase.from("fornecedores").select("id,nome,codigo_externo,cnpj").eq("status", "ativo").order("nome").limit(500);
+      const { data } = await (supabase as any).from("fornecedores").select("id,nome,codigo_externo,cnpj").eq("status", "ativo").order("nome").limit(500);
       return data || [];
     },
   });
