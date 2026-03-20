@@ -31,15 +31,19 @@ serve(async (req: Request) => {
     return json({ sucesso: false, mensagem: "Evento inválido: " + payload.evento }, 400);
   }
 
+  // FIX1: Validar API key primeiro, depois empresa_id separadamente
   const { data: erpConfig } = await supabase
     .from("erp_config")
     .select("id, empresa_id")
-    .eq("empresa_id", payload.empresa_id)
     .eq("api_key", apiKey)
     .eq("ativo", true)
     .maybeSingle();
 
-  if (!erpConfig) return json({ sucesso: false, mensagem: "Não autorizado" }, 401);
+  if (!erpConfig) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401);
+
+  if (erpConfig.empresa_id !== payload.empresa_id) {
+    return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403);
+  }
 
   const idempotencyKey = req.headers.get("x-idempotency-key");
   if (idempotencyKey) {
