@@ -1,37 +1,26 @@
 
 
-## Fix: All Contas a Receber RPCs Broken — Empty `search_path`
+## Fix: Dashboard KPIs Showing R$0
 
-### Root Cause
+### Root Cause Analysis
 
-All 10 `get_contas_receber_*` database functions have `SET search_path TO ''` (empty string). This means they cannot resolve the `contas_receber` table, causing every RPC call to fail with `relation "contas_receber" does not exist`. The dashboard shows R$0 because all queries silently error out.
+All 10 `get_contas_receber_*` database functions were verified to work correctly at the SQL level — returning ~39,000 records with ~R$52M in values. The `search_path=public` fix from the previous migration IS deployed and functional.
 
-### Solution
+**Most likely cause**: PostgREST (the API layer between the frontend and database) has a **stale schema cache**. After the previous migration recreated all 10 functions, PostgREST may not have reloaded its internal schema, causing API calls from the frontend to fail silently (returning null/empty).
 
-A single database migration that recreates all 10 functions with `SET search_path = public` instead of the empty string. The SQL logic inside each function is correct — only the `search_path` setting needs to change.
+### Evidence
+- `get_contas_receber_dashboard_kpis(NULL, 2026, ...)` returns valid data when called via SQL
+- All 5 dashboard RPCs (kpis, evolucao, top_clientes, aging, status_dist) return correct data
+- Only one version of each function exists (no overload conflicts)
+- `search_path=public` is correctly set on all functions
 
-### Functions to fix (all same change: `search_path TO ''` → `search_path TO 'public'`)
+### Fix
 
-| Function | Params |
-|---|---|
-| `get_contas_receber_dashboard_kpis` | 5 params (drop this overload, keep 7-param) |
-| `get_contas_receber_dashboard_kpis` | 7 params |
-| `get_contas_receber_evolucao_mensal` | 4 params |
-| `get_contas_receber_top_clientes` | 5 params |
-| `get_contas_receber_aging` | 5 params |
-| `get_contas_receber_status_dist` | 5 params |
-| `get_contas_receber_pmr_detalhes` | 5 params |
-| `get_contas_receber_calendario` | 4 params |
-| `get_contas_receber_filter_options` | 1 param |
-| `get_contas_receber_filtros` | 1 param |
+**Single migration** that sends a `NOTIFY pgrst, 'reload schema'` signal to force PostgREST to reload its function catalog. This is a no-data-change migration — it only refreshes the API layer.
 
-### Additional cleanup
-- Drop the duplicate 5-param `get_contas_receber_dashboard_kpis` (the 7-param version supersedes it and handles all cases)
-
-### Approach
-1. Single migration: DROP + CREATE OR REPLACE for each function, preserving all existing SQL logic but fixing `search_path`
-2. No frontend changes — the existing code will work once RPCs return data
+Additionally, as a belt-and-suspenders approach: `DROP` and re-`CREATE` the `get_contas_receber_dashboard_kpis` function (identical logic) to force PostgREST to recognize the latest signature.
 
 ### Files changed
-- 1 new migration file only
+- 1 new migration file (schema reload signal + function re-creation)
+- No frontend changes
 
