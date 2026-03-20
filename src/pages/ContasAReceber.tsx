@@ -63,6 +63,8 @@ export default function ContasAReceber() {
   const { isAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
+  // ADV-7: UI permission for receivables management
+  const { canEdit: canManageRecebimento } = useUIPermissions("financeiro_contas_receber");
   
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchCliente, setSearchCliente] = useState("");

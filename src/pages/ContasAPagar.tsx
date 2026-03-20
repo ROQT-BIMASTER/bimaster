@@ -80,6 +80,8 @@ export default function ContasAPagar() {
   const queryClient = useQueryClient();
   const { userType, isAdmin } = useUserRole();
   const { empresaIds: contextEmpresaIds, loading: loadingEmpresas } = useEmpresaFilter();
+  // ADV-7: UI permission for payment approval
+  const { canEdit: canApprovePayment } = useUIPermissions("financeiro_contas_pagar");
   
   // Filtros
   const [searchFornecedor, setSearchFornecedor] = useState("");
