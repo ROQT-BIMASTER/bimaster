@@ -50,12 +50,20 @@ const TradeInsights = () => {
   const [assignUserId, setAssignUserId] = useState<string>("");
   const [assignLoading, setAssignLoading] = useState(false);
   const [teamUsers, setTeamUsers] = useState<{ id: string; nome: string }[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
     });
+    // Load team users for assignment
+    supabase
+      .from("profiles")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => {
+        setTeamUsers(data || []);
+      });
   }, []);
 
   useEffect(() => {
