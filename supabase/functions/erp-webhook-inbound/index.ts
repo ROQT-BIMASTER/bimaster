@@ -62,9 +62,19 @@ serve(async (req: Request) => {
     .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`)
     .maybeSingle();
 
-  if (!erpConfig) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401, corsHeaders);
+  // Fallback: check erp_api_keys table
+  let erpConfigResult = erpConfig;
+  if (!erpConfigResult) {
+    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+    const empresa = await validateErpApiKey(apiKey);
+    if (empresa) {
+      erpConfigResult = { id: "erp_api_keys", empresa_id: empresa };
+    }
+  }
 
-  if (erpConfig.empresa_id !== payload.empresa_id) {
+  if (!erpConfigResult) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401, corsHeaders);
+
+  if (erpConfigResult.empresa_id !== payload.empresa_id) {
     return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403, corsHeaders);
   }
 

@@ -86,7 +86,19 @@ serve(async (req) => {
   const apiKey = req.headers.get("x-api-key");
   const expectedKey = Deno.env.get("EXPORT_API_KEY");
 
-  if (!apiKey || apiKey !== expectedKey) {
+  let authenticated = false;
+  if (apiKey && expectedKey && apiKey === expectedKey) {
+    authenticated = true;
+  }
+
+  // Fallback: check erp_api_keys table
+  if (!authenticated && apiKey) {
+    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+    const empresa = await validateErpApiKey(apiKey);
+    if (empresa) authenticated = true;
+  }
+
+  if (!authenticated) {
     return jsonResponse({ error: "API key inválida ou ausente" }, 401);
   }
 

@@ -44,11 +44,20 @@ Deno.serve(async (req) => {
     .eq("config_value", apiKey)
     .maybeSingle();
 
-  if (configErr || !configRow?.empresa_id) {
-    return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
+  let empresaId: number | null = configRow?.empresa_id ?? null;
+
+  // Fallback: check erp_api_keys table
+  if (!empresaId) {
+    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+    const empresa = await validateErpApiKey(apiKey);
+    if (empresa) {
+      empresaId = parseInt(empresa) || 0;
+    }
   }
 
-  const empresaId: number = configRow.empresa_id;
+  if (!empresaId) {
+    return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
+  }
 
   // --- Helper to log to erp_sync_log ---
   async function logSync(endpoint: string, payload: unknown, statusCode: number) {
