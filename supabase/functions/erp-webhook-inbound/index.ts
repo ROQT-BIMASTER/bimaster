@@ -45,18 +45,20 @@ serve(async (req: Request) => {
     return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403);
   }
 
-  const idempotencyKey = req.headers.get("x-idempotency-key");
-  if (idempotencyKey) {
-    const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: existe } = await supabase
-      .from("erp_sync_log")
-      .select("id")
-      .eq("empresa_id", payload.empresa_id)
-      .eq("idempotency_key", idempotencyKey)
-      .gte("created_at", seteDiasAtras)
-      .maybeSingle();
-    if (existe) return json({ sucesso: true, mensagem: "Evento já processado", evento_id: existe.id, idempotente: true }, 200);
-  }
+  // FIX4: Idempotência reforçada — header OU fallback gerado do payload
+  const headerIdempotencyKey = req.headers.get("x-idempotency-key");
+  const idempotencyKey = headerIdempotencyKey
+    ?? `${payload.empresa_id}-${payload.evento}-${payload.referencia_erp}-${payload.data_processamento}`;
+
+  const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existe } = await supabase
+    .from("erp_sync_log")
+    .select("id")
+    .eq("empresa_id", payload.empresa_id)
+    .eq("idempotency_key", idempotencyKey)
+    .gte("created_at", seteDiasAtras)
+    .maybeSingle();
+  if (existe) return json({ sucesso: true, status: "ja_processado", id: existe.id, idempotente: true }, 200);
 
   const statusMap: Record<string, string> = {
     provisao_registrada: "confirmado_erp",
