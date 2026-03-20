@@ -27717,6 +27717,32 @@ export type Database = {
         Returns: string
       }
       fn_calcular_cobertura_mercado: { Args: never; Returns: undefined }
+      fn_criar_titulo_com_parcelas: {
+        Args: {
+          p_categoria_nome?: string
+          p_centro_custo?: string
+          p_conta?: string
+          p_data_emissao?: string
+          p_data_vencimento?: string
+          p_departamento_id?: string
+          p_departamento_nome?: string
+          p_descricao?: string
+          p_empresa_id?: number
+          p_empresa_nome?: string
+          p_fornecedor_codigo?: string
+          p_fornecedor_nome: string
+          p_numero_documento?: string
+          p_numero_parcelas?: number
+          p_observacoes?: string
+          p_portador_id?: string
+          p_tipo_documento?: string
+          p_valor_ajustes?: number
+          p_valor_desconto?: number
+          p_valor_juros?: number
+          p_valor_original?: number
+        }
+        Returns: string
+      }
       fn_get_cidades_sem_match: { Args: never; Returns: Json }
       fn_get_municipios_intelligence: {
         Args: {
