@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ManualFabricaDrawer } from "@/components/fabrica/ManualFabricaDrawer";
 import { getSignedUrl } from "@/lib/utils/storage-helper";
 import { Loader2 } from "lucide-react";
+import { useFieldVisibility } from "@/hooks/useFieldVisibility";
 
 export default function ChinaSubmissaoDetalhe() {
   const { id } = useParams<{ id: string }>();
