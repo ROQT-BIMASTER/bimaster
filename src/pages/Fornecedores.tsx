@@ -106,10 +106,10 @@ export default function Fornecedores() {
   const saveMutation = useMutation({
     mutationFn: async ({ data, id }: { data: Record<string, unknown>; id?: string }) => {
       if (id) {
-        const { error } = await supabase.from("fornecedores").update(data).eq("id", id);
+        const { error } = await supabase.from("fornecedores").update(data as any).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("fornecedores").insert(data);
+        const { error } = await supabase.from("fornecedores").insert(data as any);
         if (error) throw error;
       }
     },
