@@ -1,48 +1,41 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const AnalyzeWebsiteSchema = z.object({
+  url: z.string().url().max(2000),
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    const { url } = await req.json();
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "pollo-analyze", limit: 20, req, userId: auth.userId });
 
-    if (!url) {
-      return new Response(
-        JSON.stringify({ error: 'URL é obrigatória' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    const body = await req.json();
+    const { url } = validateBody(body, AnalyzeWebsiteSchema);
 
     console.log('Analisando site:', url);
 
-    // Fazer scraping básico do site
     const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Erro ao acessar site: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Erro ao acessar site: ${response.status}`);
 
     const html = await response.text();
-    
-    // Extrair informações básicas do site
+
     const titleMatch = html.match(/<title>(.*?)<\/title>/i);
     const descMatch = html.match(/<meta\s+name="description"\s+content="(.*?)"/i);
     const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
-    
+
     const title = titleMatch ? titleMatch[1] : 'Sem título';
     const description = descMatch ? descMatch[1] : '';
     const h1 = h1Match ? h1Match[1].replace(/<[^>]*>/g, '') : '';
 
-    // Criar análise para usar na geração de conteúdo
     const analysis = `Site: ${title}
 ${description ? `Descrição: ${description}` : ''}
 ${h1 ? `Título principal: ${h1}` : ''}
@@ -50,28 +43,10 @@ ${h1 ? `Título principal: ${h1}` : ''}
 Baseado neste site, crie conteúdo visual relevante e profissional.`;
 
     return new Response(
-      JSON.stringify({ 
-        analysis,
-        metadata: {
-          title,
-          description,
-          h1,
-          url
-        }
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ analysis, metadata: { title, description, h1, url } }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Erro ao analisar site:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro ao analisar site';
-    return new Response(
-      JSON.stringify({ error: errorMessage }), 
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return handleError(error, getCorsHeaders(req));
   }
 });
