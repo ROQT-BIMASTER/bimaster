@@ -69,6 +69,7 @@ const emptyForm: FormData = {
   data_vencimento: "", valor_original: 0, valor_desconto: 0, valor_juros: 0,
   valor_ajustes: 0, numero_parcelas: 1, categoria_nome: "", departamento_id: "",
   portador_id: "", conta: "", empresa_id: 1, empresa_nome: "", observacoes: "",
+  codigo_integracao: "",
 };
 
 function statusBadge(s: string | null) {
