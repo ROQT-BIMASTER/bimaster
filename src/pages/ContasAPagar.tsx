@@ -37,6 +37,7 @@ import { formatLocalDate } from "@/utils/dateUtils";
 import { TourButton, contasPagarTourSteps, CONTAS_PAGAR_TOUR_ID } from "@/components/tour";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { ContasPagarTabContent } from "@/components/financeiro/ContasPagarTabContent";
 
 interface ContaPagar {
   id: string;
