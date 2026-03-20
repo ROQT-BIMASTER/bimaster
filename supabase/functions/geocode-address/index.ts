@@ -1,59 +1,41 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { validateJWT } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { z, validateBody } from "../_shared/validate.ts";
+import { handleError } from "../_shared/error-handler.ts";
 
-const MAPBOX_TOKEN = Deno.env.get('MAPBOX_ACCESS_TOKEN');
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const GeocodeSchema = z.object({
+  address: z.string().min(1).max(500),
+});
 
 serve(async (req) => {
-  console.log('🔍 [geocode] Requisição recebida - v2');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('🔍 [geocode] OPTIONS request');
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
-    console.log('🔍 [geocode] Processando requisição POST');
-    const { address } = await req.json();
-    console.log('🔍 [geocode] Endereço recebido:', address);
+    const auth = await validateJWT(req);
+    await checkRateLimit({ prefix: "geocode", limit: 100, req, userId: auth.userId });
 
-    if (!address) {
-      console.log('❌ [geocode] Endereço não fornecido');
-      throw new Error('Address is required');
-    }
+    const body = await req.json();
+    const { address } = validateBody(body, GeocodeSchema);
 
-    if (!MAPBOX_TOKEN) {
-      console.log('❌ [geocode] Token Mapbox não configurado');
-      throw new Error('Mapbox token not configured');
-    }
+    const MAPBOX_TOKEN = Deno.env.get('MAPBOX_ACCESS_TOKEN');
+    if (!MAPBOX_TOKEN) throw new Error('Mapbox token not configured');
 
-    // Verificar se o token tem o formato correto (pode começar com pk., sk., pk_ ou sk_)
-    const tokenPrefix = MAPBOX_TOKEN.substring(0, 3);
-    console.log('🔍 [geocode] Token prefix:', tokenPrefix, '| Length:', MAPBOX_TOKEN.length);
-    
     const validPrefixes = ['pk.', 'sk.', 'pk_', 'sk_'];
     if (!validPrefixes.some(prefix => MAPBOX_TOKEN.startsWith(prefix))) {
-      console.log('❌ [geocode] Token Mapbox com formato inválido');
-      throw new Error('Invalid Mapbox token format. Token should start with pk., sk., pk_ or sk_');
+      throw new Error('Invalid Mapbox token format');
     }
-    
-    console.log('✅ [geocode] Token válido');
 
     const encodedAddress = encodeURIComponent(address);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=BR`;
-    
-    console.log('🔍 [geocode] Chamando API Mapbox...');
+
     const response = await fetch(url);
-    console.log('🔍 [geocode] Status da resposta Mapbox:', response.status);
-    
     const data = await response.json();
-    console.log('🔍 [geocode] Dados recebidos:', JSON.stringify(data).substring(0, 200));
 
     if (!data.features || data.features.length === 0) {
-      console.log('❌ [geocode] Endereço não encontrado no Mapbox');
       return new Response(
         JSON.stringify({ error: 'Address not found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -62,23 +44,12 @@ serve(async (req) => {
 
     const feature = data.features[0];
     const [longitude, latitude] = feature.center;
-    
-    console.log('✅ [geocode] Coordenadas encontradas:', { latitude, longitude });
 
     return new Response(
-      JSON.stringify({
-        latitude,
-        longitude,
-        formatted_address: feature.place_name,
-      }),
+      JSON.stringify({ latitude, longitude, formatted_address: feature.place_name }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('❌ [geocode] Erro:', error);
-    console.error('❌ [geocode] Stack:', error instanceof Error ? error.stack : 'No stack');
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    return handleError(error, getCorsHeaders(req));
   }
 });
