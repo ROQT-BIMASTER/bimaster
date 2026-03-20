@@ -28,6 +28,7 @@ import { DashboardContasReceberAggregated } from "@/components/financeiro/Dashbo
 import { CalendarioRecebimentosAggregated } from "@/components/financeiro/CalendarioRecebimentosAggregated";
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { useUIPermissions } from "@/hooks/useUIPermissions";
 
 interface ContaReceber {
   id: string;
