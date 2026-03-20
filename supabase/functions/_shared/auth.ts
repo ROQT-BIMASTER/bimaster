@@ -1,5 +1,6 @@
-// _shared/auth.ts — Authentication helpers (SEG-1)
+// _shared/auth.ts — Authentication helpers (SEG-1 + ADV-1)
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { timingSafeEqual } from "./timing-safe.ts";
 
 export interface AuthResult {
   userId: string;
@@ -42,6 +43,7 @@ export async function validateJWT(req: Request): Promise<AuthResult> {
 
 /**
  * Validate x-api-key against erp_config (supports hash comparison).
+ * Uses timing-safe comparison (ADV-1) to prevent timing attacks.
  */
 export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
   const apiKey = req.headers.get("x-api-key");
@@ -54,27 +56,47 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Try hash-based comparison first (SEG-2), fall back to plaintext during transition
+  // Hash the provided key for comparison (ADV-1: timing-safe)
   const apiKeyHash = await hashApiKey(apiKey);
 
-  const { data: config } = await supabase
+  // Fetch all active configs and compare timing-safely
+  const { data: configs } = await supabase
     .from("erp_config")
-    .select("id, empresa_id")
-    .eq("ativo", true)
-    .or(
-      `api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKey},and(api_key_anterior.eq.${apiKey},api_key_anterior_expira_em.gt.${new Date().toISOString()})`
-    )
-    .maybeSingle();
+    .select("id, empresa_id, api_key_hash, api_key, api_key_anterior, api_key_anterior_expira_em")
+    .eq("ativo", true);
 
-  if (!config) {
+  if (!configs || configs.length === 0) {
     throw new AuthError("Chave API inválida ou inativa", 401);
   }
 
-  return { empresaId: config.empresa_id, configId: config.id };
+  for (const config of configs) {
+    // Primary: compare hash (timing-safe)
+    if (config.api_key_hash && timingSafeEqual(apiKeyHash, config.api_key_hash)) {
+      return { empresaId: config.empresa_id, configId: config.id };
+    }
+
+    // Fallback: plaintext comparison during transition (timing-safe)
+    if (config.api_key && timingSafeEqual(apiKey, config.api_key)) {
+      return { empresaId: config.empresa_id, configId: config.id };
+    }
+
+    // Grace period for rotated keys (timing-safe)
+    if (
+      config.api_key_anterior &&
+      config.api_key_anterior_expira_em &&
+      new Date(config.api_key_anterior_expira_em) > new Date() &&
+      timingSafeEqual(apiKey, config.api_key_anterior)
+    ) {
+      return { empresaId: config.empresa_id, configId: config.id };
+    }
+  }
+
+  throw new AuthError("Chave API inválida ou inativa", 401);
 }
 
 /**
  * Validate HMAC-SHA256 signature from x-hub-signature-256 header.
+ * Uses timing-safe comparison (ADV-1).
  */
 export async function validateHmac(
   req: Request,
@@ -99,7 +121,8 @@ export async function validateHmac(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  if (signature !== expected) {
+  // ADV-1: Timing-safe comparison
+  if (!timingSafeEqual(signature, expected)) {
     throw new AuthError("Assinatura HMAC inválida", 401);
   }
 }
