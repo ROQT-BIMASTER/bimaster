@@ -32,12 +32,32 @@ vi.mock("@/contexts/PermissionsContext", () => ({
   usePermissions: () => ({ role: "admin", hasPermission: () => true, showModule: () => true }),
 }));
 
+vi.mock("@/contexts/ImpersonationContext", () => ({
+  useImpersonation: () => ({ isImpersonating: false, impersonatedUser: null, startImpersonation: vi.fn(), stopImpersonation: vi.fn() }),
+}));
+
 vi.mock("@/hooks/useUIPermissions", () => ({
   useUIPermissions: () => ({ permissions: {}, hasPermission: () => true, loading: false }),
 }));
 
 vi.mock("@/contexts/LanguageContext", () => ({
   useLanguage: () => ({ t: (k: string) => k, language: "pt" }),
+}));
+
+vi.mock("@/hooks/useUserRole", () => ({
+  useUserRole: () => ({ isAdmin: true, isGerente: false, isSupervisor: false, isAdminOrSupervisor: true, loading: false }),
+}));
+
+vi.mock("@/hooks/useSyncOfflineData", () => ({
+  useSyncOfflineData: () => ({ pendingCount: 0 }),
+}));
+
+vi.mock("@/lib/utils/offline-manager", () => ({
+  offlineManager: { isOnline: () => true, subscribe: vi.fn(() => vi.fn()) },
+}));
+
+vi.mock("@/components/dashboard/DashboardLayout", () => ({
+  DashboardLayout: ({ children }: any) => <div data-testid="layout">{children}</div>,
 }));
 
 import MarketingModule from "../MarketingModule";
