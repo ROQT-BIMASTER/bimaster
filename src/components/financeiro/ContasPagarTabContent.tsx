@@ -111,7 +111,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const { data: contas, isLoading } = useQuery({
     queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, dateFrom?.toISOString(), dateTo?.toISOString()],
     queryFn: async () => {
-      let q = supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: false });
+      let q: any = supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
       if (filterAno !== "all") {
         q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
