@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, Target, RefreshCw } from "lucide-react";
+import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, Target, RefreshCw, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { InsightDetailDialog } from "@/components/trade/InsightDetailDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface Insight {
   id: string;
@@ -41,11 +44,23 @@ const TradeInsights = () => {
   const [selectedInsightId, setSelectedInsightId] = useState<string | null>(null);
   const [insightDetailOpen, setInsightDetailOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Assignment dialog state
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningInsight, setAssigningInsight] = useState<Insight | null>(null);
+  const [assignUserId, setAssignUserId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [teamUsers, setTeamUsers] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
     });
+    // Load team users for assignment
+    const loadTeam = async () => {
+      const res = await (supabase as any).from("profiles").select("id, nome").eq("ativo", true).order("nome");
+      setTeamUsers((res.data || []).map((u: any) => ({ id: u.id, nome: u.nome })));
+    };
+    loadTeam();
   }, []);
 
   useEffect(() => {
@@ -175,6 +190,30 @@ const TradeInsights = () => {
   if (!hasPermission("trade_insights")) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const handleAssignInsight = async () => {
+    if (!assigningInsight || !assignUserId) return;
+    setAssignLoading(true);
+    try {
+      const { error } = await supabase
+        .from("ai_insights")
+        .update({
+          actioned_by: assignUserId,
+          actioned_at: new Date().toISOString(),
+          status: "actioned",
+        })
+        .eq("id", assigningInsight.id);
+      if (error) throw error;
+      toast.success("Insight atribuído com sucesso!");
+      setAssignDialogOpen(false);
+      setAssigningInsight(null);
+      fetchInsights();
+    } catch (error: any) {
+      toast.error("Erro ao atribuir: " + error.message);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   const handleGenerateInsights = async () => {
     setGenerating(true);
@@ -493,9 +532,12 @@ const TradeInsights = () => {
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toast.info("Funcionalidade de atribuição em desenvolvimento");
+                            setAssigningInsight(insight);
+                            setAssignUserId("");
+                            setAssignDialogOpen(true);
                           }}
                         >
+                          <UserPlus className="h-3 w-3 mr-1" />
                           Atribuir
                         </Button>
                         <Button 
@@ -556,6 +598,49 @@ const TradeInsights = () => {
           onOpenChange={setInsightDetailOpen}
           onUpdate={fetchInsights}
         />
+        {/* Assignment Dialog */}
+        <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Atribuir Insight</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {assigningInsight && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-medium text-sm">{assigningInsight.title}</p>
+                  {assigningInsight.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {assigningInsight.description}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Atribuir para</Label>
+                <Select value={assignUserId} onValueChange={setAssignUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAssignInsight} disabled={!assignUserId || assignLoading}>
+                {assignLoading ? "Atribuindo..." : "Confirmar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
