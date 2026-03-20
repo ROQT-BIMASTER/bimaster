@@ -4050,21 +4050,38 @@ export type Database = {
       }
       contas_receber: {
         Row: {
+          bloqueado: boolean
+          categoria: string | null
+          centro_custo_id: string | null
           cliente_codigo: string | null
+          cliente_id: string | null
           cliente_nome: string | null
+          codigo_integracao: string | null
           conta: string | null
+          conta_bancaria_id: string | null
           created_at: string | null
+          data_alt: string | null
+          data_competencia: string | null
           data_emissao: string | null
           data_hash: string | null
+          data_inc: string | null
           data_recebimento: string | null
           data_vencimento: string | null
+          descricao: string | null
           dias_atraso: number | null
           empresa_id: number
           empresa_nome: string | null
+          enviado_erp: boolean
           erp_id: string
+          hora_alt: string | null
+          hora_inc: string | null
           id: string
+          inativo: boolean
+          num_parcelas: number
           numero_documento: string | null
+          observacoes: string | null
           parcela: number | null
+          plano_conta_id: string | null
           portador: string | null
           portador_id: string | null
           portador_nome: string | null
@@ -4072,12 +4089,17 @@ export type Database = {
           status: string | null
           tabela: string | null
           tabela_preco: string | null
+          tags: string[] | null
           tipo_documento: string | null
           updated_at: string | null
+          user_alt: string | null
+          user_inc: string | null
           valor_aberto: number | null
+          valor_acrescimo: number
           valor_ajustes: number | null
           valor_desconto: number | null
           valor_juros: number | null
+          valor_liquido: number | null
           valor_original: number | null
           valor_recebido: number | null
           vendedor: string | null
@@ -4085,21 +4107,38 @@ export type Database = {
           vendedor_nome: string | null
         }
         Insert: {
+          bloqueado?: boolean
+          categoria?: string | null
+          centro_custo_id?: string | null
           cliente_codigo?: string | null
+          cliente_id?: string | null
           cliente_nome?: string | null
+          codigo_integracao?: string | null
           conta?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string | null
+          data_alt?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
+          data_inc?: string | null
           data_recebimento?: string | null
           data_vencimento?: string | null
+          descricao?: string | null
           dias_atraso?: number | null
           empresa_id: number
           empresa_nome?: string | null
+          enviado_erp?: boolean
           erp_id: string
+          hora_alt?: string | null
+          hora_inc?: string | null
           id?: string
+          inativo?: boolean
+          num_parcelas?: number
           numero_documento?: string | null
+          observacoes?: string | null
           parcela?: number | null
+          plano_conta_id?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
@@ -4107,12 +4146,17 @@ export type Database = {
           status?: string | null
           tabela?: string | null
           tabela_preco?: string | null
+          tags?: string[] | null
           tipo_documento?: string | null
           updated_at?: string | null
+          user_alt?: string | null
+          user_inc?: string | null
           valor_aberto?: number | null
+          valor_acrescimo?: number
           valor_ajustes?: number | null
           valor_desconto?: number | null
           valor_juros?: number | null
+          valor_liquido?: number | null
           valor_original?: number | null
           valor_recebido?: number | null
           vendedor?: string | null
@@ -4120,21 +4164,38 @@ export type Database = {
           vendedor_nome?: string | null
         }
         Update: {
+          bloqueado?: boolean
+          categoria?: string | null
+          centro_custo_id?: string | null
           cliente_codigo?: string | null
+          cliente_id?: string | null
           cliente_nome?: string | null
+          codigo_integracao?: string | null
           conta?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string | null
+          data_alt?: string | null
+          data_competencia?: string | null
           data_emissao?: string | null
           data_hash?: string | null
+          data_inc?: string | null
           data_recebimento?: string | null
           data_vencimento?: string | null
+          descricao?: string | null
           dias_atraso?: number | null
           empresa_id?: number
           empresa_nome?: string | null
+          enviado_erp?: boolean
           erp_id?: string
+          hora_alt?: string | null
+          hora_inc?: string | null
           id?: string
+          inativo?: boolean
+          num_parcelas?: number
           numero_documento?: string | null
+          observacoes?: string | null
           parcela?: number | null
+          plano_conta_id?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
@@ -4142,12 +4203,17 @@ export type Database = {
           status?: string | null
           tabela?: string | null
           tabela_preco?: string | null
+          tags?: string[] | null
           tipo_documento?: string | null
           updated_at?: string | null
+          user_alt?: string | null
+          user_inc?: string | null
           valor_aberto?: number | null
+          valor_acrescimo?: number
           valor_ajustes?: number | null
           valor_desconto?: number | null
           valor_juros?: number | null
+          valor_liquido?: number | null
           valor_original?: number | null
           valor_recebido?: number | null
           vendedor?: string | null
@@ -5379,6 +5445,7 @@ export type Database = {
         Row: {
           action: string
           atualizado_em: string | null
+          codigo_erp: string | null
           conta_pagar_id: string | null
           created_at: string | null
           created_by: string | null
@@ -5388,6 +5455,7 @@ export type Database = {
           empresa_id: number | null
           entity_id: string | null
           entity_type: string
+          enviado_em: string | null
           erp_codigo_erro: string | null
           erp_mensagem: string | null
           error_message: string | null
@@ -5395,21 +5463,28 @@ export type Database = {
           fila_atualizada: boolean | null
           id: string
           idempotency_key: string | null
+          max_tentativas: number
           operacao: string | null
           payload_entrada: Json | null
+          payload_enviado: Json | null
+          proximo_envio: string | null
           referencia_erp: string | null
+          registro_id: string | null
           request_payload: Json | null
           response_payload: Json | null
           response_status: number | null
+          resposta_erp: Json | null
           success: boolean | null
           sync_status: string | null
           tabela: string | null
+          tabela_origem: string | null
           tentativas: number | null
           tipo: string | null
         }
         Insert: {
           action: string
           atualizado_em?: string | null
+          codigo_erp?: string | null
           conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5419,6 +5494,7 @@ export type Database = {
           empresa_id?: number | null
           entity_id?: string | null
           entity_type: string
+          enviado_em?: string | null
           erp_codigo_erro?: string | null
           erp_mensagem?: string | null
           error_message?: string | null
@@ -5426,21 +5502,28 @@ export type Database = {
           fila_atualizada?: boolean | null
           id?: string
           idempotency_key?: string | null
+          max_tentativas?: number
           operacao?: string | null
           payload_entrada?: Json | null
+          payload_enviado?: Json | null
+          proximo_envio?: string | null
           referencia_erp?: string | null
+          registro_id?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
+          resposta_erp?: Json | null
           success?: boolean | null
           sync_status?: string | null
           tabela?: string | null
+          tabela_origem?: string | null
           tentativas?: number | null
           tipo?: string | null
         }
         Update: {
           action?: string
           atualizado_em?: string | null
+          codigo_erp?: string | null
           conta_pagar_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5450,6 +5533,7 @@ export type Database = {
           empresa_id?: number | null
           entity_id?: string | null
           entity_type?: string
+          enviado_em?: string | null
           erp_codigo_erro?: string | null
           erp_mensagem?: string | null
           error_message?: string | null
@@ -5457,15 +5541,21 @@ export type Database = {
           fila_atualizada?: boolean | null
           id?: string
           idempotency_key?: string | null
+          max_tentativas?: number
           operacao?: string | null
           payload_entrada?: Json | null
+          payload_enviado?: Json | null
+          proximo_envio?: string | null
           referencia_erp?: string | null
+          registro_id?: string | null
           request_payload?: Json | null
           response_payload?: Json | null
           response_status?: number | null
+          resposta_erp?: Json | null
           success?: boolean | null
           sync_status?: string | null
           tabela?: string | null
+          tabela_origem?: string | null
           tentativas?: number | null
           tipo?: string | null
         }
