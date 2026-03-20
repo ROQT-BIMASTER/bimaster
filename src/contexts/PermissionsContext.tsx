@@ -294,6 +294,19 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
             handlePermissionsUpdate();
           }
         )
+        // ADV-4: Listen for session invalidation events (role changes force logout)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'session_invalidation_queue', filter: `user_id=eq.${userId}` },
+          async (payload) => {
+            console.warn("[PermissionsContext] Session invalidation received:", payload.new);
+            // Force sign out — role/permissions were changed by an admin
+            globalPermissionsCache = null;
+            try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
+            await supabase.auth.signOut();
+            window.location.href = "/?session_invalidated=1";
+          }
+        )
         .subscribe();
     };
 

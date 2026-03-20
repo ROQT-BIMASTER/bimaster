@@ -52,6 +52,10 @@ export default function ChinaFichaProduto() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isBrasilUser, isChinaUser } = useChinaUserContext();
+  // ADV-6: Field visibility for cost/margin fields
+  const { isFieldVisible } = useFieldVisibility("china_ficha");
+  // ADV-7: UI permissions for component-level control
+  const { canEdit } = useUIPermissions("china_ficha");
   const [obsDialog, setObsDialog] = useState<{ docId: string; obs: string } | null>(null);
   const [ocDialogOpen, setOcDialogOpen] = useState(false);
   const [eanCaixaMaster, setEanCaixaMaster] = useState("");
