@@ -191,6 +191,30 @@ const TradeInsights = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const handleAssignInsight = async () => {
+    if (!assigningInsight || !assignUserId) return;
+    setAssignLoading(true);
+    try {
+      const { error } = await supabase
+        .from("ai_insights")
+        .update({
+          actioned_by: assignUserId,
+          actioned_at: new Date().toISOString(),
+          status: "actioned",
+        })
+        .eq("id", assigningInsight.id);
+      if (error) throw error;
+      toast.success("Insight atribuído com sucesso!");
+      setAssignDialogOpen(false);
+      setAssigningInsight(null);
+      fetchInsights();
+    } catch (error: any) {
+      toast.error("Erro ao atribuir: " + error.message);
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
   const handleGenerateInsights = async () => {
     setGenerating(true);
     toast.info("Gerando insights dos dados existentes...");
