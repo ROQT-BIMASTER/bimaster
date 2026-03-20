@@ -326,7 +326,7 @@ async function handleGetCancelledItems(
 
   const { data: items, error: fetchErr } = await supabase
     .from("contas_pagar")
-    .select("id, empresa_id, fornecedor, numero_documento, tipo_documento, valor_original, data_vencimento, descricao, departamento, updated_at")
+    .select("id, empresa_id, fornecedor_nome, fornecedor_codigo, numero_documento, tipo_documento, valor_original, data_vencimento, departamento_nome, updated_at")
     .eq("status", "cancelado")
     .order("updated_at", { ascending: true })
     .range(offset, offset + limit - 1);
