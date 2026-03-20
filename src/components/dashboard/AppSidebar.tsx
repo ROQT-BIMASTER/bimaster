@@ -418,6 +418,24 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         break;
       }
     }
+    // Auto-expand financeiro subgroups based on route
+    if (path.startsWith("/dashboard/financeiro") || path.startsWith("/dashboard/trade/financeiro")) {
+      const finSubgroupRoutes: Record<string, string[]> = {
+        verbas: ["/dashboard/trade/financeiro", "/dashboard/financeiro/verbas", "/dashboard/financeiro/extrato", "/dashboard/financeiro/aprovacoes", "/dashboard/financeiro/verbas-semestrais"],
+        campanhas: ["/dashboard/trade/financeiro/campanhas", "/dashboard/trade/financeiro/lancamentos", "/dashboard/trade/financeiro/contas", "/dashboard/financeiro/painel-lancamentos", "/dashboard/financeiro/campanhas", "/dashboard/financeiro/contas-correntes", "/dashboard/financeiro/lancamentos"],
+        contas: ["/dashboard/financeiro/contas-a-pagar", "/dashboard/financeiro/contas-a-receber", "/dashboard/financeiro/conciliacao", "/dashboard/financeiro/cobranca", "/dashboard/financeiro/plano-contas"],
+        analises: ["/dashboard/financeiro/fluxo", "/dashboard/financeiro/dre", "/dashboard/financeiro/visao-departamentos", "/dashboard/financeiro/classificar", "/dashboard/financeiro/classificacao-ia"],
+      };
+      for (const [sg, routes] of Object.entries(finSubgroupRoutes)) {
+        if (routes.some(r => path.startsWith(r))) {
+          setOpenFinSubgroups(prev => {
+            const next = new Set(prev);
+            next.add(sg);
+            return next;
+          });
+        }
+      }
+    }
   }, [location.pathname, moduleRouteMap, moduleToCategoryMap]);
 
   // Fetch user name
