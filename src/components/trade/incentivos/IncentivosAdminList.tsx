@@ -34,7 +34,11 @@ export function IncentivosAdminList({ onEdit }: Props) {
         const status = getStatus(incentivo);
         return (
           <div key={incentivo.id} className="bg-card border rounded-2xl p-4 flex items-center gap-4">
-            <span className="text-3xl">{incentivo.icone}</span>
+            {incentivo.banner_url ? (
+              <img src={incentivo.banner_url} alt="" className="h-12 w-20 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <span className="text-3xl">{incentivo.icone}</span>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-semibold text-sm">{incentivo.titulo}</h4>
