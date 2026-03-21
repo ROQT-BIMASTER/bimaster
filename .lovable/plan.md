@@ -1,55 +1,52 @@
 
 
-# API CNAE (Lookup) — Padronização Omie
+# API Cidades (PesquisarCidades) — Padronização Omie
 
 ## Resumo
 
-Criar tabela de lookup `cnaes` e Edge Function `cnae-api` com 1 rota (ListarCNAE). API read-only — lista códigos CNAE (Classificação Nacional de Atividades Econômicas).
+Criar Edge Function `cidades-api` com 1 rota (PesquisarCidades) que consulta a tabela **`ibge_municipios` já existente** (5.570+ registros). Não é necessário criar tabela nova — apenas expor os dados via API no formato Omie.
+
+O campo `id` da tabela `ibge_municipios` já é o código IBGE (integer). A coluna `uf_sigla` já existe. Precisamos apenas montar o `cCod` no formato Omie (ex: `"SAO PAULO (SP)"`).
 
 ## 1. Migration
 
+Nenhuma tabela nova. Apenas adicionar coluna `codigo_siafi` se necessário para o campo `nCodSIAFI`:
+
 ```sql
-CREATE TABLE IF NOT EXISTS public.cnaes (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  codigo varchar(7) NOT NULL UNIQUE,
-  descricao varchar(200) NOT NULL,
-  estrutura varchar(10),
-  ativo boolean NOT NULL DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE public.cnaes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "authenticated_select_cnaes"
-  ON public.cnaes FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_cnaes"
-  ON public.cnaes FOR INSERT TO authenticated WITH CHECK (true);
+ALTER TABLE public.ibge_municipios
+  ADD COLUMN IF NOT EXISTS codigo_siafi integer;
 ```
 
-## 2. Edge Function: `cnae-api`
+## 2. Edge Function: `cidades-api`
 
 | Rota | Equivalente Omie | Descrição |
 |---|---|---|
-| POST `/listar` | ListarCNAE | Lista paginada com ordenação |
+| POST `/listar` | PesquisarCidades | Lista paginada com filtros |
 | GET `/status` | — | Health check |
 
 ## 3. Mapeamento
 
-| Campo Omie | Coluna DB |
+| Campo Omie | Fonte |
 |---|---|
-| `nCodigo` | `codigo` |
-| `cDescricao` | `descricao` |
-| `cEstrutura` | `estrutura` |
+| `cCod` | `UPPER(nome) \|\| ' (' \|\| uf_sigla \|\| ')'` |
+| `cNome` | `nome` |
+| `cUF` | `uf_sigla` |
+| `nCodIBGE` | `id` (cast to string) |
+| `nCodSIAFI` | `codigo_siafi` (nova coluna) |
 
-Paginação: `pagina` + `registros_por_pagina`. Ordenação: `ordenar_por` (codigo/descricao) + `ordem_decrescente`.
+Filtros suportados:
+- `filtrar_cidade_contendo` → ILIKE no nome
+- `filtrar_por_uf` → eq em `uf_sigla`
+- `filtrar_por_cidade` → eq no `cCod` construído
+- Paginação + ordenação padrão
 
 ## 4. Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar tabela `cnaes` |
-| `supabase/functions/cnae-api/index.ts` | Criar |
-| `docs/API_CNAE.md` | Criar |
+| Migration SQL | +1 coluna `codigo_siafi` em `ibge_municipios` |
+| `supabase/functions/cidades-api/index.ts` | Criar |
+| `docs/API_CIDADES.md` | Criar |
 | `src/components/erp/ApiTester.tsx` | Presets |
 | `src/components/erp/ApiDocumentation.tsx` | Seção |
 
