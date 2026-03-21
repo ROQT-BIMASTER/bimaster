@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateBanner, useUpdateBanner, type TradeBanner } from "@/hooks/useTradeBanners";
 import { Upload, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { AiBannerGenerator } from "@/components/trade/AiBannerGenerator";
 import { toast } from "sonner";
 
 interface Props {
