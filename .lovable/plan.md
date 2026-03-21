@@ -1,76 +1,79 @@
 
 
-# API Extrato de Conta Corrente — Padronização Omie
+# API Orçamento de Caixa (Previsto x Realizado) — Padronização Omie
 
 ## Resumo
 
-Adicionar a rota `/extrato` na Edge Function `lancamentos-cc-api` existente, seguindo o padrão Omie `ListarExtrato`. A rota consulta a view `vw_extrato_conta_corrente` já existente e retorna saldos + lista de movimentos no formato Omie. Sem nova tabela — usa infraestrutura existente.
+Criar a API de Orçamento de Caixa seguindo o padrão Omie `ListarOrcamentos`, que retorna valores previstos e realizados por categoria para um dado mês/ano. Inclui nova tabela `orcamentos_caixa`, Edge Function dedicada e documentação.
 
-## 1. Nova rota na Edge Function `lancamentos-cc-api`
+## 1. Nova tabela `orcamentos_caixa`
+
+Armazena orçamento previsto por categoria/mês. O realizado será calculado em runtime a partir dos lançamentos existentes (contas_pagar, contas_receber, lancamentos_cc).
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID PK | ID interno |
+| `empresa_id` | TEXT NOT NULL | Empresa |
+| `ano` | INTEGER NOT NULL | Ano do orçamento |
+| `mes` | INTEGER NOT NULL | Mês (1-12) |
+| `codigo_categoria` | VARCHAR(20) NOT NULL | Código da categoria (ex: 2.04.01) |
+| `descricao_categoria` | TEXT | Descrição da categoria |
+| `valor_previsto` | NUMERIC(15,2) DEFAULT 0 | Valor orçado |
+| `importado_api` | BOOLEAN DEFAULT false | Importado pela API |
+| `created_at` | TIMESTAMPTZ DEFAULT now() | Criação |
+| `updated_at` | TIMESTAMPTZ DEFAULT now() | Última alteração |
+
+Unique constraint: `(empresa_id, ano, mes, codigo_categoria)`.
+RLS: service_role + usuários autenticados da mesma empresa.
+
+## 2. Nova Edge Function: `orcamentos-caixa-api`
 
 | Método | Rota | Descrição | Equivalente Omie |
 |---|---|---|---|
-| GET | `/extrato` | Extrato de conta corrente com saldos e movimentos | ListarExtrato |
+| GET | `/listar` | Lista orçamento previsto x realizado por mês/ano | ListarOrcamentos |
+| POST | `/incluir` | Cadastra/atualiza orçamento previsto para uma categoria | — |
+| POST | `/incluir-lote` | Upsert em lote de orçamentos previstos | — |
+| GET | `/status` | Health check | — |
 
-**Parâmetros (query string):**
-- `nCodCC` — código Omie da conta corrente
-- `cCodIntCC` — código de integração da conta
-- `dPeriodoInicial` / `dPeriodoFinal` — filtro de período (dd/mm/yyyy ou yyyy-mm-dd)
-- `cExibirApenasSaldo` — "S" para retornar apenas saldos sem movimentos
+**GET /listar** — Parâmetros: `nAno`, `nMes`.
 
-**Resposta Omie-style:**
+Lógica:
+1. Buscar orçamentos previstos da tabela `orcamentos_caixa` para o mês/ano
+2. Calcular realizado consultando `lancamentos_conta_corrente` (ou contas a pagar/receber) agrupados por categoria no período
+3. Retornar no formato Omie com `ListaOrcamentos[]`
+
+Resposta:
 ```json
 {
-  "nCodCC": 427619317,
-  "cCodIntCC": "CC001",
-  "cDescricao": "Conta Bradesco",
-  "nCodBanco": "237",
-  "nCodAgencia": "1234",
-  "nNumConta": "56789-0",
-  "cCodTipo": "CC",
-  "dPeriodoInicial": "01/03/2026",
-  "dPeriodoFinal": "21/03/2026",
-  "nSaldoAnterior": 10000.00,
-  "nSaldoAtual": 15230.50,
-  "nSaldoConciliado": 14800.00,
-  "listaMovimentos": [
+  "nAno": 2026,
+  "nMes": 3,
+  "ListaOrcamentos": [
     {
-      "nCodLancamento": 123,
-      "dDataLancamento": "05/03/2026",
-      "cDesCliente": "Fornecedor XYZ",
-      "cTipoDocumento": "DIN",
-      "nValorDocumento": 500.00,
-      "nSaldo": 10500.00,
-      "cCodCategoria": "2.04.01",
-      "cOrigem": "CONP",
-      "cNatureza": "D"
+      "cCodCateg": "2.04.01",
+      "cDesCateg": "Serviços Terceiros",
+      "nValorPrevisto": 5000.00,
+      "nValorRealizado": 3200.50
     }
   ]
 }
 ```
 
-**Lógica:**
-1. Localizar a conta corrente (`contas_bancarias`) por `nCodCC` ou `cCodIntCC`
-2. Consultar `vw_extrato_conta_corrente` filtrando por `conta_bancaria_id` e período
-3. Calcular saldo anterior (soma de movimentos antes do período inicial)
-4. Calcular saldo atual (anterior + movimentos do período)
-5. Mapear campos para nomenclatura Omie (`listaMovimentos`)
+## 3. Documentação
 
-## 2. Documentação
+Novo `docs/API_ORCAMENTOS_CAIXA.md`.
 
-Atualizar `docs/API_LANCAMENTOS_CC.md` com a nova rota `/extrato`.
+## 4. API Tester & Portal
 
-## 3. API Tester & Portal
-
-- Preset no `ApiTester.tsx` para "Extrato de Conta Corrente"
+- Presets no `ApiTester.tsx` (Listar, Incluir, Incluir Lote)
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/lancamentos-cc-api/index.ts` | Editar — adicionar rota `/extrato` |
-| `docs/API_LANCAMENTOS_CC.md` | Editar — documentar rota |
-| `src/components/erp/ApiTester.tsx` | Editar — adicionar preset |
+| Migração SQL | Criar — tabela `orcamentos_caixa` + RLS |
+| `supabase/functions/orcamentos-caixa-api/index.ts` | Criar — nova Edge Function |
+| `docs/API_ORCAMENTOS_CAIXA.md` | Criar — documentação |
+| `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
 
