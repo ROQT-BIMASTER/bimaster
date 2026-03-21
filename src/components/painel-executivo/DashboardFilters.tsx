@@ -28,7 +28,7 @@ const currentYear = new Date().getFullYear();
 const ANOS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function DashboardFiltersBar({ filters, onChange }: Props) {
-  const { supervisores, vendedores, ufs, marcas } = useDashboardFilterOptions();
+  const { supervisores, vendedores, ufs, marcas, tabelas } = useDashboardFilterOptions();
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
@@ -109,6 +109,19 @@ export function DashboardFiltersBar({ filters, onChange }: Props) {
           <SelectItem value="__all__">Todas Marcas</SelectItem>
           {(marcas.data || []).map((m) => (
             <SelectItem key={m} value={m}>{m}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Tabela de Preços */}
+      <Select value={filters.tabela || "__all__"} onValueChange={(v) => onChange({ tabela: v === "__all__" ? null : v })}>
+        <SelectTrigger className="w-[200px] h-9 text-sm">
+          <SelectValue placeholder="Tabela de Preços" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">Todas Tabelas</SelectItem>
+          {(tabelas.data || []).map((t) => (
+            <SelectItem key={t} value={t}>{t}</SelectItem>
           ))}
         </SelectContent>
       </Select>
