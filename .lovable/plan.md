@@ -1,55 +1,74 @@
 
 
-# API Tipos de Anexo (ListarTiposAnexos) — Padronização Omie
+# API Tipos de Entrega — CRUD Completo (Padrão Omie)
 
 ## Resumo
 
-Criar tabela lookup `tipos_anexo` e Edge Function `tipos-anexo-api` com rota POST `/listar`. Segue o mesmo padrão de `tipos-atividade-api`.
+Criar tabela `tipos_entrega` e Edge Function `tipos-entrega-api` com 5 rotas CRUD: Incluir, Alterar, Consultar, Excluir, Listar. Segue padrão Omie com paginação e vínculo a transportadora.
 
 ## 1. Migration
 
 ```sql
-CREATE TABLE IF NOT EXISTS public.tipos_anexo (
+CREATE TABLE IF NOT EXISTS public.tipos_entrega (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  codigo varchar(10) NOT NULL UNIQUE,
-  descricao varchar(100) NOT NULL,
-  ativo boolean NOT NULL DEFAULT true,
-  created_at timestamptz DEFAULT now()
+  n_cod_entrega bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+  n_cod_transp bigint,
+  c_cod_int_entrega varchar(40) UNIQUE,
+  c_descricao varchar(80) NOT NULL,
+  c_inativo varchar(1) NOT NULL DEFAULT 'N',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.tipos_anexo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tipos_entrega ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated_select_tipos_anexo"
-  ON public.tipos_anexo FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_tipos_anexo"
-  ON public.tipos_anexo FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_select_tipos_entrega"
+  ON public.tipos_entrega FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_tipos_entrega"
+  ON public.tipos_entrega FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_update_tipos_entrega"
+  ON public.tipos_entrega FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "authenticated_delete_tipos_entrega"
+  ON public.tipos_entrega FOR DELETE TO authenticated USING (true);
 ```
 
-## 2. Edge Function: `tipos-anexo-api`
+## 2. Edge Function: `tipos-entrega-api`
 
 | Rota | Equivalente Omie | Descrição |
 |---|---|---|
-| POST `/listar` | ListarTiposAnexos | Lista tipos com filtro por código |
+| POST `/incluir` | IncluirTipoEntrega | Criar tipo de entrega |
+| POST `/alterar` | AlterarTipoEntrega | Alterar tipo de entrega |
+| POST `/consultar` | ConsultarTipoEntrega | Consultar por código |
+| POST `/excluir` | ExcluirTipoEntrega | Excluir tipo de entrega |
+| POST `/listar` | ListarTipoEntrega | Listar com paginação |
 | GET `/status` | — | Health check |
 
-### Mapeamento
+## 3. Mapeamento
 
 | Campo Omie | Coluna DB |
 |---|---|
-| `codigo` | `codigo` |
-| `descricao` | `descricao` |
+| `nCodEntrega` | `n_cod_entrega` |
+| `nCodTransp` | `n_cod_transp` |
+| `cCodIntEntrega` | `c_cod_int_entrega` |
+| `cDescricao` | `c_descricao` |
+| `cInativo` | `c_inativo` |
 
-Filtro: campo `codigo` (ILIKE). Body `{ "codigo": "" }`.
+### Listar — Paginação
 
-Response: `{ "listaTipoAnexo": [{ "codigo": "...", "descricao": "..." }] }`
+Request: `nPagina`, `nRegistrosPorPagina` (default 50), `nCodTransp`, `dDtAltDe`, `dDtAltAte`
+Response: `nPagina`, `nTotalPaginas`, `nRegistros`, `nTotalRegistros`, `CadTiposEntrega[]`
 
-## 3. Arquivos impactados
+### Incluir/Alterar — Response
+
+Retorna `nCodEntrega`, `cCodIntEntrega`, `cCodStatus`, `cDesStatus`.
+
+## 4. Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar tabela `tipos_anexo` |
-| `supabase/functions/tipos-anexo-api/index.ts` | Criar (clone de tipos-atividade-api) |
-| `docs/API_TIPOS_ANEXO.md` | Criar |
-| `src/components/erp/ApiTester.tsx` | Adicionar presets |
+| Migration SQL | Criar tabela `tipos_entrega` |
+| `supabase/functions/tipos-entrega-api/index.ts` | Criar |
+| `docs/API_TIPOS_ENTREGA.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Adicionar presets (6 rotas) |
 | `src/components/erp/ApiDocumentation.tsx` | Adicionar seção |
 
