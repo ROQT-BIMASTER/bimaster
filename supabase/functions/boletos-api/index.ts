@@ -13,17 +13,8 @@ function getSupabase() {
 }
 
 async function authenticate(req: Request) {
-  try {
-    const apiResult = await validateApiKey(req);
-    return { empresaId: apiResult.empresaId, source: "api_key" };
-  } catch {
-    try {
-      const jwtResult = await validateJWT(req);
-      return { empresaId: null, userId: jwtResult.userId, source: "jwt" };
-    } catch {
-      throw new AuthError("Autenticação necessária (x-api-key ou Bearer token)", 401);
-    }
-  }
+  const auth = await validateAnyAuth(req);
+  return { empresaId: auth.empresaId || null, userId: auth.userId, source: auth.source };
 }
 
 // === ROUTE HANDLERS ===
