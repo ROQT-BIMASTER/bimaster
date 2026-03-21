@@ -283,6 +283,13 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/tags/listar": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
   "/clientes-api/tags/excluir": JSON.stringify({ cCodIntCliente: "CLI001", tags: [{ tag: "Grupo A" }] }, null, 2),
   "/clientes-api/tags/excluir-todas": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
+  // Projetos
+  "/projetos-api/incluir": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
+  "/projetos-api/alterar": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha Atualizado" }, null, 2),
+  "/projetos-api/consultar": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
+  "/projetos-api/excluir": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
+  "/projetos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, nome_projeto: "", apenas_importado_api: "N" }, null, 2),
+  "/projetos-api/upsert": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
 };
 
 export default function ApiTester() {

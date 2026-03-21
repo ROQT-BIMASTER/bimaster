@@ -817,6 +817,40 @@ const clientesTagsCrud: Endpoint[] = [
   },
 ];
 
+const projetosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir novo projeto (IncluirProjeto)", tag: "novo",
+    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N" }`,
+    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto incluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar projeto (AlterarProjeto)", tag: "novo",
+    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha Atualizado" }`,
+    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto alterado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar projeto (ConsultarProjeto)", tag: "novo",
+    body: `{ "codInt": "PROJ-001" }`,
+    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N", "info": { "data_inc": "2026-03-21", "hora_inc": "18:00:00", "data_alt": "2026-03-21", "hora_alt": "18:00:00" } }`,
+  },
+  {
+    method: "POST", path: "/excluir", description: "Excluir projeto — soft delete (ExcluirProjeto)", tag: "novo",
+    body: `{ "codInt": "PROJ-001" }`,
+    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto excluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar projetos paginado (ListarProjetos)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "nome_projeto": "", "apenas_importado_api": "N" }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 5, "total_de_registros": 5, "cadastro": [...] }`,
+  },
+  {
+    method: "POST", path: "/upsert", description: "Upsert por codInt (UpsertProjeto)", tag: "novo",
+    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N" }`,
+    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto incluído/alterado com sucesso!" }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
