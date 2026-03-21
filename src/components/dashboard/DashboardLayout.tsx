@@ -123,7 +123,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </AlertDescription>
             </Alert>
           )}
-          <div className="p-6 relative min-h-[calc(100vh-52px)] overflow-x-auto">
+          <div className="p-4 sm:p-6 relative min-h-[calc(100vh-52px)] overflow-x-auto">
             <ErrorBoundary>
               <div className="relative z-10">{children}</div>
             </ErrorBoundary>

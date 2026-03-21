@@ -117,7 +117,7 @@ export function IncentivosWeekSection() {
       )}
 
       {/* Cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {incentivos.map((incentivo) => {
           const progresso = progressos?.find(p => p.incentivo_id === incentivo.id);
           return (

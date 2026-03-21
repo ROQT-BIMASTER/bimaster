@@ -75,7 +75,7 @@ export function DisplayHeroBanner() {
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-2xl" />
-              <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
+              <div className="absolute bottom-2 left-3 right-3 sm:bottom-3 sm:left-4 sm:right-4 flex items-end justify-between">
                 <div>
                   <p className="text-white font-bold text-sm sm:text-base drop-shadow-md">{d.nome}</p>
                   {(d.largura_cm || d.altura_cm) && (

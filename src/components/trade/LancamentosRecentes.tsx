@@ -83,9 +83,9 @@ export function LancamentosRecentes() {
         {visits.map((v) => (
           <div
             key={v.id}
-            className="flex flex-col items-center gap-1.5 min-w-[72px] max-w-[72px]"
+            className="flex flex-col items-center gap-1.5 min-w-[64px] max-w-[64px] sm:min-w-[72px] sm:max-w-[72px]"
           >
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shadow-sm border border-border">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shadow-sm border border-border">
               {v.photoUrl ? (
                 <img
                   src={v.photoUrl}

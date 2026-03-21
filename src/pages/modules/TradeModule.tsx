@@ -141,7 +141,7 @@ const TradeModule = () => {
         {/* KPI Cards - Modernized with rounded corners */}
         <div>
           <TradeSectionHeader title="Visão Geral" subtitle="Dados do mês atual" />
-          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
+          <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
             <Link to="/dashboard/trade/stores">
               <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/30">
                 <CardContent className="p-4 sm:p-5">
