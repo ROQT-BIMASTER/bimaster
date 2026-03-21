@@ -375,21 +375,24 @@ export default function DREAnalitico() {
   const { data: lancamentosAnoAnterior } = useSupabaseQuery(
     ['lancamentos-dre-yoy', anoAnteriorInicio, anoAnteriorFim, filterEmpresa],
     async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('*, plano_contas_id')
-        .gte('data_vencimento', anoAnteriorInicio)
-        .lte('data_vencimento', anoAnteriorFim);
-      
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        'contas_pagar',
+        '*, plano_contas_id',
+        (query: any) => {
+          query = query
+            .gte('data_vencimento', anoAnteriorInicio)
+            .lte('data_vencimento', anoAnteriorFim);
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          return query;
+        }
+      );
       return data;
     },
-    { staleTime: 2 * 60 * 1000 } // Cache para dados YoY
+    { staleTime: 2 * 60 * 1000 }
   );
 
   // Buscar departamentos
