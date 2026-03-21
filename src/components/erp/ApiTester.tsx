@@ -226,6 +226,10 @@ const PRESET_ENDPOINTS = [
   { label: "Categorias — Consultar", method: "POST" as HttpMethod, path: "/categorias-api/consultar" },
   { label: "Categorias — Listar", method: "POST" as HttpMethod, path: "/categorias-api/listar" },
   { label: "Categorias — Status", method: "GET" as HttpMethod, path: "/categorias-api/status" },
+  // Parcelas (Condições de Pagamento)
+  { label: "Parcelas — Incluir", method: "POST" as HttpMethod, path: "/parcelas-api/incluir" },
+  { label: "Parcelas — Listar", method: "POST" as HttpMethod, path: "/parcelas-api/listar" },
+  { label: "Parcelas — Status", method: "GET" as HttpMethod, path: "/parcelas-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
