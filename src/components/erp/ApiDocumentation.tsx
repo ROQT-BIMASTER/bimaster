@@ -157,6 +157,67 @@ const exportAdvanced: Endpoint[] = [
   },
 ];
 
+const contasCorrentesCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/", description: "Listar contas correntes (paginado)", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
+      { name: "filtrar_apenas_ativo", type: "string", required: false, description: "Filtrar ativos (S/N)" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 100, "total_de_registros": 250, "ListarContasCorrentes": [...] }`,
+  },
+  {
+    method: "GET", path: "/resumo", description: "Listagem resumida de contas correntes", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página" },
+    ],
+  },
+  {
+    method: "GET", path: "/consultar", description: "Consultar conta corrente por ID ou código de integração", tag: "novo",
+    params: [
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+      { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" },
+      { name: "nCodCC", type: "integer", required: false, description: "Código numérico Omie" },
+    ],
+    response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú", ... } }`,
+  },
+  {
+    method: "POST", path: "/incluir", description: "Incluir nova conta corrente",
+    body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`,
+    response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente incluída com sucesso" }`,
+  },
+  {
+    method: "PUT", path: "/alterar", description: "Alterar conta corrente existente",
+    body: `{ "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú Atualizada", "valor_limite": 75000 }`,
+    response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente alterada com sucesso" }`,
+  },
+  {
+    method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta corrente",
+    params: [
+      { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" },
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+    ],
+  },
+  {
+    method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodCCInt)",
+    body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`,
+  },
+  {
+    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 contas)",
+    body: `{ "lote": 1, "fin_conta_corrente_cadastro": [{ "cCodCCInt": "MyCC0001", "descricao": "Caixinha", "saldo_inicial": 0 }] }`,
+    response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }`,
+  },
+  {
+    method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)",
+    body: `{ "contas": [{ "cCodCCInt": "CC001", "descricao": "Bradesco", "codigo_banco": "237" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -312,6 +373,10 @@ export default function ApiDocumentation() {
               <ArrowUpFromLine className="h-3.5 w-3.5" />
               Exportação
             </TabsTrigger>
+            <TabsTrigger value="contas-correntes" className="text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Contas Correntes
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -367,6 +432,16 @@ export default function ApiDocumentation() {
               basePath="/erp-webhook-inbound"
               endpoints={webhookInbound}
               description="Callbacks do ERP: provisão registrada, baixa confirmada, estorno"
+            />
+          </TabsContent>
+
+          <TabsContent value="contas-correntes" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="CRUD & Sync (Padrão Omie)"
+              basePath="/contas-correntes-api"
+              endpoints={contasCorrentesCrud}
+              description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
             />
           </TabsContent>
 
