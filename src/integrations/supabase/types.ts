@@ -26447,6 +26447,134 @@ export type Database = {
           },
         ]
       }
+      trade_materiais: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          estoque_atual: number
+          estoque_minimo: number
+          estoque_total: number
+          exibir_estoque: boolean
+          foto_url: string | null
+          fotos_extras: Json | null
+          id: string
+          max_por_loja_mes: number | null
+          max_por_solicitacao: number | null
+          nome: string
+          permitir_sem_estoque: boolean
+          politica_uso: string | null
+          prazo_entrega: string | null
+          requer_aprovacao: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          estoque_atual?: number
+          estoque_minimo?: number
+          estoque_total?: number
+          exibir_estoque?: boolean
+          foto_url?: string | null
+          fotos_extras?: Json | null
+          id?: string
+          max_por_loja_mes?: number | null
+          max_por_solicitacao?: number | null
+          nome: string
+          permitir_sem_estoque?: boolean
+          politica_uso?: string | null
+          prazo_entrega?: string | null
+          requer_aprovacao?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          estoque_atual?: number
+          estoque_minimo?: number
+          estoque_total?: number
+          exibir_estoque?: boolean
+          foto_url?: string | null
+          fotos_extras?: Json | null
+          id?: string
+          max_por_loja_mes?: number | null
+          max_por_solicitacao?: number | null
+          nome?: string
+          permitir_sem_estoque?: boolean
+          politica_uso?: string | null
+          prazo_entrega?: string | null
+          requer_aprovacao?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trade_material_solicitacoes: {
+        Row: {
+          aprovado_por: string | null
+          codigo_rastreio: string | null
+          created_at: string
+          id: string
+          loja_id: string | null
+          loja_nome: string | null
+          material_id: string
+          motivo_recusa: string | null
+          obs_interna: string | null
+          observacoes: string | null
+          quantidade: number
+          status: Database["public"]["Enums"]["trade_material_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aprovado_por?: string | null
+          codigo_rastreio?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          loja_nome?: string | null
+          material_id: string
+          motivo_recusa?: string | null
+          obs_interna?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          status?: Database["public"]["Enums"]["trade_material_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aprovado_por?: string | null
+          codigo_rastreio?: string | null
+          created_at?: string
+          id?: string
+          loja_id?: string | null
+          loja_nome?: string | null
+          material_id?: string
+          motivo_recusa?: string | null
+          obs_interna?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          status?: Database["public"]["Enums"]["trade_material_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_material_solicitacoes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "trade_materiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_points_config: {
         Row: {
           action_code: string
@@ -29736,6 +29864,13 @@ export type Database = {
         | "ganho"
         | "perdido"
       region_type: "Norte" | "Sul" | "Leste" | "Oeste" | "Centro"
+      trade_material_status:
+        | "pendente"
+        | "aprovado"
+        | "em_separacao"
+        | "enviado"
+        | "entregue"
+        | "recusado"
       user_type: "vendedor" | "supervisor" | "admin"
       zona_geografica:
         | "norte"
@@ -29916,6 +30051,14 @@ export const Constants = {
         "perdido",
       ],
       region_type: ["Norte", "Sul", "Leste", "Oeste", "Centro"],
+      trade_material_status: [
+        "pendente",
+        "aprovado",
+        "em_separacao",
+        "enviado",
+        "entregue",
+        "recusado",
+      ],
       user_type: ["vendedor", "supervisor", "admin"],
       zona_geografica: [
         "norte",
