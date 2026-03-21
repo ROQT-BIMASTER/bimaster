@@ -199,3 +199,5 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.whatsapp-webhook]
     verify_jwt = false
+  [functions.empresas-api]
+    verify_jwt = false

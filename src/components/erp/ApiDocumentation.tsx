@@ -1261,6 +1261,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="empresas" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Empresas — ConsultarEmpresa + ListarEmpresas (Padrão Omie)"
+              basePath="/empresas-api"
+              endpoints={empresasCrud}
+              description="Consulta e listagem paginada de empresas cadastradas"
+            />
+          </TabsContent>
+
           <TabsContent value="dre-cadastro" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}

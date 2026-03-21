@@ -294,6 +294,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/projetos-api/excluir": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
   "/projetos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, nome_projeto: "", apenas_importado_api: "N" }, null, 2),
   "/projetos-api/upsert": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
+  // Empresas
+  "/empresas-api/consultar": JSON.stringify({ codigo_empresa: 8 }, null, 2),
+  "/empresas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 100 }, null, 2),
 };
 
 export default function ApiTester() {
