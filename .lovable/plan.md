@@ -1,94 +1,38 @@
 
 
-# API PesquisarLancamentos — Padronização Omie
+# Aprimorar API PesquisarLancamentos — Campos Completos Omie
 
 ## Resumo
 
-Criar a rota `POST /pesquisar` como nova Edge Function `pesquisar-lancamentos-api`, seguindo o padrão Omie `PesquisarLancamentos`. Endpoint unificado de pesquisa avançada de títulos financeiros (Contas a Pagar e Receber) com filtros extensivos, retornando títulos com seus lançamentos (baixas) e resumo financeiro. Endpoints deprecated (`ObterURLBoleto`, `PesquisarExcluidos`) não serão implementados.
+A Edge Function `pesquisar-lancamentos-api` já existe mas está incompleta em relação à spec Omie. Serão adicionados os campos faltantes no `cabecTitulo`, preenchimento real dos `lancamentos` (baixas), campos completos no `resumo` e no `info`, além de filtros adicionais. Endpoints deprecated (`ObterURLBoleto`, `PesquisarExcluidos`) continuam não implementados.
 
-## 1. Nova Edge Function: `pesquisar-lancamentos-api`
+## Campos a adicionar/corrigir
 
-Sem nova tabela — consulta `contas_pagar` e `contas_receber` existentes + tabelas de pagamentos/recebimentos.
+### cabecTitulo — campos faltantes
+- `cCPFCNPJCliente`, `nCodCtr`, `cNumCtr`, `nCodOS`, `cNumOS`, `cNumParcela`, `cNSU`, `nCodNF`, `dDtRegistro`, `cNumBoleto` (já existe para R, adicionar para P), `nCodTitRepet`, `dDtCanc`
+- Campos tributários: adicionar também para `cNatureza = "P"` (atualmente só para "R")
 
-| Método | Rota | Descrição | Equivalente Omie |
-|---|---|---|---|
-| POST | `/pesquisar` | Pesquisa avançada de títulos com lançamentos e resumo | PesquisarLancamentos |
-| GET | `/status` | Health check | — |
+### lancamentos — preencher com dados reais
+- Consultar tabela `pagamentos` (vinculada via `conta_pagar_id` / `conta_receber_id`) para cada título na página
+- Mapear para: `nCodLanc`, `cCodIntLanc`, `nIdLancCC`, `dDtLanc`, `nValLanc`, `nMulta`, `nJuros`, `nDesconto`, `nCodCC`, `cNatureza`, `cObsLanc`
 
-**POST /pesquisar** — Body JSON com filtros:
+### resumo — campos faltantes
+- Calcular `nDesconto`, `nJuros`, `nMulta` somando dos lançamentos reais (atualmente hardcoded 0)
 
-```json
-{
-  "nPagina": 1,
-  "nRegPorPagina": 20,
-  "cNatureza": "R",
-  "cStatus": "pendente",
-  "dDtVencDe": "01/01/2026",
-  "dDtVencAte": "31/03/2026",
-  "nCodCliente": 4214850,
-  "cCodCateg": "1.01.02",
-  "cOrdenarPor": "data_vencimento",
-  "cOrdemDecrescente": "S"
-}
-```
+### info — campos faltantes
+- Adicionar `hInc`, `uInc`, `hAlt`, `uAlt` quando `lDadosCad = true`
 
-**Lógica:**
-1. Determinar tabela-alvo via `cNatureza`: "R" → `contas_receber`, "P" → `contas_pagar`, sem filtro → ambas
-2. Aplicar todos os filtros (data emissão, vencimento, pagamento, previsão, registro, cliente, status, tipo, categoria, NF-e, projeto, vendedor, comprador, código barras, etc.)
-3. Para cada título, buscar lançamentos (pagamentos/recebimentos) e calcular resumo (`nValPago`, `nValAberto`, `cLiquidado`)
-4. Retornar no formato Omie com `titulosEncontrados[]`
+### Filtros faltantes no body
+- `nCodCtr`, `cNumCtr`, `nCodOS`, `cNumOS` (contrato e ordem de serviço)
 
-**Resposta:**
-```json
-{
-  "nPagina": 1,
-  "nTotPaginas": 5,
-  "nRegistros": 20,
-  "nTotRegistros": 100,
-  "titulosEncontrados": [
-    {
-      "cabecTitulo": {
-        "nCodTitulo": 123,
-        "cCodIntTitulo": "CR-001",
-        "dDtVenc": "21/03/2026",
-        "nValorTitulo": 500.00,
-        "cStatus": "pendente",
-        "cNatureza": "R",
-        "aCodCateg": [{ "cCodCateg": "1.01.02", "nValor": 500, "nPerc": 100 }],
-        "departamentos": [],
-        "info": { "dInc": "01/03/2026", "cImpAPI": "S" }
-      },
-      "lancamentos": [
-        { "nCodLanc": 1, "dDtLanc": "15/03/2026", "nValLanc": 200.00 }
-      ],
-      "resumo": {
-        "cLiquidado": "N",
-        "nValPago": 200.00,
-        "nValAberto": 300.00,
-        "nValLiquido": 500.00
-      }
-    }
-  ]
-}
-```
+## Documentação
 
-Autenticação: `validateAnyAuth` (JWT + API Key) — mesmo padrão.
-
-## 2. Documentação
-
-Novo `docs/API_PESQUISAR_LANCAMENTOS.md` com todos os filtros, tipos complexos e exemplos.
-
-## 3. API Tester & Portal
-
-- Presets no `ApiTester.tsx` (Pesquisar CR, Pesquisar CP, Pesquisar com filtros)
-- Seção no `ApiDocumentation.tsx`
+Atualizar `docs/API_PESQUISAR_LANCAMENTOS.md` com todos os campos dos tipos complexos (`cabecTitulo` completo, `lancamentos`, `resumo`, `departamentos`, `aCodCateg`, `info`).
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/pesquisar-lancamentos-api/index.ts` | Criar — nova Edge Function |
-| `docs/API_PESQUISAR_LANCAMENTOS.md` | Criar — documentação |
-| `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
-| `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
+| `supabase/functions/pesquisar-lancamentos-api/index.ts` | Editar — adicionar campos, buscar lancamentos reais, filtros |
+| `docs/API_PESQUISAR_LANCAMENTOS.md` | Editar — documentar tipos complexos completos |
 
