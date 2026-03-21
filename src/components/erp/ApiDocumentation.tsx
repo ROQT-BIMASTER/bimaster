@@ -699,7 +699,16 @@ const finalidadesTransfCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-const otherApis: Endpoint[] = [
+const origensCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar origens de lançamento (ListarOrigem)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 6, "total_de_registros": 6, "origem": [{ "codigo": "MANUAL", "descricao": "Lançamento Manual" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
   { method: "GET", path: "/portadores", description: "Listar portadores (bancos/carteiras)" },
