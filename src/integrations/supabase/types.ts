@@ -6006,27 +6006,114 @@ export type Database = {
       empresas: {
         Row: {
           ativa: boolean | null
+          bairro: string | null
+          bloqueado: boolean | null
+          cep: string | null
+          cidade: string | null
+          cnae: string | null
+          cnae_municipal: string | null
           cnpj: string | null
+          codigo_empresa_integracao: string | null
+          codigo_pais: string | null
+          complemento: string | null
+          contato: string | null
           created_at: string | null
+          email: string | null
+          endereco: string | null
+          endereco_numero: string | null
+          fax_ddd: string | null
+          fax_numero: string | null
           id: number
+          importado_api: boolean | null
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          inscricao_suframa: string | null
+          logradouro: string | null
           nome: string
+          nome_fantasia: string | null
+          optante_simples_nacional: string | null
+          regime_tributario: string | null
+          telefone1_ddd: string | null
+          telefone1_numero: string | null
+          telefone2_ddd: string | null
+          telefone2_numero: string | null
           uf: string | null
+          updated_at: string | null
+          website: string | null
         }
         Insert: {
           ativa?: boolean | null
+          bairro?: string | null
+          bloqueado?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnae?: string | null
+          cnae_municipal?: string | null
           cnpj?: string | null
+          codigo_empresa_integracao?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
+          contato?: string | null
           created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          endereco_numero?: string | null
+          fax_ddd?: string | null
+          fax_numero?: string | null
           id?: number
+          importado_api?: boolean | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
+          logradouro?: string | null
           nome: string
+          nome_fantasia?: string | null
+          optante_simples_nacional?: string | null
+          regime_tributario?: string | null
+          telefone1_ddd?: string | null
+          telefone1_numero?: string | null
+          telefone2_ddd?: string | null
+          telefone2_numero?: string | null
           uf?: string | null
+          updated_at?: string | null
+          website?: string | null
         }
         Update: {
           ativa?: boolean | null
+          bairro?: string | null
+          bloqueado?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cnae?: string | null
+          cnae_municipal?: string | null
           cnpj?: string | null
+          codigo_empresa_integracao?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
+          contato?: string | null
           created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          endereco_numero?: string | null
+          fax_ddd?: string | null
+          fax_numero?: string | null
           id?: number
+          importado_api?: boolean | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
+          logradouro?: string | null
           nome?: string
+          nome_fantasia?: string | null
+          optante_simples_nacional?: string | null
+          regime_tributario?: string | null
+          telefone1_ddd?: string | null
+          telefone1_numero?: string | null
+          telefone2_ddd?: string | null
+          telefone2_numero?: string | null
           uf?: string | null
+          updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -13088,49 +13175,139 @@ export type Database = {
       }
       fornecedores: {
         Row: {
+          agencia: string | null
+          bairro: string | null
+          banco: string | null
+          bloqueado: boolean | null
+          cep: string | null
+          chave_pix: string | null
+          cidade: string | null
+          cnae: string | null
           cnpj: string
           codigo_externo: string | null
+          codigo_pais: string | null
+          complemento: string | null
+          conta_bancaria: string | null
+          contato: string | null
+          cpf: string | null
           created_at: string | null
           email: string | null
           empresa_id: number | null
           endereco: string | null
+          endereco_numero: string | null
+          estado: string | null
+          fax: string | null
           fonte_erp: string | null
           id: string
+          importado_api: boolean | null
+          inativo: boolean | null
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          inscricao_suframa: string | null
+          logradouro: string | null
           nome: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          optante_simples_nacional: string | null
+          pessoa_fisica: string | null
           razao_social: string | null
+          regime_tributario: string | null
           status: string | null
           telefone: string | null
+          telefone2: string | null
+          tipo_pix: string | null
           updated_at: string | null
+          website: string | null
         }
         Insert: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          bloqueado?: boolean | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          cnae?: string | null
           cnpj: string
           codigo_externo?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
+          conta_bancaria?: string | null
+          contato?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           empresa_id?: number | null
           endereco?: string | null
+          endereco_numero?: string | null
+          estado?: string | null
+          fax?: string | null
           fonte_erp?: string | null
           id?: string
+          importado_api?: boolean | null
+          inativo?: boolean | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
+          logradouro?: string | null
           nome: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          optante_simples_nacional?: string | null
+          pessoa_fisica?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           status?: string | null
           telefone?: string | null
+          telefone2?: string | null
+          tipo_pix?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          bloqueado?: boolean | null
+          cep?: string | null
+          chave_pix?: string | null
+          cidade?: string | null
+          cnae?: string | null
           cnpj?: string
           codigo_externo?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
+          conta_bancaria?: string | null
+          contato?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           empresa_id?: number | null
           endereco?: string | null
+          endereco_numero?: string | null
+          estado?: string | null
+          fax?: string | null
           fonte_erp?: string | null
           id?: string
+          importado_api?: boolean | null
+          inativo?: boolean | null
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
+          logradouro?: string | null
           nome?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          optante_simples_nacional?: string | null
+          pessoa_fisica?: string | null
           razao_social?: string | null
+          regime_tributario?: string | null
           status?: string | null
           telefone?: string | null
+          telefone2?: string | null
+          tipo_pix?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Relationships: [
           {
