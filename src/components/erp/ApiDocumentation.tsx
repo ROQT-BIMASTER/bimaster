@@ -720,6 +720,53 @@ const bandeirasCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const clientesCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Lista completa paginada de clientes (ListarClientes)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "clientesFiltro": { "razao_social": "", "estado": "", "inativo": "N" } }`,
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro": [...] }`,
+  },
+  {
+    method: "POST", path: "/listar-resumido", description: "Lista resumida paginada (ListarClientesResumido)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro_resumido": [{ "codigo_cliente": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC", "nome_fantasia": "ABC", "cnpj_cpf": "12.345.678/0001-90" }] }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar cliente por código (ConsultarCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001" }`,
+    response: `{ "clientes_cadastro": { "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", ... } }`,
+  },
+  {
+    method: "POST", path: "/incluir", description: "Incluir novo cliente (IncluirCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "Empresa ABC Ltda", "nome_fantasia": "ABC", "cnpj_cpf": "12.345.678/0001-90", "email": "contato@abc.com" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente incluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar dados do cliente (AlterarCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "nome_fantasia": "ABC Atualizado", "email": "novo@abc.com" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente alterado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/excluir", description: "Excluir (inativar) cliente (ExcluirCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente excluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/upsert", description: "Upsert por codigo_cliente_integracao (UpsertCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", "cnpj_cpf": "12.345.678/0001-90" }`,
+  },
+  {
+    method: "POST", path: "/upsert-cpfcnpj", description: "Upsert por CPF/CNPJ (UpsertClienteCpfCnpj)", tag: "novo",
+    body: `{ "cnpj_cpf": "12.345.678/0001-90", "razao_social": "ABC Ltda", "email": "contato@abc.com" }`,
+  },
+  {
+    method: "POST", path: "/associar", description: "Associar código de integração (AssociarCodIntCliente)", tag: "novo",
+    body: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001" }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -925,6 +972,10 @@ export default function ApiDocumentation() {
             <TabsTrigger value="bandeiras" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Bandeiras
+            </TabsTrigger>
+            <TabsTrigger value="clientes" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Clientes
             </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
@@ -1146,6 +1197,16 @@ export default function ApiDocumentation() {
               basePath="/bandeiras-api"
               endpoints={bandeirasCrud}
               description="Lista paginada de bandeiras de cartão de crédito/débito"
+            />
+          </TabsContent>
+
+          <TabsContent value="clientes" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Clientes — CRUD Completo (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesCrud}
+              description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — formato Omie"
             />
           </TabsContent>
 

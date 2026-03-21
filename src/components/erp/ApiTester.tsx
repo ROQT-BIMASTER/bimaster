@@ -177,6 +177,17 @@ const PRESET_ENDPOINTS = [
   // Bandeiras de Cartão (ListarBandeiras)
   { label: "Bandeiras — Listar", method: "GET" as HttpMethod, path: "/bandeiras-api/listar?nPagina=1&nRegPorPagina=50" },
   { label: "Bandeiras — Status", method: "GET" as HttpMethod, path: "/bandeiras-api/status" },
+  // Clientes (CRUD Completo)
+  { label: "Clientes — Listar", method: "POST" as HttpMethod, path: "/clientes-api/listar" },
+  { label: "Clientes — Listar Resumido", method: "POST" as HttpMethod, path: "/clientes-api/listar-resumido" },
+  { label: "Clientes — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/consultar" },
+  { label: "Clientes — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/incluir" },
+  { label: "Clientes — Alterar", method: "POST" as HttpMethod, path: "/clientes-api/alterar" },
+  { label: "Clientes — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/excluir" },
+  { label: "Clientes — Upsert", method: "POST" as HttpMethod, path: "/clientes-api/upsert" },
+  { label: "Clientes — Upsert CPF/CNPJ", method: "POST" as HttpMethod, path: "/clientes-api/upsert-cpfcnpj" },
+  { label: "Clientes — Associar Código", method: "POST" as HttpMethod, path: "/clientes-api/associar" },
+  { label: "Clientes — Status", method: "GET" as HttpMethod, path: "/clientes-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -232,6 +243,16 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/tipos-documento-api/pesquisar": JSON.stringify({ codigo: "" }, null, 2),
   // DRE Cadastro
   "/dre-cadastro-api/listar": JSON.stringify({ apenasContasAtivas: "S" }, null, 2),
+  // Clientes
+  "/clientes-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, clientesFiltro: { inativo: "N" } }, null, 2),
+  "/clientes-api/listar-resumido": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
+  "/clientes-api/consultar": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
+  "/clientes-api/incluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", razao_social: "Empresa ABC Ltda", nome_fantasia: "ABC", cnpj_cpf: "12.345.678/0001-90", email: "contato@abc.com", telefone1_numero: "11999998888", endereco: "Rua das Flores, 100", cidade: "São Paulo", estado: "SP", cep: "01000-000" }, null, 2),
+  "/clientes-api/alterar": JSON.stringify({ codigo_cliente_integracao: "CLI001", nome_fantasia: "ABC Atualizado", email: "novo@abc.com" }, null, 2),
+  "/clientes-api/excluir": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
+  "/clientes-api/upsert": JSON.stringify({ codigo_cliente_integracao: "CLI001", razao_social: "Empresa ABC Ltda", cnpj_cpf: "12.345.678/0001-90", email: "contato@abc.com" }, null, 2),
+  "/clientes-api/upsert-cpfcnpj": JSON.stringify({ cnpj_cpf: "12.345.678/0001-90", razao_social: "Empresa ABC Ltda", email: "contato@abc.com" }, null, 2),
+  "/clientes-api/associar": JSON.stringify({ codigo_cliente_omie: "uuid-do-cliente", codigo_cliente_integracao: "CLI001" }, null, 2),
 };
 
 export default function ApiTester() {
