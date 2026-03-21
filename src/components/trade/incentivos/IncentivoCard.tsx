@@ -34,7 +34,7 @@ export function IncentivoCard({ incentivo, progresso, onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      className="bg-card border rounded-2xl p-4 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all duration-200 space-y-3"
+      className="bg-card border rounded-2xl p-3 sm:p-4 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all duration-200 space-y-3"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
