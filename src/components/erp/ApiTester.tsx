@@ -245,6 +245,13 @@ const PRESET_ENDPOINTS = [
   // Países (ListarPaises)
   { label: "Países — Listar", method: "POST" as HttpMethod, path: "/paises-api/listar" },
   { label: "Países — Status", method: "GET" as HttpMethod, path: "/paises-api/status" },
+  // Tipos de Entrega (CRUD Completo)
+  { label: "Tipos Entrega — Incluir", method: "POST" as HttpMethod, path: "/tipos-entrega-api/incluir" },
+  { label: "Tipos Entrega — Alterar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/alterar" },
+  { label: "Tipos Entrega — Consultar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/consultar" },
+  { label: "Tipos Entrega — Excluir", method: "POST" as HttpMethod, path: "/tipos-entrega-api/excluir" },
+  { label: "Tipos Entrega — Listar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/listar" },
+  { label: "Tipos Entrega — Status", method: "GET" as HttpMethod, path: "/tipos-entrega-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -355,6 +362,12 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/cnae-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, ordenar_por: "codigo", ordem_decrescente: "N" }, null, 2),
   // Cidades
   "/cidades-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, filtrar_cidade_contendo: "", filtrar_por_uf: "", ordenar_por: "nome", ordem_descrescente: "N" }, null, 2),
+  // Tipos de Entrega
+  "/tipos-entrega-api/incluir": JSON.stringify({ nCodTransp: 0, cCodIntEntrega: "", cDescricao: "Entrega Normal", cInativo: "N" }, null, 2),
+  "/tipos-entrega-api/alterar": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "", cDescricao: "Entrega Expressa", cInativo: "N" }, null, 2),
+  "/tipos-entrega-api/consultar": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
+  "/tipos-entrega-api/excluir": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
+  "/tipos-entrega-api/listar": JSON.stringify({ nPagina: 1, nRegistrosPorPagina: 50, nCodTransp: 0 }, null, 2),
 };
 
 export default function ApiTester() {
