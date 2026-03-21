@@ -1081,6 +1081,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-2">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
+              <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
