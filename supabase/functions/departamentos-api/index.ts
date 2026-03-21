@@ -47,9 +47,8 @@ function mapCadastro(row: DeptRow) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const url = new URL(req.url);
   const path = url.pathname.split("/").filter(Boolean);
