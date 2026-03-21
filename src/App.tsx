@@ -127,6 +127,7 @@ const TradeAdminApprovalLevels = lazyWithRetry(() => import("./pages/TradeAdminA
 const TradePerformance = lazyWithRetry(() => import("./pages/TradePerformance"));
 const TradeTeamPerformance = lazyWithRetry(() => import("./pages/TradeTeamPerformance"));
 const TradeRewards = lazyWithRetry(() => import("./pages/TradeRewards"));
+const MinhasSolicitacoes = lazyWithRetry(() => import("./pages/trade/MinhasSolicitacoes"));
 const TradeReportCampaigns = lazyWithRetry(() => import("./pages/trade/reports/TradeReportCampaigns"));
 const TradeReportClients = lazyWithRetry(() => import("./pages/trade/reports/TradeReportClients"));
 const TradeReportSellers = lazyWithRetry(() => import("./pages/trade/reports/TradeReportSellers"));
