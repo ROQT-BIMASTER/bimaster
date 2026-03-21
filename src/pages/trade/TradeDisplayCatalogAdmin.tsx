@@ -23,10 +23,12 @@ const TradeDisplayCatalogAdmin = () => {
   const { data: displays = [], isLoading } = useTradeDisplays();
   const deleteDisplay = useDeleteDisplay();
   const duplicateDisplay = useCreateDisplay();
+  const updateDisplay = useUpdateDisplay();
 
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<TradeDisplay | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TradeDisplay | null>(null);
+  const [bulkOptimizing, setBulkOptimizing] = useState(false);
 
   const handleSelect = (display: TradeDisplay) => {
     setSelected(display);
