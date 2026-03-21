@@ -23,6 +23,7 @@ import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosW
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 import { LancamentosRecentes } from "@/components/trade/LancamentosRecentes";
+import { MateriaisCarousel } from "@/components/trade/MateriaisCarousel";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
