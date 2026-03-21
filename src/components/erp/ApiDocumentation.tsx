@@ -981,6 +981,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="bancos" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Bancos — ConsultarBanco + ListarBancos (Padrão Omie)"
+              basePath="/bancos-api"
+              endpoints={bancosCrud}
+              description="Consulta e listagem de bancos/instituições financeiras cadastradas"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
