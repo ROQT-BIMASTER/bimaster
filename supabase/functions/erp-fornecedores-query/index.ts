@@ -1,26 +1,29 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { validateErpAuth, AuthError } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function json(body: unknown, status: number, req: Request, startMs: number) {
+  const cors = getCorsHeaders(req);
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  const meta = { processed_at: new Date().toISOString(), duration_ms: Date.now() - startMs };
+  const responseBody = typeof body === "object" && body !== null && !Array.isArray(body)
+    ? { ...body as Record<string, unknown>, meta }
+    : { data: body, meta };
+  return new Response(JSON.stringify(responseBody), { status, headers });
 }
 
-function errorResponse(status: number, code: string, message: string) {
-  return json({ error: code, message }, status);
+function errorResp(status: number, code: string, message: string, req: Request, startMs: number) {
+  return json({ error: code, message }, status, req, startMs);
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const startMs = Date.now();
   const url = new URL(req.url);
@@ -31,34 +34,25 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // --- Authenticate via x-api-key → erp_config ---
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) {
-    return errorResponse(401, "UNAUTHORIZED", "Header x-api-key ausente");
+  // --- Authenticate ---
+  let empresaId: string;
+  try {
+    const auth = await validateErpAuth(req);
+    empresaId = auth.empresaId;
+  } catch (e) {
+    if (e instanceof AuthError) return errorResp(e.status, "UNAUTHORIZED", e.message, req, startMs);
+    throw e;
   }
 
-  const { data: configRow, error: configErr } = await supabase
-    .from("erp_config")
-    .select("empresa_id")
-    .eq("config_key", "api_key")
-    .eq("config_value", apiKey)
-    .maybeSingle();
-
-  let empresaId: string | number | null = configRow?.empresa_id ?? null;
-
-  // Fallback: check erp_api_keys table
-  if (!empresaId) {
-    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
-    const empresa = await validateErpApiKey(apiKey);
-    if (empresa) {
-      empresaId = empresa;
-    }
+  // --- Rate limit ---
+  try {
+    await checkRateLimit({ prefix: "erp-fornecedores", limit: 60, req });
+  } catch (e) {
+    if (e instanceof RateLimitError) return errorResp(429, "RATE_LIMIT", e.message, req, startMs);
+    throw e;
   }
 
-  if (!empresaId) {
-    return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
-  }
-
+  // --- Sync log helper ---
   async function logSync(endpoint: string, payload: unknown, statusCode: number) {
     try {
       await supabase.from("erp_sync_log").insert({
@@ -89,7 +83,6 @@ Deno.serve(async (req) => {
         .order("razao_social");
 
       if (cnpjParam) {
-        // Strip non-digits for flexible matching
         const cnpjClean = cnpjParam.replace(/\D/g, "");
         if (cnpjClean.length >= 11) {
           query = query.ilike("cnpj", `%${cnpjClean}%`);
@@ -102,23 +95,23 @@ Deno.serve(async (req) => {
 
       if (error) {
         await logSync("GET /", { cnpj: cnpjParam }, 500);
-        return errorResponse(500, "DB_ERROR", error.message);
+        return errorResp(500, "DB_ERROR", error.message, req, startMs);
       }
 
       if (!data || data.length === 0) {
         await logSync("GET /", { cnpj: cnpjParam }, 404);
-        return errorResponse(404, "NOT_FOUND", "Nenhum fornecedor encontrado");
+        return errorResp(404, "NOT_FOUND", "Nenhum fornecedor encontrado", req, startMs);
       }
 
       await logSync("GET /", { cnpj: cnpjParam }, 200);
-      return json({ fornecedores: data, total: data.length });
+      return json({ fornecedores: data, total: data.length }, 200, req, startMs);
     }
 
     // ==================== 404 ====================
     await logSync(`${req.method} ${path}`, null, 404);
-    return errorResponse(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`);
+    return errorResp(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);
   } catch (err: any) {
     await logSync(`${req.method} ${path}`, null, 500);
-    return errorResponse(500, "DB_ERROR", err.message || "Erro interno");
+    return errorResp(500, "DB_ERROR", err.message || "Erro interno", req, startMs);
   }
 });
