@@ -132,6 +132,11 @@ const PRESET_ENDPOINTS = [
   { label: "Anexo — Listar", method: "GET" as HttpMethod, path: "/anexos-api/listar?cTabela=contas_receber&nId=0&nPagina=1&nRegPorPagina=50" },
   { label: "Anexo — Excluir", method: "DELETE" as HttpMethod, path: "/anexos-api/excluir" },
   { label: "Anexo — Status", method: "GET" as HttpMethod, path: "/anexos-api/status" },
+  // Orçamento de Caixa (Previsto x Realizado)
+  { label: "Orçamento — Listar", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/listar?nAno=2026&nMes=3" },
+  { label: "Orçamento — Incluir", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir" },
+  { label: "Orçamento — Incluir Lote", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir-lote" },
+  { label: "Orçamento — Status", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
