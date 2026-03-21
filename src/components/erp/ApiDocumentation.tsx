@@ -515,6 +515,19 @@ const anexosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const empresasCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/consultar", description: "Consultar empresa por código (ConsultarEmpresa)", tag: "novo",
+    body: `{ "codigo_empresa": 8 }`,
+    response: `{ "codigo_empresa": 8, "razao_social": "Empresa ABC", "cnpj": "12.345.678/0001-90", "estado": "SP", "inativa": "N", "inclusao_data": "15/01/2026", "..." }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar empresas paginadas (ListarEmpresas)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 100 }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 2, "total_de_registros": 2, "empresas_cadastro": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
 
 const orcamentosCaixaCrud: Endpoint[] = [
   {
