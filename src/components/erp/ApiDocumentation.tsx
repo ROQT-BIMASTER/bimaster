@@ -637,7 +637,43 @@ const tiposAnexoCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-const cnaeCrud: Endpoint[] = [
+const tiposEntregaCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir tipo de entrega (IncluirTipoEntrega)", tag: "novo",
+    body: `{ "nCodTransp": 0, "cCodIntEntrega": "", "cDescricao": "Entrega Normal", "cInativo": "N" }`,
+    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega incluído com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar tipo de entrega (AlterarTipoEntrega)",
+    body: `{ "nCodEntrega": 1, "cDescricao": "Entrega Expressa", "cInativo": "N" }`,
+    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega alterado com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar tipo de entrega (ConsultarTipoEntrega)",
+    body: `{ "nCodEntrega": 1, "cCodIntEntrega": "" }`,
+    response: `{ "nCodTransp": 0, "nCodEntrega": 1, "cCodIntEntrega": "", "cDescricao": "Entrega Normal", "cInativo": "N" }`,
+  },
+  {
+    method: "POST", path: "/excluir", description: "Excluir tipo de entrega (ExcluirTipoEntrega)",
+    body: `{ "nCodEntrega": 1, "cCodIntEntrega": "" }`,
+    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega excluído com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar tipos de entrega com paginação (ListarTipoEntrega)",
+    body: `{ "nPagina": 1, "nRegistrosPorPagina": 50, "nCodTransp": 0 }`,
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "nRegistrosPorPagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
+      { name: "nCodTransp", type: "integer", required: false, description: "Filtrar por transportadora" },
+      { name: "dDtAltDe", type: "string(10)", required: false, description: "Filtrar alterados a partir de (dd/mm/aaaa)" },
+      { name: "dDtAltAte", type: "string(10)", required: false, description: "Filtrar alterados até (dd/mm/aaaa)" },
+    ],
+    response: `{ "nPagina": 1, "nTotalPaginas": 1, "nRegistros": 2, "nTotalRegistros": 2, "CadTiposEntrega": [{ "nCodTransp": 0, "nCodEntrega": 1, "cCodIntEntrega": "", "cDescricao": "Normal", "cInativo": "N" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
   {
     method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
     body: `{ "pagina": 1, "registros_por_pagina": 50, "ordenar_por": "codigo", "ordem_decrescente": "N" }`,
