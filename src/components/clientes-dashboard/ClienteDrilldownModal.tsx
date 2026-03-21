@@ -44,7 +44,7 @@ export function ClienteDrilldownModal({ codCliente, filters, onClose }: Props) {
 
       for (const v of rows) {
         const mult = multipliers.get(v.operacao) ?? 1;
-        const valor = ((v as any).venda ?? ((v as any).preco_venda && (v as any).quantidade ? (v as any).preco_venda * (v as any).quantidade : (v as any).vl_outros_custos) ?? 0) * mult;
+        const valor = ((v as any).venda ?? ((v as any).preco_venda && (v as any).quantidade ? (v as any).preco_venda * (v as any).quantidade : 0)) * mult;
         const mes = new Date(v.data).getMonth() + 1;
         monthMap.set(mes, (monthMap.get(mes) || 0) + valor);
 

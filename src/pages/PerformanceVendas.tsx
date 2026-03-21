@@ -101,7 +101,7 @@ function VendedorDrilldown({ codVend, vendedor, filters, onClose }: {
       for (const r of rows) {
         const mult = multipliers.get(r.operacao) ?? 1;
         if (!map.has(r.cod_cliente)) map.set(r.cod_cliente, { cliente: r.cliente, receita: 0 });
-        map.get(r.cod_cliente)!.receita += (Number(r.vl_outros_custos) || 0) * mult;
+        map.get(r.cod_cliente)!.receita += (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || 0) * mult;
       }
       return [...map.values()].sort((a, b) => b.receita - a.receita).slice(0, 10);
     },
