@@ -192,10 +192,17 @@ export default function ApiTester() {
       ]);
     } catch (err: unknown) {
       const duration = Math.round(performance.now() - start);
+      const msg = err instanceof Error ? err.message : "Erro de conexão";
+      const isCors = msg.includes("Failed to fetch") || msg.includes("NetworkError");
       setResponse({
         status: 0,
-        statusText: "Network Error",
-        data: { error: err instanceof Error ? err.message : "Erro de conexão" },
+        statusText: isCors ? "CORS / Network Error" : "Network Error",
+        data: {
+          error: msg,
+          hint: isCors
+            ? "Possível bloqueio CORS. Verifique se o método HTTP é permitido pelo servidor e se os headers estão corretos."
+            : "Verifique a URL e sua conexão de rede.",
+        },
         duration,
         headers: {},
       });
