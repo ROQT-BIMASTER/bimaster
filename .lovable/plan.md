@@ -1,114 +1,89 @@
 
 
-# API Contas a Receber — Padronização Omie
+# API Boletos (Cobrança Bancária) — Padronização Omie
 
 ## Resumo
 
-Expandir a tabela `contas_receber` com campos Omie faltantes (impostos, CNAB, boleto, rateios, repetição), adicionar rotas Omie-style na Edge Function existente e documentar tudo — seguindo o mesmo padrão das APIs de Contas a Pagar, Contas Correntes e Lançamentos CC.
+Criar a API de Boletos seguindo o padrão Omie, com operações de geração, obtenção, cancelamento e prorrogação de boletos vinculados a títulos do Contas a Receber. Inclui nova tabela para gerenciar boletos, Edge Function dedicada e documentação.
 
-## 1. Expansão da tabela `contas_receber`
+## 1. Nova tabela `boletos`
 
-A tabela já possui campos básicos. Migração para adicionar campos Omie faltantes:
+Tabela dedicada para gerenciar o ciclo de vida dos boletos, vinculada a `contas_receber`:
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `codigo_lancamento_omie` | BIGINT | Código do lançamento no Omie |
-| `codigo_lancamento_integracao` | VARCHAR(60) | Código de integração Omie |
-| `codigo_cliente_fornecedor` | BIGINT | Código do cliente no Omie |
-| `codigo_cliente_fornecedor_integracao` | VARCHAR(60) | Código integração do cliente |
-| `data_previsao` | DATE | Data de previsão de recebimento |
-| `data_registro` | DATE | Data de registro |
-| `id_conta_corrente` | BIGINT | Conta corrente vinculada |
-| `codigo_projeto` | INTEGER | Código do projeto |
-| `codigo_vendedor` | INTEGER | Código do vendedor |
-| `numero_pedido` | VARCHAR(15) | Número do pedido |
-| `codigo_tipo_documento` | VARCHAR(5) | Tipo documento Omie |
-| `numero_documento_fiscal` | VARCHAR(20) | Número da NF |
-| `chave_nfe` | VARCHAR(44) | Chave da NF-e |
-| `numero_parcela_omie` | VARCHAR(7) | Parcela formato Omie (001/003) |
-| `codigo_barras_ficha_compensacao` | VARCHAR(70) | Código de barras do boleto |
-| `codigo_cmc7_cheque` | VARCHAR(40) | Código CMC7 do cheque |
-| `id_origem` | VARCHAR(4) | Código da origem |
-| `operacao` | VARCHAR(2) | Código da operação |
-| `status_titulo` | VARCHAR(100) | Status Omie do título |
-| **Impostos retidos** | | |
-| `valor_pis` | NUMERIC(15,2) | Valor PIS |
-| `retem_pis` | BOOLEAN | Reter PIS |
-| `valor_cofins` | NUMERIC(15,2) | Valor COFINS |
-| `retem_cofins` | BOOLEAN | Reter COFINS |
-| `valor_csll` | NUMERIC(15,2) | Valor CSLL |
-| `retem_csll` | BOOLEAN | Reter CSLL |
-| `valor_ir` | NUMERIC(15,2) | Valor IR |
-| `retem_ir` | BOOLEAN | Reter IR |
-| `valor_iss` | NUMERIC(15,2) | Valor ISS |
-| `retem_iss` | BOOLEAN | Reter ISS |
-| `valor_inss` | NUMERIC(15,2) | Valor INSS |
-| `retem_inss` | BOOLEAN | Reter INSS |
-| **Boleto** | | |
-| `boleto_gerado` | BOOLEAN | Gerou boleto |
-| `boleto_data_emissao` | DATE | Data emissão boleto |
-| `boleto_numero` | VARCHAR(30) | Número do boleto |
-| `boleto_numero_bancario` | VARCHAR(30) | Número bancário do boleto |
-| `boleto_per_juros` | NUMERIC(5,2) | % juros boleto |
-| `boleto_per_multa` | NUMERIC(5,2) | % multa boleto |
-| **Rateios** | | |
-| `rateio_categorias` | JSONB | Rateio por categorias |
-| `rateio_departamentos` | JSONB | Distribuição por departamentos |
-| **Controle** | | |
-| `bloquear_baixa` | BOOLEAN | Bloquear baixa |
-| `bloquear_exclusao` | BOOLEAN | Bloquear exclusão |
+| `id` | UUID PK | ID interno |
+| `empresa_id` | TEXT NOT NULL | Empresa (referência) |
+| `conta_receber_id` | UUID FK | Vínculo com contas_receber |
+| `n_cod_titulo` | BIGINT | Código do título no Omie |
+| `c_cod_int_titulo` | VARCHAR(60) | Código de integração do título |
+| `link_boleto` | VARCHAR(500) | Link para download do boleto |
+| `data_emissao` | DATE | Data de emissão |
+| `numero_boleto` | VARCHAR(30) | Número do boleto |
+| `codigo_barras` | VARCHAR(70) | Código de barras |
+| `numero_bancario` | VARCHAR(30) | Número bancário |
+| `per_juros` | NUMERIC(5,2) | % juros |
+| `per_multa` | NUMERIC(5,2) | % multa |
+| `desconto_cond1_data` | DATE | Data desconto condicional 1 |
+| `desconto_cond1_valor` | NUMERIC(15,2) | Valor desconto condicional 1 |
+| `desconto_cond2_data` | DATE | Data desconto condicional 2 |
+| `desconto_cond2_valor` | NUMERIC(15,2) | Valor desconto condicional 2 |
+| `desconto_cond3_data` | DATE | Data desconto condicional 3 |
+| `desconto_cond3_valor` | NUMERIC(15,2) | Valor desconto condicional 3 |
+| `status` | VARCHAR(20) | Status: gerado, cancelado, prorrogado |
+| `data_vencimento` | DATE | Vencimento atual (atualizado na prorrogação) |
 | `importado_api` | BOOLEAN | Importado pela API |
-| `baixar_documento` | BOOLEAN | Baixa automática |
-| `conciliar_documento` | BOOLEAN | Conciliação automática |
-| `tipo_agrupamento` | VARCHAR(1) | Tipo de agrupamento |
-| `nsu` | VARCHAR(100) | NSU — comprovante |
-| **Pedido/OS** | | |
-| `n_cod_pedido` | BIGINT | ID do pedido de venda |
-| `n_cod_os` | BIGINT | ID da ordem de serviço |
-| `c_pedido_cliente` | VARCHAR(30) | Número pedido do cliente |
-| `c_numero_contrato` | VARCHAR(20) | Número do contrato |
-| **Repetição** | | |
-| `repeticao` | JSONB | Config de repetição (mensal/semanal/específico) |
-| `aprendizado_rateio` | BOOLEAN | Aprendizado de rateio |
+| `created_at` | TIMESTAMPTZ | Criação |
+| `updated_at` | TIMESTAMPTZ | Última alteração |
 
-Unique index: `(empresa_id, codigo_lancamento_integracao)`.
+RLS: service_role e usuários autenticados da mesma empresa.
 
-## 2. Novas rotas Omie-style na Edge Function
+## 2. Nova Edge Function: `boletos-api`
 
-Adicionar à `contas-receber-api/index.ts` **sem alterar rotas existentes**:
+| Método | Rota | Descrição | Equivalente Omie |
+|---|---|---|---|
+| POST | `/gerar` | Gera boleto para um título CR | GerarBoleto |
+| GET | `/obter` | Obtém link e dados do boleto | ObterBoleto |
+| POST | `/cancelar` | Cancela boleto gerado | CancelarBoleto |
+| POST | `/prorrogar` | Prorroga vencimento do boleto | ProrrogarBoleto |
+| GET | `/listar` | Lista boletos (paginado) | — |
+| GET | `/status` | Health check | — |
 
-| Método | Rota | Equivalente Omie |
-|---|---|---|
-| GET | `/consultar` | ConsultarContaReceber |
-| GET | `/listar` | ListarContasReceber |
-| POST | `/incluir` | IncluirContaReceber |
-| PUT | `/alterar` | AlterarContaReceber |
-| DELETE | `/excluir` | ExcluirContaReceber |
-| POST | `/upsert` | UpsertContaReceber |
-| POST | `/upsert-lote` | UpsertContaReceberPorLote / IncluirContaReceberPorLote |
-| POST | `/lancar-recebimento` | LancarRecebimento |
-| POST | `/cancelar-recebimento` | CancelarRecebimento |
-| POST | `/conciliar` | ConciliarRecebimento |
-| POST | `/desconciliar` | DesconciliarRecebimento |
-| POST | `/cancelar` | CancelarContaReceber |
+Padrão de resposta Omie:
+```json
+{
+  "cLinkBoleto": "https://...",
+  "cCodStatus": "0",
+  "cDesStatus": "Boleto gerado com sucesso!",
+  "dDtEmBol": "21/03/2026",
+  "cNumBoleto": "00001",
+  "cCodBarras": "23793...",
+  "nPerJuros": 2.0,
+  "nPerMulta": 2.0,
+  "cNumBancario": "109876",
+  "dDescontoCond1": "25/03/2026",
+  "vDescontoCond1": 5.00
+}
+```
 
-Respostas seguem o padrão Omie com `codigo_status`/`descricao_status`.
+Autenticação: `validateApiKey` / `validateJWT` (mesmo padrão das demais).
 
 ## 3. Documentação
 
-Novo `docs/API_CONTAS_RECEBER.md` com todos os endpoints, tipos, exemplos e filtros.
+Novo `docs/API_BOLETOS.md` com todos os endpoints, tipos, exemplos e aviso sobre tarifação bancária.
 
 ## 4. API Tester & Portal
 
-Adicionar presets no `ApiTester.tsx` e seção no `ApiDocumentation.tsx`.
+- Adicionar presets no `ApiTester.tsx` (Gerar, Obter, Cancelar, Prorrogar)
+- Adicionar seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar — expandir `contas_receber` com ~50 campos |
-| `supabase/functions/contas-receber-api/index.ts` | Editar — adicionar ~12 rotas Omie-style |
-| `docs/API_CONTAS_RECEBER.md` | Criar — documentação completa |
+| Migração SQL | Criar — tabela `boletos` + RLS |
+| `supabase/functions/boletos-api/index.ts` | Criar — nova Edge Function |
+| `docs/API_BOLETOS.md` | Criar — documentação |
 | `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
 
