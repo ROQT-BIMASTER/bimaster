@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   BookOpen, ChevronDown, ChevronRight, Copy, Check,
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
-  FileText, Webhook, BarChart3, Shield, Database
+  FileText, Webhook, BarChart3, Shield, Database,
+  FileSpreadsheet, Building2, Layers, DollarSign, Package
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { exportToExcel } from "@/lib/excel-utils";
+import type { SheetData } from "@/lib/excel-utils";
 
 const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
 
@@ -23,6 +26,24 @@ interface Endpoint {
   response?: string;
 }
 
+interface ApiDefinition {
+  id: string;
+  name: string;
+  description: string;
+  basePath: string;
+  icon: React.ReactNode;
+  sections: { title: string; endpoints: Endpoint[]; description?: string }[];
+}
+
+interface ApiModule {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  apis: ApiDefinition[];
+}
+
 const METHOD_COLORS: Record<string, string> = {
   GET: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
   POST: "bg-blue-500/15 text-blue-700 border-blue-500/30",
@@ -30,16 +51,9 @@ const METHOD_COLORS: Record<string, string> = {
   DELETE: "bg-red-500/15 text-red-700 border-red-500/30",
 };
 
-const contasPagarSync: Endpoint[] = [
-  { method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)", tag: "sync" },
-  { method: "POST", path: "/bulk-sync", description: "Sync em massa com rate limiting", tag: "sync" },
-  { method: "POST", path: "/sync-incremental", description: "Sync incremental com hash de verificação", tag: "sync" },
-  { method: "POST", path: "/sync-complete", description: "Finalizar sync multi-chunk", tag: "sync" },
-  { method: "POST", path: "/trigger-n8n", description: "Disparar sync via webhook N8N", tag: "sync" },
-  { method: "GET", path: "/status", description: "Status da última sincronização", tag: "sync" },
-  { method: "GET", path: "/stats", description: "Estatísticas de sincronização", tag: "sync" },
-  { method: "GET", path: "/last-sync", description: "Timestamp da última sync", tag: "sync" },
-];
+// ═══════════════════════════════════════
+// ENDPOINT DATA
+// ═══════════════════════════════════════
 
 const contasPagarCrud: Endpoint[] = [
   {
@@ -52,10 +66,7 @@ const contasPagarCrud: Endpoint[] = [
       { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 500)" },
       { name: "offset", type: "number", required: false, description: "Paginação" },
     ],
-    response: `{
-  "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }],
-  "total": 250, "offset": 0, "limit": 100
-}`,
+    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "total": 250, "offset": 0, "limit": 100 }`,
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
@@ -139,932 +150,329 @@ const contasPagarIntegracao: Endpoint[] = [
 ];
 
 const contasPagarComplementar: Endpoint[] = [
-  {
-    method: "GET", path: "/parcelas", description: "Consulta parcelas de um título",
-    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
-  },
-  {
-    method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)",
-    body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }`,
-  },
-  {
-    method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título",
-    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
-  },
-  {
-    method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo",
-    body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`,
-  },
+  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
+  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
   { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título" },
   { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento" },
 ];
 
 const exportPull: Endpoint[] = [
-  {
-    method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)",
-    response: `{
-  "data": [{
-    "id": "uuid", "export_type": "registration",
-    "fornecedor": { "nome": "ABC Ltda", "documento": "12345678000190" },
-    "pagamento": { "valor": 1500, "moeda": "BRL", "data_vencimento": "2026-03-15" },
-    "status": "Aguardando Pagamento"
-  }], "total": 5
-}`,
-  },
+  { method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)", response: `{ "data": [{ "id": "uuid", "export_type": "registration", "fornecedor": { "nome": "ABC Ltda" }, "pagamento": { "valor": 1500 } }], "total": 5 }` },
   { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)" },
   { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação" },
-  {
-    method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP",
-    body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`,
-    response: `{ "confirmed": 2, "export_type": "registration" }`,
-  },
+  { method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP", body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`, response: `{ "confirmed": 2, "export_type": "registration" }` },
   { method: "GET", path: "/status", description: "Status global de pendências de exportação" },
 ];
 
 const exportAdvanced: Endpoint[] = [
-  {
-    method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo",
-    params: [
-      { name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" },
-      { name: "status", type: "string", required: false, description: "exported, pending, error" },
-      { name: "limit", type: "number", required: false, description: "Máx 500" },
-    ],
-  },
-  {
-    method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo",
-    body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`,
-    response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }`,
-  },
-  {
-    method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo",
-    body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }`,
-  },
-  {
-    method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo",
-    params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }],
-    response: `{
-  "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 },
-  "por_status": { "pendente": { "total": 100, "exported": 95 }, "pago": { "total": 300, "exported": 298 } }
-}`,
-  },
-  {
-    method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo",
-    params: [
-      { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
-      { name: "periodo_de", type: "date", required: false, description: "Data inicial" },
-      { name: "periodo_ate", type: "date", required: false, description: "Data final" },
-    ],
-  },
-  {
-    method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo",
-    body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }`,
-  },
+  { method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo", params: [{ name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" }, { name: "status", type: "string", required: false, description: "exported, pending, error" }, { name: "limit", type: "number", required: false, description: "Máx 500" }] },
+  { method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo", body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`, response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }` },
+  { method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo", body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }` },
+  { method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }], response: `{ "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 } }` },
+  { method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }, { name: "periodo_de", type: "date", required: false, description: "Data inicial" }, { name: "periodo_ate", type: "date", required: false, description: "Data final" }] },
+  { method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo", body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }` },
 ];
 
 const contasCorrentesCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/", description: "Listar contas correntes (paginado)", tag: "novo",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
-      { name: "filtrar_apenas_ativo", type: "string", required: false, description: "Filtrar ativos (S/N)" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 100, "total_de_registros": 250, "ListarContasCorrentes": [...] }`,
-  },
-  {
-    method: "GET", path: "/resumo", description: "Listagem resumida de contas correntes", tag: "novo",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página" },
-    ],
-  },
-  {
-    method: "GET", path: "/consultar", description: "Consultar conta corrente por ID ou código de integração", tag: "novo",
-    params: [
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-      { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" },
-      { name: "nCodCC", type: "integer", required: false, description: "Código numérico Huggs" },
-    ],
-    response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú", ... } }`,
-  },
-  {
-    method: "POST", path: "/incluir", description: "Incluir nova conta corrente",
-    body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`,
-    response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente incluída com sucesso" }`,
-  },
-  {
-    method: "PUT", path: "/alterar", description: "Alterar conta corrente existente",
-    body: `{ "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú Atualizada", "valor_limite": 75000 }`,
-    response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente alterada com sucesso" }`,
-  },
-  {
-    method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta corrente",
-    params: [
-      { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" },
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-    ],
-  },
-  {
-    method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodCCInt)",
-    body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`,
-  },
-  {
-    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 contas)",
-    body: `{ "lote": 1, "fin_conta_corrente_cadastro": [{ "cCodCCInt": "MyCC0001", "descricao": "Caixinha", "saldo_inicial": 0 }] }`,
-    response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }`,
-  },
-  {
-    method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)",
-    body: `{ "contas": [{ "cCodCCInt": "CC001", "descricao": "Bradesco", "codigo_banco": "237" }] }`,
-  },
+  { method: "GET", path: "/", description: "Listar contas correntes (paginado)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Número da página" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" }, { name: "filtrar_apenas_ativo", type: "string", required: false, description: "Filtrar ativos (S/N)" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 100, "total_de_registros": 250, "ListarContasCorrentes": [...] }` },
+  { method: "GET", path: "/resumo", description: "Listagem resumida de contas correntes", tag: "novo" },
+  { method: "GET", path: "/consultar", description: "Consultar conta corrente por ID ou código de integração", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "nCodCC", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú" } }` },
+  { method: "POST", path: "/incluir", description: "Incluir nova conta corrente", body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente incluída com sucesso" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar conta corrente existente", body: `{ "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú Atualizada", "valor_limite": 75000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente alterada com sucesso" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta corrente", params: [{ name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodCCInt)", body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 contas)", body: `{ "lote": 1, "fin_conta_corrente_cadastro": [{ "cCodCCInt": "MyCC0001", "descricao": "Caixinha", "saldo_inicial": 0 }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const lancamentosCcCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/", description: "Listar lançamentos de conta corrente (paginado)", tag: "novo",
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "nCodCC", type: "integer", required: false, description: "Código da conta corrente)" },
-      { name: "cOrigem", type: "string", required: false, description: "Filtro por origem: MANU, CONP, CONR, TRAN" },
-      { name: "dtPagInicial", type: "date", required: false, description: "Data do lançamento inicial" },
-      { name: "dtPagFinal", type: "date", required: false, description: "Data do lançamento final" },
-      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
-      { name: "cOrdemDecrescente", type: "string", required: false, description: "S para ordem decrescente" },
-    ],
-    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 95, "listaLancamentos": [...] }`,
-  },
-  {
-    method: "GET", path: "/consultar", description: "Consultar lançamento por ID ou código de integração", tag: "novo",
-    params: [
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-      { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" },
-      { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Huggs" },
-    ],
-    response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...}, ... } }`,
-  },
-  {
-    method: "POST", path: "/incluir", description: "Incluir novo lançamento de conta corrente",
-    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": 2485994, "cObs": "Pagamento jardinagem" } }`,
-    response: `{ "nCodLanc": null, "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento incluído com sucesso" }`,
-  },
-  {
-    method: "PUT", path: "/alterar", description: "Alterar lançamento existente",
-    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nValorLanc": 200.00 }, "detalhes": { "cObs": "Valor corrigido" } }`,
-    response: `{ "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento alterado com sucesso" }`,
-  },
-  {
-    method: "DELETE", path: "/excluir", description: "Excluir (inativar) lançamento",
-    params: [
-      { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" },
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-    ],
-  },
-  {
-    method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodIntLanc)",
-    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }`,
-  },
-  {
-    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 lançamentos)",
-    body: `{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }`,
-    response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }`,
-  },
-  {
-    method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)",
-    body: `{ "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cTipo": "DIN" } }] }`,
-  },
+  { method: "GET", path: "/", description: "Listar lançamentos de conta corrente (paginado)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Número da página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "nCodCC", type: "integer", required: false, description: "Código da conta corrente" }, { name: "cOrigem", type: "string", required: false, description: "Filtro: MANU, CONP, CONR, TRAN" }, { name: "dtPagInicial", type: "date", required: false, description: "Data inicial" }, { name: "dtPagFinal", type: "date", required: false, description: "Data final" }], response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 95, "listaLancamentos": [...] }` },
+  { method: "GET", path: "/consultar", description: "Consultar lançamento por ID ou código", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...} } }` },
+  { method: "POST", path: "/incluir", description: "Incluir novo lançamento de conta corrente", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": 2485994 } }`, response: `{ "nCodLanc": null, "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento incluído com sucesso" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar lançamento existente", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nValorLanc": 200.00 }, "detalhes": { "cObs": "Valor corrigido" } }`, response: `{ "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento alterado com sucesso" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) lançamento", params: [{ name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodIntLanc)", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 lançamentos)", body: `{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
+  { method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo", params: [{ name: "nCodCC", type: "integer", required: false, description: "Código Huggs da conta" }, { name: "cCodIntCC", type: "string", required: false, description: "Código de integração" }, { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial" }, { name: "dPeriodoFinal", type: "string", required: false, description: "Período final" }, { name: "cExibirApenasSaldo", type: "string", required: false, description: "S para apenas saldos" }], response: `{ "nCodCC": 427619317, "cDescricao": "Conta Bradesco", "nSaldoAnterior": 10000.00, "nSaldoAtual": 15230.50, "listaMovimentos": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
-  {
-    method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo",
-    params: [
-      { name: "nCodCC", type: "integer", required: false, description: "Código Huggs da conta corrente" },
-      { name: "cCodIntCC", type: "string", required: false, description: "Código de integração da conta" },
-      { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial (dd/mm/yyyy ou yyyy-mm-dd)" },
-      { name: "dPeriodoFinal", type: "string", required: false, description: "Período final (dd/mm/yyyy ou yyyy-mm-dd)" },
-      { name: "cExibirApenasSaldo", type: "string", required: false, description: "S para retornar apenas saldos sem movimentos" },
-    ],
-    response: `{ "nCodCC": 427619317, "cDescricao": "Conta Bradesco", "dPeriodoInicial": "01/03/2026", "dPeriodoFinal": "21/03/2026", "nSaldoAnterior": 10000.00, "nSaldoAtual": 15230.50, "listaMovimentos": [{ "nCodLancamento": 123, "dDataLancamento": "05/03/2026", "nValorDocumento": 500.00, "nSaldo": 10500.00, "cNatureza": "C" }] }`,
-  },
 ];
 
 const contasReceberIntegracao: Endpoint[] = [
-  {
-    method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaReceber)", tag: "novo",
-    params: [
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
-      { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" },
-    ],
-    response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100, ... } }`,
-  },
-  {
-    method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo",
-    body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
-    response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
-  },
-  {
-    method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo",
-    body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
-    response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
-  },
-  {
-    method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo",
-    params: [
-      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
-      { name: "id", type: "uuid", required: false, description: "ID interno" },
-    ],
-  },
-  {
-    method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo",
-    body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`,
-  },
-  {
-    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo",
-    body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "valor_documento": 100 }] }`,
-    response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
-  },
-  {
-    method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo",
-    body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
-    response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo",
-    body: `{ "codigo_baixa": 0 }`,
-    response: `{ "codigo_baixa": 0, "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo",
-    body: `{ "codigo_baixa": 0 }`,
-  },
-  {
-    method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo",
-    body: `{ "codigo_baixa": 0 }`,
-  },
-  {
-    method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo",
-    body: `{ "chave_lancamento": 0 }`,
-  },
-  {
-    method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" },
-      { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
-      { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
-      { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente" },
-      { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
-      { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" },
-      { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
-      { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }`,
-  },
-];
-
-const contasReceberSync: Endpoint[] = [
-  { method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)", tag: "sync" },
-  { method: "POST", path: "/bulk-sync", description: "Sync em massa", tag: "sync" },
-  { method: "POST", path: "/sync-chunk", description: "Sync chunk", tag: "sync" },
-  { method: "GET", path: "/sync-status", description: "Status da sync", tag: "sync" },
-  { method: "POST", path: "/delete-old", description: "Limpar registros antigos", tag: "sync" },
+  { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
+  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100 }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "valor_documento": 100 }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
+  { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
+  { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }`, response: `{ "codigo_baixa": 0, "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }` },
+  { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }` },
+  { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }` },
+  { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", body: `{ "chave_lancamento": 0 }` },
+  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
 ];
 
 const boletosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/gerar", description: "Gerar boleto para título CR (GerarBoleto)", tag: "novo",
-    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "nPerJuros": 2.0, "nPerMulta": 2.0, "dDescontoCond1": "2026-03-25", "vDescontoCond1": 5.00 }`,
-    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto gerado com sucesso!", "dDtEmBol": "2026-03-21", "cNumBoleto": "BOL-001", "cCodBarras": "23793...", "nPerJuros": 2.0, "nPerMulta": 2.0 }`,
-  },
-  {
-    method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo",
-    params: [
-      { name: "nCodTitulo", type: "integer", required: false, description: "Código do título" },
-      { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração do título" },
-      { name: "id", type: "uuid", required: false, description: "ID interno do boleto" },
-    ],
-    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto localizado com sucesso!", "dDtEmBol": "2026-03-21", "cNumBoleto": "BOL-001" }`,
-  },
-  {
-    method: "POST", path: "/cancelar", description: "Cancelar boleto gerado (CancelarBoleto)", tag: "novo",
-    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001" }`,
-    response: `{ "cCodStatus": "0", "cDesStatus": "Boleto cancelado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/prorrogar", description: "Prorrogar vencimento do boleto (ProrrogarBoleto)", tag: "novo",
-    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "dDtVenc": "30/04/2026" }`,
-    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto prorrogado com sucesso!" }`,
-  },
-  {
-    method: "GET", path: "/listar", description: "Listar boletos paginado",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "status", type: "string", required: false, description: "Filtro: gerado, cancelado, prorrogado" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 20, "total_de_registros": 50, "boletos": [...] }`,
-  },
+  { method: "POST", path: "/gerar", description: "Gerar boleto para título CR (GerarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "nPerJuros": 2.0, "nPerMulta": 2.0 }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto gerado com sucesso!" }` },
+  { method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo", params: [{ name: "nCodTitulo", type: "integer", required: false, description: "Código do título" }, { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração" }], response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto localizado com sucesso!" }` },
+  { method: "POST", path: "/cancelar", description: "Cancelar boleto gerado (CancelarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001" }`, response: `{ "cCodStatus": "0", "cDesStatus": "Boleto cancelado com sucesso!" }` },
+  { method: "POST", path: "/prorrogar", description: "Prorrogar vencimento do boleto (ProrrogarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "dDtVenc": "30/04/2026" }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto prorrogado com sucesso!" }` },
+  { method: "GET", path: "/listar", description: "Listar boletos paginado", params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "status", type: "string", required: false, description: "Filtro: gerado, cancelado, prorrogado" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 20, "total_de_registros": 50, "boletos": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const anexosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir anexo (base64 zip) vinculado a um documento (IncluirAnexo)", tag: "novo",
-    body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "cNomeArquivo": "comprovante.pdf", "cTipoArquivo": "pdf", "cArquivo": "<base64>", "cMd5": "a1b2c3..." }`,
-    response: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "nIdAnexo": 0, "cNomeArquivo": "comprovante.pdf", "cCodStatus": "0", "cDesStatus": "Anexo incluído com sucesso!" }`,
-  },
-  {
-    method: "GET", path: "/consultar", description: "Consultar metadados de um anexo (ConsultarAnexo)", tag: "novo",
-    params: [
-      { name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração do anexo" },
-      { name: "cTabela", type: "string", required: false, description: "Tabela de origem" },
-      { name: "nId", type: "integer", required: false, description: "ID do documento" },
-      { name: "nIdAnexo", type: "integer", required: false, description: "ID do anexo" },
-    ],
-    response: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "cNomeArquivo": "comprovante.pdf", "cTipoArquivo": "pdf", "info": { "dInc": "21/03/2026" } }`,
-  },
-  {
-    method: "GET", path: "/obter", description: "Obter link de download temporário (ObterAnexo)", tag: "novo",
-    params: [
-      { name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração" },
-      { name: "cTabela", type: "string", required: false, description: "Tabela de origem" },
-      { name: "nId", type: "integer", required: false, description: "ID do documento" },
-    ],
-    response: `{ "cLinkDownload": "https://...", "dDtExpiracao": "21/03/2026", "cCodStatus": "0", "cDesStatus": "Link gerado com sucesso!" }`,
-  },
-  {
-    method: "GET", path: "/listar", description: "Listar anexos de um documento (ListarAnexo)", tag: "novo",
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 200)" },
-      { name: "nId", type: "integer", required: true, description: "ID do documento" },
-      { name: "cTabela", type: "string", required: true, description: "Tabela de origem" },
-    ],
-    response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 2, "nTotRegistros": 2, "listaAnexos": [...] }`,
-  },
-  {
-    method: "DELETE", path: "/excluir", description: "Excluir anexo (ExcluirAnexo)", tag: "novo",
-    body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345 }`,
-    response: `{ "cCodStatus": "0", "cDesStatus": "Anexo excluído com sucesso!" }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir anexo (base64 zip) vinculado a um documento (IncluirAnexo)", tag: "novo", body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "cNomeArquivo": "comprovante.pdf", "cTipoArquivo": "pdf", "cArquivo": "<base64>", "cMd5": "a1b2c3..." }`, response: `{ "cCodIntAnexo": "ANX-001", "cCodStatus": "0", "cDesStatus": "Anexo incluído com sucesso!" }` },
+  { method: "GET", path: "/consultar", description: "Consultar metadados de um anexo (ConsultarAnexo)", tag: "novo", params: [{ name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração do anexo" }, { name: "cTabela", type: "string", required: false, description: "Tabela de origem" }, { name: "nId", type: "integer", required: false, description: "ID do documento" }] },
+  { method: "GET", path: "/obter", description: "Obter link de download temporário (ObterAnexo)", tag: "novo", params: [{ name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração" }, { name: "cTabela", type: "string", required: false, description: "Tabela de origem" }], response: `{ "cLinkDownload": "https://...", "dDtExpiracao": "21/03/2026", "cCodStatus": "0" }` },
+  { method: "GET", path: "/listar", description: "Listar anexos de um documento (ListarAnexo)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página" }, { name: "nId", type: "integer", required: true, description: "ID do documento" }, { name: "cTabela", type: "string", required: true, description: "Tabela de origem" }], response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 2, "nTotRegistros": 2, "listaAnexos": [...] }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir anexo (ExcluirAnexo)", tag: "novo", body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345 }`, response: `{ "cCodStatus": "0", "cDesStatus": "Anexo excluído com sucesso!" }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const empresasCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/consultar", description: "Consultar empresa por código (ConsultarEmpresa)", tag: "novo",
-    body: `{ "codigo_empresa": 8 }`,
-    response: `{ "codigo_empresa": 8, "razao_social": "Empresa ABC", "cnpj": "12.345.678/0001-90", "estado": "SP", "inativa": "N", "inclusao_data": "15/01/2026", "..." }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar empresas paginadas (ListarEmpresas)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 100 }`,
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 2, "total_de_registros": 2, "empresas_cadastro": [...] }`,
-  },
+  { method: "POST", path: "/consultar", description: "Consultar empresa por código (ConsultarEmpresa)", tag: "novo", body: `{ "codigo_empresa": 8 }`, response: `{ "codigo_empresa": 8, "razao_social": "Empresa ABC", "cnpj": "12.345.678/0001-90", "estado": "SP" }` },
+  { method: "POST", path: "/listar", description: "Listar empresas paginadas (ListarEmpresas)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 100 }`, response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 2, "total_de_registros": 2, "empresas_cadastro": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const departamentosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir novo departamento (IncluirDepartamento)", tag: "novo",
-    body: `{ "codigo": "000000000723648", "descricao": "Marketing Digital" }`,
-    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "cCodStatus": "0", "cDesStatus": "Departamento incluído com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/alterar", description: "Alterar departamento (AlterarDepartamento)", tag: "novo",
-    body: `{ "codigo": "000000000723648", "descricao": "Marketing Atualizado" }`,
-    response: `{ "codigo": "000000000723648", "descricao": "Marketing Atualizado", "cCodStatus": "0", "cDesStatus": "Departamento alterado com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/consultar", description: "Consultar departamento por código (ConsultarDepartamento)", tag: "novo",
-    body: `{ "codigo": "000000000723648" }`,
-    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "estrutura": "", "inativo": "N", "nivel_totalizador": "N" }`,
-  },
-  {
-    method: "POST", path: "/excluir", description: "Excluir departamento (ExcluirDepartamento)", tag: "novo",
-    body: `{ "codigo": "000000000723648" }`,
-    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "cCodStatus": "0", "cDesStatus": "Departamento excluído com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar departamentos paginados (ListarDepartamentos)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "departamentos": [...] }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir novo departamento (IncluirDepartamento)", tag: "novo", body: `{ "codigo": "000000000723648", "descricao": "Marketing Digital" }`, response: `{ "codigo": "000000000723648", "cCodStatus": "0", "cDesStatus": "Departamento incluído com sucesso" }` },
+  { method: "POST", path: "/alterar", description: "Alterar departamento (AlterarDepartamento)", tag: "novo", body: `{ "codigo": "000000000723648", "descricao": "Marketing Atualizado" }`, response: `{ "codigo": "000000000723648", "cCodStatus": "0", "cDesStatus": "Departamento alterado com sucesso" }` },
+  { method: "POST", path: "/consultar", description: "Consultar departamento por código (ConsultarDepartamento)", tag: "novo", body: `{ "codigo": "000000000723648" }`, response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "inativo": "N" }` },
+  { method: "POST", path: "/excluir", description: "Excluir departamento (ExcluirDepartamento)", tag: "novo", body: `{ "codigo": "000000000723648" }`, response: `{ "codigo": "000000000723648", "cCodStatus": "0", "cDesStatus": "Departamento excluído com sucesso" }` },
+  { method: "POST", path: "/listar", description: "Listar departamentos paginados (ListarDepartamentos)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50 }`, response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "departamentos": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const categoriasCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir nova categoria (IncluirCategoria)", tag: "novo",
-    body: `{ "descricao": "Serviços Terceiros", "tipo_categoria": "D", "natureza": "Despesas com serviços", "codigo_dre": "3.01.01", "categoria_superior": "" }`,
-    response: `{ "codigo": "CAT-xxx", "codigo_status": "0", "descricao_status": "Categoria incluída com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/incluir-grupo", description: "Incluir grupo totalizador (IncluirGrupoCategoria)", tag: "novo",
-    body: `{ "descricao": "Despesas Operacionais", "tipo_grupo": "D", "natureza": "Grupo de despesas operacionais" }`,
-    response: `{ "codigo": "GRP-xxx", "codigo_status": "0", "descricao_status": "Grupo de categoria incluído com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/alterar", description: "Alterar categoria (AlterarCategoria)", tag: "novo",
-    body: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "tipo_categoria": "D" }`,
-    response: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "codigo_status": "0", "descricao_status": "Categoria alterada com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/alterar-grupo", description: "Alterar grupo totalizador (AlterarGrupoCategoria)", tag: "novo",
-    body: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado" }`,
-    response: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado", "codigo_status": "0", "descricao_status": "Grupo alterado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/consultar", description: "Consultar categoria por código (ConsultarCategoria)", tag: "novo",
-    body: `{ "codigo": "CAT-001" }`,
-    response: `{ "categoria_cadastro": { "codigo": "CAT-001", "descricao": "Serviços Terceiros", "tipo_categoria": "D", "conta_inativa": "N", "totalizadora": "N", "dadosDRE": { "codigoDRE": "3.01.01" } } }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar categorias paginadas (ListarCategorias)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_apenas_ativo": "S", "filtrar_por_tipo": "" }`,
-    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "categoria_cadastro": [...] }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir nova categoria (IncluirCategoria)", tag: "novo", body: `{ "descricao": "Serviços Terceiros", "tipo_categoria": "D", "natureza": "Despesas com serviços", "codigo_dre": "3.01.01" }`, response: `{ "codigo": "CAT-xxx", "codigo_status": "0", "descricao_status": "Categoria incluída com sucesso!" }` },
+  { method: "POST", path: "/incluir-grupo", description: "Incluir grupo totalizador (IncluirGrupoCategoria)", tag: "novo", body: `{ "descricao": "Despesas Operacionais", "tipo_grupo": "D" }`, response: `{ "codigo": "GRP-xxx", "codigo_status": "0", "descricao_status": "Grupo de categoria incluído com sucesso!" }` },
+  { method: "POST", path: "/alterar", description: "Alterar categoria (AlterarCategoria)", tag: "novo", body: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado" }`, response: `{ "codigo": "CAT-001", "codigo_status": "0", "descricao_status": "Categoria alterada com sucesso!" }` },
+  { method: "POST", path: "/alterar-grupo", description: "Alterar grupo totalizador (AlterarGrupoCategoria)", tag: "novo", body: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado" }`, response: `{ "codigo": "GRP-001", "codigo_status": "0", "descricao_status": "Grupo alterado com sucesso!" }` },
+  { method: "POST", path: "/consultar", description: "Consultar categoria por código (ConsultarCategoria)", tag: "novo", body: `{ "codigo": "CAT-001" }`, response: `{ "categoria_cadastro": { "codigo": "CAT-001", "descricao": "Serviços Terceiros", "tipo_categoria": "D" } }` },
+  { method: "POST", path: "/listar", description: "Listar categorias paginadas (ListarCategorias)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_apenas_ativo": "S" }`, response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "categoria_cadastro": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const parcelasCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir condição de parcelamento (IncluirParcela)", tag: "novo",
-    body: `{ "cParcela": "30/60/90" }`,
-    response: `{ "cCodStatus": "0", "cDesStatus": "Parcela incluída com sucesso!", "cCodParcela": "001", "cDesParcela": "30/60/90" }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar parcelas cadastradas (ListarParcelas)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "apenas_importado_api", type: "string", required: false, description: "S para apenas importados via API" },
-      { name: "ordem_decrescente", type: "string", required: false, description: "S para ordem decrescente" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "cadastros": [{ "nCodigo": "001", "cDescricao": "À Vista", "nParcelas": 1 }] }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir condição de parcelamento (IncluirParcela)", tag: "novo", body: `{ "cParcela": "30/60/90" }`, response: `{ "cCodStatus": "0", "cDesStatus": "Parcela incluída com sucesso!", "cCodParcela": "001", "cDesParcela": "30/60/90" }` },
+  { method: "POST", path: "/listar", description: "Listar parcelas cadastradas (ListarParcelas)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50 }`, response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "cadastros": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const tiposAtividadeCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar tipos de atividade da empresa (ListarTipoAtiv)", tag: "novo",
-    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "" }`,
-    params: [
-      { name: "filtrar_por_codigo", type: "string", required: false, description: "Filtro parcial por código (ILIKE)" },
-      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
-    ],
-    response: `{ "lista_tipos_atividade": [{ "cCodigo": "C", "cDescricao": "Comércio" }, { "cCodigo": "I", "cDescricao": "Indústria" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar tipos de atividade (ListarTipoAtiv)", tag: "novo", body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "" }`, response: `{ "lista_tipos_atividade": [{ "cCodigo": "C", "cDescricao": "Comércio" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const tiposAnexoCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar tipos de anexo cadastrados (ListarTiposAnexos)", tag: "novo",
-    body: `{ "codigo": "" }`,
-    params: [
-      { name: "codigo", type: "string(10)", required: false, description: "Filtro parcial por código (ILIKE)" },
-    ],
-    response: `{ "listaTipoAnexo": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "CT", "descricao": "Contrato" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar tipos de anexo (ListarTiposAnexos)", tag: "novo", body: `{ "codigo": "" }`, response: `{ "listaTipoAnexo": [{ "codigo": "NF", "descricao": "Nota Fiscal" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const tiposEntregaCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir tipo de entrega (IncluirTipoEntrega)", tag: "novo",
-    body: `{ "nCodTransp": 0, "cCodIntEntrega": "", "cDescricao": "Entrega Normal", "cInativo": "N" }`,
-    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega incluído com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/alterar", description: "Alterar tipo de entrega (AlterarTipoEntrega)",
-    body: `{ "nCodEntrega": 1, "cDescricao": "Entrega Expressa", "cInativo": "N" }`,
-    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega alterado com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/consultar", description: "Consultar tipo de entrega (ConsultarTipoEntrega)",
-    body: `{ "nCodEntrega": 1, "cCodIntEntrega": "" }`,
-    response: `{ "nCodTransp": 0, "nCodEntrega": 1, "cCodIntEntrega": "", "cDescricao": "Entrega Normal", "cInativo": "N" }`,
-  },
-  {
-    method: "POST", path: "/excluir", description: "Excluir tipo de entrega (ExcluirTipoEntrega)",
-    body: `{ "nCodEntrega": 1, "cCodIntEntrega": "" }`,
-    response: `{ "nCodEntrega": 1, "cCodIntEntrega": "", "cCodStatus": "0", "cDesStatus": "Tipo de entrega excluído com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar tipos de entrega com paginação (ListarTipoEntrega)",
-    body: `{ "nPagina": 1, "nRegistrosPorPagina": 50, "nCodTransp": 0 }`,
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "nRegistrosPorPagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
-      { name: "nCodTransp", type: "integer", required: false, description: "Filtrar por transportadora" },
-      { name: "dDtAltDe", type: "string(10)", required: false, description: "Filtrar alterados a partir de (dd/mm/aaaa)" },
-      { name: "dDtAltAte", type: "string(10)", required: false, description: "Filtrar alterados até (dd/mm/aaaa)" },
-    ],
-    response: `{ "nPagina": 1, "nTotalPaginas": 1, "nRegistros": 2, "nTotalRegistros": 2, "CadTiposEntrega": [{ "nCodTransp": 0, "nCodEntrega": 1, "cCodIntEntrega": "", "cDescricao": "Normal", "cInativo": "N" }] }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir tipo de entrega (IncluirTipoEntrega)", tag: "novo", body: `{ "nCodTransp": 0, "cCodIntEntrega": "", "cDescricao": "Entrega Normal", "cInativo": "N" }`, response: `{ "nCodEntrega": 1, "cCodStatus": "0", "cDesStatus": "Tipo de entrega incluído com sucesso" }` },
+  { method: "POST", path: "/alterar", description: "Alterar tipo de entrega (AlterarTipoEntrega)", body: `{ "nCodEntrega": 1, "cDescricao": "Entrega Expressa" }`, response: `{ "nCodEntrega": 1, "cCodStatus": "0", "cDesStatus": "Tipo de entrega alterado com sucesso" }` },
+  { method: "POST", path: "/consultar", description: "Consultar tipo de entrega (ConsultarTipoEntrega)", body: `{ "nCodEntrega": 1 }`, response: `{ "nCodTransp": 0, "nCodEntrega": 1, "cDescricao": "Entrega Normal", "cInativo": "N" }` },
+  { method: "POST", path: "/excluir", description: "Excluir tipo de entrega (ExcluirTipoEntrega)", body: `{ "nCodEntrega": 1 }`, response: `{ "nCodEntrega": 1, "cCodStatus": "0", "cDesStatus": "Tipo de entrega excluído com sucesso" }` },
+  { method: "POST", path: "/listar", description: "Listar tipos de entrega com paginação (ListarTipoEntrega)", body: `{ "nPagina": 1, "nRegistrosPorPagina": 50 }`, response: `{ "nPagina": 1, "nTotalPaginas": 1, "nRegistros": 2, "nTotalRegistros": 2, "CadTiposEntrega": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const cnaeCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50, "ordenar_por": "codigo", "ordem_decrescente": "N" }`,
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo: codigo ou descricao (default: codigo)" },
-      { name: "ordem_decrescente", type: "string", required: false, description: "S para ordem decrescente" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 10, "registros": 50, "total_de_registros": 500, "cadastros": [{ "nCodigo": "4711302", "cDescricao": "Comércio varejista de mercadorias em geral", "cEstrutura": "47.11-3/02" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar CNAEs com paginação (ListarCNAE)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50 }`, response: `{ "pagina": 1, "total_de_paginas": 10, "registros": 50, "total_de_registros": 500, "cadastros": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const cidadesCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Pesquisar cidades brasileiras com paginação (PesquisarCidades)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_cidade_contendo": "PAULO", "filtrar_por_uf": "SP" }`,
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
-      { name: "filtrar_cidade_contendo", type: "string", required: false, description: "Filtro parcial por nome da cidade (ILIKE)" },
-      { name: "filtrar_por_uf", type: "string(2)", required: false, description: "Filtro por UF (ex: SP)" },
-      { name: "filtrar_por_cidade", type: "string", required: false, description: "Filtro exato por cCod (ex: SAO PAULO (SP))" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo: nome (default)" },
-      { name: "ordem_descrescente", type: "string(1)", required: false, description: "S para ordem decrescente" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 112, "registros": 50, "total_de_registros": 5570, "lista_cidades": [{ "cCod": "SAO PAULO (SP)", "cNome": "São Paulo", "cUF": "SP", "nCodIBGE": "3550308", "nCodSIAFI": 7107 }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Pesquisar cidades brasileiras (PesquisarCidades)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_cidade_contendo": "PAULO", "filtrar_por_uf": "SP" }`, response: `{ "pagina": 1, "total_de_paginas": 112, "registros": 50, "total_de_registros": 5570, "lista_cidades": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const paisesCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar países cadastrados (ListarPaises)", tag: "novo",
-    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "", "filtrar_por_codigo_iso": "" }`,
-    params: [
-      { name: "filtrar_por_codigo", type: "string(4)", required: false, description: "Filtro parcial por código IBGE (ILIKE)" },
-      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
-      { name: "filtrar_por_codigo_iso", type: "string(2)", required: false, description: "Filtro parcial por código ISO (ILIKE)" },
-    ],
-    response: `{ "lista_paises": [{ "cCodigo": "1058", "cDescricao": "BRASIL", "cCodigoISO": "BR" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar países cadastrados (ListarPaises)", tag: "novo", body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "" }`, response: `{ "lista_paises": [{ "cCodigo": "1058", "cDescricao": "BRASIL", "cCodigoISO": "BR" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
-];
-
-const orcamentosCaixaCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
-    params: [
-      { name: "nAno", type: "integer", required: true, description: "Ano do orçamento" },
-      { name: "nMes", type: "integer", required: true, description: "Mês (1-12)" },
-    ],
-    response: `{ "nAno": 2026, "nMes": 3, "ListaOrcamentos": [{ "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00, "nValorRealizado": 3200.50 }] }`,
-  },
-  {
-    method: "POST", path: "/incluir", description: "Cadastrar/atualizar orçamento previsto para uma categoria",
-    body: `{ "nAno": 2026, "nMes": 3, "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00 }`,
-    response: `{ "cCodStatus": "0", "cDesStatus": "Orçamento cadastrado/atualizado com sucesso" }`,
-  },
-  {
-    method: "POST", path: "/incluir-lote", description: "Upsert em lote de orçamentos previstos (máx 500)",
-    body: `{ "nAno": 2026, "nMes": 3, "orcamentos": [{ "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00 }] }`,
-    response: `{ "cCodStatus": "0", "cDesStatus": "2 orçamento(s) cadastrado(s)/atualizado(s)", "nTotal": 2 }`,
-  },
-  { method: "GET", path: "/status", description: "Health check da API" },
-];
-
-const pesquisarLancamentosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/pesquisar", description: "Pesquisa avançada unificada de títulos (PesquisarLancamentos)", tag: "novo",
-    body: `{ "nPagina": 1, "nRegPorPagina": 20, "cNatureza": "R", "cStatus": "pendente", "dDtVencDe": "01/01/2026", "dDtVencAte": "31/03/2026", "nCodCliente": 4214850, "cCodCateg": "1.01.02", "cOrdenarPor": "data_vencimento", "cOrdemDecrescente": "S" }`,
-    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "titulosEncontrados": [{ "cabecTitulo": { "nCodTitulo": 123, "cCodIntTitulo": "CR-001", "nValorTitulo": 500, "cNatureza": "R" }, "lancamentos": [], "resumo": { "cLiquidado": "N", "nValPago": 200, "nValAberto": 300 } }] }`,
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "cNatureza", type: "string", required: false, description: "R=Receber, P=Pagar, vazio=ambos" },
-      { name: "cStatus", type: "string", required: false, description: "Status (vírgula para múltiplos)" },
-      { name: "nCodCliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
-      { name: "cCodCateg", type: "string", required: false, description: "Código da categoria" },
-      { name: "dDtVencDe/Ate", type: "string", required: false, description: "Filtro por vencimento" },
-      { name: "dDtEmisDe/Ate", type: "string", required: false, description: "Filtro por emissão" },
-      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
-      { name: "cOrdemDecrescente", type: "string", required: false, description: "S para decrescente" },
-      { name: "lDadosCad", type: "boolean", required: false, description: "Incluir dados cadastrais" },
-    ],
-  },
-  { method: "GET", path: "/status", description: "Health check da API" },
-];
-
-const movimentosFinanceirosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listagem unificada de movimentos financeiros (ListarMovimentos)", tag: "novo",
-    body: `{ "nPagina": 1, "nRegPorPagina": 20, "cTpLancamento": "CP", "cExibirDepartamentos": "S", "lDadosCad": true, "dDtVencDe": "01/01/2026", "dDtVencAte": "31/03/2026" }`,
-    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "movimentos": [{ "detalhes": { "nCodTitulo": 123, "cNatureza": "P", "cGrupo": "CP", "nValorMovCC": 500 }, "resumo": { "cLiquidado": "S", "nValPago": 500 }, "departamentos": [], "categorias": [] }] }`,
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "cTpLancamento", type: "string", required: false, description: "Tipo: CP, CR, CC ou vazio para todos" },
-      { name: "cExibirDepartamentos", type: "string", required: false, description: "S para incluir departamentos" },
-      { name: "lDadosCad", type: "boolean", required: false, description: "Incluir dados cadastrais" },
-      { name: "nCodMovCC", type: "integer", required: false, description: "Filtro por movimento CC" },
-      { name: "cNatureza", type: "string", required: false, description: "R=Receber, P=Pagar" },
-      { name: "cStatus", type: "string", required: false, description: "Status (vírgula para múltiplos)" },
-      { name: "dDtVencDe/Ate", type: "string", required: false, description: "Filtro por vencimento" },
-      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
-    ],
-  },
-  { method: "GET", path: "/status", description: "Health check da API" },
-];
-
-const resumoFinanceiroCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/resumo", description: "Resumo consolidado: saldos CC, totais CP/CR, atrasos, fluxo de caixa (ObterResumoFinancas)", tag: "novo",
-    body: `{ "dDia": "21/03/2026", "lApenasResumo": false, "lExibirCategoria": true }`,
-    response: `{ "dDia": "21/03/2026", "contaCorrente": { "vTotal": 150000 }, "contaPagar": { "nTotal": 45, "vTotal": 85000, "vAtraso": 12000 }, "contaReceber": { "nTotal": 30, "vTotal": 120000 }, "fluxoCaixa": { "vPagar": 85000, "vReceber": 120000, "vSaldo": 150000 } }`,
-    params: [
-      { name: "dDia", type: "string", required: false, description: "Data de referência (dd/mm/aaaa)" },
-      { name: "lApenasResumo", type: "boolean", required: false, description: "Exibir apenas resumo" },
-      { name: "lExibirCategoria", type: "boolean", required: false, description: "Incluir totais por categoria" },
-    ],
-  },
-  {
-    method: "POST", path: "/em-aberto", description: "Lista paginada de títulos em aberto (ObterListaEmAberto)", tag: "novo",
-    body: `{ "dDia": "21/03/2026", "cTipo": "P", "nPagina": 1, "nRegPorPagina": 50 }`,
-    response: `{ "ListaEmEberto": [{ "nIdTitulo": "uuid", "cNomeCliente": "Empresa ABC", "vDoc": 1500, "nDiasAtraso": 6 }], "nRegistros": 50, "nTotPaginas": 3, "nTotRegistros": 125 }`,
-    params: [
-      { name: "cTipo", type: "string", required: false, description: "P=Pagar, R=Receber" },
-      { name: "nCodCliente", type: "integer", required: false, description: "Filtrar por cliente/fornecedor" },
-      { name: "cNomeCliente", type: "string", required: false, description: "Busca parcial por nome" },
-      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros/página (máx 500)" },
-    ],
-  },
-  {
-    method: "POST", path: "/lista-financas", description: "Lista de lançamentos por data/categoria/tipo (ObterListaFinancas)", tag: "novo",
-    body: `{ "dDia": "21/03/2026", "cCodCateg": "1.01.01", "cTipo": "R" }`,
-    response: `{ "listaDetalhesFinancas": [{ "nIdTitulo": "uuid", "cNomeCliente": "ABC", "vDoc": 1500, "dVencimento": "15/03/2026" }] }`,
-    params: [
-      { name: "dDia", type: "string", required: false, description: "Data de referência" },
-      { name: "cCodCateg", type: "string", required: false, description: "Filtrar por categoria" },
-      { name: "cTipo", type: "string", required: false, description: "P=Pagar, R=Receber" },
-    ],
-  },
-  {
-    method: "POST", path: "/detalhes", description: "Detalhes completos de um título (ObterDetalhesLancamento)", tag: "novo",
-    body: `{ "nIdTitulo": "uuid-do-titulo" }`,
-    response: `{ "cTipoLanc": "R", "nIdTitulo": "uuid", "cNomeCliente": "ABC", "vDoc": 1500, "cSituacao": "A vencer", "boletoInfo": { "cNumBoleto": "00001", "cLinkBoleto": "https://..." }, "listaAnexos": [] }`,
-    params: [
-      { name: "nIdTitulo", type: "string", required: true, description: "ID do título (UUID)" },
-    ],
-  },
-  { method: "GET", path: "/status", description: "Health check da API" },
-];
-
-const webhookInbound: Endpoint[] = [
-  {
-    method: "POST", path: "/", description: "Receber callbacks do ERP",
-    body: `{ "event": "provisao_registrada", "titulo_id": "uuid", "erp_response_code": "OK-001", "empresa_id": "8" }`,
-    response: `{ "sucesso": true, "mensagem": "Evento processado" }`,
-  },
 ];
 
 const bancosCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/consultar", description: "Consultar banco por código COMPE (ConsultarBanco)", tag: "novo",
-    params: [
-      { name: "codigo", type: "string", required: true, description: "Código COMPE do banco (ex: 001, 341)" },
-    ],
-    response: `{ "codigo": "001", "nome": "Banco do Brasil S.A.", "tipo": "CB", "cod_compen": "001", "cod_ispb": "00000000", "cnab_cob": "N", "obank_sn": "N", "obank_pix": "N" }`,
-  },
-  {
-    method: "GET", path: "/listar", description: "Listar bancos cadastrados com paginação (ListarBancos)", tag: "novo",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 100, máx: 500)" },
-      { name: "tipo", type: "string", required: false, description: "Tipo: CB, CX, CV, AC" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 50, "total_de_registros": 50, "fin_banco_cadastro": [{ "codigo": "001", "nome": "Banco do Brasil S.A." }] }`,
-  },
+  { method: "GET", path: "/consultar", description: "Consultar banco por código COMPE (ConsultarBanco)", tag: "novo", params: [{ name: "codigo", type: "string", required: true, description: "Código COMPE do banco" }], response: `{ "codigo": "001", "nome": "Banco do Brasil S.A." }` },
+  { method: "GET", path: "/listar", description: "Listar bancos cadastrados (ListarBancos)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Página" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página" }], response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 50, "total_de_registros": 50, "fin_banco_cadastro": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const tiposDocumentoCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/consultar", description: "Consultar tipo de documento por código (ConsultarTipoDocumento)", tag: "novo",
-    params: [
-      { name: "codigo", type: "string", required: true, description: "Código do tipo de documento (ex: NF, BOLETO)" },
-    ],
-    response: `{ "codigo": "NF", "descricao": "Nota Fiscal" }`,
-  },
-  {
-    method: "POST", path: "/pesquisar", description: "Pesquisar tipos de documento (PesquisarTipoDocumento)", tag: "novo",
-    body: `{ "codigo": "" }`,
-    response: `{ "tipo_documento_cadastro": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "NFE", "descricao": "NF-e (Eletrônica)" }] }`,
-  },
+  { method: "GET", path: "/consultar", description: "Consultar tipo de documento por código (ConsultarTipoDocumento)", tag: "novo", params: [{ name: "codigo", type: "string", required: true, description: "Código do tipo" }], response: `{ "codigo": "NF", "descricao": "Nota Fiscal" }` },
+  { method: "POST", path: "/pesquisar", description: "Pesquisar tipos de documento (PesquisarTipoDocumento)", tag: "novo", body: `{ "codigo": "" }`, response: `{ "tipo_documento_cadastro": [{ "codigo": "NF", "descricao": "Nota Fiscal" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const dreCadastroCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar contas do DRE (ListarCadastroDRE)", tag: "novo",
-    body: `{ "apenasContasAtivas": "N" }`,
-    response: `{ "totalRegistros": 25, "dreLista": [{ "codigoDRE": "4.1", "descricaoDRE": "Receita Bruta", "naoExibirDRE": "N", "nivelDRE": 2, "sinalDRE": "+", "totalizaDRE": "N" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar contas do DRE (ListarCadastroDRE)", tag: "novo", body: `{ "apenasContasAtivas": "N" }`, response: `{ "totalRegistros": 25, "dreLista": [{ "codigoDRE": "4.1", "descricaoDRE": "Receita Bruta" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const finalidadesTransfCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/consultar", description: "Consultar finalidade por código (ConsultarFinalTransf)", tag: "novo",
-    params: [
-      { name: "codigo", type: "string", required: true, description: "Código da finalidade de transferência" },
-      { name: "banco", type: "string", required: false, description: "Código do banco (aceito mas ignorado)" },
-    ],
-    response: `{ "banco": "", "codigo": "01", "descricao": "Crédito em Conta" }`,
-  },
-  {
-    method: "GET", path: "/listar", description: "Listar finalidades paginadas (ListarFinalTransf)", tag: "novo",
-    params: [
-      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
-      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx 500)" },
-      { name: "filtrar_por_banco", type: "string", required: false, description: "Código do banco (aceito mas ignorado)" },
-    ],
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 8, "total_de_registros": 8, "cadastros": [{ "banco": "", "codigo": "01", "descricao": "Crédito em Conta" }] }`,
-  },
+  { method: "GET", path: "/consultar", description: "Consultar finalidade por código (ConsultarFinalTransf)", tag: "novo", params: [{ name: "codigo", type: "string", required: true, description: "Código da finalidade" }], response: `{ "codigo": "01", "descricao": "Crédito em Conta" }` },
+  { method: "GET", path: "/listar", description: "Listar finalidades paginadas (ListarFinalTransf)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Página" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página" }], response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 8, "total_de_registros": 8, "cadastros": [...] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const origensCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Listar origens de lançamento (ListarOrigem)", tag: "novo",
-    body: `{ "codigo": "" }`,
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 6, "total_de_registros": 6, "origem": [{ "codigo": "MANUAL", "descricao": "Lançamento Manual" }] }`,
-  },
+  { method: "POST", path: "/listar", description: "Listar origens de lançamento (ListarOrigem)", tag: "novo", body: `{ "codigo": "" }`, response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 6, "total_de_registros": 6, "origem": [{ "codigo": "MANUAL", "descricao": "Lançamento Manual" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const bandeirasCrud: Endpoint[] = [
-  {
-    method: "GET", path: "/listar", description: "Lista paginada de bandeiras de cartão (ListarBandeiras)", tag: "novo",
-    params: [
-      { name: "nPagina", type: "integer", required: false, description: "Número da página (default 1)" },
-      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (default 50, max 500)" },
-    ],
-    response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa" }] }`,
-  },
+  { method: "GET", path: "/listar", description: "Listar bandeiras de cartão (ListarBandeiras)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página" }], response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const clientesCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/listar", description: "Lista completa paginada de clientes (ListarClientes)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50, "clientesFiltro": { "razao_social": "", "estado": "", "inativo": "N" } }`,
-    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro": [...] }`,
-  },
-  {
-    method: "POST", path: "/listar-resumido", description: "Lista resumida paginada (ListarClientesResumido)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
-    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro_resumido": [{ "codigo_cliente": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC", "nome_fantasia": "ABC", "cnpj_cpf": "12.345.678/0001-90" }] }`,
-  },
-  {
-    method: "POST", path: "/consultar", description: "Consultar cliente por código (ConsultarCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "clientes_cadastro": { "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", ... } }`,
-  },
-  {
-    method: "POST", path: "/incluir", description: "Incluir novo cliente (IncluirCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "Empresa ABC Ltda", "nome_fantasia": "ABC", "cnpj_cpf": "12.345.678/0001-90", "email": "contato@abc.com" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente incluído com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/alterar", description: "Alterar dados do cliente (AlterarCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "nome_fantasia": "ABC Atualizado", "email": "novo@abc.com" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente alterado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/excluir", description: "Excluir (inativar) cliente (ExcluirCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente excluído com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/upsert", description: "Upsert por codigo_cliente_integracao (UpsertCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", "cnpj_cpf": "12.345.678/0001-90" }`,
-  },
-  {
-    method: "POST", path: "/upsert-cpfcnpj", description: "Upsert por CPF/CNPJ (UpsertClienteCpfCnpj)", tag: "novo",
-    body: `{ "cnpj_cpf": "12.345.678/0001-90", "razao_social": "ABC Ltda", "email": "contato@abc.com" }`,
-  },
-  {
-    method: "POST", path: "/associar", description: "Associar código de integração (AssociarCodIntCliente)", tag: "novo",
-    body: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001" }`,
-  },
+  { method: "POST", path: "/listar", description: "Lista paginada de clientes (ListarClientes)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50, "clientesFiltro": { "razao_social": "" } }`, response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro": [...] }` },
+  { method: "POST", path: "/listar-resumido", description: "Lista resumida (ListarClientesResumido)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50 }`, response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "clientes_cadastro_resumido": [...] }` },
+  { method: "POST", path: "/consultar", description: "Consultar cliente (ConsultarCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001" }`, response: `{ "clientes_cadastro": { "codigo_cliente_huggs": "uuid", "razao_social": "ABC Ltda" } }` },
+  { method: "POST", path: "/incluir", description: "Incluir novo cliente (IncluirCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "Empresa ABC Ltda", "cnpj_cpf": "12.345.678/0001-90" }`, response: `{ "codigo_cliente_huggs": "uuid", "codigo_status": "0", "descricao_status": "Cliente incluído com sucesso!" }` },
+  { method: "POST", path: "/alterar", description: "Alterar dados do cliente (AlterarCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "nome_fantasia": "ABC Atualizado" }`, response: `{ "codigo_status": "0", "descricao_status": "Cliente alterado com sucesso!" }` },
+  { method: "POST", path: "/excluir", description: "Excluir (inativar) cliente (ExcluirCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001" }`, response: `{ "codigo_status": "0", "descricao_status": "Cliente excluído com sucesso!" }` },
+  { method: "POST", path: "/upsert", description: "Upsert por código de integração (UpsertCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda" }` },
+  { method: "POST", path: "/upsert-cpfcnpj", description: "Upsert por CPF/CNPJ (UpsertClienteCpfCnpj)", tag: "novo", body: `{ "cnpj_cpf": "12.345.678/0001-90", "razao_social": "ABC Ltda" }` },
+  { method: "POST", path: "/associar", description: "Associar código de integração (AssociarCodIntCliente)", tag: "novo", body: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001" }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
 const clientesCaractCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/caract/incluir", description: "Incluir característica (IncluirCaractCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Varejo" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica incluída com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/caract/alterar", description: "Alterar conteúdo de característica (AlterarCaractCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Atacado" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica alterada com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/caract/consultar", description: "Consultar todas as características (ConsultarCaractCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "caracteristicas": [{ "campo": "SEGMENTO", "conteudo": "Varejo" }] }`,
-  },
-  {
-    method: "POST", path: "/caract/excluir", description: "Excluir uma característica (ExcluirCaractCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica excluída com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/caract/excluir-todas", description: "Excluir todas as características (ExcluirTodasCaractCliente)", tag: "novo",
-    body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Todas as características excluídas com sucesso!" }`,
-  },
+  { method: "POST", path: "/caract/incluir", description: "Incluir característica (IncluirCaractCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Varejo" }`, response: `{ "codigo_status": "0", "descricao_status": "Característica incluída com sucesso!" }` },
+  { method: "POST", path: "/caract/alterar", description: "Alterar característica (AlterarCaractCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Atacado" }` },
+  { method: "POST", path: "/caract/consultar", description: "Consultar características (ConsultarCaractCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001" }`, response: `{ "caracteristicas": [{ "campo": "SEGMENTO", "conteudo": "Varejo" }] }` },
+  { method: "POST", path: "/caract/excluir", description: "Excluir uma característica (ExcluirCaractCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO" }` },
+  { method: "POST", path: "/caract/excluir-todas", description: "Excluir todas as características (ExcluirTodasCaractCliente)", tag: "novo", body: `{ "codigo_cliente_integracao": "CLI001" }` },
 ];
 
 const clientesTagsCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/tags/incluir", description: "Associar tags ao cliente (IncluirTags)", tag: "novo",
-    body: `{ "nCodCliente": 0, "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }, { "tag": "Grupo B" }] }`,
-    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Tags incluídas com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/tags/listar", description: "Listar tags do cliente (ListarTags)", tag: "novo",
-    body: `{ "cCodIntCliente": "CLI001" }`,
-    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "tagsLista": [{ "tag": "Grupo A", "nCodTag": 1 }] }`,
-  },
-  {
-    method: "POST", path: "/tags/excluir", description: "Remover tags específicas (ExcluirTags)", tag: "novo",
-    body: `{ "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }] }`,
-    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Tags excluídas com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/tags/excluir-todas", description: "Remover todas as tags (ExcluirTodas)", tag: "novo",
-    body: `{ "cCodIntCliente": "CLI001" }`,
-    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Todas as tags excluídas com sucesso!" }`,
-  },
+  { method: "POST", path: "/tags/incluir", description: "Associar tags ao cliente (IncluirTags)", tag: "novo", body: `{ "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }] }`, response: `{ "cCodStatus": "0", "cDesStatus": "Tags incluídas com sucesso!" }` },
+  { method: "POST", path: "/tags/listar", description: "Listar tags do cliente (ListarTags)", tag: "novo", body: `{ "cCodIntCliente": "CLI001" }`, response: `{ "tagsLista": [{ "tag": "Grupo A", "nCodTag": 1 }] }` },
+  { method: "POST", path: "/tags/excluir", description: "Remover tags específicas (ExcluirTags)", tag: "novo", body: `{ "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }] }` },
+  { method: "POST", path: "/tags/excluir-todas", description: "Remover todas as tags (ExcluirTodas)", tag: "novo", body: `{ "cCodIntCliente": "CLI001" }` },
 ];
 
 const projetosCrud: Endpoint[] = [
-  {
-    method: "POST", path: "/incluir", description: "Incluir novo projeto (IncluirProjeto)", tag: "novo",
-    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N" }`,
-    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto incluído com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/alterar", description: "Alterar projeto (AlterarProjeto)", tag: "novo",
-    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha Atualizado" }`,
-    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto alterado com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/consultar", description: "Consultar projeto (ConsultarProjeto)", tag: "novo",
-    body: `{ "codInt": "PROJ-001" }`,
-    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N", "info": { "data_inc": "2026-03-21", "hora_inc": "18:00:00", "data_alt": "2026-03-21", "hora_alt": "18:00:00" } }`,
-  },
-  {
-    method: "POST", path: "/excluir", description: "Excluir projeto — soft delete (ExcluirProjeto)", tag: "novo",
-    body: `{ "codInt": "PROJ-001" }`,
-    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto excluído com sucesso!" }`,
-  },
-  {
-    method: "POST", path: "/listar", description: "Listar projetos paginado (ListarProjetos)", tag: "novo",
-    body: `{ "pagina": 1, "registros_por_pagina": 50, "nome_projeto": "", "apenas_importado_api": "N" }`,
-    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 5, "total_de_registros": 5, "cadastro": [...] }`,
-  },
-  {
-    method: "POST", path: "/upsert", description: "Upsert por codInt (UpsertProjeto)", tag: "novo",
-    body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N" }`,
-    response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto incluído/alterado com sucesso!" }`,
-  },
+  { method: "POST", path: "/incluir", description: "Incluir projeto (IncluirProjeto)", tag: "novo", body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha" }`, response: `{ "codigo": "uuid", "codInt": "PROJ-001", "status": "0", "descricao": "Projeto incluído com sucesso!" }` },
+  { method: "POST", path: "/alterar", description: "Alterar projeto (AlterarProjeto)", tag: "novo", body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha Atualizado" }`, response: `{ "status": "0", "descricao": "Projeto alterado com sucesso!" }` },
+  { method: "POST", path: "/consultar", description: "Consultar projeto (ConsultarProjeto)", tag: "novo", body: `{ "codInt": "PROJ-001" }`, response: `{ "codigo": "uuid", "codInt": "PROJ-001", "nome": "Projeto Alpha", "inativo": "N" }` },
+  { method: "POST", path: "/excluir", description: "Excluir projeto (ExcluirProjeto)", tag: "novo", body: `{ "codInt": "PROJ-001" }`, response: `{ "status": "0", "descricao": "Projeto excluído com sucesso!" }` },
+  { method: "POST", path: "/listar", description: "Listar projetos paginado (ListarProjetos)", tag: "novo", body: `{ "pagina": 1, "registros_por_pagina": 50 }`, response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 5, "total_de_registros": 5, "cadastro": [...] }` },
+  { method: "POST", path: "/upsert", description: "Upsert por codInt (UpsertProjeto)", tag: "novo", body: `{ "codInt": "PROJ-001", "nome": "Projeto Alpha" }`, response: `{ "status": "0", "descricao": "Projeto incluído/alterado com sucesso!" }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-const otherApis: Endpoint[] = [
-  { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
-  { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
-  { method: "GET", path: "/portadores", description: "Listar portadores (bancos/carteiras)" },
-  { method: "POST", path: "/portadores/sync", description: "Sync de portadores do ERP" },
-  { method: "GET", path: "/plano-contas", description: "Listar plano de contas" },
-  { method: "POST", path: "/plano-contas/sync", description: "Sync do plano de contas" },
-  { method: "POST", path: "/estoque/sync", description: "Sync de estoque do ERP" },
-  { method: "GET", path: "/estoque/status", description: "Status da sync de estoque" },
+const orcamentosCaixaCrud: Endpoint[] = [
+  { method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado (ListarOrcamentos)", tag: "novo", params: [{ name: "nAno", type: "integer", required: true, description: "Ano do orçamento" }, { name: "nMes", type: "integer", required: true, description: "Mês (1-12)" }], response: `{ "nAno": 2026, "nMes": 3, "ListaOrcamentos": [{ "cCodCateg": "2.04.01", "nValorPrevisto": 5000.00, "nValorRealizado": 3200.50 }] }` },
+  { method: "POST", path: "/incluir", description: "Cadastrar/atualizar orçamento previsto", body: `{ "nAno": 2026, "nMes": 3, "cCodCateg": "2.04.01", "nValorPrevisto": 5000.00 }`, response: `{ "cCodStatus": "0", "cDesStatus": "Orçamento cadastrado com sucesso" }` },
+  { method: "POST", path: "/incluir-lote", description: "Upsert em lote de orçamentos (máx 500)", body: `{ "nAno": 2026, "nMes": 3, "orcamentos": [{ "cCodCateg": "2.04.01", "nValorPrevisto": 5000.00 }] }`, response: `{ "cCodStatus": "0", "nTotal": 2 }` },
+  { method: "GET", path: "/status", description: "Health check da API" },
 ];
+
+const pesquisarLancamentosCrud: Endpoint[] = [
+  { method: "POST", path: "/pesquisar", description: "Pesquisa avançada unificada de títulos (PesquisarLancamentos)", tag: "novo", body: `{ "nPagina": 1, "nRegPorPagina": 20, "cNatureza": "R", "cStatus": "pendente", "dDtVencDe": "01/01/2026", "dDtVencAte": "31/03/2026" }`, response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "titulosEncontrados": [...] }` },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+const movimentosFinanceirosCrud: Endpoint[] = [
+  { method: "POST", path: "/listar", description: "Listagem unificada de movimentos financeiros (ListarMovimentos)", tag: "novo", body: `{ "nPagina": 1, "nRegPorPagina": 20, "cTpLancamento": "CP" }`, response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "movimentos": [...] }` },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+const resumoFinanceiroCrud: Endpoint[] = [
+  { method: "POST", path: "/resumo", description: "Resumo consolidado: saldos, totais, fluxo de caixa (ObterResumoFinancas)", tag: "novo", body: `{ "dDia": "21/03/2026", "lApenasResumo": false }`, response: `{ "dDia": "21/03/2026", "contaCorrente": { "vTotal": 150000 }, "contaPagar": { "nTotal": 45, "vTotal": 85000 }, "contaReceber": { "nTotal": 30, "vTotal": 120000 } }` },
+  { method: "POST", path: "/em-aberto", description: "Lista paginada de títulos em aberto (ObterListaEmAberto)", tag: "novo", body: `{ "dDia": "21/03/2026", "cTipo": "P", "nPagina": 1 }`, response: `{ "ListaEmEberto": [...], "nRegistros": 50, "nTotPaginas": 3 }` },
+  { method: "POST", path: "/lista-financas", description: "Lista por data/categoria/tipo (ObterListaFinancas)", tag: "novo", body: `{ "dDia": "21/03/2026", "cCodCateg": "1.01.01", "cTipo": "R" }`, response: `{ "listaDetalhesFinancas": [...] }` },
+  { method: "POST", path: "/detalhes", description: "Detalhes de um título (ObterDetalhesLancamento)", tag: "novo", body: `{ "nIdTitulo": "uuid-do-titulo" }`, response: `{ "cTipoLanc": "R", "nIdTitulo": "uuid", "cNomeCliente": "ABC", "vDoc": 1500 }` },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+const webhookInbound: Endpoint[] = [
+  { method: "POST", path: "/", description: "Receber callbacks do ERP", body: `{ "event": "provisao_registrada", "titulo_id": "uuid", "erp_response_code": "OK-001" }`, response: `{ "sucesso": true, "mensagem": "Evento processado" }` },
+];
+
+// ═══════════════════════════════════════
+// MODULE DEFINITIONS
+// ═══════════════════════════════════════
+
+const API_MODULES: ApiModule[] = [
+  {
+    id: "geral",
+    name: "Geral",
+    description: "Cadastros principais do sistema",
+    icon: <Building2 className="h-5 w-5" />,
+    color: "from-blue-600 to-blue-500",
+    apis: [
+      { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
+      { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
+      { id: "departamentos", name: "Departamentos", description: "CRUD completo de departamentos", basePath: "/departamentos-api", icon: <Layers className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: departamentosCrud }] },
+      { id: "categorias", name: "Categorias", description: "Categorias e grupos totalizadores", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
+      { id: "projetos", name: "Projetos", description: "CRUD completo de projetos", basePath: "/projetos-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: projetosCrud }] },
+      { id: "parcelas", name: "Parcelas", description: "Condições de parcelamento", basePath: "/parcelas-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: parcelasCrud }] },
+    ],
+  },
+  {
+    id: "cadastros",
+    name: "Cadastros Auxiliares",
+    description: "Tabelas de apoio e dados de referência",
+    icon: <Package className="h-5 w-5" />,
+    color: "from-emerald-600 to-emerald-500",
+    apis: [
+      { id: "tipos-atividade", name: "Tipos de Atividade", description: "Listagem de tipos", basePath: "/tipos-atividade-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: tiposAtividadeCrud }] },
+      { id: "tipos-anexo", name: "Tipos de Anexo", description: "Tipos de documentos anexos", basePath: "/tipos-anexo-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: tiposAnexoCrud }] },
+      { id: "tipos-entrega", name: "Tipos de Entrega", description: "CRUD de tipos de entrega", basePath: "/tipos-entrega-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: tiposEntregaCrud }] },
+      { id: "tipos-documento", name: "Tipos de Documento", description: "Consulta e pesquisa", basePath: "/tipos-documento-api", icon: <FileText className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta", endpoints: tiposDocumentoCrud }] },
+      { id: "cnae", name: "CNAE", description: "Classificação Nacional de Atividades", basePath: "/cnae-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: cnaeCrud }] },
+      { id: "cidades", name: "Cidades", description: "Pesquisa de cidades brasileiras (IBGE)", basePath: "/cidades-api", icon: <Search className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Pesquisa", endpoints: cidadesCrud }] },
+      { id: "paises", name: "Países", description: "Listagem de países", basePath: "/paises-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: paisesCrud }] },
+      { id: "bancos", name: "Bancos", description: "Instituições financeiras", basePath: "/bancos-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta & Listagem", endpoints: bancosCrud }] },
+      { id: "bandeiras", name: "Bandeiras de Cartão", description: "Bandeiras de crédito/débito", basePath: "/bandeiras-api", icon: <FileText className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: bandeirasCrud }] },
+      { id: "origens", name: "Origens de Lançamento", description: "Tipos de origem de lançamento", basePath: "/origens-api", icon: <FileText className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: origensCrud }] },
+      { id: "finalidades", name: "Finalidades de Transferência", description: "Finalidades bancárias", basePath: "/finalidades-transferencia-api", icon: <RefreshCw className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta & Listagem", endpoints: finalidadesTransfCrud }] },
+      { id: "dre", name: "DRE", description: "Demonstrativo de Resultados", basePath: "/dre-cadastro-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: dreCadastroCrud }] },
+    ],
+  },
+  {
+    id: "financas",
+    name: "Finanças",
+    description: "Gestão financeira completa: contas, boletos, extratos e análises",
+    icon: <DollarSign className="h-5 w-5" />,
+    color: "from-amber-600 to-amber-500",
+    apis: [
+      { id: "contas-pagar", name: "Contas a Pagar", description: "CRUD, integração, parcelas e pagamentos", basePath: "/contas-pagar-api", icon: <ArrowDownToLine className="h-4 w-4 text-amber-500" />, sections: [{ title: "Consulta & Gestão", endpoints: contasPagarCrud }, { title: "Integração CRUD", endpoints: contasPagarIntegracao, description: "Consultar, incluir, alterar, excluir, upsert, pagamentos" }, { title: "Parcelas, Pagamentos & Anexos", endpoints: contasPagarComplementar }] },
+      { id: "contas-receber", name: "Contas a Receber", description: "CRUD, integração, recebimentos e conciliação", basePath: "/contas-receber-api", icon: <ArrowUpFromLine className="h-4 w-4 text-amber-500" />, sections: [{ title: "Integração CRUD", endpoints: contasReceberIntegracao, description: "Consultar, incluir, alterar, excluir, upsert, recebimentos" }] },
+      { id: "boletos", name: "Boletos", description: "Cobrança bancária", basePath: "/boletos-api", icon: <FileText className="h-4 w-4 text-amber-500" />, sections: [{ title: "Gestão de Boletos", endpoints: boletosCrud }] },
+      { id: "contas-correntes", name: "Contas Correntes", description: "Gestão de contas bancárias", basePath: "/contas-correntes-api", icon: <RefreshCw className="h-4 w-4 text-amber-500" />, sections: [{ title: "CRUD & Sync", endpoints: contasCorrentesCrud }] },
+      { id: "lancamentos-cc", name: "Lançamentos CC", description: "Lançamentos e extrato de conta corrente", basePath: "/lancamentos-cc-api", icon: <ArrowDownToLine className="h-4 w-4 text-amber-500" />, sections: [{ title: "CRUD, Extrato & Sync", endpoints: lancamentosCcCrud }] },
+      { id: "exportacao", name: "Exportação ERP", description: "Pull, batch, reconciliação e webhook push", basePath: "/contas-pagar-export-api", icon: <ArrowUpFromLine className="h-4 w-4 text-amber-500" />, sections: [{ title: "Pull (ERP consulta)", endpoints: exportPull }, { title: "Avançado (Lote & Reconciliação)", endpoints: exportAdvanced }] },
+      { id: "orcamentos", name: "Orçamentos de Caixa", description: "Previsto x Realizado", basePath: "/orcamentos-caixa-api", icon: <BarChart3 className="h-4 w-4 text-amber-500" />, sections: [{ title: "Gestão de Orçamentos", endpoints: orcamentosCaixaCrud }] },
+      { id: "pesquisar", name: "Pesquisar Lançamentos", description: "Pesquisa avançada unificada", basePath: "/pesquisar-lancamentos-api", icon: <Search className="h-4 w-4 text-amber-500" />, sections: [{ title: "Pesquisa", endpoints: pesquisarLancamentosCrud }] },
+      { id: "movimentos", name: "Movimentos Financeiros", description: "Movimentação consolidada", basePath: "/movimentos-financeiros-api", icon: <RefreshCw className="h-4 w-4 text-amber-500" />, sections: [{ title: "Listagem", endpoints: movimentosFinanceirosCrud }] },
+      { id: "resumo-fin", name: "Resumo Financeiro", description: "Dashboard financeiro via API", basePath: "/resumo-financeiro-api", icon: <BarChart3 className="h-4 w-4 text-amber-500" />, sections: [{ title: "Resumo & Detalhes", endpoints: resumoFinanceiroCrud }] },
+    ],
+  },
+  {
+    id: "complementar",
+    name: "Dados Complementares",
+    description: "Anexos, webhooks e integrações auxiliares",
+    icon: <Webhook className="h-5 w-5" />,
+    color: "from-purple-600 to-purple-500",
+    apis: [
+      { id: "anexos", name: "Anexos", description: "Gestão de documentos anexos", basePath: "/anexos-api", icon: <FileText className="h-4 w-4 text-purple-500" />, sections: [{ title: "CRUD de Anexos", endpoints: anexosCrud }] },
+      { id: "webhook-inbound", name: "Webhook Inbound", description: "Callbacks do ERP para o BiMaster", basePath: "/erp-webhook-inbound", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Inbound", endpoints: webhookInbound }] },
+    ],
+  },
+];
+
+// ═══════════════════════════════════════
+// HELPER COMPONENTS
+// ═══════════════════════════════════════
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -1076,14 +484,8 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   return (
     <div className="relative group">
       {label && <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>}
-      <pre className="bg-muted/70 border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-        {code}
-      </pre>
-      <Button
-        variant="ghost" size="icon"
-        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={handleCopy}
-      >
+      <pre className="bg-muted/70 border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">{code}</pre>
+      <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={handleCopy}>
         {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
       </Button>
     </div>
@@ -1102,9 +504,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
           {hasDetails ? (
             open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           ) : <div className="w-3.5" />}
-          <Badge variant="outline" className={`${METHOD_COLORS[endpoint.method]} text-[10px] font-bold px-2 py-0 min-w-[42px] justify-center`}>
-            {endpoint.method}
-          </Badge>
+          <Badge variant="outline" className={`${METHOD_COLORS[endpoint.method]} text-[10px] font-bold px-2 py-0 min-w-[42px] justify-center`}>{endpoint.method}</Badge>
           <code className="text-xs font-mono text-foreground">{endpoint.path}</code>
           <span className="text-xs text-muted-foreground truncate flex-1">{endpoint.description}</span>
           {endpoint.tag === "novo" && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NOVO</Badge>}
@@ -1141,30 +541,20 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
   );
 }
 
-interface ApiSectionProps {
-  icon: React.ReactNode;
-  title: string;
-  basePath: string;
-  endpoints: Endpoint[];
-  description?: string;
-}
-
-function ApiSection({ icon, title, basePath, endpoints, description }: ApiSectionProps) {
+function ApiSectionBlock({ title, endpoints, basePath, description }: { title: string; endpoints: Endpoint[]; basePath: string; description?: string }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center gap-3 p-4 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors">
-          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          {icon}
+        <div className="flex items-center gap-3 p-3 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors">
+          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">{title}</span>
-              <Badge variant="secondary" className="text-[10px]">{endpoints.length} endpoints</Badge>
+              <span className="font-medium text-sm">{title}</span>
+              <Badge variant="secondary" className="text-[10px]">{endpoints.length}</Badge>
             </div>
             {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
           </div>
-          <code className="text-[10px] font-mono text-muted-foreground hidden sm:block">{basePath}</code>
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -1178,493 +568,297 @@ function ApiSection({ icon, title, basePath, endpoints, description }: ApiSectio
   );
 }
 
+// ═══════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════
+
+function buildExcelData(modules: ApiModule[]): SheetData[] {
+  const endpointsData: Record<string, unknown>[] = [];
+  const paramsData: Record<string, unknown>[] = [];
+
+  for (const mod of modules) {
+    for (const api of mod.apis) {
+      for (const section of api.sections) {
+        for (const ep of section.endpoints) {
+          const fullUrl = `${BASE_URL}${api.basePath}${ep.path}`;
+          endpointsData.push({
+            Módulo: mod.name,
+            API: api.name,
+            Seção: section.title,
+            Método: ep.method,
+            Path: ep.path,
+            "URL Completa": fullUrl,
+            Descrição: ep.description,
+            "Body (JSON)": ep.body || "",
+            "Response (JSON)": ep.response || "",
+          });
+
+          if (ep.params) {
+            for (const p of ep.params) {
+              paramsData.push({
+                Módulo: mod.name,
+                API: api.name,
+                Endpoint: `${ep.method} ${ep.path}`,
+                Parâmetro: p.name,
+                Tipo: p.type,
+                Obrigatório: p.required ? "Sim" : "Não",
+                Descrição: p.description,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const authData: Record<string, unknown>[] = [
+    { Informação: "Método Recomendado", Valor: "API Key via header x-api-key" },
+    { Informação: "Formato da Chave", Valor: "huggs-erp-xxxxxxxxxxxxxxxx" },
+    { Informação: "Exemplo cURL", Valor: `curl -H "x-api-key: SUA_CHAVE" ${BASE_URL}/contas-pagar-api/listar` },
+    { Informação: "Rate Limit", Valor: "60 requisições/minuto por IP ou API key" },
+    { Informação: "Método Alternativo", Valor: "Bearer Token (JWT) via header Authorization" },
+    { Informação: "Erro 401", Valor: "API key inválida ou ausente" },
+    { Informação: "Erro 429", Valor: "Rate limit excedido — Retry-After: 60" },
+    { Informação: "Erro 400", Valor: "Parâmetros inválidos" },
+    { Informação: "Erro 404", Valor: "Rota não encontrada" },
+    { Informação: "Erro 500", Valor: "Erro interno do servidor" },
+  ];
+
+  return [
+    {
+      name: "Endpoints",
+      data: endpointsData,
+      columns: [
+        { header: "Módulo", key: "Módulo", width: 18 },
+        { header: "API", key: "API", width: 22 },
+        { header: "Seção", key: "Seção", width: 25 },
+        { header: "Método", key: "Método", width: 8 },
+        { header: "Path", key: "Path", width: 25 },
+        { header: "URL Completa", key: "URL Completa", width: 65 },
+        { header: "Descrição", key: "Descrição", width: 50 },
+        { header: "Body (JSON)", key: "Body (JSON)", width: 60 },
+        { header: "Response (JSON)", key: "Response (JSON)", width: 60 },
+      ],
+    },
+    {
+      name: "Parâmetros",
+      data: paramsData,
+      columns: [
+        { header: "Módulo", key: "Módulo", width: 18 },
+        { header: "API", key: "API", width: 22 },
+        { header: "Endpoint", key: "Endpoint", width: 30 },
+        { header: "Parâmetro", key: "Parâmetro", width: 25 },
+        { header: "Tipo", key: "Tipo", width: 12 },
+        { header: "Obrigatório", key: "Obrigatório", width: 12 },
+        { header: "Descrição", key: "Descrição", width: 50 },
+      ],
+    },
+    {
+      name: "Autenticação",
+      data: authData,
+      columns: [
+        { header: "Informação", key: "Informação", width: 25 },
+        { header: "Valor", key: "Valor", width: 80 },
+      ],
+    },
+  ];
+}
+
+// ═══════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════
+
 export default function ApiDocumentation() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedApi, setExpandedApi] = useState<string | null>(null);
+  const [activeModule, setActiveModule] = useState<string | null>(null);
+  const moduleRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const totalEndpoints = useMemo(() => {
+    let count = 0;
+    for (const mod of API_MODULES) {
+      for (const api of mod.apis) {
+        for (const s of api.sections) count += s.endpoints.length;
+      }
+    }
+    return count;
+  }, []);
+
+  const filteredModules = useMemo(() => {
+    if (!searchQuery.trim()) return API_MODULES;
+    const q = searchQuery.toLowerCase();
+    return API_MODULES.map(mod => ({
+      ...mod,
+      apis: mod.apis.filter(api => {
+        const nameMatch = api.name.toLowerCase().includes(q) || api.description.toLowerCase().includes(q) || api.basePath.toLowerCase().includes(q);
+        const endpointMatch = api.sections.some(s => s.endpoints.some(ep => ep.path.toLowerCase().includes(q) || ep.description.toLowerCase().includes(q)));
+        return nameMatch || endpointMatch;
+      }),
+    })).filter(mod => mod.apis.length > 0);
+  }, [searchQuery]);
+
+  const handleExportExcel = async () => {
+    const sheets = buildExcelData(API_MODULES);
+    await exportToExcel(sheets, "Huggs_API_Collection");
+  };
+
+  const scrollToModule = (moduleId: string) => {
+    setActiveModule(moduleId);
+    moduleRefs.current[moduleId]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const getApiEndpointCount = (api: ApiDefinition) => {
+    return api.sections.reduce((sum, s) => sum + s.endpoints.length, 0);
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Documentação das APIs</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Documentação das APIs</CardTitle>
+            <Badge variant="secondary" className="text-xs">{totalEndpoints} endpoints</Badge>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            Exportar Excel
+          </Button>
         </div>
         <CardDescription>
-          Referência completa de todos os endpoints disponíveis para integração ERP
+          Referência completa de todos os endpoints disponíveis para integração
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="contas-pagar" className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="contas-pagar" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Contas a Pagar
-            </TabsTrigger>
-            <TabsTrigger value="contas-receber" className="text-xs gap-1.5">
-              <ArrowUpFromLine className="h-3.5 w-3.5" />
-              Contas a Receber
-            </TabsTrigger>
-            <TabsTrigger value="export" className="text-xs gap-1.5">
-              <ArrowUpFromLine className="h-3.5 w-3.5" />
-              Exportação
-            </TabsTrigger>
-            <TabsTrigger value="contas-correntes" className="text-xs gap-1.5">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Contas Correntes
-            </TabsTrigger>
-            <TabsTrigger value="lancamentos-cc" className="text-xs gap-1.5">
-              <ArrowDownToLine className="h-3.5 w-3.5" />
-              Lançamentos CC
-            </TabsTrigger>
-            <TabsTrigger value="boletos" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Boletos
-            </TabsTrigger>
-            <TabsTrigger value="anexos" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Anexos
-            </TabsTrigger>
-            <TabsTrigger value="orcamentos" className="text-xs gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Orçamentos
-            </TabsTrigger>
-            <TabsTrigger value="pesquisar" className="text-xs gap-1.5">
-              <Search className="h-3.5 w-3.5" />
-              Pesquisar
-            </TabsTrigger>
-            <TabsTrigger value="movimentos" className="text-xs gap-1.5">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Movimentos
-            </TabsTrigger>
-            <TabsTrigger value="resumo-fin" className="text-xs gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Resumo Financeiro
-            </TabsTrigger>
-            <TabsTrigger value="bancos" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Bancos
-            </TabsTrigger>
-            <TabsTrigger value="tipos-doc" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Tipos Documento
-            </TabsTrigger>
-            <TabsTrigger value="dre-cadastro" className="text-xs gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              DRE
-            </TabsTrigger>
-            <TabsTrigger value="final-transf" className="text-xs gap-1.5">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Final. Transferência
-            </TabsTrigger>
-            <TabsTrigger value="origens" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Origens
-            </TabsTrigger>
-            <TabsTrigger value="bandeiras" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Bandeiras
-            </TabsTrigger>
-            <TabsTrigger value="clientes" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Clientes
-            </TabsTrigger>
-            <TabsTrigger value="projetos" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Projetos
-            </TabsTrigger>
-            <TabsTrigger value="empresas" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Empresas
-            </TabsTrigger>
-            <TabsTrigger value="departamentos" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Departamentos
-            </TabsTrigger>
-            <TabsTrigger value="categorias" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Categorias
-            </TabsTrigger>
-            <TabsTrigger value="parcelas" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Parcelas
-            </TabsTrigger>
-            <TabsTrigger value="tipos-atividade" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Tipos Atividade
-            </TabsTrigger>
-            <TabsTrigger value="tipos-anexo" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Tipos Anexo
-            </TabsTrigger>
-            <TabsTrigger value="tipos-entrega" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Tipos Entrega
-            </TabsTrigger>
-            <TabsTrigger value="cnae" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              CNAE
-            </TabsTrigger>
-            <TabsTrigger value="cidades" className="text-xs gap-1.5">
-              <Search className="h-3.5 w-3.5" />
-              Cidades
-            </TabsTrigger>
-            <TabsTrigger value="paises" className="text-xs gap-1.5">
-              <Database className="h-3.5 w-3.5" />
-              Países
-            </TabsTrigger>
-            <TabsTrigger value="complementar" className="text-xs gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Dados Complementares
-            </TabsTrigger>
-            <TabsTrigger value="auth" className="text-xs gap-1.5">
-              <Shield className="h-3.5 w-3.5" />
-              Autenticação
-            </TabsTrigger>
-          </TabsList>
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar APIs, endpoints ou descrições..."
+            className="pl-10"
+          />
+        </div>
 
-          <TabsContent value="contas-pagar" className="space-y-1">
-            <ApiSection
-              icon={<Search className="h-4 w-4 text-emerald-500" />}
-              title="Consulta & Gestão"
-              basePath="/contas-pagar-api"
-              endpoints={contasPagarCrud}
-              description="Consultar, atualizar, cancelar e registrar pagamentos"
-            />
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-purple-500" />}
-              title="Parcelas, Pagamentos & Anexos"
-              basePath="/contas-pagar-api"
-              endpoints={contasPagarComplementar}
-              description="Gestão de parcelas, histórico de pagamentos e comprovantes"
-            />
-            <ApiSection
-              icon={<Webhook className="h-4 w-4 text-amber-500" />}
-              title="CRUD de Integração"
-              basePath="/contas-pagar-api"
-              endpoints={contasPagarIntegracao}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento via API"
-            />
-          </TabsContent>
+        <div className="flex gap-6">
+          {/* Sidebar nav */}
+          <div className="hidden lg:block w-56 shrink-0">
+            <div className="sticky top-4 space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 mb-2">Módulos</p>
+              {API_MODULES.map(mod => (
+                <button
+                  key={mod.id}
+                  onClick={() => scrollToModule(mod.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === mod.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  {mod.icon}
+                  <span className="truncate">{mod.name}</span>
+                  <Badge variant="secondary" className="text-[10px] ml-auto">{mod.apis.length}</Badge>
+                </button>
+              ))}
 
-          <TabsContent value="contas-receber" className="space-y-1">
-            <ApiSection
-              icon={<Webhook className="h-4 w-4 text-emerald-500" />}
-              title="CRUD de Integração"
-              basePath="/contas-receber-api"
-              endpoints={contasReceberIntegracao}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento via API"
-            />
-          </TabsContent>
+              <div className="border-t mt-4 pt-4">
+                <button
+                  onClick={() => scrollToModule("auth")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "auth" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <Shield className="h-5 w-5" />
+                  <span>Autenticação</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
-          <TabsContent value="export" className="space-y-1">
-            <ApiSection
-              icon={<ArrowUpFromLine className="h-4 w-4 text-emerald-500" />}
-              title="Pull (ERP consulta)"
-              basePath="/contas-pagar-export-api"
-              endpoints={exportPull}
-              description="ERP puxa títulos pendentes de provisão e baixa"
-            />
-            <ApiSection
-              icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
-              title="Avançado (Lote, Reconciliação, Webhook)"
-              basePath="/contas-pagar-export-api"
-              endpoints={exportAdvanced}
-              description="Exportação em lote, reprocessamento, reconciliação e push"
-            />
-            <ApiSection
-              icon={<Webhook className="h-4 w-4 text-amber-500" />}
-              title="Webhook Inbound (ERP → BiMaster)"
-              basePath="/erp-webhook-inbound"
-              endpoints={webhookInbound}
-              description="Callbacks do ERP: provisão registrada, baixa confirmada, estorno"
-            />
-          </TabsContent>
+          {/* Main content */}
+          <div className="flex-1 min-w-0 space-y-8">
+            {filteredModules.map(mod => (
+              <div key={mod.id} ref={el => { moduleRefs.current[mod.id] = el; }}>
+                {/* Module header */}
+                <div className={`rounded-xl bg-gradient-to-r ${mod.color} p-4 mb-4`}>
+                  <div className="flex items-center gap-3 text-white">
+                    {mod.icon}
+                    <div>
+                      <h3 className="font-semibold text-base">{mod.name}</h3>
+                      <p className="text-sm text-white/80">{mod.description}</p>
+                    </div>
+                    <Badge className="ml-auto bg-white/20 text-white border-white/30 text-xs">
+                      {mod.apis.length} APIs
+                    </Badge>
+                  </div>
+                </div>
 
-          <TabsContent value="contas-correntes" className="space-y-1">
-            <ApiSection
-              icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync"
-              basePath="/contas-correntes-api"
-              endpoints={contasCorrentesCrud}
-              description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
-            />
-          </TabsContent>
+                {/* API table */}
+                <div className="border rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-4 py-2.5 bg-muted/50 border-b text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    <span>API</span>
+                    <span className="text-center">Versão</span>
+                    <span className="text-right">Endpoints</span>
+                  </div>
 
-          <TabsContent value="lancamentos-cc" className="space-y-1">
-            <ApiSection
-              icon={<ArrowDownToLine className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync — Lançamentos de Conta Corrente"
-              basePath="/lancamentos-cc-api"
-              endpoints={lancamentosCcCrud}
-              description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
-            />
-          </TabsContent>
+                  {mod.apis.map((api, idx) => {
+                    const isExpanded = expandedApi === api.id;
+                    const epCount = getApiEndpointCount(api);
+                    return (
+                      <div key={api.id} className={idx < mod.apis.length - 1 && !isExpanded ? "border-b" : ""}>
+                        <button
+                          onClick={() => setExpandedApi(isExpanded ? null : api.id)}
+                          className="w-full grid grid-cols-[1fr_auto_auto] gap-4 px-4 py-3 hover:bg-muted/30 transition-colors items-center text-left"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                            {api.icon}
+                            <div className="min-w-0">
+                              <span className="font-medium text-sm text-foreground">{api.name}</span>
+                              <p className="text-xs text-muted-foreground truncate">{api.description}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] font-mono">v1</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{epCount}</Badge>
+                        </button>
 
-          <TabsContent value="boletos" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Boletos — Cobrança Bancária"
-              basePath="/boletos-api"
-              endpoints={boletosCrud}
-              description="Gerar, obter, cancelar e prorrogar boletos vinculados a títulos do Contas a Receber"
-            />
-          </TabsContent>
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t bg-muted/10">
+                            <div className="mt-3 space-y-1">
+                              <code className="text-[11px] font-mono text-muted-foreground block mb-3">
+                                Base: {BASE_URL}{api.basePath}
+                              </code>
+                              {api.sections.map((section, si) => (
+                                <ApiSectionBlock
+                                  key={si}
+                                  title={section.title}
+                                  endpoints={section.endpoints}
+                                  basePath={api.basePath}
+                                  description={section.description}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
-          <TabsContent value="anexos" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Anexos de Documentos"
-              basePath="/anexos-api"
-              endpoints={anexosCrud}
-              description="Incluir, consultar, obter link, listar e excluir anexos vinculados a qualquer documento"
-            />
-          </TabsContent>
+            {/* Auth section */}
+            <div ref={el => { moduleRefs.current["auth"] = el; }}>
+              <div className="rounded-xl bg-gradient-to-r from-slate-700 to-slate-600 p-4 mb-4">
+                <div className="flex items-center gap-3 text-white">
+                  <Shield className="h-5 w-5" />
+                  <div>
+                    <h3 className="font-semibold text-base">Autenticação & Segurança</h3>
+                    <p className="text-sm text-white/80">Como autenticar suas requisições</p>
+                  </div>
+                </div>
+              </div>
 
-          <TabsContent value="orcamentos" className="space-y-1">
-            <ApiSection
-              icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Orçamento de Caixa — Previsto x Realizado"
-              basePath="/orcamentos-caixa-api"
-              endpoints={orcamentosCaixaCrud}
-              description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
-            />
-          </TabsContent>
-
-          <TabsContent value="pesquisar" className="space-y-1">
-            <ApiSection
-              icon={<Search className="h-4 w-4 text-primary" />}
-              title="Pesquisa Avançada de Títulos"
-              basePath="/pesquisar-lancamentos-api"
-              endpoints={pesquisarLancamentosCrud}
-              description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
-            />
-          </TabsContent>
-
-          <TabsContent value="movimentos" className="space-y-1">
-            <ApiSection
-              icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Movimentação Financeira Unificada"
-              basePath="/movimentos-financeiros-api"
-              endpoints={movimentosFinanceirosCrud}
-              description="Listagem consolidada de Contas a Pagar, Contas a Receber e Lançamentos CC — cada baixa/lançamento como linha individual"
-            />
-          </TabsContent>
-
-          <TabsContent value="resumo-fin" className="space-y-1">
-            <ApiSection
-              icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Resumo Financeiro — Dashboard"
-              basePath="/resumo-financeiro-api"
-              endpoints={resumoFinanceiroCrud}
-              description="Resumo consolidado, lista em aberto, detalhes de lançamentos e lista de finanças por categoria"
-            />
-          </TabsContent>
-
-          <TabsContent value="bancos" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Bancos — ConsultarBanco + ListarBancos"
-              basePath="/bancos-api"
-              endpoints={bancosCrud}
-              description="Consulta e listagem de bancos/instituições financeiras cadastradas"
-            />
-          </TabsContent>
-
-          <TabsContent value="tipos-doc" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento"
-              basePath="/tipos-documento-api"
-              endpoints={tiposDocumentoCrud}
-              description="Consulta e pesquisa de tipos de documento cadastrados"
-            />
-          </TabsContent>
-
-          <TabsContent value="projetos" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Projetos — CRUD Completo"
-              basePath="/projetos-api"
-              endpoints={projetosCrud}
-              description="Incluir, alterar, consultar, excluir, listar e upsert projetos — "
-            />
-          </TabsContent>
-
-          <TabsContent value="departamentos" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Departamentos — CRUD Completo"
-              basePath="/departamentos-api"
-              endpoints={departamentosCrud}
-              description="Incluir, alterar, consultar, excluir e listar departamentos — "
-            />
-          </TabsContent>
-
-          <TabsContent value="categorias" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Categorias — CRUD Completo"
-              basePath="/categorias-api"
-              endpoints={categoriasCrud}
-              description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — "
-            />
-          </TabsContent>
-
-          <TabsContent value="parcelas" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Parcelas — IncluirParcela + ListarParcelas"
-              basePath="/parcelas-api"
-              endpoints={parcelasCrud}
-              description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
-            />
-          </TabsContent>
-
-          <TabsContent value="tipos-atividade" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Atividade — ListarTipoAtiv"
-              basePath="/tipos-atividade-api"
-              endpoints={tiposAtividadeCrud}
-              description="Listar tipos de atividade da empresa (código 1 char + descrição)"
-            />
-          </TabsContent>
-
-          <TabsContent value="tipos-anexo" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Anexo — ListarTiposAnexos"
-              basePath="/tipos-anexo-api"
-              endpoints={tiposAnexoCrud}
-              description="Lista de tipos de documentos anexos (código + descrição)"
-            />
-          </TabsContent>
-
-          <TabsContent value="tipos-entrega" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Entrega — CRUD Completo"
-              basePath="/tipos-entrega-api"
-              endpoints={tiposEntregaCrud}
-              description="Incluir, alterar, consultar, excluir e listar tipos de entrega vinculados a transportadora"
-            />
-          </TabsContent>
-
-          <TabsContent value="cnae" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="CNAE — ListarCNAE"
-              basePath="/cnae-api"
-              endpoints={cnaeCrud}
-              description="Lista paginada de códigos CNAE com ordenação"
-            />
-          </TabsContent>
-
-          <TabsContent value="cidades" className="space-y-1">
-            <ApiSection
-              icon={<Search className="h-4 w-4 text-primary" />}
-              title="Cidades — PesquisarCidades"
-              basePath="/cidades-api"
-              endpoints={cidadesCrud}
-              description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
-            />
-          </TabsContent>
-
-          <TabsContent value="paises" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Países — ListarPaises"
-              basePath="/paises-api"
-              endpoints={paisesCrud}
-              description="Lista de países cadastrados com código IBGE, descrição e código ISO"
-            />
-          </TabsContent>
-
-          <TabsContent value="empresas" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Empresas — ConsultarEmpresa + ListarEmpresas"
-              basePath="/empresas-api"
-              endpoints={empresasCrud}
-              description="Consulta e listagem paginada de empresas cadastradas"
-            />
-          </TabsContent>
-
-          <TabsContent value="dre-cadastro" className="space-y-1">
-            <ApiSection
-              icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="DRE — ListarCadastroDRE"
-              basePath="/dre-cadastro-api"
-              endpoints={dreCadastroCrud}
-              description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
-            />
-          </TabsContent>
-
-          <TabsContent value="final-transf" className="space-y-1">
-            <ApiSection
-              icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf"
-              basePath="/finalidades-transferencia-api"
-              endpoints={finalidadesTransfCrud}
-              description="Consulta e listagem paginada de finalidades de transferência bancária"
-            />
-          </TabsContent>
-
-          <TabsContent value="origens" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Origens de Lançamento — ListarOrigem"
-              basePath="/origens-api"
-              endpoints={origensCrud}
-              description="Listagem de origens de lançamento com filtro por código"
-            />
-          </TabsContent>
-
-          <TabsContent value="bandeiras" className="space-y-1">
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Bandeiras de Cartão — ListarBandeiras"
-              basePath="/bandeiras-api"
-              endpoints={bandeirasCrud}
-              description="Lista paginada de bandeiras de cartão de crédito/débito"
-            />
-          </TabsContent>
-
-          <TabsContent value="clientes" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-primary" />}
-              title="Clientes — CRUD Completo"
-              basePath="/clientes-api"
-              endpoints={clientesCrud}
-              description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — "
-            />
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-amber-500" />}
-              title="Características de Clientes"
-              basePath="/clientes-api"
-              endpoints={clientesCaractCrud}
-              description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
-            />
-            <ApiSection
-              icon={<FileText className="h-4 w-4 text-emerald-500" />}
-              title="Tags de Clientes"
-              basePath="/clientes-api"
-              endpoints={clientesTagsCrud}
-              description="Associar, listar e remover tags de clientes/fornecedores"
-            />
-          </TabsContent>
-
-          <TabsContent value="complementar" className="space-y-1">
-            <ApiSection
-              icon={<Database className="h-4 w-4 text-orange-500" />}
-              title="Fornecedores, Portadores, Plano de Contas, Estoque"
-              basePath=""
-              endpoints={otherApis}
-              description="APIs de dados mestres e estoque"
-            />
-          </TabsContent>
-
-          <TabsContent value="auth">
-            <div className="space-y-4 p-4">
-              <div>
-                <h4 className="font-semibold text-sm mb-2">Métodos de Autenticação</h4>
+              <div className="space-y-4 border rounded-xl p-5">
                 <div className="space-y-3">
                   <div className="border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
@@ -1679,39 +873,47 @@ export default function ApiDocumentation() {
                   <div className="border rounded-lg p-3">
                     <span className="font-medium text-sm">JWT (Bearer Token)</span>
                     <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${BASE_URL}/erp-export-payment"`} />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Para usuários autenticados via frontend.
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">Para usuários autenticados via frontend.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Rate Limiting</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Todas as APIs têm limite de <strong>60 requisições/minuto</strong> por IP ou API key.
+                    Exceder retorna <code className="bg-muted px-1 rounded">429 Too Many Requests</code>.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Códigos de Erro</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {[
+                      { code: "400", label: "Parâmetros inválidos" },
+                      { code: "401", label: "API key inválida" },
+                      { code: "404", label: "Rota não encontrada" },
+                      { code: "429", label: "Rate limit excedido" },
+                      { code: "500", label: "Erro interno" },
+                    ].map(e => (
+                      <div key={e.code} className="border rounded-lg p-2 text-center">
+                        <code className="text-sm font-bold font-mono">{e.code}</code>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{e.label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-2">Rate Limiting</h4>
-                <p className="text-xs text-muted-foreground">
-                  Todas as APIs têm limite de <strong>60 requisições/minuto</strong> por IP ou API key.
-                  Exceder retorna <code className="bg-muted px-1 rounded">429 Too Many Requests</code> com header <code className="bg-muted px-1 rounded">Retry-After: 60</code>.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm mb-2">Códigos de Erro</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { code: "400", label: "Parâmetros inválidos" },
-                    { code: "401", label: "API key inválida" },
-                    { code: "404", label: "Rota não encontrada" },
-                    { code: "429", label: "Rate limit excedido" },
-                    { code: "500", label: "Erro interno" },
-                  ].map(e => (
-                    <div key={e.code} className="border rounded-lg p-2 text-center">
-                      <code className="text-sm font-bold font-mono">{e.code}</code>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{e.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {/* No results */}
+            {filteredModules.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Nenhuma API encontrada para "{searchQuery}"</p>
+              </div>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
