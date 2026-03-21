@@ -69,10 +69,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await validateApiKey(req);
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "departamentos", limit: 60, req, userId: auth.userId });
   } catch (e) {
+    if (e instanceof RateLimitError) {
+      return jsonResponse({ error: e.message }, 429, req);
+    }
     const status = e instanceof AuthError ? e.status : 401;
-    return jsonResponse({ error: (e as Error).message }, status);
+    return jsonResponse({ error: (e as Error).message }, status, req);
   }
 
   const supabase = createClient(
