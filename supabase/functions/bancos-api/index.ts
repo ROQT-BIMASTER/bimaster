@@ -1,10 +1,10 @@
-// supabase/functions/bancos-api/index.ts — ConsultarBanco + ListarBancos (Omie)
+// bancos-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateApiKey } from "../_shared/auth.ts";
 
-function mapBancoToOmie(banco: Record<string, unknown>): Record<string, unknown> {
+function mapBancoToHuggs(banco: Record<string, unknown>): Record<string, unknown> {
   return {
     codigo: banco.codigo_compe || "",
     nome: banco.nome || "",
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         return errorResponse(404, "NOT_FOUND", `Banco com código '${codigo}' não encontrado`, req, startMs);
       }
 
-      return jsonResponse(mapBancoToOmie(data), 200, req, { startMs });
+      return jsonResponse(mapBancoToHuggs(data), 200, req, { startMs });
     }
 
     // GET /listar?pagina=1&registros_por_pagina=100&tipo=CB
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         total_de_paginas: totalPaginas,
         registros: data?.length || 0,
         total_de_registros: totalRegistros,
-        fin_banco_cadastro: (data || []).map(mapBancoToOmie),
+        fin_banco_cadastro: (data || []).map(mapBancoToHuggs),
       }, 200, req, { startMs });
     }
 

@@ -1,4 +1,4 @@
-// movimentos-financeiros-api — ListarMovimentos Omie-style (unified financial movements)
+// movimentos-financeiros-api — ListarMovimentos Huggs-style (unified financial movements)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -123,7 +123,7 @@ async function handleListar(req: Request, auth: { empresaId: string }, startMs: 
     if (auth.empresaId !== "all" && auth.empresaId !== "legacy") {
       query = query.eq("empresa_id", auth.empresaId);
     }
-    if (nCodTitulo) query = query.eq(nat === "R" ? "codigo_lancamento_omie" : "erp_titulo_id", nCodTitulo);
+    if (nCodTitulo) query = query.eq(nat === "R" ? "codigo_lancamento_huggs" : "erp_titulo_id", nCodTitulo);
     if (cCodIntTitulo) query = query.eq("codigo_integracao", cCodIntTitulo);
     if (cNumTitulo) query = query.eq(nat === "R" ? "numero_titulo" : "titulo_numero", cNumTitulo);
     if (cStatus) {
@@ -292,7 +292,7 @@ function buildMovimento(
   const liquidado = valorAberto <= 0 && totalPago > 0 ? "S" : "N";
 
   const detalhes: Record<string, any> = {
-    nCodTitulo: title.codigo_lancamento_omie || title.erp_titulo_id || null,
+    nCodTitulo: title.codigo_lancamento_huggs || title.erp_titulo_id || null,
     cCodIntTitulo: title.codigo_integracao || "",
     cNumTitulo: title.numero_titulo || title.titulo_numero || "",
     dDtEmissao: formatDateBr(title.data_emissao),
@@ -428,7 +428,7 @@ function buildMovimentoCC(lcc: any, lDadosCad: boolean, cExibirDepartamentos: st
     cOrigem: lcc.origem || "MANU",
     nCodTitRepet: null,
     cGrupo: "CC",
-    nCodMovCC: lcc.codigo_lancamento_omie || lcc.id,
+    nCodMovCC: lcc.codigo_lancamento_huggs || lcc.id,
     nValorMovCC: valor,
     nCodMovCCRepet: null,
     nDesconto: 0,

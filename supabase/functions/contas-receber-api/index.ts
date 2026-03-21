@@ -536,8 +536,8 @@ Deno.serve(async (req) => {
     return null;
   }
 
-  // Helper: parse date Omie DD/MM/YYYY → YYYY-MM-DD
-  function parseDateOmie(d: string | null | undefined): string | null {
+  // Helper: parse date Huggs DD/MM/YYYY → YYYY-MM-DD
+  function parseDateHuggs(d: string | null | undefined): string | null {
     if (!d) return null;
     const str = String(d).trim();
     if (str.includes('/')) {
@@ -549,11 +549,11 @@ Deno.serve(async (req) => {
     return parseDate(d);
   }
 
-  // Helper: map Omie body to DB columns
-  function mapOmieToDb(body: any): Record<string, any> {
+  // Helper: map Huggs body to DB columns
+  function mapApiToDb(body: any): Record<string, any> {
     const mapped: Record<string, any> = {};
     const directFields: Record<string, string> = {
-      codigo_lancamento_omie: 'codigo_lancamento_omie',
+      codigo_lancamento_huggs: 'codigo_lancamento_huggs',
       codigo_lancamento_integracao: 'codigo_lancamento_integracao',
       codigo_cliente_fornecedor: 'codigo_cliente_fornecedor',
       codigo_cliente_fornecedor_integracao: 'codigo_cliente_fornecedor_integracao',
@@ -586,10 +586,10 @@ Deno.serve(async (req) => {
     if (body.n_cod_pedido !== undefined) mapped.n_cod_pedido = body.n_cod_pedido;
     if (body.n_cod_os !== undefined) mapped.n_cod_os = body.n_cod_os;
     // Dates
-    if (body.data_vencimento) mapped.data_vencimento = parseDateOmie(body.data_vencimento);
-    if (body.data_previsao) mapped.data_previsao = parseDateOmie(body.data_previsao);
-    if (body.data_emissao) mapped.data_emissao = parseDateOmie(body.data_emissao);
-    if (body.data_registro) mapped.data_registro = parseDateOmie(body.data_registro);
+    if (body.data_vencimento) mapped.data_vencimento = parseDateHuggs(body.data_vencimento);
+    if (body.data_previsao) mapped.data_previsao = parseDateHuggs(body.data_previsao);
+    if (body.data_emissao) mapped.data_emissao = parseDateHuggs(body.data_emissao);
+    if (body.data_registro) mapped.data_registro = parseDateHuggs(body.data_registro);
     // Booleans (S/N → boolean)
     const boolFields = ['retem_pis','retem_cofins','retem_csll','retem_ir','retem_iss','retem_inss',
       'bloqueado','bloquear_baixa','bloquear_exclusao','baixar_documento','conciliar_documento','aprendizado_rateio'];
@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
     // Boleto
     if (body.boleto) {
       mapped.boleto_gerado = body.boleto.cGerado === 'S';
-      if (body.boleto.dDtEmBol) mapped.boleto_data_emissao = parseDateOmie(body.boleto.dDtEmBol);
+      if (body.boleto.dDtEmBol) mapped.boleto_data_emissao = parseDateHuggs(body.boleto.dDtEmBol);
       if (body.boleto.cNumBoleto) mapped.boleto_numero = body.boleto.cNumBoleto;
       if (body.boleto.cNumBancario) mapped.boleto_numero_bancario = body.boleto.cNumBancario;
       if (body.boleto.nPerJuros !== undefined) mapped.boleto_per_juros = body.boleto.nPerJuros;
@@ -619,7 +619,7 @@ Deno.serve(async (req) => {
     return mapped;
   }
 
-  // Omie response helper
+  // Huggs response helper
   function omieResponse(data: any, status = 200) {
     return new Response(JSON.stringify(data), {
       status,
@@ -634,13 +634,13 @@ Deno.serve(async (req) => {
 
     const id = url.searchParams.get('id');
     const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
-    const codOmie = url.searchParams.get('codigo_lancamento_omie');
+    const codHuggs = url.searchParams.get('codigo_lancamento_huggs');
 
     let query = supabase.from('contas_receber').select('*');
     if (id) query = query.eq('id', id);
     else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
-    else if (codOmie) query = query.eq('codigo_lancamento_omie', parseInt(codOmie));
-    else return omieResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie" }, 400);
+    else if (codHuggs) query = query.eq('codigo_lancamento_huggs', parseInt(codHuggs));
+    else return omieResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs" }, 400);
 
     const { data, error } = await query.maybeSingle();
     if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
@@ -663,9 +663,9 @@ Deno.serve(async (req) => {
     const filtroStatus = url.searchParams.get('filtrar_por_status');
     if (filtroStatus) query = query.in('status', filtroStatus.split(',').map(s => s.trim()));
     const filtroDataDe = url.searchParams.get('filtrar_por_data_de');
-    if (filtroDataDe) query = query.gte('data_vencimento', parseDateOmie(filtroDataDe));
+    if (filtroDataDe) query = query.gte('data_vencimento', parseDateHuggs(filtroDataDe));
     const filtroDataAte = url.searchParams.get('filtrar_por_data_ate');
-    if (filtroDataAte) query = query.lte('data_vencimento', parseDateOmie(filtroDataAte));
+    if (filtroDataAte) query = query.lte('data_vencimento', parseDateHuggs(filtroDataAte));
     const filtroCliente = url.searchParams.get('filtrar_cliente');
     if (filtroCliente) query = query.eq('codigo_cliente_fornecedor', parseInt(filtroCliente));
     const filtroConta = url.searchParams.get('filtrar_conta_corrente');
@@ -708,18 +708,18 @@ Deno.serve(async (req) => {
       return omieResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
     }
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     mapped.importado_api = true;
     mapped.sincronizado_em = new Date().toISOString();
     if (!mapped.empresa_id) mapped.empresa_id = 1;
     if (!mapped.erp_id) mapped.erp_id = `omie-cr-${mapped.empresa_id}-${body.codigo_lancamento_integracao}`;
     if (!mapped.status) mapped.status = 'pendente';
 
-    const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_omie, codigo_lancamento_integracao').single();
+    const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
     if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
     return omieResponse({
-      codigo_lancamento_omie: data?.codigo_lancamento_omie || null,
+      codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
       codigo_status: "0",
       descricao_status: "Cadastro incluído com sucesso!",
@@ -733,23 +733,23 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const codInt = body.codigo_lancamento_integracao;
-    const codOmie = body.codigo_lancamento_omie;
-    if (!codInt && !codOmie) return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou codigo_lancamento_omie" }, 400);
+    const codHuggs = body.codigo_lancamento_huggs;
+    if (!codInt && !codHuggs) return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou codigo_lancamento_huggs" }, 400);
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     delete mapped.codigo_lancamento_integracao;
-    delete mapped.codigo_lancamento_omie;
+    delete mapped.codigo_lancamento_huggs;
 
     let query = supabase.from('contas_receber').update(mapped);
     if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else query = query.eq('codigo_lancamento_omie', codOmie);
+    else query = query.eq('codigo_lancamento_huggs', codHuggs);
 
     const { error, count } = await query.select('id').maybeSingle();
     if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
     return omieResponse({
       codigo_lancamento_integracao: codInt || null,
-      codigo_lancamento_omie: codOmie || null,
+      codigo_lancamento_huggs: codHuggs || null,
       codigo_status: "0",
       descricao_status: "Cadastro alterado com sucesso!",
     });
@@ -762,12 +762,12 @@ Deno.serve(async (req) => {
 
     const id = url.searchParams.get('id');
     const codInt = url.searchParams.get('codigo_lancamento_integracao');
-    const codOmie = url.searchParams.get('chave_lancamento') || url.searchParams.get('codigo_lancamento_omie');
+    const codHuggs = url.searchParams.get('chave_lancamento') || url.searchParams.get('codigo_lancamento_huggs');
 
     let query = supabase.from('contas_receber').update({ status: 'cancelado' });
     if (id) query = query.eq('id', id);
     else if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else if (codOmie) query = query.eq('codigo_lancamento_omie', parseInt(codOmie));
+    else if (codHuggs) query = query.eq('codigo_lancamento_huggs', parseInt(codHuggs));
     else return omieResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou chave_lancamento" }, 400);
 
     const { error } = await query;
@@ -784,7 +784,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     if (!body.codigo_lancamento_integracao) return omieResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     mapped.importado_api = true;
     mapped.sincronizado_em = new Date().toISOString();
     if (!mapped.empresa_id) mapped.empresa_id = 1;
@@ -793,13 +793,13 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase.from('contas_receber')
       .upsert(mapped, { onConflict: 'erp_id' })
-      .select('id, codigo_lancamento_omie, codigo_lancamento_integracao')
+      .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao')
       .single();
 
     if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
     return omieResponse({
-      codigo_lancamento_omie: data?.codigo_lancamento_omie || null,
+      codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
       codigo_status: "0",
       descricao_status: "Upsert realizado com sucesso!",
@@ -818,7 +818,7 @@ Deno.serve(async (req) => {
     if (registros.length > 500) return omieResponse({ lote, codigo_status: "1", descricao_status: "Máximo 500 registros por lote" }, 400);
 
     const mappedRecords = registros.map((r: any) => {
-      const m = mapOmieToDb(r);
+      const m = mapApiToDb(r);
       m.importado_api = true;
       m.sincronizado_em = new Date().toISOString();
       if (!m.empresa_id) m.empresa_id = 1;
@@ -849,7 +849,7 @@ Deno.serve(async (req) => {
     // Find the title
     let findQuery = supabase.from('contas_receber').select('id, valor_original, valor_recebido, status');
     if (codInt) findQuery = findQuery.eq('codigo_lancamento_integracao', codInt);
-    else findQuery = findQuery.eq('codigo_lancamento_omie', codLanc);
+    else findQuery = findQuery.eq('codigo_lancamento_huggs', codLanc);
 
     const { data: titulo, error: findErr } = await findQuery.maybeSingle();
     if (findErr || !titulo) return omieResponse({ codigo_status: "1", descricao_status: findErr?.message || "Título não encontrado" }, 404);
@@ -860,7 +860,7 @@ Deno.serve(async (req) => {
     const novoStatus = novoAberto <= 0 ? 'recebido' : 'parcial';
 
     const { error: updErr } = await supabase.from('contas_receber')
-      .update({ valor_recebido: novoRecebido, valor_aberto: novoAberto, status: novoStatus, data_recebimento: parseDateOmie(body.data) || new Date().toISOString().split('T')[0] })
+      .update({ valor_recebido: novoRecebido, valor_aberto: novoAberto, status: novoStatus, data_recebimento: parseDateHuggs(body.data) || new Date().toISOString().split('T')[0] })
       .eq('id', titulo.id);
 
     if (updErr) return omieResponse({ codigo_status: "1", descricao_status: updErr.message }, 500);
@@ -931,14 +931,14 @@ Deno.serve(async (req) => {
 
     let query = supabase.from('contas_receber').update({ status: 'cancelado' });
     if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else if (chave) query = query.eq('codigo_lancamento_omie', chave);
+    else if (chave) query = query.eq('codigo_lancamento_huggs', chave);
     else return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou chave_lancamento" }, 400);
 
     const { error } = await query;
     if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
     return omieResponse({
-      codigo_lancamento_omie: chave || null,
+      codigo_lancamento_huggs: chave || null,
       codigo_lancamento_integracao: codInt || null,
       codigo_status: "0",
       descricao_status: "Título cancelado com sucesso!",
@@ -950,7 +950,7 @@ Deno.serve(async (req) => {
     status: 'online',
     api_version: API_VERSION,
     endpoints: ['/sync', '/bulk-sync', '/sync-chunk', '/sync-status', '/delete-old', '/consultar', '/listar', '/incluir', '/alterar', '/excluir', '/upsert', '/upsert-lote', '/lancar-recebimento', '/cancelar-recebimento', '/conciliar', '/desconciliar', '/cancelar'],
-    message: 'Contas a Receber API v5 — Omie-style + Legacy sync'
+    message: 'Contas a Receber API v5 — Huggs-style + Legacy sync'
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });

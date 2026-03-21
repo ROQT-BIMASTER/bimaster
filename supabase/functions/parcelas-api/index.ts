@@ -1,4 +1,4 @@
-// supabase/functions/parcelas-api/index.ts — IncluirParcela + ListarParcelas (Omie)
+// parcelas-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";

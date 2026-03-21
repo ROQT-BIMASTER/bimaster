@@ -1,4 +1,4 @@
-// pesquisar-lancamentos-api — PesquisarLancamentos Omie-style (v2 - complete fields)
+// pesquisar-lancamentos-api — PesquisarLancamentos Huggs-style (v2 - complete fields)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -140,7 +140,7 @@ async function handlePesquisar(req: Request, auth: { empresaId: string }, startM
     }
 
     // ID filters
-    if (nCodTitulo) query = query.eq(nat === "R" ? "codigo_lancamento_omie" : "erp_titulo_id", nCodTitulo);
+    if (nCodTitulo) query = query.eq(nat === "R" ? "codigo_lancamento_huggs" : "erp_titulo_id", nCodTitulo);
     if (cCodIntTitulo) query = query.eq("codigo_integracao", cCodIntTitulo);
     if (cNumTitulo) query = query.eq(nat === "R" ? "numero_titulo" : "titulo_numero", cNumTitulo);
 
@@ -296,7 +296,7 @@ async function handlePesquisar(req: Request, auth: { empresaId: string }, startM
     const liquidado = valorAberto <= 0 && totalPago > 0 ? "S" : "N";
 
     const cabecTitulo: Record<string, any> = {
-      nCodTitulo: row.codigo_lancamento_omie || row.erp_titulo_id || null,
+      nCodTitulo: row.codigo_lancamento_huggs || row.erp_titulo_id || null,
       cCodIntTitulo: row.codigo_integracao || "",
       cNumTitulo: row.numero_titulo || row.titulo_numero || "",
       dDtEmissao: formatDateBr(row.data_emissao),

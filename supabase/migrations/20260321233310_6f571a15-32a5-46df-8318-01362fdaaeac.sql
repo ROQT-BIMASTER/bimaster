@@ -1,0 +1,2 @@
+ALTER TABLE public.contas_pagar RENAME COLUMN codigo_lancamento_omie TO codigo_lancamento_huggs;
+ALTER TABLE public.contas_receber RENAME COLUMN codigo_lancamento_omie TO codigo_lancamento_huggs;

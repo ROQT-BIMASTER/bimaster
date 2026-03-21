@@ -1,4 +1,4 @@
-// supabase/functions/clientes-api/index.ts — CRUD Clientes (Omie)
+// clientes-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -12,9 +12,9 @@ function isPessoaFisica(cnpj: string | null): string {
   return digits.length <= 11 ? "S" : "N";
 }
 
-function mapRowToOmie(row: Record<string, unknown>): Record<string, unknown> {
+function mapRowToApi(row: Record<string, unknown>): Record<string, unknown> {
   return {
-    codigo_cliente_omie: row.id || "",
+    codigo_cliente_huggs: row.id || "",
     codigo_cliente_integracao: row.codigo || "",
     razao_social: row.nome || "",
     nome_fantasia: row.nome_abreviado || "",
@@ -75,7 +75,7 @@ function mapRowToResumido(row: Record<string, unknown>): Record<string, unknown>
   };
 }
 
-function mapOmieToDb(body: Record<string, unknown>): Record<string, unknown> {
+function mapApiToDb(body: Record<string, unknown>): Record<string, unknown> {
   const db: Record<string, unknown> = {};
   if (body.razao_social !== undefined) db.nome = body.razao_social;
   if (body.nome_fantasia !== undefined) db.nome_abreviado = body.nome_fantasia;
@@ -99,7 +99,7 @@ function mapOmieToDb(body: Record<string, unknown>): Record<string, unknown> {
 
 function statusResponse(id: string, codigo: string, status: string, msg: string) {
   return {
-    codigo_cliente_omie: id,
+    codigo_cliente_huggs: id,
     codigo_cliente_integracao: codigo,
     codigo_status: status,
     descricao_status: msg,
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
         return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao e razao_social são obrigatórios", req, startMs);
       }
 
-      const dbData = mapOmieToDb(body);
+      const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -163,18 +163,18 @@ Deno.serve(async (req) => {
     // ── POST /alterar ────────────────────────────────────────────
     if (req.method === "POST" && path === "/alterar") {
       const body = await req.json();
-      const { codigo_cliente_integracao, codigo_cliente_omie } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_omie) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_omie obrigatório", req, startMs);
+      const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
+      if (!codigo_cliente_integracao && !codigo_cliente_huggs) {
+        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório", req, startMs);
       }
 
-      const dbData = mapOmieToDb(body);
+      const dbData = mapApiToDb(body);
       delete dbData.codigo; // Don't update the key
       dbData.updated_at = new Date().toISOString();
 
       let query = supabase.from("clientes").update(dbData);
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
-      else query = query.eq("id", codigo_cliente_omie);
+      else query = query.eq("id", codigo_cliente_huggs);
 
       const { data, error } = await query.select("id, codigo").single();
 
@@ -186,32 +186,32 @@ Deno.serve(async (req) => {
     // ── POST /consultar ──────────────────────────────────────────
     if (req.method === "POST" && path === "/consultar") {
       const body = await req.json().catch(() => ({}));
-      const { codigo_cliente_integracao, codigo_cliente_omie } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_omie) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_omie obrigatório", req, startMs);
+      const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
+      if (!codigo_cliente_integracao && !codigo_cliente_huggs) {
+        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório", req, startMs);
       }
 
       let query = supabase.from("clientes").select("*");
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
-      else query = query.eq("id", codigo_cliente_omie);
+      else query = query.eq("id", codigo_cliente_huggs);
 
       const { data, error } = await query.single();
       if (error) return errorResponse(error.code === "PGRST116" ? 404 : 500, error.code === "PGRST116" ? "NOT_FOUND" : "DB_ERROR", error.code === "PGRST116" ? "Cliente não encontrado" : error.message, req, startMs);
 
-      return jsonResponse({ clientes_cadastro: mapRowToOmie(data) }, 200, req, { startMs });
+      return jsonResponse({ clientes_cadastro: mapRowToApi(data) }, 200, req, { startMs });
     }
 
     // ── POST /excluir ────────────────────────────────────────────
     if (req.method === "POST" && path === "/excluir") {
       const body = await req.json().catch(() => ({}));
-      const { codigo_cliente_integracao, codigo_cliente_omie } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_omie) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_omie obrigatório", req, startMs);
+      const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
+      if (!codigo_cliente_integracao && !codigo_cliente_huggs) {
+        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório", req, startMs);
       }
 
       let query = supabase.from("clientes").update({ status_bloqueio: "INATIVO", updated_at: new Date().toISOString() });
       if (codigo_cliente_integracao) query = query.eq("codigo", codigo_cliente_integracao);
-      else query = query.eq("id", codigo_cliente_omie);
+      else query = query.eq("id", codigo_cliente_huggs);
 
       const { data, error } = await query.select("id, codigo").single();
       if (error) return errorResponse(error.code === "PGRST116" ? 404 : 500, error.code === "PGRST116" ? "NOT_FOUND" : "DB_ERROR", error.code === "PGRST116" ? "Cliente não encontrado" : error.message, req, startMs);
@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
         total_de_paginas: Math.ceil(total / regPorPag),
         registros: data?.length || 0,
         total_de_registros: total,
-        clientes_cadastro: (data || []).map(mapRowToOmie),
+        clientes_cadastro: (data || []).map(mapRowToApi),
       }, 200, req, { startMs });
     }
 
@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
         return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao e razao_social são obrigatórios", req, startMs);
       }
 
-      const dbData = mapOmieToDb(body);
+      const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
         return errorResponse(400, "VALIDATION_ERROR", "cnpj_cpf e razao_social são obrigatórios", req, startMs);
       }
 
-      const dbData = mapOmieToDb(body);
+      const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
 
       // Check if exists by cnpj
@@ -348,14 +348,14 @@ Deno.serve(async (req) => {
     // ── POST /associar ───────────────────────────────────────────
     if (req.method === "POST" && path === "/associar") {
       const body = await req.json();
-      if (!body.codigo_cliente_omie || body.codigo_cliente_integracao === undefined) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_omie e codigo_cliente_integracao são obrigatórios", req, startMs);
+      if (!body.codigo_cliente_huggs || body.codigo_cliente_integracao === undefined) {
+        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_huggs e codigo_cliente_integracao são obrigatórios", req, startMs);
       }
 
       const { data, error } = await supabase
         .from("clientes")
         .update({ codigo: body.codigo_cliente_integracao, updated_at: new Date().toISOString() })
-        .eq("id", body.codigo_cliente_omie)
+        .eq("id", body.codigo_cliente_huggs)
         .select("id, codigo")
         .single();
 
@@ -366,11 +366,11 @@ Deno.serve(async (req) => {
 
     // ── Helper: resolve cliente by omie/integracao code ─────────
     async function resolveCliente(body: Record<string, unknown>): Promise<{ id: string; codigo: string } | null> {
-      const { codigo_cliente_integracao, codigo_cliente_omie } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_omie) return null;
+      const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
+      if (!codigo_cliente_integracao && !codigo_cliente_huggs) return null;
       let q = supabase.from("clientes").select("id, codigo");
       if (codigo_cliente_integracao) q = q.eq("codigo", codigo_cliente_integracao);
-      else q = q.eq("id", codigo_cliente_omie);
+      else q = q.eq("id", codigo_cliente_huggs);
       const { data } = await q.single();
       return data;
     }
@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
 
       if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
       return jsonResponse({
-        codigo_cliente_omie: cliente.id,
+        codigo_cliente_huggs: cliente.id,
         codigo_cliente_integracao: cliente.codigo,
         caracteristicas: data || [],
       }, 200, req, { startMs });
@@ -465,7 +465,7 @@ Deno.serve(async (req) => {
       if (!body.tags || !Array.isArray(body.tags) || body.tags.length === 0) {
         return errorResponse(400, "VALIDATION_ERROR", "tags (array) é obrigatório", req, startMs);
       }
-      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_huggs: body.nCodCliente });
       if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
 
       const rows = body.tags.map((t: { tag: string }) => ({ cliente_id: cliente.id, tag: t.tag }));
@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
     // ── POST /tags/listar ────────────────────────────────────────
     if (req.method === "POST" && path === "/tags/listar") {
       const body = await req.json().catch(() => ({}));
-      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_huggs: body.nCodCliente });
       if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
 
       const { data, error } = await supabase
@@ -506,7 +506,7 @@ Deno.serve(async (req) => {
       if (!body.tags || !Array.isArray(body.tags) || body.tags.length === 0) {
         return errorResponse(400, "VALIDATION_ERROR", "tags (array) é obrigatório", req, startMs);
       }
-      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_huggs: body.nCodCliente });
       if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
 
       const tagValues = body.tags.map((t: { tag: string }) => t.tag);
@@ -528,7 +528,7 @@ Deno.serve(async (req) => {
     // ── POST /tags/excluir-todas ─────────────────────────────────
     if (req.method === "POST" && path === "/tags/excluir-todas") {
       const body = await req.json().catch(() => ({}));
-      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_huggs: body.nCodCliente });
       if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
 
       const { error } = await supabase
