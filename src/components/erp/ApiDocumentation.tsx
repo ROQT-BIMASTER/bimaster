@@ -581,6 +581,50 @@ const movimentosFinanceirosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const resumoFinanceiroCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/resumo", description: "Resumo consolidado: saldos CC, totais CP/CR, atrasos, fluxo de caixa (ObterResumoFinancas)", tag: "novo",
+    body: `{ "dDia": "21/03/2026", "lApenasResumo": false, "lExibirCategoria": true }`,
+    response: `{ "dDia": "21/03/2026", "contaCorrente": { "vTotal": 150000 }, "contaPagar": { "nTotal": 45, "vTotal": 85000, "vAtraso": 12000 }, "contaReceber": { "nTotal": 30, "vTotal": 120000 }, "fluxoCaixa": { "vPagar": 85000, "vReceber": 120000, "vSaldo": 150000 } }`,
+    params: [
+      { name: "dDia", type: "string", required: false, description: "Data de referência (dd/mm/aaaa)" },
+      { name: "lApenasResumo", type: "boolean", required: false, description: "Exibir apenas resumo" },
+      { name: "lExibirCategoria", type: "boolean", required: false, description: "Incluir totais por categoria" },
+    ],
+  },
+  {
+    method: "POST", path: "/em-aberto", description: "Lista paginada de títulos em aberto (ObterListaEmAberto)", tag: "novo",
+    body: `{ "dDia": "21/03/2026", "cTipo": "P", "nPagina": 1, "nRegPorPagina": 50 }`,
+    response: `{ "ListaEmEberto": [{ "nIdTitulo": "uuid", "cNomeCliente": "Empresa ABC", "vDoc": 1500, "nDiasAtraso": 6 }], "nRegistros": 50, "nTotPaginas": 3, "nTotRegistros": 125 }`,
+    params: [
+      { name: "cTipo", type: "string", required: false, description: "P=Pagar, R=Receber" },
+      { name: "nCodCliente", type: "integer", required: false, description: "Filtrar por cliente/fornecedor" },
+      { name: "cNomeCliente", type: "string", required: false, description: "Busca parcial por nome" },
+      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros/página (máx 500)" },
+    ],
+  },
+  {
+    method: "POST", path: "/lista-financas", description: "Lista de lançamentos por data/categoria/tipo (ObterListaFinancas)", tag: "novo",
+    body: `{ "dDia": "21/03/2026", "cCodCateg": "1.01.01", "cTipo": "R" }`,
+    response: `{ "listaDetalhesFinancas": [{ "nIdTitulo": "uuid", "cNomeCliente": "ABC", "vDoc": 1500, "dVencimento": "15/03/2026" }] }`,
+    params: [
+      { name: "dDia", type: "string", required: false, description: "Data de referência" },
+      { name: "cCodCateg", type: "string", required: false, description: "Filtrar por categoria" },
+      { name: "cTipo", type: "string", required: false, description: "P=Pagar, R=Receber" },
+    ],
+  },
+  {
+    method: "POST", path: "/detalhes", description: "Detalhes completos de um título (ObterDetalhesLancamento)", tag: "novo",
+    body: `{ "nIdTitulo": "uuid-do-titulo" }`,
+    response: `{ "cTipoLanc": "R", "nIdTitulo": "uuid", "cNomeCliente": "ABC", "vDoc": 1500, "cSituacao": "A vencer", "boletoInfo": { "cNumBoleto": "00001", "cLinkBoleto": "https://..." }, "listaAnexos": [] }`,
+    params: [
+      { name: "nIdTitulo", type: "string", required: true, description: "ID do título (UUID)" },
+    ],
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
