@@ -20,7 +20,6 @@ import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/compon
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
-import { TradeSearchBar } from "@/components/trade/ui/TradeSearchBar";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 
@@ -28,7 +27,7 @@ const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
@@ -121,12 +120,7 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-        {/* Search Bar */}
-        <TradeSearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery} 
-          placeholder="Buscar PDVs, visitas, campanhas..." 
-        />
+
 
         {/* Banner Carousel */}
         <TradeHeroBanner />
