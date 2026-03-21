@@ -5203,6 +5203,81 @@ export type Database = {
           },
         ]
       }
+      dim_empresa: {
+        Row: {
+          created_at: string | null
+          id_empresa: number
+          nome_empresa: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id_empresa: number
+          nome_empresa: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id_empresa?: number
+          nome_empresa?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      dim_supervisor: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome_supervisor: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome_supervisor: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome_supervisor?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      dim_vendedor: {
+        Row: {
+          cod_equipe: number | null
+          cod_vend: number
+          created_at: string | null
+          nome_equipe: string | null
+          nome_vendedor: string
+          supervisor: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cod_equipe?: number | null
+          cod_vend: number
+          created_at?: string | null
+          nome_equipe?: string | null
+          nome_vendedor: string
+          supervisor?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cod_equipe?: number | null
+          cod_vend?: number
+          created_at?: string | null
+          nome_equipe?: string | null
+          nome_vendedor?: string
+          supervisor?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dimensao_vendedores: {
         Row: {
           cliente_clivend: string
@@ -26497,6 +26572,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_empresa_access: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_empresa: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_empresa: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_empresa?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_empresa_access_id_empresa_fkey"
+            columns: ["id_empresa"]
+            isOneToOne: false
+            referencedRelation: "dim_empresa"
+            referencedColumns: ["id_empresa"]
+          },
+        ]
       }
       user_empresas: {
         Row: {
