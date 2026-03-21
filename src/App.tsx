@@ -71,6 +71,7 @@ const MenuConfig = lazyWithRetry(() => import("./pages/dashboard/configuracoes/M
 const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configuracoes/PermissoesModulo"));
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
+const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
@@ -480,6 +481,7 @@ function AppContent() {
 
             {/* Painel Executivo */}
             <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
+            <Route path="/dashboard/performance-vendas" element={<PerformanceVendas />} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />

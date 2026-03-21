@@ -5,6 +5,8 @@ import { ReceitaMensalChart } from "@/components/painel-executivo/ReceitaMensalC
 import { ReceitaEmpresaChart } from "@/components/painel-executivo/ReceitaEmpresaChart";
 import { RankingSupervisoresChart } from "@/components/painel-executivo/RankingSupervisoresChart";
 import { RankingVendedoresChart } from "@/components/painel-executivo/RankingVendedoresChart";
+import { DataTableSupervisores } from "@/components/painel-executivo/DataTableSupervisores";
+import { DataTableVendedores } from "@/components/painel-executivo/DataTableVendedores";
 import { useDashboardKPIs, type DashboardFilters } from "@/hooks/useDashboardKPIs";
 import { useReceitaMensal } from "@/hooks/useReceitaMensal";
 import { useReceitaEmpresa } from "@/hooks/useReceitaEmpresa";
@@ -33,7 +35,6 @@ export default function PainelExecutivo() {
 
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-[1600px] mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
@@ -47,18 +48,20 @@ export default function PainelExecutivo() {
         <ValueLegend />
       </div>
 
-      {/* Filters */}
       <DashboardFiltersBar filters={filters} onChange={handleFilterChange} />
-
-      {/* KPI Cards */}
       <KPICards data={kpis.data} isLoading={kpis.isLoading} />
 
-      {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ReceitaMensalChart data={receitaMensal.data} isLoading={receitaMensal.isLoading} />
         <ReceitaEmpresaChart data={receitaEmpresa.data} isLoading={receitaEmpresa.isLoading} />
         <RankingSupervisoresChart data={rankingSupervisores.data} isLoading={rankingSupervisores.isLoading} />
         <RankingVendedoresChart data={rankingVendedores.data} isLoading={rankingVendedores.isLoading} />
+      </div>
+
+      {/* Data Tables */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DataTableSupervisores data={rankingSupervisores.data} isLoading={rankingSupervisores.isLoading} />
+        <DataTableVendedores data={rankingVendedores.data} isLoading={rankingVendedores.isLoading} />
       </div>
     </div>
   );

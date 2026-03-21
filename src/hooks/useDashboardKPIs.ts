@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresaContext } from "@/contexts/EmpresaContext";
+import { useOperacaoFilter } from "./useConfigOperacoes";
 
 export interface DashboardFilters {
   ano: number;
-  mes: number | null; // null = all months
+  mes: number | null;
   supervisor?: string | null;
   codVend?: number | null;
   uf?: string | null;
@@ -18,7 +19,6 @@ interface KPIResult {
   clientes_ativos: number;
   qtde_itens: number;
   mix_medio: number;
-  // trends vs previous period
   receita_trend: number;
   pedidos_trend: number;
   ticket_trend: number;
@@ -32,11 +32,43 @@ function calcTrend(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
+function applyOperacaoFilter(
+  rows: any[],
+  visiveis: Set<string>,
+  multipliers: Map<string, number>
+) {
+  return rows.filter((r) => visiveis.has(r.operacao));
+}
+
+function aggRows(
+  rows: any[],
+  multipliers: Map<string, number>
+) {
+  let receita = 0;
+  let pedidos = 0;
+  let itens = 0;
+  const clientSet = new Set<number>();
+
+  for (const r of rows) {
+    const mult = multipliers.get(r.operacao) ?? 1;
+    receita += (Number(r.receita_total) || 0) * mult;
+    pedidos += Number(r.qtde_pedidos) || 0;
+    itens += Number(r.qtde_itens) || 0;
+    // clientes_ativos is already per-group, just sum
+  }
+
+  return {
+    receita,
+    pedidos,
+    clientes: rows.reduce((s, r) => s + (Number(r.clientes_ativos) || 0), 0),
+    itens,
+  };
+}
+
 async function fetchKPIData(
   filters: DashboardFilters,
   empresaIds: number[]
 ) {
-  // Build query for current period
   let query = supabase
     .from("vw_dashboard_kpis" as any)
     .select("*")
@@ -65,57 +97,40 @@ async function fetchTotalClientes(empresaIds: number[]) {
 
 export function useDashboardKPIs(filters: DashboardFilters) {
   const { empresaIds } = useEmpresaContext();
+  const { visiveis, multipliers, loaded } = useOperacaoFilter();
 
   return useQuery<KPIResult>({
-    queryKey: ["dashboard-kpis", filters, empresaIds],
+    queryKey: ["dashboard-kpis", filters, empresaIds, [...visiveis]],
     queryFn: async () => {
-      // Fetch current period
-      const currentData = await fetchKPIData(filters, empresaIds);
+      const currentRaw = await fetchKPIData(filters, empresaIds);
+      const currentData = applyOperacaoFilter(currentRaw, visiveis, multipliers);
 
-      // Fetch previous period (previous month or previous year)
       const prevFilters = { ...filters };
       if (filters.mes) {
-        if (filters.mes === 1) {
-          prevFilters.ano = filters.ano - 1;
-          prevFilters.mes = 12;
-        } else {
-          prevFilters.mes = filters.mes - 1;
-        }
+        if (filters.mes === 1) { prevFilters.ano = filters.ano - 1; prevFilters.mes = 12; }
+        else { prevFilters.mes = filters.mes - 1; }
       } else {
         prevFilters.ano = filters.ano - 1;
       }
-      const prevData = await fetchKPIData(prevFilters, empresaIds);
+      const prevRaw = await fetchKPIData(prevFilters, empresaIds);
+      const prevData = applyOperacaoFilter(prevRaw, visiveis, multipliers);
 
       const totalClientes = await fetchTotalClientes(empresaIds);
 
-      // Aggregate
-      const agg = (rows: any[]) => ({
-        receita: rows.reduce((s, r) => s + (Number(r.receita_total) || 0), 0),
-        pedidos: rows.reduce((s, r) => s + (Number(r.qtde_pedidos) || 0), 0),
-        clientes: new Set(rows.flatMap((r) => r.clientes_ativos ? [r.cod_vend + '-' + r.uf] : [])).size > 0
-          ? rows.reduce((s, r) => s + (Number(r.clientes_ativos) || 0), 0)
-          : 0,
-        itens: rows.reduce((s, r) => s + (Number(r.qtde_itens) || 0), 0),
-      });
-
-      const cur = agg(currentData);
-      const prev = agg(prevData);
-
-      // For clientes_ativos, we need distinct count - the view already groups so we sum
-      // Use a Set-based approach for unique clients across dimensions
-      const clientesAtivos = cur.clientes;
+      const cur = aggRows(currentData, multipliers);
+      const prev = aggRows(prevData, multipliers);
 
       const ticketMedio = cur.pedidos > 0 ? cur.receita / cur.pedidos : 0;
       const prevTicket = prev.pedidos > 0 ? prev.receita / prev.pedidos : 0;
       const mixMedio = cur.pedidos > 0 ? cur.itens / cur.pedidos : 0;
       const prevMix = prev.pedidos > 0 ? prev.itens / prev.pedidos : 0;
-      const positivacao = totalClientes > 0 ? (clientesAtivos / totalClientes) * 100 : 0;
+      const positivacao = totalClientes > 0 ? (cur.clientes / totalClientes) * 100 : 0;
 
       return {
         receita_total: cur.receita,
         qtde_pedidos: cur.pedidos,
         ticket_medio: ticketMedio,
-        clientes_ativos: clientesAtivos,
+        clientes_ativos: cur.clientes,
         qtde_itens: cur.itens,
         mix_medio: mixMedio,
         receita_trend: calcTrend(cur.receita, prev.receita),
@@ -126,6 +141,7 @@ export function useDashboardKPIs(filters: DashboardFilters) {
         positivacao,
       };
     },
+    enabled: loaded,
     staleTime: 5 * 60 * 1000,
   });
 }
