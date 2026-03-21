@@ -646,6 +646,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <ModuleHeader icon={Briefcase} title={t("module.comercial")} isOpen={isModuleOpen} colorKey="comercial" />
             </CollapsibleTrigger>
             <CollapsibleContent>
+               <ScrollArea className="max-h-64">
                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
                 {hasPermission("comercial_dashboard") && (
                   <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
@@ -653,6 +654,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 {hasPermission("comercial_lancamentos") && (
                   <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
                 )}
+                <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart3} title="Painel Executivo" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Performance Vendas" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/clientes" icon={Users} title="Análise Clientes" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/produtos" icon={Package} title="Análise Produtos" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/geografico" icon={MapPin} title="Análise Geográfico" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas e Projeções" colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/inteligencia" icon={Brain} title="Inteligência de Mercado" colorKey="comercial" />
@@ -661,6 +668,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
               </SidebarMenu>
+              </ScrollArea>
             </CollapsibleContent>
           </Collapsible>
         );
