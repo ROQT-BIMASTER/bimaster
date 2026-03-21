@@ -230,6 +230,9 @@ const PRESET_ENDPOINTS = [
   { label: "Parcelas — Incluir", method: "POST" as HttpMethod, path: "/parcelas-api/incluir" },
   { label: "Parcelas — Listar", method: "POST" as HttpMethod, path: "/parcelas-api/listar" },
   { label: "Parcelas — Status", method: "GET" as HttpMethod, path: "/parcelas-api/status" },
+  // Tipos de Atividade
+  { label: "Tipos Atividade — Listar", method: "POST" as HttpMethod, path: "/tipos-atividade-api/listar" },
+  { label: "Tipos Atividade — Status", method: "GET" as HttpMethod, path: "/tipos-atividade-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
