@@ -763,6 +763,10 @@ export default function ApiDocumentation() {
               <Search className="h-3.5 w-3.5" />
               Pesquisar
             </TabsTrigger>
+            <TabsTrigger value="movimentos" className="text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Movimentos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
