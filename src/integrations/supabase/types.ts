@@ -5579,27 +5579,36 @@ export type Database = {
       departamentos: {
         Row: {
           ativo: boolean | null
+          codigo_omie: string | null
           created_at: string | null
           descricao: string | null
+          estrutura: string | null
           id: string
+          nivel_totalizador: string | null
           nome: string
           responsavel_id: string | null
           updated_at: string | null
         }
         Insert: {
           ativo?: boolean | null
+          codigo_omie?: string | null
           created_at?: string | null
           descricao?: string | null
+          estrutura?: string | null
           id?: string
+          nivel_totalizador?: string | null
           nome: string
           responsavel_id?: string | null
           updated_at?: string | null
         }
         Update: {
           ativo?: boolean | null
+          codigo_omie?: string | null
           created_at?: string | null
           descricao?: string | null
+          estrutura?: string | null
           id?: string
+          nivel_totalizador?: string | null
           nome?: string
           responsavel_id?: string | null
           updated_at?: string | null
