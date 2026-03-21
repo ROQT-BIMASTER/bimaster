@@ -1,77 +1,55 @@
 
 
-# Pasta Digital TJSP — Iniciar a partir do Checklist de Documentos (Vincular China)
+# API Tipos de Anexo (ListarTiposAnexos) — Padronização Omie
 
-## Problema atual
+## Resumo
 
-Existe um painel `ChinaPastaDigitalPanel` separado dentro da Ficha do Produto China que duplica documentos da tabela `china_produto_documentos` para uma tabela `china_pasta_digital`. O usuário quer que a Pasta Digital TJSP seja construída diretamente a partir dos uploads do Checklist de Documentos, sem duplicação, e que a entrada principal seja pela tela **Vincular China**.
+Criar tabela lookup `tipos_anexo` e Edge Function `tipos-anexo-api` com rota POST `/listar`. Segue o mesmo padrão de `tipos-atividade-api`.
 
-## Mudanças propostas
+## 1. Migration
 
-### 1. Adicionar aba/seção "Pasta Digital" na tela Vincular China
+```sql
+CREATE TABLE IF NOT EXISTS public.tipos_anexo (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo varchar(10) NOT NULL UNIQUE,
+  descricao varchar(100) NOT NULL,
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
 
-Quando uma submissão é selecionada e está vinculada, exibir uma seção Pasta Digital TJSP abaixo do painel principal (ou como aba) que:
-- Lê diretamente da tabela `china_produto_documentos` (sem duplicar para `china_pasta_digital`)
-- Organiza os documentos por categorias do DOCUMENT_CATEGORIES (que já mapeiam para as fases TJSP)
-- Exibe no layout de árvore hierárquica com painel dividido (visualizador + parecer)
-- Mantém a estética TJSP: fases colapsáveis, contagem de peças, ícone de status de parecer
+ALTER TABLE public.tipos_anexo ENABLE ROW LEVEL SECURITY;
 
-### 2. Criar componente `PastaDigitalFromChecklist`
-
-Novo componente que:
-- Recebe `submissaoId` como prop
-- Usa `useDocumentosDaSubmissao` existente para buscar documentos
-- Agrupa por `DOCUMENT_CATEGORIES` no formato TJSP (árvore de fases)
-- Painel esquerdo: árvore de fases com documentos (colapsáveis)
-- Painel direito: visualizador de documento selecionado
-- Suporta parecer/status já existente nos documentos (`status` field)
-- Botão "Re-importar" atualiza a query
-
-### 3. Remover ChinaPastaDigitalPanel da Ficha do Produto
-
-- Remover o bloco `ChinaPastaDigitalPanel` de `ChinaFichaProduto.tsx`
-- A Pasta Digital agora vive exclusivamente em Vincular China
-- A tabela `china_pasta_digital` permanece no banco (sem migration destrutiva) mas deixa de ser usada
-
-### 4. Integração na tela Vincular China
-
-Adicionar a Pasta Digital como uma seção que aparece quando:
-- Uma submissão está selecionada
-- A submissão possui documentos no checklist
-
-```text
-┌─────────────────────────────────────────────────┐
-│  Vincular Envio China (tela atual)              │
-│  ┌─────────┬──────────────┬────────────┐        │
-│  │Sidebar  │ Submissões   │ Projeto    │        │
-│  │         │              │ & Tarefas  │        │
-│  └─────────┴──────────────┴────────────┘        │
-│                                                  │
-│  ┌──────────────────────────────────────────┐   │
-│  │ 📂 Pasta Digital 数字档案 (TJSP)         │   │
-│  │  ┌─────────────────┬─────────────────┐   │   │
-│  │  │ Árvore de Fases │ Visualizador    │   │   │
-│  │  │ (categorias do  │ (PDF/Imagem)    │   │   │
-│  │  │  checklist)     │                 │   │   │
-│  │  └─────────────────┴─────────────────┘   │   │
-│  └──────────────────────────────────────────┘   │
-│                                                  │
-│  Despachos / Process Orchestration (existente)   │
-└─────────────────────────────────────────────────┘
+CREATE POLICY "authenticated_select_tipos_anexo"
+  ON public.tipos_anexo FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_tipos_anexo"
+  ON public.tipos_anexo FOR INSERT TO authenticated WITH CHECK (true);
 ```
 
-## Arquivos impactados
+## 2. Edge Function: `tipos-anexo-api`
+
+| Rota | Equivalente Omie | Descrição |
+|---|---|---|
+| POST `/listar` | ListarTiposAnexos | Lista tipos com filtro por código |
+| GET `/status` | — | Health check |
+
+### Mapeamento
+
+| Campo Omie | Coluna DB |
+|---|---|
+| `codigo` | `codigo` |
+| `descricao` | `descricao` |
+
+Filtro: campo `codigo` (ILIKE). Body `{ "codigo": "" }`.
+
+Response: `{ "listaTipoAnexo": [{ "codigo": "...", "descricao": "..." }] }`
+
+## 3. Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/china/PastaDigitalFromChecklist.tsx` | Criar — componente TJSP lendo de `china_produto_documentos` |
-| `src/pages/ProjetoVincularChina.tsx` | Editar — adicionar seção Pasta Digital |
-| `src/pages/ChinaFichaProduto.tsx` | Editar — remover `ChinaPastaDigitalPanel` |
-
-## Detalhes técnicos
-
-- Mapeamento de categorias: usa `DOCUMENT_CATEGORIES` existente (Dados Oficiais, Fotos, Imagens Gerais, Rotulagem, Embalagem, Etiquetas, Artes, EANs, Amostras) como "fases" da árvore TJSP
-- Status do documento (`aprovado`, `rejeitado`, `pendente`, `rascunho`) mapeia para os ícones de parecer TJSP
-- Visualizador reutiliza `getSignedUrl` + iframe/img como no `ChinaPastaDigitalPanel` existente
-- Sem migration — apenas mudança de frontend
+| Migration SQL | Criar tabela `tipos_anexo` |
+| `supabase/functions/tipos-anexo-api/index.ts` | Criar (clone de tipos-atividade-api) |
+| `docs/API_TIPOS_ANEXO.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Adicionar presets |
+| `src/components/erp/ApiDocumentation.tsx` | Adicionar seção |
 
