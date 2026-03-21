@@ -1139,6 +1139,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="bandeiras" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Bandeiras de Cartão — ListarBandeiras (Padrão Omie)"
+              basePath="/bandeiras-api"
+              endpoints={bandeirasCrud}
+              description="Lista paginada de bandeiras de cartão de crédito/débito"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
