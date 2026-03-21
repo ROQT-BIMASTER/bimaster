@@ -874,6 +874,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="pesquisar" className="space-y-1">
+            <ApiSection
+              icon={<Search className="h-4 w-4 text-primary" />}
+              title="Pesquisa Avançada de Títulos (Padrão Omie)"
+              basePath="/pesquisar-lancamentos-api"
+              endpoints={pesquisarLancamentosCrud}
+              description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
