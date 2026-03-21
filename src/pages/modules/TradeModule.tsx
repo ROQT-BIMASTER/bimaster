@@ -22,6 +22,7 @@ import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
+import { LancamentosRecentes } from "@/components/trade/LancamentosRecentes";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -120,7 +121,8 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-
+        {/* Lançamentos Recentes */}
+        <LancamentosRecentes />
 
         {/* Banner Carousel */}
         <TradeHeroBanner />
