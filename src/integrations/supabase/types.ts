@@ -26668,24 +26668,33 @@ export type Database = {
           categoria_dre: string | null
           centro_custo: string | null
           code: string
+          codigo_dre: string | null
+          codigo_integracao: string | null
           created_at: string | null
+          definida_pelo_usuario: string | null
           departamento: string | null
           departamento_confianca: number | null
           departamento_definido_manualmente: boolean | null
           departamento_id: string | null
+          descricao_padrao: string | null
           description: string | null
           erp_code: string | null
           erp_sync_status: string | null
           erp_synced_at: string | null
           id: string
+          id_conta_contabil: number | null
           is_active: boolean | null
           is_group: boolean | null
           name: string
+          nao_exibir: string | null
           natureza: string | null
           nivel: number | null
           ordem: number | null
           parent_account_id: string | null
           permite_lancamento: boolean | null
+          tag_conta_contabil: string | null
+          tipo_categoria: string | null
+          transferencia: string | null
           updated_at: string | null
         }
         Insert: {
@@ -26693,24 +26702,33 @@ export type Database = {
           categoria_dre?: string | null
           centro_custo?: string | null
           code: string
+          codigo_dre?: string | null
+          codigo_integracao?: string | null
           created_at?: string | null
+          definida_pelo_usuario?: string | null
           departamento?: string | null
           departamento_confianca?: number | null
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
+          descricao_padrao?: string | null
           description?: string | null
           erp_code?: string | null
           erp_sync_status?: string | null
           erp_synced_at?: string | null
           id?: string
+          id_conta_contabil?: number | null
           is_active?: boolean | null
           is_group?: boolean | null
           name: string
+          nao_exibir?: string | null
           natureza?: string | null
           nivel?: number | null
           ordem?: number | null
           parent_account_id?: string | null
           permite_lancamento?: boolean | null
+          tag_conta_contabil?: string | null
+          tipo_categoria?: string | null
+          transferencia?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -26718,24 +26736,33 @@ export type Database = {
           categoria_dre?: string | null
           centro_custo?: string | null
           code?: string
+          codigo_dre?: string | null
+          codigo_integracao?: string | null
           created_at?: string | null
+          definida_pelo_usuario?: string | null
           departamento?: string | null
           departamento_confianca?: number | null
           departamento_definido_manualmente?: boolean | null
           departamento_id?: string | null
+          descricao_padrao?: string | null
           description?: string | null
           erp_code?: string | null
           erp_sync_status?: string | null
           erp_synced_at?: string | null
           id?: string
+          id_conta_contabil?: number | null
           is_active?: boolean | null
           is_group?: boolean | null
           name?: string
+          nao_exibir?: string | null
           natureza?: string | null
           nivel?: number | null
           ordem?: number | null
           parent_account_id?: string | null
           permite_lancamento?: boolean | null
+          tag_conta_contabil?: string | null
+          tipo_categoria?: string | null
+          transferencia?: string | null
           updated_at?: string | null
         }
         Relationships: [

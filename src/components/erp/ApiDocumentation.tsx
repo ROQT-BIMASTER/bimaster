@@ -558,6 +558,41 @@ const departamentosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const categoriasCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir nova categoria (IncluirCategoria)", tag: "novo",
+    body: `{ "descricao": "Serviços Terceiros", "tipo_categoria": "D", "natureza": "Despesas com serviços", "codigo_dre": "3.01.01", "categoria_superior": "" }`,
+    response: `{ "codigo": "CAT-xxx", "codigo_status": "0", "descricao_status": "Categoria incluída com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/incluir-grupo", description: "Incluir grupo totalizador (IncluirGrupoCategoria)", tag: "novo",
+    body: `{ "descricao": "Despesas Operacionais", "tipo_grupo": "D", "natureza": "Grupo de despesas operacionais" }`,
+    response: `{ "codigo": "GRP-xxx", "codigo_status": "0", "descricao_status": "Grupo de categoria incluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar categoria (AlterarCategoria)", tag: "novo",
+    body: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "tipo_categoria": "D" }`,
+    response: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "codigo_status": "0", "descricao_status": "Categoria alterada com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar-grupo", description: "Alterar grupo totalizador (AlterarGrupoCategoria)", tag: "novo",
+    body: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado" }`,
+    response: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado", "codigo_status": "0", "descricao_status": "Grupo alterado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar categoria por código (ConsultarCategoria)", tag: "novo",
+    body: `{ "codigo": "CAT-001" }`,
+    response: `{ "categoria_cadastro": { "codigo": "CAT-001", "descricao": "Serviços Terceiros", "tipo_categoria": "D", "conta_inativa": "N", "totalizadora": "N", "dadosDRE": { "codigoDRE": "3.01.01" } } }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar categorias paginadas (ListarCategorias)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_apenas_ativo": "S", "filtrar_por_tipo": "" }`,
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "categoria_cadastro": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
@@ -1115,6 +1150,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Departamentos
             </TabsTrigger>
+            <TabsTrigger value="categorias" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Categorias
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1314,6 +1353,16 @@ export default function ApiDocumentation() {
               basePath="/departamentos-api"
               endpoints={departamentosCrud}
               description="Incluir, alterar, consultar, excluir e listar departamentos — formato Omie"
+            />
+          </TabsContent>
+
+          <TabsContent value="categorias" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Categorias — CRUD Completo (Padrão Omie)"
+              basePath="/categorias-api"
+              endpoints={categoriasCrud}
+              description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — formato Omie"
             />
           </TabsContent>
 

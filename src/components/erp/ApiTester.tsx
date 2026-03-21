@@ -218,6 +218,14 @@ const PRESET_ENDPOINTS = [
   { label: "Departamentos — Excluir", method: "POST" as HttpMethod, path: "/departamentos-api/excluir" },
   { label: "Departamentos — Listar", method: "POST" as HttpMethod, path: "/departamentos-api/listar" },
   { label: "Departamentos — Status", method: "GET" as HttpMethod, path: "/departamentos-api/status" },
+  // Categorias (CRUD Completo)
+  { label: "Categorias — Incluir", method: "POST" as HttpMethod, path: "/categorias-api/incluir" },
+  { label: "Categorias — Incluir Grupo", method: "POST" as HttpMethod, path: "/categorias-api/incluir-grupo" },
+  { label: "Categorias — Alterar", method: "POST" as HttpMethod, path: "/categorias-api/alterar" },
+  { label: "Categorias — Alterar Grupo", method: "POST" as HttpMethod, path: "/categorias-api/alterar-grupo" },
+  { label: "Categorias — Consultar", method: "POST" as HttpMethod, path: "/categorias-api/consultar" },
+  { label: "Categorias — Listar", method: "POST" as HttpMethod, path: "/categorias-api/listar" },
+  { label: "Categorias — Status", method: "GET" as HttpMethod, path: "/categorias-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -310,6 +318,13 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/departamentos-api/consultar": JSON.stringify({ codigo: "000000000723648" }, null, 2),
   "/departamentos-api/excluir": JSON.stringify({ codigo: "000000000723648" }, null, 2),
   "/departamentos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
+  // Categorias
+  "/categorias-api/incluir": JSON.stringify({ descricao: "Serviços Terceiros", tipo_categoria: "D", natureza: "Despesas com serviços de terceiros", codigo_dre: "3.01.01", categoria_superior: "" }, null, 2),
+  "/categorias-api/incluir-grupo": JSON.stringify({ descricao: "Despesas Operacionais", tipo_grupo: "D", natureza: "Grupo de despesas operacionais" }, null, 2),
+  "/categorias-api/alterar": JSON.stringify({ codigo: "CAT-001", descricao: "Serviços Terceiros Atualizado", tipo_categoria: "D" }, null, 2),
+  "/categorias-api/alterar-grupo": JSON.stringify({ codigo: "GRP-001", descricao: "Despesas Operacionais Atualizado" }, null, 2),
+  "/categorias-api/consultar": JSON.stringify({ codigo: "CAT-001" }, null, 2),
+  "/categorias-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, filtrar_apenas_ativo: "S", filtrar_por_tipo: "" }, null, 2),
 };
 
 export default function ApiTester() {
