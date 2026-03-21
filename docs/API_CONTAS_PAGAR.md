@@ -10,7 +10,156 @@ Todas as requisições exigem **API Key** ou **JWT**:
 
 ---
 
-## Endpoints de Sync (ERP → BiMaster)
+## Rotas Omie-Style (NOVO)
+
+### GET /consultar — Consultar título
+
+```
+GET /contas-pagar-api/consultar?codigo_lancamento_integracao=INT-001
+```
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `id` | UUID | ID interno |
+| `codigo_lancamento_integracao` | string | Código de integração |
+| `codigo_lancamento_omie` | integer | Código numérico Omie |
+
+### POST /incluir — Incluir título (IncluirContaPagar)
+
+```json
+{
+  "codigo_lancamento_integracao": "INT-001",
+  "codigo_cliente_fornecedor": 4214850,
+  "data_vencimento": "21/03/2026",
+  "valor_documento": 100,
+  "codigo_categoria": "2.04.01",
+  "data_previsao": "21/03/2026",
+  "id_conta_corrente": 4243124
+}
+```
+
+**Resposta:**
+```json
+{
+  "codigo_lancamento_omie": null,
+  "codigo_lancamento_integracao": "INT-001",
+  "codigo_status": "0",
+  "descricao_status": "Cadastro incluído com sucesso!"
+}
+```
+
+### PUT /alterar — Alterar título (AlterarContaPagar)
+
+```json
+{
+  "codigo_lancamento_integracao": "INT-001",
+  "valor_documento": 150,
+  "data_vencimento": "30/04/2026"
+}
+```
+
+### DELETE /excluir — Excluir título (ExcluirContaPagar)
+
+```
+DELETE /contas-pagar-api/excluir?codigo_lancamento_integracao=INT-001
+```
+
+### POST /upsert — Upsert unitário (UpsertContaPagar)
+
+```json
+{
+  "codigo_lancamento_integracao": "INT-001",
+  "empresa_id": 8,
+  "codigo_cliente_fornecedor": 4214850,
+  "data_vencimento": "21/03/2026",
+  "valor_documento": 100,
+  "codigo_categoria": "2.04.01"
+}
+```
+
+### POST /upsert-lote — Upsert em lote (UpsertContaPagarPorLote)
+
+```json
+{
+  "lote": 1,
+  "conta_pagar_cadastro": [
+    { "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "valor_documento": 100 }
+  ]
+}
+```
+
+Máximo: **500 registros por lote**.
+
+### POST /lancar-pagamento — Baixa (LancarPagamento)
+
+```json
+{
+  "codigo_lancamento_integracao": "INT-001",
+  "valor": 100.20,
+  "desconto": 0,
+  "juros": 0,
+  "multa": 0,
+  "data": "21/03/2026",
+  "observacao": "Baixa via API"
+}
+```
+
+**Resposta:**
+```json
+{
+  "codigo_lancamento_integracao": "INT-001",
+  "codigo_baixa": "uuid",
+  "liquidado": "S",
+  "valor_baixado": 100.20,
+  "codigo_status": "0",
+  "descricao_status": "Pagamento registrado com sucesso!"
+}
+```
+
+### POST /cancelar-pagamento — Cancelar baixa (CancelarPagamento)
+
+```json
+{ "codigo_baixa": "uuid-pagamento" }
+```
+
+### GET /listar — Listagem paginada (ListarContasPagar)
+
+```
+GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status=pendente
+```
+
+| Parâmetro | Tipo | Default | Descrição |
+|-----------|------|---------|-----------|
+| `pagina` | integer | 1 | Número da página |
+| `registros_por_pagina` | integer | 20 | Registros por página (máx 500) |
+| `apenas_importado_api` | string | — | Filtrar importados (S/N) |
+| `filtrar_por_status` | string | — | Status (vírgula para múltiplos) |
+| `filtrar_por_data_de` | date | — | Vencimento a partir de |
+| `filtrar_por_data_ate` | date | — | Vencimento até |
+| `filtrar_conta_corrente` | integer | — | Código da conta corrente |
+| `filtrar_cliente` | integer | — | Código do fornecedor |
+| `filtrar_por_projeto` | integer | — | Código do projeto |
+| `filtrar_por_vendedor` | integer | — | Código do vendedor |
+| `ordenar_por` | string | data_vencimento | Campo de ordenação |
+| `ordem_descrescente` | string | — | S para decrescente |
+| `exibir_obs` | string | N | Exibir observações (S/N) |
+
+**Resposta:**
+```json
+{
+  "pagina": 1,
+  "total_de_paginas": 5,
+  "registros": 20,
+  "total_de_registros": 100,
+  "conta_pagar_cadastro": [...]
+}
+```
+
+---
+
+## Endpoints Legados (Sync & CRUD)
+
+### Endpoints de Sync (ERP → BiMaster)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -20,180 +169,63 @@ Todas as requisições exigem **API Key** ou **JWT**:
 | POST | `/sync-complete` | Finalizar sync multi-chunk |
 | POST | `/trigger-n8n` | Disparar sync via webhook N8N |
 
----
+### Endpoints de Consulta
 
-## Endpoints de Consulta
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/` | Listar últimos 100 títulos |
+| GET | `/query` | Consulta avançada com filtros |
+| GET | `/status` | Status da API |
+| GET | `/stats` | Estatísticas de sync |
+| GET | `/last-sync` | Última data de sync |
+| GET | `/parcelas` | Parcelas de um título |
+| GET | `/pagamentos` | Histórico de pagamentos |
+| GET | `/anexos` | Comprovantes de um título |
 
-### GET /query — Consulta avançada com filtros
+### Endpoints de Escrita
 
-```
-GET /contas-pagar-api/query?empresa_id=8&status=pendente,vencido&vencimento_de=2026-01-01&limit=500
-```
-
-**Query Parameters:**
-| Parâmetro | Tipo | Default | Descrição |
-|-----------|------|---------|-----------|
-| `empresa_id` | string | — | Filtrar por empresa |
-| `fornecedor_codigo` | string | — | Código do fornecedor |
-| `status` | string | — | Status (vírgula para múltiplos: `pendente,vencido`) |
-| `vencimento_de` | date | — | Vencimento a partir de (YYYY-MM-DD) |
-| `vencimento_ate` | date | — | Vencimento até (YYYY-MM-DD) |
-| `emissao_de` | date | — | Emissão a partir de |
-| `emissao_ate` | date | — | Emissão até |
-| `limit` | number | 100 | Máx registros (teto: 1000) |
-| `offset` | number | 0 | Paginação |
-| `order_by` | string | `data_vencimento` | Campo de ordenação |
-| `order_dir` | string | `desc` | `asc` ou `desc` |
-
-**Resposta:**
-```json
-{
-  "data": [...],
-  "pagination": { "total": 1500, "limit": 100, "offset": 0, "has_more": true },
-  "meta": { "duration_ms": 45, "processed_at": "2026-03-21T..." }
-}
-```
-
-### GET /parcelas — Parcelas de um título
-
-```
-GET /contas-pagar-api/parcelas?conta_pagar_id=uuid&limit=100&offset=0
-```
-
-### GET /pagamentos — Histórico de pagamentos
-
-```
-GET /contas-pagar-api/pagamentos?conta_pagar_id=uuid
-```
-
-### GET /anexos — Comprovantes de um título
-
-```
-GET /contas-pagar-api/anexos?conta_pagar_id=uuid
-```
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| PUT | `/update` | Atualizar título |
+| POST | `/cancelar` | Cancelar título(s) |
+| POST | `/registrar-pagamento` | Registrar baixa |
+| POST | `/estornar` | Estornar pagamento |
+| POST | `/parcelas/sync` | Sync parcelas do ERP |
+| POST | `/anexos` | Registrar comprovante |
 
 ---
 
-## Endpoints de Escrita
+## Campos Tributários (Impostos Retidos)
 
-### PUT /update — Atualizar título
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `valor_pis` | decimal | Valor do PIS |
+| `retem_pis` | boolean | Reter PIS |
+| `valor_cofins` | decimal | Valor do COFINS |
+| `retem_cofins` | boolean | Reter COFINS |
+| `valor_csll` | decimal | Valor CSLL |
+| `retem_csll` | boolean | Reter CSLL |
+| `valor_ir` | decimal | Valor IR |
+| `retem_ir` | boolean | Reter IR |
+| `valor_iss` | decimal | Valor ISS |
+| `retem_iss` | boolean | Reter ISS |
+| `valor_inss` | decimal | Valor INSS |
+| `retem_inss` | boolean | Reter INSS |
 
-```bash
-curl -X PUT -H "x-api-key: KEY" -H "Content-Type: application/json" \
-  -d '{"id": "uuid", "data_vencimento": "2026-04-15", "portador": "Banco Itaú"}' \
-  .../contas-pagar-api/update
-```
+## Campos CNAB / Bancário
 
-**Campos permitidos:** `valor_original`, `valor_aberto`, `valor_pago`, `valor_juros`, `valor_desconto`, `valor_ajustes`, `data_vencimento`, `data_pagamento`, `portador`, `conta`, `categoria_codigo`, `categoria_nome`, `status`, `observacao`, `numero_documento`, `tipo_documento`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `codigo_barras_ficha_compensacao` | string(70) | Código de barras do boleto |
+| `cnab_dados` | JSONB | Dados CNAB (forma_pagamento, banco_transferencia, pix_qrcode) |
 
-**Resposta:**
-```json
-{
-  "success": true,
-  "data": { "id": "uuid", ... },
-  "meta": { "duration_ms": 30 }
-}
-```
+## Rateios
 
-### POST /cancelar — Cancelar título(s)
-
-```json
-POST /contas-pagar-api/cancelar
-{
-  "ids": ["uuid-1", "uuid-2"],
-  "motivo": "Duplicidade de lançamento"
-}
-```
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | string | Sim* | ID único (ou use `ids`) |
-| `ids` | string[] | Sim* | IDs múltiplos |
-| `motivo` | string | Sim | Justificativa obrigatória |
-
-### POST /registrar-pagamento — Baixa via API
-
-```json
-POST /contas-pagar-api/registrar-pagamento
-{
-  "conta_pagar_id": "uuid",
-  "valor_pago": 1500.00,
-  "data_pagamento": "2026-03-21",
-  "metodo_pagamento": "PIX",
-  "observacao": "Pagamento via ERP"
-}
-```
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `conta_pagar_id` | UUID | Sim | ID do título |
-| `valor_pago` | number | Sim | Valor pago |
-| `data_pagamento` | date | Não | Default: hoje |
-| `metodo_pagamento` | string | Não | PIX, TED, Boleto... |
-| `observacao` | string | Não | Notas |
-
-**Comportamento:** Insere em `pagamentos`, atualiza `valor_pago`/`valor_aberto`/`status` no título. Se `valor_aberto <= 0`, status → `pago`.
-
-### POST /estornar — Estorno de pagamento
-
-```json
-POST /contas-pagar-api/estornar
-{
-  "id": "uuid-conta-pagar",
-  "motivo": "Pagamento devolvido pelo banco",
-  "valor_estorno": 500.00
-}
-```
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | ID do título |
-| `motivo` | string | Sim | Justificativa |
-| `valor_estorno` | number | Não | Default: valor total pago |
-
-### POST /parcelas/sync — Sync parcelas do ERP
-
-```json
-POST /contas-pagar-api/parcelas/sync
-{
-  "parcelas": [
-    { "conta_pagar_id": "uuid", "numero_parcela": 1, "valor": 500, "data_vencimento": "2026-04-01" },
-    { "conta_pagar_id": "uuid", "numero_parcela": 2, "valor": 500, "data_vencimento": "2026-05-01" }
-  ]
-}
-```
-
-Máximo: **5000 parcelas por request**.
-
-### POST /anexos — Registrar comprovante
-
-```json
-POST /contas-pagar-api/anexos
-{
-  "conta_pagar_id": "uuid",
-  "nome_arquivo": "comprovante_pix.pdf",
-  "tipo": "application/pdf",
-  "url": "https://storage.../comprovante.pdf",
-  "observacao": "Comprovante PIX"
-}
-```
-
----
-
-## Códigos de Erro
-
-| Status | Código | Descrição |
-|--------|--------|-----------|
-| 400 | `campo_obrigatorio` | Campo obrigatório ausente |
-| 400 | `sem_alteracoes` | Nenhum campo válido no update |
-| 400 | `payload_invalido` | Payload não é array válido |
-| 400 | `titulo_cancelado` | Operação bloqueada em título cancelado |
-| 400 | `status_invalido` | Status não permite a operação |
-| 401 | `Unauthorized` | API key ou JWT inválido |
-| 404 | `nao_encontrado` | Título não encontrado |
-| 413 | `payload_excedido` | Array excede limite máximo |
-| 429 | — | Rate limit excedido |
-| 500 | — | Erro interno |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `rateio_categorias` | JSONB | Array de rateio por categorias |
+| `rateio_departamentos` | JSONB | Array de rateio por departamentos |
+| `servico_tomado` | JSONB | Dados do serviço tomado (NF, CST, alíquotas) |
 
 ---
 
@@ -203,10 +235,11 @@ POST /contas-pagar-api/anexos
 |--------|------|------|-----------|
 | GET | `/` | JWT/Key | Listar últimos 100 títulos |
 | GET | `/query` | JWT/Key | Consulta avançada com filtros |
+| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Omie) |
+| GET | `/listar` | JWT/Key | Listagem paginada Omie-style |
 | GET | `/status` | Key | Status da API |
 | GET | `/stats` | JWT/Key | Estatísticas de sync |
 | GET | `/last-sync` | Key | Última data de sync |
-| GET | `/chunks-progress` | JWT/Key | Progresso de chunks |
 | GET | `/parcelas` | JWT/Key | Parcelas de um título |
 | GET | `/pagamentos` | JWT/Key | Histórico de pagamentos |
 | GET | `/anexos` | JWT/Key | Comprovantes de um título |
@@ -215,10 +248,16 @@ POST /contas-pagar-api/anexos
 | POST | `/sync-incremental` | Key | Sync incremental |
 | POST | `/sync-complete` | Key | Finalizar sync |
 | POST | `/trigger-n8n` | JWT/Key | Disparar N8N |
-| POST | `/debug-payload` | Key | Debug de payload |
+| POST | `/incluir` | JWT/Key | Incluir título (Omie) |
+| POST | `/upsert` | JWT/Key | Upsert unitário (Omie) |
+| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Omie) |
+| POST | `/lancar-pagamento` | JWT/Key | Baixa Omie-style |
+| POST | `/cancelar-pagamento` | JWT/Key | Cancelar baixa (Omie) |
 | POST | `/registrar-pagamento` | JWT/Key | Registrar baixa |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
 | POST | `/estornar` | JWT/Key | Estornar pagamento |
 | POST | `/parcelas/sync` | Key | Sync parcelas |
 | POST | `/anexos` | JWT/Key | Registrar comprovante |
 | PUT | `/update` | JWT/Key | Atualizar título |
+| PUT | `/alterar` | JWT/Key | Alterar título (Omie) |
+| DELETE | `/excluir` | JWT/Key | Excluir título (Omie) |
