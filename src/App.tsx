@@ -478,6 +478,9 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ChinaSubmissaoDetalhe /></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ChinaFichaProduto /></ModuleRoute>} />
 
+            {/* Painel Executivo */}
+            <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
+
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
             <Route path="/dashboard/comercial/lancamentos" element={<ScreenRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenRoute>} />
