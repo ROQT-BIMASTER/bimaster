@@ -199,6 +199,14 @@ const PRESET_ENDPOINTS = [
   { label: "Tags Cliente — Listar", method: "POST" as HttpMethod, path: "/clientes-api/tags/listar" },
   { label: "Tags Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir" },
   { label: "Tags Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir-todas" },
+  // Projetos (CRUD Completo)
+  { label: "Projetos — Incluir", method: "POST" as HttpMethod, path: "/projetos-api/incluir" },
+  { label: "Projetos — Alterar", method: "POST" as HttpMethod, path: "/projetos-api/alterar" },
+  { label: "Projetos — Consultar", method: "POST" as HttpMethod, path: "/projetos-api/consultar" },
+  { label: "Projetos — Excluir", method: "POST" as HttpMethod, path: "/projetos-api/excluir" },
+  { label: "Projetos — Listar", method: "POST" as HttpMethod, path: "/projetos-api/listar" },
+  { label: "Projetos — Upsert", method: "POST" as HttpMethod, path: "/projetos-api/upsert" },
+  { label: "Projetos — Status", method: "GET" as HttpMethod, path: "/projetos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
