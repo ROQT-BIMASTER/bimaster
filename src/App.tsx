@@ -69,6 +69,7 @@ const Atividades = lazyWithRetry(() => import("./pages/Atividades"));
 const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const MenuConfig = lazyWithRetry(() => import("./pages/dashboard/configuracoes/MenuConfig"));
 const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configuracoes/PermissoesModulo"));
+const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
