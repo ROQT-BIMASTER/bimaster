@@ -188,6 +188,12 @@ const PRESET_ENDPOINTS = [
   { label: "Clientes — Upsert CPF/CNPJ", method: "POST" as HttpMethod, path: "/clientes-api/upsert-cpfcnpj" },
   { label: "Clientes — Associar Código", method: "POST" as HttpMethod, path: "/clientes-api/associar" },
   { label: "Clientes — Status", method: "GET" as HttpMethod, path: "/clientes-api/status" },
+  // Características de Clientes
+  { label: "Caract. Cliente — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/incluir" },
+  { label: "Caract. Cliente — Alterar", method: "POST" as HttpMethod, path: "/clientes-api/caract/alterar" },
+  { label: "Caract. Cliente — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/caract/consultar" },
+  { label: "Caract. Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir" },
+  { label: "Caract. Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir-todas" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
