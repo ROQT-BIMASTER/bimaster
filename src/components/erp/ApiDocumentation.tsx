@@ -121,7 +121,7 @@ const contasPagarIntegracao: Endpoint[] = [
     response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
   },
   {
-    method: "GET", path: "/listar", description: "Listagem paginada Integração (ListarContasPagar)", tag: "novo",
+    method: "GET", path: "/listar", description: "Listagem paginada (ListarContasPagar)", tag: "novo",
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
@@ -288,7 +288,7 @@ const lancamentosCcCrud: Endpoint[] = [
     params: [
       { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "nCodCC", type: "integer", required: false, description: "Filtro por conta corrente (código Huggs)" },
+      { name: "nCodCC", type: "integer", required: false, description: "Código da conta corrente)" },
       { name: "cOrigem", type: "string", required: false, description: "Filtro por origem: MANU, CONP, CONR, TRAN" },
       { name: "dtPagInicial", type: "date", required: false, description: "Data do lançamento inicial" },
       { name: "dtPagFinal", type: "date", required: false, description: "Data do lançamento final" },
@@ -409,7 +409,7 @@ const contasReceberIntegracao: Endpoint[] = [
     body: `{ "chave_lancamento": 0 }`,
   },
   {
-    method: "GET", path: "/listar", description: "Listagem paginada Integração (ListarContasReceber)", tag: "novo",
+    method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo",
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
@@ -1380,7 +1380,7 @@ export default function ApiDocumentation() {
           <TabsContent value="contas-correntes" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync (API Huggs)"
+              title="CRUD & Sync"
               basePath="/contas-correntes-api"
               endpoints={contasCorrentesCrud}
               description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
@@ -1390,7 +1390,7 @@ export default function ApiDocumentation() {
           <TabsContent value="lancamentos-cc" className="space-y-1">
             <ApiSection
               icon={<ArrowDownToLine className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync — Lançamentos de Conta Corrente (API Huggs)"
+              title="CRUD & Sync — Lançamentos de Conta Corrente"
               basePath="/lancamentos-cc-api"
               endpoints={lancamentosCcCrud}
               description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
@@ -1400,7 +1400,7 @@ export default function ApiDocumentation() {
           <TabsContent value="boletos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Boletos — Cobrança Bancária (API Huggs)"
+              title="Boletos — Cobrança Bancária"
               basePath="/boletos-api"
               endpoints={boletosCrud}
               description="Gerar, obter, cancelar e prorrogar boletos vinculados a títulos do Contas a Receber"
@@ -1410,7 +1410,7 @@ export default function ApiDocumentation() {
           <TabsContent value="anexos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Anexos de Documentos (API Huggs)"
+              title="Anexos de Documentos"
               basePath="/anexos-api"
               endpoints={anexosCrud}
               description="Incluir, consultar, obter link, listar e excluir anexos vinculados a qualquer documento"
@@ -1420,7 +1420,7 @@ export default function ApiDocumentation() {
           <TabsContent value="orcamentos" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Orçamento de Caixa — Previsto x Realizado (API Huggs)"
+              title="Orçamento de Caixa — Previsto x Realizado"
               basePath="/orcamentos-caixa-api"
               endpoints={orcamentosCaixaCrud}
               description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
@@ -1430,7 +1430,7 @@ export default function ApiDocumentation() {
           <TabsContent value="pesquisar" className="space-y-1">
             <ApiSection
               icon={<Search className="h-4 w-4 text-primary" />}
-              title="Pesquisa Avançada de Títulos (API Huggs)"
+              title="Pesquisa Avançada de Títulos"
               basePath="/pesquisar-lancamentos-api"
               endpoints={pesquisarLancamentosCrud}
               description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
@@ -1440,7 +1440,7 @@ export default function ApiDocumentation() {
           <TabsContent value="movimentos" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Movimentação Financeira Unificada (API Huggs)"
+              title="Movimentação Financeira Unificada"
               basePath="/movimentos-financeiros-api"
               endpoints={movimentosFinanceirosCrud}
               description="Listagem consolidada de Contas a Pagar, Contas a Receber e Lançamentos CC — cada baixa/lançamento como linha individual"
@@ -1450,7 +1450,7 @@ export default function ApiDocumentation() {
           <TabsContent value="resumo-fin" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Resumo Financeiro — Dashboard (API Huggs)"
+              title="Resumo Financeiro — Dashboard"
               basePath="/resumo-financeiro-api"
               endpoints={resumoFinanceiroCrud}
               description="Resumo consolidado, lista em aberto, detalhes de lançamentos e lista de finanças por categoria"
@@ -1460,7 +1460,7 @@ export default function ApiDocumentation() {
           <TabsContent value="bancos" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Bancos — ConsultarBanco + ListarBancos (API Huggs)"
+              title="Bancos — ConsultarBanco + ListarBancos"
               basePath="/bancos-api"
               endpoints={bancosCrud}
               description="Consulta e listagem de bancos/instituições financeiras cadastradas"
@@ -1470,7 +1470,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-doc" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento (API Huggs)"
+              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento"
               basePath="/tipos-documento-api"
               endpoints={tiposDocumentoCrud}
               description="Consulta e pesquisa de tipos de documento cadastrados"
@@ -1480,7 +1480,7 @@ export default function ApiDocumentation() {
           <TabsContent value="projetos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Projetos — CRUD Completo (API Huggs)"
+              title="Projetos — CRUD Completo"
               basePath="/projetos-api"
               endpoints={projetosCrud}
               description="Incluir, alterar, consultar, excluir, listar e upsert projetos — "
@@ -1490,7 +1490,7 @@ export default function ApiDocumentation() {
           <TabsContent value="departamentos" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Departamentos — CRUD Completo (API Huggs)"
+              title="Departamentos — CRUD Completo"
               basePath="/departamentos-api"
               endpoints={departamentosCrud}
               description="Incluir, alterar, consultar, excluir e listar departamentos — "
@@ -1500,7 +1500,7 @@ export default function ApiDocumentation() {
           <TabsContent value="categorias" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Categorias — CRUD Completo (API Huggs)"
+              title="Categorias — CRUD Completo"
               basePath="/categorias-api"
               endpoints={categoriasCrud}
               description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — "
@@ -1510,7 +1510,7 @@ export default function ApiDocumentation() {
           <TabsContent value="parcelas" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Parcelas — IncluirParcela + ListarParcelas (API Huggs)"
+              title="Parcelas — IncluirParcela + ListarParcelas"
               basePath="/parcelas-api"
               endpoints={parcelasCrud}
               description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
@@ -1520,7 +1520,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-atividade" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Atividade — ListarTipoAtiv (API Huggs)"
+              title="Tipos de Atividade — ListarTipoAtiv"
               basePath="/tipos-atividade-api"
               endpoints={tiposAtividadeCrud}
               description="Listar tipos de atividade da empresa (código 1 char + descrição)"
@@ -1530,7 +1530,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-anexo" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Anexo — ListarTiposAnexos (API Huggs)"
+              title="Tipos de Anexo — ListarTiposAnexos"
               basePath="/tipos-anexo-api"
               endpoints={tiposAnexoCrud}
               description="Lista de tipos de documentos anexos (código + descrição)"
@@ -1540,7 +1540,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-entrega" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Entrega — CRUD Completo (API Huggs)"
+              title="Tipos de Entrega — CRUD Completo"
               basePath="/tipos-entrega-api"
               endpoints={tiposEntregaCrud}
               description="Incluir, alterar, consultar, excluir e listar tipos de entrega vinculados a transportadora"
@@ -1550,7 +1550,7 @@ export default function ApiDocumentation() {
           <TabsContent value="cnae" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="CNAE — ListarCNAE (API Huggs)"
+              title="CNAE — ListarCNAE"
               basePath="/cnae-api"
               endpoints={cnaeCrud}
               description="Lista paginada de códigos CNAE com ordenação"
@@ -1560,7 +1560,7 @@ export default function ApiDocumentation() {
           <TabsContent value="cidades" className="space-y-1">
             <ApiSection
               icon={<Search className="h-4 w-4 text-primary" />}
-              title="Cidades — PesquisarCidades (API Huggs)"
+              title="Cidades — PesquisarCidades"
               basePath="/cidades-api"
               endpoints={cidadesCrud}
               description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
@@ -1570,7 +1570,7 @@ export default function ApiDocumentation() {
           <TabsContent value="paises" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Países — ListarPaises (API Huggs)"
+              title="Países — ListarPaises"
               basePath="/paises-api"
               endpoints={paisesCrud}
               description="Lista de países cadastrados com código IBGE, descrição e código ISO"
@@ -1580,7 +1580,7 @@ export default function ApiDocumentation() {
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Empresas — ConsultarEmpresa + ListarEmpresas (API Huggs)"
+              title="Empresas — ConsultarEmpresa + ListarEmpresas"
               basePath="/empresas-api"
               endpoints={empresasCrud}
               description="Consulta e listagem paginada de empresas cadastradas"
@@ -1590,7 +1590,7 @@ export default function ApiDocumentation() {
           <TabsContent value="dre-cadastro" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="DRE — ListarCadastroDRE (API Huggs)"
+              title="DRE — ListarCadastroDRE"
               basePath="/dre-cadastro-api"
               endpoints={dreCadastroCrud}
               description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
@@ -1600,7 +1600,7 @@ export default function ApiDocumentation() {
           <TabsContent value="final-transf" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf (API Huggs)"
+              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf"
               basePath="/finalidades-transferencia-api"
               endpoints={finalidadesTransfCrud}
               description="Consulta e listagem paginada de finalidades de transferência bancária"
@@ -1610,7 +1610,7 @@ export default function ApiDocumentation() {
           <TabsContent value="origens" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Origens de Lançamento — ListarOrigem (API Huggs)"
+              title="Origens de Lançamento — ListarOrigem"
               basePath="/origens-api"
               endpoints={origensCrud}
               description="Listagem de origens de lançamento com filtro por código"
@@ -1620,7 +1620,7 @@ export default function ApiDocumentation() {
           <TabsContent value="bandeiras" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Bandeiras de Cartão — ListarBandeiras (API Huggs)"
+              title="Bandeiras de Cartão — ListarBandeiras"
               basePath="/bandeiras-api"
               endpoints={bandeirasCrud}
               description="Lista paginada de bandeiras de cartão de crédito/débito"
@@ -1630,21 +1630,21 @@ export default function ApiDocumentation() {
           <TabsContent value="clientes" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Clientes — CRUD Completo (API Huggs)"
+              title="Clientes — CRUD Completo"
               basePath="/clientes-api"
               endpoints={clientesCrud}
               description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — "
             />
             <ApiSection
               icon={<FileText className="h-4 w-4 text-amber-500" />}
-              title="Características de Clientes (API Huggs)"
+              title="Características de Clientes"
               basePath="/clientes-api"
               endpoints={clientesCaractCrud}
               description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
             />
             <ApiSection
               icon={<FileText className="h-4 w-4 text-emerald-500" />}
-              title="Tags de Clientes (API Huggs)"
+              title="Tags de Clientes"
               basePath="/clientes-api"
               endpoints={clientesTagsCrud}
               description="Associar, listar e remover tags de clientes/fornecedores"
