@@ -166,6 +166,10 @@ const PRESET_ENDPOINTS = [
   { label: "DRE — Listar Ativas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
   { label: "DRE — Listar Todas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
   { label: "DRE — Status", method: "GET" as HttpMethod, path: "/dre-cadastro-api/status" },
+  // Finalidades de Transferência (ConsultarFinalTransf + ListarFinalTransf)
+  { label: "Final. Transf. — Consultar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/consultar?codigo=01" },
+  { label: "Final. Transf. — Listar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/listar?pagina=1&registros_por_pagina=50" },
+  { label: "Final. Transf. — Status", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {

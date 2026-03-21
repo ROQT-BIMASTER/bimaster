@@ -1090,6 +1090,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="final-transf" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf (Padrão Omie)"
+              basePath="/finalidades-transferencia-api"
+              endpoints={finalidadesTransfCrud}
+              description="Consulta e listagem paginada de finalidades de transferência bancária"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
