@@ -123,6 +123,13 @@ const PRESET_ENDPOINTS = [
   { label: "Boleto — Prorrogar", method: "POST" as HttpMethod, path: "/boletos-api/prorrogar" },
   { label: "Boleto — Listar", method: "GET" as HttpMethod, path: "/boletos-api/listar?pagina=1&registros_por_pagina=20" },
   { label: "Boleto — Status", method: "GET" as HttpMethod, path: "/boletos-api/status" },
+  // Anexos de Documentos
+  { label: "Anexo — Incluir", method: "POST" as HttpMethod, path: "/anexos-api/incluir" },
+  { label: "Anexo — Consultar", method: "GET" as HttpMethod, path: "/anexos-api/consultar?cTabela=contas_receber&nId=0" },
+  { label: "Anexo — Obter (Download)", method: "GET" as HttpMethod, path: "/anexos-api/obter?cCodIntAnexo=COLE_O_CODIGO" },
+  { label: "Anexo — Listar", method: "GET" as HttpMethod, path: "/anexos-api/listar?cTabela=contas_receber&nId=0&nPagina=1&nRegPorPagina=50" },
+  { label: "Anexo — Excluir", method: "DELETE" as HttpMethod, path: "/anexos-api/excluir" },
+  { label: "Anexo — Status", method: "GET" as HttpMethod, path: "/anexos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -164,6 +171,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/boletos-api/gerar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", nPerJuros: 2.0, nPerMulta: 2.0 }, null, 2),
   "/boletos-api/cancelar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001" }, null, 2),
   "/boletos-api/prorrogar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", dDtVenc: "30/04/2026" }, null, 2),
+  // Anexos
+  "/anexos-api/incluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345, cNomeArquivo: "comprovante.pdf", cTipoArquivo: "pdf", cArquivo: "<base64_do_arquivo_zipado>", cMd5: "" }, null, 2),
+  "/anexos-api/excluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345 }, null, 2),
 };
 
 export default function ApiTester() {

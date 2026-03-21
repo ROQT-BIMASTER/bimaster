@@ -5860,6 +5860,57 @@ export type Database = {
         }
         Relationships: []
       }
+      documento_anexos: {
+        Row: {
+          c_cod_int_anexo: string | null
+          c_md5: string | null
+          c_nome_arquivo: string | null
+          c_tabela: string
+          c_tipo_arquivo: string | null
+          created_at: string | null
+          empresa_id: string
+          file_size: number | null
+          id: string
+          importado_api: boolean | null
+          n_id: number
+          n_id_anexo: number | null
+          storage_path: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          c_cod_int_anexo?: string | null
+          c_md5?: string | null
+          c_nome_arquivo?: string | null
+          c_tabela: string
+          c_tipo_arquivo?: string | null
+          created_at?: string | null
+          empresa_id: string
+          file_size?: number | null
+          id?: string
+          importado_api?: boolean | null
+          n_id: number
+          n_id_anexo?: number | null
+          storage_path?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          c_cod_int_anexo?: string | null
+          c_md5?: string | null
+          c_nome_arquivo?: string | null
+          c_tabela?: string
+          c_tipo_arquivo?: string | null
+          created_at?: string | null
+          empresa_id?: string
+          file_size?: number | null
+          id?: string
+          importado_api?: boolean | null
+          n_id?: number
+          n_id_anexo?: number | null
+          storage_path?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           ativa: boolean | null
