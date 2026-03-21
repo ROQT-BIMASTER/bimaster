@@ -72,7 +72,10 @@ function buildCleanPayload(item: Record<string, unknown>) {
   return payload;
 }
 
+let _currentReq: Request;
+
 Deno.serve(async (req) => {
+  _currentReq = req;
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
