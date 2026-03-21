@@ -148,6 +148,17 @@ const TradeModule = () => {
         {/* Banner Carousel */}
         <TradeHeroBanner />
 
+        {/* Display Catalog Carousel */}
+        <div className="space-y-2">
+          <TradeSectionHeader
+            title="Catálogo de Displays"
+            subtitle="Conheça nossos displays para PDV"
+            linkText="Ver todos"
+            linkTo="/dashboard/trade/admin/displays"
+          />
+          <DisplayHeroBanner />
+        </div>
+
         {/* Quick Entry Dialog */}
         <QuickEntryDialog 
           open={quickEntryOpen} 
