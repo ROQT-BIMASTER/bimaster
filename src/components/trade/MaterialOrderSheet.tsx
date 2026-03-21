@@ -65,6 +65,8 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
       setQuantidade(1);
       setObservacoes("");
       setProtocol(null);
+      setStoreSearch("");
+      setStoreSearchOpen(false);
     }
   }, [material?.id]);
 
