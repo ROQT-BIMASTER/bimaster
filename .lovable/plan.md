@@ -1,40 +1,46 @@
 
 
-# Plano: Banner para Incentivos da Semana
+# Plano: Seção "Lançamentos Recentes" na Home do Trade
 
 ## O que será feito
 
-Adicionar um campo `banner_url` na tabela `trade_incentivos` para que cada incentivo possa ter uma imagem de banner. O banner header da seção "Incentivos da Semana" na home do Trade passará a exibir a imagem do banner quando configurada, no lugar do gradiente estático atual. Também será criado um banner de teste via seed SQL.
+Adicionar uma seção horizontal abaixo dos botões de ação rápida, no estilo da imagem de referência (Méliuz "Lojas Visitadas"), mostrando as visitas recentes do usuário logado. Cada item exibe a foto principal da visita (ou ícone placeholder) e o primeiro nome da loja (store name).
+
+## Design visual (referência Méliuz)
+
+- Scroll horizontal com cards quadrados arredondados (ícones/fotos)
+- Nome da loja truncado abaixo
+- Data ou status como subtexto
+- Título "Lançamentos Recentes" com `TradeSectionHeader`
+
+## Dados
+
+Query nas tabelas existentes, filtrada por `user_id = auth.uid()`:
+1. `visits` — últimas 10 visitas do usuário, ordenadas por `created_at DESC`, com join em `stores(name)`
+2. Para cada visita, buscar 1 foto da tabela `photos` onde `visit_id` = visita, pegar `photo_url` ou `thumbnail_url`
+
+Alternativa mais eficiente: uma única query com subquery/join lateral. Na prática, buscar visitas com store name e depois fotos em batch.
 
 ## Alterações
 
-### 1. Migração SQL
-- `ALTER TABLE trade_incentivos ADD COLUMN banner_url TEXT DEFAULT NULL`
-- Inserir um incentivo de teste com banner usando uma imagem placeholder (gradiente gerado ou URL de exemplo)
+### 1. `src/pages/modules/TradeModule.tsx`
+- Adicionar a nova seção `<LancamentosRecentes />` entre os quick-actions (linha 115) e o `TradeHeroBanner` (linha 126)
 
-### 2. `src/hooks/useTradeIncentivos.ts`
-- Adicionar `banner_url: string | null` à interface `TradeIncentivo`
+### 2. `src/components/trade/LancamentosRecentes.tsx` (novo)
+- Hook interno com `useQuery` que:
+  - Busca últimas 10 visitas do usuário logado: `visits` com `select("id, scheduled_date, status, store:stores(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(10)`
+  - Busca fotos dessas visitas: `photos` com `select("visit_id, photo_url, thumbnail_url").in("visit_id", visitIds).limit(10)` (1 foto por visita)
+- Renderiza scroll horizontal com cards arredondados:
+  - Foto (thumbnail_url ou photo_url) em div quadrada com `rounded-2xl`, ou ícone `Store` como fallback
+  - Primeiro nome da loja truncado
+  - Data formatada
+- Loading: skeleton cards horizontais
+- Vazio: não renderiza a seção
 
-### 3. `src/components/trade/incentivos/IncentivoFormDialog.tsx`
-- Adicionar campo de upload de imagem para banner (similar ao padrão já usado em `BannerFormDialog`)
-- Upload para bucket `trade-banners` (reutilizar bucket existente)
-- Preview da imagem com botão de remover
-- Otimização automática via edge function `optimize-banner-image` no upload
-
-### 4. `src/components/trade/incentivos/IncentivosWeekSection.tsx`
-- Se houver incentivos ativos com `banner_url`, exibir carrossel de banners (auto-slide 7s, pausa ao toque) no lugar do header gradiente estático
-- Se nenhum tiver banner, manter o header gradiente atual como fallback
-
-### 5. `src/pages/trade/TradeIncentivosAdmin.tsx`
-- Exibir thumbnail do banner na lista de incentivos (se houver)
-
-## Arquivos alterados
+## Arquivos
 
 | Arquivo | Tipo |
 |---|---|
-| Migração SQL | Novo |
-| `src/hooks/useTradeIncentivos.ts` | Editar |
-| `src/components/trade/incentivos/IncentivoFormDialog.tsx` | Editar |
-| `src/components/trade/incentivos/IncentivosWeekSection.tsx` | Editar |
-| `src/components/trade/incentivos/IncentivosAdminList.tsx` | Editar |
+| `src/components/trade/LancamentosRecentes.tsx` | Novo |
+| `src/pages/modules/TradeModule.tsx` | Editar — importar e posicionar componente |
 
