@@ -2552,6 +2552,49 @@ export type Database = {
           },
         ]
       }
+      cliente_tags: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          id: string
+          tag: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          id?: string
+          tag: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_tags_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_tags_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_tags_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_cobranca"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           bairro: string | null
