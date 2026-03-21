@@ -6,10 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateBanner, useUpdateBanner, type TradeBanner } from "@/hooks/useTradeBanners";
-import { Upload, Image as ImageIcon, Sparkles, Loader2 } from "lucide-react";
+import { Upload, Sparkles, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   open: boolean;
@@ -22,10 +20,6 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
   const updateBanner = useUpdateBanner();
   const [uploading, setUploading] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-  const [useAiOptimize, setUseAiOptimize] = useState(false);
-  const [aiWidth, setAiWidth] = useState("1200");
-  const [aiHeight, setAiHeight] = useState("400");
-  const [aiQuality, setAiQuality] = useState("alta");
   const [form, setForm] = useState({
     titulo: "",
     imagem_url: "",
@@ -58,7 +52,6 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
         ativo: true,
       });
     }
-    setUseAiOptimize(false);
   }, [editBanner, open]);
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -83,19 +76,14 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
     setOptimizing(true);
     try {
       const { data, error } = await supabase.functions.invoke("optimize-banner-image", {
-        body: {
-          imageBase64: base64,
-          width: parseInt(aiWidth),
-          height: parseInt(aiHeight),
-          quality: aiQuality,
-        },
+        body: { imageBase64: base64 },
       });
 
       if (error) throw error;
       if (data?.error) {
         if (data.error.includes("Rate limit")) {
           toast.error("Limite de requisições excedido. Tente novamente em alguns segundos.");
-        } else if (data.error.includes("Credits")) {
+        } else if (data.error.includes("Créditos") || data.error.includes("Credits")) {
           toast.error("Créditos de IA esgotados.");
         } else {
           throw new Error(data.error);
@@ -103,7 +91,7 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
         return base64;
       }
 
-      toast.success("Imagem otimizada com IA!");
+      toast.success("🤖 Imagem otimizada com IA para o formato de banner!");
       return data.optimizedImage;
     } catch (err) {
       console.error("AI optimization failed:", err);
@@ -119,17 +107,15 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
     if (!file) return;
     setUploading(true);
     try {
-      let fileToUpload: File | Blob = file;
+      // Always optimize with AI
+      const base64 = await fileToBase64(file);
+      toast.info("🤖 Otimizando imagem com IA...");
+      const optimizedBase64 = await optimizeWithAI(base64);
+      const fileToUpload = optimizedBase64 !== base64 
+        ? base64ToBlob(optimizedBase64) 
+        : file;
 
-      if (useAiOptimize) {
-        const base64 = await fileToBase64(file);
-        const optimizedBase64 = await optimizeWithAI(base64);
-        if (optimizedBase64 !== base64) {
-          fileToUpload = base64ToBlob(optimizedBase64);
-        }
-      }
-
-      const ext = file.name.split(".").pop() || "png";
+      const ext = optimizedBase64 !== base64 ? "png" : (file.name.split(".").pop() || "png");
       const path = `${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("trade-banners").upload(path, fileToUpload);
       if (uploadError) throw uploadError;
@@ -140,6 +126,33 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
       toast.error("Erro no upload");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleOptimizeExisting = async () => {
+    if (!form.imagem_url) return;
+    setOptimizing(true);
+    try {
+      toast.info("🤖 Otimizando imagem existente...");
+      const { data, error } = await supabase.functions.invoke("optimize-banner-image", {
+        body: { imageUrl: form.imagem_url },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.optimizedImage) throw new Error("Sem imagem retornada");
+
+      const blob = base64ToBlob(data.optimizedImage);
+      const path = `${Date.now()}_opt.png`;
+      const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
+      setForm(f => ({ ...f, imagem_url: publicUrl }));
+      toast.success("🤖 Imagem otimizada com sucesso!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao otimizar imagem");
+    } finally {
+      setOptimizing(false);
     }
   };
 
@@ -185,7 +198,24 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
           <div>
             <Label>Imagem</Label>
             {form.imagem_url && (
-              <img src={form.imagem_url} alt="Preview" className="w-full h-32 object-cover rounded-xl mb-2" />
+              <div className="relative mb-2">
+                <img src={form.imagem_url} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="absolute bottom-2 right-2 gap-1.5 text-xs"
+                  onClick={handleOptimizeExisting}
+                  disabled={isProcessing}
+                >
+                  {optimizing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3.5 w-3.5" />
+                  )}
+                  Reotimizar com IA
+                </Button>
+              </div>
             )}
             <div className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:border-primary transition-colors">
               <label className="cursor-pointer flex flex-col items-center gap-2">
@@ -193,76 +223,23 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {optimizing ? "Otimizando com IA..." : "Enviando..."}
+                      {optimizing ? "🤖 Otimizando com IA..." : "Enviando..."}
                     </span>
                   </div>
                 ) : (
                   <>
-                    <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Clique ou arraste uma imagem</span>
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                      <Sparkles className="h-4 w-4 text-[hsl(330,81%,60%)]" />
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Clique para enviar — a IA ajusta automaticamente para o formato de banner
+                    </span>
                   </>
                 )}
                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isProcessing} />
               </label>
             </div>
-          </div>
-
-          {/* AI Optimization Toggle */}
-          <div className="rounded-xl border p-3 space-y-3 bg-muted/30">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="ai-optimize"
-                checked={useAiOptimize}
-                onCheckedChange={(v) => setUseAiOptimize(v === true)}
-              />
-              <label htmlFor="ai-optimize" className="flex items-center gap-1.5 text-sm font-medium cursor-pointer">
-                <Sparkles className="h-4 w-4 text-[hsl(330,81%,60%)]" />
-                Otimizar imagem com IA
-              </label>
-            </div>
-
-            {useAiOptimize && (
-              <div className="space-y-3 pl-6">
-                <p className="text-xs text-muted-foreground">
-                  A IA ajustará o tamanho e a qualidade da imagem automaticamente ao fazer o upload.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Largura (px)</Label>
-                    <Input
-                      type="number"
-                      value={aiWidth}
-                      onChange={e => setAiWidth(e.target.value)}
-                      placeholder="1200"
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Altura (px)</Label>
-                    <Input
-                      type="number"
-                      value={aiHeight}
-                      onChange={e => setAiHeight(e.target.value)}
-                      placeholder="400"
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Qualidade</Label>
-                  <Select value={aiQuality} onValueChange={setAiQuality}>
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="alta">Alta</SelectItem>
-                      <SelectItem value="média">Média</SelectItem>
-                      <SelectItem value="máxima">Máxima</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
           </div>
 
           <div>
