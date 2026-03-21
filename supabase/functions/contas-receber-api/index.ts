@@ -227,10 +227,10 @@ async function upsertRecords(supabase: any, records: any[]): Promise<{ processed
 // HANDLER PRINCIPAL
 // =====================================================
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
+  const corsHeaders = getCorsHeaders(req);
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
