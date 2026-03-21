@@ -4,12 +4,6 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
-// Keep corsHeaders for backward compat with inline responses
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
-
 // =====================================================
 // v5.0.0 - REESCRITA COMPLETA PARA MÁXIMA PERFORMANCE
 // =====================================================
@@ -233,10 +227,10 @@ async function upsertRecords(supabase: any, records: any[]): Promise<{ processed
 // HANDLER PRINCIPAL
 // =====================================================
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
+  const corsHeaders = getCorsHeaders(req);
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);

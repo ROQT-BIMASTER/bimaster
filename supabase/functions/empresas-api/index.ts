@@ -2,7 +2,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateApiKey } from "../_shared/auth.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -84,7 +85,8 @@ Deno.serve(async (req) => {
     }
 
     // Auth
-    await validateApiKey(req);
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "empresas", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -142,7 +144,10 @@ Deno.serve(async (req) => {
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
   } catch (err: unknown) {
-    const e = err as { status?: number; message?: string };
+    const e = err as { status?: number; message?: string; name?: string };
+    if (e.name === "RateLimitError" || (e as any) instanceof RateLimitError) {
+      return errorResponse(429, "RATE_LIMIT", e.message || "Rate limit excedido", req, startMs);
+    }
     if (e.status === 401 || e.status === 403) {
       return errorResponse(e.status, "AUTH_ERROR", e.message || "Não autorizado", req, startMs);
     }

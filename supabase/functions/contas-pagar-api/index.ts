@@ -2,12 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-};
+import { validateAnyAuth, validateErpAuth, AuthError } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 // =====================================================
 // CONFIGURAÇÕES DE PERFORMANCE - v2.4.0 (Rate Limiting)
@@ -384,10 +380,11 @@ async function processRecordsWithRetry(
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS preflight with origin whitelist
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
+
+  const corsHeaders = getCorsHeaders(req);
 
   const startTime = Date.now();
   const url = new URL(req.url);

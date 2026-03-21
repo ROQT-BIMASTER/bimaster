@@ -1,13 +1,9 @@
 // anexos-api/index.ts — API de Anexos de Documentos padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validateApiKey, validateJWT, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
-};
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function getSupabase() {
   return createClient(
@@ -17,17 +13,8 @@ function getSupabase() {
 }
 
 async function authenticate(req: Request) {
-  try {
-    const apiResult = await validateApiKey(req);
-    return { empresaId: apiResult.empresaId, source: "api_key" };
-  } catch {
-    try {
-      const jwtResult = await validateJWT(req);
-      return { empresaId: null, userId: jwtResult.userId, source: "jwt" };
-    } catch {
-      throw new AuthError("Autenticação necessária (x-api-key ou Bearer token)", 401);
-    }
-  }
+  const auth = await validateAnyAuth(req);
+  return { empresaId: auth.empresaId || null, userId: auth.userId, source: auth.source };
 }
 
 // === MD5 helper ===
@@ -339,10 +326,8 @@ function handleStatus(req: Request): Response {
 
 // === MAIN ROUTER ===
 Deno.serve(async (req: Request) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const url = new URL(req.url);
   const path = url.pathname.split("/anexos-api")[1] || "/";
@@ -355,6 +340,7 @@ Deno.serve(async (req: Request) => {
 
     // Authenticate
     const auth = await authenticate(req);
+    await checkRateLimit({ prefix: "anexos", limit: 60, req, userId: auth.userId });
 
     // Route
     switch (path) {
@@ -382,6 +368,9 @@ Deno.serve(async (req: Request) => {
         return errorResponse(404, "ROUTE-001", `Rota não encontrada: ${path}`, req);
     }
   } catch (err) {
+    if (err instanceof RateLimitError) {
+      return errorResponse(429, "RATE_LIMIT", err.message, req);
+    }
     if (err instanceof AuthError) {
       return errorResponse(err.status, "AUTH-001", err.message, req);
     }

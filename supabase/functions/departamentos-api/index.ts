@@ -1,17 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validateApiKey, AuthError } from "../_shared/auth.ts";
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-api-key",
-};
-
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function jsonResponse(data: unknown, status = 200, req?: Request) {
+  const cors = req ? getCorsHeaders(req) : {};
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 function formatDate(d: string | null): string {
@@ -48,9 +47,8 @@ function mapCadastro(row: DeptRow) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const url = new URL(req.url);
   const path = url.pathname.split("/").filter(Boolean);
@@ -63,18 +61,22 @@ Deno.serve(async (req) => {
       status: "ok",
       service: "departamentos-api",
       timestamp: new Date().toISOString(),
-    });
+    }, 200, req);
   }
 
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Método não permitido" }, 405);
+    return jsonResponse({ error: "Método não permitido" }, 405, req);
   }
 
   try {
-    await validateApiKey(req);
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "departamentos", limit: 60, req, userId: auth.userId });
   } catch (e) {
+    if (e instanceof RateLimitError) {
+      return jsonResponse({ error: e.message }, 429, req);
+    }
     const status = e instanceof AuthError ? e.status : 401;
-    return jsonResponse({ error: (e as Error).message }, status);
+    return jsonResponse({ error: (e as Error).message }, status, req);
   }
 
   const supabase = createClient(

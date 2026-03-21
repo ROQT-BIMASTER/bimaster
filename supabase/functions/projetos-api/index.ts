@@ -2,7 +2,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateApiKey } from "../_shared/auth.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -81,7 +82,8 @@ Deno.serve(async (req) => {
 
   try {
     // Auth
-    const { empresaId } = await validateApiKey(req);
+    const { empresaId } = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "projetos", limit: 60, req });
     const supabase = getSupabase();
 
     if (req.method !== "POST") {
