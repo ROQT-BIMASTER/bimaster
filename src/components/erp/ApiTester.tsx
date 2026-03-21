@@ -362,6 +362,12 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/cnae-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, ordenar_por: "codigo", ordem_decrescente: "N" }, null, 2),
   // Cidades
   "/cidades-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, filtrar_cidade_contendo: "", filtrar_por_uf: "", ordenar_por: "nome", ordem_descrescente: "N" }, null, 2),
+  // Tipos de Entrega
+  "/tipos-entrega-api/incluir": JSON.stringify({ nCodTransp: 0, cCodIntEntrega: "", cDescricao: "Entrega Normal", cInativo: "N" }, null, 2),
+  "/tipos-entrega-api/alterar": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "", cDescricao: "Entrega Expressa", cInativo: "N" }, null, 2),
+  "/tipos-entrega-api/consultar": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
+  "/tipos-entrega-api/excluir": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
+  "/tipos-entrega-api/listar": JSON.stringify({ nPagina: 1, nRegistrosPorPagina: 50, nCodTransp: 0 }, null, 2),
 };
 
 export default function ApiTester() {
