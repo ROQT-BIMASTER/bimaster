@@ -27083,6 +27083,7 @@ export type Database = {
           tp_venda: string | null
           uf: string | null
           updated_at: string
+          venda: number | null
           vendedor: string | null
           vl_cmv: number | null
           vl_desconto: number | null
@@ -27118,6 +27119,7 @@ export type Database = {
           tp_venda?: string | null
           uf?: string | null
           updated_at?: string
+          venda?: number | null
           vendedor?: string | null
           vl_cmv?: number | null
           vl_desconto?: number | null
@@ -27153,6 +27155,7 @@ export type Database = {
           tp_venda?: string | null
           uf?: string | null
           updated_at?: string
+          venda?: number | null
           vendedor?: string | null
           vl_cmv?: number | null
           vl_desconto?: number | null
@@ -28343,7 +28346,6 @@ export type Database = {
           receita_total: number | null
           supervisor: string | null
           tabela_preco: string | null
-          ticket_medio: number | null
           uf: string | null
         }
         Relationships: []

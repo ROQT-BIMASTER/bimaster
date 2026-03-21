@@ -72,6 +72,8 @@ const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configura
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
+const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
+const DetalhamentoVendas = lazyWithRetry(() => import("./pages/DetalhamentoVendas"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
@@ -480,8 +482,10 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ChinaFichaProduto /></ModuleRoute>} />
 
             {/* Painel Executivo */}
-            <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
-            <Route path="/dashboard/performance-vendas" element={<PerformanceVendas />} />
+            <Route path="/dashboard/painel-executivo" element={<ProtectedRoute><PainelExecutivo /></ProtectedRoute>} />
+            <Route path="/dashboard/performance-vendas" element={<ProtectedRoute><PerformanceVendas /></ProtectedRoute>} />
+            <Route path="/dashboard/clientes" element={<ProtectedRoute><AnaliseClientes /></ProtectedRoute>} />
+            <Route path="/dashboard/detalhamento" element={<ProtectedRoute><DetalhamentoVendas /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
