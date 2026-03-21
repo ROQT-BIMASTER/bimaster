@@ -669,6 +669,18 @@ const tiposDocumentoCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const dreCadastroCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar contas do DRE (ListarCadastroDRE)", tag: "novo",
+    body: `{ "apenasContasAtivas": "N" }`,
+    response: `{ "totalRegistros": 25, "dreLista": [{ "codigoDRE": "4.1", "descricaoDRE": "Receita Bruta", "naoExibirDRE": "N", "nivelDRE": 2, "sinalDRE": "+", "totalizaDRE": "N" }] }`,
+    params: [
+      { name: "apenasContasAtivas", type: "string", required: false, description: "S para listar apenas contas ativas, N para todas" },
+    ],
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -859,6 +871,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Tipos Documento
             </TabsTrigger>
+            <TabsTrigger value="dre-cadastro" className="text-xs gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              DRE
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1038,6 +1054,17 @@ export default function ApiDocumentation() {
               basePath="/tipos-documento-api"
               endpoints={tiposDocumentoCrud}
               description="Consulta e pesquisa de tipos de documento cadastrados"
+            />
+          </TabsContent>
+
+
+          <TabsContent value="dre-cadastro" className="space-y-1">
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-primary" />}
+              title="DRE — ListarCadastroDRE (Padrão Omie)"
+              basePath="/dre-cadastro-api"
+              endpoints={dreCadastroCrud}
+              description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
             />
           </TabsContent>
 

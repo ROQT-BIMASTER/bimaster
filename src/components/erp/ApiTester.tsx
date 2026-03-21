@@ -162,6 +162,10 @@ const PRESET_ENDPOINTS = [
   { label: "Tipo Doc — Consultar", method: "GET" as HttpMethod, path: "/tipos-documento-api/consultar?codigo=NF" },
   { label: "Tipo Doc — Pesquisar", method: "POST" as HttpMethod, path: "/tipos-documento-api/pesquisar" },
   { label: "Tipo Doc — Status", method: "GET" as HttpMethod, path: "/tipos-documento-api/status" },
+  // DRE Cadastro (ListarCadastroDRE)
+  { label: "DRE — Listar Ativas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
+  { label: "DRE — Listar Todas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
+  { label: "DRE — Status", method: "GET" as HttpMethod, path: "/dre-cadastro-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -215,6 +219,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/movimentos-financeiros-api/listar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cTpLancamento: "", cExibirDepartamentos: "S", lDadosCad: true, dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026" }, null, 2),
   // Tipos de Documento
   "/tipos-documento-api/pesquisar": JSON.stringify({ codigo: "" }, null, 2),
+  // DRE Cadastro
+  "/dre-cadastro-api/listar": JSON.stringify({ apenasContasAtivas: "S" }, null, 2),
 };
 
 export default function ApiTester() {
