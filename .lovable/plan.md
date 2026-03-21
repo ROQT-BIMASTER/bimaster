@@ -1,62 +1,59 @@
 
 
-# API Características de Clientes — Padronização Omie
+# API Tags de Clientes — Padronização Omie
 
 ## Resumo
 
-Criar nova tabela `cliente_caracteristicas` e adicionar 5 rotas à Edge Function `clientes-api` existente para CRUD de características de clientes/fornecedores.
+Criar nova tabela `cliente_tags` e adicionar 4 rotas à Edge Function `clientes-api` existente para gerenciar tags de clientes/fornecedores.
 
-## 1. Nova Tabela: `cliente_caracteristicas`
+## 1. Nova Tabela: `cliente_tags`
 
 ```sql
-CREATE TABLE public.cliente_caracteristicas (
+CREATE TABLE public.cliente_tags (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
-  campo varchar(30) NOT NULL,
-  conteudo varchar(60) NOT NULL DEFAULT '',
+  tag text NOT NULL,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(cliente_id, campo)
+  UNIQUE(cliente_id, tag)
 );
-ALTER TABLE public.cliente_caracteristicas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cliente_tags ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "service_role_full_access" ON public.cliente_tags
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
 ```
-
-RLS: service-role only (API key auth, sem acesso direto do browser).
 
 ## 2. Novas Rotas em `clientes-api`
 
 | Rota | Equivalente Omie | Descrição |
 |---|---|---|
-| POST `/caract/incluir` | IncluirCaractCliente | Inclui característica |
-| POST `/caract/alterar` | AlterarCaractCliente | Altera conteúdo |
-| POST `/caract/consultar` | ConsultarCaractCliente | Lista todas do cliente |
-| POST `/caract/excluir` | ExcluirCaractCliente | Exclui uma característica |
-| POST `/caract/excluir-todas` | ExcluirTodasCaractCliente | Exclui todas |
+| POST `/tags/incluir` | IncluirTags | Associa tags ao cliente |
+| POST `/tags/listar` | ListarTags | Lista tags do cliente |
+| POST `/tags/excluir` | ExcluirTags | Remove tags específicas |
+| POST `/tags/excluir-todas` | ExcluirTodas | Remove todas as tags |
 
-Todas as rotas aceitam `codigo_cliente_omie` (UUID) ou `codigo_cliente_integracao` (codigo) para localizar o cliente.
+Todas aceitam `nCodCliente` (UUID) ou `cCodIntCliente` (codigo) para localizar o cliente.
 
 ### Lógica
 
-- **Incluir/Alterar**: upsert na `cliente_caracteristicas` por `(cliente_id, campo)`
-- **Consultar**: retorna array `caracteristicas: [{ campo, conteudo }]`
-- **Excluir**: deleta por `(cliente_id, campo)`
-- **Excluir Todas**: deleta por `cliente_id`
+- **Incluir**: Recebe array `tags: [{ tag }]`, faz insert com `ON CONFLICT DO NOTHING` para cada tag
+- **Listar**: Retorna `tagsLista: [{ tag, nCodTag }]` onde `nCodTag` é um índice sequencial (sem coluna real de código numérico)
+- **Excluir**: Recebe array `tags: [{ tag }]`, deleta por `(cliente_id, tag)`
+- **Excluir Todas**: Deleta todas por `cliente_id`
 
-Resposta padrão `clientes_status`: `codigo_cliente_omie`, `codigo_cliente_integracao`, `codigo_status`, `descricao_status`.
+Resposta padrão: `nCodCliente`, `cCodIntCliente`, `cCodStatus`, `cDesStatus`.
 
 ## 3. Documentação & UI
 
-- Atualizar `docs/API_CLIENTES.md` com seção Características
-- Presets no `ApiTester.tsx` (Incluir/Consultar/Excluir Característica)
+- Atualizar `docs/API_CLIENTES.md` com seção Tags
+- Presets no `ApiTester.tsx` (Incluir Tags, Listar Tags, Excluir Tags)
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar tabela `cliente_caracteristicas` |
-| `supabase/functions/clientes-api/index.ts` | Editar — 5 rotas `/caract/*` |
-| `docs/API_CLIENTES.md` | Editar — seção Características |
+| Migration SQL | Criar tabela `cliente_tags` |
+| `supabase/functions/clientes-api/index.ts` | Editar — 4 rotas `/tags/*` |
+| `docs/API_CLIENTES.md` | Editar — seção Tags |
 | `src/components/erp/ApiTester.tsx` | Editar — presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
