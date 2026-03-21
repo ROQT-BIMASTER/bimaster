@@ -1,26 +1,31 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { validateErpAuth, AuthError } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const MAX_SYNC_RECORDS = 5000;
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function json(body: unknown, status: number, req: Request, startMs: number) {
+  const cors = getCorsHeaders(req);
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  const meta = { processed_at: new Date().toISOString(), duration_ms: Date.now() - startMs };
+  const responseBody = typeof body === "object" && body !== null && !Array.isArray(body)
+    ? { ...body as Record<string, unknown>, meta }
+    : { data: body, meta };
+  return new Response(JSON.stringify(responseBody), { status, headers });
 }
 
-function errorResponse(status: number, code: string, message: string) {
-  return json({ error: code, message }, status);
+function errorResp(status: number, code: string, message: string, req: Request, startMs: number) {
+  return json({ error: code, message }, status, req, startMs);
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const startMs = Date.now();
   const url = new URL(req.url);
@@ -31,41 +36,31 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // --- Authenticate via x-api-key → erp_config ---
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) {
-    return errorResponse(401, "UNAUTHORIZED", "Header x-api-key ausente");
-  }
-
-  const { data: configRow, error: configErr } = await supabase
-    .from("erp_config")
-    .select("empresa_id")
-    .eq("config_key", "api_key")
-    .eq("config_value", apiKey)
-    .maybeSingle();
-
-  let empresaId: string | number | null = configRow?.empresa_id ?? null;
-
-  // Fallback: check erp_api_keys table
-  if (!empresaId) {
-    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
-    const empresa = await validateErpApiKey(apiKey);
-    if (empresa) {
-      empresaId = empresa;
-    }
-  }
-
-  if (!empresaId) {
-    return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
+  // --- Authenticate ---
+  let empresaId: string;
+  try {
+    const auth = await validateErpAuth(req);
+    empresaId = auth.empresaId;
+  } catch (e) {
+    if (e instanceof AuthError) return errorResp(e.status, "UNAUTHORIZED", e.message, req, startMs);
+    throw e;
   }
 
   // Convert empresaId to number for tables that use integer empresa_id
   const empresaIdNum = typeof empresaId === 'number' ? empresaId : parseInt(String(empresaId));
   if (isNaN(empresaIdNum)) {
-    return errorResponse(422, "VALIDATION_ERROR", "empresa_id deve ser numérico para esta API");
+    return errorResp(422, "VALIDATION_ERROR", "empresa_id deve ser numérico para esta API", req, startMs);
   }
 
-  // --- Helper to log to erp_sync_log ---
+  // --- Rate limit ---
+  try {
+    await checkRateLimit({ prefix: "erp-portadores", limit: 60, req });
+  } catch (e) {
+    if (e instanceof RateLimitError) return errorResp(429, "RATE_LIMIT", e.message, req, startMs);
+    throw e;
+  }
+
+  // --- Sync log helper ---
   async function logSync(endpoint: string, payload: unknown, statusCode: number) {
     try {
       await supabase.from("erp_sync_log").insert({
@@ -96,11 +91,11 @@ Deno.serve(async (req) => {
 
       if (error) {
         await logSync("GET /", null, 500);
-        return errorResponse(500, "DB_ERROR", error.message);
+        return errorResp(500, "DB_ERROR", error.message, req, startMs);
       }
 
       await logSync("GET /", null, 200);
-      return json({ data, total: data.length });
+      return json({ data, total: data.length }, 200, req, startMs);
     }
 
     // ==================== POST /sync ====================
@@ -110,12 +105,17 @@ Deno.serve(async (req) => {
         body = await req.json();
       } catch {
         await logSync("POST /sync", null, 422);
-        return errorResponse(422, "VALIDATION_ERROR", "Body JSON inválido");
+        return errorResp(422, "VALIDATION_ERROR", "Body JSON inválido", req, startMs);
       }
 
       if (!Array.isArray(body?.portadores) || body.portadores.length === 0) {
         await logSync("POST /sync", body, 422);
-        return errorResponse(422, "VALIDATION_ERROR", "Campo 'portadores' deve ser um array não vazio");
+        return errorResp(422, "VALIDATION_ERROR", "Campo 'portadores' deve ser um array não vazio", req, startMs);
+      }
+
+      if (body.portadores.length > MAX_SYNC_RECORDS) {
+        await logSync("POST /sync", { count: body.portadores.length }, 413);
+        return errorResp(413, "PAYLOAD_TOO_LARGE", `Máximo ${MAX_SYNC_RECORDS} registros por request. Recebido: ${body.portadores.length}`, req, startMs);
       }
 
       const rows = body.portadores.map((p: any) => ({
@@ -131,15 +131,13 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
       }));
 
-      // Validate required fields
       for (const r of rows) {
         if (!r.codigo_erp || !r.nome) {
           await logSync("POST /sync", body, 422);
-          return errorResponse(422, "VALIDATION_ERROR", "Cada portador deve ter 'codigo_erp' e 'nome'");
+          return errorResp(422, "VALIDATION_ERROR", "Cada portador deve ter 'codigo_erp' e 'nome'", req, startMs);
         }
       }
 
-      // Upsert using empresa_id + codigo_erp as key
       const { data, error } = await supabase
         .from("portadores")
         .upsert(rows, { onConflict: "empresa_id,codigo_erp", ignoreDuplicates: false })
@@ -147,19 +145,19 @@ Deno.serve(async (req) => {
 
       if (error) {
         await logSync("POST /sync", body, 500);
-        return errorResponse(500, "DB_ERROR", error.message);
+        return errorResp(500, "DB_ERROR", error.message, req, startMs);
       }
 
       const result = { success: true, upserted: data?.length || 0 };
       await logSync("POST /sync", body, 200);
-      return json(result);
+      return json(result, 200, req, startMs);
     }
 
     // ==================== 404 ====================
     await logSync(`${req.method} ${path}`, null, 404);
-    return errorResponse(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`);
+    return errorResp(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);
   } catch (err: any) {
     await logSync(`${req.method} ${path}`, null, 500);
-    return errorResponse(500, "DB_ERROR", err.message || "Erro interno");
+    return errorResp(500, "DB_ERROR", err.message || "Erro interno", req, startMs);
   }
 });

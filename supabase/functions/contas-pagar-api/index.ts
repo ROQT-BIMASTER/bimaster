@@ -1,5 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -402,9 +404,9 @@ Deno.serve(async (req) => {
       const apiKey = req.headers.get('x-api-key');
       if (!apiKey) return false;
 
-      // Check legacy N8N_API_KEY
+      // Check legacy N8N_API_KEY (timing-safe)
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && apiKey === expectedKey) return true;
+      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) return true;
 
       // Check erp_config table
       const { data: configRow } = await supabase

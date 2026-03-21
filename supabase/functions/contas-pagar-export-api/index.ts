@@ -1,10 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function mapPaymentMethod(method: string | null): string {
   if (!method) return "Não informado";
@@ -74,10 +72,9 @@ function buildCleanPayload(item: Record<string, unknown>) {
   return payload;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -87,7 +84,7 @@ serve(async (req) => {
   const expectedKey = Deno.env.get("EXPORT_API_KEY");
 
   let authenticated = false;
-  if (apiKey && expectedKey && apiKey === expectedKey) {
+  if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
     authenticated = true;
   }
 
@@ -100,6 +97,15 @@ serve(async (req) => {
 
   if (!authenticated) {
     return jsonResponse({ error: "API key inválida ou ausente" }, 401);
+  }
+
+  // Rate limit
+  try {
+    await checkRateLimit({ prefix: "contas-pagar-export", limit: 60, req });
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return jsonResponse({ error: e.message }, 429);
+    }
   }
 
   try {
@@ -397,8 +403,9 @@ async function handleGetCancelledItems(
 }
 
 function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  const headers = withSecurityHeaders(
+    { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key", "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  return new Response(JSON.stringify(data), { status, headers });
 }

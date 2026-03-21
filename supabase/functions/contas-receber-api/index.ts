@@ -1,5 +1,10 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
+// Keep corsHeaders for backward compat with inline responses
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
@@ -249,7 +254,7 @@ Deno.serve(async (req) => {
 
     const expectedKey = Deno.env.get('N8N_API_KEY');
     const polloKey = Deno.env.get('POLLO_API_KEY');
-    if (apiKey === expectedKey || apiKey === polloKey) return true;
+    if ((expectedKey && timingSafeEqual(apiKey, expectedKey)) || (polloKey && timingSafeEqual(apiKey, polloKey))) return true;
 
     // Fallback: check erp_config table
     const { data: configRow } = await supabase

@@ -1,18 +1,16 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   try {
     const url = new URL(req.url);
     const tipo = url.searchParams.get('tipo');
+    const cors = getCorsHeaders(req);
     
     // Autenticação via JWT ou API Key
     const authHeader = req.headers.get('authorization');
@@ -23,6 +21,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const makeHeaders = (sensitive = false) => withSecurityHeaders(
+      { ...cors, 'Content-Type': 'application/json' }, sensitive
+    );
+
     // Verificar autenticação
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
@@ -30,21 +32,35 @@ Deno.serve(async (req) => {
       if (error || !user) {
         return new Response(
           JSON.stringify({ error: 'Token inválido' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 401, headers: makeHeaders(true) }
         );
       }
     } else if (apiKey) {
       const expectedKey = Deno.env.get('EXPORT_API_KEY');
-      if (apiKey !== expectedKey) {
+      let authenticated = false;
+      
+      // Timing-safe comparison for env key
+      if (expectedKey && timingSafeEqual(apiKey, expectedKey)) {
+        authenticated = true;
+      }
+      
+      // Fallback: check erp_api_keys table
+      if (!authenticated) {
+        const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+        const empresa = await validateErpApiKey(apiKey);
+        if (empresa) authenticated = true;
+      }
+      
+      if (!authenticated) {
         return new Response(
           JSON.stringify({ error: 'API Key inválida' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 401, headers: makeHeaders(true) }
         );
       }
     } else {
       return new Response(
         JSON.stringify({ error: 'Autenticação necessária' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: makeHeaders(true) }
       );
     }
 
@@ -56,7 +72,7 @@ Deno.serve(async (req) => {
         if (!distribuidoraId) {
           return new Response(
             JSON.stringify({ error: 'distribuidora_id é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -97,7 +113,7 @@ Deno.serve(async (req) => {
         if (!produtoMasterId) {
           return new Response(
             JSON.stringify({ error: 'produto_master_id é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -141,7 +157,7 @@ Deno.serve(async (req) => {
         if (!codigo || !distribuidoraId) {
           return new Response(
             JSON.stringify({ error: 'codigo e distribuidora_id são obrigatórios' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -271,7 +287,7 @@ Deno.serve(async (req) => {
               'sync-logs'
             ]
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: makeHeaders() }
         );
     }
 
@@ -279,15 +295,16 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ data: result, tipo, timestamp: new Date().toISOString() }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: makeHeaders() }
     );
 
   } catch (error) {
     const err = error as Error;
     console.error('❌ Erro na consulta:', err);
+    const cors = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: withSecurityHeaders({ ...cors, 'Content-Type': 'application/json' }) }
     );
   }
 });

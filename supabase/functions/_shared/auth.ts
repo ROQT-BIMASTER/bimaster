@@ -91,6 +91,64 @@ export async function validateApiKey(req: Request): Promise<ApiKeyResult> {
     }
   }
 
+  // Fallback: check erp_api_keys table (Portal de Integração)
+  const { validateErpApiKey } = await import("./erp-key-validator.ts");
+  const erpEmpresa = await validateErpApiKey(apiKey);
+  if (erpEmpresa) {
+    return { empresaId: erpEmpresa, configId: "erp_api_keys" };
+  }
+
+  throw new AuthError("Chave API inválida ou inativa", 401);
+}
+
+/**
+ * Validate x-api-key for ERP endpoints.
+ * Returns empresaId (string) or throws AuthError.
+ * Checks: erp_config → erp_api_keys (Portal) → legacy env keys.
+ */
+export async function validateErpAuth(
+  req: Request,
+  legacyEnvKeys?: string[]
+): Promise<{ empresaId: string; source: string }> {
+  const apiKey = req.headers.get("x-api-key");
+  if (!apiKey) {
+    throw new AuthError("Header x-api-key ausente", 401);
+  }
+
+  // 1. Check legacy env keys (N8N_API_KEY, EXPORT_API_KEY, etc.) with timing-safe
+  if (legacyEnvKeys) {
+    for (const envName of legacyEnvKeys) {
+      const envValue = Deno.env.get(envName);
+      if (envValue && timingSafeEqual(apiKey, envValue)) {
+        return { empresaId: "legacy", source: envName };
+      }
+    }
+  }
+
+  // 2. Check erp_config table
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const { data: configRow } = await supabase
+    .from("erp_config")
+    .select("empresa_id")
+    .eq("config_key", "api_key")
+    .eq("config_value", apiKey)
+    .maybeSingle();
+
+  if (configRow?.empresa_id) {
+    return { empresaId: String(configRow.empresa_id), source: "erp_config" };
+  }
+
+  // 3. Check erp_api_keys table (Portal de Integração)
+  const { validateErpApiKey } = await import("./erp-key-validator.ts");
+  const empresa = await validateErpApiKey(apiKey);
+  if (empresa) {
+    return { empresaId: empresa, source: "erp_api_keys" };
+  }
+
   throw new AuthError("Chave API inválida ou inativa", 401);
 }
 
