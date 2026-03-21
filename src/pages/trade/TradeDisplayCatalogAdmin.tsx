@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, Pencil, Copy } from "lucide-react";
+import { Plus, ArrowLeft, Wand2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTradeDisplays, useDeleteDisplay, useCreateDisplay, TradeDisplay } from "@/hooks/useTradeDisplays";
+import { useTradeDisplays, useDeleteDisplay, useCreateDisplay, useUpdateDisplay, TradeDisplay } from "@/hooks/useTradeDisplays";
 import { DisplayCatalogGrid } from "@/components/trade/displays/DisplayCatalogGrid";
 import { DisplayFormDialog } from "@/components/trade/displays/DisplayFormDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,16 +18,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 
 const TradeDisplayCatalogAdmin = () => {
   const { data: displays = [], isLoading } = useTradeDisplays();
   const deleteDisplay = useDeleteDisplay();
   const duplicateDisplay = useCreateDisplay();
+  const updateDisplay = useUpdateDisplay();
 
   const [formOpen, setFormOpen] = useState(false);
   const [selected, setSelected] = useState<TradeDisplay | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TradeDisplay | null>(null);
+  const [bulkOptimizing, setBulkOptimizing] = useState(false);
 
   const handleSelect = (display: TradeDisplay) => {
     setSelected(display);
@@ -48,6 +51,45 @@ const TradeDisplayCatalogAdmin = () => {
     setDeleteTarget(null);
   };
 
+  const handleBulkOptimize = async () => {
+    const withImages = displays.filter((d) => d.foto_url);
+    if (!withImages.length) {
+      toast.info("Nenhum display com imagem para otimizar");
+      return;
+    }
+
+    setBulkOptimizing(true);
+    let success = 0;
+    let failed = 0;
+
+    for (const d of withImages) {
+      try {
+        toast.info(`🤖 Otimizando ${d.nome}...`);
+        const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+          body: { imageUrl: d.foto_url },
+        });
+        if (error || !data?.optimizedImage) { failed++; continue; }
+
+        const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "image/png" });
+
+        const path = `displays/${Date.now()}_opt_${d.id.slice(0, 8)}.png`;
+        const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
+        if (upErr) { failed++; continue; }
+
+        const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
+        await updateDisplay.mutateAsync({ id: d.id, foto_url: urlData.publicUrl });
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setBulkOptimizing(false);
+    toast.success(`✨ ${success} otimizados${failed ? `, ${failed} falharam` : ""}`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
@@ -66,10 +108,21 @@ const TradeDisplayCatalogAdmin = () => {
               </p>
             </div>
           </div>
-          <Button onClick={handleNew} className="bg-[hsl(330,81%,60%)] hover:bg-[hsl(330,81%,50%)] text-white rounded-xl">
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Display
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleBulkOptimize} 
+              disabled={bulkOptimizing}
+              variant="outline"
+              className="rounded-xl"
+            >
+              {bulkOptimizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              {bulkOptimizing ? "Otimizando..." : "Otimizar Todos com IA"}
+            </Button>
+            <Button onClick={handleNew} className="bg-[hsl(330,81%,60%)] hover:bg-[hsl(330,81%,50%)] text-white rounded-xl">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Display
+            </Button>
+          </div>
         </div>
 
         {/* Grid */}

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TradeDisplay, useCreateDisplay, useUpdateDisplay } from "@/hooks/useTradeDisplays";
@@ -63,25 +63,91 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
     }
   }, [display, open]);
 
+  const [optimizing, setOptimizing] = useState(false);
+
+  const optimizeImageForBanner = async (base64: string): Promise<Blob | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+        body: { imageBase64: base64 },
+      });
+      if (error) throw error;
+      if (!data?.optimizedImage) throw new Error("No image returned");
+
+      const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      return new Blob([bytes], { type: "image/png" });
+    } catch (err) {
+      console.error("AI optimize failed:", err);
+      return null;
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setOptimizing(true);
     try {
-      const ext = file.name.split(".").pop();
+      // Convert to base64 and optimize with AI
+      const base64 = await fileToBase64(file);
+      toast.info("🤖 Otimizando imagem com IA para formato banner...");
+      const optimizedBlob = await optimizeImageForBanner(base64);
+
+      const uploadFile = optimizedBlob || file;
+      const ext = optimizedBlob ? "png" : file.name.split(".").pop();
       const path = `displays/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("trade-banners").upload(path, file, { upsert: false });
+      
+      const { error } = await supabase.storage.from("trade-banners").upload(path, uploadFile, { upsert: false });
       if (error) throw error;
 
       const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
       setFotoUrl(urlData.publicUrl);
       setFotoPreview(urlData.publicUrl);
-      toast.success("Imagem enviada");
+      toast.success(optimizedBlob ? "Imagem otimizada e enviada ✨" : "Imagem enviada (otimização indisponível)");
     } catch {
       toast.error("Erro ao enviar imagem");
     } finally {
       setUploading(false);
+      setOptimizing(false);
+    }
+  };
+
+  const handleOptimizeExisting = async () => {
+    if (!fotoUrl) return;
+    setOptimizing(true);
+    try {
+      toast.info("🤖 Otimizando imagem existente...");
+      const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+        body: { imageUrl: fotoUrl },
+      });
+      if (error) throw error;
+      if (!data?.optimizedImage) throw new Error("No image returned");
+
+      const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "image/png" });
+
+      const path = `displays/${Date.now()}_optimized.png`;
+      const { error: upError } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
+      if (upError) throw upError;
+
+      const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
+      setFotoUrl(urlData.publicUrl);
+      setFotoPreview(urlData.publicUrl);
+      toast.success("Imagem re-otimizada com sucesso ✨");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao otimizar imagem");
+    } finally {
+      setOptimizing(false);
     }
   };
 
@@ -129,20 +195,39 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
               {fotoPreview ? (
                 <div className="relative rounded-xl overflow-hidden border bg-muted aspect-video">
                   <img src={fotoPreview} alt="Preview" className="w-full h-full object-contain" />
-                  <button
-                    onClick={() => { setFotoUrl(""); setFotoPreview(null); }}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      onClick={handleOptimizeExisting}
+                      disabled={optimizing}
+                      className="bg-black/60 text-white rounded-full p-1 hover:bg-black/80 disabled:opacity-50"
+                      title="Re-otimizar com IA"
+                    >
+                      {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    </button>
+                    <button
+                      onClick={() => { setFotoUrl(""); setFotoPreview(null); }}
+                      className="bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-8 cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {uploading ? "Enviando..." : "Clique ou arraste para enviar"}
-                  </span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+                  {uploading || optimizing ? (
+                    <>
+                      <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                      <span className="text-sm text-muted-foreground">
+                        {optimizing ? "🤖 IA otimizando..." : "Enviando..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Clique para enviar (IA otimiza automaticamente)</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading || optimizing} />
                 </label>
               )}
             </div>
