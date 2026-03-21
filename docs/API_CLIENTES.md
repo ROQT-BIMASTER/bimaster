@@ -125,3 +125,76 @@ Mesmos parâmetros de `/listar`. Retorna apenas: `codigo_cliente`, `codigo_clien
 | 404 | Cliente não encontrado |
 | 409 | Cliente duplicado (incluir) |
 | 500 | Erro interno |
+
+---
+
+## Características de Clientes
+
+Endpoints para gerenciar características (key-value) de clientes, equivalente ao módulo `CaracteristicasCliente` da Omie.
+
+| Método | Rota | Equivalente Omie | Descrição |
+|---|---|---|---|
+| POST | `/caract/incluir` | IncluirCaractCliente | Inclui característica |
+| POST | `/caract/alterar` | AlterarCaractCliente | Altera conteúdo |
+| POST | `/caract/consultar` | ConsultarCaractCliente | Lista todas do cliente |
+| POST | `/caract/excluir` | ExcluirCaractCliente | Exclui uma característica |
+| POST | `/caract/excluir-todas` | ExcluirTodasCaractCliente | Exclui todas |
+
+### POST /caract/incluir
+
+**Body:**
+```json
+{
+  "codigo_cliente_integracao": "CLI001",
+  "campo": "SEGMENTO",
+  "conteudo": "Varejo"
+}
+```
+
+**Resposta (201):**
+```json
+{
+  "codigo_cliente_omie": "uuid",
+  "codigo_cliente_integracao": "CLI001",
+  "codigo_status": "0",
+  "descricao_status": "Característica incluída com sucesso!"
+}
+```
+
+### POST /caract/consultar
+
+**Body:**
+```json
+{ "codigo_cliente_integracao": "CLI001" }
+```
+
+**Resposta (200):**
+```json
+{
+  "codigo_cliente_omie": "uuid",
+  "codigo_cliente_integracao": "CLI001",
+  "caracteristicas": [
+    { "campo": "SEGMENTO", "conteudo": "Varejo" },
+    { "campo": "REGIAO", "conteudo": "Sul" }
+  ]
+}
+```
+
+### POST /caract/excluir
+
+**Body:**
+```json
+{
+  "codigo_cliente_integracao": "CLI001",
+  "campo": "SEGMENTO"
+}
+```
+
+### POST /caract/excluir-todas
+
+**Body:**
+```json
+{ "codigo_cliente_integracao": "CLI001" }
+```
+
+Todas as rotas aceitam `codigo_cliente_omie` (UUID) ou `codigo_cliente_integracao` para identificar o cliente.

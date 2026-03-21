@@ -188,6 +188,12 @@ const PRESET_ENDPOINTS = [
   { label: "Clientes — Upsert CPF/CNPJ", method: "POST" as HttpMethod, path: "/clientes-api/upsert-cpfcnpj" },
   { label: "Clientes — Associar Código", method: "POST" as HttpMethod, path: "/clientes-api/associar" },
   { label: "Clientes — Status", method: "GET" as HttpMethod, path: "/clientes-api/status" },
+  // Características de Clientes
+  { label: "Caract. Cliente — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/incluir" },
+  { label: "Caract. Cliente — Alterar", method: "POST" as HttpMethod, path: "/clientes-api/caract/alterar" },
+  { label: "Caract. Cliente — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/caract/consultar" },
+  { label: "Caract. Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir" },
+  { label: "Caract. Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir-todas" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -253,6 +259,12 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/upsert": JSON.stringify({ codigo_cliente_integracao: "CLI001", razao_social: "Empresa ABC Ltda", cnpj_cpf: "12.345.678/0001-90", email: "contato@abc.com" }, null, 2),
   "/clientes-api/upsert-cpfcnpj": JSON.stringify({ cnpj_cpf: "12.345.678/0001-90", razao_social: "Empresa ABC Ltda", email: "contato@abc.com" }, null, 2),
   "/clientes-api/associar": JSON.stringify({ codigo_cliente_omie: "uuid-do-cliente", codigo_cliente_integracao: "CLI001" }, null, 2),
+  // Características de Clientes
+  "/clientes-api/caract/incluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Varejo" }, null, 2),
+  "/clientes-api/caract/alterar": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Atacado" }, null, 2),
+  "/clientes-api/caract/consultar": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
+  "/clientes-api/caract/excluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO" }, null, 2),
+  "/clientes-api/caract/excluir-todas": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
 };
 
 export default function ApiTester() {

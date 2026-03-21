@@ -2503,6 +2503,55 @@ export type Database = {
           },
         ]
       }
+      cliente_caracteristicas: {
+        Row: {
+          campo: string
+          cliente_id: string
+          conteudo: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          campo: string
+          cliente_id: string
+          conteudo?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          campo?: string
+          cliente_id?: string
+          conteudo?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_caracteristicas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_caracteristicas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_caracteristicas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_cobranca"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           bairro: string | null

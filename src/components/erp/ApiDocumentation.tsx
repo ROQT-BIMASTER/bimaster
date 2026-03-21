@@ -766,6 +766,33 @@ const clientesCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const clientesCaractCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/caract/incluir", description: "Incluir característica (IncluirCaractCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Varejo" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica incluída com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/caract/alterar", description: "Alterar conteúdo de característica (AlterarCaractCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Atacado" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica alterada com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/caract/consultar", description: "Consultar todas as características (ConsultarCaractCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "caracteristicas": [{ "campo": "SEGMENTO", "conteudo": "Varejo" }] }`,
+  },
+  {
+    method: "POST", path: "/caract/excluir", description: "Excluir uma característica (ExcluirCaractCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica excluída com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/caract/excluir-todas", description: "Excluir todas as características (ExcluirTodasCaractCliente)", tag: "novo",
+    body: `{ "codigo_cliente_integracao": "CLI001" }`,
+    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Todas as características excluídas com sucesso!" }`,
+  },
+];
 
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
@@ -1207,6 +1234,13 @@ export default function ApiDocumentation() {
               basePath="/clientes-api"
               endpoints={clientesCrud}
               description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — formato Omie"
+            />
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-amber-500" />}
+              title="Características de Clientes (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesCaractCrud}
+              description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
             />
           </TabsContent>
 
