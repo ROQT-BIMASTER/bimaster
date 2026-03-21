@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { formatLocalDate } from "@/utils/dateUtils";
 import { useEffect, useState } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export function LancamentosRecentes() {
   const [userId, setUserId] = useState<string | null>(null);
