@@ -154,6 +154,10 @@ const PRESET_ENDPOINTS = [
   { label: "Resumo — Lista Finanças", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/lista-financas" },
   { label: "Resumo — Detalhes Lançamento", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/detalhes" },
   { label: "Resumo — Status", method: "GET" as HttpMethod, path: "/resumo-financeiro-api/status" },
+  // Bancos (ConsultarBanco + ListarBancos)
+  { label: "Bancos — Consultar", method: "GET" as HttpMethod, path: "/bancos-api/consultar?codigo=001" },
+  { label: "Bancos — Listar", method: "GET" as HttpMethod, path: "/bancos-api/listar?pagina=1&registros_por_pagina=100" },
+  { label: "Bancos — Status", method: "GET" as HttpMethod, path: "/bancos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
