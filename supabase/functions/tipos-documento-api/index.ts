@@ -2,7 +2,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { validateApiKey } from "../_shared/auth.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function mapTipoDocumento(row: Record<string, unknown>): Record<string, unknown> {
   return {
