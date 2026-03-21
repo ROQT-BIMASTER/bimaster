@@ -242,12 +242,30 @@ Deno.serve(async (req) => {
 
   console.log(`[v${API_VERSION}] ${req.method} ${path} (clean: ${pathWithoutBase})`);
 
-  // Validar API Key
-  function validateApiKey(): boolean {
+  // Validar API Key (com fallback erp_api_keys)
+  async function validateApiKey(): Promise<boolean> {
     const apiKey = req.headers.get('x-api-key');
+    if (!apiKey) return false;
+
     const expectedKey = Deno.env.get('N8N_API_KEY');
     const polloKey = Deno.env.get('POLLO_API_KEY');
-    return !!(apiKey && (apiKey === expectedKey || apiKey === polloKey));
+    if (apiKey === expectedKey || apiKey === polloKey) return true;
+
+    // Fallback: check erp_config table
+    const { data: configRow } = await supabase
+      .from("erp_config")
+      .select("empresa_id")
+      .eq("config_key", "api_key")
+      .eq("config_value", apiKey)
+      .maybeSingle();
+    if (configRow?.empresa_id) return true;
+
+    // Fallback: check erp_api_keys table
+    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+    const empresa = await validateErpApiKey(apiKey);
+    if (empresa) return true;
+
+    return false;
   }
 
   // Helper para match de rota
@@ -257,7 +275,7 @@ Deno.serve(async (req) => {
 
   // ============ GET /sync-status - REQUIRES API KEY ============
   if (matchRoute('/sync-status') && req.method === 'GET') {
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -286,7 +304,7 @@ Deno.serve(async (req) => {
   if ((matchRoute('/sync') || matchRoute('/bulk-sync') || matchRoute('/sync-chunk')) && req.method === 'POST') {
     const startTime = Date.now();
 
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       console.log('[AUTH] Invalid API key');
       return new Response(JSON.stringify({
         success: false,
@@ -465,7 +483,7 @@ Deno.serve(async (req) => {
 
   // ============ POST /delete-old - Limpar registros antigos ============
   if (matchRoute('/delete-old') && req.method === 'POST') {
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
