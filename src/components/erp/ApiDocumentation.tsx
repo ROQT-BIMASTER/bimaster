@@ -633,6 +633,26 @@ const webhookInbound: Endpoint[] = [
   },
 ];
 
+const bancosCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/consultar", description: "Consultar banco por código COMPE (ConsultarBanco)", tag: "novo",
+    params: [
+      { name: "codigo", type: "string", required: true, description: "Código COMPE do banco (ex: 001, 341)" },
+    ],
+    response: `{ "codigo": "001", "nome": "Banco do Brasil S.A.", "tipo": "CB", "cod_compen": "001", "cod_ispb": "00000000", "cnab_cob": "N", "obank_sn": "N", "obank_pix": "N" }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listar bancos cadastrados com paginação (ListarBancos)", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 100, máx: 500)" },
+      { name: "tipo", type: "string", required: false, description: "Tipo: CB, CX, CV, AC" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 50, "total_de_registros": 50, "fin_banco_cadastro": [{ "codigo": "001", "nome": "Banco do Brasil S.A." }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -815,6 +835,10 @@ export default function ApiDocumentation() {
               <BarChart3 className="h-3.5 w-3.5" />
               Resumo Financeiro
             </TabsTrigger>
+            <TabsTrigger value="bancos" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Bancos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -974,6 +998,16 @@ export default function ApiDocumentation() {
               basePath="/resumo-financeiro-api"
               endpoints={resumoFinanceiroCrud}
               description="Resumo consolidado, lista em aberto, detalhes de lançamentos e lista de finanças por categoria"
+            />
+          </TabsContent>
+
+          <TabsContent value="bancos" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Bancos — ConsultarBanco + ListarBancos (Padrão Omie)"
+              basePath="/bancos-api"
+              endpoints={bancosCrud}
+              description="Consulta e listagem de bancos/instituições financeiras cadastradas"
             />
           </TabsContent>
 
