@@ -174,6 +174,23 @@ export function useCreateSolicitacao() {
   });
 }
 
+export function useMinhasSolicitacoes() {
+  return useQuery({
+    queryKey: ["trade-minhas-solicitacoes"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data, error } = await supabase
+        .from("trade_material_solicitacoes" as any)
+        .select("*, trade_materiais(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as TradeMaterialSolicitacao[];
+    },
+  });
+}
+
 export function useUpdateSolicitacao() {
   const qc = useQueryClient();
   return useMutation({

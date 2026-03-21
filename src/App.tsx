@@ -127,6 +127,7 @@ const TradeAdminApprovalLevels = lazyWithRetry(() => import("./pages/TradeAdminA
 const TradePerformance = lazyWithRetry(() => import("./pages/TradePerformance"));
 const TradeTeamPerformance = lazyWithRetry(() => import("./pages/TradeTeamPerformance"));
 const TradeRewards = lazyWithRetry(() => import("./pages/TradeRewards"));
+const MinhasSolicitacoes = lazyWithRetry(() => import("./pages/trade/MinhasSolicitacoes"));
 const TradeReportCampaigns = lazyWithRetry(() => import("./pages/trade/reports/TradeReportCampaigns"));
 const TradeReportClients = lazyWithRetry(() => import("./pages/trade/reports/TradeReportClients"));
 const TradeReportSellers = lazyWithRetry(() => import("./pages/trade/reports/TradeReportSellers"));
@@ -447,6 +448,7 @@ function AppContent() {
             <Route path="/dashboard/trade/performance" element={<ModuleRoute moduleCode="trade"><TradePerformance /></ModuleRoute>} />
             <Route path="/dashboard/trade/team-performance" element={<ModuleRoute moduleCode="trade"><TradeTeamPerformance /></ModuleRoute>} />
             <Route path="/dashboard/trade/rewards" element={<ModuleRoute moduleCode="trade"><TradeRewards /></ModuleRoute>} />
+            <Route path="/dashboard/trade/minhas-solicitacoes" element={<ModuleRoute moduleCode="trade"><MinhasSolicitacoes /></ModuleRoute>} />
 
             {/* Módulo de Eventos Corporativos */}
             <Route path="/dashboard/eventos" element={<ModuleRoute moduleCode="eventos"><CorporateEvents /></ModuleRoute>} />
