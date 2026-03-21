@@ -24728,6 +24728,48 @@ export type Database = {
           },
         ]
       }
+      trade_banners: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          imagem_url: string
+          link_destino: string | null
+          posicao: number | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          imagem_url: string
+          link_destino?: string | null
+          posicao?: number | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          imagem_url?: string
+          link_destino?: string | null
+          posicao?: number | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trade_budget_audit_log: {
         Row: {
           action: string
@@ -26053,6 +26095,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trade_incentivo_progresso: {
+        Row: {
+          concluido: boolean | null
+          id: string
+          incentivo_id: string
+          updated_at: string | null
+          user_id: string
+          valor_atual: number | null
+        }
+        Insert: {
+          concluido?: boolean | null
+          id?: string
+          incentivo_id: string
+          updated_at?: string | null
+          user_id: string
+          valor_atual?: number | null
+        }
+        Update: {
+          concluido?: boolean | null
+          id?: string
+          incentivo_id?: string
+          updated_at?: string | null
+          user_id?: string
+          valor_atual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_incentivo_progresso_incentivo_id_fkey"
+            columns: ["incentivo_id"]
+            isOneToOne: false
+            referencedRelation: "trade_incentivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_incentivos: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          meta_unidade: string | null
+          meta_valor: number | null
+          recompensa: string | null
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          meta_unidade?: string | null
+          meta_valor?: number | null
+          recompensa?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          meta_unidade?: string | null
+          meta_valor?: number | null
+          recompensa?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       trade_investments: {
         Row: {
