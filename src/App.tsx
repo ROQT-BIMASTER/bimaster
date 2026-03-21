@@ -72,6 +72,8 @@ const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configura
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
+const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
+const DetalhamentoVendas = lazyWithRetry(() => import("./pages/DetalhamentoVendas"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
