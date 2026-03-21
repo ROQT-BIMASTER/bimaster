@@ -249,7 +249,7 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [currentTheme, setCurrentTheme] = useState<ThemeKey>(() => {
-    return (localStorage.getItem("user_theme") as ThemeKey) || "navy-blue";
+    return (localStorage.getItem("user_theme") as ThemeKey) || "white-clean";
   });
 
   const themeDefinition = themes.find(t => t.key === currentTheme) || themes[0];
