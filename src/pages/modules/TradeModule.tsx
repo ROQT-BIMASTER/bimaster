@@ -26,7 +26,7 @@ import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
-  const { isAdmin, isAdminOrSupervisor } = useUserRole();
+  const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
