@@ -14,6 +14,7 @@ export interface VendaDetalhe {
   descricao: string;
   marca: string;
   quantidade: number;
+  preco_unitario: number;
   receita: number;
   vl_desconto: number;
   vl_icm_subst: number;
@@ -25,6 +26,7 @@ export interface VendaDetalhe {
   uf: string;
   cidade: string;
   operacao: string;
+  cod_produto: string;
 }
 
 export function useDetalhamentoVendas(filters: DashboardFilters) {
@@ -49,7 +51,7 @@ export function useDetalhamentoVendas(filters: DashboardFilters) {
       while (hasMore) {
         let q = supabase
           .from("vendas_union")
-          .select("id,data,pedido,nota,cliente,cod_cliente,descricao,marca,quantidade,venda,preco_venda,vl_desconto,vl_icm_subst,vl_outros_custos,tabela,vendedor,supervisor,empresa,id_empresa,uf,cidade,operacao")
+          .select("id,data,pedido,nota,cliente,cod_cliente,cod_produto,descricao,marca,quantidade,venda,preco_venda,vl_desconto,vl_icm_subst,vl_outros_custos,tabela,vendedor,supervisor,empresa,id_empresa,uf,cidade,operacao")
           .gte("data", startDate)
           .lte("data", endDate)
           .order("data", { ascending: false })
@@ -60,6 +62,7 @@ export function useDetalhamentoVendas(filters: DashboardFilters) {
         if (filters.codVend) q = q.eq("cod_vend", filters.codVend);
         if (filters.uf) q = q.eq("uf", filters.uf);
         if (filters.marca) q = q.eq("marca", filters.marca);
+        if (filters.tabela) q = q.eq("tabela", filters.tabela);
 
         const { data: batch, error } = await q;
         if (error) throw error;
@@ -84,9 +87,11 @@ export function useDetalhamentoVendas(filters: DashboardFilters) {
             nota: r.nota,
             cliente: r.cliente || "",
             cod_cliente: r.cod_cliente,
+            cod_produto: r.cod_produto || "",
             descricao: r.descricao || "",
             marca: r.marca || "",
             quantidade: r.quantidade || 0,
+            preco_unitario: r.preco_venda || 0,
             receita,
             vl_desconto: r.vl_desconto || 0,
             vl_icm_subst: r.vl_icm_subst || 0,
