@@ -36,7 +36,7 @@ import { ChinaChecklistFocusMode } from "@/components/china/ChinaChecklistFocusM
 import { ChinaPainelAprovacao } from "@/components/china/ChinaPainelAprovacao";
 import { CofreSubmissaoDialog } from "@/components/china/CofreSubmissaoDialog";
 import { ChinaChatPanel } from "@/components/china/ChinaChatPanel";
-import { ChinaPastaDigitalPanel } from "@/components/china/ChinaPastaDigitalPanel";
+// ChinaPastaDigitalPanel removed — now lives in Vincular China
 import { ProcessoTimeline } from "@/components/processo/ProcessoTimeline";
 import { ProcessoResumo } from "@/components/processo/ProcessoResumo";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
