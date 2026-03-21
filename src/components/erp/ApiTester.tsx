@@ -329,6 +329,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/categorias-api/alterar-grupo": JSON.stringify({ codigo: "GRP-001", descricao: "Despesas Operacionais Atualizado" }, null, 2),
   "/categorias-api/consultar": JSON.stringify({ codigo: "CAT-001" }, null, 2),
   "/categorias-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, filtrar_apenas_ativo: "S", filtrar_por_tipo: "" }, null, 2),
+  // Parcelas
+  "/parcelas-api/incluir": JSON.stringify({ cParcela: "30/60/90" }, null, 2),
+  "/parcelas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
 };
 
 export default function ApiTester() {
