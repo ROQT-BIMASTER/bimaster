@@ -177,6 +177,17 @@ const PRESET_ENDPOINTS = [
   // Bandeiras de Cartão (ListarBandeiras)
   { label: "Bandeiras — Listar", method: "GET" as HttpMethod, path: "/bandeiras-api/listar?nPagina=1&nRegPorPagina=50" },
   { label: "Bandeiras — Status", method: "GET" as HttpMethod, path: "/bandeiras-api/status" },
+  // Clientes (CRUD Completo)
+  { label: "Clientes — Listar", method: "POST" as HttpMethod, path: "/clientes-api/listar" },
+  { label: "Clientes — Listar Resumido", method: "POST" as HttpMethod, path: "/clientes-api/listar-resumido" },
+  { label: "Clientes — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/consultar" },
+  { label: "Clientes — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/incluir" },
+  { label: "Clientes — Alterar", method: "POST" as HttpMethod, path: "/clientes-api/alterar" },
+  { label: "Clientes — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/excluir" },
+  { label: "Clientes — Upsert", method: "POST" as HttpMethod, path: "/clientes-api/upsert" },
+  { label: "Clientes — Upsert CPF/CNPJ", method: "POST" as HttpMethod, path: "/clientes-api/upsert-cpfcnpj" },
+  { label: "Clientes — Associar Código", method: "POST" as HttpMethod, path: "/clientes-api/associar" },
+  { label: "Clientes — Status", method: "GET" as HttpMethod, path: "/clientes-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
