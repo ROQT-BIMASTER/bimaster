@@ -132,6 +132,11 @@ const PRESET_ENDPOINTS = [
   { label: "Anexo — Listar", method: "GET" as HttpMethod, path: "/anexos-api/listar?cTabela=contas_receber&nId=0&nPagina=1&nRegPorPagina=50" },
   { label: "Anexo — Excluir", method: "DELETE" as HttpMethod, path: "/anexos-api/excluir" },
   { label: "Anexo — Status", method: "GET" as HttpMethod, path: "/anexos-api/status" },
+  // Orçamento de Caixa (Previsto x Realizado)
+  { label: "Orçamento — Listar", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/listar?nAno=2026&nMes=3" },
+  { label: "Orçamento — Incluir", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir" },
+  { label: "Orçamento — Incluir Lote", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir-lote" },
+  { label: "Orçamento — Status", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -176,6 +181,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   // Anexos
   "/anexos-api/incluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345, cNomeArquivo: "comprovante.pdf", cTipoArquivo: "pdf", cArquivo: "<base64_do_arquivo_zipado>", cMd5: "" }, null, 2),
   "/anexos-api/excluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345 }, null, 2),
+  // Orçamento de Caixa
+  "/orcamentos-caixa-api/incluir": JSON.stringify({ nAno: 2026, nMes: 3, cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, null, 2),
+  "/orcamentos-caixa-api/incluir-lote": JSON.stringify({ nAno: 2026, nMes: 3, orcamentos: [{ cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, { cCodCateg: "1.01.02", cDesCateg: "Vendas de Produtos", nValorPrevisto: 25000.00 }] }, null, 2),
 };
 
 export default function ApiTester() {

@@ -514,6 +514,30 @@ const anexosCrud: Endpoint[] = [
   },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
+
+
+const orcamentosCaixaCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
+    params: [
+      { name: "nAno", type: "integer", required: true, description: "Ano do orçamento" },
+      { name: "nMes", type: "integer", required: true, description: "Mês (1-12)" },
+    ],
+    response: `{ "nAno": 2026, "nMes": 3, "ListaOrcamentos": [{ "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00, "nValorRealizado": 3200.50 }] }`,
+  },
+  {
+    method: "POST", path: "/incluir", description: "Cadastrar/atualizar orçamento previsto para uma categoria",
+    body: `{ "nAno": 2026, "nMes": 3, "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00 }`,
+    response: `{ "cCodStatus": "0", "cDesStatus": "Orçamento cadastrado/atualizado com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/incluir-lote", description: "Upsert em lote de orçamentos previstos (máx 500)",
+    body: `{ "nAno": 2026, "nMes": 3, "orcamentos": [{ "cCodCateg": "2.04.01", "cDesCateg": "Serviços Terceiros", "nValorPrevisto": 5000.00 }] }`,
+    response: `{ "cCodStatus": "0", "cDesStatus": "2 orçamento(s) cadastrado(s)/atualizado(s)", "nTotal": 2 }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -688,6 +712,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Anexos
             </TabsTrigger>
+            <TabsTrigger value="orcamentos" className="text-xs gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Orçamentos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -807,6 +835,16 @@ export default function ApiDocumentation() {
               basePath="/anexos-api"
               endpoints={anexosCrud}
               description="Incluir, consultar, obter link, listar e excluir anexos vinculados a qualquer documento"
+            />
+          </TabsContent>
+
+          <TabsContent value="orcamentos" className="space-y-1">
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-primary" />}
+              title="Orçamento de Caixa — Previsto x Realizado (Padrão Omie)"
+              basePath="/orcamentos-caixa-api"
+              endpoints={orcamentosCaixaCrud}
+              description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
             />
           </TabsContent>
 
