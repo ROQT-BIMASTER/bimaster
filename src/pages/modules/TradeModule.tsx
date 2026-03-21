@@ -146,15 +146,15 @@ const TradeModule = () => {
           <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
             <Link to="/dashboard/trade/stores">
               <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/30">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="p-2 sm:p-2.5 bg-blue-500/10 rounded-xl w-fit">
-                    <Store className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-xl w-fit">
+                    <Store className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="mt-3">
-                    <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  <div className="mt-2">
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {stats?.totalStores || 0}
                     </p>
-                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">PDVs Ativos</h3>
+                    <h3 className="text-[11px] sm:text-xs font-medium mt-0.5">PDVs Ativos</h3>
                   </div>
                 </CardContent>
               </Card>
