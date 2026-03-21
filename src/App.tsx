@@ -492,6 +492,8 @@ function AppContent() {
             <Route path="/dashboard/detalhamento" element={<ProtectedRoute><DetalhamentoVendas /></ProtectedRoute>} />
             <Route path="/dashboard/geografico" element={<ProtectedRoute><AnaliseGeografico /></ProtectedRoute>} />
             <Route path="/dashboard/produtos" element={<ProtectedRoute><AnaliseProdutos /></ProtectedRoute>} />
+            <Route path="/dashboard/metas" element={<ProtectedRoute><MetasProjecoes /></ProtectedRoute>} />
+            <Route path="/dashboard/consolidado" element={<ProtectedRoute><Consolidado /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
