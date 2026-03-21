@@ -897,6 +897,10 @@ export default function ApiDocumentation() {
               <RefreshCw className="h-3.5 w-3.5" />
               Final. Transferência
             </TabsTrigger>
+            <TabsTrigger value="origens" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Origens
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
