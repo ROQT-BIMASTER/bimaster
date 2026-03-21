@@ -497,15 +497,15 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ChinaSubmissaoDetalhe /></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ChinaFichaProduto /></ModuleRoute>} />
 
-            {/* Painel Executivo — protegido por módulo comercial */}
-            <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="comercial"><PainelExecutivo /></ModuleRoute>} />
-            <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="comercial"><PerformanceVendas /></ModuleRoute>} />
-            <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="comercial"><AnaliseClientes /></ModuleRoute>} />
-            <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="comercial"><DetalhamentoVendas /></ModuleRoute>} />
-            <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="comercial"><AnaliseGeografico /></ModuleRoute>} />
-            <Route path="/dashboard/produtos" element={<ModuleRoute moduleCode="comercial"><AnaliseProdutos /></ModuleRoute>} />
-            <Route path="/dashboard/metas" element={<ModuleRoute moduleCode="comercial"><MetasProjecoes /></ModuleRoute>} />
-            <Route path="/dashboard/consolidado" element={<ModuleRoute moduleCode="comercial"><Consolidado /></ModuleRoute>} />
+            {/* Painel Executivo — protegido por módulo central_inteligencia */}
+            <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><PainelExecutivo /></ModuleRoute>} />
+            <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="central_inteligencia"><PerformanceVendas /></ModuleRoute>} />
+            <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseClientes /></ModuleRoute>} />
+            <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="central_inteligencia"><DetalhamentoVendas /></ModuleRoute>} />
+            <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseGeografico /></ModuleRoute>} />
+            <Route path="/dashboard/produtos" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseProdutos /></ModuleRoute>} />
+            <Route path="/dashboard/metas" element={<ModuleRoute moduleCode="central_inteligencia"><MetasProjecoes /></ModuleRoute>} />
+            <Route path="/dashboard/consolidado" element={<ModuleRoute moduleCode="central_inteligencia"><Consolidado /></ModuleRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
@@ -618,7 +618,7 @@ function AppContent() {
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-apis" element={<ScreenRoute screenCode="admin"><RelatorioAPIs /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
-            <Route path="/dashboard/integracao-erp" element={<ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute>} />
+            <Route path="/dashboard/integracao-erp" element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
             <Route path="/dashboard/fornecedores" element={<ScreenRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenRoute>} />
             <Route path="/dashboard/pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><Pagamentos /></ScreenRoute>} />
             <Route path="/dashboard/empresas" element={<ScreenRoute screenCode="financeiro_empresas"><Empresas /></ScreenRoute>} />
