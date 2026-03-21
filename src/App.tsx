@@ -136,6 +136,7 @@ const TradeBannersAdmin = lazyWithRetry(() => import("./pages/trade/TradeBanners
 const TradeIncentivosAdmin = lazyWithRetry(() => import("./pages/trade/TradeIncentivosAdmin"));
 const TradeDisplayCatalogAdmin = lazyWithRetry(() => import("./pages/trade/TradeDisplayCatalogAdmin"));
 const TradeMateriaisAdmin = lazyWithRetry(() => import("./pages/trade/TradeMateriaisAdmin"));
+const TradeMateriaisCatalog = lazyWithRetry(() => import("./pages/trade/TradeMateriaisCatalog"));
 const CorporateEvents = lazyWithRetry(() => import("./pages/CorporateEvents"));
 const CorporateEventDetail = lazyWithRetry(() => import("./pages/CorporateEventDetail"));
 const CorporateEventsDashboard = lazyWithRetry(() => import("./pages/CorporateEventsDashboard"));
