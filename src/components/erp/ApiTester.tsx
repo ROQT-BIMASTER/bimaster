@@ -64,6 +64,17 @@ const PRESET_ENDPOINTS = [
   { label: "Contas a Pagar — Cancelar", method: "POST" as HttpMethod, path: "/contas-pagar-api/cancelar" },
   { label: "Contas a Pagar — Registrar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/registrar-pagamento" },
   { label: "Contas a Pagar — Estornar", method: "POST" as HttpMethod, path: "/contas-pagar-api/estornar" },
+  // Contas a Pagar — Omie-style
+  { label: "CP Omie — Consultar", method: "GET" as HttpMethod, path: "/contas-pagar-api/consultar?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CP Omie — Incluir", method: "POST" as HttpMethod, path: "/contas-pagar-api/incluir" },
+  { label: "CP Omie — Alterar", method: "PUT" as HttpMethod, path: "/contas-pagar-api/alterar" },
+  { label: "CP Omie — Excluir", method: "DELETE" as HttpMethod, path: "/contas-pagar-api/excluir?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CP Omie — Upsert", method: "POST" as HttpMethod, path: "/contas-pagar-api/upsert" },
+  { label: "CP Omie — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-pagar-api/upsert-lote" },
+  { label: "CP Omie — Lançar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/lancar-pagamento" },
+  { label: "CP Omie — Cancelar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/cancelar-pagamento" },
+  { label: "CP Omie — Listar", method: "GET" as HttpMethod, path: "/contas-pagar-api/listar?pagina=1&registros_por_pagina=20" },
+  // Export
   { label: "Export — Pendentes (Provisão)", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/pending" },
   { label: "Export — Pagos (Baixa)", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/paid" },
   { label: "Export — Cancelados", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/cancelled" },
