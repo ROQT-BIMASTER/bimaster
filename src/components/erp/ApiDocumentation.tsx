@@ -625,6 +625,18 @@ const tiposAtividadeCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposAnexoCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar tipos de anexo cadastrados (ListarTiposAnexos)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    params: [
+      { name: "codigo", type: "string(10)", required: false, description: "Filtro parcial por código (ILIKE)" },
+    ],
+    response: `{ "listaTipoAnexo": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "CT", "descricao": "Contrato" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const cnaeCrud: Endpoint[] = [
   {
     method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
