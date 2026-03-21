@@ -28,7 +28,7 @@ const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
