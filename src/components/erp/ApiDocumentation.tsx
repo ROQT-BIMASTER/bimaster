@@ -1356,6 +1356,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="categorias" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Categorias — CRUD Completo (Padrão Omie)"
+              basePath="/categorias-api"
+              endpoints={categoriasCrud}
+              description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — formato Omie"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
