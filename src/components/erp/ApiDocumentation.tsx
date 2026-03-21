@@ -337,6 +337,17 @@ const lancamentosCcCrud: Endpoint[] = [
     body: `{ "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cTipo": "DIN" } }] }`,
   },
   { method: "GET", path: "/status", description: "Health check da API" },
+  {
+    method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo",
+    params: [
+      { name: "nCodCC", type: "integer", required: false, description: "Código Omie da conta corrente" },
+      { name: "cCodIntCC", type: "string", required: false, description: "Código de integração da conta" },
+      { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial (dd/mm/yyyy ou yyyy-mm-dd)" },
+      { name: "dPeriodoFinal", type: "string", required: false, description: "Período final (dd/mm/yyyy ou yyyy-mm-dd)" },
+      { name: "cExibirApenasSaldo", type: "string", required: false, description: "S para retornar apenas saldos sem movimentos" },
+    ],
+    response: `{ "nCodCC": 427619317, "cDescricao": "Conta Bradesco", "dPeriodoInicial": "01/03/2026", "dPeriodoFinal": "21/03/2026", "nSaldoAnterior": 10000.00, "nSaldoAtual": 15230.50, "listaMovimentos": [{ "nCodLancamento": 123, "dDataLancamento": "05/03/2026", "nValorDocumento": 500.00, "nSaldo": 10500.00, "cNatureza": "C" }] }`,
+  },
 ];
 
 const contasReceberOmie: Endpoint[] = [

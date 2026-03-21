@@ -593,6 +593,147 @@ Deno.serve(async (req) => {
       }, 200, req, startMs);
     }
 
+    // ==================== GET /extrato (ListarExtrato) ====================
+    if (req.method === "GET" && path === "/extrato") {
+      const nCodCC = url.searchParams.get("nCodCC");
+      const cCodIntCC = url.searchParams.get("cCodIntCC");
+      const dPeriodoInicial = url.searchParams.get("dPeriodoInicial");
+      const dPeriodoFinal = url.searchParams.get("dPeriodoFinal");
+      const cExibirApenasSaldo = url.searchParams.get("cExibirApenasSaldo");
+
+      if (!nCodCC && !cCodIntCC) {
+        return errorResp(400, "PARAM_REQUIRED", "Informe nCodCC ou cCodIntCC", req, startMs);
+      }
+
+      // Resolve conta corrente
+      let ccQuery = supabase.from("contas_bancarias").select("*").eq("empresa_id", empresaId);
+      if (nCodCC) ccQuery = ccQuery.eq("n_cod_cc", parseInt(nCodCC));
+      else if (cCodIntCC) ccQuery = ccQuery.eq("codigo_integracao", cCodIntCC);
+
+      const { data: cc, error: ccErr } = await ccQuery.maybeSingle();
+      if (ccErr || !cc) {
+        return errorResp(404, "CC_NOT_FOUND", "Conta corrente não encontrada", req, startMs);
+      }
+
+      // Parse dates (dd/mm/yyyy or yyyy-mm-dd)
+      function parseDate(d: string | null): string | null {
+        if (!d) return null;
+        if (d.includes("/")) {
+          const p = d.split("/");
+          if (p.length === 3) return `${p[2]}-${p[1]}-${p[0]}`;
+        }
+        return d;
+      }
+      function formatDateOmie(d: string | null): string {
+        if (!d) return "";
+        if (d.includes("-")) {
+          const p = d.split("T")[0].split("-");
+          return `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        return d;
+      }
+
+      const periodoIni = parseDate(dPeriodoInicial);
+      const periodoFin = parseDate(dPeriodoFinal);
+
+      // Calculate saldo anterior (movements before period)
+      let saldoAnterior = cc.saldo_inicial || 0;
+      if (periodoIni) {
+        const { data: prevMovs } = await supabase
+          .from("vw_extrato_conta_corrente")
+          .select("valor, tipo")
+          .eq("conta_bancaria_id", cc.id)
+          .lt("data", periodoIni);
+        if (prevMovs) {
+          for (const m of prevMovs) {
+            const v = Number(m.valor) || 0;
+            saldoAnterior += m.tipo === "credito" ? v : -v;
+          }
+        }
+      }
+
+      // Get movements in period
+      let movQuery = supabase
+        .from("vw_extrato_conta_corrente")
+        .select("*")
+        .eq("conta_bancaria_id", cc.id)
+        .order("data", { ascending: true });
+      if (periodoIni) movQuery = movQuery.gte("data", periodoIni);
+      if (periodoFin) movQuery = movQuery.lte("data", periodoFin);
+
+      const { data: movimentos, error: movErr } = await movQuery;
+      if (movErr) {
+        return errorResp(500, "QUERY_ERROR", movErr.message, req, startMs);
+      }
+
+      // Calculate running balance and map movements
+      let saldoCorrente = saldoAnterior;
+      const listaMovimentos = (movimentos || []).map((m: Record<string, unknown>) => {
+        const valor = Number(m.valor) || 0;
+        const natureza = m.tipo === "credito" ? "C" : "D";
+        saldoCorrente += natureza === "C" ? valor : -valor;
+
+        return {
+          nCodLancamento: m.n_cod_lanc ?? m.id ?? null,
+          nCodLancRelac: null,
+          cSituacao: m.status ?? null,
+          dDataLancamento: formatDateOmie(m.data as string),
+          cDesCliente: m.fornecedor_nome ?? m.cliente_nome ?? m.descricao ?? null,
+          cTipoDocumento: m.tipo_documento ?? null,
+          cNumero: m.numero_documento ?? null,
+          nValorDocumento: valor,
+          nSaldo: Math.round(saldoCorrente * 100) / 100,
+          cCodCategoria: m.categoria ?? null,
+          cDesCategoria: m.categoria_nome ?? null,
+          cDocumentoFiscal: m.documento_fiscal ?? null,
+          cParcela: m.parcela ?? null,
+          cNossoNumero: m.nosso_numero ?? null,
+          cOrigem: m.origem ?? null,
+          cVendedor: null,
+          cProjeto: m.projeto ?? null,
+          nCodCliente: m.n_cod_cliente ?? null,
+          cRazCliente: m.fornecedor_razao ?? m.cliente_razao ?? null,
+          cDocCliente: m.fornecedor_documento ?? m.cliente_documento ?? null,
+          cObservacoes: m.observacoes ?? null,
+          cDataInclusao: formatDateOmie(m.created_at as string),
+          cHoraInclusao: null,
+          cNatureza: natureza,
+          cBloqueado: "N",
+          dDataConciliacao: formatDateOmie(m.data_conciliacao as string),
+        };
+      });
+
+      const nSaldoAtual = Math.round(saldoCorrente * 100) / 100;
+
+      const resp: Record<string, unknown> = {
+        nCodCC: cc.n_cod_cc ?? null,
+        cCodIntCC: cc.codigo_integracao ?? null,
+        nCodAgencia: cc.agencia ?? null,
+        nCodBanco: cc.codigo_banco ?? null,
+        nNumConta: cc.numero_conta ?? null,
+        cDescricao: cc.nome ?? cc.descricao ?? null,
+        cCodTipo: cc.tipo ?? null,
+        cDesTipo: null,
+        cFluxoCaixa: "S",
+        cResumoExecutivo: "S",
+        dPeriodoInicial: dPeriodoInicial || "",
+        dPeriodoFinal: dPeriodoFinal || "",
+        nSaldoAnterior: Math.round(saldoAnterior * 100) / 100,
+        nSaldoAtual,
+        nSaldoConciliado: nSaldoAtual,
+        nSaldoProvisorio: nSaldoAtual,
+        nLimiteCreditoTotal: cc.valor_limite ?? 0,
+        nSaldoDisponivel: nSaldoAtual + (cc.valor_limite ?? 0),
+      };
+
+      if (cExibirApenasSaldo !== "S") {
+        resp.listaMovimentos = listaMovimentos;
+      }
+
+      await logSync("GET /extrato", { nCodCC, cCodIntCC, dPeriodoInicial, dPeriodoFinal }, 200);
+      return json(resp, 200, req, startMs);
+    }
+
     // --- 404 ---
     return errorResp(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
 
