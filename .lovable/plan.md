@@ -1,31 +1,23 @@
 
 
-# Plano: Carrinhos de Materiais abaixo do Catálogo de Displays
+# Plano: Reduzir tamanho dos KPI Cards do Trade
 
 ## O que será feito
 
-Adicionar uma seção horizontal de scroll (mesmo estilo visual do "Lançamentos Recentes") logo abaixo do banner do Catálogo de Displays, mostrando os materiais ativos do trade para solicitação rápida. Cada card exibe a foto do material (ou ícone placeholder) e o nome truncado.
+Compactar os 4 cards de "Visão Geral" (PDVs Ativos, Visitas, Fotos, Sell Out) reduzindo padding, tamanho de ícones, fontes e espaçamento interno.
 
-## Componente novo
+## Alterações em `src/pages/modules/TradeModule.tsx`
 
-### `src/components/trade/MateriaisCarousel.tsx`
-- Usa `useActiveTradeMateriais()` para buscar materiais ativos
-- Scroll horizontal com cards quadrados arredondados (mesmo padrão do `LancamentosRecentes`)
-- Cada card: foto do material (`foto_url`) em div `w-14 h-14 sm:w-16 sm:h-16 rounded-2xl`, nome truncado abaixo
-- Click no card abre link para solicitação ou página de materiais
-- Loading: skeleton horizontal
-- Vazio: não renderiza
+Para cada um dos 4 cards (linhas 148-210):
 
-## Integração
+| Propriedade | Atual | Novo |
+|---|---|---|
+| CardContent padding | `p-4 sm:p-5` | `p-3 sm:p-4` |
+| Ícone container | `p-2 sm:p-2.5` | `p-1.5 sm:p-2` |
+| Ícone tamanho | `h-5 w-5 sm:h-6 sm:w-6` | `h-4 w-4 sm:h-5 sm:w-5` |
+| Margem do texto | `mt-3` | `mt-2` |
+| Valor fonte | `text-2xl sm:text-3xl` | `text-xl sm:text-2xl` |
+| Label fonte | `text-xs sm:text-sm` | `text-[11px] sm:text-xs` |
 
-### `src/pages/modules/TradeModule.tsx`
-- Importar `MateriaisCarousel`
-- Inserir `<MateriaisCarousel />` logo após o `<DisplayHeroBanner />` (linha 139), dentro do mesmo bloco do catálogo de displays
-
-## Arquivos
-
-| Arquivo | Tipo |
-|---|---|
-| `src/components/trade/MateriaisCarousel.tsx` | Novo |
-| `src/pages/modules/TradeModule.tsx` | Editar (adicionar componente) |
+Nenhum arquivo novo. Apenas ajustes de classes CSS nos 4 cards existentes.
 
