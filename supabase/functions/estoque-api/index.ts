@@ -295,15 +295,16 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ data: result, tipo, timestamp: new Date().toISOString() }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: makeHeaders() }
     );
 
   } catch (error) {
     const err = error as Error;
     console.error('❌ Erro na consulta:', err);
+    const cors = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: withSecurityHeaders({ ...cors, 'Content-Type': 'application/json' }) }
     );
   }
 });
