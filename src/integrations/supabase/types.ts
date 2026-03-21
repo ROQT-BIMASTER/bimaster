@@ -26886,6 +26886,114 @@ export type Database = {
           },
         ]
       }
+      vendas_union: {
+        Row: {
+          cidade: string | null
+          cliente: string | null
+          cod_cliente: number | null
+          cod_equipe: number | null
+          cod_produto: number | null
+          cod_vend: number | null
+          created_at: string
+          data: string | null
+          descricao: string | null
+          empresa: string | null
+          id: number
+          id_empresa: number | null
+          id_ramo: number | null
+          marca: string | null
+          nome_equipe: string | null
+          nome_linha: string | null
+          nota: number | null
+          operacao: string | null
+          pedido: number | null
+          preco_venda: number | null
+          quantidade: number | null
+          ramo: string | null
+          supervisor: string | null
+          tabela: string | null
+          tp_nfe: string | null
+          tp_venda: string | null
+          uf: string | null
+          updated_at: string
+          vendedor: string | null
+          vl_cmv: number | null
+          vl_desconto: number | null
+          vl_icm_subst: number | null
+          vl_outros_custos: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: never
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: never
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Relationships: []
+      }
       vendedor_territorios: {
         Row: {
           ativo: boolean
