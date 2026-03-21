@@ -151,6 +151,10 @@ export default function ApiTester() {
       const finalUrl = buildUrl();
       const headerObj: Record<string, string> = {};
       headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
+        // Skip empty values to avoid triggering unnecessary CORS preflight
+        if (!h.value.trim()) return;
+        // Skip Content-Type for GET/DELETE (no body)
+        if (h.key.toLowerCase() === "content-type" && (method === "GET" || method === "DELETE")) return;
         headerObj[h.key] = h.value;
       });
 
