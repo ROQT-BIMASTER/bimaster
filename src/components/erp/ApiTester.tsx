@@ -147,6 +147,13 @@ const PRESET_ENDPOINTS = [
   { label: "Movimentos — Listar CR", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
   { label: "Movimentos — Listar CC", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
   { label: "Movimentos — Status", method: "GET" as HttpMethod, path: "/movimentos-financeiros-api/status" },
+  // Resumo Financeiro (Dashboard)
+  { label: "Resumo — ObterResumoFinancas", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/resumo" },
+  { label: "Resumo — Em Aberto CP", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/em-aberto" },
+  { label: "Resumo — Em Aberto CR", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/em-aberto" },
+  { label: "Resumo — Lista Finanças", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/lista-financas" },
+  { label: "Resumo — Detalhes Lançamento", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/detalhes" },
+  { label: "Resumo — Status", method: "GET" as HttpMethod, path: "/resumo-financeiro-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
