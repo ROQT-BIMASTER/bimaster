@@ -482,6 +482,10 @@ function AppContent() {
             {/* Painel Executivo */}
             <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
 
+            {/* Painel Executivo */}
+            <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
+            <Route path="/dashboard/performance-vendas" element={<PerformanceVendas />} />
+
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
             <Route path="/dashboard/comercial/lancamentos" element={<ScreenRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenRoute>} />
