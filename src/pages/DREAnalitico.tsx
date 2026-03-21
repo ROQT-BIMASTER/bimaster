@@ -277,33 +277,34 @@ export default function DREAnalitico() {
   const { data: contasReceber } = useSupabaseQuery(
     ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa, regimeAnalise],
     async () => {
-      let query = supabase
-        .from('contas_receber')
-        .select('id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome');
+      const selectCols = 'id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome';
       
-      // Para regime de caixa (recebimento), filtra registros recebidos pela data de vencimento
-      // Como data_recebimento geralmente não está preenchido, usamos data_vencimento como proxy
-      if (regimeAnalise === 'caixa') {
-        query = query
-          .eq('status', 'recebido')
-          .gte('data_vencimento', dataInicio)
-          .lte('data_vencimento', dataFim);
-      } else {
-        // Regime de competência (faturamento) usa data de emissão - busca TODOS os registros
-        query = query
-          .gte('data_emissao', dataInicio)
-          .lte('data_emissao', dataFim);
-      }
+      const data = await fetchAllRows<any>(
+        'contas_receber',
+        selectCols,
+        (query: any) => {
+          if (regimeAnalise === 'caixa') {
+            query = query
+              .eq('status', 'recebido')
+              .gte('data_vencimento', dataInicio)
+              .lte('data_vencimento', dataFim);
+          } else {
+            query = query
+              .gte('data_emissao', dataInicio)
+              .lte('data_emissao', dataFim);
+          }
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          return query;
+        }
+      );
       
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
       return data;
     },
-    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
 
   // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
