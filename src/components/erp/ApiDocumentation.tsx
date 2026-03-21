@@ -708,6 +708,18 @@ const origensCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const bandeirasCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/listar", description: "Lista paginada de bandeiras de cartão (ListarBandeiras)", tag: "novo",
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Número da página (default 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (default 50, max 500)" },
+    ],
+    response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -909,6 +921,10 @@ export default function ApiDocumentation() {
             <TabsTrigger value="origens" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Origens
+            </TabsTrigger>
+            <TabsTrigger value="bandeiras" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Bandeiras
             </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
@@ -1120,6 +1136,16 @@ export default function ApiDocumentation() {
               basePath="/origens-api"
               endpoints={origensCrud}
               description="Listagem de origens de lançamento com filtro por código"
+            />
+          </TabsContent>
+
+          <TabsContent value="bandeiras" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Bandeiras de Cartão — ListarBandeiras (Padrão Omie)"
+              basePath="/bandeiras-api"
+              endpoints={bandeirasCrud}
+              description="Lista paginada de bandeiras de cartão de crédito/débito"
             />
           </TabsContent>
 

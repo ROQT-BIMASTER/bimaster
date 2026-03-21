@@ -174,6 +174,9 @@ const PRESET_ENDPOINTS = [
   { label: "Origens — Listar Todas", method: "POST" as HttpMethod, path: "/origens-api/listar" },
   { label: "Origens — Listar por Código", method: "POST" as HttpMethod, path: "/origens-api/listar" },
   { label: "Origens — Status", method: "GET" as HttpMethod, path: "/origens-api/status" },
+  // Bandeiras de Cartão (ListarBandeiras)
+  { label: "Bandeiras — Listar", method: "GET" as HttpMethod, path: "/bandeiras-api/listar?nPagina=1&nRegPorPagina=50" },
+  { label: "Bandeiras — Status", method: "GET" as HttpMethod, path: "/bandeiras-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {

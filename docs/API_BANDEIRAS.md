@@ -1,0 +1,53 @@
+# API Bandeiras de Cartão — ListarBandeiras
+
+Edge Function: `bandeiras-api`  
+Padrão: Omie `ListarBandeirasResponse`
+
+## Endpoints
+
+| Método | Rota | Equivalente Omie | Descrição |
+|---|---|---|---|
+| GET | `/listar?nPagina=1&nRegPorPagina=50` | ListarBandeiras | Lista paginada de bandeiras |
+| GET | `/status` | — | Health check |
+
+## Autenticação
+
+Header `x-api-key` obrigatório (exceto `/status`).
+
+## GET /listar
+
+**Query params:**
+
+| Param | Tipo | Default | Descrição |
+|---|---|---|---|
+| `nPagina` | integer | 1 | Número da página |
+| `nRegPorPagina` | integer | 50 | Registros por página (max 500) |
+
+**Resposta (200) (`ListarBandeirasResponse`):**
+```json
+{
+  "nPagina": 1,
+  "nTotPaginas": 1,
+  "nRegistros": 8,
+  "nTotRegistros": 8,
+  "listaBandeira": [
+    { "cCodigo": "VISA", "cDescricao": "Visa" },
+    { "cCodigo": "MASTER", "cDescricao": "Mastercard" }
+  ]
+}
+```
+
+## Mapeamento de Campos
+
+| Campo Omie (`listaBandeira`) | Coluna DB | Observação |
+|---|---|---|
+| `cCodigo` | `codigo` | Código da bandeira |
+| `cDescricao` | `descricao` | Descrição da bandeira |
+
+## Erros
+
+| Código | Descrição |
+|---|---|
+| 401 | API key inválida |
+| 404 | Rota inválida |
+| 500 | Erro interno |
