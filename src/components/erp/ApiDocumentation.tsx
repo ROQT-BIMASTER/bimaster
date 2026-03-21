@@ -80,14 +80,14 @@ const contasPagarOmie: Endpoint[] = [
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
-      { name: "codigo_lancamento_omie", type: "integer", required: false, description: "Código numérico Omie" },
+      { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" },
     ],
     response: `{ "conta_pagar_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "INT-001", "valor_original": 100, ... } }`,
   },
   {
     method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
     body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
-    response: `{ "codigo_lancamento_omie": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
+    response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
     method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
@@ -121,7 +121,7 @@ const contasPagarOmie: Endpoint[] = [
     response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
   },
   {
-    method: "GET", path: "/listar", description: "Listagem paginada Omie-style (ListarContasPagar)", tag: "novo",
+    method: "GET", path: "/listar", description: "Listagem paginada Integração (ListarContasPagar)", tag: "novo",
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
@@ -245,7 +245,7 @@ const contasCorrentesCrud: Endpoint[] = [
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" },
-      { name: "nCodCC", type: "integer", required: false, description: "Código numérico Omie" },
+      { name: "nCodCC", type: "integer", required: false, description: "Código numérico Huggs" },
     ],
     response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú", ... } }`,
   },
@@ -302,7 +302,7 @@ const lancamentosCcCrud: Endpoint[] = [
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" },
-      { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Omie" },
+      { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Huggs" },
     ],
     response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...}, ... } }`,
   },
@@ -340,7 +340,7 @@ const lancamentosCcCrud: Endpoint[] = [
   {
     method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo",
     params: [
-      { name: "nCodCC", type: "integer", required: false, description: "Código Omie da conta corrente" },
+      { name: "nCodCC", type: "integer", required: false, description: "Código Huggs da conta corrente" },
       { name: "cCodIntCC", type: "string", required: false, description: "Código de integração da conta" },
       { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial (dd/mm/yyyy ou yyyy-mm-dd)" },
       { name: "dPeriodoFinal", type: "string", required: false, description: "Período final (dd/mm/yyyy ou yyyy-mm-dd)" },
@@ -356,14 +356,14 @@ const contasReceberOmie: Endpoint[] = [
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
-      { name: "codigo_lancamento_omie", type: "integer", required: false, description: "Código numérico Omie" },
+      { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" },
     ],
     response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100, ... } }`,
   },
   {
     method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo",
     body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
-    response: `{ "codigo_lancamento_omie": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
+    response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
     method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo",
@@ -409,7 +409,7 @@ const contasReceberOmie: Endpoint[] = [
     body: `{ "chave_lancamento": 0 }`,
   },
   {
-    method: "GET", path: "/listar", description: "Listagem paginada Omie-style (ListarContasReceber)", tag: "novo",
+    method: "GET", path: "/listar", description: "Listagem paginada Integração (ListarContasReceber)", tag: "novo",
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
@@ -938,22 +938,22 @@ const clientesCrud: Endpoint[] = [
   {
     method: "POST", path: "/consultar", description: "Consultar cliente por código (ConsultarCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "clientes_cadastro": { "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", ... } }`,
+    response: `{ "clientes_cadastro": { "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "razao_social": "ABC Ltda", ... } }`,
   },
   {
     method: "POST", path: "/incluir", description: "Incluir novo cliente (IncluirCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001", "razao_social": "Empresa ABC Ltda", "nome_fantasia": "ABC", "cnpj_cpf": "12.345.678/0001-90", "email": "contato@abc.com" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente incluído com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente incluído com sucesso!" }`,
   },
   {
     method: "POST", path: "/alterar", description: "Alterar dados do cliente (AlterarCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001", "nome_fantasia": "ABC Atualizado", "email": "novo@abc.com" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente alterado com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente alterado com sucesso!" }`,
   },
   {
     method: "POST", path: "/excluir", description: "Excluir (inativar) cliente (ExcluirCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente excluído com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Cliente excluído com sucesso!" }`,
   },
   {
     method: "POST", path: "/upsert", description: "Upsert por codigo_cliente_integracao (UpsertCliente)", tag: "novo",
@@ -965,7 +965,7 @@ const clientesCrud: Endpoint[] = [
   },
   {
     method: "POST", path: "/associar", description: "Associar código de integração (AssociarCodIntCliente)", tag: "novo",
-    body: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001" }`,
+    body: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001" }`,
   },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
@@ -974,27 +974,27 @@ const clientesCaractCrud: Endpoint[] = [
   {
     method: "POST", path: "/caract/incluir", description: "Incluir característica (IncluirCaractCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Varejo" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica incluída com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica incluída com sucesso!" }`,
   },
   {
     method: "POST", path: "/caract/alterar", description: "Alterar conteúdo de característica (AlterarCaractCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO", "conteudo": "Atacado" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica alterada com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica alterada com sucesso!" }`,
   },
   {
     method: "POST", path: "/caract/consultar", description: "Consultar todas as características (ConsultarCaractCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "caracteristicas": [{ "campo": "SEGMENTO", "conteudo": "Varejo" }] }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "caracteristicas": [{ "campo": "SEGMENTO", "conteudo": "Varejo" }] }`,
   },
   {
     method: "POST", path: "/caract/excluir", description: "Excluir uma característica (ExcluirCaractCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001", "campo": "SEGMENTO" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica excluída com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Característica excluída com sucesso!" }`,
   },
   {
     method: "POST", path: "/caract/excluir-todas", description: "Excluir todas as características (ExcluirTodasCaractCliente)", tag: "novo",
     body: `{ "codigo_cliente_integracao": "CLI001" }`,
-    response: `{ "codigo_cliente_omie": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Todas as características excluídas com sucesso!" }`,
+    response: `{ "codigo_cliente_huggs": "uuid", "codigo_cliente_integracao": "CLI001", "codigo_status": "0", "descricao_status": "Todas as características excluídas com sucesso!" }`,
   },
 ];
 
@@ -1343,20 +1343,20 @@ export default function ApiDocumentation() {
             />
             <ApiSection
               icon={<Webhook className="h-4 w-4 text-amber-500" />}
-              title="CRUD Omie-Style (Padrão Omie)"
+              title="CRUD Integração (API Huggs)"
               basePath="/contas-pagar-api"
               endpoints={contasPagarOmie}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — formato Omie"
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — "
             />
           </TabsContent>
 
           <TabsContent value="contas-receber" className="space-y-1">
             <ApiSection
               icon={<Webhook className="h-4 w-4 text-emerald-500" />}
-              title="CRUD Omie-Style (Padrão Omie)"
+              title="CRUD Integração (API Huggs)"
               basePath="/contas-receber-api"
               endpoints={contasReceberOmie}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — formato Omie"
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — "
             />
             <ApiSection
               icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
@@ -1394,7 +1394,7 @@ export default function ApiDocumentation() {
           <TabsContent value="contas-correntes" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync (Padrão Omie)"
+              title="CRUD & Sync (API Huggs)"
               basePath="/contas-correntes-api"
               endpoints={contasCorrentesCrud}
               description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
@@ -1404,7 +1404,7 @@ export default function ApiDocumentation() {
           <TabsContent value="lancamentos-cc" className="space-y-1">
             <ApiSection
               icon={<ArrowDownToLine className="h-4 w-4 text-primary" />}
-              title="CRUD & Sync — Lançamentos de Conta Corrente (Padrão Omie)"
+              title="CRUD & Sync — Lançamentos de Conta Corrente (API Huggs)"
               basePath="/lancamentos-cc-api"
               endpoints={lancamentosCcCrud}
               description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
@@ -1414,7 +1414,7 @@ export default function ApiDocumentation() {
           <TabsContent value="boletos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Boletos — Cobrança Bancária (Padrão Omie)"
+              title="Boletos — Cobrança Bancária (API Huggs)"
               basePath="/boletos-api"
               endpoints={boletosCrud}
               description="Gerar, obter, cancelar e prorrogar boletos vinculados a títulos do Contas a Receber"
@@ -1424,7 +1424,7 @@ export default function ApiDocumentation() {
           <TabsContent value="anexos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Anexos de Documentos (Padrão Omie)"
+              title="Anexos de Documentos (API Huggs)"
               basePath="/anexos-api"
               endpoints={anexosCrud}
               description="Incluir, consultar, obter link, listar e excluir anexos vinculados a qualquer documento"
@@ -1434,7 +1434,7 @@ export default function ApiDocumentation() {
           <TabsContent value="orcamentos" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Orçamento de Caixa — Previsto x Realizado (Padrão Omie)"
+              title="Orçamento de Caixa — Previsto x Realizado (API Huggs)"
               basePath="/orcamentos-caixa-api"
               endpoints={orcamentosCaixaCrud}
               description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
@@ -1444,7 +1444,7 @@ export default function ApiDocumentation() {
           <TabsContent value="pesquisar" className="space-y-1">
             <ApiSection
               icon={<Search className="h-4 w-4 text-primary" />}
-              title="Pesquisa Avançada de Títulos (Padrão Omie)"
+              title="Pesquisa Avançada de Títulos (API Huggs)"
               basePath="/pesquisar-lancamentos-api"
               endpoints={pesquisarLancamentosCrud}
               description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
@@ -1454,7 +1454,7 @@ export default function ApiDocumentation() {
           <TabsContent value="movimentos" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Movimentação Financeira Unificada (Padrão Omie)"
+              title="Movimentação Financeira Unificada (API Huggs)"
               basePath="/movimentos-financeiros-api"
               endpoints={movimentosFinanceirosCrud}
               description="Listagem consolidada de Contas a Pagar, Contas a Receber e Lançamentos CC — cada baixa/lançamento como linha individual"
@@ -1464,7 +1464,7 @@ export default function ApiDocumentation() {
           <TabsContent value="resumo-fin" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="Resumo Financeiro — Dashboard (Padrão Omie)"
+              title="Resumo Financeiro — Dashboard (API Huggs)"
               basePath="/resumo-financeiro-api"
               endpoints={resumoFinanceiroCrud}
               description="Resumo consolidado, lista em aberto, detalhes de lançamentos e lista de finanças por categoria"
@@ -1474,7 +1474,7 @@ export default function ApiDocumentation() {
           <TabsContent value="bancos" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Bancos — ConsultarBanco + ListarBancos (Padrão Omie)"
+              title="Bancos — ConsultarBanco + ListarBancos (API Huggs)"
               basePath="/bancos-api"
               endpoints={bancosCrud}
               description="Consulta e listagem de bancos/instituições financeiras cadastradas"
@@ -1484,7 +1484,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-doc" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento (Padrão Omie)"
+              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento (API Huggs)"
               basePath="/tipos-documento-api"
               endpoints={tiposDocumentoCrud}
               description="Consulta e pesquisa de tipos de documento cadastrados"
@@ -1494,37 +1494,37 @@ export default function ApiDocumentation() {
           <TabsContent value="projetos" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Projetos — CRUD Completo (Padrão Omie)"
+              title="Projetos — CRUD Completo (API Huggs)"
               basePath="/projetos-api"
               endpoints={projetosCrud}
-              description="Incluir, alterar, consultar, excluir, listar e upsert projetos — formato Omie"
+              description="Incluir, alterar, consultar, excluir, listar e upsert projetos — "
             />
           </TabsContent>
 
           <TabsContent value="departamentos" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Departamentos — CRUD Completo (Padrão Omie)"
+              title="Departamentos — CRUD Completo (API Huggs)"
               basePath="/departamentos-api"
               endpoints={departamentosCrud}
-              description="Incluir, alterar, consultar, excluir e listar departamentos — formato Omie"
+              description="Incluir, alterar, consultar, excluir e listar departamentos — "
             />
           </TabsContent>
 
           <TabsContent value="categorias" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Categorias — CRUD Completo (Padrão Omie)"
+              title="Categorias — CRUD Completo (API Huggs)"
               basePath="/categorias-api"
               endpoints={categoriasCrud}
-              description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — formato Omie"
+              description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — "
             />
           </TabsContent>
 
           <TabsContent value="parcelas" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Parcelas — IncluirParcela + ListarParcelas (Padrão Omie)"
+              title="Parcelas — IncluirParcela + ListarParcelas (API Huggs)"
               basePath="/parcelas-api"
               endpoints={parcelasCrud}
               description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
@@ -1534,7 +1534,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-atividade" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Atividade — ListarTipoAtiv (Padrão Omie)"
+              title="Tipos de Atividade — ListarTipoAtiv (API Huggs)"
               basePath="/tipos-atividade-api"
               endpoints={tiposAtividadeCrud}
               description="Listar tipos de atividade da empresa (código 1 char + descrição)"
@@ -1544,7 +1544,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-anexo" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Anexo — ListarTiposAnexos (Padrão Omie)"
+              title="Tipos de Anexo — ListarTiposAnexos (API Huggs)"
               basePath="/tipos-anexo-api"
               endpoints={tiposAnexoCrud}
               description="Lista de tipos de documentos anexos (código + descrição)"
@@ -1554,7 +1554,7 @@ export default function ApiDocumentation() {
           <TabsContent value="tipos-entrega" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Tipos de Entrega — CRUD Completo (Padrão Omie)"
+              title="Tipos de Entrega — CRUD Completo (API Huggs)"
               basePath="/tipos-entrega-api"
               endpoints={tiposEntregaCrud}
               description="Incluir, alterar, consultar, excluir e listar tipos de entrega vinculados a transportadora"
@@ -1564,7 +1564,7 @@ export default function ApiDocumentation() {
           <TabsContent value="cnae" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="CNAE — ListarCNAE (Padrão Omie)"
+              title="CNAE — ListarCNAE (API Huggs)"
               basePath="/cnae-api"
               endpoints={cnaeCrud}
               description="Lista paginada de códigos CNAE com ordenação"
@@ -1574,7 +1574,7 @@ export default function ApiDocumentation() {
           <TabsContent value="cidades" className="space-y-1">
             <ApiSection
               icon={<Search className="h-4 w-4 text-primary" />}
-              title="Cidades — PesquisarCidades (Padrão Omie)"
+              title="Cidades — PesquisarCidades (API Huggs)"
               basePath="/cidades-api"
               endpoints={cidadesCrud}
               description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
@@ -1584,7 +1584,7 @@ export default function ApiDocumentation() {
           <TabsContent value="paises" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Países — ListarPaises (Padrão Omie)"
+              title="Países — ListarPaises (API Huggs)"
               basePath="/paises-api"
               endpoints={paisesCrud}
               description="Lista de países cadastrados com código IBGE, descrição e código ISO"
@@ -1594,7 +1594,7 @@ export default function ApiDocumentation() {
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Empresas — ConsultarEmpresa + ListarEmpresas (Padrão Omie)"
+              title="Empresas — ConsultarEmpresa + ListarEmpresas (API Huggs)"
               basePath="/empresas-api"
               endpoints={empresasCrud}
               description="Consulta e listagem paginada de empresas cadastradas"
@@ -1604,7 +1604,7 @@ export default function ApiDocumentation() {
           <TabsContent value="dre-cadastro" className="space-y-1">
             <ApiSection
               icon={<BarChart3 className="h-4 w-4 text-primary" />}
-              title="DRE — ListarCadastroDRE (Padrão Omie)"
+              title="DRE — ListarCadastroDRE (API Huggs)"
               basePath="/dre-cadastro-api"
               endpoints={dreCadastroCrud}
               description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
@@ -1614,7 +1614,7 @@ export default function ApiDocumentation() {
           <TabsContent value="final-transf" className="space-y-1">
             <ApiSection
               icon={<RefreshCw className="h-4 w-4 text-primary" />}
-              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf (Padrão Omie)"
+              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf (API Huggs)"
               basePath="/finalidades-transferencia-api"
               endpoints={finalidadesTransfCrud}
               description="Consulta e listagem paginada de finalidades de transferência bancária"
@@ -1624,7 +1624,7 @@ export default function ApiDocumentation() {
           <TabsContent value="origens" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Origens de Lançamento — ListarOrigem (Padrão Omie)"
+              title="Origens de Lançamento — ListarOrigem (API Huggs)"
               basePath="/origens-api"
               endpoints={origensCrud}
               description="Listagem de origens de lançamento com filtro por código"
@@ -1634,7 +1634,7 @@ export default function ApiDocumentation() {
           <TabsContent value="bandeiras" className="space-y-1">
             <ApiSection
               icon={<FileText className="h-4 w-4 text-primary" />}
-              title="Bandeiras de Cartão — ListarBandeiras (Padrão Omie)"
+              title="Bandeiras de Cartão — ListarBandeiras (API Huggs)"
               basePath="/bandeiras-api"
               endpoints={bandeirasCrud}
               description="Lista paginada de bandeiras de cartão de crédito/débito"
@@ -1644,21 +1644,21 @@ export default function ApiDocumentation() {
           <TabsContent value="clientes" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
-              title="Clientes — CRUD Completo (Padrão Omie)"
+              title="Clientes — CRUD Completo (API Huggs)"
               basePath="/clientes-api"
               endpoints={clientesCrud}
-              description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — formato Omie"
+              description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — "
             />
             <ApiSection
               icon={<FileText className="h-4 w-4 text-amber-500" />}
-              title="Características de Clientes (Padrão Omie)"
+              title="Características de Clientes (API Huggs)"
               basePath="/clientes-api"
               endpoints={clientesCaractCrud}
               description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
             />
             <ApiSection
               icon={<FileText className="h-4 w-4 text-emerald-500" />}
-              title="Tags de Clientes (Padrão Omie)"
+              title="Tags de Clientes (API Huggs)"
               basePath="/clientes-api"
               endpoints={clientesTagsCrud}
               description="Associar, listar e remover tags de clientes/fornecedores"
