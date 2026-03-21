@@ -460,8 +460,7 @@ const boletosCrud: Endpoint[] = [
   },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
-
-
+const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
     body: `{ "event": "provisao_registrada", "titulo_id": "uuid", "erp_response_code": "OK-001", "empresa_id": "8" }`,
