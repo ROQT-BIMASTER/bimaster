@@ -45,6 +45,7 @@ import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
 import { TradeSearchBar } from "@/components/trade/ui/TradeSearchBar";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
+import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
