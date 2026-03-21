@@ -236,6 +236,9 @@ const PRESET_ENDPOINTS = [
   // CNAE
   { label: "CNAE — Listar", method: "POST" as HttpMethod, path: "/cnae-api/listar" },
   { label: "CNAE — Status", method: "GET" as HttpMethod, path: "/cnae-api/status" },
+  // Cidades (PesquisarCidades)
+  { label: "Cidades — Listar", method: "POST" as HttpMethod, path: "/cidades-api/listar" },
+  { label: "Cidades — Status", method: "GET" as HttpMethod, path: "/cidades-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
