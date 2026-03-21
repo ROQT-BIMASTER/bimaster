@@ -1,89 +1,69 @@
 
 
-# API Boletos (Cobrança Bancária) — Padronização Omie
+# API Anexos de Documentos — Padronização Omie
 
 ## Resumo
 
-Criar a API de Boletos seguindo o padrão Omie, com operações de geração, obtenção, cancelamento e prorrogação de boletos vinculados a títulos do Contas a Receber. Inclui nova tabela para gerenciar boletos, Edge Function dedicada e documentação.
+Criar a API de Anexos de Documentos seguindo o padrão Omie, com operações de inclusão (base64), consulta, obtenção (link download), listagem e exclusão de anexos vinculados a qualquer tabela (contas_pagar, contas_receber, etc.). Inclui nova tabela `documento_anexos`, Edge Function dedicada, storage bucket e documentação.
 
-## 1. Nova tabela `boletos`
+## 1. Nova tabela `documento_anexos`
 
-Tabela dedicada para gerenciar o ciclo de vida dos boletos, vinculada a `contas_receber`:
+Tabela genérica para anexos vinculados a qualquer entidade (como o Omie usa `cTabela` + `nId`):
 
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `id` | UUID PK | ID interno |
-| `empresa_id` | TEXT NOT NULL | Empresa (referência) |
-| `conta_receber_id` | UUID FK | Vínculo com contas_receber |
-| `n_cod_titulo` | BIGINT | Código do título no Omie |
-| `c_cod_int_titulo` | VARCHAR(60) | Código de integração do título |
-| `link_boleto` | VARCHAR(500) | Link para download do boleto |
-| `data_emissao` | DATE | Data de emissão |
-| `numero_boleto` | VARCHAR(30) | Número do boleto |
-| `codigo_barras` | VARCHAR(70) | Código de barras |
-| `numero_bancario` | VARCHAR(30) | Número bancário |
-| `per_juros` | NUMERIC(5,2) | % juros |
-| `per_multa` | NUMERIC(5,2) | % multa |
-| `desconto_cond1_data` | DATE | Data desconto condicional 1 |
-| `desconto_cond1_valor` | NUMERIC(15,2) | Valor desconto condicional 1 |
-| `desconto_cond2_data` | DATE | Data desconto condicional 2 |
-| `desconto_cond2_valor` | NUMERIC(15,2) | Valor desconto condicional 2 |
-| `desconto_cond3_data` | DATE | Data desconto condicional 3 |
-| `desconto_cond3_valor` | NUMERIC(15,2) | Valor desconto condicional 3 |
-| `status` | VARCHAR(20) | Status: gerado, cancelado, prorrogado |
-| `data_vencimento` | DATE | Vencimento atual (atualizado na prorrogação) |
+| `empresa_id` | TEXT NOT NULL | Empresa |
+| `c_cod_int_anexo` | VARCHAR(20) | Código de integração do anexo |
+| `c_tabela` | VARCHAR(100) | Tabela de origem (contas_pagar, contas_receber, etc.) |
+| `n_id` | BIGINT | ID do documento na tabela de origem |
+| `n_id_anexo` | BIGINT | ID do anexo no Omie |
+| `c_nome_arquivo` | VARCHAR(100) | Nome do arquivo |
+| `c_tipo_arquivo` | VARCHAR(10) | Tipo/extensão do arquivo |
+| `c_md5` | VARCHAR(32) | MD5 do arquivo |
+| `storage_path` | TEXT | Caminho no Storage bucket |
+| `file_size` | BIGINT | Tamanho em bytes |
 | `importado_api` | BOOLEAN | Importado pela API |
 | `created_at` | TIMESTAMPTZ | Criação |
 | `updated_at` | TIMESTAMPTZ | Última alteração |
 
-RLS: service_role e usuários autenticados da mesma empresa.
+Indexes: `(empresa_id, c_tabela, n_id)` para listagem, `(empresa_id, c_cod_int_anexo)` unique para upsert.
 
-## 2. Nova Edge Function: `boletos-api`
+Storage bucket: `documento-anexos` (privado), com RLS para usuários autenticados.
+
+## 2. Nova Edge Function: `anexos-api`
 
 | Método | Rota | Descrição | Equivalente Omie |
 |---|---|---|---|
-| POST | `/gerar` | Gera boleto para um título CR | GerarBoleto |
-| GET | `/obter` | Obtém link e dados do boleto | ObterBoleto |
-| POST | `/cancelar` | Cancela boleto gerado | CancelarBoleto |
-| POST | `/prorrogar` | Prorroga vencimento do boleto | ProrrogarBoleto |
-| GET | `/listar` | Lista boletos (paginado) | — |
+| POST | `/incluir` | Upload de anexo (base64 zip) | IncluirAnexo |
+| GET | `/consultar` | Consultar metadados do anexo | ConsultarAnexo |
+| GET | `/obter` | Obter link de download (signed URL) | ObterAnexo |
+| GET | `/listar` | Listar anexos de um documento (paginado) | ListarAnexo |
+| DELETE | `/excluir` | Excluir anexo | ExcluirAnexo |
 | GET | `/status` | Health check | — |
 
-Padrão de resposta Omie:
-```json
-{
-  "cLinkBoleto": "https://...",
-  "cCodStatus": "0",
-  "cDesStatus": "Boleto gerado com sucesso!",
-  "dDtEmBol": "21/03/2026",
-  "cNumBoleto": "00001",
-  "cCodBarras": "23793...",
-  "nPerJuros": 2.0,
-  "nPerMulta": 2.0,
-  "cNumBancario": "109876",
-  "dDescontoCond1": "25/03/2026",
-  "vDescontoCond1": 5.00
-}
-```
+Fluxo do `/incluir`: recebe `cArquivo` (conteúdo base64 do ZIP), valida MD5, salva no Storage bucket `documento-anexos`, registra metadados na tabela.
 
-Autenticação: `validateApiKey` / `validateJWT` (mesmo padrão das demais).
+Fluxo do `/obter`: gera signed URL (expiração 1h) e retorna com `cLinkDownload` e `dDtExpiracao`.
+
+Respostas seguem o padrão Omie com `cCodStatus`/`cDesStatus`.
 
 ## 3. Documentação
 
-Novo `docs/API_BOLETOS.md` com todos os endpoints, tipos, exemplos e aviso sobre tarifação bancária.
+Novo `docs/API_ANEXOS.md` com endpoints, tipos, exemplos e notas sobre formato base64/zip.
 
 ## 4. API Tester & Portal
 
-- Adicionar presets no `ApiTester.tsx` (Gerar, Obter, Cancelar, Prorrogar)
-- Adicionar seção no `ApiDocumentation.tsx`
+- Presets no `ApiTester.tsx` (Incluir, Consultar, Obter, Listar, Excluir)
+- Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar — tabela `boletos` + RLS |
-| `supabase/functions/boletos-api/index.ts` | Criar — nova Edge Function |
-| `docs/API_BOLETOS.md` | Criar — documentação |
+| Migração SQL | Criar — tabela `documento_anexos` + RLS + storage bucket |
+| `supabase/functions/anexos-api/index.ts` | Criar — nova Edge Function |
+| `docs/API_ANEXOS.md` | Criar — documentação |
 | `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
 
