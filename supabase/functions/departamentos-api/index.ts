@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Método não permitido" }, 405);
+    return jsonResponse({ error: "Método não permitido" }, 405, req);
   }
 
   try {
