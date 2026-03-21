@@ -26610,6 +26610,117 @@ export type Database = {
         }
         Relationships: []
       }
+      Union: {
+        Row: {
+          cidade: string | null
+          cliente: string | null
+          cod_cliente: number | null
+          cod_equipe: number | null
+          cod_produto: number | null
+          cod_vend: number | null
+          created_at: string
+          data: string | null
+          descricao: string | null
+          empresa: string | null
+          id: number
+          id_empresa: number | null
+          id_ramo: number | null
+          marca: string | null
+          nome_equipe: string | null
+          nome_linha: string | null
+          nota: number | null
+          operacao: string | null
+          pedido: number | null
+          preco_venda: number | null
+          quantidade: number | null
+          ramo: string | null
+          supervisor: string | null
+          tabela: string | null
+          tp_nfe: string | null
+          tp_venda: string | null
+          uf: string | null
+          updated_at: string
+          venda: number | null
+          vendedor: string | null
+          vl_cmv: number | null
+          vl_desconto: number | null
+          vl_icm_subst: number | null
+          vl_outros_custos: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: never
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string
+          venda?: number | null
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: never
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string
+          venda?: number | null
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Relationships: []
+      }
       user_challenge_progress: {
         Row: {
           bonus_awarded: boolean | null
@@ -27082,117 +27193,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      vendas_union: {
-        Row: {
-          cidade: string | null
-          cliente: string | null
-          cod_cliente: number | null
-          cod_equipe: number | null
-          cod_produto: number | null
-          cod_vend: number | null
-          created_at: string
-          data: string | null
-          descricao: string | null
-          empresa: string | null
-          id: number
-          id_empresa: number | null
-          id_ramo: number | null
-          marca: string | null
-          nome_equipe: string | null
-          nome_linha: string | null
-          nota: number | null
-          operacao: string | null
-          pedido: number | null
-          preco_venda: number | null
-          quantidade: number | null
-          ramo: string | null
-          supervisor: string | null
-          tabela: string | null
-          tp_nfe: string | null
-          tp_venda: string | null
-          uf: string | null
-          updated_at: string
-          venda: number | null
-          vendedor: string | null
-          vl_cmv: number | null
-          vl_desconto: number | null
-          vl_icm_subst: number | null
-          vl_outros_custos: number | null
-        }
-        Insert: {
-          cidade?: string | null
-          cliente?: string | null
-          cod_cliente?: number | null
-          cod_equipe?: number | null
-          cod_produto?: number | null
-          cod_vend?: number | null
-          created_at?: string
-          data?: string | null
-          descricao?: string | null
-          empresa?: string | null
-          id?: never
-          id_empresa?: number | null
-          id_ramo?: number | null
-          marca?: string | null
-          nome_equipe?: string | null
-          nome_linha?: string | null
-          nota?: number | null
-          operacao?: string | null
-          pedido?: number | null
-          preco_venda?: number | null
-          quantidade?: number | null
-          ramo?: string | null
-          supervisor?: string | null
-          tabela?: string | null
-          tp_nfe?: string | null
-          tp_venda?: string | null
-          uf?: string | null
-          updated_at?: string
-          venda?: number | null
-          vendedor?: string | null
-          vl_cmv?: number | null
-          vl_desconto?: number | null
-          vl_icm_subst?: number | null
-          vl_outros_custos?: number | null
-        }
-        Update: {
-          cidade?: string | null
-          cliente?: string | null
-          cod_cliente?: number | null
-          cod_equipe?: number | null
-          cod_produto?: number | null
-          cod_vend?: number | null
-          created_at?: string
-          data?: string | null
-          descricao?: string | null
-          empresa?: string | null
-          id?: never
-          id_empresa?: number | null
-          id_ramo?: number | null
-          marca?: string | null
-          nome_equipe?: string | null
-          nome_linha?: string | null
-          nota?: number | null
-          operacao?: string | null
-          pedido?: number | null
-          preco_venda?: number | null
-          quantidade?: number | null
-          ramo?: string | null
-          supervisor?: string | null
-          tabela?: string | null
-          tp_nfe?: string | null
-          tp_venda?: string | null
-          uf?: string | null
-          updated_at?: string
-          venda?: number | null
-          vendedor?: string | null
-          vl_cmv?: number | null
-          vl_desconto?: number | null
-          vl_icm_subst?: number | null
-          vl_outros_custos?: number | null
-        }
-        Relationships: []
       }
       vendedor_territorios: {
         Row: {
@@ -28284,6 +28284,117 @@ export type Database = {
           },
         ]
       }
+      vendas_union: {
+        Row: {
+          cidade: string | null
+          cliente: string | null
+          cod_cliente: number | null
+          cod_equipe: number | null
+          cod_produto: number | null
+          cod_vend: number | null
+          created_at: string | null
+          data: string | null
+          descricao: string | null
+          empresa: string | null
+          id: number | null
+          id_empresa: number | null
+          id_ramo: number | null
+          marca: string | null
+          nome_equipe: string | null
+          nome_linha: string | null
+          nota: number | null
+          operacao: string | null
+          pedido: number | null
+          preco_venda: number | null
+          quantidade: number | null
+          ramo: string | null
+          supervisor: string | null
+          tabela: string | null
+          tp_nfe: string | null
+          tp_venda: string | null
+          uf: string | null
+          updated_at: string | null
+          venda: number | null
+          vendedor: string | null
+          vl_cmv: number | null
+          vl_desconto: number | null
+          vl_icm_subst: number | null
+          vl_outros_custos: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string | null
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: number | null
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string | null
+          venda?: number | null
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cliente?: string | null
+          cod_cliente?: number | null
+          cod_equipe?: number | null
+          cod_produto?: number | null
+          cod_vend?: number | null
+          created_at?: string | null
+          data?: string | null
+          descricao?: string | null
+          empresa?: string | null
+          id?: number | null
+          id_empresa?: number | null
+          id_ramo?: number | null
+          marca?: string | null
+          nome_equipe?: string | null
+          nome_linha?: string | null
+          nota?: number | null
+          operacao?: string | null
+          pedido?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          ramo?: string | null
+          supervisor?: string | null
+          tabela?: string | null
+          tp_nfe?: string | null
+          tp_venda?: string | null
+          uf?: string | null
+          updated_at?: string | null
+          venda?: number | null
+          vendedor?: string | null
+          vl_cmv?: number | null
+          vl_desconto?: number | null
+          vl_icm_subst?: number | null
+          vl_outros_custos?: number | null
+        }
+        Relationships: []
+      }
       vw_analise_departamentos_completa: {
         Row: {
           classificacoes_automaticas: number | null
@@ -28375,7 +28486,7 @@ export type Database = {
           qtde_pedidos: number | null
           receita_total: number | null
           supervisor: string | null
-          tabela_preco: string | null
+          ticket_medio: number | null
           uf: string | null
         }
         Relationships: []
@@ -28439,9 +28550,10 @@ export type Database = {
       vw_receita_empresa: {
         Row: {
           ano: number | null
+          clientes_ativos: number | null
+          empresa: string | null
           id_empresa: number | null
           mes: number | null
-          nome_empresa: string | null
           operacao: string | null
           qtde_pedidos: number | null
           receita_total: number | null
