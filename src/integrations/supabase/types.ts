@@ -29200,16 +29200,32 @@ export type Database = {
         }
         Returns: string
       }
-      fn_criar_titulo_receber: { Args: { payload: Json }; Returns: Json }
-      fn_enfileirar_erp: {
-        Args: {
-          p_empresa_id: string
-          p_payload?: Json
-          p_registro_id: string
-          p_tabela: string
-        }
-        Returns: string
-      }
+      fn_criar_titulo_receber:
+        | {
+            Args: {
+              p_conta_receber_id: string
+              p_data_vencimento: string
+              p_empresa_id: number
+              p_numero_parcela: number
+              p_valor: number
+            }
+            Returns: string
+          }
+        | { Args: { payload: Json }; Returns: Json }
+      fn_enfileirar_erp:
+        | {
+            Args: { p_empresa_id: number; p_payload: Json; p_tipo: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_empresa_id: string
+              p_payload?: Json
+              p_registro_id: string
+              p_tabela: string
+            }
+            Returns: string
+          }
       fn_get_cidades_sem_match: { Args: never; Returns: Json }
       fn_get_municipios_intelligence: {
         Args: {
@@ -29333,23 +29349,48 @@ export type Database = {
         }[]
       }
       fn_normalizar_municipios_clientes: { Args: never; Returns: Json }
-      fn_pesquisar_titulos: {
-        Args: {
-          p_data_fim?: string
-          p_data_ini?: string
-          p_empresa_id: string
-          p_limite?: number
-          p_offset?: number
-          p_status?: string
-          p_tipo?: string
-        }
-        Returns: Json
-      }
-      fn_registrar_recebimento: { Args: { payload: Json }; Returns: Json }
-      fn_resumo_financeiro: {
-        Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
-        Returns: Json
-      }
+      fn_pesquisar_titulos:
+        | {
+            Args: {
+              p_data_fim?: string
+              p_data_inicio?: string
+              p_empresa_id: number
+              p_status?: string
+              p_tipo?: string
+            }
+            Returns: Json[]
+          }
+        | {
+            Args: {
+              p_data_fim?: string
+              p_data_ini?: string
+              p_empresa_id: string
+              p_limite?: number
+              p_offset?: number
+              p_status?: string
+              p_tipo?: string
+            }
+            Returns: Json
+          }
+      fn_registrar_recebimento:
+        | {
+            Args: {
+              p_conta_corrente_id?: string
+              p_data_recebimento: string
+              p_forma_recebimento: string
+              p_observacao?: string
+              p_parcela_id: string
+              p_valor_recebido: number
+            }
+            Returns: string
+          }
+        | { Args: { payload: Json }; Returns: Json }
+      fn_resumo_financeiro:
+        | { Args: { p_empresa_id: number }; Returns: Json }
+        | {
+            Args: { p_ano?: number; p_empresa_id: string; p_mes?: number }
+            Returns: Json
+          }
       gerar_creditos_tributarios: {
         Args: { p_item_nf_id: string }
         Returns: Json
