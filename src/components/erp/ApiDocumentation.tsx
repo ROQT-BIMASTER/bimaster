@@ -1200,6 +1200,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="clientes" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Clientes — CRUD Completo (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesCrud}
+              description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — formato Omie"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
