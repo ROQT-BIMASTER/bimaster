@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play } from "lucide-react";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
+import ApiTester from "@/components/erp/ApiTester";
 import { ptBR } from "date-fns/locale";
 
 interface ErpApiKey {
@@ -251,6 +252,8 @@ export default function IntegracaoERP() {
           </a>
         </CardContent>
       </Card>
+
+      <ApiTester />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
