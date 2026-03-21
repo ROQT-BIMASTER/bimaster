@@ -1,37 +1,40 @@
 
 
-# Plano: Mover opções da tela principal Trade para o menu lateral
+# Plano: Banner para Incentivos da Semana
 
 ## O que será feito
 
-Remover a seção "Mais funcionalidades" (collapsibles com links) da tela principal do `TradeModule.tsx` e adicionar os itens faltantes no sidebar, mantendo as permissões existentes.
-
-## Itens que faltam no sidebar
-
-Estas rotas existem no `App.tsx` e aparecem na tela principal, mas **não estão no sidebar**:
-
-| Item | Rota | Screen/Permission |
-|---|---|---|
-| Redes | `/dashboard/trade/store-chains` | `trade` (module) |
-| Calendário | `/dashboard/trade/calendar` | `trade` (module) |
-| Comparação Produtos | `/dashboard/trade/comparacao-produtos` | `trade` (module) |
-| Promoções | `/dashboard/trade/promotions` | `trade` (module) |
-| Performance | `/dashboard/trade/performance` | `trade` (module), admin only |
-| Equipe Performance | `/dashboard/trade/team-performance` | `trade` (module), admin only |
-| Ranking | `/dashboard/ranking` | `trade` (module), admin only |
-| Central de Aprovações | `/dashboard/trade/aprovacoes` | `trade_admin` (screen) |
+Adicionar um campo `banner_url` na tabela `trade_incentivos` para que cada incentivo possa ter uma imagem de banner. O banner header da seção "Incentivos da Semana" na home do Trade passará a exibir a imagem do banner quando configurada, no lugar do gradiente estático atual. Também será criado um banner de teste via seed SQL.
 
 ## Alterações
 
-### 1. `src/components/dashboard/AppSidebar.tsx`
-Adicionar ao `tradeSubMenus` os 8 itens acima, com os mesmos controles de permissão (`screenCode` e `requireAdminOrSupervisor`) que já existem na tela principal.
+### 1. Migração SQL
+- `ALTER TABLE trade_incentivos ADD COLUMN banner_url TEXT DEFAULT NULL`
+- Inserir um incentivo de teste com banner usando uma imagem placeholder (gradiente gerado ou URL de exemplo)
 
-### 2. `src/pages/modules/TradeModule.tsx`
-Remover toda a seção `secondaryModules` (linhas 90-326) — os collapsibles "Administrativo", "Cadastros e Configurações", "Execução e Auditoria", "Inteligência Competitiva", "Performance e Vendas" e "Gamificação". A tela ficará limpa com: header, busca, banners, KPIs, incentivos e tour.
+### 2. `src/hooks/useTradeIncentivos.ts`
+- Adicionar `banner_url: string | null` à interface `TradeIncentivo`
 
-## Segurança preservada
+### 3. `src/components/trade/incentivos/IncentivoFormDialog.tsx`
+- Adicionar campo de upload de imagem para banner (similar ao padrão já usado em `BannerFormDialog`)
+- Upload para bucket `trade-banners` (reutilizar bucket existente)
+- Preview da imagem com botão de remover
+- Otimização automática via edge function `optimize-banner-image` no upload
 
-- Sidebar já usa `hasPermission(item.screenCode)` e `isAdminOrSupervisor` para filtrar itens
-- Rotas no `App.tsx` continuam protegidas por `ModuleRoute`/`ScreenRoute`
-- Nenhuma permissão é alterada, apenas o local de navegação muda
+### 4. `src/components/trade/incentivos/IncentivosWeekSection.tsx`
+- Se houver incentivos ativos com `banner_url`, exibir carrossel de banners (auto-slide 7s, pausa ao toque) no lugar do header gradiente estático
+- Se nenhum tiver banner, manter o header gradiente atual como fallback
+
+### 5. `src/pages/trade/TradeIncentivosAdmin.tsx`
+- Exibir thumbnail do banner na lista de incentivos (se houver)
+
+## Arquivos alterados
+
+| Arquivo | Tipo |
+|---|---|
+| Migração SQL | Novo |
+| `src/hooks/useTradeIncentivos.ts` | Editar |
+| `src/components/trade/incentivos/IncentivoFormDialog.tsx` | Editar |
+| `src/components/trade/incentivos/IncentivosWeekSection.tsx` | Editar |
+| `src/components/trade/incentivos/IncentivosAdminList.tsx` | Editar |
 
