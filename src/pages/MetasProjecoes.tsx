@@ -3,7 +3,7 @@ import { DashboardFiltersBar } from "@/components/painel-executivo/DashboardFilt
 import type { DashboardFilters } from "@/hooks/useDashboardKPIs";
 import { useMetasVendas, useMetasCRUD } from "@/hooks/useMetasVendas";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -26,14 +26,11 @@ function GaugeCard({ label, realizado, meta, projecao, pctAtingimento }: { label
   const pct = Math.min(pctAtingimento, 100);
   const color = pct >= 100 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-red-600";
   const bgColor = pct >= 100 ? "bg-emerald-500" : pct >= 70 ? "bg-amber-500" : "bg-red-500";
-  
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
         <p className="text-sm font-medium truncate">{label}</p>
-        <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-          <div className={`absolute inset-y-0 left-0 ${bgColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-        </div>
+        <div className="relative h-3 bg-muted rounded-full overflow-hidden"><div className={`absolute inset-y-0 left-0 ${bgColor} rounded-full transition-all`} style={{ width: `${pct}%` }} /></div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{fmt(realizado)}</span>
           <span className={`font-bold ${color}`}>{fmtPct(pctAtingimento)}</span>
@@ -56,10 +53,7 @@ export default function MetasProjecoes() {
   const { supervisores, vendedores } = useDashboardFilterOptions();
   const { data: empresas } = useQuery({
     queryKey: ["dim-empresas"],
-    queryFn: async () => {
-      const { data } = await supabase.from("dim_empresa").select("id_empresa,nome_empresa");
-      return (data || []) as { id_empresa: number; nome_empresa: string }[];
-    },
+    queryFn: async () => { const { data } = await supabase.from("dim_empresa").select("id_empresa,nome_empresa"); return (data || []) as { id_empresa: number; nome_empresa: string }[]; },
     staleTime: 10 * 60 * 1000,
   });
 
@@ -74,18 +68,11 @@ export default function MetasProjecoes() {
       toast({ title: "Meta salva com sucesso" });
       setAddOpen(false);
       setNewMeta({ tipo_meta: "empresa", referencia_id: "", valor_meta: "" });
-    } catch (e: any) {
-      toast({ title: "Erro ao salvar meta", description: e.message, variant: "destructive" });
-    }
+    } catch (e: any) { toast({ title: "Erro ao salvar meta", description: e.message, variant: "destructive" }); }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await remove.mutateAsync(id);
-      toast({ title: "Meta removida" });
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    }
+    try { await remove.mutateAsync(id); toast({ title: "Meta removida" }); } catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
   };
 
   const allMetas = [...(data?.empresaMetas || []), ...(data?.supervisorMetas || []), ...(data?.vendedorMetas || [])];
@@ -119,30 +106,9 @@ export default function MetasProjecoes() {
               <DialogContent>
                 <DialogHeader><DialogTitle>Cadastrar Meta</DialogTitle></DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Tipo</label>
-                    <Select value={newMeta.tipo_meta} onValueChange={v => setNewMeta(prev => ({ ...prev, tipo_meta: v, referencia_id: "" }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="empresa">Empresa</SelectItem>
-                        <SelectItem value="supervisor">Supervisor</SelectItem>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Referência</label>
-                    <Select value={newMeta.referencia_id} onValueChange={v => setNewMeta(prev => ({ ...prev, referencia_id: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {referenceOptions().map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Valor da Meta (R$)</label>
-                    <Input type="number" value={newMeta.valor_meta} onChange={e => setNewMeta(prev => ({ ...prev, valor_meta: e.target.value }))} placeholder="100000" />
-                  </div>
+                  <div><label className="text-sm font-medium">Tipo</label><Select value={newMeta.tipo_meta} onValueChange={v => setNewMeta(prev => ({ ...prev, tipo_meta: v, referencia_id: "" }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="supervisor">Supervisor</SelectItem><SelectItem value="vendedor">Vendedor</SelectItem></SelectContent></Select></div>
+                  <div><label className="text-sm font-medium">Referência</label><Select value={newMeta.referencia_id} onValueChange={v => setNewMeta(prev => ({ ...prev, referencia_id: v }))}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{referenceOptions().map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
+                  <div><label className="text-sm font-medium">Valor da Meta (R$)</label><Input type="number" value={newMeta.valor_meta} onChange={e => setNewMeta(prev => ({ ...prev, valor_meta: e.target.value }))} placeholder="100000" /></div>
                 </div>
                 <DialogFooter><Button onClick={handleSaveMeta} disabled={upsert.isPending}>Salvar</Button></DialogFooter>
               </DialogContent>
@@ -156,30 +122,9 @@ export default function MetasProjecoes() {
       {/* Gauge Cards */}
       {isLoading ? <Skeleton className="h-[120px]" /> : (
         <>
-          {(data?.empresaMetas?.length || 0) > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Empresa</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {data!.empresaMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}
-              </div>
-            </div>
-          )}
-          {(data?.supervisorMetas?.length || 0) > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Supervisor</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {data!.supervisorMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}
-              </div>
-            </div>
-          )}
-          {(data?.vendedorMetas?.length || 0) > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Vendedor</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {data!.vendedorMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}
-              </div>
-            </div>
-          )}
+          {(data?.empresaMetas?.length || 0) > 0 && (<div><h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Empresa</h2><div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">{data!.empresaMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}</div></div>)}
+          {(data?.supervisorMetas?.length || 0) > 0 && (<div><h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Supervisor</h2><div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">{data!.supervisorMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}</div></div>)}
+          {(data?.vendedorMetas?.length || 0) > 0 && (<div><h2 className="text-sm font-semibold mb-2 text-muted-foreground">Metas por Vendedor</h2><div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">{data!.vendedorMetas.map(m => <GaugeCard key={m.id} label={m.label} realizado={m.realizado} meta={m.valor_meta} projecao={m.projecao} pctAtingimento={m.pctAtingimento} />)}</div></div>)}
         </>
       )}
 
@@ -193,15 +138,12 @@ export default function MetasProjecoes() {
 
       {/* Detail Table */}
       {allMetas.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Tabela Detalhada de Metas</CardTitle></CardHeader>
+        <Card className="w-full">
+          <div className="p-4 pb-2"><h3 className="text-base font-semibold">Tabela Detalhada de Metas</h3></div>
           <CardContent>
             <div className="overflow-auto max-h-[500px]">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Tipo</TableHead><TableHead>Referência</TableHead><TableHead className="text-right">Meta</TableHead><TableHead className="text-right">Realizado</TableHead><TableHead className="text-right">% Ating.</TableHead><TableHead className="text-right">Gap</TableHead><TableHead className="text-right">Projeção</TableHead>
-                  {isAdmin && <TableHead className="w-10" />}
-                </TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Referência</TableHead><TableHead className="text-right">Meta</TableHead><TableHead className="text-right">Realizado</TableHead><TableHead className="text-right">% Ating.</TableHead><TableHead className="text-right">Gap</TableHead><TableHead className="text-right">Projeção</TableHead>{isAdmin && <TableHead className="w-10" />}</TableRow></TableHeader>
                 <TableBody>
                   {allMetas.sort((a, b) => b.pctAtingimento - a.pctAtingimento).map(m => (
                     <TableRow key={m.id}>
@@ -209,16 +151,10 @@ export default function MetasProjecoes() {
                       <TableCell className="font-medium">{m.label}</TableCell>
                       <TableCell className="text-right">{fmt(m.valor_meta)}</TableCell>
                       <TableCell className="text-right">{fmt(m.realizado)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={m.pctAtingimento >= 100 ? "text-emerald-600 font-bold" : m.pctAtingimento >= 70 ? "text-amber-600" : "text-red-600"}>
-                          {fmtPct(m.pctAtingimento)}
-                        </span>
-                      </TableCell>
+                      <TableCell className="text-right"><span className={m.pctAtingimento >= 100 ? "text-emerald-600 font-bold" : m.pctAtingimento >= 70 ? "text-amber-600" : "text-red-600"}>{fmtPct(m.pctAtingimento)}</span></TableCell>
                       <TableCell className="text-right">{fmt(m.gap)}</TableCell>
                       <TableCell className="text-right">{fmt(m.projecao)}</TableCell>
-                      {isAdmin && (
-                        <TableCell><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(m.id)}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button></TableCell>
-                      )}
+                      {isAdmin && <TableCell><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(m.id)}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button></TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
