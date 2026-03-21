@@ -558,7 +558,41 @@ const departamentosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-const orcamentosCaixaCrud: Endpoint[] = [
+const categoriasCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir nova categoria (IncluirCategoria)", tag: "novo",
+    body: `{ "descricao": "Serviços Terceiros", "tipo_categoria": "D", "natureza": "Despesas com serviços", "codigo_dre": "3.01.01", "categoria_superior": "" }`,
+    response: `{ "codigo": "CAT-xxx", "codigo_status": "0", "descricao_status": "Categoria incluída com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/incluir-grupo", description: "Incluir grupo totalizador (IncluirGrupoCategoria)", tag: "novo",
+    body: `{ "descricao": "Despesas Operacionais", "tipo_grupo": "D", "natureza": "Grupo de despesas operacionais" }`,
+    response: `{ "codigo": "GRP-xxx", "codigo_status": "0", "descricao_status": "Grupo de categoria incluído com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar categoria (AlterarCategoria)", tag: "novo",
+    body: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "tipo_categoria": "D" }`,
+    response: `{ "codigo": "CAT-001", "descricao": "Serviços Terceiros Atualizado", "codigo_status": "0", "descricao_status": "Categoria alterada com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/alterar-grupo", description: "Alterar grupo totalizador (AlterarGrupoCategoria)", tag: "novo",
+    body: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado" }`,
+    response: `{ "codigo": "GRP-001", "descricao": "Despesas Operacionais Atualizado", "codigo_status": "0", "descricao_status": "Grupo alterado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar categoria por código (ConsultarCategoria)", tag: "novo",
+    body: `{ "codigo": "CAT-001" }`,
+    response: `{ "categoria_cadastro": { "codigo": "CAT-001", "descricao": "Serviços Terceiros", "tipo_categoria": "D", "conta_inativa": "N", "totalizadora": "N", "dadosDRE": { "codigoDRE": "3.01.01" } } }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar categorias paginadas (ListarCategorias)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_apenas_ativo": "S", "filtrar_por_tipo": "" }`,
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 50, "total_de_registros": 125, "categoria_cadastro": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
     params: [
