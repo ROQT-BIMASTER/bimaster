@@ -304,7 +304,7 @@ Deno.serve(async (req) => {
   if ((matchRoute('/sync') || matchRoute('/bulk-sync') || matchRoute('/sync-chunk')) && req.method === 'POST') {
     const startTime = Date.now();
 
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       console.log('[AUTH] Invalid API key');
       return new Response(JSON.stringify({
         success: false,
