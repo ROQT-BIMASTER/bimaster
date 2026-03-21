@@ -1257,6 +1257,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Tipos Anexo
             </TabsTrigger>
+            <TabsTrigger value="tipos-entrega" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Tipos Entrega
+            </TabsTrigger>
             <TabsTrigger value="cnae" className="text-xs gap-1.5">
               <Database className="h-3.5 w-3.5" />
               CNAE
