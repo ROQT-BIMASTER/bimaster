@@ -259,6 +259,12 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/upsert": JSON.stringify({ codigo_cliente_integracao: "CLI001", razao_social: "Empresa ABC Ltda", cnpj_cpf: "12.345.678/0001-90", email: "contato@abc.com" }, null, 2),
   "/clientes-api/upsert-cpfcnpj": JSON.stringify({ cnpj_cpf: "12.345.678/0001-90", razao_social: "Empresa ABC Ltda", email: "contato@abc.com" }, null, 2),
   "/clientes-api/associar": JSON.stringify({ codigo_cliente_omie: "uuid-do-cliente", codigo_cliente_integracao: "CLI001" }, null, 2),
+  // Características de Clientes
+  "/clientes-api/caract/incluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Varejo" }, null, 2),
+  "/clientes-api/caract/alterar": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO", conteudo: "Atacado" }, null, 2),
+  "/clientes-api/caract/consultar": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
+  "/clientes-api/caract/excluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO" }, null, 2),
+  "/clientes-api/caract/excluir-todas": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
 };
 
 export default function ApiTester() {

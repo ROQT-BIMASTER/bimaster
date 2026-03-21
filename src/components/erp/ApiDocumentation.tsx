@@ -1235,6 +1235,13 @@ export default function ApiDocumentation() {
               endpoints={clientesCrud}
               description="Incluir, alterar, consultar, excluir, listar, upsert e associar clientes — formato Omie"
             />
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-amber-500" />}
+              title="Características de Clientes (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesCaractCrud}
+              description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
+            />
           </TabsContent>
 
           <TabsContent value="complementar" className="space-y-1">

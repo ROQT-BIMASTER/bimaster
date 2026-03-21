@@ -364,6 +364,101 @@ Deno.serve(async (req) => {
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Código de integração associado com sucesso!"), 200, req, { startMs });
     }
 
+    // ── Helper: resolve cliente by omie/integracao code ─────────
+    async function resolveCliente(body: Record<string, unknown>): Promise<{ id: string; codigo: string } | null> {
+      const { codigo_cliente_integracao, codigo_cliente_omie } = body;
+      if (!codigo_cliente_integracao && !codigo_cliente_omie) return null;
+      let q = supabase.from("clientes").select("id, codigo");
+      if (codigo_cliente_integracao) q = q.eq("codigo", codigo_cliente_integracao);
+      else q = q.eq("id", codigo_cliente_omie);
+      const { data } = await q.single();
+      return data;
+    }
+
+    // ── POST /caract/incluir ─────────────────────────────────────
+    if (req.method === "POST" && path === "/caract/incluir") {
+      const body = await req.json();
+      if (!body.campo) return errorResponse(400, "VALIDATION_ERROR", "campo é obrigatório", req, startMs);
+      const cliente = await resolveCliente(body);
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { error } = await supabase
+        .from("cliente_caracteristicas")
+        .upsert({ cliente_id: cliente.id, campo: body.campo, conteudo: body.conteudo || "", updated_at: new Date().toISOString() }, { onConflict: "cliente_id,campo" });
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse(statusResponse(cliente.id, cliente.codigo, "0", "Característica incluída com sucesso!"), 201, req, { startMs });
+    }
+
+    // ── POST /caract/alterar ─────────────────────────────────────
+    if (req.method === "POST" && path === "/caract/alterar") {
+      const body = await req.json();
+      if (!body.campo) return errorResponse(400, "VALIDATION_ERROR", "campo é obrigatório", req, startMs);
+      const cliente = await resolveCliente(body);
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { error } = await supabase
+        .from("cliente_caracteristicas")
+        .update({ conteudo: body.conteudo || "", updated_at: new Date().toISOString() })
+        .eq("cliente_id", cliente.id)
+        .eq("campo", body.campo);
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse(statusResponse(cliente.id, cliente.codigo, "0", "Característica alterada com sucesso!"), 200, req, { startMs });
+    }
+
+    // ── POST /caract/consultar ───────────────────────────────────
+    if (req.method === "POST" && path === "/caract/consultar") {
+      const body = await req.json().catch(() => ({}));
+      const cliente = await resolveCliente(body);
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { data, error } = await supabase
+        .from("cliente_caracteristicas")
+        .select("campo, conteudo")
+        .eq("cliente_id", cliente.id)
+        .order("campo");
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse({
+        codigo_cliente_omie: cliente.id,
+        codigo_cliente_integracao: cliente.codigo,
+        caracteristicas: data || [],
+      }, 200, req, { startMs });
+    }
+
+    // ── POST /caract/excluir ─────────────────────────────────────
+    if (req.method === "POST" && path === "/caract/excluir") {
+      const body = await req.json();
+      if (!body.campo) return errorResponse(400, "VALIDATION_ERROR", "campo é obrigatório", req, startMs);
+      const cliente = await resolveCliente(body);
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { error } = await supabase
+        .from("cliente_caracteristicas")
+        .delete()
+        .eq("cliente_id", cliente.id)
+        .eq("campo", body.campo);
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse(statusResponse(cliente.id, cliente.codigo, "0", "Característica excluída com sucesso!"), 200, req, { startMs });
+    }
+
+    // ── POST /caract/excluir-todas ───────────────────────────────
+    if (req.method === "POST" && path === "/caract/excluir-todas") {
+      const body = await req.json().catch(() => ({}));
+      const cliente = await resolveCliente(body);
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { error } = await supabase
+        .from("cliente_caracteristicas")
+        .delete()
+        .eq("cliente_id", cliente.id);
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse(statusResponse(cliente.id, cliente.codigo, "0", "Todas as características excluídas com sucesso!"), 200, req, { startMs });
+    }
+
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
   } catch (err: unknown) {
     const e = err as { status?: number; message?: string };
