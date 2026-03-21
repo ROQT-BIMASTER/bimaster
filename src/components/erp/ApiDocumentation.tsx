@@ -1505,6 +1505,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="paises" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Países — ListarPaises (Padrão Omie)"
+              basePath="/paises-api"
+              endpoints={paisesCrud}
+              description="Lista de países cadastrados com código IBGE, descrição e código ISO"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
