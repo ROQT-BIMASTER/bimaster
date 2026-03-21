@@ -625,6 +625,21 @@ const tiposAtividadeCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const cnaeCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "ordenar_por": "codigo", "ordem_decrescente": "N" }`,
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo: codigo ou descricao (default: codigo)" },
+      { name: "ordem_decrescente", type: "string", required: false, description: "S para ordem decrescente" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 10, "registros": 50, "total_de_registros": 500, "cadastros": [{ "nCodigo": "4711302", "cDescricao": "Comércio varejista de mercadorias em geral", "cEstrutura": "47.11-3/02" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
