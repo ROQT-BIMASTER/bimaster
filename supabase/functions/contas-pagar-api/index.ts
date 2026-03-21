@@ -404,9 +404,9 @@ Deno.serve(async (req) => {
       const apiKey = req.headers.get('x-api-key');
       if (!apiKey) return false;
 
-      // Check legacy N8N_API_KEY
+      // Check legacy N8N_API_KEY (timing-safe)
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      if (apiKey && apiKey === expectedKey) return true;
+      if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) return true;
 
       // Check erp_config table
       const { data: configRow } = await supabase

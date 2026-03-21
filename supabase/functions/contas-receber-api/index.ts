@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
 
     const expectedKey = Deno.env.get('N8N_API_KEY');
     const polloKey = Deno.env.get('POLLO_API_KEY');
-    if (apiKey === expectedKey || apiKey === polloKey) return true;
+    if ((expectedKey && timingSafeEqual(apiKey, expectedKey)) || (polloKey && timingSafeEqual(apiKey, polloKey))) return true;
 
     // Fallback: check erp_config table
     const { data: configRow } = await supabase
