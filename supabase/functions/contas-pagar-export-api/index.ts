@@ -72,10 +72,9 @@ function buildCleanPayload(item: Record<string, unknown>) {
   return payload;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(async (req) => {
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -85,7 +84,7 @@ serve(async (req) => {
   const expectedKey = Deno.env.get("EXPORT_API_KEY");
 
   let authenticated = false;
-  if (apiKey && expectedKey && apiKey === expectedKey) {
+  if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
     authenticated = true;
   }
 
@@ -98,6 +97,15 @@ serve(async (req) => {
 
   if (!authenticated) {
     return jsonResponse({ error: "API key inválida ou ausente" }, 401);
+  }
+
+  // Rate limit
+  try {
+    await checkRateLimit({ prefix: "contas-pagar-export", limit: 60, req });
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return jsonResponse({ error: e.message }, 429);
+    }
   }
 
   try {
