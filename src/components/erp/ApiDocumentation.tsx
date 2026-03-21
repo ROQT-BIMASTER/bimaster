@@ -560,6 +560,27 @@ const pesquisarLancamentosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const movimentosFinanceirosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listagem unificada de movimentos financeiros (ListarMovimentos)", tag: "novo",
+    body: `{ "nPagina": 1, "nRegPorPagina": 20, "cTpLancamento": "CP", "cExibirDepartamentos": "S", "lDadosCad": true, "dDtVencDe": "01/01/2026", "dDtVencAte": "31/03/2026" }`,
+    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "movimentos": [{ "detalhes": { "nCodTitulo": 123, "cNatureza": "P", "cGrupo": "CP", "nValorMovCC": 500 }, "resumo": { "cLiquidado": "S", "nValPago": 500 }, "departamentos": [], "categorias": [] }] }`,
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "cTpLancamento", type: "string", required: false, description: "Tipo: CP, CR, CC ou vazio para todos" },
+      { name: "cExibirDepartamentos", type: "string", required: false, description: "S para incluir departamentos" },
+      { name: "lDadosCad", type: "boolean", required: false, description: "Incluir dados cadastrais" },
+      { name: "nCodMovCC", type: "integer", required: false, description: "Filtro por movimento CC" },
+      { name: "cNatureza", type: "string", required: false, description: "R=Receber, P=Pagar" },
+      { name: "cStatus", type: "string", required: false, description: "Status (vírgula para múltiplos)" },
+      { name: "dDtVencDe/Ate", type: "string", required: false, description: "Filtro por vencimento" },
+      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
+    ],
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -742,6 +763,10 @@ export default function ApiDocumentation() {
               <Search className="h-3.5 w-3.5" />
               Pesquisar
             </TabsTrigger>
+            <TabsTrigger value="movimentos" className="text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Movimentos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -881,6 +906,16 @@ export default function ApiDocumentation() {
               basePath="/pesquisar-lancamentos-api"
               endpoints={pesquisarLancamentosCrud}
               description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
+            />
+          </TabsContent>
+
+          <TabsContent value="movimentos" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="Movimentação Financeira Unificada (Padrão Omie)"
+              basePath="/movimentos-financeiros-api"
+              endpoints={movimentosFinanceirosCrud}
+              description="Listagem consolidada de Contas a Pagar, Contas a Receber e Lançamentos CC — cada baixa/lançamento como linha individual"
             />
           </TabsContent>
 
