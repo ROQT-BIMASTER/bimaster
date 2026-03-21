@@ -10,6 +10,7 @@ export interface DashboardFilters {
   codVend?: number | null;
   uf?: string | null;
   marca?: string | null;
+  tabela?: string | null;
 }
 
 interface KPIResult {
