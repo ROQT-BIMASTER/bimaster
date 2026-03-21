@@ -574,6 +574,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Contas a Pagar
             </TabsTrigger>
+            <TabsTrigger value="contas-receber" className="text-xs gap-1.5">
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
+              Contas a Receber
+            </TabsTrigger>
             <TabsTrigger value="export" className="text-xs gap-1.5">
               <ArrowUpFromLine className="h-3.5 w-3.5" />
               Exportação
