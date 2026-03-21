@@ -28284,6 +28284,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dashboard_kpis: {
+        Row: {
+          ano: number | null
+          clientes_ativos: number | null
+          cod_vend: number | null
+          id_empresa: number | null
+          marca: string | null
+          mes: number | null
+          qtde_itens: number | null
+          qtde_pedidos: number | null
+          receita_total: number | null
+          supervisor: string | null
+          ticket_medio: number | null
+          uf: string | null
+        }
+        Relationships: []
+      }
       vw_extrato_conta_corrente: {
         Row: {
           conta_bancaria_id: string | null
@@ -28309,6 +28326,43 @@ export type Database = {
           tipo_evento: string | null
           usuario_id: string | null
           usuario_nome: string | null
+        }
+        Relationships: []
+      }
+      vw_ranking_supervisores: {
+        Row: {
+          ano: number | null
+          clientes_ativos: number | null
+          id_empresa: number | null
+          mes: number | null
+          qtde_pedidos: number | null
+          receita_total: number | null
+          supervisor: string | null
+        }
+        Relationships: []
+      }
+      vw_ranking_vendedores: {
+        Row: {
+          ano: number | null
+          clientes_ativos: number | null
+          cod_vend: number | null
+          id_empresa: number | null
+          mes: number | null
+          qtde_pedidos: number | null
+          receita_total: number | null
+          supervisor: string | null
+          vendedor: string | null
+        }
+        Relationships: []
+      }
+      vw_receita_empresa: {
+        Row: {
+          ano: number | null
+          id_empresa: number | null
+          mes: number | null
+          nome_empresa: string | null
+          qtde_pedidos: number | null
+          receita_total: number | null
         }
         Relationships: []
       }
