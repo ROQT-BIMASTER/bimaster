@@ -121,7 +121,8 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-
+        {/* Lançamentos Recentes */}
+        <LancamentosRecentes />
 
         {/* Banner Carousel */}
         <TradeHeroBanner />
