@@ -245,6 +245,13 @@ const PRESET_ENDPOINTS = [
   // Países (ListarPaises)
   { label: "Países — Listar", method: "POST" as HttpMethod, path: "/paises-api/listar" },
   { label: "Países — Status", method: "GET" as HttpMethod, path: "/paises-api/status" },
+  // Tipos de Entrega (CRUD Completo)
+  { label: "Tipos Entrega — Incluir", method: "POST" as HttpMethod, path: "/tipos-entrega-api/incluir" },
+  { label: "Tipos Entrega — Alterar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/alterar" },
+  { label: "Tipos Entrega — Consultar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/consultar" },
+  { label: "Tipos Entrega — Excluir", method: "POST" as HttpMethod, path: "/tipos-entrega-api/excluir" },
+  { label: "Tipos Entrega — Listar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/listar" },
+  { label: "Tipos Entrega — Status", method: "GET" as HttpMethod, path: "/tipos-entrega-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
