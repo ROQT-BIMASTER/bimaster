@@ -529,6 +529,35 @@ const empresasCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const departamentosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir novo departamento (IncluirDepartamento)", tag: "novo",
+    body: `{ "codigo": "000000000723648", "descricao": "Marketing Digital" }`,
+    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "cCodStatus": "0", "cDesStatus": "Departamento incluído com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/alterar", description: "Alterar departamento (AlterarDepartamento)", tag: "novo",
+    body: `{ "codigo": "000000000723648", "descricao": "Marketing Atualizado" }`,
+    response: `{ "codigo": "000000000723648", "descricao": "Marketing Atualizado", "cCodStatus": "0", "cDesStatus": "Departamento alterado com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/consultar", description: "Consultar departamento por código (ConsultarDepartamento)", tag: "novo",
+    body: `{ "codigo": "000000000723648" }`,
+    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "estrutura": "", "inativo": "N", "nivel_totalizador": "N" }`,
+  },
+  {
+    method: "POST", path: "/excluir", description: "Excluir departamento (ExcluirDepartamento)", tag: "novo",
+    body: `{ "codigo": "000000000723648" }`,
+    response: `{ "codigo": "000000000723648", "descricao": "Marketing Digital", "cCodStatus": "0", "cDesStatus": "Departamento excluído com sucesso" }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar departamentos paginados (ListarDepartamentos)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "departamentos": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
