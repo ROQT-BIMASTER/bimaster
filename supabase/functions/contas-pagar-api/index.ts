@@ -1718,6 +1718,541 @@ Deno.serve(async (req) => {
       });
     }
 
+    // =====================================================
+    // GET /consultar - Consultar título por ID ou código integração (Omie-style)
+    // =====================================================
+    if (path.endsWith('/consultar') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const id = url.searchParams.get('id');
+      const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
+      const codOmie = url.searchParams.get('codigo_lancamento_omie');
+
+      if (!id && !codIntegracao && !codOmie) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      let query = supabase.from('contas_pagar').select('*');
+      if (id) query = query.eq('id', id);
+      else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
+      else if (codOmie) query = query.eq('codigo_lancamento_omie', codOmie);
+
+      const { data, error } = await query.maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        return new Response(JSON.stringify({ error: 'nao_encontrado', message: 'Título não encontrado' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        conta_pagar_cadastro: data,
+        meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /incluir - Incluir título (Omie-style)
+    // =====================================================
+    if (path.endsWith('/incluir') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { codigo_lancamento_integracao, codigo_cliente_fornecedor, data_vencimento, valor_documento, codigo_categoria, data_previsao, id_conta_corrente, ...rest } = body;
+
+      if (!codigo_lancamento_integracao || !data_vencimento || !valor_documento) {
+        return new Response(JSON.stringify({
+          codigo_lancamento_integracao: codigo_lancamento_integracao || null,
+          codigo_status: '1',
+          descricao_status: 'Campos obrigatórios: codigo_lancamento_integracao, data_vencimento, valor_documento'
+        }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const insertData: Record<string, unknown> = {
+        codigo_lancamento_integracao,
+        codigo_cliente_fornecedor,
+        data_vencimento: parseDate(data_vencimento),
+        valor_original: valor_documento,
+        valor_aberto: valor_documento,
+        valor_pago: 0,
+        categoria_codigo: codigo_categoria,
+        data_previsao: parseDate(data_previsao),
+        id_conta_corrente,
+        status: 'pendente',
+        importado_api: true,
+        ...rest
+      };
+
+      const { data, error } = await supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_omie, codigo_lancamento_integracao').single();
+      if (error) {
+        if (error.code === '23505') {
+          return new Response(JSON.stringify({
+            codigo_lancamento_integracao,
+            codigo_status: '2',
+            descricao_status: 'Registro já existe com este código de integração. Use /upsert ou /alterar.'
+          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        throw error;
+      }
+
+      return new Response(JSON.stringify({
+        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
+        codigo_status: '0',
+        descricao_status: 'Cadastro incluído com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // PUT /alterar - Alterar título (Omie-style)
+    // =====================================================
+    if (path.endsWith('/alterar') && req.method === 'PUT') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { codigo_lancamento_integracao, codigo_lancamento_omie, ...updates } = body;
+
+      if (!codigo_lancamento_integracao && !codigo_lancamento_omie) {
+        return new Response(JSON.stringify({
+          codigo_status: '1',
+          descricao_status: 'Informe codigo_lancamento_integracao ou codigo_lancamento_omie'
+        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Map valor_documento -> valor_original
+      if (updates.valor_documento !== undefined) {
+        updates.valor_original = updates.valor_documento;
+        delete updates.valor_documento;
+      }
+      if (updates.data_vencimento) updates.data_vencimento = parseDate(updates.data_vencimento);
+      if (updates.data_previsao) updates.data_previsao = parseDate(updates.data_previsao);
+      if (updates.data_emissao) updates.data_emissao = parseDate(updates.data_emissao);
+      if (updates.data_entrada) updates.data_entrada = parseDate(updates.data_entrada);
+      updates.updated_at = new Date().toISOString();
+
+      let query = supabase.from('contas_pagar').update(updates);
+      if (codigo_lancamento_integracao) query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      else query = query.eq('codigo_lancamento_omie', codigo_lancamento_omie);
+
+      const { data, error } = await query.select('id, codigo_lancamento_omie, codigo_lancamento_integracao').maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        return new Response(JSON.stringify({
+          codigo_lancamento_integracao, codigo_status: '5', descricao_status: 'Registro não encontrado'
+        }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({
+        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
+        codigo_status: '0',
+        descricao_status: 'Cadastro alterado com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // DELETE /excluir - Excluir (inativar) título (Omie-style)
+    // =====================================================
+    if (path.endsWith('/excluir') && req.method === 'DELETE') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
+      const codOmie = url.searchParams.get('codigo_lancamento_omie');
+      const id = url.searchParams.get('id');
+
+      if (!codIntegracao && !codOmie && !id) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      let query = supabase.from('contas_pagar').update({ status: 'cancelado', updated_at: new Date().toISOString() });
+      if (id) query = query.eq('id', id);
+      else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
+      else query = query.eq('codigo_lancamento_omie', codOmie);
+
+      const { data, error } = await query.select('id, codigo_lancamento_omie, codigo_lancamento_integracao').maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Registro não encontrado' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
+        codigo_status: '0',
+        descricao_status: 'Registro excluído com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // POST /upsert - Upsert unitário (Omie-style)
+    // =====================================================
+    if (path.endsWith('/upsert') && !path.includes('upsert-lote') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { codigo_lancamento_integracao } = body;
+
+      if (!codigo_lancamento_integracao) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo codigo_lancamento_integracao é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Map Omie fields
+      const upsertData: Record<string, unknown> = { ...body };
+      if (upsertData.valor_documento !== undefined) {
+        upsertData.valor_original = upsertData.valor_documento;
+        upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
+        delete upsertData.valor_documento;
+      }
+      if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
+      if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
+      if (upsertData.data_emissao) upsertData.data_emissao = parseDate(upsertData.data_emissao as string);
+      upsertData.importado_api = true;
+      upsertData.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase.from('contas_pagar')
+        .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
+        .select('id, codigo_lancamento_omie, codigo_lancamento_integracao')
+        .single();
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({
+        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_integracao: data.codigo_lancamento_integracao,
+        codigo_status: '0',
+        descricao_status: 'Upsert realizado com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // POST /upsert-lote - Upsert em lote (Omie-style)
+    // =====================================================
+    if (path.endsWith('/upsert-lote') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const lote = body.lote || 1;
+      const registros = body.conta_pagar_cadastro || body.registros || [];
+
+      if (!Array.isArray(registros) || registros.length === 0) {
+        return new Response(JSON.stringify({ lote, codigo_status: '1', descricao_status: 'Array conta_pagar_cadastro vazio ou inválido' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (registros.length > 500) {
+        return new Response(JSON.stringify({ lote, codigo_status: '1', descricao_status: 'Máximo 500 registros por lote' }), {
+          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      let processados = 0;
+      let erros = 0;
+
+      for (const reg of registros) {
+        try {
+          const upsertData: Record<string, unknown> = { ...reg };
+          if (upsertData.valor_documento !== undefined) {
+            upsertData.valor_original = upsertData.valor_documento;
+            upsertData.valor_aberto = upsertData.valor_aberto ?? upsertData.valor_documento;
+            delete upsertData.valor_documento;
+          }
+          if (upsertData.data_vencimento) upsertData.data_vencimento = parseDate(upsertData.data_vencimento as string);
+          if (upsertData.data_previsao) upsertData.data_previsao = parseDate(upsertData.data_previsao as string);
+          if (upsertData.data_emissao) upsertData.data_emissao = parseDate(upsertData.data_emissao as string);
+          upsertData.importado_api = true;
+          upsertData.updated_at = new Date().toISOString();
+
+          const { error } = await supabase.from('contas_pagar')
+            .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' });
+          if (error) throw error;
+          processados++;
+        } catch {
+          erros++;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        lote,
+        codigo_status: erros === 0 ? '0' : '1',
+        descricao_status: `${processados} processado(s), ${erros} erro(s)`,
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // POST /lancar-pagamento - Baixa (Omie-style: LancarPagamento)
+    // =====================================================
+    if (path.endsWith('/lancar-pagamento') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { codigo_lancamento, codigo_lancamento_integracao, codigo_baixa_integracao, codigo_conta_corrente, valor, desconto, juros, multa, data: dataBaixa, observacao: obs, conciliar_documento: conciliar } = body;
+
+      if (!codigo_lancamento && !codigo_lancamento_integracao) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (!valor) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo valor é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Find titulo
+      let tituloQuery = supabase.from('contas_pagar').select('id, status, valor_original, valor_pago, valor_aberto, codigo_lancamento_omie, codigo_lancamento_integracao');
+      if (codigo_lancamento_integracao) tituloQuery = tituloQuery.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
+      else tituloQuery = tituloQuery.eq('codigo_lancamento_omie', codigo_lancamento);
+
+      const { data: titulo, error: tErr } = await tituloQuery.maybeSingle();
+      if (tErr) throw tErr;
+      if (!titulo) {
+        return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Título não encontrado' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (titulo.status === 'cancelado') {
+        return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Título cancelado, baixa não permitida' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const valorLiquido = (valor || 0) - (desconto || 0) + (juros || 0) + (multa || 0);
+      const dataPgto = parseDate(dataBaixa) || new Date().toISOString().split('T')[0];
+
+      // Insert payment
+      const { data: pagamento, error: pErr } = await supabase.from('pagamentos').insert({
+        conta_pagar_id: titulo.id,
+        valor: valorLiquido,
+        data_pagamento: dataPgto,
+        metodo_pagamento: 'API',
+        observacao: obs || 'Baixa via API (Omie-style)',
+        baixa_origem: 'api'
+      }).select('id').single();
+      if (pErr) throw pErr;
+
+      // Update titulo
+      const novoValorPago = (titulo.valor_pago || 0) + valorLiquido;
+      const novoValorAberto = Math.max(0, (titulo.valor_original || 0) - novoValorPago);
+      const liquidado = novoValorAberto <= 0;
+      const novoStatus = liquidado ? 'pago' : 'parcial';
+
+      await supabase.from('contas_pagar').update({
+        valor_pago: novoValorPago,
+        valor_aberto: novoValorAberto,
+        valor_juros: juros || 0,
+        valor_desconto: desconto || 0,
+        status: novoStatus,
+        data_pagamento: liquidado ? dataPgto : null,
+        data_baixa: liquidado ? new Date().toISOString() : null,
+        codigo_baixa_integracao: codigo_baixa_integracao || null,
+        conciliar_documento: conciliar === 'S',
+        baixa_origem: 'api',
+        updated_at: new Date().toISOString()
+      }).eq('id', titulo.id);
+
+      return new Response(JSON.stringify({
+        codigo_lancamento: titulo.codigo_lancamento_omie,
+        codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
+        codigo_baixa: pagamento.id,
+        codigo_baixa_integracao: codigo_baixa_integracao || null,
+        liquidado: liquidado ? 'S' : 'N',
+        valor_baixado: valorLiquido,
+        codigo_status: '0',
+        descricao_status: 'Pagamento registrado com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // POST /cancelar-pagamento - Cancelar baixa (Omie-style)
+    // =====================================================
+    if (path.endsWith('/cancelar-pagamento') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { codigo_baixa, codigo_baixa_integracao } = body;
+
+      if (!codigo_baixa && !codigo_baixa_integracao) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Find payment
+      let pQuery = supabase.from('pagamentos').select('id, conta_pagar_id, valor');
+      if (codigo_baixa) pQuery = pQuery.eq('id', codigo_baixa);
+
+      const { data: pagamento, error: pErr } = await pQuery.maybeSingle();
+      if (pErr) throw pErr;
+      if (!pagamento) {
+        return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Pagamento não encontrado' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Delete payment
+      await supabase.from('pagamentos').delete().eq('id', pagamento.id);
+
+      // Recalculate titulo
+      const { data: titulo } = await supabase.from('contas_pagar').select('id, valor_original, valor_pago').eq('id', pagamento.conta_pagar_id).single();
+      if (titulo) {
+        const novoValorPago = Math.max(0, (titulo.valor_pago || 0) - (pagamento.valor || 0));
+        const novoValorAberto = (titulo.valor_original || 0) - novoValorPago;
+        const novoStatus = novoValorPago <= 0 ? 'pendente' : 'parcial';
+
+        await supabase.from('contas_pagar').update({
+          valor_pago: novoValorPago,
+          valor_aberto: novoValorAberto,
+          status: novoStatus,
+          data_pagamento: null,
+          data_baixa: null,
+          updated_at: new Date().toISOString()
+        }).eq('id', titulo.id);
+      }
+
+      return new Response(JSON.stringify({
+        codigo_baixa: pagamento.id,
+        codigo_baixa_integracao: codigo_baixa_integracao || null,
+        codigo_status: '0',
+        descricao_status: 'Pagamento cancelado com sucesso!',
+        meta: { duration_ms: Date.now() - startTime }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // =====================================================
+    // GET /listar - Listagem paginada (Omie-style: ListarContasPagar)
+    // =====================================================
+    if (path.endsWith('/listar') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const pagina = Math.max(1, parseInt(url.searchParams.get('pagina') || '1'));
+      const registrosPorPagina = Math.min(Math.max(1, parseInt(url.searchParams.get('registros_por_pagina') || '20')), 500);
+      const apenasImportadoApi = url.searchParams.get('apenas_importado_api');
+      const ordenarPor = url.searchParams.get('ordenar_por') || 'data_vencimento';
+      const ordemDescrescente = url.searchParams.get('ordem_descrescente') === 'S';
+      const filtrarPorStatus = url.searchParams.get('filtrar_por_status');
+      const filtrarPorDataDe = url.searchParams.get('filtrar_por_data_de');
+      const filtrarPorDataAte = url.searchParams.get('filtrar_por_data_ate');
+      const filtrarPorEmissaoDe = url.searchParams.get('filtrar_por_emissao_de');
+      const filtrarPorEmissaoAte = url.searchParams.get('filtrar_por_emissao_ate');
+      const filtrarContaCorrente = url.searchParams.get('filtrar_conta_corrente');
+      const filtrarCliente = url.searchParams.get('filtrar_cliente');
+      const filtrarPorCpfCnpj = url.searchParams.get('filtrar_por_cpf_cnpj');
+      const filtrarPorProjeto = url.searchParams.get('filtrar_por_projeto');
+      const filtrarPorVendedor = url.searchParams.get('filtrar_por_vendedor');
+      const exibirObs = url.searchParams.get('exibir_obs') === 'S';
+
+      const offset = (pagina - 1) * registrosPorPagina;
+
+      let selectFields = '*';
+      if (!exibirObs) {
+        // Still select all, we just omit observacao in the output
+      }
+
+      let query = supabase.from('contas_pagar').select(selectFields, { count: 'exact' });
+
+      if (apenasImportadoApi === 'S') query = query.eq('importado_api', true);
+      if (filtrarPorStatus) {
+        const statusList = filtrarPorStatus.split(',').map(s => s.trim());
+        query = query.in('status', statusList);
+      }
+      if (filtrarPorDataDe) query = query.gte('data_vencimento', filtrarPorDataDe);
+      if (filtrarPorDataAte) query = query.lte('data_vencimento', filtrarPorDataAte);
+      if (filtrarPorEmissaoDe) query = query.gte('data_emissao', filtrarPorEmissaoDe);
+      if (filtrarPorEmissaoAte) query = query.lte('data_emissao', filtrarPorEmissaoAte);
+      if (filtrarContaCorrente) query = query.eq('id_conta_corrente', filtrarContaCorrente);
+      if (filtrarCliente) query = query.eq('codigo_cliente_fornecedor', filtrarCliente);
+      if (filtrarPorProjeto) query = query.eq('codigo_projeto', filtrarPorProjeto);
+      if (filtrarPorVendedor) query = query.eq('codigo_vendedor', filtrarPorVendedor);
+
+      // Map column names
+      const columnMap: Record<string, string> = {
+        'CODIGO': 'id',
+        'DATA_VENCIMENTO': 'data_vencimento',
+        'DATA_EMISSAO': 'data_emissao',
+        'VALOR': 'valor_original',
+        'FORNECEDOR': 'fornecedor_nome',
+      };
+      const orderColumn = columnMap[ordenarPor.toUpperCase()] || ordenarPor;
+
+      query = query.order(orderColumn, { ascending: !ordemDescrescente }).range(offset, offset + registrosPorPagina - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      const totalRegistros = count || 0;
+      const totalPaginas = Math.ceil(totalRegistros / registrosPorPagina);
+
+      // Strip observacao if not requested
+      const resultData = !exibirObs && data ? data.map((r: Record<string, unknown>) => {
+        const { observacao, ...rest } = r;
+        return rest;
+      }) : data;
+
+      return new Response(JSON.stringify({
+        pagina,
+        total_de_paginas: totalPaginas,
+        registros: resultData?.length || 0,
+        total_de_registros: totalRegistros,
+        conta_pagar_cadastro: resultData || [],
+        meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

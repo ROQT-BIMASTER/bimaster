@@ -64,6 +64,17 @@ const PRESET_ENDPOINTS = [
   { label: "Contas a Pagar — Cancelar", method: "POST" as HttpMethod, path: "/contas-pagar-api/cancelar" },
   { label: "Contas a Pagar — Registrar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/registrar-pagamento" },
   { label: "Contas a Pagar — Estornar", method: "POST" as HttpMethod, path: "/contas-pagar-api/estornar" },
+  // Contas a Pagar — Omie-style
+  { label: "CP Omie — Consultar", method: "GET" as HttpMethod, path: "/contas-pagar-api/consultar?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CP Omie — Incluir", method: "POST" as HttpMethod, path: "/contas-pagar-api/incluir" },
+  { label: "CP Omie — Alterar", method: "PUT" as HttpMethod, path: "/contas-pagar-api/alterar" },
+  { label: "CP Omie — Excluir", method: "DELETE" as HttpMethod, path: "/contas-pagar-api/excluir?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CP Omie — Upsert", method: "POST" as HttpMethod, path: "/contas-pagar-api/upsert" },
+  { label: "CP Omie — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-pagar-api/upsert-lote" },
+  { label: "CP Omie — Lançar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/lancar-pagamento" },
+  { label: "CP Omie — Cancelar Pagamento", method: "POST" as HttpMethod, path: "/contas-pagar-api/cancelar-pagamento" },
+  { label: "CP Omie — Listar", method: "GET" as HttpMethod, path: "/contas-pagar-api/listar?pagina=1&registros_por_pagina=20" },
+  // Export
   { label: "Export — Pendentes (Provisão)", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/pending" },
   { label: "Export — Pagos (Baixa)", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/paid" },
   { label: "Export — Cancelados", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/cancelled" },
@@ -100,13 +111,23 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-pagar-api/registrar-pagamento": JSON.stringify({ conta_pagar_id: "uuid", valor_pago: 1500.00, data_pagamento: "2026-03-21", metodo_pagamento: "PIX" }, null, 2),
   "/contas-pagar-api/estornar": JSON.stringify({ id: "uuid", motivo: "Pagamento devolvido", valor_estorno: 500.00 }, null, 2),
   "/contas-pagar-api/update": JSON.stringify({ id: "uuid", data_vencimento: "2026-04-15", portador: "Banco Itaú" }, null, 2),
+  // Omie-style Contas a Pagar
+  "/contas-pagar-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "INT-001", codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01", data_previsao: "21/03/2026", id_conta_corrente: 4243124 }, null, 2),
+  "/contas-pagar-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
+  "/contas-pagar-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "INT-001", empresa_id: 8, codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01", data_previsao: "21/03/2026", id_conta_corrente: 4243124 }, null, 2),
+  "/contas-pagar-api/upsert-lote": JSON.stringify({ lote: 1, conta_pagar_cadastro: [{ codigo_lancamento_integracao: "INT-001", empresa_id: 8, codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "2.04.01" }] }, null, 2),
+  "/contas-pagar-api/lancar-pagamento": JSON.stringify({ codigo_lancamento_integracao: "INT-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
+  "/contas-pagar-api/cancelar-pagamento": JSON.stringify({ codigo_baixa: "uuid-pagamento" }, null, 2),
+  // Export
   "/contas-pagar-export-api/confirm": JSON.stringify({ ids: ["uuid-1"], export_type: "registration" }, null, 2),
   "/contas-pagar-export-api/export-batch": JSON.stringify({ ids: ["uuid-1", "uuid-2"], channel: "rest_api", export_type: "payment" }, null, 2),
   "/contas-pagar-export-api/retry-failed": JSON.stringify({ channel: "rest_api" }, null, 2),
+  // Contas Correntes
   "/contas-correntes-api/incluir": JSON.stringify({ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CC", codigo_banco: "341", descricao: "Conta Principal Itaú", codigo_agencia: "1234", numero_conta_corrente: "56789-0", saldo_inicial: 10000, pix_sn: "S" }, null, 2),
   "/contas-correntes-api/alterar": JSON.stringify({ cCodCCInt: "MyCC0001", descricao: "Conta Itaú Atualizada", valor_limite: 75000 }, null, 2),
   "/contas-correntes-api/upsert": JSON.stringify({ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CC", codigo_banco: "341", descricao: "Conta Itaú", saldo_inicial: 10000 }, null, 2),
   "/contas-correntes-api/upsert-lote": JSON.stringify({ lote: 1, fin_conta_corrente_cadastro: [{ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CX", codigo_banco: "999", descricao: "Caixinha", saldo_inicial: 0 }] }, null, 2),
+  // Lançamentos CC
   "/lancamentos-cc-api/incluir": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", nCodCliente: 2485994, cObs: "Referente a jardinagem" } }, null, 2),
   "/lancamentos-cc-api/alterar": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nValorLanc: 200.00 }, detalhes: { cObs: "Valor corrigido" } }, null, 2),
   "/lancamentos-cc-api/upsert": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", cObs: "Lançamento via API" } }, null, 2),
