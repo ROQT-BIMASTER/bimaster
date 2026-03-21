@@ -198,3 +198,80 @@ Endpoints para gerenciar características (key-value) de clientes, equivalente a
 ```
 
 Todas as rotas aceitam `codigo_cliente_omie` (UUID) ou `codigo_cliente_integracao` para identificar o cliente.
+
+---
+
+## Tags de Clientes
+
+Endpoints para gerenciar tags (rótulos) de clientes, equivalente ao módulo `ClientesTags` da Omie.
+
+| Método | Rota | Equivalente Omie | Descrição |
+|---|---|---|---|
+| POST | `/tags/incluir` | IncluirTags | Associa tags ao cliente |
+| POST | `/tags/listar` | ListarTags | Lista tags do cliente |
+| POST | `/tags/excluir` | ExcluirTags | Remove tags específicas |
+| POST | `/tags/excluir-todas` | ExcluirTodas | Remove todas as tags |
+
+### POST /tags/incluir
+
+**Body:**
+```json
+{
+  "nCodCliente": 0,
+  "cCodIntCliente": "CLI001",
+  "tags": [
+    { "tag": "Grupo A" },
+    { "tag": "Grupo B" }
+  ]
+}
+```
+
+**Resposta (201):**
+```json
+{
+  "nCodCliente": "uuid",
+  "cCodIntCliente": "CLI001",
+  "cCodStatus": "0",
+  "cDesStatus": "Tags incluídas com sucesso!"
+}
+```
+
+### POST /tags/listar
+
+**Body:**
+```json
+{ "cCodIntCliente": "CLI001" }
+```
+
+**Resposta (200):**
+```json
+{
+  "nCodCliente": "uuid",
+  "cCodIntCliente": "CLI001",
+  "tagsLista": [
+    { "tag": "Grupo A", "nCodTag": 1 },
+    { "tag": "Grupo B", "nCodTag": 2 }
+  ]
+}
+```
+
+### POST /tags/excluir
+
+**Body:**
+```json
+{
+  "cCodIntCliente": "CLI001",
+  "tags": [
+    { "tag": "Grupo A" }
+  ]
+}
+```
+
+### POST /tags/excluir-todas
+
+**Body:**
+```json
+{ "cCodIntCliente": "CLI001" }
+```
+
+Todas as rotas aceitam `nCodCliente` (UUID) ou `cCodIntCliente` para identificar o cliente.
