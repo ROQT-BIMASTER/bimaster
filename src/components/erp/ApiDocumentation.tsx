@@ -1247,6 +1247,15 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="projetos" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Projetos — CRUD Completo (Padrão Omie)"
+              basePath="/projetos-api"
+              endpoints={projetosCrud}
+              description="Incluir, alterar, consultar, excluir, listar e upsert projetos — formato Omie"
+            />
+          </TabsContent>
 
           <TabsContent value="dre-cadastro" className="space-y-1">
             <ApiSection
