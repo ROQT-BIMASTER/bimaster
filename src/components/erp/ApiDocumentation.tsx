@@ -506,7 +506,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
-          <TabsContent value="complementar" className="space-y-1">
+          <TabsContent value="lancamentos-cc" className="space-y-1">
+            <ApiSection
+              icon={<ArrowDownToLine className="h-4 w-4 text-primary" />}
+              title="CRUD & Sync — Lançamentos de Conta Corrente (Padrão Omie)"
+              basePath="/lancamentos-cc-api"
+              endpoints={lancamentosCcCrud}
+              description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
+            />
+          </TabsContent>
+
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
               title="Fornecedores, Portadores, Plano de Contas, Estoque"
