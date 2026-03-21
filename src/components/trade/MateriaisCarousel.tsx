@@ -32,7 +32,7 @@ export function MateriaisCarousel() {
         title="Materiais para Solicitação"
         subtitle="Solicite materiais de trade"
         linkText="Ver todos"
-        linkTo="/dashboard/trade/admin/materiais"
+        linkTo="/dashboard/trade/materiais"
       />
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
         {materiais.map((m) => (
