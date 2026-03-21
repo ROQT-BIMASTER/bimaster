@@ -658,6 +658,20 @@ const cidadesCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const paisesCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar países cadastrados (ListarPaises)", tag: "novo",
+    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "", "filtrar_por_codigo_iso": "" }`,
+    params: [
+      { name: "filtrar_por_codigo", type: "string(4)", required: false, description: "Filtro parcial por código IBGE (ILIKE)" },
+      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
+      { name: "filtrar_por_codigo_iso", type: "string(2)", required: false, description: "Filtro parcial por código ISO (ILIKE)" },
+    ],
+    response: `{ "lista_paises": [{ "cCodigo": "1058", "cDescricao": "BRASIL", "cCodigoISO": "BR" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",

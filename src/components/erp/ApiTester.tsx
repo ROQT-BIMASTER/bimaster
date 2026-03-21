@@ -239,6 +239,9 @@ const PRESET_ENDPOINTS = [
   // Cidades (PesquisarCidades)
   { label: "Cidades — Listar", method: "POST" as HttpMethod, path: "/cidades-api/listar" },
   { label: "Cidades — Status", method: "GET" as HttpMethod, path: "/cidades-api/status" },
+  // Países (ListarPaises)
+  { label: "Países — Listar", method: "POST" as HttpMethod, path: "/paises-api/listar" },
+  { label: "Países — Status", method: "GET" as HttpMethod, path: "/paises-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
