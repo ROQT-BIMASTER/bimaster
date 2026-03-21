@@ -1501,6 +1501,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="tipos-anexo" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Tipos de Anexo — ListarTiposAnexos (Padrão Omie)"
+              basePath="/tipos-anexo-api"
+              endpoints={tiposAnexoCrud}
+              description="Lista de tipos de documentos anexos (código + descrição)"
+            />
+          </TabsContent>
+
           <TabsContent value="cnae" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
