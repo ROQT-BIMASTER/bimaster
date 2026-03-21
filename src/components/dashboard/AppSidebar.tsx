@@ -1077,18 +1077,45 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       )}
 
       <SidebarContent className="scrollbar-thin">
+        {/* Central de Inteligência */}
+        <SidebarGroup className="py-1 px-2">
+          <Collapsible open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+            <CollapsibleTrigger className="w-full">
+              <div className={cn(
+                "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-150",
+                "hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary">
+                  <BarChart3 className="h-3.5 w-3.5 text-white" />
+                </div>
+                <span className="font-medium text-sm flex-1 text-[var(--sidebar-text-hover-raw)]">
+                  Central de Inteligência
+                </span>
+                <ChevronDown className={cn(
+                  "h-3.5 w-3.5 text-[var(--sidebar-text-raw)] transition-transform duration-200",
+                  !openModules.has("inteligencia") && "ltr:-rotate-90 rtl:rotate-90"
+                )} />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
+                <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
+                <MenuItemLink to="/dashboard/clientes" icon={UserCheck} title="Clientes" />
+                <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" />
+                <MenuItemLink to="/dashboard/geografico" icon={Globe} title="Geográfico" />
+                <MenuItemLink to="/dashboard/produtos" icon={Package} title="Produtos" />
+                <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" />
+                {isAdmin && <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas" />}
+              </SidebarMenu>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
         {/* Geral */}
-        <SidebarGroup className="py-2">
+        <SidebarGroup className="py-1">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5 px-2">
-              <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
-              <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
-              <MenuItemLink to="/dashboard/clientes" icon={UserCheck} title="Clientes" />
-              <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" />
-              <MenuItemLink to="/dashboard/geografico" icon={Globe} title="Geográfico" />
-              <MenuItemLink to="/dashboard/produtos" icon={Package} title="Produtos" />
-              <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" />
-              {isAdmin && <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas" />}
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
