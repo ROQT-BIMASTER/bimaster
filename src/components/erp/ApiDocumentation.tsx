@@ -673,7 +673,7 @@ const tiposEntregaCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-
+const cnaeCrud: Endpoint[] = [
   {
     method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
     body: `{ "pagina": 1, "registros_por_pagina": 50, "ordenar_por": "codigo", "ordem_decrescente": "N" }`,
