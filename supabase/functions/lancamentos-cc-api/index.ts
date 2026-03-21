@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
   }
 
   // --- Field mappings (Huggs → DB) ---
-  const OMIE_TO_DB: Record<string, string> = {
+  const API_TO_DB: Record<string, string> = {
     cCodIntLanc: "c_cod_int_lanc",
     nCodLanc: "n_cod_lanc",
     nCodAgrup: "n_cod_agrup",
@@ -120,9 +120,9 @@ Deno.serve(async (req) => {
     const flat = flattenHuggsInput(input);
     const row: Record<string, unknown> = {};
 
-    for (const [omieKey, dbCol] of Object.entries(OMIE_TO_DB)) {
-      if (flat[omieKey] !== undefined) {
-        let val = flat[omieKey];
+    for (const [apiKey, dbCol] of Object.entries(API_TO_DB)) {
+      if (flat[apiKey] !== undefined) {
+        let val = flat[apiKey];
         // Convert Huggs S/N booleans
         if (typeof val === "string" && (val === "S" || val === "N")) {
           val = val === "S";

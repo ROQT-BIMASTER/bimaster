@@ -26,7 +26,7 @@ interface DeptRow {
   nome: string;
   descricao: string | null;
   ativo: boolean;
-  codigo_omie: string | null;
+  codigo_huggs: string | null;
   estrutura: string | null;
   nivel_totalizador: string | null;
   created_at: string;
@@ -35,7 +35,7 @@ interface DeptRow {
 
 function mapCadastro(row: DeptRow) {
   return {
-    codigo: row.codigo_omie || "",
+    codigo: row.codigo_huggs || "",
     descricao: row.nome || "",
     estrutura: row.estrutura || "",
     inativo: row.ativo ? "N" : "S",
@@ -125,7 +125,7 @@ async function handleIncluir(
   const { data: existing } = await supabase
     .from("departamentos")
     .select("id")
-    .eq("codigo_omie", codigo)
+    .eq("codigo_huggs", codigo)
     .maybeSingle();
 
   if (existing) {
@@ -139,7 +139,7 @@ async function handleIncluir(
 
   const { error } = await supabase.from("departamentos").insert({
     nome: descricao,
-    codigo_omie: codigo,
+    codigo_huggs: codigo,
     ativo: true,
   });
 
@@ -165,7 +165,7 @@ async function handleAlterar(
   const { data: row } = await supabase
     .from("departamentos")
     .select("id")
-    .eq("codigo_omie", codigo)
+    .eq("codigo_huggs", codigo)
     .maybeSingle();
 
   if (!row) return jsonResponse({ error: "Departamento não encontrado" }, 404);
@@ -202,7 +202,7 @@ async function handleConsultar(
   const { data: row, error } = await supabase
     .from("departamentos")
     .select("*")
-    .eq("codigo_omie", codigo)
+    .eq("codigo_huggs", codigo)
     .maybeSingle();
 
   if (error) throw error;
@@ -225,7 +225,7 @@ async function handleExcluir(
   const { data: row } = await supabase
     .from("departamentos")
     .select("id, nome")
-    .eq("codigo_omie", codigo)
+    .eq("codigo_huggs", codigo)
     .maybeSingle();
 
   if (!row) return jsonResponse({ error: "Departamento não encontrado" }, 404);

@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Código de integração associado com sucesso!"), 200, req, { startMs });
     }
 
-    // ── Helper: resolve cliente by omie/integracao code ─────────
+    // ── Helper: resolve cliente by huggs/integracao code ─────────
     async function resolveCliente(body: Record<string, unknown>): Promise<{ id: string; codigo: string } | null> {
       const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
       if (!codigo_cliente_integracao && !codigo_cliente_huggs) return null;
