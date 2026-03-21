@@ -82,7 +82,7 @@ function VendedorDrilldown({ codVend, vendedor, filters, onClose }: {
     queryFn: async () => {
       let query = supabase
         .from("vendas_union")
-        .select("cod_cliente, cliente, vl_outros_custos, operacao")
+        .select("cod_cliente, cliente, venda, preco_venda, quantidade, operacao")
         .eq("cod_vend", codVend);
 
       if (filters.mes) {
