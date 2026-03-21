@@ -910,6 +910,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Origens
             </TabsTrigger>
+            <TabsTrigger value="bandeiras" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Bandeiras
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
