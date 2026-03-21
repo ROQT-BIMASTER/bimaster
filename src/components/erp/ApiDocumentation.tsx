@@ -673,6 +673,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Boletos
             </TabsTrigger>
+            <TabsTrigger value="anexos" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Anexos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
