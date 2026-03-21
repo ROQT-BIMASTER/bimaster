@@ -1231,6 +1231,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               CNAE
             </TabsTrigger>
+            <TabsTrigger value="cidades" className="text-xs gap-1.5">
+              <Search className="h-3.5 w-3.5" />
+              Cidades
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
