@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateBanner, useUpdateBanner, type TradeBanner } from "@/hooks/useTradeBanners";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, Image as ImageIcon, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   open: boolean;
@@ -19,6 +21,11 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
   const createBanner = useCreateBanner();
   const updateBanner = useUpdateBanner();
   const [uploading, setUploading] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [useAiOptimize, setUseAiOptimize] = useState(false);
+  const [aiWidth, setAiWidth] = useState("1200");
+  const [aiHeight, setAiHeight] = useState("400");
+  const [aiQuality, setAiQuality] = useState("alta");
   const [form, setForm] = useState({
     titulo: "",
     imagem_url: "",
@@ -51,16 +58,80 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
         ativo: true,
       });
     }
+    setUseAiOptimize(false);
   }, [editBanner, open]);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const base64ToBlob = (base64: string): Blob => {
+    const parts = base64.split(",");
+    const mime = parts[0].match(/:(.*?);/)?.[1] || "image/png";
+    const bytes = atob(parts[1]);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  };
+
+  const optimizeWithAI = async (base64: string): Promise<string> => {
+    setOptimizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("optimize-banner-image", {
+        body: {
+          imageBase64: base64,
+          width: parseInt(aiWidth),
+          height: parseInt(aiHeight),
+          quality: aiQuality,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        if (data.error.includes("Rate limit")) {
+          toast.error("Limite de requisições excedido. Tente novamente em alguns segundos.");
+        } else if (data.error.includes("Credits")) {
+          toast.error("Créditos de IA esgotados.");
+        } else {
+          throw new Error(data.error);
+        }
+        return base64;
+      }
+
+      toast.success("Imagem otimizada com IA!");
+      return data.optimizedImage;
+    } catch (err) {
+      console.error("AI optimization failed:", err);
+      toast.error("Falha na otimização com IA. Usando imagem original.");
+      return base64;
+    } finally {
+      setOptimizing(false);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      let fileToUpload: File | Blob = file;
+
+      if (useAiOptimize) {
+        const base64 = await fileToBase64(file);
+        const optimizedBase64 = await optimizeWithAI(base64);
+        if (optimizedBase64 !== base64) {
+          fileToUpload = base64ToBlob(optimizedBase64);
+        }
+      }
+
+      const ext = file.name.split(".").pop() || "png";
       const path = `${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("trade-banners").upload(path, file);
+      const { error: uploadError } = await supabase.storage.from("trade-banners").upload(path, fileToUpload);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
       setForm(f => ({ ...f, imagem_url: publicUrl }));
@@ -97,9 +168,11 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
     onOpenChange(false);
   };
 
+  const isProcessing = uploading || optimizing;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editBanner ? "Editar Banner" : "Novo Banner"}</DialogTitle>
         </DialogHeader>
@@ -114,19 +187,82 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
             {form.imagem_url && (
               <img src={form.imagem_url} alt="Preview" className="w-full h-32 object-cover rounded-xl mb-2" />
             )}
-            <div className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:border-[hsl(330,81%,60%)] transition-colors">
+            <div className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:border-primary transition-colors">
               <label className="cursor-pointer flex flex-col items-center gap-2">
-                {uploading ? (
-                  <span className="text-sm text-muted-foreground">Enviando...</span>
+                {isProcessing ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {optimizing ? "Otimizando com IA..." : "Enviando..."}
+                    </span>
+                  </div>
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Clique ou arraste uma imagem</span>
                   </>
                 )}
-                <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isProcessing} />
               </label>
             </div>
+          </div>
+
+          {/* AI Optimization Toggle */}
+          <div className="rounded-xl border p-3 space-y-3 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="ai-optimize"
+                checked={useAiOptimize}
+                onCheckedChange={(v) => setUseAiOptimize(v === true)}
+              />
+              <label htmlFor="ai-optimize" className="flex items-center gap-1.5 text-sm font-medium cursor-pointer">
+                <Sparkles className="h-4 w-4 text-[hsl(330,81%,60%)]" />
+                Otimizar imagem com IA
+              </label>
+            </div>
+
+            {useAiOptimize && (
+              <div className="space-y-3 pl-6">
+                <p className="text-xs text-muted-foreground">
+                  A IA ajustará o tamanho e a qualidade da imagem automaticamente ao fazer o upload.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Largura (px)</Label>
+                    <Input
+                      type="number"
+                      value={aiWidth}
+                      onChange={e => setAiWidth(e.target.value)}
+                      placeholder="1200"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Altura (px)</Label>
+                    <Input
+                      type="number"
+                      value={aiHeight}
+                      onChange={e => setAiHeight(e.target.value)}
+                      placeholder="400"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Qualidade</Label>
+                  <Select value={aiQuality} onValueChange={setAiQuality}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alta">Alta</SelectItem>
+                      <SelectItem value="média">Média</SelectItem>
+                      <SelectItem value="máxima">Máxima</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -156,7 +292,7 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
             </div>
           </div>
 
-          <Button onClick={handleSubmit} className="w-full bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] text-white hover:brightness-110" disabled={createBanner.isPending || updateBanner.isPending}>
+          <Button onClick={handleSubmit} className="w-full bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] text-white hover:brightness-110" disabled={createBanner.isPending || updateBanner.isPending || isProcessing}>
             {editBanner ? "Salvar Alterações" : "Criar Banner"}
           </Button>
         </div>
