@@ -1,0 +1,1 @@
+ALTER TABLE public.ibge_municipios ADD COLUMN IF NOT EXISTS codigo_siafi integer;
