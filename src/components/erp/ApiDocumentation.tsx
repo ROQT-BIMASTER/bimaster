@@ -1115,6 +1115,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Departamentos
             </TabsTrigger>
+            <TabsTrigger value="categorias" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Categorias
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
