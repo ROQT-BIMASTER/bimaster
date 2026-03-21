@@ -64,7 +64,7 @@ const TradeModule = () => {
     <DashboardLayout>
       <div className="space-y-5 sm:space-y-6 pb-20 sm:pb-6">
         {/* Header with pink gradient accent */}
-        <div className="rounded-2xl bg-gradient-to-r from-[hsl(340,80%,96%)] to-[hsl(280,60%,96%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(262,40%,12%)] p-5 sm:p-6" data-tour="trade-header">
+        <div className="rounded-2xl bg-gradient-to-r from-[hsl(340,80%,96%)] to-[hsl(280,60%,96%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(262,40%,12%)] p-4 sm:p-6" data-tour="trade-header">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] bg-clip-text text-transparent">
             Trade Marketing
           </h1>
