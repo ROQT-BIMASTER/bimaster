@@ -194,15 +194,15 @@ const TradeModule = () => {
 
             <Link to="/dashboard/trade/sellout">
               <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-[hsl(340,80%,96%)] to-[hsl(330,70%,92%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(330,30%,10%)]">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="p-2 sm:p-2.5 bg-[hsl(330,81%,60%)]/10 rounded-xl w-fit">
-                    <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-[hsl(330,81%,60%)]" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="p-1.5 sm:p-2 bg-[hsl(330,81%,60%)]/10 rounded-xl w-fit">
+                    <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5 text-[hsl(330,81%,60%)]" />
                   </div>
-                  <div className="mt-3">
-                    <p className="text-xl sm:text-2xl font-bold text-[hsl(330,81%,60%)]">
+                  <div className="mt-2">
+                    <p className="text-lg sm:text-xl font-bold text-[hsl(330,81%,60%)]">
                       R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
                     </p>
-                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">Sell Out</h3>
+                    <h3 className="text-[11px] sm:text-xs font-medium mt-0.5">Sell Out</h3>
                   </div>
                 </CardContent>
               </Card>
