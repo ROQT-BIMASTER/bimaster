@@ -5606,7 +5606,7 @@ export type Database = {
       departamentos: {
         Row: {
           ativo: boolean | null
-          codigo_omie: string | null
+          codigo_huggs: string | null
           created_at: string | null
           descricao: string | null
           estrutura: string | null
@@ -5618,7 +5618,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
-          codigo_omie?: string | null
+          codigo_huggs?: string | null
           created_at?: string | null
           descricao?: string | null
           estrutura?: string | null
@@ -5630,7 +5630,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
-          codigo_omie?: string | null
+          codigo_huggs?: string | null
           created_at?: string | null
           descricao?: string | null
           estrutura?: string | null
