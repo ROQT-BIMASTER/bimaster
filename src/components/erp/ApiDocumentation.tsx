@@ -373,6 +373,10 @@ export default function ApiDocumentation() {
               <ArrowUpFromLine className="h-3.5 w-3.5" />
               Exportação
             </TabsTrigger>
+            <TabsTrigger value="contas-correntes" className="text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Contas Correntes
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
