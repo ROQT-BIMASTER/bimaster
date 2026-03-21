@@ -1,35 +1,46 @@
 
+Objetivo: eliminar o erro “CORS / Network Error” recorrente no API Tester (principalmente nos endpoints de exportação) e fazer o tester mostrar erros reais de API (401/400) em vez de “Failed to fetch”.
 
-# Correção: PUT /update retornando "Failed to fetch" (erro CORS)
+1) Diagnóstico confirmado
+- O problema não está nos endpoints em si: há registros de `OPTIONS 200` e `GET 401` para `contas-pagar-export-api/reconciliation`.
+- Isso indica duas causas combinadas:
+  - CORS inconsistente entre funções (lockdown por origem em `_shared/cors.ts` vs respostas com `*` em funções específicas).
+  - API Tester enviando headers desnecessários/ vazios (ex.: `x-api-key: ""`, `Content-Type` em GET), o que aumenta preflight e mascara erros.
+- Resultado prático: o usuário vê “Failed to fetch” em vários presets, mesmo quando o backend está respondendo.
 
-## Problema
+2) Correção de CORS (backend)
+- Arquivo: `supabase/functions/_shared/cors.ts`
+- Ajustar a validação de origem para incluir o domínio do ambiente de edição (`*.lovableproject.com`) além de `*.lovable.app|dev`.
+- Manter fallback por `ALLOWED_ORIGINS`.
+- Garantir que `OPTIONS` continue retornando:
+  - `Access-Control-Allow-Origin`
+  - `Access-Control-Allow-Headers` (dinâmico)
+  - `Access-Control-Allow-Methods`
 
-O browser envia um preflight OPTIONS antes de requisições PUT. O header `Access-Control-Allow-Methods` não está presente na resposta CORS do `contas-pagar-api`, então o browser bloqueia a requisição PUT.
+3) Padronização de resposta nas APIs ERP
+- Arquivo: `supabase/functions/contas-pagar-export-api/index.ts`
+- Refatorar `jsonResponse` para usar `getCorsHeaders(req)` (em vez de headers hardcoded), garantindo o mesmo comportamento do preflight no response final (200/400/401/500).
+- Arquivo: `supabase/functions/contas-pagar-api/index.ts`
+- Remover divergência de CORS local e alinhar ao helper compartilhado para evitar comportamento diferente entre APIs irmãs.
 
-## Correção
+4) Correção do API Tester (frontend)
+- Arquivo: `src/components/erp/ApiTester.tsx`
+- Não enviar headers vazios:
+  - se `x-api-key` estiver vazio, não incluir no request.
+- Não enviar `Content-Type` para `GET/DELETE` sem body.
+- Validar antes de enviar:
+  - URL vazia/inválida.
+  - endpoints que exigem parâmetro obrigatório (ex.: `conta_pagar_id`) mostrando aviso claro.
+- Melhorar tratamento de erro:
+  - separar “CORS/preflight bloqueado” de “401 Unauthorized” e “400 campo_obrigatorio”.
+  - exibir dica contextual (“Preencha x-api-key”, “Informe conta_pagar_id”, etc.).
 
-### 1. Adicionar `Access-Control-Allow-Methods` nos CORS headers (`contas-pagar-api/index.ts`)
+5) Critério de aceite
+- Presets `Export — Reconciliação`, `History`, `Summary`, `Pending`, `Paid` devem responder com status HTTP real (200/401/400), sem “status 0 / Failed to fetch”.
+- Presets de `contas-pagar-api` devem manter comportamento igual.
+- Erros de uso (chave ausente, parâmetro faltante) devem aparecer no corpo da resposta, não como erro de rede.
 
-Adicionar ao objeto `corsHeaders` na linha 6-9:
-
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-};
-```
-
-Isso permite que o preflight OPTIONS autorize métodos PUT/PATCH/DELETE.
-
-### 2. Melhorar tratamento de erro no API Tester (`ApiTester.tsx`)
-
-Atualmente, quando `fetch` falha com erro de rede (CORS block), o catch não mostra mensagem útil. Melhorar para indicar que pode ser problema de CORS.
-
-### Arquivos impactados
-
-| Arquivo | Mudança |
-|---|---|
-| `supabase/functions/contas-pagar-api/index.ts` | +1 linha: `Access-Control-Allow-Methods` |
-| `src/components/erp/ApiTester.tsx` | Melhorar mensagem de erro de rede |
-
+Detalhes técnicos (resumo)
+- Causa raiz: política de CORS e montagem do request não padronizadas.
+- Solução: unificar CORS no helper compartilhado + higienizar request no tester.
+- Impacto: elimina loop de “quase todas com o mesmo erro” e torna o diagnóstico da integração previsível.
