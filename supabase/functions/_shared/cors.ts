@@ -6,19 +6,33 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ];
 
 const STANDARD_HEADERS = "authorization, x-client-info, apikey, content-type, x-api-key, x-idempotency-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+const LOVABLE_ORIGIN_REGEX = /^https:\/\/([a-z0-9-]+\.)*lovable\.(app|dev)$/i;
+
+function buildAllowedHeaders(req: Request): string {
+  const requestedHeaders = req.headers.get("access-control-request-headers");
+  if (!requestedHeaders) return STANDARD_HEADERS;
+
+  const base = STANDARD_HEADERS.split(",").map((h) => h.trim().toLowerCase());
+  const requested = requestedHeaders
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+
+  return Array.from(new Set([...base, ...requested])).join(", ");
+}
 
 /**
  * Returns CORS headers with origin validation.
  * Server-to-server calls (origin=null) are allowed for webhooks.
- * Unknown browser origins get empty Allow-Origin (browser blocks it).
  */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin");
+  const allowHeaders = buildAllowedHeaders(req);
 
   // Server-to-server (webhooks, cron, n8n) — no origin header
   if (!origin) {
     return {
-      "Access-Control-Allow-Headers": STANDARD_HEADERS,
+      "Access-Control-Allow-Headers": allowHeaders,
       "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     };
   }
@@ -28,11 +42,11 @@ export function getCorsHeaders(req: Request): Record<string, string> {
     ? envOrigins.split(",").map((o) => o.trim())
     : DEFAULT_ALLOWED_ORIGINS;
 
-  const allowed = allowedList.includes(origin);
+  const allowed = allowedList.includes(origin) || LOVABLE_ORIGIN_REGEX.test(origin);
 
   return {
     "Access-Control-Allow-Origin": allowed ? origin : "",
-    "Access-Control-Allow-Headers": STANDARD_HEADERS,
+    "Access-Control-Allow-Headers": allowHeaders,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     ...(allowed ? { "Vary": "Origin" } : {}),
   };
