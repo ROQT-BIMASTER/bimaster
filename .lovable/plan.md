@@ -1,38 +1,85 @@
 
 
-# Aprimorar API PesquisarLancamentos — Campos Completos Omie
+# API ListarMovimentos — Movimentação Financeira Unificada (Omie)
 
 ## Resumo
 
-A Edge Function `pesquisar-lancamentos-api` já existe mas está incompleta em relação à spec Omie. Serão adicionados os campos faltantes no `cabecTitulo`, preenchimento real dos `lancamentos` (baixas), campos completos no `resumo` e no `info`, além de filtros adicionais. Endpoints deprecated (`ObterURLBoleto`, `PesquisarExcluidos`) continuam não implementados.
+Criar nova Edge Function `movimentos-financeiros-api` seguindo o padrão Omie `ListarMovimentos`. Endpoint unificado que consolida Contas a Pagar, Contas a Receber e Lançamentos de Conta Corrente em uma única listagem paginada com filtros extensivos. Diferente do `PesquisarLancamentos` (que retorna títulos com baixas), este retorna **movimentos** (cada baixa/lançamento CC como linha individual).
 
-## Campos a adicionar/corrigir
+## 1. Nova Edge Function: `movimentos-financeiros-api`
 
-### cabecTitulo — campos faltantes
-- `cCPFCNPJCliente`, `nCodCtr`, `cNumCtr`, `nCodOS`, `cNumOS`, `cNumParcela`, `cNSU`, `nCodNF`, `dDtRegistro`, `cNumBoleto` (já existe para R, adicionar para P), `nCodTitRepet`, `dDtCanc`
-- Campos tributários: adicionar também para `cNatureza = "P"` (atualmente só para "R")
+Sem nova tabela — consulta `contas_pagar`, `contas_receber`, `lancamentos_conta_corrente` e `pagamentos` existentes.
 
-### lancamentos — preencher com dados reais
-- Consultar tabela `pagamentos` (vinculada via `conta_pagar_id` / `conta_receber_id`) para cada título na página
-- Mapear para: `nCodLanc`, `cCodIntLanc`, `nIdLancCC`, `dDtLanc`, `nValLanc`, `nMulta`, `nJuros`, `nDesconto`, `nCodCC`, `cNatureza`, `cObsLanc`
+| Método | Rota | Descrição | Equivalente Omie |
+|---|---|---|---|
+| POST | `/listar` | Listagem unificada de movimentos financeiros | ListarMovimentos |
+| GET | `/status` | Health check | — |
 
-### resumo — campos faltantes
-- Calcular `nDesconto`, `nJuros`, `nMulta` somando dos lançamentos reais (atualmente hardcoded 0)
+**POST /listar** — Body com filtros `mfListarRequest`:
 
-### info — campos faltantes
-- Adicionar `hInc`, `uInc`, `hAlt`, `uAlt` quando `lDadosCad = true`
+Filtros principais (mesmos do PesquisarLancamentos) + adicionais:
+- `cTpLancamento` — Tipo de registro: "CP" (Contas a Pagar), "CR" (Contas a Receber), "CC" (Conta Corrente), ou vazio para todos
+- `cExibirDepartamentos` — "S" para incluir distribuição por departamentos
+- `nCodMovCC` — Filtro por código do movimento de conta corrente
+- `lDadosCad` — Incluir dados cadastrais (datas inclusão/alteração, observações)
 
-### Filtros faltantes no body
-- `nCodCtr`, `cNumCtr`, `nCodOS`, `cNumOS` (contrato e ordem de serviço)
+**Lógica:**
+1. Conforme `cTpLancamento`, consultar as tabelas relevantes (CP, CR, CC ou todas)
+2. Para CP/CR: buscar títulos + seus pagamentos (cada pagamento = 1 movimento)
+3. Para CC: buscar lançamentos diretos da `lancamentos_conta_corrente`
+4. Unificar em array `movimentos[]` com estrutura `{ detalhes, resumo, departamentos, categorias }`
+5. Aplicar paginação sobre o resultado unificado
 
-## Documentação
+**Resposta:**
+```json
+{
+  "nPagina": 1,
+  "nTotPaginas": 5,
+  "nRegistros": 20,
+  "nTotRegistros": 100,
+  "movimentos": [
+    {
+      "detalhes": {
+        "nCodTitulo": 123,
+        "cNatureza": "P",
+        "nValorTitulo": 500.00,
+        "nCodMovCC": 456,
+        "nValorMovCC": 500.00,
+        "nCodBaixa": 789,
+        "cGrupo": "CP",
+        "dDtPagamento": "15/03/2026"
+      },
+      "resumo": {
+        "cLiquidado": "S",
+        "nValPago": 500.00,
+        "nValAberto": 0,
+        "nDesconto": 0,
+        "nJuros": 0,
+        "nMulta": 0,
+        "nValLiquido": 500.00
+      },
+      "departamentos": [],
+      "categorias": []
+    }
+  ]
+}
+```
 
-Atualizar `docs/API_PESQUISAR_LANCAMENTOS.md` com todos os campos dos tipos complexos (`cabecTitulo` completo, `lancamentos`, `resumo`, `departamentos`, `aCodCateg`, `info`).
+## 2. Documentação
+
+Novo `docs/API_MOVIMENTOS_FINANCEIROS.md`.
+
+## 3. API Tester & Portal
+
+- Presets no `ApiTester.tsx` (Listar CP, Listar CR, Listar CC, Listar Todos)
+- Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/pesquisar-lancamentos-api/index.ts` | Editar — adicionar campos, buscar lancamentos reais, filtros |
-| `docs/API_PESQUISAR_LANCAMENTOS.md` | Editar — documentar tipos complexos completos |
+| `supabase/functions/movimentos-financeiros-api/index.ts` | Criar — nova Edge Function |
+| `docs/API_MOVIMENTOS_FINANCEIROS.md` | Criar — documentação |
+| `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
+| `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
 
