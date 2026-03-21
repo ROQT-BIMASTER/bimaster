@@ -2422,6 +2422,8 @@ export type Database = {
           cidade_normalizada: string | null
           classificacao: number | null
           cnpj: string | null
+          cod_equipe: number | null
+          cod_vend: number | null
           codigo: string
           comprador: string | null
           conceito: string | null
@@ -2438,12 +2440,14 @@ export type Database = {
           fax: string | null
           ibge_municipio_id: number | null
           id: string
+          id_empresa: number | null
           inscricao_estadual: string | null
           latitude: number | null
           limite_credito: number | null
           longitude: number | null
           nome: string
           nome_abreviado: string | null
+          nome_equipe: string | null
           observacoes: string | null
           portador: string | null
           ramo_atividade: number | null
@@ -2451,6 +2455,7 @@ export type Database = {
           rota: string | null
           sincronizado_em: string | null
           status_bloqueio: string | null
+          supervisor: string | null
           telefone: string | null
           tipo_cliente: number | null
           uf: string | null
@@ -2458,6 +2463,7 @@ export type Database = {
           updated_at: string | null
           valor_maior_compra: number | null
           valor_ultima_compra: number | null
+          vendedor: string | null
         }
         Insert: {
           bairro?: string | null
@@ -2470,6 +2476,8 @@ export type Database = {
           cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
+          cod_equipe?: number | null
+          cod_vend?: number | null
           codigo: string
           comprador?: string | null
           conceito?: string | null
@@ -2486,12 +2494,14 @@ export type Database = {
           fax?: string | null
           ibge_municipio_id?: number | null
           id?: string
+          id_empresa?: number | null
           inscricao_estadual?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
           nome: string
           nome_abreviado?: string | null
+          nome_equipe?: string | null
           observacoes?: string | null
           portador?: string | null
           ramo_atividade?: number | null
@@ -2499,6 +2509,7 @@ export type Database = {
           rota?: string | null
           sincronizado_em?: string | null
           status_bloqueio?: string | null
+          supervisor?: string | null
           telefone?: string | null
           tipo_cliente?: number | null
           uf?: string | null
@@ -2506,6 +2517,7 @@ export type Database = {
           updated_at?: string | null
           valor_maior_compra?: number | null
           valor_ultima_compra?: number | null
+          vendedor?: string | null
         }
         Update: {
           bairro?: string | null
@@ -2518,6 +2530,8 @@ export type Database = {
           cidade_normalizada?: string | null
           classificacao?: number | null
           cnpj?: string | null
+          cod_equipe?: number | null
+          cod_vend?: number | null
           codigo?: string
           comprador?: string | null
           conceito?: string | null
@@ -2534,12 +2548,14 @@ export type Database = {
           fax?: string | null
           ibge_municipio_id?: number | null
           id?: string
+          id_empresa?: number | null
           inscricao_estadual?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
           nome?: string
           nome_abreviado?: string | null
+          nome_equipe?: string | null
           observacoes?: string | null
           portador?: string | null
           ramo_atividade?: number | null
@@ -2547,6 +2563,7 @@ export type Database = {
           rota?: string | null
           sincronizado_em?: string | null
           status_bloqueio?: string | null
+          supervisor?: string | null
           telefone?: string | null
           tipo_cliente?: number | null
           uf?: string | null
@@ -2554,6 +2571,7 @@ export type Database = {
           updated_at?: string | null
           valor_maior_compra?: number | null
           valor_ultima_compra?: number | null
+          vendedor?: string | null
         }
         Relationships: []
       }
