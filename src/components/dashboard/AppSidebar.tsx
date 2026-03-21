@@ -607,6 +607,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("precos.matrix"), url: "/dashboard/precos/matriz", icon: Grid3X3, screenCode: "precos_matriz" },
     { title: t("precos.manage"), url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
     { title: t("precos.approval"), url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
+    { title: "Simulador", url: "/dashboard/precos/simulador", icon: Activity, screenCode: "precos_simulador" },
     { title: t("precos.client_portal"), url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
     { title: t("precos.access_control"), url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
   ];
