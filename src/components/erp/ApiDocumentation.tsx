@@ -631,6 +631,23 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="contas-receber" className="space-y-1">
+            <ApiSection
+              icon={<Webhook className="h-4 w-4 text-emerald-500" />}
+              title="CRUD Omie-Style (Padrão Omie)"
+              basePath="/contas-receber-api"
+              endpoints={contasReceberOmie}
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — formato Omie"
+            />
+            <ApiSection
+              icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
+              title="Sync (ERP → BiMaster)"
+              basePath="/contas-receber-api"
+              endpoints={contasReceberSync}
+              description="Sincronização legada de contas a receber"
+            />
+          </TabsContent>
+
           <TabsContent value="export" className="space-y-1">
             <ApiSection
               icon={<ArrowUpFromLine className="h-4 w-4 text-emerald-500" />}
