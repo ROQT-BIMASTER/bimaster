@@ -406,6 +406,7 @@ function AppContent() {
             <Route path="/dashboard/trade/admin/executivo" element={<ScreenRoute screenCode="trade_admin"><TradeExecutiveDashboard /></ScreenRoute>} />
             <Route path="/dashboard/trade/admin/banners" element={<ScreenRoute screenCode="trade_admin"><TradeBannersAdmin /></ScreenRoute>} />
             <Route path="/dashboard/trade/admin/incentivos" element={<ScreenRoute screenCode="trade_admin"><TradeIncentivosAdmin /></ScreenRoute>} />
+            <Route path="/dashboard/trade/admin/displays" element={<ScreenRoute screenCode="trade_admin"><TradeDisplayCatalogAdmin /></ScreenRoute>} />
             <Route path="/dashboard/trade/minha-equipe" element={<ModuleRoute moduleCode="trade"><TradeSupervisorDashboard /></ModuleRoute>} />
             <Route path="/dashboard/trade/store-chains" element={<ModuleRoute moduleCode="trade"><TradeStoreChains /></ModuleRoute>} />
             <Route path="/dashboard/trade/stores" element={<ModuleRoute moduleCode="trade"><TradeStores /></ModuleRoute>} />

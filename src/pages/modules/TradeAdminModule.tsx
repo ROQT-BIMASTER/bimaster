@@ -89,6 +89,7 @@ const TradeAdminModule = () => {
     "Conteúdo e Engajamento": [
       { title: "Gerenciar Banners", to: "/dashboard/trade/admin/banners", icon: LayoutDashboard, color: "text-pink-600" },
       { title: "Incentivos da Semana", to: "/dashboard/trade/admin/incentivos", icon: Trophy, color: "text-purple-600" },
+      { title: "Catálogo de Displays", to: "/dashboard/trade/admin/displays", icon: LayoutDashboard, color: "text-orange-600" },
     ],
     "Configurações": [
       { title: "Níveis de Aprovação", to: "/dashboard/trade/admin/approval-levels", icon: Settings, color: "text-slate-600" },
