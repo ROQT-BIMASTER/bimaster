@@ -104,11 +104,10 @@ export default function PainelExecutivo() {
   const empData = (receitaEmpresa.data || []).map(d => ({ ...d, nome_short: d.nome_empresa?.length > 20 ? d.nome_empresa.slice(0, 18) + "…" : d.nome_empresa }));
 
   const supCols = [
-    { key: "idx", label: "#", format: (_: any, i: number) => String(i + 1) },
     { key: "supervisor", label: "Supervisor" },
-    { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
+    { key: "receita_total", label: "Receita", align: "right", format: (v: any) => formatCurrency(Number(v) || 0) },
+    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
+    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
   ];
 
   const vendCols = [
