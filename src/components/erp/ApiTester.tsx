@@ -194,6 +194,11 @@ const PRESET_ENDPOINTS = [
   { label: "Caract. Cliente — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/caract/consultar" },
   { label: "Caract. Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir" },
   { label: "Caract. Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir-todas" },
+  // Tags de Clientes
+  { label: "Tags Cliente — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/incluir" },
+  { label: "Tags Cliente — Listar", method: "POST" as HttpMethod, path: "/clientes-api/tags/listar" },
+  { label: "Tags Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir" },
+  { label: "Tags Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir-todas" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
