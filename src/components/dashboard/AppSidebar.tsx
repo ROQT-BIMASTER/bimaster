@@ -510,6 +510,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("prospects.activities"), url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
     { title: t("prospects.tasks"), url: "/dashboard/tarefas", icon: CheckSquare, screenCode: "tarefas" },
     { title: t("prospects.demands"), url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
+    { title: "IA Analytics", url: "/dashboard/ai-analytics", icon: Brain, screenCode: "ai_analytics" },
+    { title: "QA Agent", url: "/dashboard/qa-agent", icon: Bot, screenCode: "ai_analytics" },
+    { title: "Agente Huggs", url: "/dashboard/agente-huggs", icon: Sparkles, screenCode: "ai_analytics" },
   ];
 
   // Financeiro subgroups definition
