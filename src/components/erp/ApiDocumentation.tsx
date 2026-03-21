@@ -1515,6 +1515,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="tipos-entrega" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Tipos de Entrega — CRUD Completo (Padrão Omie)"
+              basePath="/tipos-entrega-api"
+              endpoints={tiposEntregaCrud}
+              description="Incluir, alterar, consultar, excluir e listar tipos de entrega vinculados a transportadora"
+            />
+          </TabsContent>
+
           <TabsContent value="cnae" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
