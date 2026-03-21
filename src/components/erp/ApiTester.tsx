@@ -233,6 +233,9 @@ const PRESET_ENDPOINTS = [
   // Tipos de Atividade
   { label: "Tipos Atividade — Listar", method: "POST" as HttpMethod, path: "/tipos-atividade-api/listar" },
   { label: "Tipos Atividade — Status", method: "GET" as HttpMethod, path: "/tipos-atividade-api/status" },
+  // Tipos de Anexo
+  { label: "Tipos Anexo — Listar", method: "POST" as HttpMethod, path: "/tipos-anexo-api/listar" },
+  { label: "Tipos Anexo — Status", method: "GET" as HttpMethod, path: "/tipos-anexo-api/status" },
   // CNAE
   { label: "CNAE — Listar", method: "POST" as HttpMethod, path: "/cnae-api/listar" },
   { label: "CNAE — Status", method: "GET" as HttpMethod, path: "/cnae-api/status" },
