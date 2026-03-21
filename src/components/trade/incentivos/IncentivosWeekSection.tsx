@@ -56,7 +56,7 @@ export function IncentivosWeekSection() {
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
         >
-          <div className="relative w-full" style={{ aspectRatio: "3/1" }}>
+          <div className="relative w-full aspect-[2.5/1] sm:aspect-[3/1]">
             {banners.map((b, idx) => (
               <img
                 key={b.id}
