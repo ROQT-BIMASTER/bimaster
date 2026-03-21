@@ -137,6 +137,10 @@ const PRESET_ENDPOINTS = [
   { label: "Orçamento — Incluir", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir" },
   { label: "Orçamento — Incluir Lote", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir-lote" },
   { label: "Orçamento — Status", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/status" },
+  // Pesquisar Lançamentos (Unificado)
+  { label: "Pesquisar — Contas a Receber", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
+  { label: "Pesquisar — Contas a Pagar", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
+  { label: "Pesquisar — Status", method: "GET" as HttpMethod, path: "/pesquisar-lancamentos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
