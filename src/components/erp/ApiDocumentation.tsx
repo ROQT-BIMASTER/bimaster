@@ -1430,6 +1430,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="cnae" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="CNAE — ListarCNAE (Padrão Omie)"
+              basePath="/cnae-api"
+              endpoints={cnaeCrud}
+              description="Lista paginada de códigos CNAE com ordenação"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}

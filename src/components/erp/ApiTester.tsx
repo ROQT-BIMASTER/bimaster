@@ -340,6 +340,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/parcelas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
   // Tipos de Atividade
   "/tipos-atividade-api/listar": JSON.stringify({ filtrar_por_codigo: "", filtrar_por_descricao: "" }, null, 2),
+  // CNAE
+  "/cnae-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, ordenar_por: "codigo", ordem_decrescente: "N" }, null, 2),
 };
 
 export default function ApiTester() {
