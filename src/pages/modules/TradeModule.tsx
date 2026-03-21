@@ -136,6 +136,7 @@ const TradeModule = () => {
             linkTo="/dashboard/trade/admin/displays"
           />
           <DisplayHeroBanner />
+          <MateriaisCarousel />
         </div>
 
         {/* KPI Cards - Modernized with rounded corners */}
