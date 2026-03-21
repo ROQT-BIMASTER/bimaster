@@ -597,6 +597,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
   const marketingSubMenus = [
     { title: t("marketing.dashboards"), url: "/dashboard/marketing/social", icon: BarChart3, screenCode: "MARKETING_SOCIAL" },
+    { title: "WhatsApp", url: "/dashboard/marketing/whatsapp", icon: MessageSquare, screenCode: "MARKETING_SOCIAL" },
+    { title: "ElevenLabs Studio", url: "/dashboard/marketing/elevenlabs", icon: Mic, screenCode: "MARKETING_SOCIAL" },
+    { title: "Mission Control", url: "/dashboard/marketing/mission-control", icon: Target, screenCode: "MARKETING_SOCIAL" },
   ];
 
   const precosSubMenus = [
