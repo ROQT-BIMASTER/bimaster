@@ -108,10 +108,21 @@ const TradeDisplayCatalogAdmin = () => {
               </p>
             </div>
           </div>
-          <Button onClick={handleNew} className="bg-[hsl(330,81%,60%)] hover:bg-[hsl(330,81%,50%)] text-white rounded-xl">
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Display
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleBulkOptimize} 
+              disabled={bulkOptimizing}
+              variant="outline"
+              className="rounded-xl"
+            >
+              {bulkOptimizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              {bulkOptimizing ? "Otimizando..." : "Otimizar Todos com IA"}
+            </Button>
+            <Button onClick={handleNew} className="bg-[hsl(330,81%,60%)] hover:bg-[hsl(330,81%,50%)] text-white rounded-xl">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Display
+            </Button>
+          </div>
         </div>
 
         {/* Grid */}

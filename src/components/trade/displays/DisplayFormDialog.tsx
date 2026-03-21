@@ -214,11 +214,20 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-8 cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {uploading ? "Enviando..." : "Clique ou arraste para enviar"}
-                  </span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+                  {uploading || optimizing ? (
+                    <>
+                      <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                      <span className="text-sm text-muted-foreground">
+                        {optimizing ? "🤖 IA otimizando..." : "Enviando..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Clique para enviar (IA otimiza automaticamente)</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading || optimizing} />
                 </label>
               )}
             </div>
