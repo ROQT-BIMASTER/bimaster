@@ -1083,6 +1083,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <SidebarMenu className="space-y-0.5 px-2">
               <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
               <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
+              <MenuItemLink to="/dashboard/clientes" icon={UserCheck} title="Clientes" />
+              <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" />
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
