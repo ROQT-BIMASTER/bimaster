@@ -188,6 +188,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   // Orçamento de Caixa
   "/orcamentos-caixa-api/incluir": JSON.stringify({ nAno: 2026, nMes: 3, cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, null, 2),
   "/orcamentos-caixa-api/incluir-lote": JSON.stringify({ nAno: 2026, nMes: 3, orcamentos: [{ cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, { cCodCateg: "1.01.02", cDesCateg: "Vendas de Produtos", nValorPrevisto: 25000.00 }] }, null, 2),
+  // Pesquisar Lançamentos
+  "/pesquisar-lancamentos-api/pesquisar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cNatureza: "R", cStatus: "pendente", dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026", cOrdenarPor: "data_vencimento", cOrdemDecrescente: "S" }, null, 2),
 };
 
 export default function ApiTester() {
