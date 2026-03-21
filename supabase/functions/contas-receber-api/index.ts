@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
 
   // ============ POST /delete-old - Limpar registros antigos ============
   if (matchRoute('/delete-old') && req.method === 'POST') {
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
