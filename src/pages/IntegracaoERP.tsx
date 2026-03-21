@@ -322,6 +322,7 @@ export default function IntegracaoERP() {
           </div>
         </CardContent>
       </Card>
+      <ApiDocumentation />
     </div>
   );
 }
