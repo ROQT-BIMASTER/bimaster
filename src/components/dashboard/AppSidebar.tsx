@@ -1304,6 +1304,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  {hasModulePermission("integracao_erp") && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink 
@@ -1318,6 +1319,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  )}
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink 
