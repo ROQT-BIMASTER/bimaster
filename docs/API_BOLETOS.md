@@ -1,6 +1,6 @@
 # API Boletos (Cobrança Bancária)
 
-API para gestão de boletos bancários vinculados a títulos do Contas a Receber, seguindo o padrão Omie.
+API para gestão de boletos bancários vinculados a títulos do Contas a Receber, seguindo o padrão Huggs.
 
 > ⚠️ **ATENÇÃO**: Boletos gerados e já enviados ao banco estão sujeitos a tarifação (emissão, cancelamento ou alteração de vencimento).
 
@@ -55,7 +55,7 @@ Obtém link e dados de um boleto.
 **Parâmetros query:**
 | Param | Tipo | Descrição |
 |---|---|---|
-| `nCodTitulo` | integer | Código do título no Omie |
+| `nCodTitulo` | integer | Código do título no Huggs |
 | `cCodIntTitulo` | string | Código de integração |
 | `id` | uuid | ID interno do boleto |
 

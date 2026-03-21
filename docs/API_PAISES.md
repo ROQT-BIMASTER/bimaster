@@ -1,4 +1,4 @@
-# API Países — ListarPaises (Padrão Omie)
+# API Países — ListarPaises (API Huggs)
 
 ## Visão Geral
 
@@ -59,7 +59,7 @@ Lista países cadastrados com filtros opcionais.
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Tipo |
+| Campo Huggs | Coluna DB | Tipo |
 |---|---|---|
 | `cCodigo` | `codigo` | varchar(4) |
 | `cDescricao` | `descricao` | varchar(30) |

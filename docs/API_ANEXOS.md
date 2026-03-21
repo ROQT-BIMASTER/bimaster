@@ -1,4 +1,4 @@
-# API Anexos de Documentos — Padronização Omie
+# API Anexos de Documentos — Padronização Huggs
 
 > **Base URL:** `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/anexos-api`
 
@@ -191,7 +191,7 @@ Exclui um anexo (metadados + arquivo no storage).
 | `ordem_servico` | Ordens de Serviço |
 | `nfe` | Notas Fiscais Eletrônicas |
 
-> Qualquer string é aceita — a API é genérica. Os valores acima são os mais comuns no padrão Omie.
+> Qualquer string é aceita — a API é genérica. Os valores acima são os mais comuns no padrão Huggs.
 
 ## Formato do arquivo (`cArquivo`)
 

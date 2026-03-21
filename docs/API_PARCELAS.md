@@ -1,4 +1,4 @@
-# API Parcelas (Condições de Pagamento) — Padrão Omie
+# API Parcelas (Condições de Pagamento) — API Huggs
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/parcelas-api`
 
@@ -69,9 +69,9 @@ Lista condições de parcelamento cadastradas com paginação.
 
 Retorna status do serviço.
 
-## Mapeamento de Campos (Omie → DB)
+## Mapeamento de Campos (Huggs → DB)
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `nCodigo` | `codigo` |
 | `cDescricao` | `descricao` |

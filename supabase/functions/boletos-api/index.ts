@@ -1,4 +1,4 @@
-// boletos-api/index.ts — API de Boletos (Cobrança Bancária) padrão Omie
+// boletos-api/index.ts — API de Boletos (Cobrança Bancária) padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateApiKey, validateJWT, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -44,8 +44,8 @@ async function handleGerar(req: Request, auth: any): Promise<Response> {
   const supabase = getSupabase();
 
   // Find the contas_receber record
-  let query = supabase.from("contas_receber").select("id, empresa_id, valor_original, data_vencimento, codigo_lancamento_omie, codigo_lancamento_integracao");
-  if (nCodTitulo) query = query.eq("codigo_lancamento_omie", nCodTitulo);
+  let query = supabase.from("contas_receber").select("id, empresa_id, valor_original, data_vencimento, codigo_lancamento_huggs, codigo_lancamento_integracao");
+  if (nCodTitulo) query = query.eq("codigo_lancamento_huggs", nCodTitulo);
   else query = query.eq("codigo_lancamento_integracao", cCodIntTitulo);
 
   const { data: titulo, error: tituloError } = await query.maybeSingle();
@@ -57,7 +57,7 @@ async function handleGerar(req: Request, auth: any): Promise<Response> {
   const boletoData = {
     empresa_id: titulo.empresa_id || auth.empresaId || "0",
     conta_receber_id: titulo.id,
-    n_cod_titulo: titulo.codigo_lancamento_omie || nCodTitulo,
+    n_cod_titulo: titulo.codigo_lancamento_huggs || nCodTitulo,
     c_cod_int_titulo: titulo.codigo_lancamento_integracao || cCodIntTitulo,
     data_emissao: new Date().toISOString().split("T")[0],
     numero_boleto: `BOL-${Date.now()}`,

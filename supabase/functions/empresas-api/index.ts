@@ -1,4 +1,4 @@
-// supabase/functions/empresas-api/index.ts — ConsultarEmpresa + ListarEmpresas (Omie)
+// empresas-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";

@@ -1,4 +1,4 @@
-# API Tipos de Atividade — Padronização Omie
+# API Tipos de Atividade — API Huggs
 
 ## Base URL
 
@@ -54,9 +54,9 @@ Lista os tipos de atividade da empresa.
 
 ---
 
-## Mapeamento Omie
+## Mapeamento Huggs
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `cCodigo` | `codigo` |
 | `cDescricao` | `descricao` |

@@ -1719,7 +1719,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // GET /consultar - Consultar título por ID ou código integração (Omie-style)
+    // GET /consultar - Consultar título por ID ou código integração (Huggs-style)
     // =====================================================
     if (path.endsWith('/consultar') && req.method === 'GET') {
       if (!await validateAuth()) {
@@ -1730,10 +1730,10 @@ Deno.serve(async (req) => {
 
       const id = url.searchParams.get('id');
       const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
-      const codOmie = url.searchParams.get('codigo_lancamento_omie');
+      const codHuggs = url.searchParams.get('codigo_lancamento_huggs');
 
-      if (!id && !codIntegracao && !codOmie) {
-        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie' }), {
+      if (!id && !codIntegracao && !codHuggs) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -1741,7 +1741,7 @@ Deno.serve(async (req) => {
       let query = supabase.from('contas_pagar').select('*');
       if (id) query = query.eq('id', id);
       else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
-      else if (codOmie) query = query.eq('codigo_lancamento_omie', codOmie);
+      else if (codHuggs) query = query.eq('codigo_lancamento_huggs', codHuggs);
 
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -1760,7 +1760,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /incluir - Incluir título (Omie-style)
+    // POST /incluir - Incluir título (Huggs-style)
     // =====================================================
     if (path.endsWith('/incluir') && req.method === 'POST') {
       if (!await validateAuth()) {
@@ -1797,7 +1797,7 @@ Deno.serve(async (req) => {
         ...rest
       };
 
-      const { data, error } = await supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_omie, codigo_lancamento_integracao').single();
+      const { data, error } = await supabase.from('contas_pagar').insert(insertData).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
       if (error) {
         if (error.code === '23505') {
           return new Response(JSON.stringify({
@@ -1810,7 +1810,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({
-        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
         codigo_status: '0',
         descricao_status: 'Cadastro incluído com sucesso!',
@@ -1819,7 +1819,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // PUT /alterar - Alterar título (Omie-style)
+    // PUT /alterar - Alterar título (Huggs-style)
     // =====================================================
     if (path.endsWith('/alterar') && req.method === 'PUT') {
       if (!await validateAuth()) {
@@ -1829,12 +1829,12 @@ Deno.serve(async (req) => {
       }
 
       const body = await req.json();
-      const { codigo_lancamento_integracao, codigo_lancamento_omie, ...updates } = body;
+      const { codigo_lancamento_integracao, codigo_lancamento_huggs, ...updates } = body;
 
-      if (!codigo_lancamento_integracao && !codigo_lancamento_omie) {
+      if (!codigo_lancamento_integracao && !codigo_lancamento_huggs) {
         return new Response(JSON.stringify({
           codigo_status: '1',
-          descricao_status: 'Informe codigo_lancamento_integracao ou codigo_lancamento_omie'
+          descricao_status: 'Informe codigo_lancamento_integracao ou codigo_lancamento_huggs'
         }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
@@ -1851,9 +1851,9 @@ Deno.serve(async (req) => {
 
       let query = supabase.from('contas_pagar').update(updates);
       if (codigo_lancamento_integracao) query = query.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
-      else query = query.eq('codigo_lancamento_omie', codigo_lancamento_omie);
+      else query = query.eq('codigo_lancamento_huggs', codigo_lancamento_huggs);
 
-      const { data, error } = await query.select('id, codigo_lancamento_omie, codigo_lancamento_integracao').maybeSingle();
+      const { data, error } = await query.select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').maybeSingle();
       if (error) throw error;
       if (!data) {
         return new Response(JSON.stringify({
@@ -1862,7 +1862,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({
-        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
         codigo_status: '0',
         descricao_status: 'Cadastro alterado com sucesso!',
@@ -1871,7 +1871,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // DELETE /excluir - Excluir (inativar) título (Omie-style)
+    // DELETE /excluir - Excluir (inativar) título (Huggs-style)
     // =====================================================
     if (path.endsWith('/excluir') && req.method === 'DELETE') {
       if (!await validateAuth()) {
@@ -1881,11 +1881,11 @@ Deno.serve(async (req) => {
       }
 
       const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
-      const codOmie = url.searchParams.get('codigo_lancamento_omie');
+      const codHuggs = url.searchParams.get('codigo_lancamento_huggs');
       const id = url.searchParams.get('id');
 
-      if (!codIntegracao && !codOmie && !id) {
-        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie' }), {
+      if (!codIntegracao && !codHuggs && !id) {
+        return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -1893,9 +1893,9 @@ Deno.serve(async (req) => {
       let query = supabase.from('contas_pagar').update({ status: 'cancelado', updated_at: new Date().toISOString() });
       if (id) query = query.eq('id', id);
       else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
-      else query = query.eq('codigo_lancamento_omie', codOmie);
+      else query = query.eq('codigo_lancamento_huggs', codHuggs);
 
-      const { data, error } = await query.select('id, codigo_lancamento_omie, codigo_lancamento_integracao').maybeSingle();
+      const { data, error } = await query.select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').maybeSingle();
       if (error) throw error;
       if (!data) {
         return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Registro não encontrado' }), {
@@ -1904,7 +1904,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({
-        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
         codigo_status: '0',
         descricao_status: 'Registro excluído com sucesso!',
@@ -1913,7 +1913,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /upsert - Upsert unitário (Omie-style)
+    // POST /upsert - Upsert unitário (Huggs-style)
     // =====================================================
     if (path.endsWith('/upsert') && !path.includes('upsert-lote') && req.method === 'POST') {
       if (!await validateAuth()) {
@@ -1931,7 +1931,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Map Omie fields
+      // Map Huggs fields
       const upsertData: Record<string, unknown> = { ...body };
       if (upsertData.valor_documento !== undefined) {
         upsertData.valor_original = upsertData.valor_documento;
@@ -1946,13 +1946,13 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase.from('contas_pagar')
         .upsert(upsertData, { onConflict: 'empresa_id,codigo_lancamento_integracao' })
-        .select('id, codigo_lancamento_omie, codigo_lancamento_integracao')
+        .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao')
         .single();
 
       if (error) throw error;
 
       return new Response(JSON.stringify({
-        codigo_lancamento_omie: data.codigo_lancamento_omie,
+        codigo_lancamento_huggs: data.codigo_lancamento_huggs,
         codigo_lancamento_integracao: data.codigo_lancamento_integracao,
         codigo_status: '0',
         descricao_status: 'Upsert realizado com sucesso!',
@@ -1961,7 +1961,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /upsert-lote - Upsert em lote (Omie-style)
+    // POST /upsert-lote - Upsert em lote (Huggs-style)
     // =====================================================
     if (path.endsWith('/upsert-lote') && req.method === 'POST') {
       if (!await validateAuth()) {
@@ -2021,7 +2021,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /lancar-pagamento - Baixa (Omie-style: LancarPagamento)
+    // POST /lancar-pagamento - Baixa (Huggs-style: LancarPagamento)
     // =====================================================
     if (path.endsWith('/lancar-pagamento') && req.method === 'POST') {
       if (!await validateAuth()) {
@@ -2045,9 +2045,9 @@ Deno.serve(async (req) => {
       }
 
       // Find titulo
-      let tituloQuery = supabase.from('contas_pagar').select('id, status, valor_original, valor_pago, valor_aberto, codigo_lancamento_omie, codigo_lancamento_integracao');
+      let tituloQuery = supabase.from('contas_pagar').select('id, status, valor_original, valor_pago, valor_aberto, codigo_lancamento_huggs, codigo_lancamento_integracao');
       if (codigo_lancamento_integracao) tituloQuery = tituloQuery.eq('codigo_lancamento_integracao', codigo_lancamento_integracao);
-      else tituloQuery = tituloQuery.eq('codigo_lancamento_omie', codigo_lancamento);
+      else tituloQuery = tituloQuery.eq('codigo_lancamento_huggs', codigo_lancamento);
 
       const { data: titulo, error: tErr } = await tituloQuery.maybeSingle();
       if (tErr) throw tErr;
@@ -2071,7 +2071,7 @@ Deno.serve(async (req) => {
         valor: valorLiquido,
         data_pagamento: dataPgto,
         metodo_pagamento: 'API',
-        observacao: obs || 'Baixa via API (Omie-style)',
+        observacao: obs || 'Baixa via API (Huggs-style)',
         baixa_origem: 'api'
       }).select('id').single();
       if (pErr) throw pErr;
@@ -2097,7 +2097,7 @@ Deno.serve(async (req) => {
       }).eq('id', titulo.id);
 
       return new Response(JSON.stringify({
-        codigo_lancamento: titulo.codigo_lancamento_omie,
+        codigo_lancamento: titulo.codigo_lancamento_huggs,
         codigo_lancamento_integracao: titulo.codigo_lancamento_integracao,
         codigo_baixa: pagamento.id,
         codigo_baixa_integracao: codigo_baixa_integracao || null,
@@ -2110,7 +2110,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // POST /cancelar-pagamento - Cancelar baixa (Omie-style)
+    // POST /cancelar-pagamento - Cancelar baixa (Huggs-style)
     // =====================================================
     if (path.endsWith('/cancelar-pagamento') && req.method === 'POST') {
       if (!await validateAuth()) {
@@ -2170,7 +2170,7 @@ Deno.serve(async (req) => {
     }
 
     // =====================================================
-    // GET /listar - Listagem paginada (Omie-style: ListarContasPagar)
+    // GET /listar - Listagem paginada (Huggs-style: ListarContasPagar)
     // =====================================================
     if (path.endsWith('/listar') && req.method === 'GET') {
       if (!await validateAuth()) {

@@ -1,11 +1,11 @@
-# API Projetos — Padrão Omie
+# API Projetos — API Huggs
 
 Edge Function: `projetos-api`  
 Autenticação: `x-api-key`
 
 ## Endpoints
 
-| Rota | Descrição | Equivalente Omie |
+| Rota | Descrição | Equivalente Huggs |
 |---|---|---|
 | POST `/incluir` | Inclui projeto | IncluirProjeto |
 | POST `/alterar` | Altera projeto | AlterarProjeto |
@@ -17,7 +17,7 @@ Autenticação: `x-api-key`
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Observação |
+| Campo Huggs | Coluna DB | Observação |
 |---|---|---|
 | `codigo` | `id` | UUID |
 | `codInt` | `codigo_integracao` | varchar(20), unique |

@@ -1,11 +1,11 @@
 # API DRE Cadastro — ListarCadastroDRE
 
 Edge Function: `dre-cadastro-api`  
-Padrão: Omie `dreCadastroListResponse`
+Padrão: Huggs `dreCadastroListResponse`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | POST | `/listar` | ListarCadastroDRE | Lista contas do DRE |
 | GET | `/status` | — | Health check |
@@ -43,7 +43,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie (`dreLista`) | Coluna DB | Observação |
+| Campo Huggs (`dreLista`) | Coluna DB | Observação |
 |---|---|---|
 | `codigoDRE` | `codigo_dre_gerencial` ou `code` | Código da conta DRE |
 | `descricaoDRE` | `name` | Descrição da conta |

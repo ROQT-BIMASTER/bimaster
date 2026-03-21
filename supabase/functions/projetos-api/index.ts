@@ -1,4 +1,4 @@
-// supabase/functions/projetos-api/index.ts — CRUD Projetos (Omie)
+// projetos-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
@@ -16,7 +16,7 @@ function formatTime(d: string | null): string {
   return String(d).substring(11, 19);
 }
 
-function mapRowToOmie(row: Record<string, unknown>): Record<string, unknown> {
+function mapRowToHuggs(row: Record<string, unknown>): Record<string, unknown> {
   return {
     codigo: row.id || "",
     codInt: row.codigo_integracao || "",
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       if (!existing) {
         return errorResponse(404, "nao_encontrado", "Projeto não encontrado", req, startMs);
       }
-      return jsonResponse(mapRowToOmie(existing), 200, req, { startMs });
+      return jsonResponse(mapRowToHuggs(existing), 200, req, { startMs });
     }
 
     // ── POST /excluir ────────────────────────────────────────
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
         total_de_paginas: Math.ceil(total / registros),
         registros: data?.length || 0,
         total_de_registros: total,
-        cadastro: (data || []).map(mapRowToOmie),
+        cadastro: (data || []).map(mapRowToHuggs),
       }, 200, req, { startMs });
     }
 

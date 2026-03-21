@@ -21,8 +21,8 @@ function errorResp(status: number, code: string, message: string, req: Request, 
   return json({ error: code, message }, status, req, startMs);
 }
 
-// Map DB row to Omie-style response
-function rowToOmie(row: any, parentCode?: string): any {
+// Map DB row to Huggs-style response
+function rowToHuggs(row: any, parentCode?: string): any {
   return {
     codigo: row.code,
     descricao: row.name,
@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
       if (!data) return errorResp(404, "NOT_FOUND", `Categoria '${codigo}' não encontrada`, req, startMs);
 
       const parentCode = (data as any).parent?.code || "";
-      return json({ categoria_cadastro: rowToOmie(data, parentCode) }, 200, req, startMs);
+      return json({ categoria_cadastro: rowToHuggs(data, parentCode) }, 200, req, startMs);
     }
 
     // ==================== POST /listar ====================
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
       const total = count || 0;
       const categorias = (data || []).map((row: any) => {
         const parentCode = row.parent?.code || "";
-        return rowToOmie(row, parentCode);
+        return rowToHuggs(row, parentCode);
       });
 
       return json({

@@ -1,6 +1,6 @@
 # API Lançamentos de Conta Corrente
 
-API REST para gestão de lançamentos de conta corrente, seguindo o padrão Omie.
+API REST para gestão de lançamentos de conta corrente, seguindo o padrão Huggs.
 
 **Base URL:** `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/lancamentos-cc-api`
 
@@ -23,7 +23,7 @@ Lista lançamentos de conta corrente com paginação e filtros.
 | `cOrdenarPor` | string | Não | Campo de ordenação: `created_at`, `data_lancamento`, `valor`, `n_cod_lanc` |
 | `cOrdemDecrescente` | string | Não | "S" para ordem decrescente |
 | `cOrigem` | string | Não | Filtro por origem: MANU, CONP, CONR, TRAN, etc. |
-| `nCodCC` | integer | Não | Filtro por código da conta corrente (Omie) |
+| `nCodCC` | integer | Não | Filtro por código da conta corrente (Huggs) |
 | `dDtIncDe` | date | Não | Data de inclusão inicial |
 | `dDtIncAte` | date | Não | Data de inclusão final |
 | `dDtAltDe` | date | Não | Data de alteração inicial |
@@ -71,7 +71,7 @@ Consulta um lançamento específico.
 |---|---|---|---|
 | `id` | uuid | Condicional | ID interno |
 | `cCodIntLanc` | string | Condicional | Código de integração |
-| `nCodLanc` | integer | Condicional | Código numérico Omie |
+| `nCodLanc` | integer | Condicional | Código numérico Huggs |
 
 Pelo menos um dos três parâmetros é obrigatório.
 
@@ -245,7 +245,7 @@ Retorna status da API.
 ### cabecalho
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `nCodCC` | integer | Código da conta corrente (Omie) |
+| `nCodCC` | integer | Código da conta corrente (Huggs) |
 | `dDtLanc` | string(10) | Data do lançamento (dd/mm/yyyy ou yyyy-mm-dd) |
 | `nValorLanc` | decimal | Valor do lançamento |
 

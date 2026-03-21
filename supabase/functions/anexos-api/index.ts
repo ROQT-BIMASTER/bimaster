@@ -1,4 +1,4 @@
-// anexos-api/index.ts — API de Anexos de Documentos padrão Omie
+// anexos-api/index.ts — API de Anexos de Documentos padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateApiKey, validateJWT, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";

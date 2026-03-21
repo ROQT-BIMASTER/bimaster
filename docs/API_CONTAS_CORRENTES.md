@@ -14,7 +14,7 @@ Todas as requisições exigem **API Key** ou **JWT**:
 
 ### GET / — Listar Contas Correntes (Paginado)
 
-Equivalente Omie: `ListarContasCorrentes`
+Equivalente Huggs: `ListarContasCorrentes`
 
 ```
 GET /contas-correntes-api/?pagina=1&registros_por_pagina=100
@@ -60,7 +60,7 @@ GET /contas-correntes-api/?pagina=1&registros_por_pagina=100
 
 ### GET /resumo — Listagem Resumida
 
-Equivalente Omie: `ListarResumoContasCorrentes`
+Equivalente Huggs: `ListarResumoContasCorrentes`
 
 ```
 GET /contas-correntes-api/resumo?pagina=1&registros_por_pagina=100
@@ -70,7 +70,7 @@ GET /contas-correntes-api/resumo?pagina=1&registros_por_pagina=100
 
 ### GET /consultar — Consultar Conta Corrente
 
-Equivalente Omie: `ConsultarContaCorrente`
+Equivalente Huggs: `ConsultarContaCorrente`
 
 ```
 GET /contas-correntes-api/consultar?cCodCCInt=MyCC0001
@@ -80,7 +80,7 @@ GET /contas-correntes-api/consultar?cCodCCInt=MyCC0001
 |-----------|------|-----------|
 | `id` | UUID | ID interno |
 | `cCodCCInt` | string | Código de integração |
-| `nCodCC` | integer | Código numérico Omie |
+| `nCodCC` | integer | Código numérico Huggs |
 
 *Informe pelo menos um dos três.*
 
@@ -88,7 +88,7 @@ GET /contas-correntes-api/consultar?cCodCCInt=MyCC0001
 
 ### POST /incluir — Incluir Conta Corrente
 
-Equivalente Omie: `IncluirContaCorrente`
+Equivalente Huggs: `IncluirContaCorrente`
 
 ```json
 POST /contas-correntes-api/incluir
@@ -118,7 +118,7 @@ POST /contas-correntes-api/incluir
 
 ### PUT /alterar — Alterar Conta Corrente
 
-Equivalente Omie: `AlterarContaCorrente`
+Equivalente Huggs: `AlterarContaCorrente`
 
 ```json
 PUT /contas-correntes-api/alterar
@@ -133,7 +133,7 @@ PUT /contas-correntes-api/alterar
 
 ### DELETE /excluir — Excluir (Inativar) Conta Corrente
 
-Equivalente Omie: `ExcluirContaCorrente`
+Equivalente Huggs: `ExcluirContaCorrente`
 
 ```
 DELETE /contas-correntes-api/excluir?cCodCCInt=MyCC0001
@@ -145,7 +145,7 @@ DELETE /contas-correntes-api/excluir?cCodCCInt=MyCC0001
 
 ### POST /upsert — Upsert Unitário
 
-Equivalente Omie: `UpsertContaCorrente`
+Equivalente Huggs: `UpsertContaCorrente`
 
 ```json
 POST /contas-correntes-api/upsert
@@ -164,7 +164,7 @@ Cria se não existir, atualiza se já existir (por `cCodCCInt`).
 
 ### POST /upsert-lote — Upsert em Lote
 
-Equivalente Omie: `UpsertContaCorrentePorLote`
+Equivalente Huggs: `UpsertContaCorrentePorLote`
 
 ```json
 POST /contas-correntes-api/upsert-lote
@@ -248,7 +248,7 @@ GET /contas-correntes-api/status
 
 ## Mapa Completo de Rotas
 
-| Método | Rota | Auth | Descrição | Equivalente Omie |
+| Método | Rota | Auth | Descrição | Equivalente Huggs |
 |--------|------|------|-----------|------------------|
 | GET | `/` | Key/JWT | Listar contas (paginado) | ListarContasCorrentes |
 | GET | `/resumo` | Key/JWT | Listagem resumida | ListarResumoContasCorrentes |

@@ -4118,8 +4118,8 @@ export type Database = {
           codigo_cliente_fornecedor: number | null
           codigo_cliente_fornecedor_integracao: string | null
           codigo_integracao: string | null
+          codigo_lancamento_huggs: number | null
           codigo_lancamento_integracao: string | null
-          codigo_lancamento_omie: number | null
           codigo_projeto: number | null
           codigo_tipo_documento: string | null
           codigo_vendedor: number | null
@@ -4210,8 +4210,8 @@ export type Database = {
           codigo_cliente_fornecedor?: number | null
           codigo_cliente_fornecedor_integracao?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_huggs?: number | null
           codigo_lancamento_integracao?: string | null
-          codigo_lancamento_omie?: number | null
           codigo_projeto?: number | null
           codigo_tipo_documento?: string | null
           codigo_vendedor?: number | null
@@ -4302,8 +4302,8 @@ export type Database = {
           codigo_cliente_fornecedor?: number | null
           codigo_cliente_fornecedor_integracao?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_huggs?: number | null
           codigo_lancamento_integracao?: string | null
-          codigo_lancamento_omie?: number | null
           codigo_projeto?: number | null
           codigo_tipo_documento?: string | null
           codigo_vendedor?: number | null
@@ -4587,8 +4587,8 @@ export type Database = {
           codigo_cliente_fornecedor_integracao: string | null
           codigo_cmc7_cheque: string | null
           codigo_integracao: string | null
+          codigo_lancamento_huggs: number | null
           codigo_lancamento_integracao: string | null
-          codigo_lancamento_omie: number | null
           codigo_projeto: number | null
           codigo_tipo_documento: string | null
           codigo_vendedor: number | null
@@ -4696,8 +4696,8 @@ export type Database = {
           codigo_cliente_fornecedor_integracao?: string | null
           codigo_cmc7_cheque?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_huggs?: number | null
           codigo_lancamento_integracao?: string | null
-          codigo_lancamento_omie?: number | null
           codigo_projeto?: number | null
           codigo_tipo_documento?: string | null
           codigo_vendedor?: number | null
@@ -4805,8 +4805,8 @@ export type Database = {
           codigo_cliente_fornecedor_integracao?: string | null
           codigo_cmc7_cheque?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_huggs?: number | null
           codigo_lancamento_integracao?: string | null
-          codigo_lancamento_omie?: number | null
           codigo_projeto?: number | null
           codigo_tipo_documento?: string | null
           codigo_vendedor?: number | null
@@ -5606,7 +5606,7 @@ export type Database = {
       departamentos: {
         Row: {
           ativo: boolean | null
-          codigo_omie: string | null
+          codigo_huggs: string | null
           created_at: string | null
           descricao: string | null
           estrutura: string | null
@@ -5618,7 +5618,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
-          codigo_omie?: string | null
+          codigo_huggs?: string | null
           created_at?: string | null
           descricao?: string | null
           estrutura?: string | null
@@ -5630,7 +5630,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
-          codigo_omie?: string | null
+          codigo_huggs?: string | null
           created_at?: string | null
           descricao?: string | null
           estrutura?: string | null

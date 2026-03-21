@@ -240,7 +240,7 @@ Detalhes completos de um título por ID.
 
 ## Mapa de Rotas
 
-| Método | Rota | Auth | Equivalente Omie |
+| Método | Rota | Auth | Equivalente Huggs |
 |--------|------|------|------------------|
 | GET | `/status` | JWT/Key | — |
 | POST | `/resumo` | JWT/Key | ObterResumoFinancas |

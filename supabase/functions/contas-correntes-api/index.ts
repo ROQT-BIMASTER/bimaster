@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
     }
   }
 
-  // --- Field mappings (Omie → DB) ---
-  const OMIE_TO_DB: Record<string, string> = {
+  // --- Field mappings (Huggs → DB) ---
+  const API_TO_DB: Record<string, string> = {
     cCodCCInt: "codigo_integracao",
     nCodCC: "n_cod_cc",
     tipo_conta_corrente: "tipo_conta_corrente",
@@ -114,12 +114,12 @@ Deno.serve(async (req) => {
     codigo_pais: "codigo_pais",
   };
 
-  function mapOmieToDb(input: Record<string, unknown>): Record<string, unknown> {
+  function mapHuggsToDb(input: Record<string, unknown>): Record<string, unknown> {
     const row: Record<string, unknown> = {};
-    for (const [omieKey, dbCol] of Object.entries(OMIE_TO_DB)) {
-      if (input[omieKey] !== undefined) {
-        const val = input[omieKey];
-        // Convert Omie S/N booleans
+    for (const [apiKey, dbCol] of Object.entries(API_TO_DB)) {
+      if (input[apiKey] !== undefined) {
+        const val = input[apiKey];
+        // Convert Huggs S/N booleans
         if (typeof val === "string" && (val === "S" || val === "N")) {
           row[dbCol] = val === "S";
         } else {
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     return row;
   }
 
-  function mapDbToOmie(row: Record<string, unknown>): Record<string, unknown> {
+  function mapDbToHuggs(row: Record<string, unknown>): Record<string, unknown> {
     return {
       nCodCC: row.n_cod_cc ?? null,
       cCodCCInt: row.codigo_integracao ?? null,
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
       }
 
       const total = count || 0;
-      const mapped = (data || []).map((r: any) => mapDbToOmie(r));
+      const mapped = (data || []).map((r: any) => mapDbToHuggs(r));
 
       await logSync("GET /", null, 200);
       return json({
@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("GET /consultar", { id, codInt, nCodCC }, 200);
-      return json({ fin_conta_corrente_cadastro: mapDbToOmie(data) }, 200, req, startMs);
+      return json({ fin_conta_corrente_cadastro: mapDbToHuggs(data) }, 200, req, startMs);
     }
 
     // ==================== POST /incluir (IncluirContaCorrente) ====================
@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "CAMPO_OBRIGATORIO", "cCodCCInt ou descricao são obrigatórios", req, startMs);
       }
 
-      const row = mapOmieToDb(body);
+      const row = mapHuggsToDb(body);
       row.importado_api = true;
       row.ativo = true;
       if (body.cCodCCInt) row.codigo_integracao = body.cCodCCInt;
@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "CAMPO_OBRIGATORIO", "Informe id, cCodCCInt ou nCodCC", req, startMs);
       }
 
-      const row = mapOmieToDb(body);
+      const row = mapHuggsToDb(body);
       delete row.nome; // avoid overwriting nome from descricao mapping
 
       let query = supabase.from("contas_bancarias").update(row);
@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "CAMPO_OBRIGATORIO", "cCodCCInt é obrigatório para upsert", req, startMs);
       }
 
-      const row = mapOmieToDb(body);
+      const row = mapHuggsToDb(body);
       row.importado_api = true;
       row.ativo = true;
       row.codigo_integracao = body.cCodCCInt;
@@ -468,7 +468,7 @@ Deno.serve(async (req) => {
         const codInt = item.cCodCCInt as string;
         if (!codInt) { errorCount++; continue; }
 
-        const row = mapOmieToDb(item);
+        const row = mapHuggsToDb(item);
         row.importado_api = true;
         row.ativo = true;
         row.codigo_integracao = codInt;
@@ -513,7 +513,7 @@ Deno.serve(async (req) => {
       let successCount = 0;
       for (const item of items) {
         const codInt = item.cCodCCInt as string || item.codigo_integracao as string;
-        const row = mapOmieToDb(item);
+        const row = mapHuggsToDb(item);
         row.importado_api = true;
         row.ativo = true;
         if (codInt) row.codigo_integracao = codInt;

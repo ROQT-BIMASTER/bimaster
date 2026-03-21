@@ -1,4 +1,4 @@
-// supabase/functions/tipos-atividade-api/index.ts — ListarTipoAtiv (Omie)
+// tipos-atividade-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";

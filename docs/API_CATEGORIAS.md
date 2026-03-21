@@ -1,4 +1,4 @@
-# API Categorias — Padrão Omie
+# API Categorias — API Huggs
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/categorias-api`
 
@@ -124,9 +124,9 @@ Lista categorias com paginação e filtros.
 
 Retorna status do serviço.
 
-## Mapeamento de Campos (Omie → DB)
+## Mapeamento de Campos (Huggs → DB)
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `codigo` | `code` |
 | `descricao` | `name` |

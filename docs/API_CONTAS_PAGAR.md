@@ -10,7 +10,7 @@ Todas as requisições exigem **API Key** ou **JWT**:
 
 ---
 
-## Rotas Omie-Style (NOVO)
+## Rotas Integração (NOVO)
 
 ### GET /consultar — Consultar título
 
@@ -22,7 +22,7 @@ GET /contas-pagar-api/consultar?codigo_lancamento_integracao=INT-001
 |-----------|------|-----------|
 | `id` | UUID | ID interno |
 | `codigo_lancamento_integracao` | string | Código de integração |
-| `codigo_lancamento_omie` | integer | Código numérico Omie |
+| `codigo_lancamento_huggs` | integer | Código numérico Huggs |
 
 ### POST /incluir — Incluir título (IncluirContaPagar)
 
@@ -41,7 +41,7 @@ GET /contas-pagar-api/consultar?codigo_lancamento_integracao=INT-001
 **Resposta:**
 ```json
 {
-  "codigo_lancamento_omie": null,
+  "codigo_lancamento_huggs": null,
   "codigo_lancamento_integracao": "INT-001",
   "codigo_status": "0",
   "descricao_status": "Cadastro incluído com sucesso!"
@@ -235,8 +235,8 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 |--------|------|------|-----------|
 | GET | `/` | JWT/Key | Listar últimos 100 títulos |
 | GET | `/query` | JWT/Key | Consulta avançada com filtros |
-| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Omie) |
-| GET | `/listar` | JWT/Key | Listagem paginada Omie-style |
+| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
+| GET | `/listar` | JWT/Key | Listagem paginada Integração |
 | GET | `/status` | Key | Status da API |
 | GET | `/stats` | JWT/Key | Estatísticas de sync |
 | GET | `/last-sync` | Key | Última data de sync |
@@ -248,16 +248,16 @@ GET /contas-pagar-api/listar?pagina=1&registros_por_pagina=20&filtrar_por_status
 | POST | `/sync-incremental` | Key | Sync incremental |
 | POST | `/sync-complete` | Key | Finalizar sync |
 | POST | `/trigger-n8n` | JWT/Key | Disparar N8N |
-| POST | `/incluir` | JWT/Key | Incluir título (Omie) |
-| POST | `/upsert` | JWT/Key | Upsert unitário (Omie) |
-| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Omie) |
-| POST | `/lancar-pagamento` | JWT/Key | Baixa Omie-style |
-| POST | `/cancelar-pagamento` | JWT/Key | Cancelar baixa (Omie) |
+| POST | `/incluir` | JWT/Key | Incluir título (Huggs) |
+| POST | `/upsert` | JWT/Key | Upsert unitário (Huggs) |
+| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Huggs) |
+| POST | `/lancar-pagamento` | JWT/Key | Baixa Integração |
+| POST | `/cancelar-pagamento` | JWT/Key | Cancelar baixa (Huggs) |
 | POST | `/registrar-pagamento` | JWT/Key | Registrar baixa |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
 | POST | `/estornar` | JWT/Key | Estornar pagamento |
 | POST | `/parcelas/sync` | Key | Sync parcelas |
 | POST | `/anexos` | JWT/Key | Registrar comprovante |
 | PUT | `/update` | JWT/Key | Atualizar título |
-| PUT | `/alterar` | JWT/Key | Alterar título (Omie) |
-| DELETE | `/excluir` | JWT/Key | Excluir título (Omie) |
+| PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
+| DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |

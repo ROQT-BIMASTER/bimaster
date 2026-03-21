@@ -1,6 +1,6 @@
 # API Orçamento de Caixa (Previsto x Realizado)
 
-Edge Function `orcamentos-caixa-api`, seguindo o padrão Omie `ListarOrcamentos`.
+Edge Function `orcamentos-caixa-api`, seguindo o padrão Huggs `ListarOrcamentos`.
 
 **Base URL:** `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/orcamentos-caixa-api`
 

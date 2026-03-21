@@ -1,4 +1,4 @@
-# API Tipos de Anexo — Padronização Omie
+# API Tipos de Anexo — API Huggs
 
 ## Base URL
 
@@ -52,9 +52,9 @@ Lista os tipos de anexos cadastrados.
 
 ---
 
-## Mapeamento Omie
+## Mapeamento Huggs
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `codigo` | `codigo` |
 | `descricao` | `descricao` |

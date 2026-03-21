@@ -1,4 +1,4 @@
-// supabase/functions/tipos-entrega-api/index.ts — CRUD TiposEntrega (Omie)
+// tipos-entrega-api
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";

@@ -1,11 +1,11 @@
 # API Bandeiras de Cartão — ListarBandeiras
 
 Edge Function: `bandeiras-api`  
-Padrão: Omie `ListarBandeirasResponse`
+Padrão: Huggs `ListarBandeirasResponse`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | GET | `/listar?nPagina=1&nRegPorPagina=50` | ListarBandeiras | Lista paginada de bandeiras |
 | GET | `/status` | — | Health check |
@@ -39,7 +39,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie (`listaBandeira`) | Coluna DB | Observação |
+| Campo Huggs (`listaBandeira`) | Coluna DB | Observação |
 |---|---|---|
 | `cCodigo` | `codigo` | Código da bandeira |
 | `cDescricao` | `descricao` | Descrição da bandeira |

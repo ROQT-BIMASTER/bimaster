@@ -536,8 +536,8 @@ Deno.serve(async (req) => {
     return null;
   }
 
-  // Helper: parse date Omie DD/MM/YYYY → YYYY-MM-DD
-  function parseDateOmie(d: string | null | undefined): string | null {
+  // Helper: parse date Huggs DD/MM/YYYY → YYYY-MM-DD
+  function parseDateHuggs(d: string | null | undefined): string | null {
     if (!d) return null;
     const str = String(d).trim();
     if (str.includes('/')) {
@@ -549,11 +549,11 @@ Deno.serve(async (req) => {
     return parseDate(d);
   }
 
-  // Helper: map Omie body to DB columns
-  function mapOmieToDb(body: any): Record<string, any> {
+  // Helper: map Huggs body to DB columns
+  function mapApiToDb(body: any): Record<string, any> {
     const mapped: Record<string, any> = {};
     const directFields: Record<string, string> = {
-      codigo_lancamento_omie: 'codigo_lancamento_omie',
+      codigo_lancamento_huggs: 'codigo_lancamento_huggs',
       codigo_lancamento_integracao: 'codigo_lancamento_integracao',
       codigo_cliente_fornecedor: 'codigo_cliente_fornecedor',
       codigo_cliente_fornecedor_integracao: 'codigo_cliente_fornecedor_integracao',
@@ -565,7 +565,7 @@ Deno.serve(async (req) => {
       chave_nfe: 'chave_nfe',
       numero_documento_fiscal: 'numero_documento_fiscal',
       numero_documento: 'numero_documento',
-      numero_parcela: 'numero_parcela_omie',
+      numero_parcela: 'numero_parcela_huggs',
       id_conta_corrente: 'id_conta_corrente',
       id_origem: 'id_origem',
       operacao: 'operacao',
@@ -578,18 +578,18 @@ Deno.serve(async (req) => {
       c_pedido_cliente: 'c_pedido_cliente',
       c_numero_contrato: 'c_numero_contrato',
     };
-    for (const [omie, db] of Object.entries(directFields)) {
-      if (body[omie] !== undefined) mapped[db] = body[omie];
+    for (const [field, db] of Object.entries(directFields)) {
+      if (body[field] !== undefined) mapped[db] = body[field];
     }
     // Numeric
     if (body.valor_documento !== undefined) mapped.valor_original = parseAmount(body.valor_documento);
     if (body.n_cod_pedido !== undefined) mapped.n_cod_pedido = body.n_cod_pedido;
     if (body.n_cod_os !== undefined) mapped.n_cod_os = body.n_cod_os;
     // Dates
-    if (body.data_vencimento) mapped.data_vencimento = parseDateOmie(body.data_vencimento);
-    if (body.data_previsao) mapped.data_previsao = parseDateOmie(body.data_previsao);
-    if (body.data_emissao) mapped.data_emissao = parseDateOmie(body.data_emissao);
-    if (body.data_registro) mapped.data_registro = parseDateOmie(body.data_registro);
+    if (body.data_vencimento) mapped.data_vencimento = parseDateHuggs(body.data_vencimento);
+    if (body.data_previsao) mapped.data_previsao = parseDateHuggs(body.data_previsao);
+    if (body.data_emissao) mapped.data_emissao = parseDateHuggs(body.data_emissao);
+    if (body.data_registro) mapped.data_registro = parseDateHuggs(body.data_registro);
     // Booleans (S/N → boolean)
     const boolFields = ['retem_pis','retem_cofins','retem_csll','retem_ir','retem_iss','retem_inss',
       'bloqueado','bloquear_baixa','bloquear_exclusao','baixar_documento','conciliar_documento','aprendizado_rateio'];
@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
     // Boleto
     if (body.boleto) {
       mapped.boleto_gerado = body.boleto.cGerado === 'S';
-      if (body.boleto.dDtEmBol) mapped.boleto_data_emissao = parseDateOmie(body.boleto.dDtEmBol);
+      if (body.boleto.dDtEmBol) mapped.boleto_data_emissao = parseDateHuggs(body.boleto.dDtEmBol);
       if (body.boleto.cNumBoleto) mapped.boleto_numero = body.boleto.cNumBoleto;
       if (body.boleto.cNumBancario) mapped.boleto_numero_bancario = body.boleto.cNumBancario;
       if (body.boleto.nPerJuros !== undefined) mapped.boleto_per_juros = body.boleto.nPerJuros;
@@ -619,8 +619,8 @@ Deno.serve(async (req) => {
     return mapped;
   }
 
-  // Omie response helper
-  function omieResponse(data: any, status = 200) {
+  // Huggs response helper
+  function apiResponse(data: any, status = 200) {
     return new Response(JSON.stringify(data), {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -630,28 +630,28 @@ Deno.serve(async (req) => {
   // ============ GET /consultar — ConsultarContaReceber ============
   if (matchRoute('/consultar') && req.method === 'GET') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const id = url.searchParams.get('id');
     const codIntegracao = url.searchParams.get('codigo_lancamento_integracao');
-    const codOmie = url.searchParams.get('codigo_lancamento_omie');
+    const codHuggs = url.searchParams.get('codigo_lancamento_huggs');
 
     let query = supabase.from('contas_receber').select('*');
     if (id) query = query.eq('id', id);
     else if (codIntegracao) query = query.eq('codigo_lancamento_integracao', codIntegracao);
-    else if (codOmie) query = query.eq('codigo_lancamento_omie', parseInt(codOmie));
-    else return omieResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou codigo_lancamento_omie" }, 400);
+    else if (codHuggs) query = query.eq('codigo_lancamento_huggs', parseInt(codHuggs));
+    else return apiResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs" }, 400);
 
     const { data, error } = await query.maybeSingle();
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
-    if (!data) return omieResponse({ codigo_status: "1", descricao_status: "Registro não encontrado" }, 404);
-    return omieResponse({ conta_receber_cadastro: data });
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (!data) return apiResponse({ codigo_status: "1", descricao_status: "Registro não encontrado" }, 404);
+    return apiResponse({ conta_receber_cadastro: data });
   }
 
   // ============ GET /listar — ListarContasReceber ============
   if (matchRoute('/listar') && req.method === 'GET') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const pagina = parseInt(url.searchParams.get('pagina') || '1');
     const regPorPag = Math.min(parseInt(url.searchParams.get('registros_por_pagina') || '20'), 500);
@@ -663,9 +663,9 @@ Deno.serve(async (req) => {
     const filtroStatus = url.searchParams.get('filtrar_por_status');
     if (filtroStatus) query = query.in('status', filtroStatus.split(',').map(s => s.trim()));
     const filtroDataDe = url.searchParams.get('filtrar_por_data_de');
-    if (filtroDataDe) query = query.gte('data_vencimento', parseDateOmie(filtroDataDe));
+    if (filtroDataDe) query = query.gte('data_vencimento', parseDateHuggs(filtroDataDe));
     const filtroDataAte = url.searchParams.get('filtrar_por_data_ate');
-    if (filtroDataAte) query = query.lte('data_vencimento', parseDateOmie(filtroDataAte));
+    if (filtroDataAte) query = query.lte('data_vencimento', parseDateHuggs(filtroDataAte));
     const filtroCliente = url.searchParams.get('filtrar_cliente');
     if (filtroCliente) query = query.eq('codigo_cliente_fornecedor', parseInt(filtroCliente));
     const filtroConta = url.searchParams.get('filtrar_conta_corrente');
@@ -686,10 +686,10 @@ Deno.serve(async (req) => {
     query = query.range(offset, offset + regPorPag - 1);
 
     const { data, count, error } = await query;
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
     const totalRegistros = count || 0;
-    return omieResponse({
+    return apiResponse({
       pagina,
       total_de_paginas: Math.ceil(totalRegistros / regPorPag),
       registros: data?.length || 0,
@@ -701,25 +701,25 @@ Deno.serve(async (req) => {
   // ============ POST /incluir — IncluirContaReceber ============
   if (matchRoute('/incluir') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     if (!body.codigo_lancamento_integracao) {
-      return omieResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
+      return apiResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
     }
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     mapped.importado_api = true;
     mapped.sincronizado_em = new Date().toISOString();
     if (!mapped.empresa_id) mapped.empresa_id = 1;
-    if (!mapped.erp_id) mapped.erp_id = `omie-cr-${mapped.empresa_id}-${body.codigo_lancamento_integracao}`;
+    if (!mapped.erp_id) mapped.erp_id = `huggs-cr-${mapped.empresa_id}-${body.codigo_lancamento_integracao}`;
     if (!mapped.status) mapped.status = 'pendente';
 
-    const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_omie, codigo_lancamento_integracao').single();
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
-    return omieResponse({
-      codigo_lancamento_omie: data?.codigo_lancamento_omie || null,
+    return apiResponse({
+      codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
       codigo_status: "0",
       descricao_status: "Cadastro incluído com sucesso!",
@@ -729,27 +729,27 @@ Deno.serve(async (req) => {
   // ============ PUT /alterar — AlterarContaReceber ============
   if (matchRoute('/alterar') && req.method === 'PUT') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     const codInt = body.codigo_lancamento_integracao;
-    const codOmie = body.codigo_lancamento_omie;
-    if (!codInt && !codOmie) return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou codigo_lancamento_omie" }, 400);
+    const codHuggs = body.codigo_lancamento_huggs;
+    if (!codInt && !codHuggs) return apiResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou codigo_lancamento_huggs" }, 400);
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     delete mapped.codigo_lancamento_integracao;
-    delete mapped.codigo_lancamento_omie;
+    delete mapped.codigo_lancamento_huggs;
 
     let query = supabase.from('contas_receber').update(mapped);
     if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else query = query.eq('codigo_lancamento_omie', codOmie);
+    else query = query.eq('codigo_lancamento_huggs', codHuggs);
 
     const { error, count } = await query.select('id').maybeSingle();
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
-    return omieResponse({
+    return apiResponse({
       codigo_lancamento_integracao: codInt || null,
-      codigo_lancamento_omie: codOmie || null,
+      codigo_lancamento_huggs: codHuggs || null,
       codigo_status: "0",
       descricao_status: "Cadastro alterado com sucesso!",
     });
@@ -758,48 +758,48 @@ Deno.serve(async (req) => {
   // ============ DELETE /excluir — ExcluirContaReceber ============
   if (matchRoute('/excluir') && req.method === 'DELETE') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const id = url.searchParams.get('id');
     const codInt = url.searchParams.get('codigo_lancamento_integracao');
-    const codOmie = url.searchParams.get('chave_lancamento') || url.searchParams.get('codigo_lancamento_omie');
+    const codHuggs = url.searchParams.get('chave_lancamento') || url.searchParams.get('codigo_lancamento_huggs');
 
     let query = supabase.from('contas_receber').update({ status: 'cancelado' });
     if (id) query = query.eq('id', id);
     else if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else if (codOmie) query = query.eq('codigo_lancamento_omie', parseInt(codOmie));
-    else return omieResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou chave_lancamento" }, 400);
+    else if (codHuggs) query = query.eq('codigo_lancamento_huggs', parseInt(codHuggs));
+    else return apiResponse({ codigo_status: "1", descricao_status: "Informe id, codigo_lancamento_integracao ou chave_lancamento" }, 400);
 
     const { error } = await query;
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
-    return omieResponse({ codigo_status: "0", descricao_status: "Registro excluído com sucesso!" });
+    return apiResponse({ codigo_status: "0", descricao_status: "Registro excluído com sucesso!" });
   }
 
   // ============ POST /upsert — UpsertContaReceber ============
   if (matchRoute('/upsert') && !matchRoute('/upsert-lote') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
-    if (!body.codigo_lancamento_integracao) return omieResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
+    if (!body.codigo_lancamento_integracao) return apiResponse({ codigo_status: "1", descricao_status: "codigo_lancamento_integracao obrigatório" }, 400);
 
-    const mapped = mapOmieToDb(body);
+    const mapped = mapApiToDb(body);
     mapped.importado_api = true;
     mapped.sincronizado_em = new Date().toISOString();
     if (!mapped.empresa_id) mapped.empresa_id = 1;
-    if (!mapped.erp_id) mapped.erp_id = `omie-cr-${mapped.empresa_id}-${body.codigo_lancamento_integracao}`;
+    if (!mapped.erp_id) mapped.erp_id = `huggs-cr-${mapped.empresa_id}-${body.codigo_lancamento_integracao}`;
     if (!mapped.status) mapped.status = 'pendente';
 
     const { data, error } = await supabase.from('contas_receber')
       .upsert(mapped, { onConflict: 'erp_id' })
-      .select('id, codigo_lancamento_omie, codigo_lancamento_integracao')
+      .select('id, codigo_lancamento_huggs, codigo_lancamento_integracao')
       .single();
 
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
-    return omieResponse({
-      codigo_lancamento_omie: data?.codigo_lancamento_omie || null,
+    return apiResponse({
+      codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
       codigo_status: "0",
       descricao_status: "Upsert realizado com sucesso!",
@@ -809,27 +809,27 @@ Deno.serve(async (req) => {
   // ============ POST /upsert-lote — UpsertContaReceberPorLote ============
   if (matchRoute('/upsert-lote') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     const lote = body.lote || 1;
     const registros = body.conta_receber_cadastro || [];
-    if (!Array.isArray(registros) || registros.length === 0) return omieResponse({ lote, codigo_status: "1", descricao_status: "Array conta_receber_cadastro vazio" }, 400);
-    if (registros.length > 500) return omieResponse({ lote, codigo_status: "1", descricao_status: "Máximo 500 registros por lote" }, 400);
+    if (!Array.isArray(registros) || registros.length === 0) return apiResponse({ lote, codigo_status: "1", descricao_status: "Array conta_receber_cadastro vazio" }, 400);
+    if (registros.length > 500) return apiResponse({ lote, codigo_status: "1", descricao_status: "Máximo 500 registros por lote" }, 400);
 
     const mappedRecords = registros.map((r: any) => {
-      const m = mapOmieToDb(r);
+      const m = mapApiToDb(r);
       m.importado_api = true;
       m.sincronizado_em = new Date().toISOString();
       if (!m.empresa_id) m.empresa_id = 1;
-      if (!m.erp_id) m.erp_id = `omie-cr-${m.empresa_id}-${r.codigo_lancamento_integracao || crypto.randomUUID()}`;
+      if (!m.erp_id) m.erp_id = `huggs-cr-${m.empresa_id}-${r.codigo_lancamento_integracao || crypto.randomUUID()}`;
       if (!m.status) m.status = 'pendente';
       return m;
     });
 
     const { processed, errors } = await upsertRecords(supabase, mappedRecords);
 
-    return omieResponse({
+    return apiResponse({
       lote,
       codigo_status: errors === 0 ? "0" : "1",
       descricao_status: `${processed} processado(s), ${errors} erro(s)`,
@@ -839,20 +839,20 @@ Deno.serve(async (req) => {
   // ============ POST /lancar-recebimento — LancarRecebimento ============
   if (matchRoute('/lancar-recebimento') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     const codLanc = body.codigo_lancamento;
     const codInt = body.codigo_lancamento_integracao;
-    if (!codLanc && !codInt) return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento ou codigo_lancamento_integracao" }, 400);
+    if (!codLanc && !codInt) return apiResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento ou codigo_lancamento_integracao" }, 400);
 
     // Find the title
     let findQuery = supabase.from('contas_receber').select('id, valor_original, valor_recebido, status');
     if (codInt) findQuery = findQuery.eq('codigo_lancamento_integracao', codInt);
-    else findQuery = findQuery.eq('codigo_lancamento_omie', codLanc);
+    else findQuery = findQuery.eq('codigo_lancamento_huggs', codLanc);
 
     const { data: titulo, error: findErr } = await findQuery.maybeSingle();
-    if (findErr || !titulo) return omieResponse({ codigo_status: "1", descricao_status: findErr?.message || "Título não encontrado" }, 404);
+    if (findErr || !titulo) return apiResponse({ codigo_status: "1", descricao_status: findErr?.message || "Título não encontrado" }, 404);
 
     const valorBaixa = parseAmount(body.valor || 0);
     const novoRecebido = (titulo.valor_recebido || 0) + valorBaixa;
@@ -860,12 +860,12 @@ Deno.serve(async (req) => {
     const novoStatus = novoAberto <= 0 ? 'recebido' : 'parcial';
 
     const { error: updErr } = await supabase.from('contas_receber')
-      .update({ valor_recebido: novoRecebido, valor_aberto: novoAberto, status: novoStatus, data_recebimento: parseDateOmie(body.data) || new Date().toISOString().split('T')[0] })
+      .update({ valor_recebido: novoRecebido, valor_aberto: novoAberto, status: novoStatus, data_recebimento: parseDateHuggs(body.data) || new Date().toISOString().split('T')[0] })
       .eq('id', titulo.id);
 
-    if (updErr) return omieResponse({ codigo_status: "1", descricao_status: updErr.message }, 500);
+    if (updErr) return apiResponse({ codigo_status: "1", descricao_status: updErr.message }, 500);
 
-    return omieResponse({
+    return apiResponse({
       codigo_lancamento: codLanc || null,
       codigo_lancamento_integracao: codInt || null,
       codigo_baixa: body.codigo_baixa || null,
@@ -880,11 +880,11 @@ Deno.serve(async (req) => {
   // ============ POST /cancelar-recebimento — CancelarRecebimento ============
   if (matchRoute('/cancelar-recebimento') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     // Simplified: just return success status
-    return omieResponse({
+    return apiResponse({
       codigo_baixa: body.codigo_baixa || null,
       codigo_baixa_integracao: body.codigo_baixa_integracao || null,
       codigo_status: "0",
@@ -895,10 +895,10 @@ Deno.serve(async (req) => {
   // ============ POST /conciliar — ConciliarRecebimento ============
   if (matchRoute('/conciliar') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
-    return omieResponse({
+    return apiResponse({
       codigo_baixa: body.codigo_baixa || null,
       codigo_baixa_integracao: body.codigo_baixa_integracao || null,
       codigo_status: "0",
@@ -909,10 +909,10 @@ Deno.serve(async (req) => {
   // ============ POST /desconciliar — DesconciliarRecebimento ============
   if (matchRoute('/desconciliar') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
-    return omieResponse({
+    return apiResponse({
       codigo_baixa: body.codigo_baixa || null,
       codigo_baixa_integracao: body.codigo_baixa_integracao || null,
       codigo_status: "0",
@@ -923,7 +923,7 @@ Deno.serve(async (req) => {
   // ============ POST /cancelar — CancelarContaReceber ============
   if (matchRoute('/cancelar') && req.method === 'POST') {
     const auth = await validateAnyAuth();
-    if (!auth) return omieResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
+    if (!auth) return apiResponse({ codigo_status: "1", descricao_status: "Não autorizado" }, 401);
 
     const body = await req.json();
     const codInt = body.codigo_lancamento_integracao;
@@ -931,14 +931,14 @@ Deno.serve(async (req) => {
 
     let query = supabase.from('contas_receber').update({ status: 'cancelado' });
     if (codInt) query = query.eq('codigo_lancamento_integracao', codInt);
-    else if (chave) query = query.eq('codigo_lancamento_omie', chave);
-    else return omieResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou chave_lancamento" }, 400);
+    else if (chave) query = query.eq('codigo_lancamento_huggs', chave);
+    else return apiResponse({ codigo_status: "1", descricao_status: "Informe codigo_lancamento_integracao ou chave_lancamento" }, 400);
 
     const { error } = await query;
-    if (error) return omieResponse({ codigo_status: "1", descricao_status: error.message }, 500);
+    if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
-    return omieResponse({
-      codigo_lancamento_omie: chave || null,
+    return apiResponse({
+      codigo_lancamento_huggs: chave || null,
       codigo_lancamento_integracao: codInt || null,
       codigo_status: "0",
       descricao_status: "Título cancelado com sucesso!",
@@ -950,7 +950,7 @@ Deno.serve(async (req) => {
     status: 'online',
     api_version: API_VERSION,
     endpoints: ['/sync', '/bulk-sync', '/sync-chunk', '/sync-status', '/delete-old', '/consultar', '/listar', '/incluir', '/alterar', '/excluir', '/upsert', '/upsert-lote', '/lancar-recebimento', '/cancelar-recebimento', '/conciliar', '/desconciliar', '/cancelar'],
-    message: 'Contas a Receber API v5 — Omie-style + Legacy sync'
+    message: 'Contas a Receber API v5 — Huggs-style + Legacy sync'
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });

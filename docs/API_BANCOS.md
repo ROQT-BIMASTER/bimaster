@@ -1,11 +1,11 @@
 # API Bancos — ConsultarBanco + ListarBancos
 
 Edge Function: `bancos-api`  
-Padrão: Omie `fin_banco_cadastro`
+Padrão: Huggs `fin_banco_cadastro`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | GET | `/consultar?codigo=001` | ConsultarBanco | Consulta banco por código COMPE |
 | GET | `/listar?pagina=1&registros_por_pagina=100` | ListarBancos | Lista paginada de bancos |
@@ -63,7 +63,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Observação |
+| Campo Huggs | Coluna DB | Observação |
 |---|---|---|
 | `codigo` | `codigo_compe` | Código COMPE |
 | `nome` | `nome` | Nome completo |

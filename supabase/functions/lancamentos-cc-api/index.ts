@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
     }
   }
 
-  // --- Field mappings (Omie → DB) ---
-  const OMIE_TO_DB: Record<string, string> = {
+  // --- Field mappings (Huggs → DB) ---
+  const API_TO_DB: Record<string, string> = {
     cCodIntLanc: "c_cod_int_lanc",
     nCodLanc: "n_cod_lanc",
     nCodAgrup: "n_cod_agrup",
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     cImpAPI: "importado_api",
   };
 
-  function flattenOmieInput(input: Record<string, unknown>): Record<string, unknown> {
+  function flattenHuggsInput(input: Record<string, unknown>): Record<string, unknown> {
     const flat: Record<string, unknown> = { ...input };
     // Flatten nested structures (cabecalho, detalhes, transferencia, diversos)
     for (const section of ["cabecalho", "detalhes", "transferencia", "diversos", "info"]) {
@@ -116,18 +116,18 @@ Deno.serve(async (req) => {
     return flat;
   }
 
-  function mapOmieToDb(input: Record<string, unknown>): Record<string, unknown> {
-    const flat = flattenOmieInput(input);
+  function mapHuggsToDb(input: Record<string, unknown>): Record<string, unknown> {
+    const flat = flattenHuggsInput(input);
     const row: Record<string, unknown> = {};
 
-    for (const [omieKey, dbCol] of Object.entries(OMIE_TO_DB)) {
-      if (flat[omieKey] !== undefined) {
-        let val = flat[omieKey];
-        // Convert Omie S/N booleans
+    for (const [apiKey, dbCol] of Object.entries(API_TO_DB)) {
+      if (flat[apiKey] !== undefined) {
+        let val = flat[apiKey];
+        // Convert Huggs S/N booleans
         if (typeof val === "string" && (val === "S" || val === "N")) {
           val = val === "S";
         }
-        // Convert Omie date format dd/mm/yyyy → yyyy-mm-dd
+        // Convert Huggs date format dd/mm/yyyy → yyyy-mm-dd
         if (dbCol === "data_lancamento" && typeof val === "string" && val.includes("/")) {
           const parts = (val as string).split("/");
           if (parts.length === 3) val = `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
     return row;
   }
 
-  function mapDbToOmie(row: Record<string, unknown>): Record<string, unknown> {
+  function mapDbToHuggs(row: Record<string, unknown>): Record<string, unknown> {
     return {
       nCodLanc: row.n_cod_lanc ?? null,
       cCodIntLanc: row.c_cod_int_lanc ?? row.codigo_integracao ?? null,
@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
         return errorResp(500, "QUERY_ERROR", error.message, req, startMs);
       }
 
-      const mapped = (data || []).map(mapDbToOmie);
+      const mapped = (data || []).map(mapDbToHuggs);
       await logSync("GET /", { pagina, registros }, 200);
       return json({
         nPagina: pagina,
@@ -323,13 +323,13 @@ Deno.serve(async (req) => {
       if (!data) return errorResp(404, "NOT_FOUND", "Lançamento não encontrado", req, startMs);
 
       await logSync("GET /consultar", { id, cCodIntLanc, nCodLanc }, 200);
-      return json({ lancamento: mapDbToOmie(data) }, 200, req, startMs);
+      return json({ lancamento: mapDbToHuggs(data) }, 200, req, startMs);
     }
 
     // ==================== POST /incluir ====================
     if (req.method === "POST" && path === "/incluir") {
       const body = await req.json();
-      const dbRow = mapOmieToDb(body);
+      const dbRow = mapHuggsToDb(body);
       const resolved = await resolveContaBancariaId(dbRow);
 
       if (!resolved.conta_bancaria_id) {
@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "KEY_REQUIRED", "Informe cCodIntLanc, nCodLanc ou id", req, startMs);
       }
 
-      const dbRow = mapOmieToDb(body);
+      const dbRow = mapHuggsToDb(body);
       const resolved = await resolveContaBancariaId(dbRow);
       delete resolved.empresa_id;
       delete resolved.c_cod_int_lanc;
@@ -436,7 +436,7 @@ Deno.serve(async (req) => {
         return errorResp(400, "COD_INT_REQUIRED", "cCodIntLanc é obrigatório para upsert", req, startMs);
       }
 
-      const dbRow = mapOmieToDb(body);
+      const dbRow = mapHuggsToDb(body);
       const resolved = await resolveContaBancariaId(dbRow);
       resolved.importado_api = true;
       resolved.origem = resolved.c_origem_lanc || "MANU";
@@ -497,7 +497,7 @@ Deno.serve(async (req) => {
           const cCodIntLanc = item.cCodIntLanc as string;
           if (!cCodIntLanc) { errors++; errorDetails.push({ error: "cCodIntLanc ausente" }); continue; }
 
-          const dbRow = mapOmieToDb(item);
+          const dbRow = mapHuggsToDb(item);
           const resolved = await resolveContaBancariaId(dbRow);
           resolved.importado_api = true;
           resolved.origem = resolved.c_origem_lanc || "MANU";
@@ -552,7 +552,7 @@ Deno.serve(async (req) => {
       let synced = 0, errors = 0;
       for (const item of lancamentos) {
         try {
-          const dbRow = mapOmieToDb(item);
+          const dbRow = mapHuggsToDb(item);
           const resolved = await resolveContaBancariaId(dbRow);
           resolved.importado_api = true;
           resolved.enviado_erp = true;
@@ -624,7 +624,7 @@ Deno.serve(async (req) => {
         }
         return d;
       }
-      function formatDateOmie(d: string | null): string {
+      function formatDateHuggs(d: string | null): string {
         if (!d) return "";
         if (d.includes("-")) {
           const p = d.split("T")[0].split("-");
@@ -677,7 +677,7 @@ Deno.serve(async (req) => {
           nCodLancamento: m.n_cod_lanc ?? m.id ?? null,
           nCodLancRelac: null,
           cSituacao: m.status ?? null,
-          dDataLancamento: formatDateOmie(m.data as string),
+          dDataLancamento: formatDateHuggs(m.data as string),
           cDesCliente: m.fornecedor_nome ?? m.cliente_nome ?? m.descricao ?? null,
           cTipoDocumento: m.tipo_documento ?? null,
           cNumero: m.numero_documento ?? null,
@@ -695,11 +695,11 @@ Deno.serve(async (req) => {
           cRazCliente: m.fornecedor_razao ?? m.cliente_razao ?? null,
           cDocCliente: m.fornecedor_documento ?? m.cliente_documento ?? null,
           cObservacoes: m.observacoes ?? null,
-          cDataInclusao: formatDateOmie(m.created_at as string),
+          cDataInclusao: formatDateHuggs(m.created_at as string),
           cHoraInclusao: null,
           cNatureza: natureza,
           cBloqueado: "N",
-          dDataConciliacao: formatDateOmie(m.data_conciliacao as string),
+          dDataConciliacao: formatDateHuggs(m.data_conciliacao as string),
         };
       });
 

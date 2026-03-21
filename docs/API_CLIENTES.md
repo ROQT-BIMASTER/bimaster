@@ -1,11 +1,11 @@
-# API Clientes — CRUD Completo (Padrão Omie)
+# API Clientes — CRUD Completo (Padrão Huggs)
 
 Edge Function: `clientes-api`  
-Padrão: Omie `IncluirCliente`, `AlterarCliente`, `ConsultarCliente`, `ExcluirCliente`, `ListarClientes`, `ListarClientesResumido`, `UpsertCliente`, `UpsertClienteCpfCnpj`, `AssociarCodIntCliente`
+Padrão: Huggs `IncluirCliente`, `AlterarCliente`, `ConsultarCliente`, `ExcluirCliente`, `ListarClientes`, `ListarClientesResumido`, `UpsertCliente`, `UpsertClienteCpfCnpj`, `AssociarCodIntCliente`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | POST | `/incluir` | IncluirCliente | Inclui cliente |
 | POST | `/alterar` | AlterarCliente | Altera cliente |
@@ -44,7 +44,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 **Resposta (201):**
 ```json
 {
-  "codigo_cliente_omie": "uuid",
+  "codigo_cliente_huggs": "uuid",
   "codigo_cliente_integracao": "CLI001",
   "codigo_status": "0",
   "descricao_status": "Cliente incluído com sucesso!"
@@ -59,7 +59,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 ```
 ou
 ```json
-{ "codigo_cliente_omie": "uuid" }
+{ "codigo_cliente_huggs": "uuid" }
 ```
 
 **Resposta (200):** retorna `clientes_cadastro` com todos os campos mapeados.
@@ -96,9 +96,9 @@ Mesmos parâmetros de `/listar`. Retorna apenas: `codigo_cliente`, `codigo_clien
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
-| `codigo_cliente_omie` | `id` |
+| `codigo_cliente_huggs` | `id` |
 | `codigo_cliente_integracao` | `codigo` |
 | `razao_social` | `nome` |
 | `nome_fantasia` | `nome_abreviado` |
@@ -130,9 +130,9 @@ Mesmos parâmetros de `/listar`. Retorna apenas: `codigo_cliente`, `codigo_clien
 
 ## Características de Clientes
 
-Endpoints para gerenciar características (key-value) de clientes, equivalente ao módulo `CaracteristicasCliente` da Omie.
+Endpoints para gerenciar características (key-value) de clientes, equivalente ao módulo `CaracteristicasCliente` da Huggs.
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | POST | `/caract/incluir` | IncluirCaractCliente | Inclui característica |
 | POST | `/caract/alterar` | AlterarCaractCliente | Altera conteúdo |
@@ -154,7 +154,7 @@ Endpoints para gerenciar características (key-value) de clientes, equivalente a
 **Resposta (201):**
 ```json
 {
-  "codigo_cliente_omie": "uuid",
+  "codigo_cliente_huggs": "uuid",
   "codigo_cliente_integracao": "CLI001",
   "codigo_status": "0",
   "descricao_status": "Característica incluída com sucesso!"
@@ -171,7 +171,7 @@ Endpoints para gerenciar características (key-value) de clientes, equivalente a
 **Resposta (200):**
 ```json
 {
-  "codigo_cliente_omie": "uuid",
+  "codigo_cliente_huggs": "uuid",
   "codigo_cliente_integracao": "CLI001",
   "caracteristicas": [
     { "campo": "SEGMENTO", "conteudo": "Varejo" },
@@ -197,15 +197,15 @@ Endpoints para gerenciar características (key-value) de clientes, equivalente a
 { "codigo_cliente_integracao": "CLI001" }
 ```
 
-Todas as rotas aceitam `codigo_cliente_omie` (UUID) ou `codigo_cliente_integracao` para identificar o cliente.
+Todas as rotas aceitam `codigo_cliente_huggs` (UUID) ou `codigo_cliente_integracao` para identificar o cliente.
 
 ---
 
 ## Tags de Clientes
 
-Endpoints para gerenciar tags (rótulos) de clientes, equivalente ao módulo `ClientesTags` da Omie.
+Endpoints para gerenciar tags (rótulos) de clientes, equivalente ao módulo `ClientesTags` da Huggs.
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | POST | `/tags/incluir` | IncluirTags | Associa tags ao cliente |
 | POST | `/tags/listar` | ListarTags | Lista tags do cliente |

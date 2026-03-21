@@ -1,4 +1,4 @@
-# API Departamentos — Padrão Omie
+# API Departamentos — Padrão Huggs
 
 **Base URL:** `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/departamentos-api`
 
@@ -155,9 +155,9 @@ Lista departamentos com paginação.
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Tipo |
+| Campo Huggs | Coluna DB | Tipo |
 |---|---|---|
-| `codigo` | `codigo_omie` | varchar(40) |
+| `codigo` | `codigo_huggs` | varchar(40) |
 | `descricao` | `nome` | text |
 | `estrutura` | `estrutura` | varchar(40) |
 | `inativo` | `ativo` (invertido) | boolean |

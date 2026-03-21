@@ -1,0 +1,1 @@
+ALTER TABLE public.departamentos RENAME COLUMN codigo_omie TO codigo_huggs;
