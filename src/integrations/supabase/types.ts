@@ -3585,6 +3585,51 @@ export type Database = {
           },
         ]
       }
+      config_operacoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          operacao: string
+          tipo: string
+          visivel: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          operacao: string
+          tipo?: string
+          visivel?: boolean
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          operacao?: string
+          tipo?: string
+          visivel?: boolean
+        }
+        Relationships: []
+      }
+      config_tabelas_usuario: {
+        Row: {
+          created_at: string | null
+          id: string
+          tabela_preco: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tabela_preco: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tabela_preco?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       configuracoes_cobranca: {
         Row: {
           api_key: string | null
@@ -28292,10 +28337,12 @@ export type Database = {
           id_empresa: number | null
           marca: string | null
           mes: number | null
+          operacao: string | null
           qtde_itens: number | null
           qtde_pedidos: number | null
           receita_total: number | null
           supervisor: string | null
+          tabela_preco: string | null
           ticket_medio: number | null
           uf: string | null
         }
@@ -28335,6 +28382,7 @@ export type Database = {
           clientes_ativos: number | null
           id_empresa: number | null
           mes: number | null
+          operacao: string | null
           qtde_pedidos: number | null
           receita_total: number | null
           supervisor: string | null
@@ -28348,6 +28396,7 @@ export type Database = {
           cod_vend: number | null
           id_empresa: number | null
           mes: number | null
+          operacao: string | null
           qtde_pedidos: number | null
           receita_total: number | null
           supervisor: string | null
@@ -28361,6 +28410,7 @@ export type Database = {
           id_empresa: number | null
           mes: number | null
           nome_empresa: string | null
+          operacao: string | null
           qtde_pedidos: number | null
           receita_total: number | null
         }
