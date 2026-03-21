@@ -73,34 +73,7 @@ const TradeModule = () => {
           </p>
         </div>
 
-        {/* Search Bar */}
-        <TradeSearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery} 
-          placeholder="Buscar PDVs, visitas, campanhas..." 
-        />
-
-        {/* Banner Carousel */}
-        <TradeHeroBanner />
-
-        {/* Display Catalog Carousel */}
-        <div className="space-y-2">
-          <TradeSectionHeader
-            title="Catálogo de Displays"
-            subtitle="Conheça nossos displays para PDV"
-            linkText="Ver todos"
-            linkTo="/dashboard/trade/admin/displays"
-          />
-          <DisplayHeroBanner />
-        </div>
-
-        {/* Quick Entry Dialog */}
-        <QuickEntryDialog 
-          open={quickEntryOpen} 
-          onOpenChange={setQuickEntryOpen}
-        />
-
-        {/* Quick Actions - Pink themed */}
+        {/* Quick Actions - Top of page */}
         <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3" data-tour="quick-actions">
           <Button 
             onClick={() => setQuickEntryOpen(true)} 
@@ -140,6 +113,33 @@ const TradeModule = () => {
               <span className="font-semibold">Capturar Foto</span>
             </Link>
           </Button>
+        </div>
+
+        {/* Quick Entry Dialog */}
+        <QuickEntryDialog 
+          open={quickEntryOpen} 
+          onOpenChange={setQuickEntryOpen}
+        />
+
+        {/* Search Bar */}
+        <TradeSearchBar 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Buscar PDVs, visitas, campanhas..." 
+        />
+
+        {/* Banner Carousel */}
+        <TradeHeroBanner />
+
+        {/* Display Catalog Carousel */}
+        <div className="space-y-2">
+          <TradeSectionHeader
+            title="Catálogo de Displays"
+            subtitle="Conheça nossos displays para PDV"
+            linkText="Ver todos"
+            linkTo="/dashboard/trade/admin/displays"
+          />
+          <DisplayHeroBanner />
         </div>
 
         {/* KPI Cards - Modernized with rounded corners */}
