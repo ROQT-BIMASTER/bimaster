@@ -40,6 +40,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
 import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
+import { PastaDigitalFromChecklist } from "@/components/china/PastaDigitalFromChecklist";
 import { useDocumentosDaSubmissao as useDocsSub } from "@/hooks/useChinaDocumentoVinculos";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
@@ -848,6 +849,11 @@ export default function ProjetoVincularChina() {
             </CollapsibleContent>
           </Card>
         </Collapsible>
+      )}
+
+      {/* Pasta Digital TJSP — appears when a submission is selected and has docs */}
+      {selectedSubmissaoId && documentos.length > 0 && (
+        <PastaDigitalFromChecklist submissaoId={selectedSubmissaoId} />
       )}
 
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
