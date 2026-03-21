@@ -488,6 +488,8 @@ function AppContent() {
             <Route path="/dashboard/performance-vendas" element={<ProtectedRoute><PerformanceVendas /></ProtectedRoute>} />
             <Route path="/dashboard/clientes" element={<ProtectedRoute><AnaliseClientes /></ProtectedRoute>} />
             <Route path="/dashboard/detalhamento" element={<ProtectedRoute><DetalhamentoVendas /></ProtectedRoute>} />
+            <Route path="/dashboard/geografico" element={<ProtectedRoute><AnaliseGeografico /></ProtectedRoute>} />
+            <Route path="/dashboard/produtos" element={<ProtectedRoute><AnaliseProdutos /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
