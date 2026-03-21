@@ -534,6 +534,13 @@ export default function ApiDocumentation() {
               endpoints={contasPagarComplementar}
               description="Gestão de parcelas, histórico de pagamentos e comprovantes"
             />
+            <ApiSection
+              icon={<Webhook className="h-4 w-4 text-amber-500" />}
+              title="CRUD Omie-Style (Padrão Omie)"
+              basePath="/contas-pagar-api"
+              endpoints={contasPagarOmie}
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — formato Omie"
+            />
           </TabsContent>
 
           <TabsContent value="export" className="space-y-1">
