@@ -674,9 +674,27 @@ const dreCadastroCrud: Endpoint[] = [
     method: "POST", path: "/listar", description: "Listar contas do DRE (ListarCadastroDRE)", tag: "novo",
     body: `{ "apenasContasAtivas": "N" }`,
     response: `{ "totalRegistros": 25, "dreLista": [{ "codigoDRE": "4.1", "descricaoDRE": "Receita Bruta", "naoExibirDRE": "N", "nivelDRE": 2, "sinalDRE": "+", "totalizaDRE": "N" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+const finalidadesTransfCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/consultar", description: "Consultar finalidade por código (ConsultarFinalTransf)", tag: "novo",
     params: [
-      { name: "apenasContasAtivas", type: "string", required: false, description: "S para listar apenas contas ativas, N para todas" },
+      { name: "codigo", type: "string", required: true, description: "Código da finalidade de transferência" },
+      { name: "banco", type: "string", required: false, description: "Código do banco (aceito mas ignorado)" },
     ],
+    response: `{ "banco": "", "codigo": "01", "descricao": "Crédito em Conta" }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listar finalidades paginadas (ListarFinalTransf)", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx 500)" },
+      { name: "filtrar_por_banco", type: "string", required: false, description: "Código do banco (aceito mas ignorado)" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 8, "total_de_registros": 8, "cadastros": [{ "banco": "", "codigo": "01", "descricao": "Crédito em Conta" }] }`,
   },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
@@ -875,6 +893,10 @@ export default function ApiDocumentation() {
               <BarChart3 className="h-3.5 w-3.5" />
               DRE
             </TabsTrigger>
+            <TabsTrigger value="final-transf" className="text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Final. Transferência
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1065,6 +1087,16 @@ export default function ApiDocumentation() {
               basePath="/dre-cadastro-api"
               endpoints={dreCadastroCrud}
               description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
+            />
+          </TabsContent>
+
+          <TabsContent value="final-transf" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf (Padrão Omie)"
+              basePath="/finalidades-transferencia-api"
+              endpoints={finalidadesTransfCrud}
+              description="Consulta e listagem paginada de finalidades de transferência bancária"
             />
           </TabsContent>
 
