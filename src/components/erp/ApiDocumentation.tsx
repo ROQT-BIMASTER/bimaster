@@ -1477,6 +1477,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="cidades" className="space-y-1">
+            <ApiSection
+              icon={<Search className="h-4 w-4 text-primary" />}
+              title="Cidades — PesquisarCidades (Padrão Omie)"
+              basePath="/cidades-api"
+              endpoints={cidadesCrud}
+              description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
