@@ -1,78 +1,41 @@
 
+Objetivo: fazer o banco mostrar a tabela como **Union** sem quebrar app, ingestão n8n e dashboards já em produção.
 
-## Plano: Painel Executivo — Dashboard de Vendas (Etapa 1)
+Plano de implementação
 
-### Descoberta Importante
+1) Diagnóstico rápido de dependências (pré-migração)
+- Confirmar que hoje existe `public.vendas_union` (tabela) e que ela é usada por:
+  - RLS (4 policies),
+  - views analíticas (`vw_dashboard_kpis`, `vw_receita_empresa`, `vw_ranking_supervisores`, `vw_ranking_vendedores`),
+  - edge function de ingestão,
+  - hooks/páginas frontend.
+- Isso evita renomear e derrubar queries ativas.
 
-Os nomes de colunas na tabela `vendas_union` diferem do que foi descrito:
-- Não existe `receita_total` → existe `preco_venda` (preço unitário) e `quantidade`
-- Não existe `qtde` → existe `quantidade`
-- Receita será calculada como: `preco_venda * quantidade` (ou `preco_venda * quantidade - vl_desconto` se preferir receita líquida)
-- Há campo `operacao` que pode conter 'VENDA', 'SAIDA MONTAGEM DE KIT', etc. — as views filtrarão por `operacao = 'VENDA'` para KPIs consistentes (ou incluir todas, a definir)
+2) Migração segura de nome no banco (schema change)
+- Executar migração SQL transacional para:
+  - `ALTER TABLE public.vendas_union RENAME TO "Union";`
+- Resultado: no banco a tabela passa a aparecer com nome **Union** (exatamente como você pediu).
 
-Também já existe um `EmpresaContext` no sistema que gerencia filtro por empresa do usuário — será integrado.
+3) Camada de compatibilidade imediata (sem quebrar frontend/n8n)
+- Na mesma migração, criar uma view de compatibilidade com o nome antigo:
+  - `CREATE VIEW public.vendas_union WITH (security_invoker=true) AS SELECT * FROM public."Union";`
+- Conceder grants de leitura na view para os papéis usados pelo app.
+- Motivo: todo código atual que consulta `vendas_union` continua funcionando enquanto o nome físico no banco vira `Union`.
 
-### Parte 1: Migrations SQL (4 views materializadas)
+4) Garantir que as views analíticas continuem corretas
+- Recriar/ajustar as 4 views para apontar explicitamente para `public."Union"` (não para `vl_outros_custos`).
+- Manter fórmula de receita inalterada:
+  - `COALESCE(venda, preco_venda * quantidade, 0)`
 
-**`vw_dashboard_kpis`** — KPIs agregados por mês/empresa/supervisor/vendedor/UF:
-```sql
-SELECT 
-  EXTRACT(YEAR FROM data) AS ano,
-  EXTRACT(MONTH FROM data) AS mes,
-  id_empresa, supervisor, cod_vend, uf,
-  SUM(preco_venda * quantidade) AS receita_total,
-  COUNT(DISTINCT pedido) AS qtde_pedidos,
-  SUM(preco_venda * quantidade) / NULLIF(COUNT(DISTINCT pedido), 0) AS ticket_medio,
-  COUNT(DISTINCT cod_cliente) AS clientes_ativos,
-  SUM(quantidade) AS qtde_itens
-FROM vendas_union
-WHERE operacao = 'VENDA'
-GROUP BY ano, mes, id_empresa, supervisor, cod_vend, uf
-```
+5) Validação pós-migração
+- Validar existência dos dois objetos:
+  - tabela: `public."Union"`
+  - view compatível: `public.vendas_union`
+- Conferir contagem de linhas e amostra de colunas (`venda`, `preco_venda`, `quantidade`) idênticas.
+- Testar ingestão da edge function (`/vendas-union-api/sync`) para garantir insert OK.
+- Testar consultas dos dashboards para confirmar que nada quebrou.
 
-**`vw_receita_empresa`** — Receita por empresa/mês
-
-**`vw_ranking_supervisores`** — Receita + pedidos por supervisor/mês
-
-**`vw_ranking_vendedores`** — Receita + pedidos + clientes por vendedor/mês
-
-Todas as views são `CREATE VIEW` (não materializadas) para herdar automaticamente o RLS da tabela `vendas_union`.
-
-### Parte 2: Página do Dashboard
-
-**Rota**: `/dashboard/painel-executivo` (nova página, não substitui a home atual que é um redirect dinâmico)
-
-**Estrutura de arquivos**:
-```
-src/pages/PainelExecutivo.tsx              — Página principal
-src/hooks/useDashboardKPIs.ts             — Hook para KPI cards
-src/hooks/useReceitaEmpresa.ts            — Hook para gráfico por empresa
-src/hooks/useRankingSupervisores.ts        — Hook para ranking supervisores
-src/hooks/useRankingVendedores.ts          — Hook para ranking vendedores
-src/components/painel-executivo/
-  DashboardFilters.tsx                     — Barra de filtros (Ano, Mês, Empresa, Supervisor, Vendedor, UF, Marca)
-  KPICards.tsx                             — 6 cards com badges de tendência
-  ReceitaMensalChart.tsx                   — LineChart com área gradiente
-  ReceitaEmpresaChart.tsx                  — BarChart horizontal
-  RankingSupervisoresChart.tsx             — BarChart horizontal top 10
-  RankingVendedoresChart.tsx               — BarChart horizontal top 10
-```
-
-**Filtros**: Período (Ano + Mês multi-select), Empresa (do EmpresaContext), Supervisor, Vendedor, UF, Marca — todos atualizando queries via React Query.
-
-**KPI Cards** (6): Receita Total, Qtde Pedidos, Ticket Médio, Clientes Ativos, Mix Médio (itens/pedido), Positivação % — cada um com badge % vs mês anterior (verde/vermelho).
-
-**Gráficos** (Recharts): Evolução mensal (AreaChart 12 meses), Receita por empresa (horizontal bar), Top 10 supervisores, Top 10 vendedores — em grid 2x2.
-
-**Hooks**: Cada hook consulta a view correspondente filtrando pelo período/filtros selecionados, usando `fetchAllRows` para garantir todos os dados.
-
-### Parte 3: Sidebar e Rota
-
-- Nova rota `/dashboard/painel-executivo` em `App.tsx`
-- Novo item "Painel Executivo" no sidebar (ícone BarChart3) — visível para todos os usuários autenticados
-- Lazy load com `lazyWithRetry`
-
-### Decisão necessária
-
-O cálculo de receita deve usar `preco_venda * quantidade` (receita bruta) ou `preco_venda * quantidade - vl_desconto` (receita líquida)? E deve filtrar apenas `operacao = 'VENDA'` ou incluir todas as operações?
-
+Detalhes técnicos importantes
+- `Union` é palavra reservada SQL; por isso o nome físico será sempre com aspas: `public."Union"`.
+- A view de compatibilidade evita retrabalho imediato em dezenas de referências no código.
+- Não haverá alteração na lógica de receita nem em dados existentes; apenas nome físico + compatibilidade.
