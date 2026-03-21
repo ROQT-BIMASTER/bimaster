@@ -116,6 +116,13 @@ const PRESET_ENDPOINTS = [
   { label: "CR Omie — Cancelar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar-recebimento" },
   { label: "CR Omie — Conciliar", method: "POST" as HttpMethod, path: "/contas-receber-api/conciliar" },
   { label: "CR Omie — Cancelar", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar" },
+  // Boletos (Cobrança Bancária)
+  { label: "Boleto — Gerar", method: "POST" as HttpMethod, path: "/boletos-api/gerar" },
+  { label: "Boleto — Obter", method: "GET" as HttpMethod, path: "/boletos-api/obter?cCodIntTitulo=COLE_O_CODIGO" },
+  { label: "Boleto — Cancelar", method: "POST" as HttpMethod, path: "/boletos-api/cancelar" },
+  { label: "Boleto — Prorrogar", method: "POST" as HttpMethod, path: "/boletos-api/prorrogar" },
+  { label: "Boleto — Listar", method: "GET" as HttpMethod, path: "/boletos-api/listar?pagina=1&registros_por_pagina=20" },
+  { label: "Boleto — Status", method: "GET" as HttpMethod, path: "/boletos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
