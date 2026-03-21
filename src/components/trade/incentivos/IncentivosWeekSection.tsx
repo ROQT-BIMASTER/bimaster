@@ -56,7 +56,7 @@ export function IncentivosWeekSection() {
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
         >
-          <div className="relative w-full" style={{ aspectRatio: "3/1" }}>
+          <div className="relative w-full aspect-[2.5/1] sm:aspect-[3/1]">
             {banners.map((b, idx) => (
               <img
                 key={b.id}
@@ -117,7 +117,7 @@ export function IncentivosWeekSection() {
       )}
 
       {/* Cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {incentivos.map((incentivo) => {
           const progresso = progressos?.find(p => p.incentivo_id === incentivo.id);
           return (

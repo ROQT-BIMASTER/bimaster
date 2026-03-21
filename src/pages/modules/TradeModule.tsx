@@ -64,7 +64,7 @@ const TradeModule = () => {
     <DashboardLayout>
       <div className="space-y-5 sm:space-y-6 pb-20 sm:pb-6">
         {/* Header with pink gradient accent */}
-        <div className="rounded-2xl bg-gradient-to-r from-[hsl(340,80%,96%)] to-[hsl(280,60%,96%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(262,40%,12%)] p-5 sm:p-6" data-tour="trade-header">
+        <div className="rounded-2xl bg-gradient-to-r from-[hsl(340,80%,96%)] to-[hsl(280,60%,96%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(262,40%,12%)] p-4 sm:p-6" data-tour="trade-header">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] bg-clip-text text-transparent">
             Trade Marketing
           </h1>
@@ -141,7 +141,7 @@ const TradeModule = () => {
         {/* KPI Cards - Modernized with rounded corners */}
         <div>
           <TradeSectionHeader title="Visão Geral" subtitle="Dados do mês atual" />
-          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
+          <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
             <Link to="/dashboard/trade/stores">
               <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/30">
                 <CardContent className="p-4 sm:p-5">

@@ -67,15 +67,15 @@ export function DisplayHeroBanner() {
                 <img
                   src={d.foto_url}
                   alt={d.nome}
-                  className="w-full h-44 sm:h-52 object-cover rounded-2xl"
+                  className="w-full h-36 sm:h-52 object-cover rounded-2xl"
                 />
               ) : (
-                <div className="w-full h-44 sm:h-52 rounded-2xl bg-gradient-to-br from-[hsl(330,81%,60%)] to-[hsl(262,83%,58%)] flex items-center justify-center">
+                <div className="w-full h-36 sm:h-52 rounded-2xl bg-gradient-to-br from-[hsl(330,81%,60%)] to-[hsl(262,83%,58%)] flex items-center justify-center">
                   <Ruler className="h-12 w-12 text-white/40" />
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-2xl" />
-              <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
+              <div className="absolute bottom-2 left-3 right-3 sm:bottom-3 sm:left-4 sm:right-4 flex items-end justify-between">
                 <div>
                   <p className="text-white font-bold text-sm sm:text-base drop-shadow-md">{d.nome}</p>
                   {(d.largura_cm || d.altura_cm) && (

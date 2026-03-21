@@ -47,7 +47,7 @@ export function TradeHeroBanner() {
               <img
                 src={banner.imagem_url}
                 alt={banner.titulo}
-                className="w-full h-40 sm:h-48 object-cover rounded-2xl"
+                className="w-full h-36 sm:h-48 object-cover rounded-2xl"
               />
             </a>
           </div>
