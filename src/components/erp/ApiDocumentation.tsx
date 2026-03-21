@@ -592,6 +592,25 @@ const categoriasCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const parcelasCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir condição de parcelamento (IncluirParcela)", tag: "novo",
+    body: `{ "cParcela": "30/60/90" }`,
+    response: `{ "cCodStatus": "0", "cDesStatus": "Parcela incluída com sucesso!", "cCodParcela": "001", "cDesParcela": "30/60/90" }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar parcelas cadastradas (ListarParcelas)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50 }`,
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "apenas_importado_api", type: "string", required: false, description: "S para apenas importados via API" },
+      { name: "ordem_decrescente", type: "string", required: false, description: "S para ordem decrescente" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 3, "total_de_registros": 3, "cadastros": [{ "nCodigo": "001", "cDescricao": "À Vista", "nParcelas": 1 }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
 
 const orcamentosCaixaCrud: Endpoint[] = [
   {
@@ -1154,6 +1173,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Categorias
             </TabsTrigger>
+            <TabsTrigger value="parcelas" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Parcelas
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1363,6 +1386,16 @@ export default function ApiDocumentation() {
               basePath="/categorias-api"
               endpoints={categoriasCrud}
               description="Incluir, alterar, consultar e listar categorias e grupos totalizadores — formato Omie"
+            />
+          </TabsContent>
+
+          <TabsContent value="parcelas" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Parcelas — IncluirParcela + ListarParcelas (Padrão Omie)"
+              basePath="/parcelas-api"
+              endpoints={parcelasCrud}
+              description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
             />
           </TabsContent>
 

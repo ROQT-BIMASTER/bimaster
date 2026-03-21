@@ -226,6 +226,10 @@ const PRESET_ENDPOINTS = [
   { label: "Categorias — Consultar", method: "POST" as HttpMethod, path: "/categorias-api/consultar" },
   { label: "Categorias — Listar", method: "POST" as HttpMethod, path: "/categorias-api/listar" },
   { label: "Categorias — Status", method: "GET" as HttpMethod, path: "/categorias-api/status" },
+  // Parcelas (Condições de Pagamento)
+  { label: "Parcelas — Incluir", method: "POST" as HttpMethod, path: "/parcelas-api/incluir" },
+  { label: "Parcelas — Listar", method: "POST" as HttpMethod, path: "/parcelas-api/listar" },
+  { label: "Parcelas — Status", method: "GET" as HttpMethod, path: "/parcelas-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -325,6 +329,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/categorias-api/alterar-grupo": JSON.stringify({ codigo: "GRP-001", descricao: "Despesas Operacionais Atualizado" }, null, 2),
   "/categorias-api/consultar": JSON.stringify({ codigo: "CAT-001" }, null, 2),
   "/categorias-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, filtrar_apenas_ativo: "S", filtrar_por_tipo: "" }, null, 2),
+  // Parcelas
+  "/parcelas-api/incluir": JSON.stringify({ cParcela: "30/60/90" }, null, 2),
+  "/parcelas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
 };
 
 export default function ApiTester() {
