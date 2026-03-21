@@ -3684,84 +3684,195 @@ export type Database = {
       contas_bancarias: {
         Row: {
           agencia: string | null
+          bairro: string | null
           banco: string
+          bloqueado: boolean | null
+          bol_instr1: string | null
+          bol_instr2: string | null
+          bol_instr3: string | null
+          bol_instr4: string | null
+          bol_sn: boolean | null
+          cancinstr: string | null
+          cep_agencia: string | null
+          cidade_agencia: string | null
+          cnab_esp: string | null
+          cnpj_inst_financ: string | null
+          cobr_esp: string | null
+          cobr_sn: boolean | null
+          codigo_banco: string | null
           codigo_integracao: string | null
+          codigo_pais: string | null
+          complemento: string | null
           conta: string | null
           created_at: string | null
           data_alt: string | null
           data_inc: string | null
           data_saldo_inicial: string | null
+          ddd: string | null
+          descricao: string | null
+          dias_rcomp: number | null
           digito: string | null
+          email_gerente: string | null
           empresa_id: number | null
+          endereco_agencia: string | null
           enviado_erp: boolean
+          estado_agencia: string | null
           hora_alt: string | null
           hora_inc: string | null
           id: string
+          importado_api: boolean | null
           inativo: boolean
+          modalidade: string | null
+          n_cod_cc: number | null
+          nao_fluxo: boolean | null
+          nao_resumo: boolean | null
+          nome_gerente: string | null
           numero_conta: string | null
+          numero_endereco: string | null
+          observacao: string | null
+          per_juros: number | null
+          per_multa: number | null
           pix_key: string | null
+          pix_sn: boolean | null
           saldo_atual: number | null
           saldo_inicial: number | null
           status: string | null
+          telefone_gerente: string | null
           tipo: string | null
           tipo_conta: string | null
+          tipo_conta_corrente: string | null
           updated_at: string | null
           user_alt: string | null
           user_inc: string | null
+          valor_limite: number | null
         }
         Insert: {
           agencia?: string | null
+          bairro?: string | null
           banco: string
+          bloqueado?: boolean | null
+          bol_instr1?: string | null
+          bol_instr2?: string | null
+          bol_instr3?: string | null
+          bol_instr4?: string | null
+          bol_sn?: boolean | null
+          cancinstr?: string | null
+          cep_agencia?: string | null
+          cidade_agencia?: string | null
+          cnab_esp?: string | null
+          cnpj_inst_financ?: string | null
+          cobr_esp?: string | null
+          cobr_sn?: boolean | null
+          codigo_banco?: string | null
           codigo_integracao?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
           conta?: string | null
           created_at?: string | null
           data_alt?: string | null
           data_inc?: string | null
           data_saldo_inicial?: string | null
+          ddd?: string | null
+          descricao?: string | null
+          dias_rcomp?: number | null
           digito?: string | null
+          email_gerente?: string | null
           empresa_id?: number | null
+          endereco_agencia?: string | null
           enviado_erp?: boolean
+          estado_agencia?: string | null
           hora_alt?: string | null
           hora_inc?: string | null
           id?: string
+          importado_api?: boolean | null
           inativo?: boolean
+          modalidade?: string | null
+          n_cod_cc?: number | null
+          nao_fluxo?: boolean | null
+          nao_resumo?: boolean | null
+          nome_gerente?: string | null
           numero_conta?: string | null
+          numero_endereco?: string | null
+          observacao?: string | null
+          per_juros?: number | null
+          per_multa?: number | null
           pix_key?: string | null
+          pix_sn?: boolean | null
           saldo_atual?: number | null
           saldo_inicial?: number | null
           status?: string | null
+          telefone_gerente?: string | null
           tipo?: string | null
           tipo_conta?: string | null
+          tipo_conta_corrente?: string | null
           updated_at?: string | null
           user_alt?: string | null
           user_inc?: string | null
+          valor_limite?: number | null
         }
         Update: {
           agencia?: string | null
+          bairro?: string | null
           banco?: string
+          bloqueado?: boolean | null
+          bol_instr1?: string | null
+          bol_instr2?: string | null
+          bol_instr3?: string | null
+          bol_instr4?: string | null
+          bol_sn?: boolean | null
+          cancinstr?: string | null
+          cep_agencia?: string | null
+          cidade_agencia?: string | null
+          cnab_esp?: string | null
+          cnpj_inst_financ?: string | null
+          cobr_esp?: string | null
+          cobr_sn?: boolean | null
+          codigo_banco?: string | null
           codigo_integracao?: string | null
+          codigo_pais?: string | null
+          complemento?: string | null
           conta?: string | null
           created_at?: string | null
           data_alt?: string | null
           data_inc?: string | null
           data_saldo_inicial?: string | null
+          ddd?: string | null
+          descricao?: string | null
+          dias_rcomp?: number | null
           digito?: string | null
+          email_gerente?: string | null
           empresa_id?: number | null
+          endereco_agencia?: string | null
           enviado_erp?: boolean
+          estado_agencia?: string | null
           hora_alt?: string | null
           hora_inc?: string | null
           id?: string
+          importado_api?: boolean | null
           inativo?: boolean
+          modalidade?: string | null
+          n_cod_cc?: number | null
+          nao_fluxo?: boolean | null
+          nao_resumo?: boolean | null
+          nome_gerente?: string | null
           numero_conta?: string | null
+          numero_endereco?: string | null
+          observacao?: string | null
+          per_juros?: number | null
+          per_multa?: number | null
           pix_key?: string | null
+          pix_sn?: boolean | null
           saldo_atual?: number | null
           saldo_inicial?: number | null
           status?: string | null
+          telefone_gerente?: string | null
           tipo?: string | null
           tipo_conta?: string | null
+          tipo_conta_corrente?: string | null
           updated_at?: string | null
           user_alt?: string | null
           user_inc?: string | null
+          valor_limite?: number | null
         }
         Relationships: [
           {

@@ -1,0 +1,45 @@
+
+-- Expand contas_bancarias with Omie-compatible fields
+ALTER TABLE public.contas_bancarias
+  ADD COLUMN IF NOT EXISTS descricao VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS tipo_conta_corrente VARCHAR(2),
+  ADD COLUMN IF NOT EXISTS codigo_banco VARCHAR(3),
+  ADD COLUMN IF NOT EXISTS valor_limite NUMERIC(15,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS nao_fluxo BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS nao_resumo BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS observacao TEXT,
+  ADD COLUMN IF NOT EXISTS cobr_sn BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS per_juros NUMERIC(5,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS per_multa NUMERIC(5,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS bol_instr1 VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS bol_instr2 VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS bol_instr3 VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS bol_instr4 VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS bol_sn BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS pix_sn BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS cnab_esp VARCHAR(2),
+  ADD COLUMN IF NOT EXISTS cobr_esp VARCHAR(3),
+  ADD COLUMN IF NOT EXISTS dias_rcomp INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS modalidade VARCHAR(3),
+  ADD COLUMN IF NOT EXISTS cancinstr VARCHAR(3),
+  ADD COLUMN IF NOT EXISTS importado_api BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS bloqueado BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS cnpj_inst_financ VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS nome_gerente VARCHAR(40),
+  ADD COLUMN IF NOT EXISTS ddd VARCHAR(5),
+  ADD COLUMN IF NOT EXISTS telefone_gerente VARCHAR(15),
+  ADD COLUMN IF NOT EXISTS email_gerente VARCHAR(200),
+  ADD COLUMN IF NOT EXISTS endereco_agencia VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS numero_endereco VARCHAR(5),
+  ADD COLUMN IF NOT EXISTS bairro VARCHAR(60),
+  ADD COLUMN IF NOT EXISTS complemento VARCHAR(15),
+  ADD COLUMN IF NOT EXISTS estado_agencia VARCHAR(2),
+  ADD COLUMN IF NOT EXISTS cidade_agencia VARCHAR(40),
+  ADD COLUMN IF NOT EXISTS cep_agencia VARCHAR(9),
+  ADD COLUMN IF NOT EXISTS codigo_pais VARCHAR(4),
+  ADD COLUMN IF NOT EXISTS n_cod_cc BIGINT;
+
+-- Unique constraint for upsert by integration code
+CREATE UNIQUE INDEX IF NOT EXISTS idx_contas_bancarias_empresa_codigo_integracao
+  ON public.contas_bancarias (empresa_id, codigo_integracao)
+  WHERE codigo_integracao IS NOT NULL;
