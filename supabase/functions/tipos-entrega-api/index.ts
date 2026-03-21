@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
     }
 
     // Auth
-    await validateApiKey(req);
+    const auth = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "tipos-entrega", limit: 60, req, userId: auth.userId });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
