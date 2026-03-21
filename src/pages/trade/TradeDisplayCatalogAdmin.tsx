@@ -51,6 +51,45 @@ const TradeDisplayCatalogAdmin = () => {
     setDeleteTarget(null);
   };
 
+  const handleBulkOptimize = async () => {
+    const withImages = displays.filter((d) => d.foto_url);
+    if (!withImages.length) {
+      toast.info("Nenhum display com imagem para otimizar");
+      return;
+    }
+
+    setBulkOptimizing(true);
+    let success = 0;
+    let failed = 0;
+
+    for (const d of withImages) {
+      try {
+        toast.info(`🤖 Otimizando ${d.nome}...`);
+        const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+          body: { imageUrl: d.foto_url },
+        });
+        if (error || !data?.optimizedImage) { failed++; continue; }
+
+        const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "image/png" });
+
+        const path = `displays/${Date.now()}_opt_${d.id.slice(0, 8)}.png`;
+        const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
+        if (upErr) { failed++; continue; }
+
+        const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
+        await updateDisplay.mutateAsync({ id: d.id, foto_url: urlData.publicUrl });
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setBulkOptimizing(false);
+    toast.success(`✨ ${success} otimizados${failed ? `, ${failed} falharam` : ""}`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
