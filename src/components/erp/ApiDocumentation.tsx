@@ -1104,6 +1104,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="origens" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Origens de Lançamento — ListarOrigem (Padrão Omie)"
+              basePath="/origens-api"
+              endpoints={origensCrud}
+              description="Listagem de origens de lançamento com filtro por código"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}

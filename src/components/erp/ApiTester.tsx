@@ -170,6 +170,10 @@ const PRESET_ENDPOINTS = [
   { label: "Final. Transf. — Consultar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/consultar?codigo=01" },
   { label: "Final. Transf. — Listar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/listar?pagina=1&registros_por_pagina=50" },
   { label: "Final. Transf. — Status", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/status" },
+  // Origens de Lançamento (ListarOrigem)
+  { label: "Origens — Listar Todas", method: "POST" as HttpMethod, path: "/origens-api/listar" },
+  { label: "Origens — Listar por Código", method: "POST" as HttpMethod, path: "/origens-api/listar" },
+  { label: "Origens — Status", method: "GET" as HttpMethod, path: "/origens-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
