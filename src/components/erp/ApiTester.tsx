@@ -304,6 +304,12 @@ const BODY_TEMPLATES: Record<string, string> = {
   // Empresas
   "/empresas-api/consultar": JSON.stringify({ codigo_empresa: 8 }, null, 2),
   "/empresas-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 100 }, null, 2),
+  // Departamentos
+  "/departamentos-api/incluir": JSON.stringify({ codigo: "000000000723648", descricao: "Marketing Digital" }, null, 2),
+  "/departamentos-api/alterar": JSON.stringify({ codigo: "000000000723648", descricao: "Marketing Digital Atualizado" }, null, 2),
+  "/departamentos-api/consultar": JSON.stringify({ codigo: "000000000723648" }, null, 2),
+  "/departamentos-api/excluir": JSON.stringify({ codigo: "000000000723648" }, null, 2),
+  "/departamentos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50 }, null, 2),
 };
 
 export default function ApiTester() {
