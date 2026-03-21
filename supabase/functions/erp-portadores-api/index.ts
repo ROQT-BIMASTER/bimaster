@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         response_status: statusCode,
         success: statusCode >= 200 && statusCode < 300,
         duration_ms: Date.now() - startMs,
-        empresa_id: empresaId,
+        empresa_id: empresaIdNum,
       });
     } catch (e) {
       console.error("Failed to log sync:", e);
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from("portadores")
         .select("id, nome, banco_codigo, banco_nome, agencia, conta, tipo, codigo_erp")
-        .eq("empresa_id", empresaId)
+        .eq("empresa_id", empresaIdNum)
         .eq("ativo", true)
         .order("nome");
 
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       }
 
       const rows = body.portadores.map((p: any) => ({
-        empresa_id: empresaId,
+        empresa_id: empresaIdNum,
         codigo_erp: p.codigo_erp,
         nome: p.nome,
         banco_codigo: p.banco_codigo || null,
