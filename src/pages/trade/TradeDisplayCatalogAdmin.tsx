@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, Pencil, Copy } from "lucide-react";
+import { Plus, ArrowLeft, Wand2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTradeDisplays, useDeleteDisplay, useCreateDisplay, TradeDisplay } from "@/hooks/useTradeDisplays";
+import { useTradeDisplays, useDeleteDisplay, useCreateDisplay, useUpdateDisplay, TradeDisplay } from "@/hooks/useTradeDisplays";
 import { DisplayCatalogGrid } from "@/components/trade/displays/DisplayCatalogGrid";
 import { DisplayFormDialog } from "@/components/trade/displays/DisplayFormDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 
 const TradeDisplayCatalogAdmin = () => {
   const { data: displays = [], isLoading } = useTradeDisplays();
