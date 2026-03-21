@@ -1,70 +1,60 @@
 
 
-# API Finalidades de Transferência (ConsultarFinalTransf + ListarFinalTransf) — Padronização Omie
+# API Origens de Lançamento (ListarOrigem) — Padronização Omie
 
 ## Resumo
 
-Criar nova Edge Function `finalidades-transferencia-api` com 2 rotas Omie. Usa tabela `finalidades_transferencia` existente (id, codigo, descricao, ativo). A tabela não possui coluna `banco` — o campo será retornado como string vazia por padrão (a finalidade se aplica a todos os bancos).
+Criar nova Edge Function `origens-api` com 1 rota seguindo o padrão Omie `ListarOrigem`. Usa tabela `origens_titulo` existente (id, codigo, descricao, ativo). Sem nova tabela.
 
-## 1. Nova Edge Function: `finalidades-transferencia-api`
-
-Sem nova tabela.
+## 1. Nova Edge Function: `origens-api`
 
 | Método | Rota | Equivalente Omie | Descrição |
 |---|---|---|---|
-| GET | `/consultar?codigo=01&banco=` | ConsultarFinalTransf | Consulta finalidade por código |
-| GET | `/listar?pagina=1&registros_por_pagina=50` | ListarFinalTransf | Lista paginada |
+| POST | `/listar` | ListarOrigem | Lista origens de lançamento (filtro por código) |
 | GET | `/status` | — | Health check |
 
-### GET /consultar
+### POST /listar
 
-Query params: `codigo` (obrigatório), `banco` (opcional, ignorado — sem coluna banco na tabela).
-
-Resposta (`cadastros`):
+**Body (`origem_lanc_listar_request`):**
 ```json
-{
-  "banco": "",
-  "codigo": "01",
-  "descricao": "Crédito em Conta"
-}
+{ "codigo": "" }
 ```
+- `codigo` vazio ou ausente → retorna todas as origens ativas
+- `codigo` preenchido → filtra com `ilike`
 
-### GET /listar
-
-Query params: `pagina`, `registros_por_pagina`, `filtrar_por_banco` (aceito mas ignorado).
-
-Resposta (`final_transf_list_response`):
+**Resposta (`origem_lanc_listar_response`):**
 ```json
 {
   "pagina": 1,
   "total_de_paginas": 1,
-  "registros": 8,
-  "total_de_registros": 8,
-  "cadastros": [
-    { "banco": "", "codigo": "01", "descricao": "Crédito em Conta" }
+  "registros": 6,
+  "total_de_registros": 6,
+  "origem": [
+    { "codigo": "MANUAL", "descricao": "Lançamento Manual" },
+    { "codigo": "API", "descricao": "Importado via API" }
   ]
 }
 ```
 
-Mapeamento: `codigo` → `codigo`, `descricao` → `descricao`, `banco` → `""` (não disponível).
+Mapeamento direto: `codigo` → `codigo`, `descricao` → `descricao`.
 
 Autenticação: `validateApiKey`.
 
 ## 2. Documentação
 
-Novo `docs/API_FINALIDADES_TRANSFERENCIA.md`.
+Novo `docs/API_ORIGENS.md`.
 
 ## 3. API Tester & Portal
 
-- Presets no `ApiTester.tsx` (Consultar Finalidade, Listar Finalidades)
+- Presets no `ApiTester.tsx` (Listar Origens, Listar por Código)
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/finalidades-transferencia-api/index.ts` | Criar |
-| `docs/API_FINALIDADES_TRANSFERENCIA.md` | Criar |
+| `supabase/functions/origens-api/index.ts` | Criar |
+| `docs/API_ORIGENS.md` | Criar |
 | `src/components/erp/ApiTester.tsx` | Editar — presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
