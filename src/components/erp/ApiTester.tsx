@@ -160,6 +160,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: 0 }, null, 2),
   "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: 0 }, null, 2),
   "/contas-receber-api/cancelar": JSON.stringify({ chave_lancamento: 0 }, null, 2),
+  // Boletos
+  "/boletos-api/gerar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", nPerJuros: 2.0, nPerMulta: 2.0 }, null, 2),
+  "/boletos-api/cancelar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001" }, null, 2),
+  "/boletos-api/prorrogar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", dDtVenc: "30/04/2026" }, null, 2),
 };
 
 export default function ApiTester() {
