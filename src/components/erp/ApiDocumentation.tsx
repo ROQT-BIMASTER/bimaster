@@ -74,25 +74,68 @@ const contasPagarCrud: Endpoint[] = [
   },
 ];
 
-const contasPagarComplementar: Endpoint[] = [
+const contasPagarOmie: Endpoint[] = [
   {
-    method: "GET", path: "/parcelas", description: "Consulta parcelas de um título",
-    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
+    method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaPagar)", tag: "novo",
+    params: [
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
+      { name: "codigo_lancamento_omie", type: "integer", required: false, description: "Código numérico Omie" },
+    ],
+    response: `{ "conta_pagar_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "INT-001", "valor_original": 100, ... } }`,
   },
   {
-    method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)",
-    body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }`,
+    method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
+    response: `{ "codigo_lancamento_omie": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
-    method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título",
-    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
+    method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
+    response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
   },
   {
-    method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo",
-    body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`,
+    method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a pagar (ExcluirContaPagar)", tag: "novo",
+    params: [
+      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+    ],
   },
-  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título" },
-  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento" },
+  {
+    method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+  },
+  {
+    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
+    body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "valor_documento": 100 }] }`,
+    response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
+  },
+  {
+    method: "POST", path: "/lancar-pagamento", description: "Efetuar baixa de pagamento (LancarPagamento)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
+    response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento)", tag: "novo",
+    body: `{ "codigo_baixa": "uuid-pagamento" }`,
+    response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listagem paginada Omie-style (ListarContasPagar)", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
+      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" },
+      { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
+      { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
+      { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
+      { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
+      { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_pagar_cadastro": [...] }`,
+  },
 ];
 
 const exportPull: Endpoint[] = [
