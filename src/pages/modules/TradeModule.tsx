@@ -59,43 +59,6 @@ const TradeModule = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const secondaryModules = {
-    ...(hasPermission("trade_admin") ? {
-      "Administrativo": [
-        { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
-        { title: "Central de Aprovações", to: "/dashboard/trade/aprovacoes", icon: Shield, color: "text-green-600", isNew: true },
-      ],
-    } : {}),
-    "Cadastros e Configurações": [
-      { title: "Redes", to: "/dashboard/trade/store-chains", icon: Building, color: "text-blue-600" },
-      { title: "Nossas Marcas", to: "/dashboard/trade/our-brands", icon: Award, color: "text-amber-600" },
-      { title: "Fotos Ideais", to: "/dashboard/trade/ideal-photos", icon: Image, color: "text-indigo-600" },
-    ],
-    "Execução e Auditoria": [
-      { title: "Auditorias", to: "/dashboard/trade/auditorias", icon: Shield, color: "text-red-600" },
-      { title: "Medições", to: "/dashboard/trade/shelf-measurements", icon: Ruler, color: "text-cyan-600" },
-      { title: "Calendário", to: "/dashboard/trade/calendar", icon: MapPin, color: "text-orange-600" },
-    ],
-    ...(isAdmin ? {
-      "Inteligência Competitiva": [
-        { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
-        { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
-        { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
-      ],
-    } : {}),
-    ...(isAdmin ? {
-      "Performance e Vendas": [
-        { title: "Minha Equipe", to: "/dashboard/trade/minha-equipe", icon: Users, color: "text-indigo-600", isNew: true },
-        { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
-        { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
-        { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
-      ],
-      "Gamificação": [
-        { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
-        { title: "Recompensas", to: "/dashboard/trade/rewards", icon: Award, color: "text-green-600" },
-      ],
-    } : {}),
-  };
 
   return (
     <DashboardLayout>
