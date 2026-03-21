@@ -447,6 +447,7 @@ function AppContent() {
             <Route path="/dashboard/trade/performance" element={<ModuleRoute moduleCode="trade"><TradePerformance /></ModuleRoute>} />
             <Route path="/dashboard/trade/team-performance" element={<ModuleRoute moduleCode="trade"><TradeTeamPerformance /></ModuleRoute>} />
             <Route path="/dashboard/trade/rewards" element={<ModuleRoute moduleCode="trade"><TradeRewards /></ModuleRoute>} />
+            <Route path="/dashboard/trade/minhas-solicitacoes" element={<ModuleRoute moduleCode="trade"><MinhasSolicitacoes /></ModuleRoute>} />
 
             {/* Módulo de Eventos Corporativos */}
             <Route path="/dashboard/eventos" element={<ModuleRoute moduleCode="eventos"><CorporateEvents /></ModuleRoute>} />

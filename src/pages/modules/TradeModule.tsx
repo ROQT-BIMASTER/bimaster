@@ -211,6 +211,18 @@ const TradeModule = () => {
           </div>
         </div>
 
+        {/* Minhas Solicitações */}
+        <Button
+          asChild
+          variant="outline"
+          className="w-full h-12 gap-2 rounded-xl border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:hover:bg-amber-900 dark:text-amber-400"
+        >
+          <Link to="/dashboard/trade/minhas-solicitacoes">
+            <ClipboardList className="h-5 w-5" />
+            <span className="font-semibold">Minhas Solicitações</span>
+          </Link>
+        </Button>
+
         {/* Incentivos da Semana */}
         <IncentivosWeekSection />
 
