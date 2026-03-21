@@ -577,6 +577,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
   const tradeSubMenus = [
     { title: t("trade.admin"), url: "/dashboard/trade/admin", icon: Settings, screenCode: "trade_admin" },
+    { title: "Banners", url: "/dashboard/trade/admin/banners", icon: Image, screenCode: "trade_admin" },
+    { title: "Incentivos", url: "/dashboard/trade/admin/incentivos", icon: Trophy, screenCode: "trade_admin" },
     { title: t("trade.my_team"), url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "TRADE_DASHBOARD", requireAdminOrSupervisor: true },
     { title: t("trade.pdvs"), url: "/dashboard/trade/stores", icon: Store, screenCode: "TRADE_LOJAS" },
     { title: t("trade.visits"), url: "/dashboard/trade/visits", icon: Calendar, screenCode: "TRADE_VISITAS" },
