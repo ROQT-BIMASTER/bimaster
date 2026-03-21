@@ -14027,6 +14027,7 @@ export type Database = {
         Row: {
           ano_pib: number | null
           ano_populacao: number | null
+          codigo_siafi: number | null
           id: number
           mesorregiao_id: number | null
           mesorregiao_nome: string | null
@@ -14044,6 +14045,7 @@ export type Database = {
         Insert: {
           ano_pib?: number | null
           ano_populacao?: number | null
+          codigo_siafi?: number | null
           id: number
           mesorregiao_id?: number | null
           mesorregiao_nome?: string | null
@@ -14061,6 +14063,7 @@ export type Database = {
         Update: {
           ano_pib?: number | null
           ano_populacao?: number | null
+          codigo_siafi?: number | null
           id?: number
           mesorregiao_id?: number | null
           mesorregiao_nome?: string | null

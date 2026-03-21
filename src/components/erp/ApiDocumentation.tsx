@@ -640,6 +640,24 @@ const cnaeCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const cidadesCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Pesquisar cidades brasileiras com paginação (PesquisarCidades)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 50, "filtrar_cidade_contendo": "PAULO", "filtrar_por_uf": "SP" }`,
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (default: 50, máx: 500)" },
+      { name: "filtrar_cidade_contendo", type: "string", required: false, description: "Filtro parcial por nome da cidade (ILIKE)" },
+      { name: "filtrar_por_uf", type: "string(2)", required: false, description: "Filtro por UF (ex: SP)" },
+      { name: "filtrar_por_cidade", type: "string", required: false, description: "Filtro exato por cCod (ex: SAO PAULO (SP))" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo: nome (default)" },
+      { name: "ordem_descrescente", type: "string(1)", required: false, description: "S para ordem decrescente" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 112, "registros": 50, "total_de_registros": 5570, "lista_cidades": [{ "cCod": "SAO PAULO (SP)", "cNome": "São Paulo", "cUF": "SP", "nCodIBGE": "3550308", "nCodSIAFI": 7107 }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
@@ -1213,6 +1231,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               CNAE
             </TabsTrigger>
+            <TabsTrigger value="cidades" className="text-xs gap-1.5">
+              <Search className="h-3.5 w-3.5" />
+              Cidades
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1452,6 +1474,16 @@ export default function ApiDocumentation() {
               basePath="/cnae-api"
               endpoints={cnaeCrud}
               description="Lista paginada de códigos CNAE com ordenação"
+            />
+          </TabsContent>
+
+          <TabsContent value="cidades" className="space-y-1">
+            <ApiSection
+              icon={<Search className="h-4 w-4 text-primary" />}
+              title="Cidades — PesquisarCidades (Padrão Omie)"
+              basePath="/cidades-api"
+              endpoints={cidadesCrud}
+              description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
             />
           </TabsContent>
 
