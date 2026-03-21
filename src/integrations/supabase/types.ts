@@ -3888,23 +3888,40 @@ export type Database = {
         Row: {
           ativo_dre: boolean | null
           baixa_origem: string | null
+          baixar_documento: boolean | null
+          bloqueado: boolean | null
+          bloquear_exclusao: boolean | null
           categoria_codigo: string | null
           categoria_nome: string | null
+          chave_nfe: string | null
           classificacao_corrigida_em: string | null
           classificacao_corrigida_por: string | null
           classificacao_justificativa: string | null
           classificacao_manual: boolean | null
           classificado_automaticamente: boolean | null
           classificado_em: string | null
+          cnab_dados: Json | null
+          codigo_baixa_integracao: string | null
+          codigo_barras_ficha_compensacao: string | null
+          codigo_cliente_fornecedor: number | null
+          codigo_cliente_fornecedor_integracao: string | null
           codigo_integracao: string | null
+          codigo_lancamento_integracao: string | null
+          codigo_lancamento_omie: number | null
+          codigo_projeto: number | null
+          codigo_tipo_documento: string | null
+          codigo_vendedor: number | null
+          conciliar_documento: boolean | null
           confianca_classificacao: number | null
           conta: string | null
           created_at: string | null
           data_baixa: string | null
           data_competencia: string | null
           data_emissao: string | null
+          data_entrada: string | null
           data_hash: string | null
           data_pagamento: string | null
+          data_previsao: string | null
           data_vencimento: string | null
           departamento_id: string | null
           departamento_nome: string | null
@@ -3914,9 +3931,15 @@ export type Database = {
           fornecedor_codigo: string | null
           fornecedor_nome: string | null
           id: string
+          id_conta_corrente: number | null
+          id_origem: string | null
           importado_api: boolean | null
           numero_documento: string | null
+          numero_documento_fiscal: string | null
           numero_parcela: number | null
+          numero_parcela_omie: string | null
+          numero_pedido: string | null
+          operacao: string | null
           parcela: number | null
           plano_contas_codigo: string | null
           plano_contas_id: string | null
@@ -3925,38 +3948,72 @@ export type Database = {
           portador: string | null
           portador_codigo_erp: string | null
           portador_id: string | null
+          rateio_categorias: Json | null
+          rateio_departamentos: Json | null
+          retem_cofins: boolean | null
+          retem_csll: boolean | null
+          retem_inss: boolean | null
+          retem_ir: boolean | null
+          retem_iss: boolean | null
+          retem_pis: boolean | null
+          servico_tomado: Json | null
           sincronizado_em: string | null
           status: string | null
+          status_titulo: string | null
           tipo_documento: string | null
           total_parcelas: number | null
+          total_parcelas_omie: number | null
           updated_at: string | null
           valor_aberto: number | null
           valor_ajustes: number | null
+          valor_cofins: number | null
+          valor_csll: number | null
           valor_desconto: number | null
+          valor_inss: number | null
+          valor_ir: number | null
+          valor_iss: number | null
           valor_juros: number | null
           valor_original: number | null
           valor_pago: number | null
+          valor_pis: number | null
         }
         Insert: {
           ativo_dre?: boolean | null
           baixa_origem?: string | null
+          baixar_documento?: boolean | null
+          bloqueado?: boolean | null
+          bloquear_exclusao?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          chave_nfe?: string | null
           classificacao_corrigida_em?: string | null
           classificacao_corrigida_por?: string | null
           classificacao_justificativa?: string | null
           classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
+          cnab_dados?: Json | null
+          codigo_baixa_integracao?: string | null
+          codigo_barras_ficha_compensacao?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_cliente_fornecedor_integracao?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_integracao?: string | null
+          codigo_lancamento_omie?: number | null
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          conciliar_documento?: boolean | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
           data_baixa?: string | null
           data_competencia?: string | null
           data_emissao?: string | null
+          data_entrada?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
+          data_previsao?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
           departamento_nome?: string | null
@@ -3966,9 +4023,15 @@ export type Database = {
           fornecedor_codigo?: string | null
           fornecedor_nome?: string | null
           id?: string
+          id_conta_corrente?: number | null
+          id_origem?: string | null
           importado_api?: boolean | null
           numero_documento?: string | null
+          numero_documento_fiscal?: string | null
           numero_parcela?: number | null
+          numero_parcela_omie?: string | null
+          numero_pedido?: string | null
+          operacao?: string | null
           parcela?: number | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
@@ -3977,38 +4040,72 @@ export type Database = {
           portador?: string | null
           portador_codigo_erp?: string | null
           portador_id?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
+          retem_cofins?: boolean | null
+          retem_csll?: boolean | null
+          retem_inss?: boolean | null
+          retem_ir?: boolean | null
+          retem_iss?: boolean | null
+          retem_pis?: boolean | null
+          servico_tomado?: Json | null
           sincronizado_em?: string | null
           status?: string | null
+          status_titulo?: string | null
           tipo_documento?: string | null
           total_parcelas?: number | null
+          total_parcelas_omie?: number | null
           updated_at?: string | null
           valor_aberto?: number | null
           valor_ajustes?: number | null
+          valor_cofins?: number | null
+          valor_csll?: number | null
           valor_desconto?: number | null
+          valor_inss?: number | null
+          valor_ir?: number | null
+          valor_iss?: number | null
           valor_juros?: number | null
           valor_original?: number | null
           valor_pago?: number | null
+          valor_pis?: number | null
         }
         Update: {
           ativo_dre?: boolean | null
           baixa_origem?: string | null
+          baixar_documento?: boolean | null
+          bloqueado?: boolean | null
+          bloquear_exclusao?: boolean | null
           categoria_codigo?: string | null
           categoria_nome?: string | null
+          chave_nfe?: string | null
           classificacao_corrigida_em?: string | null
           classificacao_corrigida_por?: string | null
           classificacao_justificativa?: string | null
           classificacao_manual?: boolean | null
           classificado_automaticamente?: boolean | null
           classificado_em?: string | null
+          cnab_dados?: Json | null
+          codigo_baixa_integracao?: string | null
+          codigo_barras_ficha_compensacao?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_cliente_fornecedor_integracao?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_integracao?: string | null
+          codigo_lancamento_omie?: number | null
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          conciliar_documento?: boolean | null
           confianca_classificacao?: number | null
           conta?: string | null
           created_at?: string | null
           data_baixa?: string | null
           data_competencia?: string | null
           data_emissao?: string | null
+          data_entrada?: string | null
           data_hash?: string | null
           data_pagamento?: string | null
+          data_previsao?: string | null
           data_vencimento?: string | null
           departamento_id?: string | null
           departamento_nome?: string | null
@@ -4018,9 +4115,15 @@ export type Database = {
           fornecedor_codigo?: string | null
           fornecedor_nome?: string | null
           id?: string
+          id_conta_corrente?: number | null
+          id_origem?: string | null
           importado_api?: boolean | null
           numero_documento?: string | null
+          numero_documento_fiscal?: string | null
           numero_parcela?: number | null
+          numero_parcela_omie?: string | null
+          numero_pedido?: string | null
+          operacao?: string | null
           parcela?: number | null
           plano_contas_codigo?: string | null
           plano_contas_id?: string | null
@@ -4029,17 +4132,34 @@ export type Database = {
           portador?: string | null
           portador_codigo_erp?: string | null
           portador_id?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
+          retem_cofins?: boolean | null
+          retem_csll?: boolean | null
+          retem_inss?: boolean | null
+          retem_ir?: boolean | null
+          retem_iss?: boolean | null
+          retem_pis?: boolean | null
+          servico_tomado?: Json | null
           sincronizado_em?: string | null
           status?: string | null
+          status_titulo?: string | null
           tipo_documento?: string | null
           total_parcelas?: number | null
+          total_parcelas_omie?: number | null
           updated_at?: string | null
           valor_aberto?: number | null
           valor_ajustes?: number | null
+          valor_cofins?: number | null
+          valor_csll?: number | null
           valor_desconto?: number | null
+          valor_inss?: number | null
+          valor_ir?: number | null
+          valor_iss?: number | null
           valor_juros?: number | null
           valor_original?: number | null
           valor_pago?: number | null
+          valor_pis?: number | null
         }
         Relationships: [
           {
