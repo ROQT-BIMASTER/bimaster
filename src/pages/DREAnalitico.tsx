@@ -311,45 +311,44 @@ export default function DREAnalitico() {
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
     ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, regimeAnalise],
     async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select(`*, departamento:departamentos(id, nome)`);
-      
-      // Para regime de caixa, filtra por data_pagamento e status pago
-      // Para regime de competência, filtra por data_vencimento
-      if (regimeAnalise === 'caixa') {
-        query = query
-          .eq('status', 'pago')
-          .gte('data_pagamento', dataInicio)
-          .lte('data_pagamento', dataFim);
-      } else {
-        query = query
-          .gte('data_vencimento', dataInicio)
-          .lte('data_vencimento', dataFim);
-      }
-      
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      if (filterDepartamento !== 'todos') {
-        query = query.eq('departamento_id', filterDepartamento);
-      }
-      
-      if (filterConta !== 'todas') {
-        query = query.eq('plano_contas_id', filterConta);
-      }
-      
-      if (!mostrarInativos) {
-        query = query.neq('ativo_dre', false);
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        'contas_pagar',
+        '*, departamento:departamentos(id, nome)',
+        (query: any) => {
+          if (regimeAnalise === 'caixa') {
+            query = query
+              .eq('status', 'pago')
+              .gte('data_pagamento', dataInicio)
+              .lte('data_pagamento', dataFim);
+          } else {
+            query = query
+              .gte('data_vencimento', dataInicio)
+              .lte('data_vencimento', dataFim);
+          }
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          if (filterDepartamento !== 'todos') {
+            query = query.eq('departamento_id', filterDepartamento);
+          }
+          
+          if (filterConta !== 'todas') {
+            query = query.eq('plano_contas_id', filterConta);
+          }
+          
+          if (!mostrarInativos) {
+            query = query.neq('ativo_dre', false);
+          }
+          
+          return query;
+        }
+      );
       
       return data;
     },
-    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
 
   // Aplicar filtro de descrição/fornecedor via useMemo (filtragem instantânea)
