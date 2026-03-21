@@ -1031,6 +1031,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="tipos-doc" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento (Padrão Omie)"
+              basePath="/tipos-documento-api"
+              endpoints={tiposDocumentoCrud}
+              description="Consulta e pesquisa de tipos de documento cadastrados"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
