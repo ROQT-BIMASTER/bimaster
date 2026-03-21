@@ -88,7 +88,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
 
       let vendasQuery = supabase
         .from("vendas_union")
-        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos,vendedor,supervisor,id_empresa,uf")
+        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vendedor,supervisor,id_empresa,uf")
         .gte("data", startDate)
         .lte("data", endDate);
       if (empresaIds.length > 0) vendasQuery = vendasQuery.in("id_empresa", empresaIds);
