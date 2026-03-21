@@ -67,7 +67,7 @@ export function DisplayHeroBanner() {
                 <img
                   src={d.foto_url}
                   alt={d.nome}
-                  className="w-full h-44 sm:h-52 object-cover rounded-2xl"
+                  className="w-full h-36 sm:h-52 object-cover rounded-2xl"
                 />
               ) : (
                 <div className="w-full h-44 sm:h-52 rounded-2xl bg-gradient-to-br from-[hsl(330,81%,60%)] to-[hsl(262,83%,58%)] flex items-center justify-center">
