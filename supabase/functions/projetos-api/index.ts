@@ -82,7 +82,8 @@ Deno.serve(async (req) => {
 
   try {
     // Auth
-    const { empresaId } = await validateApiKey(req);
+    const { empresaId } = await validateAnyAuth(req);
+    await checkRateLimit({ prefix: "projetos", limit: 60, req });
     const supabase = getSupabase();
 
     if (req.method !== "POST") {
