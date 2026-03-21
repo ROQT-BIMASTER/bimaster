@@ -20,7 +20,7 @@ import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/compon
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
-import { TradeSearchBar } from "@/components/trade/ui/TradeSearchBar";
+import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 
