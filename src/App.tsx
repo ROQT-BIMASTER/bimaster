@@ -74,6 +74,8 @@ const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
 const DetalhamentoVendas = lazyWithRetry(() => import("./pages/DetalhamentoVendas"));
+const AnaliseGeografico = lazyWithRetry(() => import("./pages/AnaliseGeografico"));
+const AnaliseProdutos = lazyWithRetry(() => import("./pages/AnaliseProdutos"));
 const ImportarClientes = lazyWithRetry(() => import("./pages/ImportarClientes"));
 const Auditoria = lazyWithRetry(() => import("./pages/Auditoria"));
 const Kanban = lazyWithRetry(() => import("./pages/Kanban"));
@@ -486,6 +488,8 @@ function AppContent() {
             <Route path="/dashboard/performance-vendas" element={<ProtectedRoute><PerformanceVendas /></ProtectedRoute>} />
             <Route path="/dashboard/clientes" element={<ProtectedRoute><AnaliseClientes /></ProtectedRoute>} />
             <Route path="/dashboard/detalhamento" element={<ProtectedRoute><DetalhamentoVendas /></ProtectedRoute>} />
+            <Route path="/dashboard/geografico" element={<ProtectedRoute><AnaliseGeografico /></ProtectedRoute>} />
+            <Route path="/dashboard/produtos" element={<ProtectedRoute><AnaliseProdutos /></ProtectedRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />

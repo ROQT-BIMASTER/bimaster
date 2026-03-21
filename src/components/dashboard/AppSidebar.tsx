@@ -1085,6 +1085,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
               <MenuItemLink to="/dashboard/clientes" icon={UserCheck} title="Clientes" />
               <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" />
+              <MenuItemLink to="/dashboard/geografico" icon={Globe} title="Geográfico" />
+              <MenuItemLink to="/dashboard/produtos" icon={Package} title="Produtos" />
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
