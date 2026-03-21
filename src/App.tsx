@@ -481,9 +481,6 @@ function AppContent() {
 
             {/* Painel Executivo */}
             <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
-
-            {/* Painel Executivo */}
-            <Route path="/dashboard/painel-executivo" element={<PainelExecutivo />} />
             <Route path="/dashboard/performance-vendas" element={<PerformanceVendas />} />
 
             {/* Módulo Comercial */}
