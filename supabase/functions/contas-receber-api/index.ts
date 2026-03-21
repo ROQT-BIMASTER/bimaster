@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
 
   // ============ GET /sync-status - REQUIRES API KEY ============
   if (matchRoute('/sync-status') && req.method === 'GET') {
-    if (!validateApiKey()) {
+    if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
