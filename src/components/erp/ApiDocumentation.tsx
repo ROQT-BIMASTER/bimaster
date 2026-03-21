@@ -74,7 +74,7 @@ const contasPagarCrud: Endpoint[] = [
   },
 ];
 
-const contasPagarOmie: Endpoint[] = [
+const contasPagarIntegracao: Endpoint[] = [
   {
     method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaPagar)", tag: "novo",
     params: [
@@ -288,7 +288,7 @@ const lancamentosCcCrud: Endpoint[] = [
     params: [
       { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
-      { name: "nCodCC", type: "integer", required: false, description: "Filtro por conta corrente (código Omie)" },
+      { name: "nCodCC", type: "integer", required: false, description: "Filtro por conta corrente (código Huggs)" },
       { name: "cOrigem", type: "string", required: false, description: "Filtro por origem: MANU, CONP, CONR, TRAN" },
       { name: "dtPagInicial", type: "date", required: false, description: "Data do lançamento inicial" },
       { name: "dtPagFinal", type: "date", required: false, description: "Data do lançamento final" },
@@ -350,7 +350,7 @@ const lancamentosCcCrud: Endpoint[] = [
   },
 ];
 
-const contasReceberOmie: Endpoint[] = [
+const contasReceberIntegracao: Endpoint[] = [
   {
     method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaReceber)", tag: "novo",
     params: [
@@ -444,7 +444,7 @@ const boletosCrud: Endpoint[] = [
   {
     method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo",
     params: [
-      { name: "nCodTitulo", type: "integer", required: false, description: "Código do título no Omie" },
+      { name: "nCodTitulo", type: "integer", required: false, description: "Código do título" },
       { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração do título" },
       { name: "id", type: "uuid", required: false, description: "ID interno do boleto" },
     ],
@@ -1345,7 +1345,7 @@ export default function ApiDocumentation() {
               icon={<Webhook className="h-4 w-4 text-amber-500" />}
               title="CRUD Integração (API Huggs)"
               basePath="/contas-pagar-api"
-              endpoints={contasPagarOmie}
+              endpoints={contasPagarIntegracao}
               description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — "
             />
           </TabsContent>
@@ -1355,7 +1355,7 @@ export default function ApiDocumentation() {
               icon={<Webhook className="h-4 w-4 text-emerald-500" />}
               title="CRUD Integração (API Huggs)"
               basePath="/contas-receber-api"
-              endpoints={contasReceberOmie}
+              endpoints={contasReceberIntegracao}
               description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — "
             />
             <ApiSection
