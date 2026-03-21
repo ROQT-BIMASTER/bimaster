@@ -593,6 +593,7 @@ const categoriasCrud: Endpoint[] = [
 ];
 
 
+const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
     params: [
