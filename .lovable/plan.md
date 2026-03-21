@@ -1,85 +1,57 @@
 
 
-# API ListarMovimentos — Movimentação Financeira Unificada (Omie)
+# API Resumo Financeiro — Padronização Omie (4 endpoints)
 
 ## Resumo
 
-Criar nova Edge Function `movimentos-financeiros-api` seguindo o padrão Omie `ListarMovimentos`. Endpoint unificado que consolida Contas a Pagar, Contas a Receber e Lançamentos de Conta Corrente em uma única listagem paginada com filtros extensivos. Diferente do `PesquisarLancamentos` (que retorna títulos com baixas), este retorna **movimentos** (cada baixa/lançamento CC como linha individual).
+Criar nova Edge Function `resumo-financeiro-api` com 4 rotas seguindo o padrão Omie: `ObterResumoFinancas`, `ObterListaEmAberto`, `ObterListaFinancas` e `ObterDetalhesLancamento`. Endpoints de dashboard financeiro que agregam dados de `contas_pagar`, `contas_receber` e `contas_bancarias` para fornecer resumos, listas de títulos em aberto e detalhes de lançamentos individuais. Sem nova tabela.
 
-## 1. Nova Edge Function: `movimentos-financeiros-api`
+## 1. Nova Edge Function: `resumo-financeiro-api`
 
-Sem nova tabela — consulta `contas_pagar`, `contas_receber`, `lancamentos_conta_corrente` e `pagamentos` existentes.
-
-| Método | Rota | Descrição | Equivalente Omie |
+| Método | Rota | Equivalente Omie | Descrição |
 |---|---|---|---|
-| POST | `/listar` | Listagem unificada de movimentos financeiros | ListarMovimentos |
-| GET | `/status` | Health check | — |
+| POST | `/resumo` | ObterResumoFinancas | Resumo consolidado (saldo CC, totais CP/CR, atraso, fluxo caixa, por categoria) |
+| POST | `/em-aberto` | ObterListaEmAberto | Lista paginada de títulos em aberto (CP ou CR) |
+| POST | `/lista-financas` | ObterListaFinancas | Lista de lançamentos por data/categoria/tipo |
+| POST | `/detalhes` | ObterDetalhesLancamento | Detalhes completos de um título por `nIdTitulo` |
+| GET | `/status` | — | Health check |
 
-**POST /listar** — Body com filtros `mfListarRequest`:
+### POST /resumo
+- Params: `dDia`, `lApenasResumo`, `lExibirCategoria`
+- Retorna: `contaCorrente` (saldo total), `contaPagar` (total/atraso), `contaReceber` (total/atraso), `fluxoCaixa`, arrays de categorias e títulos atrasados
 
-Filtros principais (mesmos do PesquisarLancamentos) + adicionais:
-- `cTpLancamento` — Tipo de registro: "CP" (Contas a Pagar), "CR" (Contas a Receber), "CC" (Conta Corrente), ou vazio para todos
-- `cExibirDepartamentos` — "S" para incluir distribuição por departamentos
-- `nCodMovCC` — Filtro por código do movimento de conta corrente
-- `lDadosCad` — Incluir dados cadastrais (datas inclusão/alteração, observações)
+### POST /em-aberto
+- Params: `dDia`, `cTipo` (P/R), `nCodCliente`, `cNomeCliente`, `nPagina`, `nRegPorPagina`
+- Retorna: `ListaEmEberto[]` paginada com dias de atraso calculados
 
-**Lógica:**
-1. Conforme `cTpLancamento`, consultar as tabelas relevantes (CP, CR, CC ou todas)
-2. Para CP/CR: buscar títulos + seus pagamentos (cada pagamento = 1 movimento)
-3. Para CC: buscar lançamentos diretos da `lancamentos_conta_corrente`
-4. Unificar em array `movimentos[]` com estrutura `{ detalhes, resumo, departamentos, categorias }`
-5. Aplicar paginação sobre o resultado unificado
+### POST /lista-financas
+- Params: `dDia`, `cCodCateg`, `cTipo` (P/R)
+- Retorna: `listaDetalhesFinancas[]` com dados de conta corrente e documento fiscal
 
-**Resposta:**
-```json
-{
-  "nPagina": 1,
-  "nTotPaginas": 5,
-  "nRegistros": 20,
-  "nTotRegistros": 100,
-  "movimentos": [
-    {
-      "detalhes": {
-        "nCodTitulo": 123,
-        "cNatureza": "P",
-        "nValorTitulo": 500.00,
-        "nCodMovCC": 456,
-        "nValorMovCC": 500.00,
-        "nCodBaixa": 789,
-        "cGrupo": "CP",
-        "dDtPagamento": "15/03/2026"
-      },
-      "resumo": {
-        "cLiquidado": "S",
-        "nValPago": 500.00,
-        "nValAberto": 0,
-        "nDesconto": 0,
-        "nJuros": 0,
-        "nMulta": 0,
-        "nValLiquido": 500.00
-      },
-      "departamentos": [],
-      "categorias": []
-    }
-  ]
-}
-```
+### POST /detalhes
+- Params: `nIdTitulo`
+- Retorna: detalhes completos do título incluindo `boletoInfo`, `pixInfo`, `listaAnexos`
+
+**Lógica principal:**
+1. `/resumo`: Agrega `contas_pagar` e `contas_receber` (status pendente/vencido), soma saldos de `contas_bancarias`, calcula fluxo de caixa, agrupa por categoria se `lExibirCategoria`
+2. `/em-aberto`: Filtra títulos pendentes com `valor_aberto > 0`, calcula `nDiasAtraso` como diferença entre hoje e vencimento
+3. `/detalhes`: Busca título em ambas tabelas, enriquece com dados de boleto/PIX dos campos existentes e anexos da tabela `anexos`
 
 ## 2. Documentação
 
-Novo `docs/API_MOVIMENTOS_FINANCEIROS.md`.
+Novo `docs/API_RESUMO_FINANCEIRO.md`.
 
 ## 3. API Tester & Portal
 
-- Presets no `ApiTester.tsx` (Listar CP, Listar CR, Listar CC, Listar Todos)
+- Presets no `ApiTester.tsx` (Resumo, Em Aberto CP, Em Aberto CR, Detalhes)
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/movimentos-financeiros-api/index.ts` | Criar — nova Edge Function |
-| `docs/API_MOVIMENTOS_FINANCEIROS.md` | Criar — documentação |
-| `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
-| `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
+| `supabase/functions/resumo-financeiro-api/index.ts` | Criar |
+| `docs/API_RESUMO_FINANCEIRO.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Editar — presets |
+| `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
