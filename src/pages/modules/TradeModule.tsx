@@ -121,12 +121,7 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-        {/* Search Bar */}
-        <TradeSearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery} 
-          placeholder="Buscar PDVs, visitas, campanhas..." 
-        />
+
 
         {/* Banner Carousel */}
         <TradeHeroBanner />
