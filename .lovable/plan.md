@@ -1,49 +1,55 @@
 
 
-# Plano: Corrigir vulnerabilidades de segurança restantes
+# Plano: Corrigir autenticação das APIs ERP para suportar `erp_api_keys`
 
-## Resumo dos problemas
+## Problema identificado
 
-A verificação de segurança mostra 4 erros e 6 avisos. Após análise detalhada do banco:
+Ao testar a chave `huggs-erp-5nf7vewlpf3s9td1fh7vwac9`, todas as 3 APIs retornaram **401 Unauthorized**. A causa raiz:
 
-| Problema | Severidade | Status |
+| Edge Function | Suporta `erp_api_keys`? | Problema |
 |---|---|---|
-| Financial tables sem RLS | Erro | Ja corrigido (migration anterior) |
-| RLS Disabled in Public | Erro | 6 tabelas de lookup sem RLS |
-| Security Definer View | Erro | Ja corrigido (todas as views tem security_invoker=on) — scan desatualizado |
-| UUIDs hardcoded em RLS | Aviso | 2 UUIDs em team_form_tokens |
-| Function search_path mutable | Aviso | 179 funções sem SET search_path |
-| RLS Policy always true | Aviso | ~90 tabelas com USING(true) / WITH CHECK(true) |
-| Ads credentials encryption | Aviso | Complexo, requer decisão de arquitetura |
-| Vulnerabilidades npm | Aviso | vite-plugin-pwa desatualizado |
+| `erp-fornecedores-query` | Nao | So verifica `erp_config` — sem fallback |
+| `erp-portadores-api` | Nao | So verifica `erp_config` — sem fallback |
+| `erp-plano-contas-api` | Sim | Fallback existe, mas usa `parseInt(empresa)` que falha com `empresa_id` texto |
+| `erp-webhook-inbound` | Sim | Funciona (usa empresa_id como texto) |
+| `contas-pagar-export-api` | Sim | Funciona (so verifica autenticacao booleana) |
+| `contas-pagar-api` | Nao | So verifica `N8N_API_KEY` — sem fallback |
 
-## O que será corrigido (3 migrations)
+## Solucao
 
-### Migration 1 — RLS nas 6 tabelas de lookup
+### 1. Adicionar fallback `erp_api_keys` nas 3 APIs sem suporte
 
-Tabelas `bancos`, `bandeiras_cartao`, `finalidades_transferencia`, `origens_titulo`, `tipos_conta_corrente`, `tipos_documento` — são dados de referencia somente-leitura.
+Adicionar o mesmo padrao de fallback em `erp-fornecedores-query`, `erp-portadores-api` e `contas-pagar-api`:
 
-- Habilitar RLS
-- Revogar `anon`
-- Criar policy SELECT para `authenticated` com `USING (true)` (leitura publica para autenticados)
-- Criar policy INSERT/UPDATE apenas para admins
+```typescript
+// Fallback: check erp_api_keys table
+if (!empresaId) {
+  const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+  const empresa = await validateErpApiKey(apiKey);
+  if (empresa) {
+    empresaId = empresa; // manter como string
+  }
+}
+```
 
-### Migration 2 — Remover UUIDs hardcoded de team_form_tokens
+### 2. Corrigir `erp-plano-contas-api` — remover `parseInt`
 
-Substituir as policies `authorized_view_tokens` e `authorized_insert_tokens` por policies baseadas em roles (admin + gerente + created_by).
+A tabela `erp_api_keys.empresa_id` e tipo `text`, nao `integer`. Remover `parseInt(empresa) || 0` e usar o valor texto diretamente.
 
-### Migration 3 — SET search_path nas funções criticas
+### 3. Corrigir tipos de `empresaId` nas queries
 
-Adicionar `SET search_path = public` nas funções mais criticas (as que usam SECURITY DEFINER e as chamadas em RLS policies). Serão ~30-50 funções prioritarias. As demais são triggers e funções utilitarias de menor risco.
-
-## O que NAO será alterado neste momento
-
-- **RLS always true**: São ~90 tabelas de modulos internos (China, Projetos, Fabrica). Alterar requer analise caso-a-caso de quem deve ter acesso. Recomendo tratar modulo por modulo.
-- **Ads credentials encryption**: Requer decisão entre pgcrypto vs edge function encryption.
-- **npm vulnerabilities**: Atualizar vite-plugin-pwa pode causar breaking changes no PWA.
-- **Security Definer View**: Ja esta corrigido — o scan precisa ser re-executado.
+Nas APIs de portadores e fornecedores, a query usa `.eq("empresa_id", empresaId)` — precisa funcionar com o tipo correto da coluna no banco. Verificar se as tabelas `portadores` e `fabrica_fornecedores` usam `empresa_id` numerico ou texto e ajustar.
 
 ## Arquivos impactados
 
-Apenas 3 migrations SQL. Nenhum arquivo frontend alterado.
+| Arquivo | Mudanca |
+|---|---|
+| `supabase/functions/erp-fornecedores-query/index.ts` | Adicionar fallback `erp_api_keys` |
+| `supabase/functions/erp-portadores-api/index.ts` | Adicionar fallback `erp_api_keys` |
+| `supabase/functions/erp-plano-contas-api/index.ts` | Remover `parseInt`, usar texto |
+| `supabase/functions/contas-pagar-api/index.ts` | Adicionar fallback `erp_api_keys` no `validateApiKey` e `validateAuth` |
+
+## Resultado esperado
+
+Apos a correcao, a chave `huggs-erp-5nf7vewlpf3s9td1fh7vwac9` funcionara em todas as APIs ERP, e qualquer chave gerada pelo Portal de Integracao sera aceita uniformemente.
 
