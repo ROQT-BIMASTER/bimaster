@@ -211,6 +211,13 @@ const PRESET_ENDPOINTS = [
   { label: "Empresas — Consultar", method: "POST" as HttpMethod, path: "/empresas-api/consultar" },
   { label: "Empresas — Listar", method: "POST" as HttpMethod, path: "/empresas-api/listar" },
   { label: "Empresas — Status", method: "GET" as HttpMethod, path: "/empresas-api/status" },
+  // Departamentos (CRUD Completo)
+  { label: "Departamentos — Incluir", method: "POST" as HttpMethod, path: "/departamentos-api/incluir" },
+  { label: "Departamentos — Alterar", method: "POST" as HttpMethod, path: "/departamentos-api/alterar" },
+  { label: "Departamentos — Consultar", method: "POST" as HttpMethod, path: "/departamentos-api/consultar" },
+  { label: "Departamentos — Excluir", method: "POST" as HttpMethod, path: "/departamentos-api/excluir" },
+  { label: "Departamentos — Listar", method: "POST" as HttpMethod, path: "/departamentos-api/listar" },
+  { label: "Departamentos — Status", method: "GET" as HttpMethod, path: "/departamentos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
