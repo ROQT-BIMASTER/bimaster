@@ -612,6 +612,19 @@ const parcelasCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposAtividadeCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar tipos de atividade da empresa (ListarTipoAtiv)", tag: "novo",
+    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "" }`,
+    params: [
+      { name: "filtrar_por_codigo", type: "string", required: false, description: "Filtro parcial por código (ILIKE)" },
+      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
+    ],
+    response: `{ "lista_tipos_atividade": [{ "cCodigo": "C", "cDescricao": "Comércio" }, { "cCodigo": "I", "cDescricao": "Indústria" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
