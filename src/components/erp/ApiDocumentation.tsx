@@ -1370,6 +1370,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="parcelas" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Parcelas — IncluirParcela + ListarParcelas (Padrão Omie)"
+              basePath="/parcelas-api"
+              endpoints={parcelasCrud}
+              description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
