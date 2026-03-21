@@ -280,50 +280,7 @@ const TradeModule = () => {
         {/* Incentivos da Semana */}
         <IncentivosWeekSection />
 
-        {/* Secondary Modules */}
-        <div className="space-y-2" data-tour="secondary-modules">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
-            <Zap className="h-4 w-4" />
-            <span>Mais funcionalidades</span>
-          </div>
-
-          {Object.entries(secondaryModules).map(([category, modules]) => (
-            <Collapsible
-              key={category}
-              open={openSections[category]}
-              onOpenChange={() => toggleSection(category)}
-            >
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-3 rounded-xl bg-muted/50 hover:bg-muted active:bg-muted/70 transition-colors touch-manipulation">
-                <span className="font-medium text-sm">{category}</span>
-                <ChevronDown 
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                    openSections[category] && "rotate-180"
-                  )} 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pl-1 sm:pl-2">
-                  {modules.map((module) => (
-                    <Link 
-                      key={module.to} 
-                      to={module.to}
-                      className="relative flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-[hsl(330,81%,60%)]/30 hover:scale-[1.02] transition-all duration-200 text-sm touch-manipulation"
-                    >
-                      {'isNew' in module && module.isNew && (
-                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] text-white text-[8px] px-1.5 py-0 border-0">
-                          NOVO
-                        </Badge>
-                      )}
-                      <module.icon className={cn("h-4 w-4 flex-shrink-0", module.color)} />
-                      <span className="truncate">{module.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
+        {/* Secondary modules moved to sidebar */}
 
         {/* Tour Button */}
         <TourButton 
