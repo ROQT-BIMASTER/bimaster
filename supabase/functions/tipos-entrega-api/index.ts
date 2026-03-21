@@ -184,7 +184,10 @@ Deno.serve(async (req) => {
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
   } catch (err: unknown) {
-    const e = err as { status?: number; message?: string };
+    const e = err as { status?: number; message?: string; name?: string };
+    if (e.name === "RateLimitError" || (e as any) instanceof RateLimitError) {
+      return errorResponse(429, "RATE_LIMIT", e.message || "Rate limit excedido", req, startMs);
+    }
     if (e.status === 401 || e.status === 403) {
       return errorResponse(e.status, "AUTH_ERROR", e.message || "Não autorizado", req, startMs);
     }
