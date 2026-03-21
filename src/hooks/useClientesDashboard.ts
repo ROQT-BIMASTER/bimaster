@@ -75,7 +75,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
       // 3. Fetch per-client sales from vendas_union directly
       let perClientQuery = supabase
         .from("vendas_union" as any)
-        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos")
+        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade")
         .eq("data::text", "") // placeholder - we'll build real filter
       
       // Actually, let's use a proper date range filter
@@ -88,7 +88,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
 
       let vendasQuery = supabase
         .from("vendas_union")
-        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos,vendedor,supervisor,id_empresa,uf")
+        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vendedor,supervisor,id_empresa,uf")
         .gte("data", startDate)
         .lte("data", endDate);
       if (empresaIds.length > 0) vendasQuery = vendasQuery.in("id_empresa", empresaIds);
@@ -103,7 +103,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
       while (hasMore) {
         let q = supabase
           .from("vendas_union")
-          .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos,vendedor,supervisor,id_empresa,uf")
+          .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vendedor,supervisor,id_empresa,uf")
           .gte("data", startDate)
           .lte("data", endDate)
           .range(offset, offset + batchSize - 1);
@@ -141,7 +141,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
         const cod = v.cod_cliente;
         if (!cod) continue;
         const mult = multipliers.get(v.operacao) ?? 1;
-        const valor = (v.venda ?? (v.preco_venda && v.quantidade ? v.preco_venda * v.quantidade : v.vl_outros_custos) ?? 0) * mult;
+        const valor = (v.venda ?? (v.preco_venda && v.quantidade ? v.preco_venda * v.quantidade : 0)) * mult;
 
         if (!clienteMap.has(cod)) {
           clienteMap.set(cod, { receita: 0, pedidos: new Set(), ultimaCompra: null, meses: new Set(), vendedor: v.vendedor, supervisor: v.supervisor, id_empresa: v.id_empresa, uf: v.uf });

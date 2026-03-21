@@ -25,7 +25,7 @@ export function ClienteDrilldownModal({ codCliente, filters, onClose }: Props) {
       // Fetch all sales for this client in the year
       const { data: vendas, error } = await supabase
         .from("vendas_union")
-        .select("data,pedido,descricao,marca,quantidade,venda,preco_venda,vl_outros_custos,operacao")
+        .select("data,pedido,descricao,marca,quantidade,venda,preco_venda,operacao")
         .eq("cod_cliente", codCliente)
         .gte("data", `${filters.ano}-01-01`)
         .lte("data", `${filters.ano}-12-31`)
@@ -44,7 +44,7 @@ export function ClienteDrilldownModal({ codCliente, filters, onClose }: Props) {
 
       for (const v of rows) {
         const mult = multipliers.get(v.operacao) ?? 1;
-        const valor = ((v as any).venda ?? ((v as any).preco_venda && (v as any).quantidade ? (v as any).preco_venda * (v as any).quantidade : (v as any).vl_outros_custos) ?? 0) * mult;
+        const valor = ((v as any).venda ?? ((v as any).preco_venda && (v as any).quantidade ? (v as any).preco_venda * (v as any).quantidade : 0)) * mult;
         const mes = new Date(v.data).getMonth() + 1;
         monthMap.set(mes, (monthMap.get(mes) || 0) + valor);
 

@@ -38,7 +38,7 @@ export function useProdutosDashboard(filters: DashboardFilters) {
     queryFn: async () => {
       let q = supabase
         .from("vendas_union" as any)
-        .select("produto, marca, pedido, operacao, venda, preco_venda, quantidade, vl_outros_custos, id_empresa, tabela")
+        .select("produto, marca, pedido, operacao, venda, preco_venda, quantidade, id_empresa, tabela")
         .gte("data", `${filters.ano}-${String(filters.mes || 1).padStart(2, "0")}-01`);
 
       if (filters.mes) {
@@ -68,7 +68,7 @@ export function useProdutosDashboard(filters: DashboardFilters) {
 
       for (const r of rows) {
         const mult = multipliers.get(r.operacao) ?? 1;
-        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || Number(r.vl_outros_custos) || 0) * mult;
+        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || 0) * mult;
         const qtd = (Number(r.quantidade) || 0) * mult;
         totalReceita += receita;
 

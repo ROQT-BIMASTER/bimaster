@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -1087,6 +1087,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <MenuItemLink to="/dashboard/detalhamento" icon={FileText} title="Detalhamento" />
               <MenuItemLink to="/dashboard/geografico" icon={Globe} title="Geográfico" />
               <MenuItemLink to="/dashboard/produtos" icon={Package} title="Produtos" />
+              <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" />
+              {isAdmin && <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas" />}
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}

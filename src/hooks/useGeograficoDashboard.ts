@@ -104,7 +104,7 @@ export function useGeograficoDashboard(filters: DashboardFilters) {
       // Use the view which has uf but not cidade — we need vendas_union directly
       let q = supabase
         .from("vendas_union" as any)
-        .select("uf, cidade, cod_cliente, pedido, operacao, venda, preco_venda, quantidade, vl_outros_custos")
+        .select("uf, cidade, cod_cliente, pedido, operacao, venda, preco_venda, quantidade")
         .gte("data", `${filters.ano}-${String(filters.mes || 1).padStart(2, "0")}-01`);
 
       if (filters.mes) {
@@ -131,7 +131,7 @@ export function useGeograficoDashboard(filters: DashboardFilters) {
       for (const r of rows) {
         const key = `${r.cidade || "N/D"}|${r.uf || "N/D"}`;
         const mult = multipliers.get(r.operacao) ?? 1;
-        const receita = (Number(r.venda) || Number(r.preco_venda) * Number(r.quantidade) || Number(r.vl_outros_custos) || 0) * mult;
+        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || 0) * mult;
         totalReceita += receita;
 
         if (!cidadeMap.has(key)) cidadeMap.set(key, { receita: 0, pedidos: new Set(), clientes: new Set(), uf: r.uf || "N/D" });

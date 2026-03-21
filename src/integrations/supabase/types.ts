@@ -15800,6 +15800,36 @@ export type Database = {
           },
         ]
       }
+      metas_vendas: {
+        Row: {
+          created_at: string
+          id: string
+          periodo: string
+          referencia_id: string
+          tipo_meta: string
+          updated_at: string
+          valor_meta: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          periodo: string
+          referencia_id: string
+          tipo_meta: string
+          updated_at?: string
+          valor_meta?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          periodo?: string
+          referencia_id?: string
+          tipo_meta?: string
+          updated_at?: string
+          valor_meta?: number
+        }
+        Relationships: []
+      }
       modulo_projeto_vinculos: {
         Row: {
           created_at: string | null

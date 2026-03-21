@@ -76,7 +76,7 @@ export function useDetalhamentoVendas(filters: DashboardFilters) {
         .filter(r => visiveis.has(r.operacao))
         .map(r => {
           const mult = multipliers.get(r.operacao) ?? 1;
-          const receita = (r.venda ?? (r.preco_venda && r.quantidade ? r.preco_venda * r.quantidade : r.vl_outros_custos) ?? 0) * mult;
+          const receita = (r.venda ?? (r.preco_venda && r.quantidade ? r.preco_venda * r.quantidade : 0)) * mult;
           return {
             id: r.id,
             data: r.data,
