@@ -1,12 +1,13 @@
-import { useActiveTradeMateriais } from "@/hooks/useTradeMateriais";
+import { useState } from "react";
+import { useActiveTradeMateriais, TradeMaterial } from "@/hooks/useTradeMateriais";
 import { Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
-import { useNavigate } from "react-router-dom";
+import { MaterialOrderSheet } from "@/components/trade/MaterialOrderSheet";
 
 export function MateriaisCarousel() {
   const { data: materiais, isLoading } = useActiveTradeMateriais();
-  const navigate = useNavigate();
+  const [selectedMaterial, setSelectedMaterial] = useState<TradeMaterial | null>(null);
 
   if (isLoading) {
     return (
@@ -32,13 +33,13 @@ export function MateriaisCarousel() {
         title="Materiais para Solicitação"
         subtitle="Solicite materiais de trade"
         linkText="Ver todos"
-        linkTo="/dashboard/trade/admin/materiais"
+        linkTo="/dashboard/trade/materiais"
       />
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
         {materiais.map((m) => (
           <button
             key={m.id}
-            onClick={() => navigate("/dashboard/trade/admin/materiais")}
+            onClick={() => setSelectedMaterial(m)}
             className="flex flex-col items-center gap-1.5 min-w-[64px] max-w-[64px] sm:min-w-[72px] sm:max-w-[72px] group"
           >
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-muted flex items-center justify-center shadow-sm border border-border group-hover:shadow-md transition-shadow">
@@ -59,6 +60,11 @@ export function MateriaisCarousel() {
           </button>
         ))}
       </div>
+
+      <MaterialOrderSheet
+        material={selectedMaterial}
+        onClose={() => setSelectedMaterial(null)}
+      />
     </div>
   );
 }
