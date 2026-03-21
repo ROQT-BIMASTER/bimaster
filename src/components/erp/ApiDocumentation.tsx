@@ -708,7 +708,19 @@ const origensCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
-const otherApis: Endpoint[] = [
+const bandeirasCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/listar", description: "Lista paginada de bandeiras de cartão (ListarBandeiras)", tag: "novo",
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Número da página (default 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (default 50, max 500)" },
+    ],
+    response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
+
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
   { method: "GET", path: "/portadores", description: "Listar portadores (bancos/carteiras)" },
