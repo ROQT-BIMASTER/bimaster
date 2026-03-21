@@ -1183,6 +1183,540 @@ Deno.serve(async (req) => {
       }
     }
 
+    // =====================================================
+    // GET /query - Consulta avançada com filtros e paginação
+    // =====================================================
+    if (path.endsWith('/query') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const empresaId = url.searchParams.get('empresa_id');
+      const fornecedorCodigo = url.searchParams.get('fornecedor_codigo');
+      const status = url.searchParams.get('status');
+      const vencimentoDe = url.searchParams.get('vencimento_de');
+      const vencimentoAte = url.searchParams.get('vencimento_ate');
+      const emissaoDe = url.searchParams.get('emissao_de');
+      const emissaoAte = url.searchParams.get('emissao_ate');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000);
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+      const orderBy = url.searchParams.get('order_by') || 'data_vencimento';
+      const orderDir = url.searchParams.get('order_dir') === 'asc';
+
+      let query = supabase
+        .from('contas_pagar')
+        .select('*', { count: 'exact' });
+
+      if (empresaId) query = query.eq('empresa_id', empresaId);
+      if (fornecedorCodigo) query = query.eq('fornecedor_codigo', fornecedorCodigo);
+      if (status) {
+        const statusList = status.split(',').map(s => s.trim());
+        query = query.in('status', statusList);
+      }
+      if (vencimentoDe) query = query.gte('data_vencimento', vencimentoDe);
+      if (vencimentoAte) query = query.lte('data_vencimento', vencimentoAte);
+      if (emissaoDe) query = query.gte('data_emissao', emissaoDe);
+      if (emissaoAte) query = query.lte('data_emissao', emissaoAte);
+
+      query = query.order(orderBy, { ascending: orderDir }).range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      const duration = Date.now() - startTime;
+      logSuccess('query', { filters: { empresaId, status, limit, offset }, results: data?.length, total: count });
+
+      return new Response(JSON.stringify({
+        data,
+        pagination: { total: count, limit, offset, has_more: (count || 0) > offset + limit },
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // PUT /update - Atualização individual de título
+    // =====================================================
+    if (path.endsWith('/update') && req.method === 'PUT') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { id, ...updates } = body;
+
+      if (!id) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "id" é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Campos permitidos para atualização
+      const allowedFields = [
+        'valor_original', 'valor_aberto', 'valor_pago', 'valor_juros', 'valor_desconto', 'valor_ajustes',
+        'data_vencimento', 'data_pagamento', 'portador', 'conta', 'categoria_codigo', 'categoria_nome',
+        'status', 'observacao', 'numero_documento', 'tipo_documento'
+      ];
+
+      const sanitizedUpdates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          sanitizedUpdates[key] = value;
+        }
+      }
+
+      if (Object.keys(sanitizedUpdates).length === 0) {
+        return new Response(JSON.stringify({ error: 'sem_alteracoes', message: 'Nenhum campo válido para atualização' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      sanitizedUpdates.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('contas_pagar')
+        .update(sanitizedUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }), {
+            status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        throw error;
+      }
+
+      const duration = Date.now() - startTime;
+      logSuccess('update', { id, fields: Object.keys(sanitizedUpdates), duration_ms: duration });
+
+      return new Response(JSON.stringify({
+        success: true,
+        data,
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /cancelar - Cancelamento de título via API
+    // =====================================================
+    if (path.endsWith('/cancelar') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { id, ids, motivo } = body;
+
+      const targetIds = ids || (id ? [id] : []);
+      if (targetIds.length === 0) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "id" ou "ids" é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (!motivo) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "motivo" é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('contas_pagar')
+        .update({
+          status: 'cancelado',
+          observacao: motivo,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', targetIds)
+        .select('id, status');
+
+      if (error) throw error;
+
+      const duration = Date.now() - startTime;
+      logSuccess('cancelar', { ids: targetIds, cancelados: data?.length, duration_ms: duration });
+
+      return new Response(JSON.stringify({
+        success: true,
+        cancelados: data?.length || 0,
+        ids: data?.map((d: any) => d.id) || [],
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /registrar-pagamento - Registrar pagamento/baixa
+    // =====================================================
+    if (path.endsWith('/registrar-pagamento') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { conta_pagar_id, valor_pago, data_pagamento, metodo_pagamento, observacao } = body;
+
+      if (!conta_pagar_id || !valor_pago) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "conta_pagar_id" e "valor_pago" são obrigatórios' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Verificar se o título existe e não está cancelado
+      const { data: titulo, error: tituloErr } = await supabase
+        .from('contas_pagar')
+        .select('id, status, valor_original, valor_pago, valor_aberto')
+        .eq('id', conta_pagar_id)
+        .single();
+
+      if (tituloErr || !titulo) {
+        return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${conta_pagar_id} não encontrado` }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (titulo.status === 'cancelado') {
+        return new Response(JSON.stringify({ error: 'titulo_cancelado', message: 'Não é possível registrar pagamento em título cancelado' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Inserir pagamento
+      const { data: pagamento, error: pagErr } = await supabase
+        .from('pagamentos')
+        .insert({
+          conta_pagar_id,
+          valor: valor_pago,
+          data_pagamento: data_pagamento || new Date().toISOString().split('T')[0],
+          metodo_pagamento: metodo_pagamento || 'API',
+          observacao: observacao || 'Pagamento registrado via API',
+          baixa_origem: 'api'
+        })
+        .select()
+        .single();
+
+      if (pagErr) throw pagErr;
+
+      // Atualizar título
+      const novoValorPago = (titulo.valor_pago || 0) + valor_pago;
+      const novoValorAberto = Math.max(0, (titulo.valor_original || 0) - novoValorPago);
+      const novoStatus = novoValorAberto <= 0 ? 'pago' : 'parcial';
+
+      await supabase
+        .from('contas_pagar')
+        .update({
+          valor_pago: novoValorPago,
+          valor_aberto: novoValorAberto,
+          status: novoStatus,
+          data_pagamento: novoStatus === 'pago' ? (data_pagamento || new Date().toISOString().split('T')[0]) : null,
+          data_baixa: novoStatus === 'pago' ? new Date().toISOString() : null,
+          baixa_origem: 'api',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', conta_pagar_id);
+
+      const duration = Date.now() - startTime;
+      logSuccess('registrar-pagamento', { conta_pagar_id, valor_pago, status: novoStatus, duration_ms: duration });
+
+      return new Response(JSON.stringify({
+        success: true,
+        pagamento,
+        titulo_atualizado: { id: conta_pagar_id, status: novoStatus, valor_pago: novoValorPago, valor_aberto: novoValorAberto },
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // GET /parcelas - Consulta de parcelas de um título
+    // =====================================================
+    if (path.endsWith('/parcelas') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const contaPagarId = url.searchParams.get('conta_pagar_id');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+
+      let query = supabase
+        .from('parcelas')
+        .select('*', { count: 'exact' });
+
+      if (contaPagarId) query = query.eq('conta_pagar_id', contaPagarId);
+
+      query = query.order('numero_parcela', { ascending: true }).range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      return new Response(JSON.stringify({
+        data,
+        pagination: { total: count, limit, offset },
+        meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /parcelas/sync - Sync de parcelas do ERP
+    // =====================================================
+    if (path.includes('/parcelas/sync') && req.method === 'POST') {
+      if (!await validateApiKey()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const parcelas = body.parcelas || body.data || body;
+
+      if (!Array.isArray(parcelas) || parcelas.length === 0) {
+        return new Response(JSON.stringify({ error: 'payload_invalido', message: 'Array de parcelas esperado' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (parcelas.length > 5000) {
+        return new Response(JSON.stringify({ error: 'payload_excedido', message: 'Máximo 5000 parcelas por request' }), {
+          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('parcelas')
+        .upsert(parcelas, { onConflict: 'id' })
+        .select('id');
+
+      if (error) throw error;
+
+      const duration = Date.now() - startTime;
+      logSuccess('parcelas/sync', { total: parcelas.length, processados: data?.length, duration_ms: duration });
+
+      return new Response(JSON.stringify({
+        success: true,
+        processados: data?.length || 0,
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // GET /pagamentos - Histórico de pagamentos
+    // =====================================================
+    if (path.endsWith('/pagamentos') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const contaPagarId = url.searchParams.get('conta_pagar_id');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+      const offset = parseInt(url.searchParams.get('offset') || '0');
+
+      let query = supabase
+        .from('pagamentos')
+        .select('*', { count: 'exact' });
+
+      if (contaPagarId) query = query.eq('conta_pagar_id', contaPagarId);
+
+      query = query.order('data_pagamento', { ascending: false }).range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      return new Response(JSON.stringify({
+        data,
+        pagination: { total: count, limit, offset },
+        meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /estornar - Estorno de pagamento
+    // =====================================================
+    if (path.endsWith('/estornar') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { id, motivo, valor_estorno } = body;
+
+      if (!id || !motivo) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "id" (conta_pagar_id) e "motivo" são obrigatórios' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Buscar título
+      const { data: titulo, error: tituloErr } = await supabase
+        .from('contas_pagar')
+        .select('id, status, valor_original, valor_pago, valor_aberto')
+        .eq('id', id)
+        .single();
+
+      if (tituloErr || !titulo) {
+        return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (titulo.status !== 'pago' && titulo.status !== 'parcial') {
+        return new Response(JSON.stringify({ error: 'status_invalido', message: `Estorno só é permitido para títulos com status "pago" ou "parcial". Status atual: ${titulo.status}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const valorEstorno = valor_estorno || titulo.valor_pago || 0;
+      const novoValorPago = Math.max(0, (titulo.valor_pago || 0) - valorEstorno);
+      const novoValorAberto = (titulo.valor_original || 0) - novoValorPago;
+      const novoStatus = novoValorPago <= 0 ? 'pendente' : 'parcial';
+
+      // Atualizar título
+      const { data: updated, error: updateErr } = await supabase
+        .from('contas_pagar')
+        .update({
+          valor_pago: novoValorPago,
+          valor_aberto: novoValorAberto,
+          status: novoStatus,
+          data_pagamento: null,
+          data_baixa: null,
+          observacao: `Estorno: ${motivo}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateErr) throw updateErr;
+
+      const duration = Date.now() - startTime;
+      logSuccess('estornar', { id, valor_estorno: valorEstorno, novo_status: novoStatus, duration_ms: duration });
+
+      return new Response(JSON.stringify({
+        success: true,
+        estorno: { valor_estornado: valorEstorno, motivo },
+        titulo_atualizado: { id, status: novoStatus, valor_pago: novoValorPago, valor_aberto: novoValorAberto },
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // POST /anexos - Upload de comprovante (metadata)
+    // =====================================================
+    if (path.endsWith('/anexos') && req.method === 'POST') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const body = await req.json();
+      const { conta_pagar_id, nome_arquivo, tipo, url: fileUrl, observacao } = body;
+
+      if (!conta_pagar_id || !nome_arquivo) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "conta_pagar_id" e "nome_arquivo" são obrigatórios' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Verificar título
+      const { data: titulo } = await supabase
+        .from('contas_pagar')
+        .select('id')
+        .eq('id', conta_pagar_id)
+        .single();
+
+      if (!titulo) {
+        return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${conta_pagar_id} não encontrado` }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data: anexo, error } = await supabase
+        .from('payment_attachments')
+        .insert({
+          payment_id: conta_pagar_id,
+          file_name: nome_arquivo,
+          file_type: tipo || 'application/pdf',
+          file_url: fileUrl || null,
+          notes: observacao || null,
+          source: 'api'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const duration = Date.now() - startTime;
+      return new Response(JSON.stringify({
+        success: true,
+        anexo,
+        meta: { duration_ms: duration, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // =====================================================
+    // GET /anexos - Listar comprovantes de um título
+    // =====================================================
+    if (path.endsWith('/anexos') && req.method === 'GET') {
+      if (!await validateAuth()) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const contaPagarId = url.searchParams.get('conta_pagar_id');
+      if (!contaPagarId) {
+        return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Query param "conta_pagar_id" é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('payment_attachments')
+        .select('*')
+        .eq('payment_id', contaPagarId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({
+        data,
+        meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
