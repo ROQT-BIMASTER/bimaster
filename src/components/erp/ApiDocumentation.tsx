@@ -516,6 +516,7 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
               title="Fornecedores, Portadores, Plano de Contas, Estoque"
