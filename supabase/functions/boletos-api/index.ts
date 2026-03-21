@@ -1,13 +1,9 @@
 // boletos-api/index.ts — API de Boletos (Cobrança Bancária) padrão Huggs
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validateApiKey, validateJWT, AuthError } from "../_shared/auth.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
-};
+import { handleCors } from "../_shared/cors.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function getSupabase() {
   return createClient(
