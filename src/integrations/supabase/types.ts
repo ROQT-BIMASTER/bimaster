@@ -25848,6 +25848,63 @@ export type Database = {
           },
         ]
       }
+      trade_displays: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          categoria: string | null
+          codigo: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          foto_url: string | null
+          fotos_extras: Json | null
+          id: string
+          largura_cm: number | null
+          material: string | null
+          nome: string
+          posicao: number | null
+          profundidade_cm: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          foto_url?: string | null
+          fotos_extras?: Json | null
+          id?: string
+          largura_cm?: number | null
+          material?: string | null
+          nome: string
+          posicao?: number | null
+          profundidade_cm?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          altura_cm?: number | null
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          foto_url?: string | null
+          fotos_extras?: Json | null
+          id?: string
+          largura_cm?: number | null
+          material?: string | null
+          nome?: string
+          posicao?: number | null
+          profundidade_cm?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trade_financial_entries: {
         Row: {
           account_id: string
