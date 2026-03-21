@@ -1,60 +1,55 @@
 
 
-# API Origens de Lançamento (ListarOrigem) — Padronização Omie
+# API Bandeiras de Cartão (ListarBandeiras) — Padronização Omie
 
 ## Resumo
 
-Criar nova Edge Function `origens-api` com 1 rota seguindo o padrão Omie `ListarOrigem`. Usa tabela `origens_titulo` existente (id, codigo, descricao, ativo). Sem nova tabela.
+Criar Edge Function `bandeiras-api` com 1 rota paginada seguindo o padrão Omie. Usa tabela `bandeiras_cartao` existente (id, codigo, descricao, tipo, ativo).
 
-## 1. Nova Edge Function: `origens-api`
+## 1. Nova Edge Function: `bandeiras-api`
 
 | Método | Rota | Equivalente Omie | Descrição |
 |---|---|---|---|
-| POST | `/listar` | ListarOrigem | Lista origens de lançamento (filtro por código) |
+| GET | `/listar?nPagina=1&nRegPorPagina=50` | ListarBandeiras | Lista paginada de bandeiras |
 | GET | `/status` | — | Health check |
 
-### POST /listar
+### GET /listar
 
-**Body (`origem_lanc_listar_request`):**
-```json
-{ "codigo": "" }
-```
-- `codigo` vazio ou ausente → retorna todas as origens ativas
-- `codigo` preenchido → filtra com `ilike`
+Query params: `nPagina` (default 1), `nRegPorPagina` (default 50, max 500).
 
-**Resposta (`origem_lanc_listar_response`):**
+**Resposta (`ListarBandeirasResponse`):**
 ```json
 {
-  "pagina": 1,
-  "total_de_paginas": 1,
-  "registros": 6,
-  "total_de_registros": 6,
-  "origem": [
-    { "codigo": "MANUAL", "descricao": "Lançamento Manual" },
-    { "codigo": "API", "descricao": "Importado via API" }
+  "nPagina": 1,
+  "nTotPaginas": 1,
+  "nRegistros": 8,
+  "nTotRegistros": 8,
+  "listaBandeira": [
+    { "cCodigo": "VISA", "cDescricao": "Visa" },
+    { "cCodigo": "MASTER", "cDescricao": "Mastercard" }
   ]
 }
 ```
 
-Mapeamento direto: `codigo` → `codigo`, `descricao` → `descricao`.
+**Mapeamento:** `codigo` → `cCodigo`, `descricao` → `cDescricao`.
 
 Autenticação: `validateApiKey`.
 
 ## 2. Documentação
 
-Novo `docs/API_ORIGENS.md`.
+Novo `docs/API_BANDEIRAS.md`.
 
 ## 3. API Tester & Portal
 
-- Presets no `ApiTester.tsx` (Listar Origens, Listar por Código)
+- Preset no `ApiTester.tsx` (Listar Bandeiras)
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/origens-api/index.ts` | Criar |
-| `docs/API_ORIGENS.md` | Criar |
-| `src/components/erp/ApiTester.tsx` | Editar — presets |
+| `supabase/functions/bandeiras-api/index.ts` | Criar |
+| `docs/API_BANDEIRAS.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Editar — preset |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
