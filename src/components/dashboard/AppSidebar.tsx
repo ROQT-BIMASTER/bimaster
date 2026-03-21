@@ -1107,7 +1107,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       )}
 
       <SidebarContent className="scrollbar-thin">
-        {/* Central de Inteligência */}
+        {/* Central de Inteligência — protegido por módulo */}
+        {hasModulePermission("central_inteligencia") && (
         <SidebarGroup className="py-1 px-2">
           <Collapsible open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
             <CollapsibleTrigger className="w-full">
@@ -1141,6 +1142,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+        )}
 
         {/* Geral */}
         <SidebarGroup className="py-1">
