@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseQuery } from "@/hooks/useSupabaseQuery";
+import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,78 +277,78 @@ export default function DREAnalitico() {
   const { data: contasReceber } = useSupabaseQuery(
     ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa, regimeAnalise],
     async () => {
-      let query = supabase
-        .from('contas_receber')
-        .select('id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome');
+      const selectCols = 'id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome';
       
-      // Para regime de caixa (recebimento), filtra registros recebidos pela data de vencimento
-      // Como data_recebimento geralmente não está preenchido, usamos data_vencimento como proxy
-      if (regimeAnalise === 'caixa') {
-        query = query
-          .eq('status', 'recebido')
-          .gte('data_vencimento', dataInicio)
-          .lte('data_vencimento', dataFim);
-      } else {
-        // Regime de competência (faturamento) usa data de emissão - busca TODOS os registros
-        query = query
-          .gte('data_emissao', dataInicio)
-          .lte('data_emissao', dataFim);
-      }
+      const data = await fetchAllRows<any>(
+        'contas_receber',
+        selectCols,
+        (query: any) => {
+          if (regimeAnalise === 'caixa') {
+            query = query
+              .eq('status', 'recebido')
+              .gte('data_vencimento', dataInicio)
+              .lte('data_vencimento', dataFim);
+          } else {
+            query = query
+              .gte('data_emissao', dataInicio)
+              .lte('data_emissao', dataFim);
+          }
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          return query;
+        }
+      );
       
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
       return data;
     },
-    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
 
   // Buscar lançamentos do período (sem filtro de descrição para cachear dados base)
   const { data: lancamentosBase, isLoading } = useSupabaseQuery(
     ['lancamentos-dre', dataInicio, dataFim, filterEmpresa, mostrarInativos, filterDepartamento, filterConta, regimeAnalise],
     async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select(`*, departamento:departamentos(id, nome)`);
-      
-      // Para regime de caixa, filtra por data_pagamento e status pago
-      // Para regime de competência, filtra por data_vencimento
-      if (regimeAnalise === 'caixa') {
-        query = query
-          .eq('status', 'pago')
-          .gte('data_pagamento', dataInicio)
-          .lte('data_pagamento', dataFim);
-      } else {
-        query = query
-          .gte('data_vencimento', dataInicio)
-          .lte('data_vencimento', dataFim);
-      }
-      
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      if (filterDepartamento !== 'todos') {
-        query = query.eq('departamento_id', filterDepartamento);
-      }
-      
-      if (filterConta !== 'todas') {
-        query = query.eq('plano_contas_id', filterConta);
-      }
-      
-      if (!mostrarInativos) {
-        query = query.neq('ativo_dre', false);
-      }
-      
-      const { data, error } = await query.limit(100000);
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        'contas_pagar',
+        '*, departamento:departamentos(id, nome)',
+        (query: any) => {
+          if (regimeAnalise === 'caixa') {
+            query = query
+              .eq('status', 'pago')
+              .gte('data_pagamento', dataInicio)
+              .lte('data_pagamento', dataFim);
+          } else {
+            query = query
+              .gte('data_vencimento', dataInicio)
+              .lte('data_vencimento', dataFim);
+          }
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          if (filterDepartamento !== 'todos') {
+            query = query.eq('departamento_id', filterDepartamento);
+          }
+          
+          if (filterConta !== 'todas') {
+            query = query.eq('plano_contas_id', filterConta);
+          }
+          
+          if (!mostrarInativos) {
+            query = query.neq('ativo_dre', false);
+          }
+          
+          return query;
+        }
+      );
       
       return data;
     },
-    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 } // Cache de 2 min para performance
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
 
   // Aplicar filtro de descrição/fornecedor via useMemo (filtragem instantânea)
@@ -374,21 +375,24 @@ export default function DREAnalitico() {
   const { data: lancamentosAnoAnterior } = useSupabaseQuery(
     ['lancamentos-dre-yoy', anoAnteriorInicio, anoAnteriorFim, filterEmpresa],
     async () => {
-      let query = supabase
-        .from('contas_pagar')
-        .select('*, plano_contas_id')
-        .gte('data_vencimento', anoAnteriorInicio)
-        .lte('data_vencimento', anoAnteriorFim);
-      
-      if (filterEmpresa !== 'todas') {
-        query = query.eq('empresa_nome', filterEmpresa);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
+      const data = await fetchAllRows<any>(
+        'contas_pagar',
+        '*, plano_contas_id',
+        (query: any) => {
+          query = query
+            .gte('data_vencimento', anoAnteriorInicio)
+            .lte('data_vencimento', anoAnteriorFim);
+          
+          if (filterEmpresa !== 'todas') {
+            query = query.eq('empresa_nome', filterEmpresa);
+          }
+          
+          return query;
+        }
+      );
       return data;
     },
-    { staleTime: 2 * 60 * 1000 } // Cache para dados YoY
+    { staleTime: 2 * 60 * 1000 }
   );
 
   // Buscar departamentos
