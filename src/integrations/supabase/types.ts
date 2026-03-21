@@ -21676,6 +21676,7 @@ export type Database = {
         Row: {
           bg_cor: string | null
           categoria_linha: string | null
+          codigo_integracao: string | null
           cor: string | null
           created_at: string | null
           criador_id: string
@@ -21693,6 +21694,7 @@ export type Database = {
         Insert: {
           bg_cor?: string | null
           categoria_linha?: string | null
+          codigo_integracao?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id: string
@@ -21710,6 +21712,7 @@ export type Database = {
         Update: {
           bg_cor?: string | null
           categoria_linha?: string | null
+          codigo_integracao?: string | null
           cor?: string | null
           created_at?: string | null
           criador_id?: string
