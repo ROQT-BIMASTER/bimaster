@@ -132,6 +132,8 @@ const TradeReportClients = lazyWithRetry(() => import("./pages/trade/reports/Tra
 const TradeReportSellers = lazyWithRetry(() => import("./pages/trade/reports/TradeReportSellers"));
 const TradeExecutiveDashboard = lazyWithRetry(() => import("./pages/TradeExecutiveDashboard"));
 const TradeSupervisorDashboard = lazyWithRetry(() => import("./pages/TradeSupervisorDashboard"));
+const TradeBannersAdmin = lazyWithRetry(() => import("./pages/trade/TradeBannersAdmin"));
+const TradeIncentivosAdmin = lazyWithRetry(() => import("./pages/trade/TradeIncentivosAdmin"));
 const CorporateEvents = lazyWithRetry(() => import("./pages/CorporateEvents"));
 const CorporateEventDetail = lazyWithRetry(() => import("./pages/CorporateEventDetail"));
 const CorporateEventsDashboard = lazyWithRetry(() => import("./pages/CorporateEventsDashboard"));
@@ -401,6 +403,8 @@ function AppContent() {
             <Route path="/dashboard/trade/admin/reports/clients" element={<ScreenRoute screenCode="trade_admin"><TradeReportClients /></ScreenRoute>} />
             <Route path="/dashboard/trade/admin/reports/sellers" element={<ScreenRoute screenCode="trade_admin"><TradeReportSellers /></ScreenRoute>} />
             <Route path="/dashboard/trade/admin/executivo" element={<ScreenRoute screenCode="trade_admin"><TradeExecutiveDashboard /></ScreenRoute>} />
+            <Route path="/dashboard/trade/admin/banners" element={<ScreenRoute screenCode="trade_admin"><TradeBannersAdmin /></ScreenRoute>} />
+            <Route path="/dashboard/trade/admin/incentivos" element={<ScreenRoute screenCode="trade_admin"><TradeIncentivosAdmin /></ScreenRoute>} />
             <Route path="/dashboard/trade/minha-equipe" element={<ModuleRoute moduleCode="trade"><TradeSupervisorDashboard /></ModuleRoute>} />
             <Route path="/dashboard/trade/store-chains" element={<ModuleRoute moduleCode="trade"><TradeStoreChains /></ModuleRoute>} />
             <Route path="/dashboard/trade/stores" element={<ModuleRoute moduleCode="trade"><TradeStores /></ModuleRoute>} />

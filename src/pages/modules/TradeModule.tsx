@@ -41,14 +41,18 @@ import {
 import { cn } from "@/lib/utils";
 import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
+import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
+import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
+import { TradeSearchBar } from "@/components/trade/ui/TradeSearchBar";
+import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
   
-  // Usar hook centralizado para contagem de lojas filtradas
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
   const toggleSection = (section: string) => {
@@ -69,7 +73,7 @@ const TradeModule = () => {
       const totalInvestments = investmentsRes.data?.reduce((sum, i) => sum + (parseFloat(i.amount as any) || 0), 0) || 0;
 
       return {
-        totalStores: filteredStores.length, // Usar contagem do hook filtrado
+        totalStores: filteredStores.length,
         visitsMonth: visitsRes.count || 0,
         totalPhotos: photosRes.count || 0,
         totalInvestments
@@ -82,7 +86,6 @@ const TradeModule = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Módulos secundários agrupados
   const secondaryModules = {
     ...(hasPermission("trade_admin") ? {
       "Administrativo": [
@@ -123,14 +126,26 @@ const TradeModule = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
-        {/* Header - Compacto no mobile */}
-        <div className="px-1" data-tour="trade-header">
-          <h1 className="text-2xl sm:text-3xl font-bold">Trade Marketing</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
+      <div className="space-y-5 sm:space-y-6 pb-20 sm:pb-6">
+        {/* Header with pink gradient accent */}
+        <div className="rounded-2xl bg-gradient-to-r from-[hsl(340,80%,96%)] to-[hsl(280,60%,96%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(262,40%,12%)] p-5 sm:p-6" data-tour="trade-header">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] bg-clip-text text-transparent">
+            Trade Marketing
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Gestão de PDVs, visitas e execução
           </p>
         </div>
+
+        {/* Search Bar */}
+        <TradeSearchBar 
+          value={searchQuery} 
+          onChange={setSearchQuery} 
+          placeholder="Buscar PDVs, visitas, campanhas..." 
+        />
+
+        {/* Banner Carousel */}
+        <TradeHeroBanner />
 
         {/* Quick Entry Dialog */}
         <QuickEntryDialog 
@@ -138,12 +153,12 @@ const TradeModule = () => {
           onOpenChange={setQuickEntryOpen}
         />
 
-        {/* Ações Rápidas - Layout vertical no mobile */}
+        {/* Quick Actions - Pink themed */}
         <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3" data-tour="quick-actions">
           <Button 
             onClick={() => setQuickEntryOpen(true)} 
             size="lg"
-            className="h-12 sm:h-14 gap-2 sm:gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg text-sm sm:text-base"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] hover:brightness-110 shadow-lg text-sm sm:text-base text-white"
           >
             <div className="p-1 sm:p-1.5 bg-white/20 rounded-lg">
               <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -155,7 +170,7 @@ const TradeModule = () => {
             asChild
             size="lg"
             variant="outline"
-            className="h-12 sm:h-14 gap-2 sm:gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400 text-sm sm:text-base"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 border-green-200 bg-green-50 hover:bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950 dark:hover:bg-green-900 dark:text-green-400 text-sm sm:text-base rounded-xl"
           >
             <Link to="/dashboard/trade/visits">
               <div className="p-1 sm:p-1.5 bg-green-200 dark:bg-green-800 rounded-lg">
@@ -169,7 +184,7 @@ const TradeModule = () => {
             asChild
             size="lg"
             variant="outline"
-            className="h-12 sm:h-14 gap-2 sm:gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400 text-sm sm:text-base"
+            className="h-12 sm:h-14 gap-2 sm:gap-3 border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:hover:bg-purple-900 dark:text-purple-400 text-sm sm:text-base rounded-xl"
           >
             <Link to="/dashboard/trade/photos">
               <div className="p-1 sm:p-1.5 bg-purple-200 dark:bg-purple-800 rounded-lg">
@@ -180,94 +195,80 @@ const TradeModule = () => {
           </Button>
         </div>
 
-        {/* Módulos Principais - Grid 2x2 no mobile */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" data-tour="main-modules">
-          {/* PDVs */}
-          <Link to="/dashboard/trade/stores">
-            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-blue-500 h-full touch-manipulation">
-              <CardContent className="p-3 sm:p-5">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 sm:p-2.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg sm:rounded-xl">
+        {/* KPI Cards - Modernized with rounded corners */}
+        <div>
+          <TradeSectionHeader title="Visão Geral" subtitle="Dados do mês atual" />
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mt-3" data-tour="main-modules">
+            <Link to="/dashboard/trade/stores">
+              <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/30">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="p-2 sm:p-2.5 bg-blue-500/10 rounded-xl w-fit">
                     <Store className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    {stats?.totalStores || 0}
-                  </p>
-                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">PDVs Ativos</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Pontos de venda</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                  <div className="mt-3">
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {stats?.totalStores || 0}
+                    </p>
+                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">PDVs Ativos</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-          {/* Visitas */}
-          <Link to="/dashboard/trade/visits">
-            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-green-500 h-full touch-manipulation">
-              <CardContent className="p-3 sm:p-5">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 sm:p-2.5 bg-green-100 dark:bg-green-900/50 rounded-lg sm:rounded-xl">
+            <Link to="/dashboard/trade/visits">
+              <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/30">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="p-2 sm:p-2.5 bg-green-500/10 rounded-xl w-fit">
                     <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
-                    {stats?.visitsMonth || 0}
-                  </p>
-                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Visitas Mês</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Realizadas</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                  <div className="mt-3">
+                    <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
+                      {stats?.visitsMonth || 0}
+                    </p>
+                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">Visitas Mês</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-          {/* Fotos */}
-          <Link to="/dashboard/trade/photos">
-            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-purple-500 h-full touch-manipulation">
-              <CardContent className="p-3 sm:p-5">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 sm:p-2.5 bg-purple-100 dark:bg-purple-900/50 rounded-lg sm:rounded-xl">
+            <Link to="/dashboard/trade/photos">
+              <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/30">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="p-2 sm:p-2.5 bg-purple-500/10 rounded-xl w-fit">
                     <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
-                    {(stats?.totalPhotos || 0).toLocaleString("pt-BR")}
-                  </p>
-                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Fotos</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Capturadas</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Sell Out */}
-          <Link to="/dashboard/trade/sellout">
-            <Card className="group relative overflow-hidden hover:shadow-lg active:scale-[0.98] transition-all duration-200 border-l-4 border-l-emerald-500 h-full touch-manipulation">
-              <CardContent className="p-3 sm:p-5">
-                <div className="flex items-start justify-between">
-                  <div className="p-2 sm:p-2.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg sm:rounded-xl">
-                    <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />
+                  <div className="mt-3">
+                    <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {(stats?.totalPhotos || 0).toLocaleString("pt-BR")}
+                    </p>
+                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">Fotos</h3>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
-                </div>
-                <div className="mt-2 sm:mt-4">
-                  <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
-                  </p>
-                  <h3 className="text-xs sm:text-sm font-medium text-foreground mt-0.5 sm:mt-1">Sell Out</h3>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Vendas registradas</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/dashboard/trade/sellout">
+              <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-[hsl(340,80%,96%)] to-[hsl(330,70%,92%)] dark:from-[hsl(330,40%,12%)] dark:to-[hsl(330,30%,10%)]">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="p-2 sm:p-2.5 bg-[hsl(330,81%,60%)]/10 rounded-xl w-fit">
+                    <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-[hsl(330,81%,60%)]" />
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-xl sm:text-2xl font-bold text-[hsl(330,81%,60%)]">
+                      R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
+                    </p>
+                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">Sell Out</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         </div>
 
-        {/* Módulos Secundários - Accordion otimizado para touch */}
+        {/* Incentivos da Semana */}
+        <IncentivosWeekSection />
+
+        {/* Secondary Modules */}
         <div className="space-y-2" data-tour="secondary-modules">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
             <Zap className="h-4 w-4" />
@@ -280,7 +281,7 @@ const TradeModule = () => {
               open={openSections[category]}
               onOpenChange={() => toggleSection(category)}
             >
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted active:bg-muted/70 transition-colors touch-manipulation">
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-3 rounded-xl bg-muted/50 hover:bg-muted active:bg-muted/70 transition-colors touch-manipulation">
                 <span className="font-medium text-sm">{category}</span>
                 <ChevronDown 
                   className={cn(
@@ -295,10 +296,10 @@ const TradeModule = () => {
                     <Link 
                       key={module.to} 
                       to={module.to}
-                      className="relative flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-lg bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-primary/30 transition-colors text-sm touch-manipulation"
+                      className="relative flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-[hsl(330,81%,60%)]/30 hover:scale-[1.02] transition-all duration-200 text-sm touch-manipulation"
                     >
                       {'isNew' in module && module.isNew && (
-                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[8px] px-1.5 py-0">
+                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] text-white text-[8px] px-1.5 py-0 border-0">
                           NOVO
                         </Badge>
                       )}

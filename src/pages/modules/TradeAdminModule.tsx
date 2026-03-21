@@ -25,7 +25,8 @@ import {
   LayoutDashboard,
   CreditCard,
   ScrollText,
-  BookOpen
+  BookOpen,
+  Trophy
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +86,10 @@ const TradeAdminModule = () => {
 
   // Módulos secundários agrupados
   const secondaryModules = {
+    "Conteúdo e Engajamento": [
+      { title: "Gerenciar Banners", to: "/dashboard/trade/admin/banners", icon: LayoutDashboard, color: "text-pink-600" },
+      { title: "Incentivos da Semana", to: "/dashboard/trade/admin/incentivos", icon: Trophy, color: "text-purple-600" },
+    ],
     "Configurações": [
       { title: "Níveis de Aprovação", to: "/dashboard/trade/admin/approval-levels", icon: Settings, color: "text-slate-600" },
       { title: "Usuários e Perfis", to: "/dashboard/trade/admin/users", icon: Users, color: "text-blue-600" },
