@@ -789,6 +789,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="anexos" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Anexos de Documentos (Padrão Omie)"
+              basePath="/anexos-api"
+              endpoints={anexosCrud}
+              description="Incluir, consultar, obter link, listar e excluir anexos vinculados a qualquer documento"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}

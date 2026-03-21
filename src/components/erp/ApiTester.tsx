@@ -171,6 +171,9 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/boletos-api/gerar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", nPerJuros: 2.0, nPerMulta: 2.0 }, null, 2),
   "/boletos-api/cancelar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001" }, null, 2),
   "/boletos-api/prorrogar": JSON.stringify({ nCodTitulo: 0, cCodIntTitulo: "CR-001", dDtVenc: "30/04/2026" }, null, 2),
+  // Anexos
+  "/anexos-api/incluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345, cNomeArquivo: "comprovante.pdf", cTipoArquivo: "pdf", cArquivo: "<base64_do_arquivo_zipado>", cMd5: "" }, null, 2),
+  "/anexos-api/excluir": JSON.stringify({ cCodIntAnexo: "ANX-001", cTabela: "contas_receber", nId: 12345 }, null, 2),
 };
 
 export default function ApiTester() {
