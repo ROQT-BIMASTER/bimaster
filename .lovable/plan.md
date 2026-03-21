@@ -1,52 +1,55 @@
 
 
-# API Cidades (PesquisarCidades) — Padronização Omie
+# API Países (ListarPaises) — Padronização Omie
 
 ## Resumo
 
-Criar Edge Function `cidades-api` com 1 rota (PesquisarCidades) que consulta a tabela **`ibge_municipios` já existente** (5.570+ registros). Não é necessário criar tabela nova — apenas expor os dados via API no formato Omie.
-
-O campo `id` da tabela `ibge_municipios` já é o código IBGE (integer). A coluna `uf_sigla` já existe. Precisamos apenas montar o `cCod` no formato Omie (ex: `"SAO PAULO (SP)"`).
+Criar tabela de lookup `paises` e Edge Function `paises-api` com 1 rota (ListarPaises). API read-only — lista países com código IBGE, descrição e código ISO.
 
 ## 1. Migration
 
-Nenhuma tabela nova. Apenas adicionar coluna `codigo_siafi` se necessário para o campo `nCodSIAFI`:
-
 ```sql
-ALTER TABLE public.ibge_municipios
-  ADD COLUMN IF NOT EXISTS codigo_siafi integer;
+CREATE TABLE IF NOT EXISTS public.paises (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo varchar(4) NOT NULL UNIQUE,
+  descricao varchar(30) NOT NULL,
+  codigo_iso varchar(2),
+  ativo boolean NOT NULL DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.paises ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "authenticated_select_paises"
+  ON public.paises FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_paises"
+  ON public.paises FOR INSERT TO authenticated WITH CHECK (true);
 ```
 
-## 2. Edge Function: `cidades-api`
+## 2. Edge Function: `paises-api`
 
 | Rota | Equivalente Omie | Descrição |
 |---|---|---|
-| POST `/listar` | PesquisarCidades | Lista paginada com filtros |
+| POST `/listar` | ListarPaises | Lista com filtros opcionais |
 | GET `/status` | — | Health check |
 
 ## 3. Mapeamento
 
-| Campo Omie | Fonte |
+| Campo Omie | Coluna DB |
 |---|---|
-| `cCod` | `UPPER(nome) \|\| ' (' \|\| uf_sigla \|\| ')'` |
-| `cNome` | `nome` |
-| `cUF` | `uf_sigla` |
-| `nCodIBGE` | `id` (cast to string) |
-| `nCodSIAFI` | `codigo_siafi` (nova coluna) |
+| `cCodigo` | `codigo` |
+| `cDescricao` | `descricao` |
+| `cCodigoISO` | `codigo_iso` |
 
-Filtros suportados:
-- `filtrar_cidade_contendo` → ILIKE no nome
-- `filtrar_por_uf` → eq em `uf_sigla`
-- `filtrar_por_cidade` → eq no `cCod` construído
-- Paginação + ordenação padrão
+Filtros: `filtrar_por_codigo`, `filtrar_por_descricao`, `filtrar_por_codigo_iso` (todos ILIKE).
 
 ## 4. Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | +1 coluna `codigo_siafi` em `ibge_municipios` |
-| `supabase/functions/cidades-api/index.ts` | Criar |
-| `docs/API_CIDADES.md` | Criar |
+| Migration SQL | Criar tabela `paises` |
+| `supabase/functions/paises-api/index.ts` | Criar |
+| `docs/API_PAISES.md` | Criar |
 | `src/components/erp/ApiTester.tsx` | Presets |
 | `src/components/erp/ApiDocumentation.tsx` | Seção |
 
