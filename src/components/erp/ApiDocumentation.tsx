@@ -1249,6 +1249,10 @@ export default function ApiDocumentation() {
               <Search className="h-3.5 w-3.5" />
               Cidades
             </TabsTrigger>
+            <TabsTrigger value="paises" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Países
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
