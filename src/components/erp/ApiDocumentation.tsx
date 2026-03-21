@@ -909,6 +909,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="movimentos" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="Movimentação Financeira Unificada (Padrão Omie)"
+              basePath="/movimentos-financeiros-api"
+              endpoints={movimentosFinanceirosCrud}
+              description="Listagem consolidada de Contas a Pagar, Contas a Receber e Lançamentos CC — cada baixa/lançamento como linha individual"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
