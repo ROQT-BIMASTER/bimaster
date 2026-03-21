@@ -40,6 +40,7 @@ export function useGeograficoDashboard(filters: DashboardFilters) {
       if (filters.supervisor) q = q.eq("supervisor", filters.supervisor);
       if (filters.codVend) q = q.eq("cod_vend", filters.codVend);
       if (filters.marca) q = q.eq("marca", filters.marca);
+      if (filters.tabela) q = q.eq("tabela", filters.tabela);
 
       const { data, error } = await q;
       if (error) throw error;
