@@ -515,6 +515,19 @@ const anexosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const empresasCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/consultar", description: "Consultar empresa por código (ConsultarEmpresa)", tag: "novo",
+    body: `{ "codigo_empresa": 8 }`,
+    response: `{ "codigo_empresa": 8, "razao_social": "Empresa ABC", "cnpj": "12.345.678/0001-90", "estado": "SP", "inativa": "N", "inclusao_data": "15/01/2026", "..." }`,
+  },
+  {
+    method: "POST", path: "/listar", description: "Listar empresas paginadas (ListarEmpresas)", tag: "novo",
+    body: `{ "pagina": 1, "registros_por_pagina": 100 }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 2, "total_de_registros": 2, "empresas_cadastro": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
 
 const orcamentosCaixaCrud: Endpoint[] = [
   {
@@ -1065,6 +1078,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Projetos
             </TabsTrigger>
+            <TabsTrigger value="empresas" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Empresas
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1254,6 +1271,16 @@ export default function ApiDocumentation() {
               basePath="/projetos-api"
               endpoints={projetosCrud}
               description="Incluir, alterar, consultar, excluir, listar e upsert projetos — formato Omie"
+            />
+          </TabsContent>
+
+          <TabsContent value="empresas" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Empresas — ConsultarEmpresa + ListarEmpresas (Padrão Omie)"
+              basePath="/empresas-api"
+              endpoints={empresasCrud}
+              description="Consulta e listagem paginada de empresas cadastradas"
             />
           </TabsContent>
 
