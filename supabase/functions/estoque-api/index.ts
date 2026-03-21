@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
         if (!distribuidoraId) {
           return new Response(
             JSON.stringify({ error: 'distribuidora_id é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
         if (!produtoMasterId) {
           return new Response(
             JSON.stringify({ error: 'produto_master_id é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
         if (!codigo || !distribuidoraId) {
           return new Response(
             JSON.stringify({ error: 'codigo e distribuidora_id são obrigatórios' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 400, headers: makeHeaders() }
           );
         }
         
@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
               'sync-logs'
             ]
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: makeHeaders() }
         );
     }
 
