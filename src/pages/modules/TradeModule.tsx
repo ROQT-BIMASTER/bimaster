@@ -3,29 +3,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Store, 
   Calendar, 
   Camera, 
-  TrendingUp, 
-  Target, 
-  ArrowRight,
-  BarChart3,
-  Trophy,
-  MapPin,
-  ShoppingBag,
-  Users,
-  FileText,
-  Award,
-  Image,
-  Ruler,
-  Building,
-  Shield,
   Plus,
-  ChevronDown,
-  Zap,
-  CheckCircle2
+  ShoppingBag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,12 +16,6 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { startOfMonth } from "date-fns";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
@@ -49,16 +26,11 @@ import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
-  const { isAdmin, isAdminOrSupervisor } = useUserRole();
+  const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
-
-  const toggleSection = (section: string) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   const { data: stats } = useQuery({
     queryKey: ['trade-module-stats', filteredStores.length],
@@ -87,43 +59,6 @@ const TradeModule = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const secondaryModules = {
-    ...(hasPermission("trade_admin") ? {
-      "Administrativo": [
-        { title: "Campanhas & Verbas", to: "/dashboard/trade/admin", icon: Target, color: "text-blue-600", isNew: true },
-        { title: "Central de Aprovações", to: "/dashboard/trade/aprovacoes", icon: Shield, color: "text-green-600", isNew: true },
-      ],
-    } : {}),
-    "Cadastros e Configurações": [
-      { title: "Redes", to: "/dashboard/trade/store-chains", icon: Building, color: "text-blue-600" },
-      { title: "Nossas Marcas", to: "/dashboard/trade/our-brands", icon: Award, color: "text-amber-600" },
-      { title: "Fotos Ideais", to: "/dashboard/trade/ideal-photos", icon: Image, color: "text-indigo-600" },
-    ],
-    "Execução e Auditoria": [
-      { title: "Auditorias", to: "/dashboard/trade/auditorias", icon: Shield, color: "text-red-600" },
-      { title: "Medições", to: "/dashboard/trade/shelf-measurements", icon: Ruler, color: "text-cyan-600" },
-      { title: "Calendário", to: "/dashboard/trade/calendar", icon: MapPin, color: "text-orange-600" },
-    ],
-    ...(isAdmin ? {
-      "Inteligência Competitiva": [
-        { title: "Concorrentes", to: "/dashboard/trade/competitors", icon: Target, color: "text-red-600" },
-        { title: "Comparação", to: "/dashboard/trade/comparacao-produtos", icon: BarChart3, color: "text-blue-600" },
-        { title: "Insights IA", to: "/dashboard/trade/insights", icon: TrendingUp, color: "text-green-600" },
-      ],
-    } : {}),
-    ...(isAdmin ? {
-      "Performance e Vendas": [
-        { title: "Minha Equipe", to: "/dashboard/trade/minha-equipe", icon: Users, color: "text-indigo-600", isNew: true },
-        { title: "Promoções", to: "/dashboard/trade/promotions", icon: FileText, color: "text-orange-600" },
-        { title: "Performance", to: "/dashboard/trade/performance", icon: TrendingUp, color: "text-blue-600" },
-        { title: "Equipe", to: "/dashboard/trade/team-performance", icon: Users, color: "text-purple-600" },
-      ],
-      "Gamificação": [
-        { title: "Ranking", to: "/dashboard/ranking", icon: Trophy, color: "text-amber-500" },
-        { title: "Recompensas", to: "/dashboard/trade/rewards", icon: Award, color: "text-green-600" },
-      ],
-    } : {}),
-  };
 
   return (
     <DashboardLayout>
@@ -280,50 +215,7 @@ const TradeModule = () => {
         {/* Incentivos da Semana */}
         <IncentivosWeekSection />
 
-        {/* Secondary Modules */}
-        <div className="space-y-2" data-tour="secondary-modules">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 sm:mb-3 px-1">
-            <Zap className="h-4 w-4" />
-            <span>Mais funcionalidades</span>
-          </div>
-
-          {Object.entries(secondaryModules).map(([category, modules]) => (
-            <Collapsible
-              key={category}
-              open={openSections[category]}
-              onOpenChange={() => toggleSection(category)}
-            >
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-3 rounded-xl bg-muted/50 hover:bg-muted active:bg-muted/70 transition-colors touch-manipulation">
-                <span className="font-medium text-sm">{category}</span>
-                <ChevronDown 
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                    openSections[category] && "rotate-180"
-                  )} 
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 pl-1 sm:pl-2">
-                  {modules.map((module) => (
-                    <Link 
-                      key={module.to} 
-                      to={module.to}
-                      className="relative flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl bg-background border hover:bg-muted/50 active:bg-muted/70 hover:border-[hsl(330,81%,60%)]/30 hover:scale-[1.02] transition-all duration-200 text-sm touch-manipulation"
-                    >
-                      {'isNew' in module && module.isNew && (
-                        <Badge className="absolute -top-2 -right-2 bg-gradient-to-r from-[hsl(262,83%,58%)] to-[hsl(330,81%,60%)] text-white text-[8px] px-1.5 py-0 border-0">
-                          NOVO
-                        </Badge>
-                      )}
-                      <module.icon className={cn("h-4 w-4 flex-shrink-0", module.color)} />
-                      <span className="truncate">{module.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
+        {/* Secondary modules moved to sidebar */}
 
         {/* Tour Button */}
         <TourButton 
