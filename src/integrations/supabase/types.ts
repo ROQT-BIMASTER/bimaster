@@ -26191,6 +26191,7 @@ export type Database = {
       trade_incentivos: {
         Row: {
           ativo: boolean | null
+          banner_url: string | null
           created_at: string | null
           created_by: string | null
           data_fim: string
@@ -26207,6 +26208,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          banner_url?: string | null
           created_at?: string | null
           created_by?: string | null
           data_fim?: string
@@ -26223,6 +26225,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          banner_url?: string | null
           created_at?: string | null
           created_by?: string | null
           data_fim?: string
