@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy, ChevronsUpDown, Check, Building2, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { TradeMaterial, useCreateSolicitacao } from "@/hooks/useTradeMateriais";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,9 +42,22 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
   const [observacoes, setObservacoes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [protocol, setProtocol] = useState<string | null>(null);
+  const [storeSearchOpen, setStoreSearchOpen] = useState(false);
+  const [storeSearch, setStoreSearch] = useState("");
 
   const maxQty = material?.max_por_solicitacao || 999;
   const selectedStore = stores.find((s) => s.id === lojaId);
+
+  const filteredStores = useMemo(() => {
+    if (!storeSearch.trim()) return stores;
+    const q = storeSearch.toLowerCase();
+    const qNumbers = storeSearch.replace(/\D/g, "");
+    return stores.filter((s) => {
+      const nameMatch = s.name?.toLowerCase().includes(q);
+      const cnpjMatch = qNumbers && s.cnpj?.replace(/\D/g, "").includes(qNumbers);
+      return nameMatch || cnpjMatch;
+    });
+  }, [stores, storeSearch]);
 
   useEffect(() => {
     if (material) {
@@ -51,6 +65,8 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
       setQuantidade(1);
       setObservacoes("");
       setProtocol(null);
+      setStoreSearch("");
+      setStoreSearchOpen(false);
     }
   }, [material?.id]);
 
@@ -139,18 +155,72 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
             {/* Store Select */}
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Cliente / Loja *</Label>
-              <Select value={lojaId} onValueChange={setLojaId}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder={storesLoading ? "Carregando..." : "Selecione a loja"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={storeSearchOpen} onOpenChange={setStoreSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={storeSearchOpen}
+                    className="w-full justify-between rounded-xl h-10 font-normal"
+                  >
+                    {lojaId && selectedStore ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">{selectedStore.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {storesLoading ? "Carregando..." : "Buscar por CNPJ ou razão social..."}
+                      </span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="flex flex-col">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <input
+                        className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder="Buscar por CNPJ ou razão social..."
+                        value={storeSearch}
+                        onChange={(e) => setStoreSearch(e.target.value)}
+                      />
+                      {storeSearch && (
+                        <button onClick={() => setStoreSearch("")} className="p-1">
+                          <X className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-60 overflow-y-auto p-1">
+                      {filteredStores.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma loja encontrada</p>
+                      ) : (
+                        filteredStores.map((s) => (
+                          <button
+                            key={s.id}
+                            className={cn(
+                              "w-full text-left px-3 py-2 rounded-sm text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2",
+                              lojaId === s.id && "bg-accent text-accent-foreground"
+                            )}
+                            onClick={() => {
+                              setLojaId(s.id);
+                              setStoreSearch("");
+                              setStoreSearchOpen(false);
+                            }}
+                          >
+                            <Check className={cn("h-4 w-4 shrink-0", lojaId === s.id ? "opacity-100" : "opacity-0")} />
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{s.name}</p>
+                              {s.cnpj && <p className="text-xs text-muted-foreground">{s.cnpj}</p>}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Quantity */}
