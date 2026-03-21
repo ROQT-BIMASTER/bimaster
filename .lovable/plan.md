@@ -1,26 +1,32 @@
 
 
-# Plano: Proteger chaves de API do ERP contra leitura não autorizada
+# Plano: Corrigir 3 erros de segurança
 
 ## Problema
 
-A policy `Authenticated users can read erp_config` permite que **qualquer** usuário autenticado leia todas as colunas da tabela `erp_config`, incluindo `api_key`, `api_key_hash` e `api_key_anterior`. Isso expõe credenciais sensíveis.
+Três tabelas financeiras — `parcelas_receber`, `recebimentos` e `lancamentos_conta_corrente` — não têm RLS habilitado e concedem acesso ao role `anon`, expondo dados financeiros a chamadas não autenticadas.
 
-## Solução
+As views com Security Definer já foram todas corrigidas (todas usam `security_invoker=on`), então o alerta restante do Supabase linter deve desaparecer após a correção das tabelas.
 
-Criar uma **view segura** que oculta os campos sensíveis e restringir o acesso direto à tabela apenas a admins.
+## Alterações (1 migration SQL)
 
-## Alterações (Migration SQL)
+1. **Habilitar RLS** nas 3 tabelas
+2. **Revogar grants do `anon`** nas 3 tabelas
+3. **Criar políticas de acesso** seguindo o padrão financeiro existente (`check_user_access`):
 
-1. **Criar view `erp_config_safe`** com `security_invoker=on` — exclui `api_key`, `api_key_hash`, `api_key_anterior`
-2. **Remover a policy permissiva** `Authenticated users can read erp_config`
-3. **Criar nova policy restritiva** de SELECT na tabela base — apenas admins (`has_role(auth.uid(), 'admin')`)
-4. **Atualizar código frontend** que lê `erp_config` para usar a view `erp_config_safe` onde não precisa da chave, e manter acesso direto apenas nas telas admin que gerenciam chaves
-
-## Arquivos impactados
-
-| Arquivo | Mudança |
+| Tabela | Políticas |
 |---|---|
-| Migration SQL | View + policies |
-| Código frontend que consulta `erp_config` | Trocar para `erp_config_safe` em contextos não-admin |
+| `parcelas_receber` | SELECT, INSERT, UPDATE para `authenticated` com `check_user_access(auth.uid(), 'financeiro')` ou admin |
+| `recebimentos` | SELECT, INSERT, UPDATE para `authenticated` com `check_user_access(auth.uid(), 'financeiro')` ou admin |
+| `lancamentos_conta_corrente` | SELECT, INSERT, UPDATE para `authenticated` com `check_user_access(auth.uid(), 'financeiro')` ou admin |
+
+Cada política usará:
+```sql
+USING (
+  has_role(auth.uid(), 'admin'::app_role)
+  OR check_user_access(auth.uid(), 'financeiro')
+)
+```
+
+Nenhum arquivo frontend precisa ser alterado.
 
