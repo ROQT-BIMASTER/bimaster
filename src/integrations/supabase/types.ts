@@ -28075,6 +28075,50 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_config_safe: {
+        Row: {
+          ativo: boolean | null
+          config_key: string | null
+          config_value: string | null
+          description: string | null
+          empresa_id: number | null
+          id: string | null
+          is_secret: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          config_key?: string | null
+          config_value?: string | null
+          description?: string | null
+          empresa_id?: number | null
+          id?: string | null
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          config_key?: string | null
+          config_value?: string | null
+          description?: string | null
+          empresa_id?: number | null
+          id?: string | null
+          is_secret?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fabrica_fornecedores_safe: {
         Row: {
           agencia: string | null
