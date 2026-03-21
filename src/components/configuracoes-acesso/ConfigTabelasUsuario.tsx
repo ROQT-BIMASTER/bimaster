@@ -12,7 +12,7 @@ import { Table, X, Search } from "lucide-react";
 
 export default function ConfigTabelasUsuario() {
   const queryClient = useQueryClient();
-  const { profiles, loading: profilesLoading } = useSystemProfiles();
+  const { data: profiles, isLoading: profilesLoading } = useSystemProfiles();
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
