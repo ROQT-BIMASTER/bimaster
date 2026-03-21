@@ -197,6 +197,42 @@ async function hashApiKey(key: string): Promise<string> {
 }
 
 /**
+ * Unified auth: tries JWT first, then API Key.
+ * Use for portal APIs that support both auth methods.
+ */
+export async function validateAnyAuth(req: Request): Promise<{
+  userId?: string;
+  email?: string;
+  empresaId?: string;
+  source: "jwt" | "api_key";
+}> {
+  const authHeader = req.headers.get("Authorization");
+  const apiKey = req.headers.get("x-api-key");
+
+  // Try JWT first if Authorization header exists
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const result = await validateJWT(req);
+      return { userId: result.userId, email: result.email, source: "jwt" };
+    } catch {
+      // Fall through to API key
+    }
+  }
+
+  // Try API key
+  if (apiKey) {
+    try {
+      const result = await validateApiKey(req);
+      return { empresaId: result.empresaId, source: "api_key" };
+    } catch {
+      // Fall through
+    }
+  }
+
+  throw new AuthError("Autenticação necessária (Bearer token ou x-api-key)", 401);
+}
+
+/**
  * Custom error with HTTP status.
  */
 export class AuthError extends Error {
