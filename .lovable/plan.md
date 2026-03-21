@@ -1,75 +1,64 @@
 
 
-# API Bancos (ConsultarBanco + ListarBancos) — Padronização Omie
+# API Tipos de Documento (ConsultarTipoDocumento + PesquisarTipoDocumento) — Padronização Omie
 
 ## Resumo
 
-Criar nova Edge Function `bancos-api` com 2 rotas seguindo o padrão Omie: `ConsultarBanco` e `ListarBancos`. Consulta a tabela `bancos` existente (id, codigo_compe, ispb, nome, nome_curto, ativo). Os campos Omie extras (CNAB, Crawler, OpenBanking) que não existem na tabela serão retornados como `null` / `"N"` por padrão.
+Criar nova Edge Function `tipos-documento-api` com 2 rotas seguindo o padrão Omie. Consulta a tabela `tipos_documento` existente (id, codigo, descricao, ativo).
 
-## 1. Nova Edge Function: `bancos-api`
+## 1. Nova Edge Function: `tipos-documento-api`
 
-Sem nova tabela — usa `bancos` existente.
+Sem nova tabela — usa `tipos_documento` existente.
 
 | Método | Rota | Equivalente Omie | Descrição |
 |---|---|---|---|
-| GET | `/consultar` | ConsultarBanco | Consulta banco por código (`codigo`) |
-| GET | `/listar` | ListarBancos | Lista paginada de bancos |
+| GET | `/consultar?codigo=NF` | ConsultarTipoDocumento | Consulta tipo por código |
+| POST | `/pesquisar` | PesquisarTipoDocumento | Pesquisa tipos (filtro por código parcial) |
 | GET | `/status` | — | Health check |
 
 ### GET /consultar
+Query param: `codigo` (ex: "NF", "BOLETO").
 
-Query param: `codigo` (código COMPE, ex: "001").
-
-Resposta (formato `fin_banco_cadastro`):
+Resposta (`tipo_documento_cadastro`):
 ```json
 {
-  "codigo": "001",
-  "nome": "Banco do Brasil S.A.",
-  "tipo": "CB",
-  "cod_compen": "001",
-  "cod_ispb": "00000000",
-  "cnab_cob": "N",
-  "cnab_pag": "N",
-  "obank_sn": "N"
+  "codigo": "NF",
+  "descricao": "Nota Fiscal"
 }
 ```
 
-### GET /listar
+### POST /pesquisar
+Body: `{ "codigo": "" }` — string vazia retorna todos, valor parcial filtra com `ilike`.
 
-Query params: `pagina`, `registros_por_pagina`, `tipo`.
-
-Resposta (`fin_bancos_list_response`):
+Resposta (`tipo_documento_pesquisa_response`):
 ```json
 {
-  "pagina": 1,
-  "total_de_paginas": 1,
-  "registros": 50,
-  "total_de_registros": 50,
-  "fin_banco_cadastro": [...]
+  "tipo_documento_cadastro": [
+    { "codigo": "NF", "descricao": "Nota Fiscal" },
+    { "codigo": "NFE", "descricao": "NF-e (Eletrônica)" }
+  ]
 }
 ```
 
-Mapeamento de campos:
-- `codigo` → `codigo_compe`
-- `nome` → `nome` (ou `nome_curto`)
-- `cod_compen` → `codigo_compe`
-- `cod_ispb` → `ispb`
-- Campos CNAB/Crawler/OpenBanking → `"N"` (não temos na tabela)
+Mapeamento direto: `codigo` → `codigo`, `descricao` → `descricao`.
+
+Autenticação: `validateApiKey` (mesmo padrão das outras APIs).
 
 ## 2. Documentação
 
-Novo `docs/API_BANCOS.md`.
+Novo `docs/API_TIPOS_DOCUMENTO.md`.
 
 ## 3. API Tester & Portal
 
-Presets no `ApiTester.tsx` e seção no `ApiDocumentation.tsx`.
+- Presets no `ApiTester.tsx` (Consultar Tipo, Pesquisar Tipos)
+- Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/bancos-api/index.ts` | Criar |
-| `docs/API_BANCOS.md` | Criar |
+| `supabase/functions/tipos-documento-api/index.ts` | Criar |
+| `docs/API_TIPOS_DOCUMENTO.md` | Criar |
 | `src/components/erp/ApiTester.tsx` | Editar — presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
