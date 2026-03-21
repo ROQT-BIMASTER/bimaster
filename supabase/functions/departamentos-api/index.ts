@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       status: "ok",
       service: "departamentos-api",
       timestamp: new Date().toISOString(),
-    });
+    }, 200, req);
   }
 
   if (req.method !== "POST") {
