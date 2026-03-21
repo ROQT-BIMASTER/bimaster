@@ -625,6 +625,18 @@ const tiposAtividadeCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposAnexoCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar tipos de anexo cadastrados (ListarTiposAnexos)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    params: [
+      { name: "codigo", type: "string(10)", required: false, description: "Filtro parcial por código (ILIKE)" },
+    ],
+    response: `{ "listaTipoAnexo": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "CT", "descricao": "Contrato" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const cnaeCrud: Endpoint[] = [
   {
     method: "POST", path: "/listar", description: "Listar CNAEs cadastrados com paginação (ListarCNAE)", tag: "novo",
@@ -1241,6 +1253,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Tipos Atividade
             </TabsTrigger>
+            <TabsTrigger value="tipos-anexo" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Tipos Anexo
+            </TabsTrigger>
             <TabsTrigger value="cnae" className="text-xs gap-1.5">
               <Database className="h-3.5 w-3.5" />
               CNAE
@@ -1482,6 +1498,16 @@ export default function ApiDocumentation() {
               basePath="/tipos-atividade-api"
               endpoints={tiposAtividadeCrud}
               description="Listar tipos de atividade da empresa (código 1 char + descrição)"
+            />
+          </TabsContent>
+
+          <TabsContent value="tipos-anexo" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Tipos de Anexo — ListarTiposAnexos (Padrão Omie)"
+              basePath="/tipos-anexo-api"
+              endpoints={tiposAnexoCrud}
+              description="Lista de tipos de documentos anexos (código + descrição)"
             />
           </TabsContent>
 
