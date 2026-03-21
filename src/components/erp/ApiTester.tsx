@@ -158,6 +158,10 @@ const PRESET_ENDPOINTS = [
   { label: "Bancos — Consultar", method: "GET" as HttpMethod, path: "/bancos-api/consultar?codigo=001" },
   { label: "Bancos — Listar", method: "GET" as HttpMethod, path: "/bancos-api/listar?pagina=1&registros_por_pagina=100" },
   { label: "Bancos — Status", method: "GET" as HttpMethod, path: "/bancos-api/status" },
+  // Tipos de Documento (ConsultarTipoDocumento + PesquisarTipoDocumento)
+  { label: "Tipo Doc — Consultar", method: "GET" as HttpMethod, path: "/tipos-documento-api/consultar?codigo=NF" },
+  { label: "Tipo Doc — Pesquisar", method: "POST" as HttpMethod, path: "/tipos-documento-api/pesquisar" },
+  { label: "Tipo Doc — Status", method: "GET" as HttpMethod, path: "/tipos-documento-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -209,6 +213,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/pesquisar-lancamentos-api/pesquisar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cNatureza: "R", cStatus: "pendente", dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026", cOrdenarPor: "data_vencimento", cOrdemDecrescente: "S" }, null, 2),
   // Movimentos Financeiros
   "/movimentos-financeiros-api/listar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cTpLancamento: "", cExibirDepartamentos: "S", lDadosCad: true, dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026" }, null, 2),
+  // Tipos de Documento
+  "/tipos-documento-api/pesquisar": JSON.stringify({ codigo: "" }, null, 2),
 };
 
 export default function ApiTester() {

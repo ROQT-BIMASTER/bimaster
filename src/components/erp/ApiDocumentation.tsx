@@ -653,6 +653,22 @@ const bancosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposDocumentoCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/consultar", description: "Consultar tipo de documento por código (ConsultarTipoDocumento)", tag: "novo",
+    params: [
+      { name: "codigo", type: "string", required: true, description: "Código do tipo de documento (ex: NF, BOLETO)" },
+    ],
+    response: `{ "codigo": "NF", "descricao": "Nota Fiscal" }`,
+  },
+  {
+    method: "POST", path: "/pesquisar", description: "Pesquisar tipos de documento (PesquisarTipoDocumento)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    response: `{ "tipo_documento_cadastro": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "NFE", "descricao": "NF-e (Eletrônica)" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -839,6 +855,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Bancos
             </TabsTrigger>
+            <TabsTrigger value="tipos-doc" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Tipos Documento
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1008,6 +1028,16 @@ export default function ApiDocumentation() {
               basePath="/bancos-api"
               endpoints={bancosCrud}
               description="Consulta e listagem de bancos/instituições financeiras cadastradas"
+            />
+          </TabsContent>
+
+          <TabsContent value="tipos-doc" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento (Padrão Omie)"
+              basePath="/tipos-documento-api"
+              endpoints={tiposDocumentoCrud}
+              description="Consulta e pesquisa de tipos de documento cadastrados"
             />
           </TabsContent>
 
