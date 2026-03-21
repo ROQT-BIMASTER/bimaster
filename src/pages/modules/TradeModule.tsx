@@ -3,29 +3,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Store, 
   Calendar, 
   Camera, 
-  TrendingUp, 
-  Target, 
-  ArrowRight,
-  BarChart3,
-  Trophy,
-  MapPin,
-  ShoppingBag,
-  Users,
-  FileText,
-  Award,
-  Image,
-  Ruler,
-  Building,
-  Shield,
   Plus,
-  ChevronDown,
-  Zap,
-  CheckCircle2
+  ShoppingBag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,12 +16,6 @@ import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { startOfMonth } from "date-fns";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
@@ -51,14 +28,9 @@ const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
   const { isAdmin, isAdminOrSupervisor } = useUserRole();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
-
-  const toggleSection = (section: string) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   const { data: stats } = useQuery({
     queryKey: ['trade-module-stats', filteredStores.length],
