@@ -403,8 +403,9 @@ async function handleGetCancelledItems(
 }
 
 function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  const headers = withSecurityHeaders(
+    { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key", "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  return new Response(JSON.stringify(data), { status, headers });
 }
