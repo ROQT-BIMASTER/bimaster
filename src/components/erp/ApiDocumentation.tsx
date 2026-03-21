@@ -669,6 +669,18 @@ const tiposDocumentoCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const dreCadastroCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar contas do DRE (ListarCadastroDRE)", tag: "novo",
+    body: `{ "apenasContasAtivas": "N" }`,
+    response: `{ "totalRegistros": 25, "dreLista": [{ "codigoDRE": "4.1", "descricaoDRE": "Receita Bruta", "naoExibirDRE": "N", "nivelDRE": 2, "sinalDRE": "+", "totalizaDRE": "N" }] }`,
+    params: [
+      { name: "apenasContasAtivas", type: "string", required: false, description: "S para listar apenas contas ativas, N para todas" },
+    ],
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
