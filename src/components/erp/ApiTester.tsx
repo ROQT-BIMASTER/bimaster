@@ -84,6 +84,15 @@ const PRESET_ENDPOINTS = [
   { label: "Contas Correntes — Upsert", method: "POST" as HttpMethod, path: "/contas-correntes-api/upsert" },
   { label: "Contas Correntes — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-correntes-api/upsert-lote" },
   { label: "Contas Correntes — Status", method: "GET" as HttpMethod, path: "/contas-correntes-api/status" },
+  // Lançamentos de Conta Corrente
+  { label: "Lançamentos CC — Listar", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/" },
+  { label: "Lançamentos CC — Consultar", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/consultar?cCodIntLanc=COLE_O_CODIGO" },
+  { label: "Lançamentos CC — Incluir", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/incluir" },
+  { label: "Lançamentos CC — Alterar", method: "PUT" as HttpMethod, path: "/lancamentos-cc-api/alterar" },
+  { label: "Lançamentos CC — Excluir", method: "DELETE" as HttpMethod, path: "/lancamentos-cc-api/excluir?cCodIntLanc=COLE_O_CODIGO" },
+  { label: "Lançamentos CC — Upsert", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert" },
+  { label: "Lançamentos CC — Upsert Lote", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert-lote" },
+  { label: "Lançamentos CC — Status", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -98,6 +107,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-correntes-api/alterar": JSON.stringify({ cCodCCInt: "MyCC0001", descricao: "Conta Itaú Atualizada", valor_limite: 75000 }, null, 2),
   "/contas-correntes-api/upsert": JSON.stringify({ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CC", codigo_banco: "341", descricao: "Conta Itaú", saldo_inicial: 10000 }, null, 2),
   "/contas-correntes-api/upsert-lote": JSON.stringify({ lote: 1, fin_conta_corrente_cadastro: [{ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CX", codigo_banco: "999", descricao: "Caixinha", saldo_inicial: 0 }] }, null, 2),
+  "/lancamentos-cc-api/incluir": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", nCodCliente: 2485994, cObs: "Referente a jardinagem" } }, null, 2),
+  "/lancamentos-cc-api/alterar": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nValorLanc: 200.00 }, detalhes: { cObs: "Valor corrigido" } }, null, 2),
+  "/lancamentos-cc-api/upsert": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", cObs: "Lançamento via API" } }, null, 2),
+  "/lancamentos-cc-api/upsert-lote": JSON.stringify({ lote: 1, lancamentos: [{ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 100 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN" } }] }, null, 2),
 };
 
 export default function ApiTester() {

@@ -218,6 +218,63 @@ const contasCorrentesCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const lancamentosCcCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/", description: "Listar lançamentos de conta corrente (paginado)", tag: "novo",
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "nCodCC", type: "integer", required: false, description: "Filtro por conta corrente (código Omie)" },
+      { name: "cOrigem", type: "string", required: false, description: "Filtro por origem: MANU, CONP, CONR, TRAN" },
+      { name: "dtPagInicial", type: "date", required: false, description: "Data do lançamento inicial" },
+      { name: "dtPagFinal", type: "date", required: false, description: "Data do lançamento final" },
+      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
+      { name: "cOrdemDecrescente", type: "string", required: false, description: "S para ordem decrescente" },
+    ],
+    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 95, "listaLancamentos": [...] }`,
+  },
+  {
+    method: "GET", path: "/consultar", description: "Consultar lançamento por ID ou código de integração", tag: "novo",
+    params: [
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+      { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" },
+      { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Omie" },
+    ],
+    response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...}, ... } }`,
+  },
+  {
+    method: "POST", path: "/incluir", description: "Incluir novo lançamento de conta corrente",
+    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": 2485994, "cObs": "Pagamento jardinagem" } }`,
+    response: `{ "nCodLanc": null, "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento incluído com sucesso" }`,
+  },
+  {
+    method: "PUT", path: "/alterar", description: "Alterar lançamento existente",
+    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nValorLanc": 200.00 }, "detalhes": { "cObs": "Valor corrigido" } }`,
+    response: `{ "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento alterado com sucesso" }`,
+  },
+  {
+    method: "DELETE", path: "/excluir", description: "Excluir (inativar) lançamento",
+    params: [
+      { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" },
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+    ],
+  },
+  {
+    method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodIntLanc)",
+    body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }`,
+  },
+  {
+    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 lançamentos)",
+    body: `{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }`,
+    response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }`,
+  },
+  {
+    method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)",
+    body: `{ "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cTipo": "DIN" } }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -377,6 +434,10 @@ export default function ApiDocumentation() {
               <RefreshCw className="h-3.5 w-3.5" />
               Contas Correntes
             </TabsTrigger>
+            <TabsTrigger value="lancamentos-cc" className="text-xs gap-1.5">
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Lançamentos CC
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -442,6 +503,16 @@ export default function ApiDocumentation() {
               basePath="/contas-correntes-api"
               endpoints={contasCorrentesCrud}
               description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
+            />
+          </TabsContent>
+
+          <TabsContent value="lancamentos-cc" className="space-y-1">
+            <ApiSection
+              icon={<ArrowDownToLine className="h-4 w-4 text-primary" />}
+              title="CRUD & Sync — Lançamentos de Conta Corrente (Padrão Omie)"
+              basePath="/lancamentos-cc-api"
+              endpoints={lancamentosCcCrud}
+              description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
             />
           </TabsContent>
 

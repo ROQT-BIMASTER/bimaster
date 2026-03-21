@@ -13910,96 +13910,159 @@ export type Database = {
       }
       lancamentos_conta_corrente: {
         Row: {
+          bloqueado: boolean | null
+          c_cod_int_lanc: string | null
+          c_ident_lanc: string | null
+          c_natureza: string | null
+          c_origem_lanc: string | null
+          c_tipo_documento: string | null
           categoria: string | null
           centro_custo_id: string | null
           codigo_integracao: string | null
           conta_bancaria_id: string
           conta_destino_id: string | null
+          conta_destino_n_cod_cc: number | null
           created_at: string
           data_alt: string | null
           data_competencia: string | null
+          data_conciliacao: string | null
           data_inc: string | null
           data_lancamento: string
           descricao: string
           empresa_id: string
           enviado_erp: boolean
           hora_alt: string | null
+          hora_conciliacao: string | null
           hora_inc: string | null
           id: string
+          importado_api: boolean | null
           inativo: boolean
           lancamento_par_id: string | null
+          n_cod_agrup: number | null
+          n_cod_cliente: number | null
+          n_cod_comprador: number | null
+          n_cod_lanc: number | null
+          n_cod_lanc_cp: number | null
+          n_cod_lanc_cr: number | null
+          n_cod_projeto: number | null
+          n_cod_vendedor: number | null
           numero_documento: string | null
           observacoes: string | null
           origem: string
           plano_conta_id: string | null
+          rateio_categorias: Json | null
+          rateio_departamentos: Json | null
           tipo: string
           titulo_pagar_id: string | null
           titulo_receber_id: string | null
           updated_at: string
           user_alt: string | null
           user_inc: string | null
+          usuario_conciliacao: string | null
           valor: number
         }
         Insert: {
+          bloqueado?: boolean | null
+          c_cod_int_lanc?: string | null
+          c_ident_lanc?: string | null
+          c_natureza?: string | null
+          c_origem_lanc?: string | null
+          c_tipo_documento?: string | null
           categoria?: string | null
           centro_custo_id?: string | null
           codigo_integracao?: string | null
           conta_bancaria_id: string
           conta_destino_id?: string | null
+          conta_destino_n_cod_cc?: number | null
           created_at?: string
           data_alt?: string | null
           data_competencia?: string | null
+          data_conciliacao?: string | null
           data_inc?: string | null
           data_lancamento?: string
           descricao: string
           empresa_id: string
           enviado_erp?: boolean
           hora_alt?: string | null
+          hora_conciliacao?: string | null
           hora_inc?: string | null
           id?: string
+          importado_api?: boolean | null
           inativo?: boolean
           lancamento_par_id?: string | null
+          n_cod_agrup?: number | null
+          n_cod_cliente?: number | null
+          n_cod_comprador?: number | null
+          n_cod_lanc?: number | null
+          n_cod_lanc_cp?: number | null
+          n_cod_lanc_cr?: number | null
+          n_cod_projeto?: number | null
+          n_cod_vendedor?: number | null
           numero_documento?: string | null
           observacoes?: string | null
           origem?: string
           plano_conta_id?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
           tipo: string
           titulo_pagar_id?: string | null
           titulo_receber_id?: string | null
           updated_at?: string
           user_alt?: string | null
           user_inc?: string | null
+          usuario_conciliacao?: string | null
           valor: number
         }
         Update: {
+          bloqueado?: boolean | null
+          c_cod_int_lanc?: string | null
+          c_ident_lanc?: string | null
+          c_natureza?: string | null
+          c_origem_lanc?: string | null
+          c_tipo_documento?: string | null
           categoria?: string | null
           centro_custo_id?: string | null
           codigo_integracao?: string | null
           conta_bancaria_id?: string
           conta_destino_id?: string | null
+          conta_destino_n_cod_cc?: number | null
           created_at?: string
           data_alt?: string | null
           data_competencia?: string | null
+          data_conciliacao?: string | null
           data_inc?: string | null
           data_lancamento?: string
           descricao?: string
           empresa_id?: string
           enviado_erp?: boolean
           hora_alt?: string | null
+          hora_conciliacao?: string | null
           hora_inc?: string | null
           id?: string
+          importado_api?: boolean | null
           inativo?: boolean
           lancamento_par_id?: string | null
+          n_cod_agrup?: number | null
+          n_cod_cliente?: number | null
+          n_cod_comprador?: number | null
+          n_cod_lanc?: number | null
+          n_cod_lanc_cp?: number | null
+          n_cod_lanc_cr?: number | null
+          n_cod_projeto?: number | null
+          n_cod_vendedor?: number | null
           numero_documento?: string | null
           observacoes?: string | null
           origem?: string
           plano_conta_id?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
           tipo?: string
           titulo_pagar_id?: string | null
           titulo_receber_id?: string | null
           updated_at?: string
           user_alt?: string | null
           user_inc?: string | null
+          usuario_conciliacao?: string | null
           valor?: number
         }
         Relationships: []
