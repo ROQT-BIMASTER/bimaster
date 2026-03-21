@@ -25484,6 +25484,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_entrega: {
+        Row: {
+          c_cod_int_entrega: string | null
+          c_descricao: string
+          c_inativo: string
+          created_at: string | null
+          id: string
+          n_cod_entrega: number
+          n_cod_transp: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          c_cod_int_entrega?: string | null
+          c_descricao: string
+          c_inativo?: string
+          created_at?: string | null
+          id?: string
+          n_cod_entrega?: never
+          n_cod_transp?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          c_cod_int_entrega?: string | null
+          c_descricao?: string
+          c_inativo?: string
+          created_at?: string | null
+          id?: string
+          n_cod_entrega?: never
+          n_cod_transp?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trade_action_points: {
         Row: {
           action_code: string
