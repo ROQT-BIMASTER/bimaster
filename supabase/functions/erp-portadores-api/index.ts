@@ -44,11 +44,26 @@ Deno.serve(async (req) => {
     .eq("config_value", apiKey)
     .maybeSingle();
 
-  if (configErr || !configRow?.empresa_id) {
+  let empresaId: string | number | null = configRow?.empresa_id ?? null;
+
+  // Fallback: check erp_api_keys table
+  if (!empresaId) {
+    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+    const empresa = await validateErpApiKey(apiKey);
+    if (empresa) {
+      empresaId = empresa;
+    }
+  }
+
+  if (!empresaId) {
     return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
   }
 
-  const empresaId: number = configRow.empresa_id;
+  // Convert empresaId to number for tables that use integer empresa_id
+  const empresaIdNum = typeof empresaId === 'number' ? empresaId : parseInt(String(empresaId));
+  if (isNaN(empresaIdNum)) {
+    return errorResponse(422, "VALIDATION_ERROR", "empresa_id deve ser numérico para esta API");
+  }
 
   // --- Helper to log to erp_sync_log ---
   async function logSync(endpoint: string, payload: unknown, statusCode: number) {
@@ -62,7 +77,7 @@ Deno.serve(async (req) => {
         response_status: statusCode,
         success: statusCode >= 200 && statusCode < 300,
         duration_ms: Date.now() - startMs,
-        empresa_id: empresaId,
+        empresa_id: empresaIdNum,
       });
     } catch (e) {
       console.error("Failed to log sync:", e);
@@ -75,7 +90,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from("portadores")
         .select("id, nome, banco_codigo, banco_nome, agencia, conta, tipo, codigo_erp")
-        .eq("empresa_id", empresaId)
+        .eq("empresa_id", empresaIdNum)
         .eq("ativo", true)
         .order("nome");
 
@@ -104,7 +119,7 @@ Deno.serve(async (req) => {
       }
 
       const rows = body.portadores.map((p: any) => ({
-        empresa_id: empresaId,
+        empresa_id: empresaIdNum,
         codigo_erp: p.codigo_erp,
         nome: p.nome,
         banco_codigo: p.banco_codigo || null,

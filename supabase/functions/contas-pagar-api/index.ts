@@ -398,20 +398,35 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Validar API Key para endpoints de sincronização
-    const validateApiKey = () => {
+    const validateApiKey = async () => {
       const apiKey = req.headers.get('x-api-key');
+      if (!apiKey) return false;
+
+      // Check legacy N8N_API_KEY
       const expectedKey = Deno.env.get('N8N_API_KEY');
-      return apiKey && apiKey === expectedKey;
+      if (apiKey && apiKey === expectedKey) return true;
+
+      // Check erp_config table
+      const { data: configRow } = await supabase
+        .from("erp_config")
+        .select("empresa_id")
+        .eq("config_key", "api_key")
+        .eq("config_value", apiKey)
+        .maybeSingle();
+      if (configRow?.empresa_id) return true;
+
+      // Fallback: check erp_api_keys table
+      const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+      const empresa = await validateErpApiKey(apiKey);
+      return !!empresa;
     };
 
     // Validar autenticação (API Key ou JWT)
     const validateAuth = async () => {
-      const apiKey = req.headers.get('x-api-key');
-      const expectedKey = Deno.env.get('N8N_API_KEY');
+      // Try API key first (all methods)
+      if (await validateApiKey()) return true;
+      
       const authHeader = req.headers.get('Authorization');
-      
-      if (apiKey && apiKey === expectedKey) return true;
-      
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -426,7 +441,7 @@ Deno.serve(async (req) => {
     // =====================================================
     if (path.endsWith('/status') && req.method === 'GET') {
       // Require API key for status endpoint
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         logError('status', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -467,7 +482,7 @@ Deno.serve(async (req) => {
     // POST /debug-payload - Analisar payload sem processar
     // =====================================================
     if (path.endsWith('/debug-payload') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         logError('debug-payload', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -560,7 +575,7 @@ Deno.serve(async (req) => {
     // POST /bulk-sync - Sincronização em massa (COM RATE LIMITING)
     // =====================================================
     if (path.endsWith('/bulk-sync') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         logError('bulk-sync', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -725,7 +740,7 @@ Deno.serve(async (req) => {
     // POST /sync-incremental - Sincronização incremental
     // =====================================================
     if (path.endsWith('/sync-incremental') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         logError('sync-incremental', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -815,7 +830,7 @@ Deno.serve(async (req) => {
     // POST /sync-complete - Finalizar sincronização
     // =====================================================
     if (path.endsWith('/sync-complete') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -896,7 +911,7 @@ Deno.serve(async (req) => {
     // POST /sync - Sincronização legada (compatibilidade)
     // =====================================================
     if (path.endsWith('/sync') && req.method === 'POST') {
-      if (!validateApiKey()) {
+      if (!await validateApiKey()) {
         logError('sync', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
