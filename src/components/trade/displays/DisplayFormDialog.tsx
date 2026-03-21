@@ -63,25 +63,91 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
     }
   }, [display, open]);
 
+  const [optimizing, setOptimizing] = useState(false);
+
+  const optimizeImageForBanner = async (base64: string): Promise<Blob | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+        body: { imageBase64: base64 },
+      });
+      if (error) throw error;
+      if (!data?.optimizedImage) throw new Error("No image returned");
+
+      const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      return new Blob([bytes], { type: "image/png" });
+    } catch (err) {
+      console.error("AI optimize failed:", err);
+      return null;
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setOptimizing(true);
     try {
-      const ext = file.name.split(".").pop();
+      // Convert to base64 and optimize with AI
+      const base64 = await fileToBase64(file);
+      toast.info("🤖 Otimizando imagem com IA para formato banner...");
+      const optimizedBlob = await optimizeImageForBanner(base64);
+
+      const uploadFile = optimizedBlob || file;
+      const ext = optimizedBlob ? "png" : file.name.split(".").pop();
       const path = `displays/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("trade-banners").upload(path, file, { upsert: false });
+      
+      const { error } = await supabase.storage.from("trade-banners").upload(path, uploadFile, { upsert: false });
       if (error) throw error;
 
       const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
       setFotoUrl(urlData.publicUrl);
       setFotoPreview(urlData.publicUrl);
-      toast.success("Imagem enviada");
+      toast.success(optimizedBlob ? "Imagem otimizada e enviada ✨" : "Imagem enviada (otimização indisponível)");
     } catch {
       toast.error("Erro ao enviar imagem");
     } finally {
       setUploading(false);
+      setOptimizing(false);
+    }
+  };
+
+  const handleOptimizeExisting = async () => {
+    if (!fotoUrl) return;
+    setOptimizing(true);
+    try {
+      toast.info("🤖 Otimizando imagem existente...");
+      const { data, error } = await supabase.functions.invoke("optimize-display-banner", {
+        body: { imageUrl: fotoUrl },
+      });
+      if (error) throw error;
+      if (!data?.optimizedImage) throw new Error("No image returned");
+
+      const b64 = data.optimizedImage.replace(/^data:image\/\w+;base64,/, "");
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "image/png" });
+
+      const path = `displays/${Date.now()}_optimized.png`;
+      const { error: upError } = await supabase.storage.from("trade-banners").upload(path, blob, { upsert: false });
+      if (upError) throw upError;
+
+      const { data: urlData } = supabase.storage.from("trade-banners").getPublicUrl(path);
+      setFotoUrl(urlData.publicUrl);
+      setFotoPreview(urlData.publicUrl);
+      toast.success("Imagem re-otimizada com sucesso ✨");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao otimizar imagem");
+    } finally {
+      setOptimizing(false);
     }
   };
 
