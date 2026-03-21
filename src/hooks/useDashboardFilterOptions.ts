@@ -49,5 +49,19 @@ export function useDashboardFilterOptions() {
     staleTime: 10 * 60 * 1000,
   });
 
-  return { supervisores, vendedores, ufs, marcas };
+  const tabelas = useQuery({
+    queryKey: ["filter-tabelas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vendas_union")
+        .select("tabela")
+        .not("tabela", "is", null)
+        .limit(1000);
+      const unique = [...new Set((data || []).map((d: any) => d.tabela).filter(Boolean))].sort();
+      return unique as string[];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  return { supervisores, vendedores, ufs, marcas, tabelas };
 }
