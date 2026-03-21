@@ -510,6 +510,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("prospects.activities"), url: "/dashboard/prospects/atividades", icon: Activity, screenCode: "PROSPECTS_ATIVIDADES" },
     { title: t("prospects.tasks"), url: "/dashboard/tarefas", icon: CheckSquare, screenCode: "tarefas" },
     { title: t("prospects.demands"), url: "/dashboard/demandas", icon: Ticket, screenCode: "PROSPECTS_DEMANDAS" },
+    { title: "IA Analytics", url: "/dashboard/ai-analytics", icon: Brain, screenCode: "ai_analytics" },
+    { title: "QA Agent", url: "/dashboard/qa-agent", icon: Bot, screenCode: "ai_analytics" },
+    { title: "Agente Huggs", url: "/dashboard/agente-huggs", icon: Sparkles, screenCode: "ai_analytics" },
   ];
 
   // Financeiro subgroups definition
@@ -597,6 +600,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
   const marketingSubMenus = [
     { title: t("marketing.dashboards"), url: "/dashboard/marketing/social", icon: BarChart3, screenCode: "MARKETING_SOCIAL" },
+    { title: "WhatsApp", url: "/dashboard/marketing/whatsapp", icon: MessageSquare, screenCode: "MARKETING_SOCIAL" },
+    { title: "ElevenLabs Studio", url: "/dashboard/marketing/elevenlabs", icon: Mic, screenCode: "MARKETING_SOCIAL" },
+    { title: "Mission Control", url: "/dashboard/marketing/mission-control", icon: Target, screenCode: "MARKETING_SOCIAL" },
   ];
 
   const precosSubMenus = [
@@ -604,6 +610,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("precos.matrix"), url: "/dashboard/precos/matriz", icon: Grid3X3, screenCode: "precos_matriz" },
     { title: t("precos.manage"), url: "/dashboard/precos/tabelas", icon: Receipt, screenCode: "precos_tabelas" },
     { title: t("precos.approval"), url: "/dashboard/precos/aprovacao", icon: CheckSquare, screenCode: "precos_aprovacao" },
+    { title: "Simulador", url: "/dashboard/precos/simulador", icon: Activity, screenCode: "precos_simulador" },
     { title: t("precos.client_portal"), url: "/dashboard/precos/portal-cliente", icon: Users, screenCode: "precos_portal" },
     { title: t("precos.access_control"), url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
   ];
@@ -639,19 +646,29 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               <ModuleHeader icon={Briefcase} title={t("module.comercial")} isOpen={isModuleOpen} colorKey="comercial" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+               <ScrollArea className="max-h-64">
+               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
                 {hasPermission("comercial_dashboard") && (
                   <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
                 )}
                 {hasPermission("comercial_lancamentos") && (
                   <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
                 )}
+                <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart3} title="Painel Executivo" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Performance Vendas" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/clientes" icon={Users} title="Análise Clientes" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/produtos" icon={Package} title="Análise Produtos" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/geografico" icon={MapPin} title="Análise Geográfico" colorKey="comercial" />
+                <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas e Projeções" colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/inteligencia" icon={Brain} title="Inteligência de Mercado" colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/reativacao" icon={AlertTriangle} title={t("comercial.reactivation")} colorKey="comercial" />
+                <MenuItemLink to="/dashboard/comercial/mapa" icon={MapPin} title="Mapa Comercial" colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
                 <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
               </SidebarMenu>
+              </ScrollArea>
             </CollapsibleContent>
           </Collapsible>
         );
