@@ -2934,6 +2934,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cnaes: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string | null
+          descricao: string
+          estrutura: string | null
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          estrutura?: string | null
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          estrutura?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       cnpjbiz_audit: {
         Row: {
           created_at: string | null
