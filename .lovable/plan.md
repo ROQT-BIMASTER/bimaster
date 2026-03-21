@@ -1,42 +1,35 @@
 
 
-# API Tester — Ambiente de Teste tipo Postman no Portal ERP
+# Correção: PUT /update retornando "Failed to fetch" (erro CORS)
 
-## O que será criado
+## Problema
 
-Um componente interativo de teste de API embutido na página do Portal de Integração ERP, entre o card "Testar a API" e a tabela de chaves. Funciona como um mini-Postman onde o usuário pode:
+O browser envia um preflight OPTIONS antes de requisições PUT. O header `Access-Control-Allow-Methods` não está presente na resposta CORS do `contas-pagar-api`, então o browser bloqueia a requisição PUT.
 
-1. Selecionar o método HTTP (GET, POST, PUT, DELETE)
-2. Digitar a URL do endpoint (com autocomplete dos endpoints disponíveis)
-3. Adicionar headers (x-api-key pré-preenchido, Authorization, Content-Type)
-4. Editar o body JSON (para POST/PUT)
-5. Adicionar query params
-6. Enviar a requisição e ver o response (status, headers, body formatado, tempo de resposta)
-7. Ver histórico das últimas requisições
+## Correção
 
-## UI/UX
+### 1. Adicionar `Access-Control-Allow-Methods` nos CORS headers (`contas-pagar-api/index.ts`)
 
-- Card com título "Testar API" e ícone de terminal
-- Barra superior: dropdown de método (colorido como Postman) + input de URL + botão "Enviar"
-- Abas abaixo: **Headers** | **Body** | **Params**
-- Seção de resposta: status badge colorido (2xx verde, 4xx amarelo, 5xx vermelho), tempo em ms, body JSON com syntax highlight
-- Dropdown de endpoints pré-configurados para facilitar testes rápidos
-- Headers padrão já incluídos: `x-api-key`, `Content-Type: application/json`
+Adicionar ao objeto `corsHeaders` na linha 6-9:
 
-## Implementação
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+};
+```
 
-### Arquivo novo
-- `src/components/erp/ApiTester.tsx` — Componente completo do testador
+Isso permite que o preflight OPTIONS autorize métodos PUT/PATCH/DELETE.
 
-### Arquivo modificado
-- `src/pages/IntegracaoERP.tsx` — Importar e renderizar `<ApiTester />` entre o card do Postman e a tabela de chaves
+### 2. Melhorar tratamento de erro no API Tester (`ApiTester.tsx`)
 
-### Detalhes técnicos
-- Usa `fetch()` direto do browser para chamar as Edge Functions
-- Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1`
-- Lista de endpoints pré-configurados extraída do `ApiDocumentation.tsx`
-- Body editor usa `<Textarea>` com formatação JSON
-- Response body renderizado com `JSON.stringify(data, null, 2)` em `<pre>` com estilo mono
-- Mede `duration_ms` com `performance.now()`
-- Histórico salvo em state local (últimas 10 requisições)
+Atualmente, quando `fetch` falha com erro de rede (CORS block), o catch não mostra mensagem útil. Melhorar para indicar que pode ser problema de CORS.
+
+### Arquivos impactados
+
+| Arquivo | Mudança |
+|---|---|
+| `supabase/functions/contas-pagar-api/index.ts` | +1 linha: `Access-Control-Allow-Methods` |
+| `src/components/erp/ApiTester.tsx` | Melhorar mensagem de erro de rede |
 
