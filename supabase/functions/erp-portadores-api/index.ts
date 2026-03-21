@@ -59,6 +59,12 @@ Deno.serve(async (req) => {
     return errorResponse(401, "UNAUTHORIZED", "API key inválida ou sem empresa vinculada");
   }
 
+  // Convert empresaId to number for tables that use integer empresa_id
+  const empresaIdNum = typeof empresaId === 'number' ? empresaId : parseInt(String(empresaId));
+  if (isNaN(empresaIdNum)) {
+    return errorResponse(422, "VALIDATION_ERROR", "empresa_id deve ser numérico para esta API");
+  }
+
   // --- Helper to log to erp_sync_log ---
   async function logSync(endpoint: string, payload: unknown, statusCode: number) {
     try {
