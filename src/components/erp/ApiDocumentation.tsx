@@ -339,6 +339,91 @@ const lancamentosCcCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const contasReceberOmie: Endpoint[] = [
+  {
+    method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaReceber)", tag: "novo",
+    params: [
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
+      { name: "codigo_lancamento_omie", type: "integer", required: false, description: "Código numérico Omie" },
+    ],
+    response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100, ... } }`,
+  },
+  {
+    method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
+    response: `{ "codigo_lancamento_omie": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
+  },
+  {
+    method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
+    response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
+  },
+  {
+    method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo",
+    params: [
+      { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
+      { name: "id", type: "uuid", required: false, description: "ID interno" },
+    ],
+  },
+  {
+    method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`,
+  },
+  {
+    method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo",
+    body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "valor_documento": 100 }] }`,
+    response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
+  },
+  {
+    method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo",
+    body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
+    response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo",
+    body: `{ "codigo_baixa": 0 }`,
+    response: `{ "codigo_baixa": 0, "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo",
+    body: `{ "codigo_baixa": 0 }`,
+  },
+  {
+    method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo",
+    body: `{ "codigo_baixa": 0 }`,
+  },
+  {
+    method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo",
+    body: `{ "chave_lancamento": 0 }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listagem paginada Omie-style (ListarContasReceber)", tag: "novo",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" },
+      { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
+      { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
+      { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente" },
+      { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
+      { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" },
+      { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
+      { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }`,
+  },
+];
+
+const contasReceberSync: Endpoint[] = [
+  { method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)", tag: "sync" },
+  { method: "POST", path: "/bulk-sync", description: "Sync em massa", tag: "sync" },
+  { method: "POST", path: "/sync-chunk", description: "Sync chunk", tag: "sync" },
+  { method: "GET", path: "/sync-status", description: "Status da sync", tag: "sync" },
+  { method: "POST", path: "/delete-old", description: "Limpar registros antigos", tag: "sync" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -356,7 +441,6 @@ const otherApis: Endpoint[] = [
   { method: "POST", path: "/plano-contas/sync", description: "Sync do plano de contas" },
   { method: "POST", path: "/estoque/sync", description: "Sync de estoque do ERP" },
   { method: "GET", path: "/estoque/status", description: "Status da sync de estoque" },
-  { method: "POST", path: "/contas-receber/sync", description: "Sync de contas a receber" },
 ];
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
@@ -490,6 +574,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Contas a Pagar
             </TabsTrigger>
+            <TabsTrigger value="contas-receber" className="text-xs gap-1.5">
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
+              Contas a Receber
+            </TabsTrigger>
             <TabsTrigger value="export" className="text-xs gap-1.5">
               <ArrowUpFromLine className="h-3.5 w-3.5" />
               Exportação
@@ -540,6 +628,23 @@ export default function ApiDocumentation() {
               basePath="/contas-pagar-api"
               endpoints={contasPagarOmie}
               description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — formato Omie"
+            />
+          </TabsContent>
+
+          <TabsContent value="contas-receber" className="space-y-1">
+            <ApiSection
+              icon={<Webhook className="h-4 w-4 text-emerald-500" />}
+              title="CRUD Omie-Style (Padrão Omie)"
+              basePath="/contas-receber-api"
+              endpoints={contasReceberOmie}
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — formato Omie"
+            />
+            <ApiSection
+              icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
+              title="Sync (ERP → BiMaster)"
+              basePath="/contas-receber-api"
+              endpoints={contasReceberSync}
+              description="Sincronização legada de contas a receber"
             />
           </TabsContent>
 

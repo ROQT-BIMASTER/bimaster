@@ -4351,13 +4351,36 @@ export type Database = {
       }
       contas_receber: {
         Row: {
+          aprendizado_rateio: boolean | null
+          baixar_documento: boolean | null
           bloqueado: boolean
+          bloquear_baixa: boolean | null
+          bloquear_exclusao: boolean | null
+          boleto_data_emissao: string | null
+          boleto_gerado: boolean | null
+          boleto_numero: string | null
+          boleto_numero_bancario: string | null
+          boleto_per_juros: number | null
+          boleto_per_multa: number | null
+          c_numero_contrato: string | null
+          c_pedido_cliente: string | null
           categoria: string | null
           centro_custo_id: string | null
+          chave_nfe: string | null
           cliente_codigo: string | null
           cliente_id: string | null
           cliente_nome: string | null
+          codigo_barras_ficha_compensacao: string | null
+          codigo_cliente_fornecedor: number | null
+          codigo_cliente_fornecedor_integracao: string | null
+          codigo_cmc7_cheque: string | null
           codigo_integracao: string | null
+          codigo_lancamento_integracao: string | null
+          codigo_lancamento_omie: number | null
+          codigo_projeto: number | null
+          codigo_tipo_documento: string | null
+          codigo_vendedor: number | null
+          conciliar_documento: boolean | null
           conta: string | null
           conta_bancaria_id: string | null
           created_at: string | null
@@ -4366,7 +4389,9 @@ export type Database = {
           data_emissao: string | null
           data_hash: string | null
           data_inc: string | null
+          data_previsao: string | null
           data_recebimento: string | null
+          data_registro: string | null
           data_vencimento: string | null
           descricao: string | null
           dias_atraso: number | null
@@ -4377,20 +4402,41 @@ export type Database = {
           hora_alt: string | null
           hora_inc: string | null
           id: string
+          id_conta_corrente: number | null
+          id_origem: string | null
+          importado_api: boolean | null
           inativo: boolean
+          n_cod_os: number | null
+          n_cod_pedido: number | null
+          nsu: string | null
           num_parcelas: number
           numero_documento: string | null
+          numero_documento_fiscal: string | null
+          numero_parcela_omie: string | null
+          numero_pedido: string | null
           observacoes: string | null
+          operacao: string | null
           parcela: number | null
           plano_conta_id: string | null
           portador: string | null
           portador_id: string | null
           portador_nome: string | null
+          rateio_categorias: Json | null
+          rateio_departamentos: Json | null
+          repeticao: Json | null
+          retem_cofins: boolean | null
+          retem_csll: boolean | null
+          retem_inss: boolean | null
+          retem_ir: boolean | null
+          retem_iss: boolean | null
+          retem_pis: boolean | null
           sincronizado_em: string | null
           status: string | null
+          status_titulo: string | null
           tabela: string | null
           tabela_preco: string | null
           tags: string[] | null
+          tipo_agrupamento: string | null
           tipo_documento: string | null
           updated_at: string | null
           user_alt: string | null
@@ -4398,23 +4444,52 @@ export type Database = {
           valor_aberto: number | null
           valor_acrescimo: number
           valor_ajustes: number | null
+          valor_cofins: number | null
+          valor_csll: number | null
           valor_desconto: number | null
+          valor_inss: number | null
+          valor_ir: number | null
+          valor_iss: number | null
           valor_juros: number | null
           valor_liquido: number | null
           valor_original: number | null
+          valor_pis: number | null
           valor_recebido: number | null
           vendedor: string | null
           vendedor_codigo: string | null
           vendedor_nome: string | null
         }
         Insert: {
+          aprendizado_rateio?: boolean | null
+          baixar_documento?: boolean | null
           bloqueado?: boolean
+          bloquear_baixa?: boolean | null
+          bloquear_exclusao?: boolean | null
+          boleto_data_emissao?: string | null
+          boleto_gerado?: boolean | null
+          boleto_numero?: string | null
+          boleto_numero_bancario?: string | null
+          boleto_per_juros?: number | null
+          boleto_per_multa?: number | null
+          c_numero_contrato?: string | null
+          c_pedido_cliente?: string | null
           categoria?: string | null
           centro_custo_id?: string | null
+          chave_nfe?: string | null
           cliente_codigo?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
+          codigo_barras_ficha_compensacao?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_cliente_fornecedor_integracao?: string | null
+          codigo_cmc7_cheque?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_integracao?: string | null
+          codigo_lancamento_omie?: number | null
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          conciliar_documento?: boolean | null
           conta?: string | null
           conta_bancaria_id?: string | null
           created_at?: string | null
@@ -4423,7 +4498,9 @@ export type Database = {
           data_emissao?: string | null
           data_hash?: string | null
           data_inc?: string | null
+          data_previsao?: string | null
           data_recebimento?: string | null
+          data_registro?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           dias_atraso?: number | null
@@ -4434,20 +4511,41 @@ export type Database = {
           hora_alt?: string | null
           hora_inc?: string | null
           id?: string
+          id_conta_corrente?: number | null
+          id_origem?: string | null
+          importado_api?: boolean | null
           inativo?: boolean
+          n_cod_os?: number | null
+          n_cod_pedido?: number | null
+          nsu?: string | null
           num_parcelas?: number
           numero_documento?: string | null
+          numero_documento_fiscal?: string | null
+          numero_parcela_omie?: string | null
+          numero_pedido?: string | null
           observacoes?: string | null
+          operacao?: string | null
           parcela?: number | null
           plano_conta_id?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
+          repeticao?: Json | null
+          retem_cofins?: boolean | null
+          retem_csll?: boolean | null
+          retem_inss?: boolean | null
+          retem_ir?: boolean | null
+          retem_iss?: boolean | null
+          retem_pis?: boolean | null
           sincronizado_em?: string | null
           status?: string | null
+          status_titulo?: string | null
           tabela?: string | null
           tabela_preco?: string | null
           tags?: string[] | null
+          tipo_agrupamento?: string | null
           tipo_documento?: string | null
           updated_at?: string | null
           user_alt?: string | null
@@ -4455,23 +4553,52 @@ export type Database = {
           valor_aberto?: number | null
           valor_acrescimo?: number
           valor_ajustes?: number | null
+          valor_cofins?: number | null
+          valor_csll?: number | null
           valor_desconto?: number | null
+          valor_inss?: number | null
+          valor_ir?: number | null
+          valor_iss?: number | null
           valor_juros?: number | null
           valor_liquido?: number | null
           valor_original?: number | null
+          valor_pis?: number | null
           valor_recebido?: number | null
           vendedor?: string | null
           vendedor_codigo?: string | null
           vendedor_nome?: string | null
         }
         Update: {
+          aprendizado_rateio?: boolean | null
+          baixar_documento?: boolean | null
           bloqueado?: boolean
+          bloquear_baixa?: boolean | null
+          bloquear_exclusao?: boolean | null
+          boleto_data_emissao?: string | null
+          boleto_gerado?: boolean | null
+          boleto_numero?: string | null
+          boleto_numero_bancario?: string | null
+          boleto_per_juros?: number | null
+          boleto_per_multa?: number | null
+          c_numero_contrato?: string | null
+          c_pedido_cliente?: string | null
           categoria?: string | null
           centro_custo_id?: string | null
+          chave_nfe?: string | null
           cliente_codigo?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
+          codigo_barras_ficha_compensacao?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_cliente_fornecedor_integracao?: string | null
+          codigo_cmc7_cheque?: string | null
           codigo_integracao?: string | null
+          codigo_lancamento_integracao?: string | null
+          codigo_lancamento_omie?: number | null
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          conciliar_documento?: boolean | null
           conta?: string | null
           conta_bancaria_id?: string | null
           created_at?: string | null
@@ -4480,7 +4607,9 @@ export type Database = {
           data_emissao?: string | null
           data_hash?: string | null
           data_inc?: string | null
+          data_previsao?: string | null
           data_recebimento?: string | null
+          data_registro?: string | null
           data_vencimento?: string | null
           descricao?: string | null
           dias_atraso?: number | null
@@ -4491,20 +4620,41 @@ export type Database = {
           hora_alt?: string | null
           hora_inc?: string | null
           id?: string
+          id_conta_corrente?: number | null
+          id_origem?: string | null
+          importado_api?: boolean | null
           inativo?: boolean
+          n_cod_os?: number | null
+          n_cod_pedido?: number | null
+          nsu?: string | null
           num_parcelas?: number
           numero_documento?: string | null
+          numero_documento_fiscal?: string | null
+          numero_parcela_omie?: string | null
+          numero_pedido?: string | null
           observacoes?: string | null
+          operacao?: string | null
           parcela?: number | null
           plano_conta_id?: string | null
           portador?: string | null
           portador_id?: string | null
           portador_nome?: string | null
+          rateio_categorias?: Json | null
+          rateio_departamentos?: Json | null
+          repeticao?: Json | null
+          retem_cofins?: boolean | null
+          retem_csll?: boolean | null
+          retem_inss?: boolean | null
+          retem_ir?: boolean | null
+          retem_iss?: boolean | null
+          retem_pis?: boolean | null
           sincronizado_em?: string | null
           status?: string | null
+          status_titulo?: string | null
           tabela?: string | null
           tabela_preco?: string | null
           tags?: string[] | null
+          tipo_agrupamento?: string | null
           tipo_documento?: string | null
           updated_at?: string | null
           user_alt?: string | null
@@ -4512,10 +4662,16 @@ export type Database = {
           valor_aberto?: number | null
           valor_acrescimo?: number
           valor_ajustes?: number | null
+          valor_cofins?: number | null
+          valor_csll?: number | null
           valor_desconto?: number | null
+          valor_inss?: number | null
+          valor_ir?: number | null
+          valor_iss?: number | null
           valor_juros?: number | null
           valor_liquido?: number | null
           valor_original?: number | null
+          valor_pis?: number | null
           valor_recebido?: number | null
           vendedor?: string | null
           vendedor_codigo?: string | null

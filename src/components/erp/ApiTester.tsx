@@ -104,6 +104,18 @@ const PRESET_ENDPOINTS = [
   { label: "Lançamentos CC — Upsert", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert" },
   { label: "Lançamentos CC — Upsert Lote", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert-lote" },
   { label: "Lançamentos CC — Status", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/status" },
+  // Contas a Receber — Omie-style
+  { label: "CR Omie — Consultar", method: "GET" as HttpMethod, path: "/contas-receber-api/consultar?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CR Omie — Listar", method: "GET" as HttpMethod, path: "/contas-receber-api/listar?pagina=1&registros_por_pagina=20" },
+  { label: "CR Omie — Incluir", method: "POST" as HttpMethod, path: "/contas-receber-api/incluir" },
+  { label: "CR Omie — Alterar", method: "PUT" as HttpMethod, path: "/contas-receber-api/alterar" },
+  { label: "CR Omie — Excluir", method: "DELETE" as HttpMethod, path: "/contas-receber-api/excluir?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CR Omie — Upsert", method: "POST" as HttpMethod, path: "/contas-receber-api/upsert" },
+  { label: "CR Omie — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-receber-api/upsert-lote" },
+  { label: "CR Omie — Lançar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/lancar-recebimento" },
+  { label: "CR Omie — Cancelar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar-recebimento" },
+  { label: "CR Omie — Conciliar", method: "POST" as HttpMethod, path: "/contas-receber-api/conciliar" },
+  { label: "CR Omie — Cancelar", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -132,6 +144,15 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/lancamentos-cc-api/alterar": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nValorLanc: 200.00 }, detalhes: { cObs: "Valor corrigido" } }, null, 2),
   "/lancamentos-cc-api/upsert": JSON.stringify({ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 123.46 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN", cObs: "Lançamento via API" } }, null, 2),
   "/lancamentos-cc-api/upsert-lote": JSON.stringify({ lote: 1, lancamentos: [{ cCodIntLanc: "LANC001", cabecalho: { nCodCC: 427619317, dDtLanc: "21/03/2026", nValorLanc: 100 }, detalhes: { cCodCateg: "1.01.02", cTipo: "DIN" } }] }, null, 2),
+  // Contas a Receber — Omie-style
+  "/contas-receber-api/incluir": JSON.stringify({ codigo_lancamento_integracao: "CR-001", codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02", data_previsao: "21/03/2026", id_conta_corrente: 4243124 }, null, 2),
+  "/contas-receber-api/alterar": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor_documento: 150, data_vencimento: "30/04/2026" }, null, 2),
+  "/contas-receber-api/upsert": JSON.stringify({ codigo_lancamento_integracao: "CR-001", empresa_id: 8, codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02", data_previsao: "21/03/2026", id_conta_corrente: 4243124 }, null, 2),
+  "/contas-receber-api/upsert-lote": JSON.stringify({ lote: 1, conta_receber_cadastro: [{ codigo_lancamento_integracao: "CR-001", empresa_id: 8, codigo_cliente_fornecedor: 4214850, data_vencimento: "21/03/2026", valor_documento: 100, codigo_categoria: "1.01.02" }] }, null, 2),
+  "/contas-receber-api/lancar-recebimento": JSON.stringify({ codigo_lancamento_integracao: "CR-001", valor: 100.20, desconto: 0, juros: 0, multa: 0, data: "21/03/2026", observacao: "Baixa via API" }, null, 2),
+  "/contas-receber-api/cancelar-recebimento": JSON.stringify({ codigo_baixa: 0 }, null, 2),
+  "/contas-receber-api/conciliar": JSON.stringify({ codigo_baixa: 0 }, null, 2),
+  "/contas-receber-api/cancelar": JSON.stringify({ chave_lancamento: 0 }, null, 2),
 };
 
 export default function ApiTester() {
