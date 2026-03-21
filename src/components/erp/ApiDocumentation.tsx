@@ -1057,6 +1057,17 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+
+          <TabsContent value="dre-cadastro" className="space-y-1">
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-primary" />}
+              title="DRE — ListarCadastroDRE (Padrão Omie)"
+              basePath="/dre-cadastro-api"
+              endpoints={dreCadastroCrud}
+              description="Listagem de contas do DRE com código, descrição, nível, sinal e visibilidade"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
