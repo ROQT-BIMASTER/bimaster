@@ -146,6 +146,7 @@ function transformRecord(raw: Record<string, unknown>): Record<string, unknown> 
     marca: mapped.marca ? String(mapped.marca).trim() : null,
     quantidade: parseNumeric(mapped.quantidade),
     preco_venda: parseNumeric(mapped.preco_venda),
+    venda: parseNumeric(mapped.venda),
     vl_desconto: parseNumeric(mapped.vl_desconto),
     vl_icm_subst: parseNumeric(mapped.vl_icm_subst),
     vl_cmv: parseNumeric(mapped.vl_cmv),
