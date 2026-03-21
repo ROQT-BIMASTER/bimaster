@@ -42,9 +42,22 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
   const [observacoes, setObservacoes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [protocol, setProtocol] = useState<string | null>(null);
+  const [storeSearchOpen, setStoreSearchOpen] = useState(false);
+  const [storeSearch, setStoreSearch] = useState("");
 
   const maxQty = material?.max_por_solicitacao || 999;
   const selectedStore = stores.find((s) => s.id === lojaId);
+
+  const filteredStores = useMemo(() => {
+    if (!storeSearch.trim()) return stores;
+    const q = storeSearch.toLowerCase();
+    const qNumbers = storeSearch.replace(/\D/g, "");
+    return stores.filter((s) => {
+      const nameMatch = s.name?.toLowerCase().includes(q);
+      const cnpjMatch = qNumbers && s.cnpj?.replace(/\D/g, "").includes(qNumbers);
+      return nameMatch || cnpjMatch;
+    });
+  }, [stores, storeSearch]);
 
   useEffect(() => {
     if (material) {
