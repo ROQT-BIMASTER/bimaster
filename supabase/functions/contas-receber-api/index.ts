@@ -1,9 +1,8 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 // =====================================================
 // v5.0.0 - REESCRITA COMPLETA PARA MÁXIMA PERFORMANCE
