@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         status: "ok",
         function: "clientes-api",
-        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/status"],
+        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
       }, 200, req, { startMs });
     }
 
@@ -457,6 +457,92 @@ Deno.serve(async (req) => {
 
       if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
       return jsonResponse(statusResponse(cliente.id, cliente.codigo, "0", "Todas as características excluídas com sucesso!"), 200, req, { startMs });
+    }
+
+    // ── POST /tags/incluir ───────────────────────────────────────
+    if (req.method === "POST" && path === "/tags/incluir") {
+      const body = await req.json();
+      if (!body.tags || !Array.isArray(body.tags) || body.tags.length === 0) {
+        return errorResponse(400, "VALIDATION_ERROR", "tags (array) é obrigatório", req, startMs);
+      }
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const rows = body.tags.map((t: { tag: string }) => ({ cliente_id: cliente.id, tag: t.tag }));
+      const { error } = await supabase.from("cliente_tags").upsert(rows, { onConflict: "cliente_id,tag", ignoreDuplicates: true });
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+
+      return jsonResponse({
+        nCodCliente: cliente.id,
+        cCodIntCliente: cliente.codigo,
+        cCodStatus: "0",
+        cDesStatus: "Tags incluídas com sucesso!",
+      }, 201, req, { startMs });
+    }
+
+    // ── POST /tags/listar ────────────────────────────────────────
+    if (req.method === "POST" && path === "/tags/listar") {
+      const body = await req.json().catch(() => ({}));
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { data, error } = await supabase
+        .from("cliente_tags")
+        .select("tag")
+        .eq("cliente_id", cliente.id)
+        .order("tag");
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse({
+        nCodCliente: cliente.id,
+        cCodIntCliente: cliente.codigo,
+        tagsLista: (data || []).map((r: { tag: string }, i: number) => ({ tag: r.tag, nCodTag: i + 1 })),
+      }, 200, req, { startMs });
+    }
+
+    // ── POST /tags/excluir ───────────────────────────────────────
+    if (req.method === "POST" && path === "/tags/excluir") {
+      const body = await req.json();
+      if (!body.tags || !Array.isArray(body.tags) || body.tags.length === 0) {
+        return errorResponse(400, "VALIDATION_ERROR", "tags (array) é obrigatório", req, startMs);
+      }
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const tagValues = body.tags.map((t: { tag: string }) => t.tag);
+      const { error } = await supabase
+        .from("cliente_tags")
+        .delete()
+        .eq("cliente_id", cliente.id)
+        .in("tag", tagValues);
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse({
+        nCodCliente: cliente.id,
+        cCodIntCliente: cliente.codigo,
+        cCodStatus: "0",
+        cDesStatus: "Tags excluídas com sucesso!",
+      }, 200, req, { startMs });
+    }
+
+    // ── POST /tags/excluir-todas ─────────────────────────────────
+    if (req.method === "POST" && path === "/tags/excluir-todas") {
+      const body = await req.json().catch(() => ({}));
+      const cliente = await resolveCliente({ codigo_cliente_integracao: body.cCodIntCliente, codigo_cliente_omie: body.nCodCliente });
+      if (!cliente) return errorResponse(404, "NOT_FOUND", "Cliente não encontrado", req, startMs);
+
+      const { error } = await supabase
+        .from("cliente_tags")
+        .delete()
+        .eq("cliente_id", cliente.id);
+
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+      return jsonResponse({
+        nCodCliente: cliente.id,
+        cCodIntCliente: cliente.codigo,
+        cCodStatus: "0",
+        cDesStatus: "Todas as tags excluídas com sucesso!",
+      }, 200, req, { startMs });
     }
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);

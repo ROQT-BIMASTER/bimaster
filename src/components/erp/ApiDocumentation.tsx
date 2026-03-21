@@ -794,6 +794,29 @@ const clientesCaractCrud: Endpoint[] = [
   },
 ];
 
+const clientesTagsCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/tags/incluir", description: "Associar tags ao cliente (IncluirTags)", tag: "novo",
+    body: `{ "nCodCliente": 0, "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }, { "tag": "Grupo B" }] }`,
+    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Tags incluídas com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/tags/listar", description: "Listar tags do cliente (ListarTags)", tag: "novo",
+    body: `{ "cCodIntCliente": "CLI001" }`,
+    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "tagsLista": [{ "tag": "Grupo A", "nCodTag": 1 }] }`,
+  },
+  {
+    method: "POST", path: "/tags/excluir", description: "Remover tags específicas (ExcluirTags)", tag: "novo",
+    body: `{ "cCodIntCliente": "CLI001", "tags": [{ "tag": "Grupo A" }] }`,
+    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Tags excluídas com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/tags/excluir-todas", description: "Remover todas as tags (ExcluirTodas)", tag: "novo",
+    body: `{ "cCodIntCliente": "CLI001" }`,
+    response: `{ "nCodCliente": "uuid", "cCodIntCliente": "CLI001", "cCodStatus": "0", "cDesStatus": "Todas as tags excluídas com sucesso!" }`,
+  },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -1241,6 +1264,13 @@ export default function ApiDocumentation() {
               basePath="/clientes-api"
               endpoints={clientesCaractCrud}
               description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
+            />
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-emerald-500" />}
+              title="Tags de Clientes (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesTagsCrud}
+              description="Associar, listar e remover tags de clientes/fornecedores"
             />
           </TabsContent>
 

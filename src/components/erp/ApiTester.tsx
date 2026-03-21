@@ -194,6 +194,11 @@ const PRESET_ENDPOINTS = [
   { label: "Caract. Cliente — Consultar", method: "POST" as HttpMethod, path: "/clientes-api/caract/consultar" },
   { label: "Caract. Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir" },
   { label: "Caract. Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/caract/excluir-todas" },
+  // Tags de Clientes
+  { label: "Tags Cliente — Incluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/incluir" },
+  { label: "Tags Cliente — Listar", method: "POST" as HttpMethod, path: "/clientes-api/tags/listar" },
+  { label: "Tags Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir" },
+  { label: "Tags Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir-todas" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -265,6 +270,11 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/caract/consultar": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
   "/clientes-api/caract/excluir": JSON.stringify({ codigo_cliente_integracao: "CLI001", campo: "SEGMENTO" }, null, 2),
   "/clientes-api/caract/excluir-todas": JSON.stringify({ codigo_cliente_integracao: "CLI001" }, null, 2),
+  // Tags de Clientes
+  "/clientes-api/tags/incluir": JSON.stringify({ nCodCliente: 0, cCodIntCliente: "CLI001", tags: [{ tag: "Grupo A" }, { tag: "Grupo B" }] }, null, 2),
+  "/clientes-api/tags/listar": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
+  "/clientes-api/tags/excluir": JSON.stringify({ cCodIntCliente: "CLI001", tags: [{ tag: "Grupo A" }] }, null, 2),
+  "/clientes-api/tags/excluir-todas": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
 };
 
 export default function ApiTester() {
