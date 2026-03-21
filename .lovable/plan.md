@@ -1,77 +1,85 @@
 
 
-# Bloquear Acesso: Central de Inteligência + Tela de Endpoints (Portal ERP)
+# API Categorias (CRUD) — Padronização Omie
 
-## Situação Atual
+## Resumo
 
-1. **Central de Inteligência** (sidebar lines 1110-1143): Renderizada **sem nenhuma verificação de permissão** — visível para todos os usuários. As rotas no `App.tsx` usam `ModuleRoute moduleCode="comercial"`, mas o sidebar não verifica `hasModulePermission`.
+Criar Edge Function `categorias-api` com 6 rotas CRUD + 1 health check. Usa tabela `trade_chart_of_accounts` existente. Precisa adicionar ~7 colunas faltantes via migration para suportar todos os campos Omie.
 
-2. **Portal ERP / Integração ERP** (sidebar line 1308): Já está dentro do bloco `{isAdmin && (...)}`, visível apenas para admins. A rota usa `ScreenRoute screenCode="admin"`.
+## 1. Migration — Expandir `trade_chart_of_accounts`
 
-## Plano
-
-### 1. Sidebar — Ocultar Central de Inteligência para todos
-
-Envolver o bloco da Central de Inteligência (linhas 1110-1143 do `AppSidebar.tsx`) com uma verificação de permissão de módulo:
-
-```tsx
-{hasModulePermission("central_inteligencia") && (
-  <SidebarGroup>... Central de Inteligência ...</SidebarGroup>
-)}
-```
-
-Como nenhum usuário terá a permissão `central_inteligencia` atribuída inicialmente, o módulo ficará oculto para todos.
-
-### 2. Sidebar — Ocultar Portal ERP para todos (inclusive admins)
-
-O Portal ERP (linha 1305-1318) está dentro do bloco `{isAdmin && ...}`. Adicionar uma condição extra para ocultá-lo:
-
-```tsx
-{isAdmin && hasModulePermission("integracao_erp") && (
-  <SidebarMenuItem>... Portal ERP ...</SidebarMenuItem>
-)}
-```
-
-### 3. App.tsx — Proteger rotas da Central de Inteligência
-
-Alterar as 8 rotas da Central de Inteligência (linhas 501-508) de `moduleCode="comercial"` para `moduleCode="central_inteligencia"`:
-
-```tsx
-<Route path="/dashboard/painel-executivo" 
-  element={<ModuleRoute moduleCode="central_inteligencia"><PainelExecutivo /></ModuleRoute>} />
-```
-
-### 4. App.tsx — Proteger rota do Portal ERP
-
-A rota `/dashboard/integracao-erp` (linha 621) já usa `screenCode="admin"`. Adicionaremos também verificação de módulo:
-
-```tsx
-<Route path="/dashboard/integracao-erp" 
-  element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
-```
-
-### 5. Registrar módulos na tabela `modulos_sistema` (migration)
-
-Inserir os novos módulos para que possam ser atribuídos futuramente via painel de permissões:
+Colunas a adicionar (todas nullable, sem impacto em produção):
 
 ```sql
-INSERT INTO modulos_sistema (codigo, nome, descricao, ativo) VALUES
-  ('central_inteligencia', 'Central de Inteligência', 'Dashboards analíticos de vendas', true),
-  ('integracao_erp', 'Integração ERP', 'Portal de APIs e endpoints ERP', true)
-ON CONFLICT (codigo) DO NOTHING;
+ALTER TABLE public.trade_chart_of_accounts
+  ADD COLUMN IF NOT EXISTS descricao_padrao varchar(50),
+  ADD COLUMN IF NOT EXISTS tipo_categoria varchar(3),
+  ADD COLUMN IF NOT EXISTS definida_pelo_usuario varchar(1) DEFAULT 'S',
+  ADD COLUMN IF NOT EXISTS id_conta_contabil integer,
+  ADD COLUMN IF NOT EXISTS tag_conta_contabil varchar(20),
+  ADD COLUMN IF NOT EXISTS nao_exibir varchar(1) DEFAULT 'N',
+  ADD COLUMN IF NOT EXISTS transferencia varchar(1) DEFAULT 'N',
+  ADD COLUMN IF NOT EXISTS codigo_dre varchar(10),
+  ADD COLUMN IF NOT EXISTS codigo_integracao varchar(20) UNIQUE;
 ```
+
+## 2. Nova Edge Function: `categorias-api`
+
+| Rota | Equivalente Omie | Descrição |
+|---|---|---|
+| POST `/incluir` | IncluirCategoria | Inclui categoria |
+| POST `/incluir-grupo` | IncluirGrupoCategoria | Inclui grupo totalizador |
+| POST `/alterar` | AlterarCategoria | Altera categoria |
+| POST `/alterar-grupo` | AlterarGrupoCategoria | Altera grupo |
+| POST `/consultar` | ConsultarCategoria | Consulta por código |
+| POST `/listar` | ListarCategorias | Lista paginada com filtros |
+| GET `/status` | — | Health check |
+
+## 3. Mapeamento de Campos
+
+| Campo Omie | Coluna DB | Observação |
+|---|---|---|
+| `codigo` | `code` | Existente |
+| `descricao` | `name` | Existente |
+| `descricao_padrao` | `descricao_padrao` | Nova coluna |
+| `tipo_categoria` | `tipo_categoria` | Nova coluna |
+| `conta_inativa` | `is_active` → invertido | `is_active=true` → `conta_inativa="N"` |
+| `definida_pelo_usuario` | `definida_pelo_usuario` | Nova coluna |
+| `id_conta_contabil` | `id_conta_contabil` | Nova coluna |
+| `tag_conta_contabil` | `tag_conta_contabil` | Nova coluna |
+| `conta_despesa` | Derivado de `account_type` | `expense/cost_center` → `"S"` |
+| `conta_receita` | Derivado de `account_type` | `revenue` → `"S"` |
+| `nao_exibir` | `nao_exibir` | Nova coluna |
+| `natureza` | `description` | Campo existente (observação/natureza) |
+| `totalizadora` | `is_group` | Existente |
+| `transferencia` | `transferencia` | Nova coluna |
+| `codigo_dre` | `codigo_dre` | Nova coluna |
+| `categoria_superior` | `parent_account_id` → busca `code` do pai | Existente (UUID → resolve para código) |
+| `dadosDRE` | Derivado de `categoria_dre` + `codigo_dre` | Montado em runtime |
+
+## 4. Lógica por Endpoint
+
+- **IncluirCategoria**: Requer `descricao` + `tipo_categoria`. `categoria_superior` resolve para `parent_account_id`.
+- **IncluirGrupoCategoria**: Cria com `is_group=true`, `tipo_grupo` define `account_type`.
+- **AlterarCategoria/Grupo**: Busca por `code`. Update parcial.
+- **ConsultarCategoria**: Retorna cadastro completo com `dadosDRE` sub-objeto.
+- **ListarCategorias**: Paginação + filtros `filtrar_apenas_ativo` e `filtrar_por_tipo`.
+
+Autenticação: `validateApiKey`.
+
+## 5. Documentação & UI
+
+- `docs/API_CATEGORIAS.md`
+- Presets no `ApiTester.tsx`
+- Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/dashboard/AppSidebar.tsx` | Ocultar Central de Inteligência + Portal ERP |
-| `src/App.tsx` | Trocar moduleCode das 8 rotas + proteger integracao-erp |
-| Migration SQL | Registrar módulos `central_inteligencia` e `integracao_erp` |
-
-## Resultado
-
-- Nenhum usuário verá a Central de Inteligência ou o Portal ERP no sidebar
-- Acesso direto via URL será bloqueado (ModuleRoute nega)
-- Quando quiser liberar, basta atribuir a permissão do módulo ao usuário desejado
+| Migration SQL | +9 colunas em `trade_chart_of_accounts` |
+| `supabase/functions/categorias-api/index.ts` | Criar |
+| `docs/API_CATEGORIAS.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Editar — presets |
+| `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
