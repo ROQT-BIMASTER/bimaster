@@ -1,69 +1,118 @@
 
 
-# Redesign da Documentação API + Exportação Excel para Postman
+# Hardening de Segurança — Todas as APIs do Portal de Integração
 
-## Problema atual
+## Problemas Identificados na Auditoria
 
-A documentação usa 30+ abas horizontais (TabsList) que ficam apertadas e difíceis de navegar. Não segue um padrão profissional de documentação de API como o do Omie Developer Portal, que agrupa APIs por módulos em uma tabela limpa com nome, descrição e versão. Além disso, não há opção de exportar os endpoints para facilitar criação de collections no Postman.
+### 1. CORS Aberto (`Allow-Origin: *`)
+~98 edge functions usam CORS hardcoded com `*` ao invés do helper `cors.ts` que faz whitelist de origens. Isso permite qualquer site fazer requests às APIs.
 
-## Referência visual (Omie Developer Portal)
+**Funções afetadas do Portal ERP:**
+- `departamentos-api`, `contas-pagar-api`, `contas-receber-api`, `boletos-api` — CORS inline `*`
+- As demais (tipos-*, bancos, clientes, projetos, etc.) já usam `handleCors` corretamente
 
-O Omie organiza em blocos por módulo ("Geral", "Cadastros Auxiliares", "CRM", "Finanças") onde cada bloco tem:
-- Header colorido com nome do módulo e descrição
-- Tabela com 3 colunas: Nome da API (link), Descrição, Versão (badge `v1`)
-- Ao clicar, abre página de detalhe com métodos, parâmetros, exemplos
+### 2. Auth Inconsistente
+| Função | Auth Atual | Problema |
+|---|---|---|
+| `tipos-anexo-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `tipos-entrega-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `tipos-atividade-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `tipos-documento-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `clientes-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `projetos-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `empresas-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `bancos-api` | `validateApiKey` apenas | Sem suporte JWT |
+| `departamentos-api` | `validateApiKey` apenas | Sem suporte JWT, sem security headers |
+| `contas-pagar-api` | Auth inline própria | Não usa helpers compartilhados |
+| `contas-receber-api` | `validateAnyAuth` inline | OK mas CORS `*` |
+| `contas-correntes-api` | `validateErpAuth` | OK, já robusto |
+| `lancamentos-cc-api` | `validateErpAuth` | OK, já robusto |
+| `movimentos-financeiros-api` | `validateAnyAuth` | OK, tem rate limit |
 
-## Mudanças propostas
+### 3. Sem Rate Limiting
+As seguintes APIs do portal **não têm rate limiting**: tipos-anexo, tipos-entrega, tipos-atividade, tipos-documento, clientes, projetos, empresas, bancos, bandeiras, origens, departamentos, categorias, parcelas, paises, cidades, cnae, finalidades-transferencia, dre-cadastro, boletos, anexos.
 
-### 1. Reestruturar layout: de abas para lista agrupada por módulo
+### 4. Sem Security Headers
+Funções com CORS inline não incluem headers de segurança (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
 
-Substituir as 30+ tabs por seções colapsáveis agrupadas em **4 módulos**:
+## Plano de Implementação
 
-| Módulo | APIs incluídas |
-|---|---|
-| **Geral** | Clientes, Empresas, Departamentos, Categorias, Projetos, Parcelas |
-| **Cadastros Auxiliares** | Tipos Atividade, Tipos Anexo, Tipos Entrega, Tipos Documento, CNAE, Cidades, Países, Bancos, Bandeiras, Origens, Final. Transferência, DRE |
-| **Finanças** | Contas a Pagar, Contas a Receber, Boletos, Contas Correntes, Lançamentos CC, Exportação, Orçamentos, Pesquisar Lançamentos, Movimentos Financeiros, Resumo Financeiro |
-| **Dados Complementares** | Anexos, Webhook Inbound |
+### Etapa 1: Criar helper `validateAnyAuth` compartilhado em `_shared/auth.ts`
 
-Cada módulo terá:
-- Header com fundo colorido (estilo Omie), nome do módulo e descrição
-- Lista de APIs em formato tabela: Nome | Descrição | Versão (`v1`) | Nº endpoints
-- Ao clicar em uma API, expande mostrando os endpoints (reutiliza `EndpointCard` atual)
+Adicionar ao `_shared/auth.ts` uma função `validateAnyAuth` que tenta JWT primeiro, depois API Key — padronizando a autenticação dual para todas as APIs do portal.
 
-### 2. Adicionar busca global
+```typescript
+export async function validateAnyAuth(req: Request): Promise<{
+  userId?: string; empresaId?: string; source: "jwt" | "api_key";
+}> {
+  try {
+    const jwt = await validateJWT(req);
+    return { userId: jwt.userId, source: "jwt" };
+  } catch {
+    const key = await validateApiKey(req);
+    return { empresaId: key.empresaId, source: "api_key" };
+  }
+}
+```
 
-Campo de busca no topo que filtra APIs e endpoints por nome, path ou descrição.
+### Etapa 2: Padronizar TODAS as 20+ APIs do portal
 
-### 3. Botão "Exportar para Excel"
+Para cada função, aplicar o mesmo padrão:
+1. Importar `handleCors`, `getCorsHeaders` do `_shared/cors.ts`
+2. Importar `withSecurityHeaders` do `_shared/security-headers.ts`
+3. Usar `jsonResponse`/`errorResponse` do `_shared/response.ts`
+4. Usar `validateAnyAuth` do `_shared/auth.ts` (JWT + API Key)
+5. Adicionar `checkRateLimit` do `_shared/rate-limit.ts`
+6. Status endpoint livre de auth (health check padrão)
 
-Gera planilha Excel com todas as informações para criar collection Postman:
+**Funções a atualizar (20 funções):**
+- `tipos-anexo-api` — adicionar JWT, rate limit
+- `tipos-entrega-api` — adicionar JWT, rate limit
+- `tipos-atividade-api` — adicionar JWT, rate limit
+- `tipos-documento-api` — adicionar JWT, rate limit
+- `clientes-api` — adicionar JWT, rate limit
+- `projetos-api` — adicionar JWT, rate limit
+- `empresas-api` — adicionar JWT, rate limit
+- `bancos-api` — adicionar JWT, rate limit
+- `bandeiras-api` — adicionar JWT, rate limit
+- `origens-api` — adicionar JWT, rate limit
+- `departamentos-api` — reescrever CORS + auth + headers + rate limit
+- `categorias-api` — adicionar JWT, rate limit
+- `parcelas-api` — adicionar JWT, rate limit
+- `paises-api` — adicionar JWT, rate limit
+- `cidades-api` — adicionar JWT, rate limit
+- `cnae-api` — adicionar JWT, rate limit
+- `finalidades-transferencia-api` — adicionar JWT, rate limit
+- `dre-cadastro-api` — adicionar JWT, rate limit
+- `boletos-api` — corrigir CORS (remover `*`)
+- `anexos-api` — corrigir CORS (remover `*`)
+- `contas-correntes-api` — adicionar status livre de auth
+- `contas-receber-api` — corrigir CORS (remover `*`)
 
-**Aba 1: Endpoints**
-| Módulo | API | Método | Path | URL Completa | Descrição | Body (JSON) | Response (JSON) |
+### Etapa 3: Atualizar `contas-pagar-api` (caso especial)
 
-**Aba 2: Parâmetros**
-| API | Endpoint | Parâmetro | Tipo | Obrigatório | Descrição |
+Esta função tem 2271 linhas com auth inline. A abordagem é cirúrgica:
+- Substituir `corsHeaders` hardcoded por `getCorsHeaders(req)`
+- Substituir auth inline pela importação de `validateAnyAuth`
+- Adicionar security headers nas respostas
 
-**Aba 3: Autenticação**
-| Informação resumida de como autenticar |
+### Etapa 4: Atualizar documentação do portal
 
-Usa o utilitário `exportToExcel` de `src/lib/excel-utils.ts` já existente (multi-sheet).
+No `ApiDocumentation.tsx`, adicionar seção de segurança visível:
+- Badge "JWT + API Key" em cada endpoint
+- Indicador de rate limit (60 req/min)
+- Headers de segurança listados
+- Exemplo de autenticação JWT
 
-### 4. Sidebar de navegação rápida (opcional, dentro do card)
-
-Lista compacta dos módulos e APIs à esquerda para jump-to rápido, similar ao menu lateral do Omie.
-
-## Arquivos impactados
+### Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/erp/ApiDocumentation.tsx` | Reescrever — layout por módulos, busca, botão Excel |
+| `supabase/functions/_shared/auth.ts` | Adicionar `validateAnyAuth` |
+| 20+ `supabase/functions/*/index.ts` | Padronizar auth, CORS, rate limit, security headers |
+| `src/components/erp/ApiDocumentation.tsx` | Adicionar seção de segurança |
 
-## Detalhes técnicos
+### Nota sobre N8N
 
-- Os dados de endpoints (arrays `contasPagarCrud`, `clientesCrud`, etc.) permanecem iguais, apenas reorganizados em uma estrutura `modules[]`
-- Exportação Excel usa `exportToExcel` de `src/lib/excel-utils.ts` (multi-sheet com ExcelJS)
-- Layout responsivo: em telas menores, sidebar de navegação colapsa
-- Sem alterações no backend ou edge functions
+As APIs internas do N8N (`contas-pagar-api/sync`, `contas-pagar-api/bulk-sync`, `contas-receber-api/sync`, `n8n-contas-receber`, `estoque-n8n-sync`) continuam funcionando normalmente via `x-api-key` — o `validateAnyAuth` suporta ambos os métodos.
 
