@@ -1,30 +1,38 @@
 
 
-# Plano: Filtro de Busca no Seletor de Lojas (MaterialOrderSheet)
+# Plano: Tela "Minhas Solicitações" — Acompanhamento de Protocolos
 
 ## O que será feito
 
-Substituir o `Select` simples de loja por um seletor com campo de busca que filtra por CNPJ ou razão social, permitindo encontrar rapidamente a loja desejada.
+Criar uma página onde o usuário vê todas as suas solicitações de materiais, com o protocolo, status (pendente, aprovado, recusado, enviado, entregue), material solicitado, loja e data. Acessível a partir do módulo Trade.
 
-## Alterações em `src/components/trade/MaterialOrderSheet.tsx`
+## Arquivos
 
-### Substituir o Select por um Combobox com busca
+| Arquivo | Tipo | O que muda |
+|---|---|---|
+| `src/pages/trade/MinhasSolicitacoes.tsx` | **Novo** | Página com lista de solicitações do usuário logado |
+| `src/hooks/useTradeMateriais.ts` | **Editar** | Novo hook `useMinhasSolicitacoes()` filtrando por `user_id` do usuário autenticado |
+| `src/App.tsx` | **Editar** | Rota `/dashboard/trade/minhas-solicitacoes` |
+| `src/pages/modules/TradeModule.tsx` | **Editar** | Adicionar link/botão "Minhas Solicitações" na seção de ações rápidas ou no header de materiais |
 
-- Adicionar estado `storeSearch` para o termo de busca
-- Usar `Popover` + `Command` (shadcn) para criar um combobox pesquisável
-- O campo de busca filtra `stores` por `name` (razão social) ou `cnpj`
-- Cada item da lista mostra o nome da loja e o CNPJ (quando disponível)
-- Ao selecionar, fecha o popover e define o `lojaId`
-- Placeholder: "Buscar por CNPJ ou razão social..."
+## Detalhes
 
-### Componentes utilizados
+### Hook `useMinhasSolicitacoes()`
+- Busca `trade_material_solicitacoes` com `select("*, trade_materiais(*)")` filtrado por `user_id = auth.uid()`
+- Ordenado por `created_at desc`
 
-- `Popover`, `PopoverTrigger`, `PopoverContent` (já existem no projeto)
-- `Command`, `CommandInput`, `CommandEmpty`, `CommandGroup`, `CommandItem` (shadcn — verificar se existe, senão usar filtro manual com Input + lista)
+### Página `MinhasSolicitacoes.tsx`
+- Header com botão voltar e título "Minhas Solicitações"
+- Lista de cards (mobile-first), cada card mostra:
+  - Protocolo (extraído de `obs_interna`) em destaque com fonte mono
+  - Nome do material + foto pequena
+  - Loja destino (`loja_nome`)
+  - Quantidade e data
+  - Badge de status com cores: pendente (amarelo), aprovado (verde), recusado (vermelho), em_separacao (azul), enviado (roxo), entregue (verde escuro)
+  - Motivo de recusa (se status = recusado)
+  - Código de rastreio (se disponível)
+- Estado vazio com ícone e texto "Você ainda não fez nenhuma solicitação"
 
-## Arquivo alterado
-
-| Arquivo | Tipo |
-|---|---|
-| `src/components/trade/MaterialOrderSheet.tsx` | Editar (substituir Select por Combobox com busca) |
+### Acesso no TradeModule
+- Adicionar card/botão "Minhas Solicitações" ou link na seção de materiais com ícone `ClipboardList`
 
