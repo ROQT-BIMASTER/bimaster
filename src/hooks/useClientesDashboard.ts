@@ -75,7 +75,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
       // 3. Fetch per-client sales from vendas_union directly
       let perClientQuery = supabase
         .from("vendas_union" as any)
-        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos")
+        .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade")
         .eq("data::text", "") // placeholder - we'll build real filter
       
       // Actually, let's use a proper date range filter
