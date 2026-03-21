@@ -460,6 +460,49 @@ const boletosCrud: Endpoint[] = [
   },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
+
+const anexosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/incluir", description: "Incluir anexo (base64 zip) vinculado a um documento (IncluirAnexo)", tag: "novo",
+    body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "cNomeArquivo": "comprovante.pdf", "cTipoArquivo": "pdf", "cArquivo": "<base64>", "cMd5": "a1b2c3..." }`,
+    response: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "nIdAnexo": 0, "cNomeArquivo": "comprovante.pdf", "cCodStatus": "0", "cDesStatus": "Anexo incluído com sucesso!" }`,
+  },
+  {
+    method: "GET", path: "/consultar", description: "Consultar metadados de um anexo (ConsultarAnexo)", tag: "novo",
+    params: [
+      { name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração do anexo" },
+      { name: "cTabela", type: "string", required: false, description: "Tabela de origem" },
+      { name: "nId", type: "integer", required: false, description: "ID do documento" },
+      { name: "nIdAnexo", type: "integer", required: false, description: "ID do anexo" },
+    ],
+    response: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345, "cNomeArquivo": "comprovante.pdf", "cTipoArquivo": "pdf", "info": { "dInc": "21/03/2026" } }`,
+  },
+  {
+    method: "GET", path: "/obter", description: "Obter link de download temporário (ObterAnexo)", tag: "novo",
+    params: [
+      { name: "cCodIntAnexo", type: "string", required: false, description: "Código de integração" },
+      { name: "cTabela", type: "string", required: false, description: "Tabela de origem" },
+      { name: "nId", type: "integer", required: false, description: "ID do documento" },
+    ],
+    response: `{ "cLinkDownload": "https://...", "dDtExpiracao": "21/03/2026", "cCodStatus": "0", "cDesStatus": "Link gerado com sucesso!" }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listar anexos de um documento (ListarAnexo)", tag: "novo",
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 200)" },
+      { name: "nId", type: "integer", required: true, description: "ID do documento" },
+      { name: "cTabela", type: "string", required: true, description: "Tabela de origem" },
+    ],
+    response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 2, "nTotRegistros": 2, "listaAnexos": [...] }`,
+  },
+  {
+    method: "DELETE", path: "/excluir", description: "Excluir anexo (ExcluirAnexo)", tag: "novo",
+    body: `{ "cCodIntAnexo": "ANX-001", "cTabela": "contas_receber", "nId": 12345 }`,
+    response: `{ "cCodStatus": "0", "cDesStatus": "Anexo excluído com sucesso!" }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
