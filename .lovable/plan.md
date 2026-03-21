@@ -1,85 +1,56 @@
 
 
-# API Categorias (CRUD) — Padronização Omie
+# API Parcelas (Condições de Pagamento) — Padronização Omie
 
 ## Resumo
 
-Criar Edge Function `categorias-api` com 6 rotas CRUD + 1 health check. Usa tabela `trade_chart_of_accounts` existente. Precisa adicionar ~7 colunas faltantes via migration para suportar todos os campos Omie.
+Criar tabela de lookup `parcelas_condicoes` e Edge Function `parcelas-api` com 2 rotas (IncluirParcela + ListarParcelas). Esta tabela é um **cadastro de condições de parcelamento** (ex: "À Vista", "30/60/90 dias") — não confundir com a tabela `parcelas` que armazena parcelas individuais de títulos.
 
-## 1. Migration — Expandir `trade_chart_of_accounts`
-
-Colunas a adicionar (todas nullable, sem impacto em produção):
+## 1. Migration — Criar tabela `parcelas_condicoes`
 
 ```sql
-ALTER TABLE public.trade_chart_of_accounts
-  ADD COLUMN IF NOT EXISTS descricao_padrao varchar(50),
-  ADD COLUMN IF NOT EXISTS tipo_categoria varchar(3),
-  ADD COLUMN IF NOT EXISTS definida_pelo_usuario varchar(1) DEFAULT 'S',
-  ADD COLUMN IF NOT EXISTS id_conta_contabil integer,
-  ADD COLUMN IF NOT EXISTS tag_conta_contabil varchar(20),
-  ADD COLUMN IF NOT EXISTS nao_exibir varchar(1) DEFAULT 'N',
-  ADD COLUMN IF NOT EXISTS transferencia varchar(1) DEFAULT 'N',
-  ADD COLUMN IF NOT EXISTS codigo_dre varchar(10),
-  ADD COLUMN IF NOT EXISTS codigo_integracao varchar(20) UNIQUE;
+CREATE TABLE IF NOT EXISTS public.parcelas_condicoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo varchar(3) NOT NULL UNIQUE,
+  descricao varchar(30) NOT NULL,
+  numero_parcelas integer NOT NULL DEFAULT 1,
+  ativo boolean NOT NULL DEFAULT true,
+  importado_api boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.parcelas_condicoes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "authenticated_select_parcelas_condicoes"
+  ON public.parcelas_condicoes FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_parcelas_condicoes"
+  ON public.parcelas_condicoes FOR INSERT TO authenticated WITH CHECK (true);
 ```
 
-## 2. Nova Edge Function: `categorias-api`
+## 2. Edge Function: `parcelas-api`
 
 | Rota | Equivalente Omie | Descrição |
 |---|---|---|
-| POST `/incluir` | IncluirCategoria | Inclui categoria |
-| POST `/incluir-grupo` | IncluirGrupoCategoria | Inclui grupo totalizador |
-| POST `/alterar` | AlterarCategoria | Altera categoria |
-| POST `/alterar-grupo` | AlterarGrupoCategoria | Altera grupo |
-| POST `/consultar` | ConsultarCategoria | Consulta por código |
-| POST `/listar` | ListarCategorias | Lista paginada com filtros |
+| POST `/incluir` | IncluirParcela | Cria condição de parcelamento |
+| POST `/listar` | ListarParcelas | Lista paginada |
 | GET `/status` | — | Health check |
 
-## 3. Mapeamento de Campos
+## 3. Mapeamento
 
-| Campo Omie | Coluna DB | Observação |
-|---|---|---|
-| `codigo` | `code` | Existente |
-| `descricao` | `name` | Existente |
-| `descricao_padrao` | `descricao_padrao` | Nova coluna |
-| `tipo_categoria` | `tipo_categoria` | Nova coluna |
-| `conta_inativa` | `is_active` → invertido | `is_active=true` → `conta_inativa="N"` |
-| `definida_pelo_usuario` | `definida_pelo_usuario` | Nova coluna |
-| `id_conta_contabil` | `id_conta_contabil` | Nova coluna |
-| `tag_conta_contabil` | `tag_conta_contabil` | Nova coluna |
-| `conta_despesa` | Derivado de `account_type` | `expense/cost_center` → `"S"` |
-| `conta_receita` | Derivado de `account_type` | `revenue` → `"S"` |
-| `nao_exibir` | `nao_exibir` | Nova coluna |
-| `natureza` | `description` | Campo existente (observação/natureza) |
-| `totalizadora` | `is_group` | Existente |
-| `transferencia` | `transferencia` | Nova coluna |
-| `codigo_dre` | `codigo_dre` | Nova coluna |
-| `categoria_superior` | `parent_account_id` → busca `code` do pai | Existente (UUID → resolve para código) |
-| `dadosDRE` | Derivado de `categoria_dre` + `codigo_dre` | Montado em runtime |
+| Campo Omie | Coluna DB |
+|---|---|
+| `nCodigo` | `codigo` |
+| `cDescricao` | `descricao` |
+| `nParcelas` | `numero_parcelas` |
 
-## 4. Lógica por Endpoint
-
-- **IncluirCategoria**: Requer `descricao` + `tipo_categoria`. `categoria_superior` resolve para `parent_account_id`.
-- **IncluirGrupoCategoria**: Cria com `is_group=true`, `tipo_grupo` define `account_type`.
-- **AlterarCategoria/Grupo**: Busca por `code`. Update parcial.
-- **ConsultarCategoria**: Retorna cadastro completo com `dadosDRE` sub-objeto.
-- **ListarCategorias**: Paginação + filtros `filtrar_apenas_ativo` e `filtrar_por_tipo`.
-
-Autenticação: `validateApiKey`.
-
-## 5. Documentação & UI
-
-- `docs/API_CATEGORIAS.md`
-- Presets no `ApiTester.tsx`
-- Seção no `ApiDocumentation.tsx`
-
-## Arquivos impactados
+## 4. Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | +9 colunas em `trade_chart_of_accounts` |
-| `supabase/functions/categorias-api/index.ts` | Criar |
-| `docs/API_CATEGORIAS.md` | Criar |
-| `src/components/erp/ApiTester.tsx` | Editar — presets |
-| `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
+| Migration SQL | Criar tabela `parcelas_condicoes` |
+| `supabase/functions/parcelas-api/index.ts` | Criar |
+| `docs/API_PARCELAS.md` | Criar |
+| `src/components/erp/ApiTester.tsx` | Presets |
+| `src/components/erp/ApiDocumentation.tsx` | Seção |
 
