@@ -1321,15 +1321,8 @@ export default function ApiDocumentation() {
 
           <TabsContent value="contas-pagar" className="space-y-1">
             <ApiSection
-              icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
-              title="Sync (ERP → BiMaster)"
-              basePath="/contas-pagar-api"
-              endpoints={contasPagarSync}
-              description="Sincronização de títulos do ERP para o BiMaster"
-            />
-            <ApiSection
               icon={<Search className="h-4 w-4 text-emerald-500" />}
-              title="Consulta & CRUD"
+              title="Consulta & Gestão"
               basePath="/contas-pagar-api"
               endpoints={contasPagarCrud}
               description="Consultar, atualizar, cancelar e registrar pagamentos"
@@ -1343,27 +1336,20 @@ export default function ApiDocumentation() {
             />
             <ApiSection
               icon={<Webhook className="h-4 w-4 text-amber-500" />}
-              title="CRUD Integração (API Huggs)"
+              title="CRUD de Integração"
               basePath="/contas-pagar-api"
               endpoints={contasPagarIntegracao}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento — "
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar pagamento via API"
             />
           </TabsContent>
 
           <TabsContent value="contas-receber" className="space-y-1">
             <ApiSection
               icon={<Webhook className="h-4 w-4 text-emerald-500" />}
-              title="CRUD Integração (API Huggs)"
+              title="CRUD de Integração"
               basePath="/contas-receber-api"
               endpoints={contasReceberIntegracao}
-              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento — "
-            />
-            <ApiSection
-              icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
-              title="Sync (ERP → BiMaster)"
-              basePath="/contas-receber-api"
-              endpoints={contasReceberSync}
-              description="Sincronização legada de contas a receber"
+              description="Consultar, incluir, alterar, excluir, upsert, lançar/cancelar recebimento via API"
             />
           </TabsContent>
 
