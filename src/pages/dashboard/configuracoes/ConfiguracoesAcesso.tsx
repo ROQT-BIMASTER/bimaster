@@ -1,10 +1,12 @@
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserCheck, Building2 } from "lucide-react";
+import { Users, UserCheck, Building2, Settings2, Table } from "lucide-react";
 import VincularVendedor from "@/components/configuracoes-acesso/VincularVendedor";
 import VincularSupervisor from "@/components/configuracoes-acesso/VincularSupervisor";
 import AcessoEmpresa from "@/components/configuracoes-acesso/AcessoEmpresa";
+import ConfigOperacoes from "@/components/configuracoes-acesso/ConfigOperacoes";
+import ConfigTabelasUsuario from "@/components/configuracoes-acesso/ConfigTabelasUsuario";
 
 const ConfiguracoesAcesso = () => {
   const { isAdmin, loading } = useUserRole();
@@ -20,7 +22,7 @@ const ConfiguracoesAcesso = () => {
       </div>
 
       <Tabs defaultValue="vendedores" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="vendedores" className="flex items-center gap-2">
             <UserCheck className="h-4 w-4" />
             Vendedores
@@ -33,6 +35,14 @@ const ConfiguracoesAcesso = () => {
             <Building2 className="h-4 w-4" />
             Empresas
           </TabsTrigger>
+          <TabsTrigger value="operacoes" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" />
+            Operações
+          </TabsTrigger>
+          <TabsTrigger value="tabelas" className="flex items-center gap-2">
+            <Table className="h-4 w-4" />
+            Tabelas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="vendedores" className="mt-6">
@@ -43,6 +53,12 @@ const ConfiguracoesAcesso = () => {
         </TabsContent>
         <TabsContent value="empresas" className="mt-6">
           <AcessoEmpresa />
+        </TabsContent>
+        <TabsContent value="operacoes" className="mt-6">
+          <ConfigOperacoes />
+        </TabsContent>
+        <TabsContent value="tabelas" className="mt-6">
+          <ConfigTabelasUsuario />
         </TabsContent>
       </Tabs>
     </div>
