@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play } from "lucide-react";
 import { format, addDays } from "date-fns";
+import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import { ptBR } from "date-fns/locale";
 
 interface ErpApiKey {
@@ -321,6 +322,7 @@ export default function IntegracaoERP() {
           </div>
         </CardContent>
       </Card>
+      <ApiDocumentation />
     </div>
   );
 }

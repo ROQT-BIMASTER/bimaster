@@ -1,0 +1,437 @@
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  BookOpen, ChevronDown, ChevronRight, Copy, Check,
+  ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
+  FileText, Webhook, BarChart3, Shield, Database
+} from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+
+interface Endpoint {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  description: string;
+  tag?: string;
+  params?: { name: string; type: string; required: boolean; description: string }[];
+  body?: string;
+  response?: string;
+}
+
+const METHOD_COLORS: Record<string, string> = {
+  GET: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  POST: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  PUT: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  DELETE: "bg-red-500/15 text-red-700 border-red-500/30",
+};
+
+const contasPagarSync: Endpoint[] = [
+  { method: "POST", path: "/sync", description: "Sync legado (compatibilidade N8N)", tag: "sync" },
+  { method: "POST", path: "/bulk-sync", description: "Sync em massa com rate limiting", tag: "sync" },
+  { method: "POST", path: "/sync-incremental", description: "Sync incremental com hash de verificação", tag: "sync" },
+  { method: "POST", path: "/sync-complete", description: "Finalizar sync multi-chunk", tag: "sync" },
+  { method: "POST", path: "/trigger-n8n", description: "Disparar sync via webhook N8N", tag: "sync" },
+  { method: "GET", path: "/status", description: "Status da última sincronização", tag: "sync" },
+  { method: "GET", path: "/stats", description: "Estatísticas de sincronização", tag: "sync" },
+  { method: "GET", path: "/last-sync", description: "Timestamp da última sync", tag: "sync" },
+];
+
+const contasPagarCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/query", description: "Consulta avançada com filtros e paginação", tag: "consulta",
+    params: [
+      { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
+      { name: "status", type: "string", required: false, description: "Filtro: pendente, vencido, pago, cancelado" },
+      { name: "vencimento_de", type: "date", required: false, description: "Data vencimento inicial" },
+      { name: "vencimento_ate", type: "date", required: false, description: "Data vencimento final" },
+      { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 500)" },
+      { name: "offset", type: "number", required: false, description: "Paginação" },
+    ],
+    response: `{
+  "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }],
+  "total": 250, "offset": 0, "limit": 100
+}`,
+  },
+  {
+    method: "PUT", path: "/update", description: "Atualização individual de título",
+    body: `{ "id": "uuid-titulo", "data_vencimento": "2026-04-15", "valor_original": 1600, "portador": "Banco Itaú" }`,
+    response: `{ "success": true, "message": "Título atualizado", "updated_fields": ["data_vencimento", "valor_original", "portador"] }`,
+  },
+  {
+    method: "POST", path: "/cancelar", description: "Cancelamento com motivo obrigatório (suporta batch)",
+    body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
+    response: `{ "cancelados": 2, "message": "2 título(s) cancelado(s)" }`,
+  },
+  {
+    method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
+    body: `{ "id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
+    response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
+  },
+];
+
+const contasPagarComplementar: Endpoint[] = [
+  {
+    method: "GET", path: "/parcelas", description: "Consulta parcelas de um título",
+    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
+  },
+  {
+    method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)",
+    body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }`,
+  },
+  {
+    method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título",
+    params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }],
+  },
+  {
+    method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo",
+    body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }`,
+  },
+  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título" },
+  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento" },
+];
+
+const exportPull: Endpoint[] = [
+  {
+    method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)",
+    response: `{
+  "data": [{
+    "id": "uuid", "export_type": "registration",
+    "fornecedor": { "nome": "ABC Ltda", "documento": "12345678000190" },
+    "pagamento": { "valor": 1500, "moeda": "BRL", "data_vencimento": "2026-03-15" },
+    "status": "Aguardando Pagamento"
+  }], "total": 5
+}`,
+  },
+  { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)" },
+  { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação" },
+  {
+    method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP",
+    body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`,
+    response: `{ "confirmed": 2, "export_type": "registration" }`,
+  },
+  { method: "GET", path: "/status", description: "Status global de pendências de exportação" },
+];
+
+const exportAdvanced: Endpoint[] = [
+  {
+    method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo",
+    params: [
+      { name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" },
+      { name: "status", type: "string", required: false, description: "exported, pending, error" },
+      { name: "limit", type: "number", required: false, description: "Máx 500" },
+    ],
+  },
+  {
+    method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo",
+    body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`,
+    response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }`,
+  },
+  {
+    method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo",
+    body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }`,
+  },
+  {
+    method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo",
+    params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }],
+    response: `{
+  "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 },
+  "por_status": { "pendente": { "total": 100, "exported": 95 }, "pago": { "total": 300, "exported": 298 } }
+}`,
+  },
+  {
+    method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo",
+    params: [
+      { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
+      { name: "periodo_de", type: "date", required: false, description: "Data inicial" },
+      { name: "periodo_ate", type: "date", required: false, description: "Data final" },
+    ],
+  },
+  {
+    method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo",
+    body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }`,
+  },
+];
+
+const webhookInbound: Endpoint[] = [
+  {
+    method: "POST", path: "/", description: "Receber callbacks do ERP",
+    body: `{ "event": "provisao_registrada", "titulo_id": "uuid", "erp_response_code": "OK-001", "empresa_id": "8" }`,
+    response: `{ "sucesso": true, "mensagem": "Evento processado" }`,
+  },
+];
+
+const otherApis: Endpoint[] = [
+  { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
+  { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
+  { method: "GET", path: "/portadores", description: "Listar portadores (bancos/carteiras)" },
+  { method: "POST", path: "/portadores/sync", description: "Sync de portadores do ERP" },
+  { method: "GET", path: "/plano-contas", description: "Listar plano de contas" },
+  { method: "POST", path: "/plano-contas/sync", description: "Sync do plano de contas" },
+  { method: "POST", path: "/estoque/sync", description: "Sync de estoque do ERP" },
+  { method: "GET", path: "/estoque/status", description: "Status da sync de estoque" },
+  { method: "POST", path: "/contas-receber/sync", description: "Sync de contas a receber" },
+];
+
+function CodeBlock({ code, label }: { code: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="relative group">
+      {label && <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>}
+      <pre className="bg-muted/70 border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+        {code}
+      </pre>
+      <Button
+        variant="ghost" size="icon"
+        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={handleCopy}
+      >
+        {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+      </Button>
+    </div>
+  );
+}
+
+function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
+  const [open, setOpen] = useState(false);
+  const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
+  const hasDetails = endpoint.params || endpoint.body || endpoint.response;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors group">
+          {hasDetails ? (
+            open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          ) : <div className="w-3.5" />}
+          <Badge variant="outline" className={`${METHOD_COLORS[endpoint.method]} text-[10px] font-bold px-2 py-0 min-w-[42px] justify-center`}>
+            {endpoint.method}
+          </Badge>
+          <code className="text-xs font-mono text-foreground">{endpoint.path}</code>
+          <span className="text-xs text-muted-foreground truncate flex-1">{endpoint.description}</span>
+          {endpoint.tag === "novo" && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NOVO</Badge>}
+        </div>
+      </CollapsibleTrigger>
+      {hasDetails && (
+        <CollapsibleContent>
+          <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL completa</span>
+              <CodeBlock code={`curl -H "x-api-key: SUA_CHAVE" \\\n  "${fullUrl}"`} />
+            </div>
+            {endpoint.params && (
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Parâmetros</span>
+                <div className="mt-1 space-y-1">
+                  {endpoint.params.map(p => (
+                    <div key={p.name} className="flex items-center gap-2 text-xs">
+                      <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-[11px]">{p.name}</code>
+                      <span className="text-muted-foreground">{p.type}</span>
+                      {p.required && <Badge variant="outline" className="text-[9px] h-4 px-1">obrigatório</Badge>}
+                      <span className="text-muted-foreground">— {p.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {endpoint.body && <CodeBlock code={endpoint.body} label="Body (JSON)" />}
+            {endpoint.response && <CodeBlock code={endpoint.response} label="Resposta" />}
+          </div>
+        </CollapsibleContent>
+      )}
+    </Collapsible>
+  );
+}
+
+interface ApiSectionProps {
+  icon: React.ReactNode;
+  title: string;
+  basePath: string;
+  endpoints: Endpoint[];
+  description?: string;
+}
+
+function ApiSection({ icon, title, basePath, endpoints, description }: ApiSectionProps) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center gap-3 p-4 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors">
+          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          {icon}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm">{title}</span>
+              <Badge variant="secondary" className="text-[10px]">{endpoints.length} endpoints</Badge>
+            </div>
+            {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+          </div>
+          <code className="text-[10px] font-mono text-muted-foreground hidden sm:block">{basePath}</code>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="ml-4 mr-2 mb-2 border-l border-muted">
+          {endpoints.map((ep, i) => (
+            <EndpointCard key={`${ep.method}-${ep.path}-${i}`} endpoint={ep} basePath={basePath} />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+export default function ApiDocumentation() {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg">Documentação das APIs</CardTitle>
+        </div>
+        <CardDescription>
+          Referência completa de todos os endpoints disponíveis para integração ERP
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="contas-pagar" className="space-y-4">
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="contas-pagar" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Contas a Pagar
+            </TabsTrigger>
+            <TabsTrigger value="export" className="text-xs gap-1.5">
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
+              Exportação
+            </TabsTrigger>
+            <TabsTrigger value="complementar" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Dados Complementares
+            </TabsTrigger>
+            <TabsTrigger value="auth" className="text-xs gap-1.5">
+              <Shield className="h-3.5 w-3.5" />
+              Autenticação
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="contas-pagar" className="space-y-1">
+            <ApiSection
+              icon={<ArrowDownToLine className="h-4 w-4 text-blue-500" />}
+              title="Sync (ERP → BiMaster)"
+              basePath="/contas-pagar-api"
+              endpoints={contasPagarSync}
+              description="Sincronização de títulos do ERP para o BiMaster"
+            />
+            <ApiSection
+              icon={<Search className="h-4 w-4 text-emerald-500" />}
+              title="Consulta & CRUD"
+              basePath="/contas-pagar-api"
+              endpoints={contasPagarCrud}
+              description="Consultar, atualizar, cancelar e registrar pagamentos"
+            />
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-purple-500" />}
+              title="Parcelas, Pagamentos & Anexos"
+              basePath="/contas-pagar-api"
+              endpoints={contasPagarComplementar}
+              description="Gestão de parcelas, histórico de pagamentos e comprovantes"
+            />
+          </TabsContent>
+
+          <TabsContent value="export" className="space-y-1">
+            <ApiSection
+              icon={<ArrowUpFromLine className="h-4 w-4 text-emerald-500" />}
+              title="Pull (ERP consulta)"
+              basePath="/contas-pagar-export-api"
+              endpoints={exportPull}
+              description="ERP puxa títulos pendentes de provisão e baixa"
+            />
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-blue-500" />}
+              title="Avançado (Lote, Reconciliação, Webhook)"
+              basePath="/contas-pagar-export-api"
+              endpoints={exportAdvanced}
+              description="Exportação em lote, reprocessamento, reconciliação e push"
+            />
+            <ApiSection
+              icon={<Webhook className="h-4 w-4 text-amber-500" />}
+              title="Webhook Inbound (ERP → BiMaster)"
+              basePath="/erp-webhook-inbound"
+              endpoints={webhookInbound}
+              description="Callbacks do ERP: provisão registrada, baixa confirmada, estorno"
+            />
+          </TabsContent>
+
+          <TabsContent value="complementar" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-orange-500" />}
+              title="Fornecedores, Portadores, Plano de Contas, Estoque"
+              basePath=""
+              endpoints={otherApis}
+              description="APIs de dados mestres e estoque"
+            />
+          </TabsContent>
+
+          <TabsContent value="auth">
+            <div className="space-y-4 p-4">
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Métodos de Autenticação</h4>
+                <div className="space-y-3">
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[10px]">Recomendado</Badge>
+                      <span className="font-medium text-sm">API Key (x-api-key)</span>
+                    </div>
+                    <CodeBlock code={`curl -H "x-api-key: huggs-erp-xxxxxxxxxxxxxxxx" \\\n  "${BASE_URL}/contas-pagar-api/query"`} />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Gere chaves no Portal acima. Validação via SHA-256 hash com timing-safe comparison.
+                    </p>
+                  </div>
+                  <div className="border rounded-lg p-3">
+                    <span className="font-medium text-sm">JWT (Bearer Token)</span>
+                    <CodeBlock code={`curl -H "Authorization: Bearer eyJhbGciOiJI..." \\\n  "${BASE_URL}/erp-export-payment"`} />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Para usuários autenticados via frontend.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Rate Limiting</h4>
+                <p className="text-xs text-muted-foreground">
+                  Todas as APIs têm limite de <strong>60 requisições/minuto</strong> por IP ou API key.
+                  Exceder retorna <code className="bg-muted px-1 rounded">429 Too Many Requests</code> com header <code className="bg-muted px-1 rounded">Retry-After: 60</code>.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Códigos de Erro</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { code: "400", label: "Parâmetros inválidos" },
+                    { code: "401", label: "API key inválida" },
+                    { code: "404", label: "Rota não encontrada" },
+                    { code: "429", label: "Rate limit excedido" },
+                    { code: "500", label: "Erro interno" },
+                  ].map(e => (
+                    <div key={e.code} className="border rounded-lg p-2 text-center">
+                      <code className="text-sm font-bold font-mono">{e.code}</code>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{e.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
