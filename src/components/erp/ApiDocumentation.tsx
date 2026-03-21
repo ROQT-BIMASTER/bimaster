@@ -653,6 +653,22 @@ const bancosCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposDocumentoCrud: Endpoint[] = [
+  {
+    method: "GET", path: "/consultar", description: "Consultar tipo de documento por código (ConsultarTipoDocumento)", tag: "novo",
+    params: [
+      { name: "codigo", type: "string", required: true, description: "Código do tipo de documento (ex: NF, BOLETO)" },
+    ],
+    response: `{ "codigo": "NF", "descricao": "Nota Fiscal" }`,
+  },
+  {
+    method: "POST", path: "/pesquisar", description: "Pesquisar tipos de documento (PesquisarTipoDocumento)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    response: `{ "tipo_documento_cadastro": [{ "codigo": "NF", "descricao": "Nota Fiscal" }, { "codigo": "NFE", "descricao": "NF-e (Eletrônica)" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
