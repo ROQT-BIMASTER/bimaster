@@ -137,6 +137,10 @@ const PRESET_ENDPOINTS = [
   { label: "Orçamento — Incluir", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir" },
   { label: "Orçamento — Incluir Lote", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir-lote" },
   { label: "Orçamento — Status", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/status" },
+  // Pesquisar Lançamentos (Unificado)
+  { label: "Pesquisar — Contas a Receber", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
+  { label: "Pesquisar — Contas a Pagar", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
+  { label: "Pesquisar — Status", method: "GET" as HttpMethod, path: "/pesquisar-lancamentos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -184,6 +188,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   // Orçamento de Caixa
   "/orcamentos-caixa-api/incluir": JSON.stringify({ nAno: 2026, nMes: 3, cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, null, 2),
   "/orcamentos-caixa-api/incluir-lote": JSON.stringify({ nAno: 2026, nMes: 3, orcamentos: [{ cCodCateg: "2.04.01", cDesCateg: "Serviços Terceiros", nValorPrevisto: 5000.00 }, { cCodCateg: "1.01.02", cDesCateg: "Vendas de Produtos", nValorPrevisto: 25000.00 }] }, null, 2),
+  // Pesquisar Lançamentos
+  "/pesquisar-lancamentos-api/pesquisar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cNatureza: "R", cStatus: "pendente", dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026", cOrdenarPor: "data_vencimento", cOrdemDecrescente: "S" }, null, 2),
 };
 
 export default function ApiTester() {

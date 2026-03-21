@@ -538,6 +538,28 @@ const orcamentosCaixaCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const pesquisarLancamentosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/pesquisar", description: "Pesquisa avançada unificada de títulos (PesquisarLancamentos)", tag: "novo",
+    body: `{ "nPagina": 1, "nRegPorPagina": 20, "cNatureza": "R", "cStatus": "pendente", "dDtVencDe": "01/01/2026", "dDtVencAte": "31/03/2026", "nCodCliente": 4214850, "cCodCateg": "1.01.02", "cOrdenarPor": "data_vencimento", "cOrdemDecrescente": "S" }`,
+    response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 100, "titulosEncontrados": [{ "cabecTitulo": { "nCodTitulo": 123, "cCodIntTitulo": "CR-001", "nValorTitulo": 500, "cNatureza": "R" }, "lancamentos": [], "resumo": { "cLiquidado": "N", "nValPago": 200, "nValAberto": 300 } }] }`,
+    params: [
+      { name: "nPagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "cNatureza", type: "string", required: false, description: "R=Receber, P=Pagar, vazio=ambos" },
+      { name: "cStatus", type: "string", required: false, description: "Status (vírgula para múltiplos)" },
+      { name: "nCodCliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
+      { name: "cCodCateg", type: "string", required: false, description: "Código da categoria" },
+      { name: "dDtVencDe/Ate", type: "string", required: false, description: "Filtro por vencimento" },
+      { name: "dDtEmisDe/Ate", type: "string", required: false, description: "Filtro por emissão" },
+      { name: "cOrdenarPor", type: "string", required: false, description: "Campo de ordenação" },
+      { name: "cOrdemDecrescente", type: "string", required: false, description: "S para decrescente" },
+      { name: "lDadosCad", type: "boolean", required: false, description: "Incluir dados cadastrais" },
+    ],
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -716,6 +738,10 @@ export default function ApiDocumentation() {
               <BarChart3 className="h-3.5 w-3.5" />
               Orçamentos
             </TabsTrigger>
+            <TabsTrigger value="pesquisar" className="text-xs gap-1.5">
+              <Search className="h-3.5 w-3.5" />
+              Pesquisar
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -845,6 +871,16 @@ export default function ApiDocumentation() {
               basePath="/orcamentos-caixa-api"
               endpoints={orcamentosCaixaCrud}
               description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
+            />
+          </TabsContent>
+
+          <TabsContent value="pesquisar" className="space-y-1">
+            <ApiSection
+              icon={<Search className="h-4 w-4 text-primary" />}
+              title="Pesquisa Avançada de Títulos (Padrão Omie)"
+              basePath="/pesquisar-lancamentos-api"
+              endpoints={pesquisarLancamentosCrud}
+              description="Pesquisa unificada de Contas a Pagar e Receber com filtros extensivos, lançamentos e resumo financeiro"
             />
           </TabsContent>
 
