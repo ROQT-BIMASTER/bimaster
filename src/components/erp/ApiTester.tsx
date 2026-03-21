@@ -104,6 +104,18 @@ const PRESET_ENDPOINTS = [
   { label: "Lançamentos CC — Upsert", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert" },
   { label: "Lançamentos CC — Upsert Lote", method: "POST" as HttpMethod, path: "/lancamentos-cc-api/upsert-lote" },
   { label: "Lançamentos CC — Status", method: "GET" as HttpMethod, path: "/lancamentos-cc-api/status" },
+  // Contas a Receber — Omie-style
+  { label: "CR Omie — Consultar", method: "GET" as HttpMethod, path: "/contas-receber-api/consultar?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CR Omie — Listar", method: "GET" as HttpMethod, path: "/contas-receber-api/listar?pagina=1&registros_por_pagina=20" },
+  { label: "CR Omie — Incluir", method: "POST" as HttpMethod, path: "/contas-receber-api/incluir" },
+  { label: "CR Omie — Alterar", method: "PUT" as HttpMethod, path: "/contas-receber-api/alterar" },
+  { label: "CR Omie — Excluir", method: "DELETE" as HttpMethod, path: "/contas-receber-api/excluir?codigo_lancamento_integracao=COLE_O_CODIGO" },
+  { label: "CR Omie — Upsert", method: "POST" as HttpMethod, path: "/contas-receber-api/upsert" },
+  { label: "CR Omie — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-receber-api/upsert-lote" },
+  { label: "CR Omie — Lançar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/lancar-recebimento" },
+  { label: "CR Omie — Cancelar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar-recebimento" },
+  { label: "CR Omie — Conciliar", method: "POST" as HttpMethod, path: "/contas-receber-api/conciliar" },
+  { label: "CR Omie — Cancelar", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
