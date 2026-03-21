@@ -1,0 +1,1 @@
+ALTER TABLE public.trade_incentivos ADD COLUMN banner_url TEXT DEFAULT NULL;
