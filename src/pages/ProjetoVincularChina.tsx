@@ -851,6 +851,11 @@ export default function ProjetoVincularChina() {
         </Collapsible>
       )}
 
+      {/* Pasta Digital TJSP — appears when a submission is selected and has docs */}
+      {selectedSubmissaoId && documentos.length > 0 && (
+        <PastaDigitalFromChecklist submissaoId={selectedSubmissaoId} />
+      )}
+
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
       {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
         <ProcessOrchestrationPanel

@@ -561,12 +561,7 @@ export default function ChinaFichaProduto() {
           ]}
         />
 
-        {/* Pasta Digital China — TJSP */}
-        {isBrasilUser && (
-          <Card className="p-6">
-            <ChinaPastaDigitalPanel submissaoId={id!} />
-          </Card>
-        )}
+        {/* Pasta Digital removida — agora vive em Vincular China */}
 
         {/* Projetos Vinculados + Visibilidade */}
         {isBrasilUser && (
