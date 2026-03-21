@@ -14,6 +14,7 @@ export interface TradeIncentivo {
   data_inicio: string;
   data_fim: string;
   ativo: boolean;
+  banner_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
