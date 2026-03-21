@@ -25,7 +25,7 @@ export function ClienteDrilldownModal({ codCliente, filters, onClose }: Props) {
       // Fetch all sales for this client in the year
       const { data: vendas, error } = await supabase
         .from("vendas_union")
-        .select("data,pedido,descricao,marca,quantidade,venda,preco_venda,vl_outros_custos,operacao")
+        .select("data,pedido,descricao,marca,quantidade,venda,preco_venda,operacao")
         .eq("cod_cliente", codCliente)
         .gte("data", `${filters.ano}-01-01`)
         .lte("data", `${filters.ano}-12-31`)
