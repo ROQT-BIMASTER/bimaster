@@ -68,7 +68,7 @@ export function useProdutosDashboard(filters: DashboardFilters) {
 
       for (const r of rows) {
         const mult = multipliers.get(r.operacao) ?? 1;
-        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || Number(r.vl_outros_custos) || 0) * mult;
+        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0) || 0) * mult;
         const qtd = (Number(r.quantidade) || 0) * mult;
         totalReceita += receita;
 

@@ -141,7 +141,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
         const cod = v.cod_cliente;
         if (!cod) continue;
         const mult = multipliers.get(v.operacao) ?? 1;
-        const valor = (v.venda ?? (v.preco_venda && v.quantidade ? v.preco_venda * v.quantidade : v.vl_outros_custos) ?? 0) * mult;
+        const valor = (v.venda ?? (v.preco_venda && v.quantidade ? v.preco_venda * v.quantidade : 0)) * mult;
 
         if (!clienteMap.has(cod)) {
           clienteMap.set(cod, { receita: 0, pedidos: new Set(), ultimaCompra: null, meses: new Set(), vendedor: v.vendedor, supervisor: v.supervisor, id_empresa: v.id_empresa, uf: v.uf });
