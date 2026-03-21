@@ -1,4 +1,4 @@
-# API CNAE — Padronização Omie
+# API CNAE — API Huggs
 
 ## Base URL
 
@@ -60,9 +60,9 @@ Lista os CNAEs cadastrados com paginação e ordenação.
 
 ---
 
-## Mapeamento Omie
+## Mapeamento Huggs
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `nCodigo` | `codigo` |
 | `cDescricao` | `descricao` |

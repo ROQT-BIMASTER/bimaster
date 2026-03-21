@@ -1,11 +1,11 @@
 # API Tipos de Documento — ConsultarTipoDocumento + PesquisarTipoDocumento
 
 Edge Function: `tipos-documento-api`  
-Padrão: Omie `tipo_documento_cadastro`
+Padrão: Huggs `tipo_documento_cadastro`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | GET | `/consultar?codigo=NF` | ConsultarTipoDocumento | Consulta tipo por código |
 | POST | `/pesquisar` | PesquisarTipoDocumento | Pesquisa tipos (filtro parcial) |
@@ -50,7 +50,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Observação |
+| Campo Huggs | Coluna DB | Observação |
 |---|---|---|
 | `codigo` | `codigo` | Código do tipo (máx 5 chars) |
 | `descricao` | `descricao` | Descrição do tipo (máx 50 chars) |

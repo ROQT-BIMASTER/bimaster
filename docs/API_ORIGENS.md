@@ -1,11 +1,11 @@
 # API Origens de Lançamento — ListarOrigem
 
 Edge Function: `origens-api`  
-Padrão: Omie `origem_lanc_listar_response`
+Padrão: Huggs `origem_lanc_listar_response`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | POST | `/listar` | ListarOrigem | Lista origens de lançamento |
 | GET | `/status` | — | Health check |
@@ -40,7 +40,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie (`origem`) | Coluna DB | Observação |
+| Campo Huggs (`origem`) | Coluna DB | Observação |
 |---|---|---|
 | `codigo` | `codigo` | Código da origem |
 | `descricao` | `descricao` | Descrição |

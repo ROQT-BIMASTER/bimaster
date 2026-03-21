@@ -1,4 +1,4 @@
-# API Cidades (PesquisarCidades) — Padrão Omie
+# API Cidades (PesquisarCidades) — API Huggs
 
 ## Base URL
 
@@ -77,7 +77,7 @@ Health check.
 
 ## Mapeamento
 
-| Campo Omie | Fonte DB (`ibge_municipios`) |
+| Campo Huggs | Fonte DB (`ibge_municipios`) |
 |---|---|
 | `cCod` | `UPPER(nome) || ' (' || uf_sigla || ')'` |
 | `cNome` | `nome` |

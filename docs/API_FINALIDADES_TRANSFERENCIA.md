@@ -1,11 +1,11 @@
 # API Finalidades de Transferência — ConsultarFinalTransf + ListarFinalTransf
 
 Edge Function: `finalidades-transferencia-api`  
-Padrão: Omie `final_transf_list_response`
+Padrão: Huggs `final_transf_list_response`
 
 ## Endpoints
 
-| Método | Rota | Equivalente Omie | Descrição |
+| Método | Rota | Equivalente Huggs | Descrição |
 |---|---|---|---|
 | GET | `/consultar?codigo=01` | ConsultarFinalTransf | Consulta finalidade por código |
 | GET | `/listar?pagina=1&registros_por_pagina=50` | ListarFinalTransf | Lista paginada |
@@ -52,7 +52,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 
 ## Mapeamento de Campos
 
-| Campo Omie (`cadastros`) | Coluna DB | Observação |
+| Campo Huggs (`cadastros`) | Coluna DB | Observação |
 |---|---|---|
 | `banco` | — | Retorna `""` (não disponível) |
 | `codigo` | `codigo` | Código da finalidade |

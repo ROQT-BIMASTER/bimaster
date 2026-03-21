@@ -1,4 +1,4 @@
-# API Empresas — Padronização Omie
+# API Empresas — API Huggs
 
 Base URL: `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/empresas-api`
 
@@ -19,7 +19,7 @@ Consulta uma empresa por código.
 { "codigo_empresa": 8 }
 ```
 
-**Response:** `empresas_cadastro` (objeto com campos Omie).
+**Response:** `empresas_cadastro` (objeto com campos Huggs).
 
 ### POST /listar
 Lista empresas com paginação.
@@ -55,7 +55,7 @@ Lista empresas com paginação.
 
 ## Mapeamento de Campos
 
-| Campo Omie | Coluna DB | Obs |
+| Campo Huggs | Coluna DB | Obs |
 |---|---|---|
 | `codigo_empresa` | `id` | SERIAL |
 | `razao_social` | `nome` | — |

@@ -1,4 +1,4 @@
-# API Tipos de Entrega — CRUD Completo (Padrão Omie)
+# API Tipos de Entrega — CRUD Completo (API Huggs)
 
 ## Base URL
 
@@ -99,7 +99,7 @@ Health check.
 
 ## Mapeamento
 
-| Campo Omie | Coluna DB |
+| Campo Huggs | Coluna DB |
 |---|---|
 | `nCodEntrega` | `n_cod_entrega` |
 | `nCodTransp` | `n_cod_transp` |
