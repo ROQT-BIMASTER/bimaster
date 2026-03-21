@@ -45,6 +45,7 @@ import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
 import { TradeSearchBar } from "@/components/trade/ui/TradeSearchBar";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
+import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
@@ -146,6 +147,17 @@ const TradeModule = () => {
 
         {/* Banner Carousel */}
         <TradeHeroBanner />
+
+        {/* Display Catalog Carousel */}
+        <div className="space-y-2">
+          <TradeSectionHeader
+            title="Catálogo de Displays"
+            subtitle="Conheça nossos displays para PDV"
+            linkText="Ver todos"
+            linkTo="/dashboard/trade/admin/displays"
+          />
+          <DisplayHeroBanner />
+        </div>
 
         {/* Quick Entry Dialog */}
         <QuickEntryDialog 
