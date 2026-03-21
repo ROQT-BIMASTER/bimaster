@@ -1,5 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
