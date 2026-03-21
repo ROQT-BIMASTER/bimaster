@@ -1265,6 +1265,13 @@ export default function ApiDocumentation() {
               endpoints={clientesCaractCrud}
               description="Incluir, alterar, consultar e excluir características de clientes/fornecedores"
             />
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-emerald-500" />}
+              title="Tags de Clientes (Padrão Omie)"
+              basePath="/clientes-api"
+              endpoints={clientesTagsCrud}
+              description="Associar, listar e remover tags de clientes/fornecedores"
+            />
           </TabsContent>
 
           <TabsContent value="complementar" className="space-y-1">
