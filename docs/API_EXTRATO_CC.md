@@ -1,6 +1,6 @@
 # API Extrato de Conta Corrente
 
-Rota `/extrato` dentro da Edge Function `lancamentos-cc-api`, seguindo o padrão Omie `ListarExtrato`.
+Rota `/extrato` dentro da Edge Function `lancamentos-cc-api`, seguindo o padrão Huggs `ListarExtrato`.
 
 **Base URL:** `https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/lancamentos-cc-api`
 
@@ -16,7 +16,7 @@ Retorna extrato de uma conta corrente com saldos calculados e lista de movimento
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `nCodCC` | integer | Condicional | Código Omie da conta corrente |
+| `nCodCC` | integer | Condicional | Código Huggs da conta corrente |
 | `cCodIntCC` | string | Condicional | Código de integração da conta |
 | `dPeriodoInicial` | string(10) | Não | Período inicial (dd/mm/yyyy ou yyyy-mm-dd) |
 | `dPeriodoFinal` | string(10) | Não | Período final (dd/mm/yyyy ou yyyy-mm-dd) |

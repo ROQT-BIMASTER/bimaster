@@ -10,7 +10,7 @@ Todas as requisições exigem **API Key** ou **JWT**:
 
 ---
 
-## Rotas Omie-Style
+## Rotas Integração
 
 ### GET /consultar — ConsultarContaReceber
 
@@ -22,7 +22,7 @@ GET /contas-receber-api/consultar?codigo_lancamento_integracao=INT-001
 |-----------|------|-----------|
 | `id` | UUID | ID interno |
 | `codigo_lancamento_integracao` | string | Código de integração |
-| `codigo_lancamento_omie` | integer | Código numérico Omie |
+| `codigo_lancamento_huggs` | integer | Código numérico Huggs |
 
 ### POST /incluir — IncluirContaReceber
 
@@ -41,7 +41,7 @@ GET /contas-receber-api/consultar?codigo_lancamento_integracao=INT-001
 **Resposta:**
 ```json
 {
-  "codigo_lancamento_omie": null,
+  "codigo_lancamento_huggs": null,
   "codigo_lancamento_integracao": "CR-001",
   "codigo_status": "0",
   "descricao_status": "Cadastro incluído com sucesso!"
@@ -228,20 +228,20 @@ GET /contas-receber-api/listar?pagina=1&registros_por_pagina=20
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
 | GET | `/` | JWT | Listar últimos 100 títulos |
-| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Omie) |
-| GET | `/listar` | JWT/Key | Listagem paginada Omie-style |
+| GET | `/consultar` | JWT/Key | Consultar por ID/código integração (Huggs) |
+| GET | `/listar` | JWT/Key | Listagem paginada Integração |
 | GET | `/sync-status` | Key | Status da sync |
 | POST | `/sync` | Key | Sync legado |
 | POST | `/bulk-sync` | Key | Sync em massa |
 | POST | `/sync-chunk` | Key | Sync chunk |
-| POST | `/incluir` | JWT/Key | Incluir título (Omie) |
-| POST | `/upsert` | JWT/Key | Upsert unitário (Omie) |
-| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Omie) |
-| POST | `/lancar-recebimento` | JWT/Key | Baixa Omie-style |
-| POST | `/cancelar-recebimento` | JWT/Key | Cancelar baixa (Omie) |
+| POST | `/incluir` | JWT/Key | Incluir título (Huggs) |
+| POST | `/upsert` | JWT/Key | Upsert unitário (Huggs) |
+| POST | `/upsert-lote` | JWT/Key | Upsert em lote (Huggs) |
+| POST | `/lancar-recebimento` | JWT/Key | Baixa Integração |
+| POST | `/cancelar-recebimento` | JWT/Key | Cancelar baixa (Huggs) |
 | POST | `/conciliar` | JWT/Key | Conciliar recebimento |
 | POST | `/desconciliar` | JWT/Key | Desconciliar recebimento |
 | POST | `/cancelar` | JWT/Key | Cancelar título |
 | POST | `/delete-old` | Key | Limpar antigos |
-| PUT | `/alterar` | JWT/Key | Alterar título (Omie) |
-| DELETE | `/excluir` | JWT/Key | Excluir título (Omie) |
+| PUT | `/alterar` | JWT/Key | Alterar título (Huggs) |
+| DELETE | `/excluir` | JWT/Key | Excluir título (Huggs) |

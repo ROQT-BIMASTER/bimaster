@@ -1,4 +1,4 @@
-# API Movimentos Financeiros — ListarMovimentos (Omie)
+# API Movimentos Financeiros — ListarMovimentos (Huggs)
 
 API unificada de movimentação financeira consolidando Contas a Pagar, Contas a Receber e Lançamentos de Conta Corrente.
 
