@@ -103,7 +103,7 @@ export function useClientesDashboard(filters: DashboardFilters) {
       while (hasMore) {
         let q = supabase
           .from("vendas_union")
-          .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vl_outros_custos,vendedor,supervisor,id_empresa,uf")
+          .select("cod_cliente,pedido,data,operacao,venda,preco_venda,quantidade,vendedor,supervisor,id_empresa,uf")
           .gte("data", startDate)
           .lte("data", endDate)
           .range(offset, offset + batchSize - 1);
