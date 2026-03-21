@@ -767,6 +767,7 @@ const clientesCrud: Endpoint[] = [
 ];
 
 
+const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
   { method: "GET", path: "/portadores", description: "Listar portadores (bancos/carteiras)" },
