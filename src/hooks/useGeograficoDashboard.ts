@@ -104,7 +104,7 @@ export function useGeograficoDashboard(filters: DashboardFilters) {
       // Use the view which has uf but not cidade — we need vendas_union directly
       let q = supabase
         .from("vendas_union" as any)
-        .select("uf, cidade, cod_cliente, pedido, operacao, venda, preco_venda, quantidade, vl_outros_custos")
+        .select("uf, cidade, cod_cliente, pedido, operacao, venda, preco_venda, quantidade")
         .gte("data", `${filters.ano}-${String(filters.mes || 1).padStart(2, "0")}-01`);
 
       if (filters.mes) {
