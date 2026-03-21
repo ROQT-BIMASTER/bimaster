@@ -612,6 +612,19 @@ const parcelasCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const tiposAtividadeCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar tipos de atividade da empresa (ListarTipoAtiv)", tag: "novo",
+    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "" }`,
+    params: [
+      { name: "filtrar_por_codigo", type: "string", required: false, description: "Filtro parcial por código (ILIKE)" },
+      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
+    ],
+    response: `{ "lista_tipos_atividade": [{ "cCodigo": "C", "cDescricao": "Comércio" }, { "cCodigo": "I", "cDescricao": "Indústria" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
@@ -1177,6 +1190,10 @@ export default function ApiDocumentation() {
               <FileText className="h-3.5 w-3.5" />
               Parcelas
             </TabsTrigger>
+            <TabsTrigger value="tipos-atividade" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Tipos Atividade
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1396,6 +1413,16 @@ export default function ApiDocumentation() {
               basePath="/parcelas-api"
               endpoints={parcelasCrud}
               description="Incluir e listar condições de parcelamento (À Vista, 30/60/90, etc.)"
+            />
+          </TabsContent>
+
+          <TabsContent value="tipos-atividade" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Tipos de Atividade — ListarTipoAtiv (Padrão Omie)"
+              basePath="/tipos-atividade-api"
+              endpoints={tiposAtividadeCrud}
+              description="Listar tipos de atividade da empresa (código 1 char + descrição)"
             />
           </TabsContent>
 
