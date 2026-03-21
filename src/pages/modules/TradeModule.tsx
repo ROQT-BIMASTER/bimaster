@@ -178,15 +178,15 @@ const TradeModule = () => {
 
             <Link to="/dashboard/trade/photos">
               <Card className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 rounded-2xl border-0 shadow-soft h-full touch-manipulation bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/30">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="p-2 sm:p-2.5 bg-purple-500/10 rounded-xl w-fit">
-                    <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="p-1.5 sm:p-2 bg-purple-500/10 rounded-xl w-fit">
+                    <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <div className="mt-3">
-                    <p className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
+                  <div className="mt-2">
+                    <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {(stats?.totalPhotos || 0).toLocaleString("pt-BR")}
                     </p>
-                    <h3 className="text-xs sm:text-sm font-medium mt-0.5">Fotos</h3>
+                    <h3 className="text-[11px] sm:text-xs font-medium mt-0.5">Fotos</h3>
                   </div>
                 </CardContent>
               </Card>
