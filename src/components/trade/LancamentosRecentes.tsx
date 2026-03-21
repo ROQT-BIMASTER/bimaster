@@ -9,21 +9,27 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 export function LancamentosRecentes() {
   const [userId, setUserId] = useState<string | null>(null);
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
   const { data: visits, isLoading } = useQuery({
-    queryKey: ["lancamentos-recentes", userId],
+    queryKey: ["lancamentos-recentes", userId, isAdmin],
     enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("visits")
         .select("id, scheduled_date, status, store:stores(name)")
-        .eq("user_id", userId!)
         .order("created_at", { ascending: false })
         .limit(10);
+
+      if (!isAdmin) {
+        query = query.eq("user_id", userId!);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       if (!data || data.length === 0) return [];
