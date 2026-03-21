@@ -199,6 +199,14 @@ const PRESET_ENDPOINTS = [
   { label: "Tags Cliente — Listar", method: "POST" as HttpMethod, path: "/clientes-api/tags/listar" },
   { label: "Tags Cliente — Excluir", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir" },
   { label: "Tags Cliente — Excluir Todas", method: "POST" as HttpMethod, path: "/clientes-api/tags/excluir-todas" },
+  // Projetos (CRUD Completo)
+  { label: "Projetos — Incluir", method: "POST" as HttpMethod, path: "/projetos-api/incluir" },
+  { label: "Projetos — Alterar", method: "POST" as HttpMethod, path: "/projetos-api/alterar" },
+  { label: "Projetos — Consultar", method: "POST" as HttpMethod, path: "/projetos-api/consultar" },
+  { label: "Projetos — Excluir", method: "POST" as HttpMethod, path: "/projetos-api/excluir" },
+  { label: "Projetos — Listar", method: "POST" as HttpMethod, path: "/projetos-api/listar" },
+  { label: "Projetos — Upsert", method: "POST" as HttpMethod, path: "/projetos-api/upsert" },
+  { label: "Projetos — Status", method: "GET" as HttpMethod, path: "/projetos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -275,6 +283,13 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/clientes-api/tags/listar": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
   "/clientes-api/tags/excluir": JSON.stringify({ cCodIntCliente: "CLI001", tags: [{ tag: "Grupo A" }] }, null, 2),
   "/clientes-api/tags/excluir-todas": JSON.stringify({ cCodIntCliente: "CLI001" }, null, 2),
+  // Projetos
+  "/projetos-api/incluir": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
+  "/projetos-api/alterar": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha Atualizado" }, null, 2),
+  "/projetos-api/consultar": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
+  "/projetos-api/excluir": JSON.stringify({ codInt: "PROJ-001" }, null, 2),
+  "/projetos-api/listar": JSON.stringify({ pagina: 1, registros_por_pagina: 50, nome_projeto: "", apenas_importado_api: "N" }, null, 2),
+  "/projetos-api/upsert": JSON.stringify({ codInt: "PROJ-001", nome: "Projeto Alpha", inativo: "N" }, null, 2),
 };
 
 export default function ApiTester() {

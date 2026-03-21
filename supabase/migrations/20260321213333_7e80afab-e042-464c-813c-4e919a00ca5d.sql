@@ -1,0 +1,1 @@
+ALTER TABLE public.projetos ADD COLUMN IF NOT EXISTS codigo_integracao varchar(20) UNIQUE;
