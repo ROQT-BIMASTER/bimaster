@@ -25337,6 +25337,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_atividade_empresa: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+        }
+        Relationships: []
+      }
       tipos_conta_corrente: {
         Row: {
           ativo: boolean
