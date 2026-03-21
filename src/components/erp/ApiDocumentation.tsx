@@ -732,6 +732,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="boletos" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Boletos — Cobrança Bancária (Padrão Omie)"
+              basePath="/boletos-api"
+              endpoints={boletosCrud}
+              description="Gerar, obter, cancelar e prorrogar boletos vinculados a títulos do Contas a Receber"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
