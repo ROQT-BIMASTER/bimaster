@@ -1275,6 +1275,99 @@ export type Database = {
           },
         ]
       }
+      boletos: {
+        Row: {
+          c_cod_int_titulo: string | null
+          codigo_barras: string | null
+          conta_receber_id: string | null
+          created_at: string | null
+          data_emissao: string | null
+          data_vencimento: string | null
+          desconto_cond1_data: string | null
+          desconto_cond1_valor: number | null
+          desconto_cond2_data: string | null
+          desconto_cond2_valor: number | null
+          desconto_cond3_data: string | null
+          desconto_cond3_valor: number | null
+          empresa_id: string
+          id: string
+          importado_api: boolean | null
+          link_boleto: string | null
+          n_cod_titulo: number | null
+          numero_bancario: string | null
+          numero_boleto: string | null
+          per_juros: number | null
+          per_multa: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          c_cod_int_titulo?: string | null
+          codigo_barras?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          desconto_cond1_data?: string | null
+          desconto_cond1_valor?: number | null
+          desconto_cond2_data?: string | null
+          desconto_cond2_valor?: number | null
+          desconto_cond3_data?: string | null
+          desconto_cond3_valor?: number | null
+          empresa_id: string
+          id?: string
+          importado_api?: boolean | null
+          link_boleto?: string | null
+          n_cod_titulo?: number | null
+          numero_bancario?: string | null
+          numero_boleto?: string | null
+          per_juros?: number | null
+          per_multa?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          c_cod_int_titulo?: string | null
+          codigo_barras?: string | null
+          conta_receber_id?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          desconto_cond1_data?: string | null
+          desconto_cond1_valor?: number | null
+          desconto_cond2_data?: string | null
+          desconto_cond2_valor?: number | null
+          desconto_cond3_data?: string | null
+          desconto_cond3_valor?: number | null
+          empresa_id?: string
+          id?: string
+          importado_api?: boolean | null
+          link_boleto?: string | null
+          n_cod_titulo?: number | null
+          numero_bancario?: string | null
+          numero_boleto?: string | null
+          per_juros?: number | null
+          per_multa?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boletos_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "contas_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boletos_conta_receber_id_fkey"
+            columns: ["conta_receber_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_receber_completo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categoria_departamento: {
         Row: {
           categoria_nome: string

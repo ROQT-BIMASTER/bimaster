@@ -424,6 +424,42 @@ const contasReceberSync: Endpoint[] = [
   { method: "POST", path: "/delete-old", description: "Limpar registros antigos", tag: "sync" },
 ];
 
+const boletosCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/gerar", description: "Gerar boleto para título CR (GerarBoleto)", tag: "novo",
+    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "nPerJuros": 2.0, "nPerMulta": 2.0, "dDescontoCond1": "2026-03-25", "vDescontoCond1": 5.00 }`,
+    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto gerado com sucesso!", "dDtEmBol": "2026-03-21", "cNumBoleto": "BOL-001", "cCodBarras": "23793...", "nPerJuros": 2.0, "nPerMulta": 2.0 }`,
+  },
+  {
+    method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo",
+    params: [
+      { name: "nCodTitulo", type: "integer", required: false, description: "Código do título no Omie" },
+      { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração do título" },
+      { name: "id", type: "uuid", required: false, description: "ID interno do boleto" },
+    ],
+    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto localizado com sucesso!", "dDtEmBol": "2026-03-21", "cNumBoleto": "BOL-001" }`,
+  },
+  {
+    method: "POST", path: "/cancelar", description: "Cancelar boleto gerado (CancelarBoleto)", tag: "novo",
+    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001" }`,
+    response: `{ "cCodStatus": "0", "cDesStatus": "Boleto cancelado com sucesso!" }`,
+  },
+  {
+    method: "POST", path: "/prorrogar", description: "Prorrogar vencimento do boleto (ProrrogarBoleto)", tag: "novo",
+    body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "dDtVenc": "30/04/2026" }`,
+    response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto prorrogado com sucesso!" }`,
+  },
+  {
+    method: "GET", path: "/listar", description: "Listar boletos paginado",
+    params: [
+      { name: "pagina", type: "integer", required: false, description: "Página (default: 1)" },
+      { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
+      { name: "status", type: "string", required: false, description: "Filtro: gerado, cancelado, prorrogado" },
+    ],
+    response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 20, "total_de_registros": 50, "boletos": [...] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
 const webhookInbound: Endpoint[] = [
   {
     method: "POST", path: "/", description: "Receber callbacks do ERP",
@@ -590,6 +626,10 @@ export default function ApiDocumentation() {
               <ArrowDownToLine className="h-3.5 w-3.5" />
               Lançamentos CC
             </TabsTrigger>
+            <TabsTrigger value="boletos" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Boletos
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -689,6 +729,16 @@ export default function ApiDocumentation() {
               basePath="/lancamentos-cc-api"
               endpoints={lancamentosCcCrud}
               description="Gestão de lançamentos: listar, consultar, incluir, alterar, excluir, upsert, upsert em lote e sync"
+            />
+          </TabsContent>
+
+          <TabsContent value="boletos" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Boletos — Cobrança Bancária (Padrão Omie)"
+              basePath="/boletos-api"
+              endpoints={boletosCrud}
+              description="Gerar, obter, cancelar e prorrogar boletos vinculados a títulos do Contas a Receber"
             />
           </TabsContent>
 
