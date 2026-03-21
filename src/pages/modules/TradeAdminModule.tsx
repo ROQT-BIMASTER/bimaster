@@ -25,7 +25,8 @@ import {
   LayoutDashboard,
   CreditCard,
   ScrollText,
-  BookOpen
+  BookOpen,
+  Trophy
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
