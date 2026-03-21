@@ -123,6 +123,13 @@ const PRESET_ENDPOINTS = [
   { label: "Boleto — Prorrogar", method: "POST" as HttpMethod, path: "/boletos-api/prorrogar" },
   { label: "Boleto — Listar", method: "GET" as HttpMethod, path: "/boletos-api/listar?pagina=1&registros_por_pagina=20" },
   { label: "Boleto — Status", method: "GET" as HttpMethod, path: "/boletos-api/status" },
+  // Anexos de Documentos
+  { label: "Anexo — Incluir", method: "POST" as HttpMethod, path: "/anexos-api/incluir" },
+  { label: "Anexo — Consultar", method: "GET" as HttpMethod, path: "/anexos-api/consultar?cTabela=contas_receber&nId=0" },
+  { label: "Anexo — Obter (Download)", method: "GET" as HttpMethod, path: "/anexos-api/obter?cCodIntAnexo=COLE_O_CODIGO" },
+  { label: "Anexo — Listar", method: "GET" as HttpMethod, path: "/anexos-api/listar?cTabela=contas_receber&nId=0&nPagina=1&nRegPorPagina=50" },
+  { label: "Anexo — Excluir", method: "DELETE" as HttpMethod, path: "/anexos-api/excluir" },
+  { label: "Anexo — Status", method: "GET" as HttpMethod, path: "/anexos-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
