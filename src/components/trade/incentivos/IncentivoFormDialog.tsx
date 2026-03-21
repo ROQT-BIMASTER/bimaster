@@ -11,6 +11,7 @@ import { useCreateIncentivo, useUpdateIncentivo, type TradeIncentivo } from "@/h
 import { toast } from "sonner";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { Upload, X, Loader2, Wand2 } from "lucide-react";
+import { AiBannerGenerator } from "@/components/trade/AiBannerGenerator";
 
 interface Props {
   open: boolean;
