@@ -1,59 +1,66 @@
 
 
-# API Tags de Clientes — Padronização Omie
+# API Projetos (CRUD) — Padronização Omie
 
 ## Resumo
 
-Criar nova tabela `cliente_tags` e adicionar 4 rotas à Edge Function `clientes-api` existente para gerenciar tags de clientes/fornecedores.
+Criar Edge Function `projetos-api` com 6 rotas CRUD seguindo o padrão Omie. Usa tabela `projetos` existente. Sem nova tabela.
 
-## 1. Nova Tabela: `cliente_tags`
+## 1. Nova Edge Function: `projetos-api`
+
+| Método | Rota | Equivalente Omie | Descrição |
+|---|---|---|---|
+| POST | `/incluir` | IncluirProjeto | Inclui projeto |
+| POST | `/alterar` | AlterarProjeto | Altera projeto |
+| POST | `/consultar` | ConsultarProjeto | Consulta por código |
+| POST | `/excluir` | ExcluirProjeto | Exclui projeto |
+| POST | `/listar` | ListarProjetos | Lista paginada |
+| POST | `/upsert` | UpsertProjeto | Inclui ou altera |
+| GET | `/status` | — | Health check |
+
+## 2. Mapeamento de Campos (projetos → Omie cadastro)
+
+| Campo Omie | Coluna DB | Observação |
+|---|---|---|
+| `codigo` | `id` | UUID interno |
+| `codInt` | `tipo` (ou campo auxiliar) | Código de integração — usaremos coluna dedicada (ver abaixo) |
+| `nome` | `nome` | Nome do projeto |
+| `inativo` | `status` → `"S"/"N"` | `status = "finalizado"` → `"S"` |
+| `info.data_inc` | `created_at` | — |
+| `info.data_alt` | `updated_at` | — |
+
+**Nota**: A tabela `projetos` não tem coluna `codigo_integracao`. Será adicionada via migration (`varchar(20)`, nullable, unique) para suportar o campo `codInt` do Omie.
+
+## 3. Migration
 
 ```sql
-CREATE TABLE public.cliente_tags (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
-  tag text NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(cliente_id, tag)
-);
-ALTER TABLE public.cliente_tags ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service_role_full_access" ON public.cliente_tags
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
+ALTER TABLE public.projetos ADD COLUMN IF NOT EXISTS codigo_integracao varchar(20) UNIQUE;
 ```
 
-## 2. Novas Rotas em `clientes-api`
+## 4. Lógica por Endpoint
 
-| Rota | Equivalente Omie | Descrição |
-|---|---|---|
-| POST `/tags/incluir` | IncluirTags | Associa tags ao cliente |
-| POST `/tags/listar` | ListarTags | Lista tags do cliente |
-| POST `/tags/excluir` | ExcluirTags | Remove tags específicas |
-| POST `/tags/excluir-todas` | ExcluirTodas | Remove todas as tags |
+- **Incluir**: Requer `codInt` + `nome`. Insere com `criador_id` do service role (campo obrigatório na tabela).
+- **Alterar**: Busca por `codigo` (UUID) ou `codInt`. Update parcial de `nome` e `inativo`.
+- **Consultar**: Retorna cadastro completo com `info`.
+- **Excluir**: Soft delete: `status = 'finalizado'`.
+- **Listar**: Paginação, filtros por `nome_projeto`, `filtrar_por_data_de/ate`, `apenas_importado_api`.
+- **Upsert**: Insert se não existe, update se existe (por `codInt`).
 
-Todas aceitam `nCodCliente` (UUID) ou `cCodIntCliente` (codigo) para localizar o cliente.
+Autenticação: `validateApiKey`.
 
-### Lógica
+## 5. Documentação & UI
 
-- **Incluir**: Recebe array `tags: [{ tag }]`, faz insert com `ON CONFLICT DO NOTHING` para cada tag
-- **Listar**: Retorna `tagsLista: [{ tag, nCodTag }]` onde `nCodTag` é um índice sequencial (sem coluna real de código numérico)
-- **Excluir**: Recebe array `tags: [{ tag }]`, deleta por `(cliente_id, tag)`
-- **Excluir Todas**: Deleta todas por `cliente_id`
-
-Resposta padrão: `nCodCliente`, `cCodIntCliente`, `cCodStatus`, `cDesStatus`.
-
-## 3. Documentação & UI
-
-- Atualizar `docs/API_CLIENTES.md` com seção Tags
-- Presets no `ApiTester.tsx` (Incluir Tags, Listar Tags, Excluir Tags)
+- Novo `docs/API_PROJETOS.md`
+- Presets no `ApiTester.tsx`
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Criar tabela `cliente_tags` |
-| `supabase/functions/clientes-api/index.ts` | Editar — 4 rotas `/tags/*` |
-| `docs/API_CLIENTES.md` | Editar — seção Tags |
+| Migration SQL | Adicionar coluna `codigo_integracao` |
+| `supabase/functions/projetos-api/index.ts` | Criar |
+| `docs/API_PROJETOS.md` | Criar |
 | `src/components/erp/ApiTester.tsx` | Editar — presets |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
 
