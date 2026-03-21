@@ -1307,6 +1307,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="departamentos" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Departamentos — CRUD Completo (Padrão Omie)"
+              basePath="/departamentos-api"
+              endpoints={departamentosCrud}
+              description="Incluir, alterar, consultar, excluir e listar departamentos — formato Omie"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
