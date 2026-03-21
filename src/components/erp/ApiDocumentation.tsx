@@ -838,7 +838,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
-          <TabsContent value="complementar" className="space-y-1">
+          <TabsContent value="orcamentos" className="space-y-1">
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-primary" />}
+              title="Orçamento de Caixa — Previsto x Realizado (Padrão Omie)"
+              basePath="/orcamentos-caixa-api"
+              endpoints={orcamentosCaixaCrud}
+              description="Listar orçamento previsto vs realizado, cadastrar e importar metas por categoria/mês"
+            />
+          </TabsContent>
+
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
               title="Fornecedores, Portadores, Plano de Contas, Estoque"
