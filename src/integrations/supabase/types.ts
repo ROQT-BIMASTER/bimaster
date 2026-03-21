@@ -28486,7 +28486,6 @@ export type Database = {
           qtde_pedidos: number | null
           receita_total: number | null
           supervisor: string | null
-          tabela: string | null
           ticket_medio: number | null
           uf: string | null
         }

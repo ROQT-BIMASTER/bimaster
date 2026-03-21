@@ -2,8 +2,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDashboardFilterOptions } from "@/hooks/useDashboardFilterOptions";
 import type { DashboardFilters as Filters } from "@/hooks/useDashboardKPIs";
 import { Filter } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   filters: Filters;
@@ -31,20 +29,6 @@ const ANOS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function DashboardFiltersBar({ filters, onChange }: Props) {
   const { supervisores, vendedores, ufs, marcas } = useDashboardFilterOptions();
-
-  const tabelas = useQuery({
-    queryKey: ["filter-tabelas-precos"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("vendas_union")
-        .select("tabela")
-        .not("tabela", "is", null)
-        .limit(1000);
-      const unique = [...new Set((data || []).map((d: any) => d.tabela).filter(Boolean))].sort();
-      return unique as string[];
-    },
-    staleTime: 10 * 60 * 1000,
-  });
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
@@ -125,19 +109,6 @@ export function DashboardFiltersBar({ filters, onChange }: Props) {
           <SelectItem value="__all__">Todas Marcas</SelectItem>
           {(marcas.data || []).map((m) => (
             <SelectItem key={m} value={m}>{m}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Tabela de Preços */}
-      <Select value={filters.tabela || "__all__"} onValueChange={(v) => onChange({ tabela: v === "__all__" ? null : v })}>
-        <SelectTrigger className="w-[180px] h-9 text-sm">
-          <SelectValue placeholder="Tabela de Preços" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__all__">Todas Tabelas</SelectItem>
-          {(tabelas.data || []).map((t) => (
-            <SelectItem key={t} value={t}>{t}</SelectItem>
           ))}
         </SelectContent>
       </Select>

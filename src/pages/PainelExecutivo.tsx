@@ -1,26 +1,25 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { DashboardFiltersBar } from "@/components/painel-executivo/DashboardFilters";
+import { KPICards } from "@/components/painel-executivo/KPICards";
+import { ReceitaMensalChart } from "@/components/painel-executivo/ReceitaMensalChart";
+import { ReceitaEmpresaChart } from "@/components/painel-executivo/ReceitaEmpresaChart";
+import { RankingSupervisoresChart } from "@/components/painel-executivo/RankingSupervisoresChart";
+import { RankingVendedoresChart } from "@/components/painel-executivo/RankingVendedoresChart";
+import { DataTableSupervisores } from "@/components/painel-executivo/DataTableSupervisores";
+import { DataTableVendedores } from "@/components/painel-executivo/DataTableVendedores";
 import { useDashboardKPIs, type DashboardFilters } from "@/hooks/useDashboardKPIs";
 import { useReceitaMensal } from "@/hooks/useReceitaMensal";
 import { useReceitaEmpresa } from "@/hooks/useReceitaEmpresa";
 import { useRankingSupervisores } from "@/hooks/useRankingSupervisores";
 import { useRankingVendedores } from "@/hooks/useRankingVendedores";
-import { useMetasVendas } from "@/hooks/useMetasVendas";
-import { EnhancedKPICard } from "@/components/ui/EnhancedKPICard";
-import { DataDetailTable, type DataColumn } from "@/components/ui/DataDetailTable";
 import { ValueLegend } from "@/components/ui/smart-value";
 import { ChartTabs } from "@/components/ui/chart-tabs";
 import { ChartContainer } from "@/components/ui/chart-container";
-import { BarChart3, TrendingUp, Building2, Trophy, UserCheck, DollarSign, ShoppingCart, Receipt, Users, Package, Target, Star } from "lucide-react";
+import { BarChart3, TrendingUp, Building2, Trophy, UserCheck } from "lucide-react";
 import { SmartValue } from "@/components/ui/smart-value";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/formatters";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useEmpresaContext } from "@/contexts/EmpresaContext";
-import { useOperacaoFilter } from "@/hooks/useConfigOperacoes";
 
 const now = new Date();
 const COLORS = ["hsl(217, 91%, 60%)", "hsl(262, 83%, 58%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)", "hsl(0, 84%, 60%)", "hsl(199, 89%, 48%)", "hsl(326, 78%, 60%)", "hsl(45, 93%, 47%)"];
@@ -65,6 +64,31 @@ function InlineBarChart({ data, dataKey, nameKey, fill }: { data: any[]; dataKey
   );
 }
 
+function SimpleTable({ columns, rows }: { columns: { key: string; label: string; align?: string; format?: (v: any) => string }[]; rows: any[] }) {
+  return (
+    <div className="overflow-auto max-h-[500px]">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map(c => <TableHead key={c.key} className={c.align === "right" ? "text-right" : ""}>{c.label}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r, i) => (
+            <TableRow key={i}>
+              {columns.map(c => (
+                <TableCell key={c.key} className={c.align === "right" ? "text-right" : ""}>
+                  {c.format ? c.format(r[c.key]) : r[c.key]}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 export default function PainelExecutivo() {
   const [filters, setFilters] = useState<DashboardFilters>({ ano: now.getFullYear(), mes: now.getMonth() + 1 });
   const handleFilterChange = useCallback((partial: Partial<DashboardFilters>) => setFilters((prev) => ({ ...prev, ...partial })), []);
@@ -74,71 +98,25 @@ export default function PainelExecutivo() {
   const receitaEmpresa = useReceitaEmpresa(filters);
   const rankingSupervisores = useRankingSupervisores(filters);
   const rankingVendedores = useRankingVendedores(filters);
-  const metas = useMetasVendas(filters);
-  const { empresaIds } = useEmpresaContext();
-  const { visiveis, multipliers } = useOperacaoFilter();
-
-  // Top 10 clientes
-  const topClientes = useQuery({
-    queryKey: ["exec-top-clientes", filters, empresaIds, [...visiveis]],
-    queryFn: async () => {
-      const startDate = filters.mes ? `${filters.ano}-${String(filters.mes).padStart(2, "0")}-01` : `${filters.ano}-01-01`;
-      const endDate = filters.mes ? new Date(filters.ano, filters.mes, 0).toISOString().split("T")[0] : `${filters.ano}-12-31`;
-      let q = supabase.from("vendas_union").select("cod_cliente,cliente,venda,preco_venda,quantidade,operacao").gte("data", startDate).lte("data", endDate);
-      if (empresaIds.length > 0) q = q.in("id_empresa", empresaIds);
-      if (filters.supervisor) q = q.eq("supervisor", filters.supervisor);
-      if (filters.tabela) q = q.eq("tabela", filters.tabela);
-      const { data } = await q.limit(50000);
-      const rows = ((data as any[]) || []).filter(r => visiveis.has(r.operacao));
-      const map = new Map<number, { cliente: string; receita: number }>();
-      for (const r of rows) {
-        const mult = multipliers.get(r.operacao) ?? 1;
-        const receita = (Number(r.venda) || (Number(r.preco_venda) || 0) * (Number(r.quantidade) || 0)) * mult;
-        if (!map.has(r.cod_cliente)) map.set(r.cod_cliente, { cliente: r.cliente, receita: 0 });
-        map.get(r.cod_cliente)!.receita += receita;
-      }
-      return [...map.values()].sort((a, b) => b.receita - a.receita).slice(0, 10);
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Best month
-  const melhorMes = useMemo(() => {
-    const data = receitaMensal.data || [];
-    if (data.length === 0) return null;
-    return data.reduce((best, d) => d.receita_total > best.receita_total ? d : best, data[0]);
-  }, [receitaMensal.data]);
-
-  // Aggregate meta for receita total
-  const metaReceita = useMemo(() => {
-    const allMetas = [...(metas.data?.empresaMetas || [])];
-    return allMetas.reduce((s, m) => s + m.valor_meta, 0);
-  }, [metas.data]);
 
   const supData = (rankingSupervisores.data || []).map(d => ({ ...d, name: d.supervisor?.length > 18 ? d.supervisor.slice(0, 16) + "…" : d.supervisor }));
   const vendData = (rankingVendedores.data || []).map(d => ({ ...d, name: d.vendedor?.length > 18 ? d.vendedor.slice(0, 16) + "…" : d.vendedor }));
   const empData = (receitaEmpresa.data || []).map(d => ({ ...d, nome_short: d.nome_empresa?.length > 20 ? d.nome_empresa.slice(0, 18) + "…" : d.nome_empresa }));
 
-  // Detail table columns
-  const detailColumns: DataColumn[] = [
-    { key: "rank", label: "#", width: "50px", sortable: false },
-    { key: "nome_empresa", label: "Empresa" },
-    { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v, false) },
-    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-    { key: "ticket_medio", label: "Ticket Médio", align: "right", format: (v: number) => formatCurrency(v, false) },
-    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
+  const supCols = [
+    { key: "supervisor", label: "Supervisor" },
+    { key: "receita_total", label: "Receita", align: "right", format: (v: any) => formatCurrency(Number(v) || 0) },
+    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
+    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
   ];
 
-  const detailData = useMemo(() => {
-    return (receitaEmpresa.data || []).map((e, i) => ({
-      rank: i + 1,
-      nome_empresa: e.nome_empresa,
-      receita_total: e.receita_total,
-      qtde_pedidos: e.qtde_pedidos,
-      ticket_medio: e.qtde_pedidos > 0 ? e.receita_total / e.qtde_pedidos : 0,
-      clientes_ativos: 0,
-    }));
-  }, [receitaEmpresa.data]);
+  const vendCols = [
+    { key: "vendedor", label: "Vendedor" },
+    { key: "supervisor", label: "Supervisor" },
+    { key: "receita_total", label: "Receita", align: "right", format: (v: any) => formatCurrency(Number(v) || 0) },
+    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
+    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
+  ];
 
   const tabs = [
     {
@@ -150,15 +128,10 @@ export default function PainelExecutivo() {
           title="Evolução Mensal da Receita"
           icon={<TrendingUp className="h-4 w-4 text-blue-600" />}
           chart={<InlineReceitaMensalChart data={receitaMensal.data || []} />}
-          table={<DataDetailTable
-            columns={[
-              { key: "label", label: "Mês" },
-              { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-            ]}
-            data={receitaMensal.data || []}
-            showSearch={false}
-            pageSize={12}
-          />}
+          table={<SimpleTable columns={[
+            { key: "label", label: "Mês" },
+            { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
+          ]} rows={receitaMensal.data || []} />}
         />
       ),
     },
@@ -171,15 +144,10 @@ export default function PainelExecutivo() {
           title="Receita por Empresa"
           icon={<Building2 className="h-4 w-4 text-violet-600" />}
           chart={<InlineBarChart data={empData} dataKey="receita_total" nameKey="nome_short" />}
-          table={<DataDetailTable
-            columns={[
-              { key: "nome_empresa", label: "Empresa" },
-              { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-              { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-            ]}
-            data={receitaEmpresa.data || []}
-            showSearch={false}
-          />}
+          table={<SimpleTable columns={[
+            { key: "nome_empresa", label: "Empresa" },
+            { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
+          ]} rows={receitaEmpresa.data || []} />}
         />
       ),
     },
@@ -193,15 +161,8 @@ export default function PainelExecutivo() {
           icon={<Trophy className="h-4 w-4 text-amber-600" />}
           chart={<InlineBarChart data={supData.slice(0, 10)} dataKey="receita_total" nameKey="name" fill="hsl(38, 92%, 50%)" />}
           focusChart={<InlineBarChart data={supData} dataKey="receita_total" nameKey="name" fill="hsl(38, 92%, 50%)" />}
-          table={<DataDetailTable
-            columns={[
-              { key: "supervisor", label: "Supervisor" },
-              { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-              { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-              { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-            ]}
-            data={rankingSupervisores.data || []}
-          />}
+          table={<SimpleTable columns={supCols} rows={rankingSupervisores.data || []} />}
+          focusTable={<SimpleTable columns={supCols} rows={rankingSupervisores.data || []} />}
         />
       ),
     },
@@ -215,43 +176,8 @@ export default function PainelExecutivo() {
           icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
           chart={<InlineBarChart data={vendData.slice(0, 10)} dataKey="receita_total" nameKey="name" fill="hsl(142, 71%, 45%)" />}
           focusChart={<InlineBarChart data={vendData} dataKey="receita_total" nameKey="name" fill="hsl(142, 71%, 45%)" />}
-          table={<DataDetailTable
-            columns={[
-              { key: "vendedor", label: "Vendedor" },
-              { key: "supervisor", label: "Supervisor" },
-              { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-              { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-              { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-            ]}
-            data={rankingVendedores.data || []}
-          />}
-        />
-      ),
-    },
-    {
-      key: "top-clientes",
-      label: "Top 10 Clientes",
-      icon: <Star className="h-3.5 w-3.5" />,
-      content: (
-        <ChartContainer
-          title="Top 10 Clientes por Receita"
-          icon={<Star className="h-4 w-4 text-rose-600" />}
-          chart={
-            <InlineBarChart
-              data={(topClientes.data || []).map(c => ({ ...c, name: c.cliente?.length > 20 ? c.cliente.slice(0, 18) + "…" : c.cliente }))}
-              dataKey="receita"
-              nameKey="name"
-              fill="hsl(0, 84%, 60%)"
-            />
-          }
-          table={<DataDetailTable
-            columns={[
-              { key: "cliente", label: "Cliente" },
-              { key: "receita", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-            ]}
-            data={topClientes.data || []}
-            showSearch={false}
-          />}
+          table={<SimpleTable columns={vendCols} rows={rankingVendedores.data || []} />}
+          focusTable={<SimpleTable columns={vendCols} rows={rankingVendedores.data || []} />}
         />
       ),
     },
@@ -273,46 +199,15 @@ export default function PainelExecutivo() {
       </div>
 
       <DashboardFiltersBar filters={filters} onChange={handleFilterChange} />
-
-      {/* Enhanced KPI Cards */}
-      {kpis.isLoading ? (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-          {[...Array(7)].map((_, i) => (
-            <Card key={i}><CardContent className="p-4"><Skeleton className="h-4 w-24 mb-3" /><Skeleton className="h-7 w-32 mb-2" /><Skeleton className="h-5 w-16" /></CardContent></Card>
-          ))}
-        </div>
-      ) : kpis.data && (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-          <EnhancedKPICard title="Receita Total" value={kpis.data.receita_total} isCurrency icon={DollarSign} iconColor="text-blue-600 dark:text-blue-400" trend={kpis.data.receita_trend} meta={metaReceita > 0 ? metaReceita : undefined} />
-          <EnhancedKPICard title="Qtde Pedidos" value={kpis.data.qtde_pedidos} icon={ShoppingCart} iconColor="text-violet-600 dark:text-violet-400" trend={kpis.data.pedidos_trend} />
-          <EnhancedKPICard title="Ticket Médio" value={kpis.data.ticket_medio} isCurrency icon={Receipt} iconColor="text-amber-600 dark:text-amber-400" trend={kpis.data.ticket_trend} />
-          <EnhancedKPICard title="Clientes Ativos" value={kpis.data.clientes_ativos} icon={Users} iconColor="text-emerald-600 dark:text-emerald-400" trend={kpis.data.clientes_trend} />
-          <EnhancedKPICard title="Mix Médio" value={kpis.data.mix_medio} icon={Package} iconColor="text-cyan-600 dark:text-cyan-400" trend={kpis.data.mix_trend} suffix="itens/ped" formatValue={(v) => v.toFixed(1)} />
-          <EnhancedKPICard title="Positivação" value={kpis.data.positivacao} icon={Target} iconColor="text-rose-600 dark:text-rose-400" suffix="%" formatValue={(v) => v.toFixed(1)} />
-          {melhorMes && (
-            <EnhancedKPICard title="Melhor Mês" value={melhorMes.receita_total} isCurrency icon={Star} iconColor="text-yellow-600 dark:text-yellow-400" formatValue={() => melhorMes.label} />
-          )}
-        </div>
-      )}
+      <KPICards data={kpis.data} isLoading={kpis.isLoading} />
 
       <ChartTabs tabs={tabs} />
 
-      {/* Detail Table */}
-      <DataDetailTable
-        title="Resumo por Empresa"
-        columns={detailColumns}
-        data={detailData}
-        showTotals
-        totalsRow={{
-          rank: "",
-          nome_empresa: "TOTAL",
-          receita_total: detailData.reduce((s, d) => s + d.receita_total, 0),
-          qtde_pedidos: detailData.reduce((s, d) => s + d.qtde_pedidos, 0),
-          ticket_medio: null,
-          clientes_ativos: null,
-        }}
-        exportFilename="painel_executivo"
-      />
+      {/* Data Tables */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DataTableSupervisores data={rankingSupervisores.data} isLoading={rankingSupervisores.isLoading} />
+        <DataTableVendedores data={rankingVendedores.data} isLoading={rankingVendedores.isLoading} />
+      </div>
     </div>
   );
 }
