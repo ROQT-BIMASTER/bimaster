@@ -21,7 +21,6 @@ import { useFilteredStores } from "@/hooks/useFilteredStores";
 import { TradeHeroBanner } from "@/components/trade/banners/TradeHeroBanner";
 import { IncentivosWeekSection } from "@/components/trade/incentivos/IncentivosWeekSection";
 import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
-import { TradeSectionHeader } from "@/components/trade/ui/TradeSectionHeader";
 import { DisplayHeroBanner } from "@/components/trade/displays/DisplayHeroBanner";
 
 const TradeModule = () => {
