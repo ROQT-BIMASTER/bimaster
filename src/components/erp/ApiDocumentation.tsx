@@ -1194,6 +1194,10 @@ export default function ApiDocumentation() {
               <Database className="h-3.5 w-3.5" />
               Tipos Atividade
             </TabsTrigger>
+            <TabsTrigger value="cnae" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              CNAE
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
