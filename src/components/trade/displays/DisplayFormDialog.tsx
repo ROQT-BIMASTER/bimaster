@@ -195,12 +195,22 @@ export function DisplayFormDialog({ open, onOpenChange, display }: DisplayFormDi
               {fotoPreview ? (
                 <div className="relative rounded-xl overflow-hidden border bg-muted aspect-video">
                   <img src={fotoPreview} alt="Preview" className="w-full h-full object-contain" />
-                  <button
-                    onClick={() => { setFotoUrl(""); setFotoPreview(null); }}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      onClick={handleOptimizeExisting}
+                      disabled={optimizing}
+                      className="bg-black/60 text-white rounded-full p-1 hover:bg-black/80 disabled:opacity-50"
+                      title="Re-otimizar com IA"
+                    >
+                      {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    </button>
+                    <button
+                      onClick={() => { setFotoUrl(""); setFotoPreview(null); }}
+                      className="bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-8 cursor-pointer hover:bg-muted/50 transition-colors">
