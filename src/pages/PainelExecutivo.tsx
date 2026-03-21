@@ -113,9 +113,9 @@ export default function PainelExecutivo() {
   const vendCols = [
     { key: "vendedor", label: "Vendedor" },
     { key: "supervisor", label: "Supervisor" },
-    { key: "receita_total", label: "Receita", align: "right", format: (v: number) => formatCurrency(v) },
-    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
-    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: number) => v?.toLocaleString("pt-BR") },
+    { key: "receita_total", label: "Receita", align: "right", format: (v: any) => formatCurrency(Number(v) || 0) },
+    { key: "qtde_pedidos", label: "Pedidos", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
+    { key: "clientes_ativos", label: "Clientes", align: "right", format: (v: any) => Number(v)?.toLocaleString("pt-BR") },
   ];
 
   const tabs = [
