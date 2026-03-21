@@ -380,10 +380,11 @@ async function processRecordsWithRetry(
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS preflight with origin whitelist
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
+
+  const corsHeaders = getCorsHeaders(req);
 
   const startTime = Date.now();
   const url = new URL(req.url);
