@@ -967,6 +967,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="resumo-fin" className="space-y-1">
+            <ApiSection
+              icon={<BarChart3 className="h-4 w-4 text-primary" />}
+              title="Resumo Financeiro — Dashboard (Padrão Omie)"
+              basePath="/resumo-financeiro-api"
+              endpoints={resumoFinanceiroCrud}
+              description="Resumo consolidado, lista em aberto, detalhes de lançamentos e lista de finanças por categoria"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
