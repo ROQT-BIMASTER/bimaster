@@ -658,6 +658,20 @@ const cidadesCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const paisesCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar países cadastrados (ListarPaises)", tag: "novo",
+    body: `{ "filtrar_por_codigo": "", "filtrar_por_descricao": "", "filtrar_por_codigo_iso": "" }`,
+    params: [
+      { name: "filtrar_por_codigo", type: "string(4)", required: false, description: "Filtro parcial por código IBGE (ILIKE)" },
+      { name: "filtrar_por_descricao", type: "string", required: false, description: "Filtro parcial por descrição (ILIKE)" },
+      { name: "filtrar_por_codigo_iso", type: "string(2)", required: false, description: "Filtro parcial por código ISO (ILIKE)" },
+    ],
+    response: `{ "lista_paises": [{ "cCodigo": "1058", "cDescricao": "BRASIL", "cCodigoISO": "BR" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const orcamentosCaixaCrud: Endpoint[] = [
   {
     method: "GET", path: "/listar", description: "Listar orçamento previsto x realizado por mês/ano (ListarOrcamentos)", tag: "novo",
@@ -1235,6 +1249,10 @@ export default function ApiDocumentation() {
               <Search className="h-3.5 w-3.5" />
               Cidades
             </TabsTrigger>
+            <TabsTrigger value="paises" className="text-xs gap-1.5">
+              <Database className="h-3.5 w-3.5" />
+              Países
+            </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Dados Complementares
@@ -1484,6 +1502,16 @@ export default function ApiDocumentation() {
               basePath="/cidades-api"
               endpoints={cidadesCrud}
               description="Pesquisa paginada de cidades brasileiras (5.570+ registros da tabela IBGE)"
+            />
+          </TabsContent>
+
+          <TabsContent value="paises" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Países — ListarPaises (Padrão Omie)"
+              basePath="/paises-api"
+              endpoints={paisesCrud}
+              description="Lista de países cadastrados com código IBGE, descrição e código ISO"
             />
           </TabsContent>
 

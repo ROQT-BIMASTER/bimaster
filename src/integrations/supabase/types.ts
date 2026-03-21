@@ -17307,6 +17307,33 @@ export type Database = {
           },
         ]
       }
+      paises: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          codigo_iso: string | null
+          created_at: string | null
+          descricao: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          codigo_iso?: string | null
+          created_at?: string | null
+          descricao: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          codigo_iso?: string | null
+          created_at?: string | null
+          descricao?: string
+          id?: string
+        }
+        Relationships: []
+      }
       parcelas: {
         Row: {
           conta_pagar_id: string | null
