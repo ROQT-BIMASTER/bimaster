@@ -435,6 +435,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="contas-correntes" className="space-y-1">
+            <ApiSection
+              icon={<RefreshCw className="h-4 w-4 text-primary" />}
+              title="CRUD & Sync (Padrão Omie)"
+              basePath="/contas-correntes-api"
+              endpoints={contasCorrentesCrud}
+              description="Gestão completa de contas correntes: listar, consultar, incluir, alterar, excluir, upsert e sync"
+            />
+          </TabsContent>
+
           <TabsContent value="complementar" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-orange-500" />}
