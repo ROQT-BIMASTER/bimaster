@@ -219,6 +219,8 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/movimentos-financeiros-api/listar": JSON.stringify({ nPagina: 1, nRegPorPagina: 20, cTpLancamento: "", cExibirDepartamentos: "S", lDadosCad: true, dDtVencDe: "01/01/2026", dDtVencAte: "31/03/2026" }, null, 2),
   // Tipos de Documento
   "/tipos-documento-api/pesquisar": JSON.stringify({ codigo: "" }, null, 2),
+  // DRE Cadastro
+  "/dre-cadastro-api/listar": JSON.stringify({ apenasContasAtivas: "S" }, null, 2),
 };
 
 export default function ApiTester() {
