@@ -259,9 +259,8 @@ function handleStatus(req: Request): Response {
 // === MAIN HANDLER ===
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const url = new URL(req.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
@@ -274,6 +273,7 @@ Deno.serve(async (req) => {
 
   try {
     const auth = await authenticate(req);
+    await checkRateLimit({ prefix: "boletos", limit: 60, req, userId: auth.userId });
 
     switch (route) {
       case "gerar":
@@ -300,6 +300,9 @@ Deno.serve(async (req) => {
         return errorResponse(404, "NOT-001", `Rota não encontrada: /${route}. Rotas: /gerar, /obter, /cancelar, /prorrogar, /listar, /status`, req);
     }
   } catch (err) {
+    if (err instanceof RateLimitError) {
+      return errorResponse(429, "RATE_LIMIT", err.message, req);
+    }
     if (err instanceof AuthError) {
       return errorResponse(err.status, "AUTH-001", err.message, req);
     }

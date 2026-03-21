@@ -326,10 +326,8 @@ function handleStatus(req: Request): Response {
 
 // === MAIN ROUTER ===
 Deno.serve(async (req: Request) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
   const url = new URL(req.url);
   const path = url.pathname.split("/anexos-api")[1] || "/";
@@ -342,6 +340,7 @@ Deno.serve(async (req: Request) => {
 
     // Authenticate
     const auth = await authenticate(req);
+    await checkRateLimit({ prefix: "anexos", limit: 60, req, userId: auth.userId });
 
     // Route
     switch (path) {
@@ -369,6 +368,9 @@ Deno.serve(async (req: Request) => {
         return errorResponse(404, "ROUTE-001", `Rota não encontrada: ${path}`, req);
     }
   } catch (err) {
+    if (err instanceof RateLimitError) {
+      return errorResponse(429, "RATE_LIMIT", err.message, req);
+    }
     if (err instanceof AuthError) {
       return errorResponse(err.status, "AUTH-001", err.message, req);
     }
