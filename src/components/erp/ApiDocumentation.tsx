@@ -699,6 +699,15 @@ const finalidadesTransfCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 
+const origensCrud: Endpoint[] = [
+  {
+    method: "POST", path: "/listar", description: "Listar origens de lançamento (ListarOrigem)", tag: "novo",
+    body: `{ "codigo": "" }`,
+    response: `{ "pagina": 1, "total_de_paginas": 1, "registros": 6, "total_de_registros": 6, "origem": [{ "codigo": "MANUAL", "descricao": "Lançamento Manual" }] }`,
+  },
+  { method: "GET", path: "/status", description: "Health check da API" },
+];
+
 const otherApis: Endpoint[] = [
   { method: "GET", path: "/fornecedores", description: "Listar fornecedores sincronizados" },
   { method: "POST", path: "/fornecedores/sync", description: "Sync de fornecedores do ERP" },
@@ -896,6 +905,10 @@ export default function ApiDocumentation() {
             <TabsTrigger value="final-transf" className="text-xs gap-1.5">
               <RefreshCw className="h-3.5 w-3.5" />
               Final. Transferência
+            </TabsTrigger>
+            <TabsTrigger value="origens" className="text-xs gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Origens
             </TabsTrigger>
             <TabsTrigger value="complementar" className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" />
@@ -1097,6 +1110,16 @@ export default function ApiDocumentation() {
               basePath="/finalidades-transferencia-api"
               endpoints={finalidadesTransfCrud}
               description="Consulta e listagem paginada de finalidades de transferência bancária"
+            />
+          </TabsContent>
+
+          <TabsContent value="origens" className="space-y-1">
+            <ApiSection
+              icon={<FileText className="h-4 w-4 text-primary" />}
+              title="Origens de Lançamento — ListarOrigem (Padrão Omie)"
+              basePath="/origens-api"
+              endpoints={origensCrud}
+              description="Listagem de origens de lançamento com filtro por código"
             />
           </TabsContent>
 
