@@ -74,6 +74,16 @@ const PRESET_ENDPOINTS = [
   { label: "Export — Retry Failed", method: "POST" as HttpMethod, path: "/contas-pagar-export-api/retry-failed" },
   { label: "Export — Reconciliação", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/reconciliation" },
   { label: "Export — Summary", method: "GET" as HttpMethod, path: "/contas-pagar-export-api/export-summary" },
+  // Contas Correntes
+  { label: "Contas Correntes — Listar", method: "GET" as HttpMethod, path: "/contas-correntes-api/" },
+  { label: "Contas Correntes — Resumo", method: "GET" as HttpMethod, path: "/contas-correntes-api/resumo" },
+  { label: "Contas Correntes — Consultar", method: "GET" as HttpMethod, path: "/contas-correntes-api/consultar?cCodCCInt=COLE_O_CODIGO" },
+  { label: "Contas Correntes — Incluir", method: "POST" as HttpMethod, path: "/contas-correntes-api/incluir" },
+  { label: "Contas Correntes — Alterar", method: "PUT" as HttpMethod, path: "/contas-correntes-api/alterar" },
+  { label: "Contas Correntes — Excluir", method: "DELETE" as HttpMethod, path: "/contas-correntes-api/excluir?cCodCCInt=COLE_O_CODIGO" },
+  { label: "Contas Correntes — Upsert", method: "POST" as HttpMethod, path: "/contas-correntes-api/upsert" },
+  { label: "Contas Correntes — Upsert Lote", method: "POST" as HttpMethod, path: "/contas-correntes-api/upsert-lote" },
+  { label: "Contas Correntes — Status", method: "GET" as HttpMethod, path: "/contas-correntes-api/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
@@ -84,6 +94,10 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/contas-pagar-export-api/confirm": JSON.stringify({ ids: ["uuid-1"], export_type: "registration" }, null, 2),
   "/contas-pagar-export-api/export-batch": JSON.stringify({ ids: ["uuid-1", "uuid-2"], channel: "rest_api", export_type: "payment" }, null, 2),
   "/contas-pagar-export-api/retry-failed": JSON.stringify({ channel: "rest_api" }, null, 2),
+  "/contas-correntes-api/incluir": JSON.stringify({ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CC", codigo_banco: "341", descricao: "Conta Principal Itaú", codigo_agencia: "1234", numero_conta_corrente: "56789-0", saldo_inicial: 10000, pix_sn: "S" }, null, 2),
+  "/contas-correntes-api/alterar": JSON.stringify({ cCodCCInt: "MyCC0001", descricao: "Conta Itaú Atualizada", valor_limite: 75000 }, null, 2),
+  "/contas-correntes-api/upsert": JSON.stringify({ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CC", codigo_banco: "341", descricao: "Conta Itaú", saldo_inicial: 10000 }, null, 2),
+  "/contas-correntes-api/upsert-lote": JSON.stringify({ lote: 1, fin_conta_corrente_cadastro: [{ cCodCCInt: "MyCC0001", tipo_conta_corrente: "CX", codigo_banco: "999", descricao: "Caixinha", saldo_inicial: 0 }] }, null, 2),
 };
 
 export default function ApiTester() {
