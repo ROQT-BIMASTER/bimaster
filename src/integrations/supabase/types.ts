@@ -17324,6 +17324,39 @@ export type Database = {
           },
         ]
       }
+      parcelas_condicoes: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+          importado_api: boolean | null
+          numero_parcelas: number
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          importado_api?: boolean | null
+          numero_parcelas?: number
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          importado_api?: boolean | null
+          numero_parcelas?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       parcelas_receber: {
         Row: {
           bloqueado: boolean
