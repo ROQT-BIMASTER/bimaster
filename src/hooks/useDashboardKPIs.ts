@@ -10,6 +10,7 @@ export interface DashboardFilters {
   codVend?: number | null;
   uf?: string | null;
   marca?: string | null;
+  tabela?: string | null;
 }
 
 interface KPIResult {
@@ -80,6 +81,7 @@ async function fetchKPIData(
   if (filters.codVend) query = query.eq("cod_vend", filters.codVend);
   if (filters.uf) query = query.eq("uf", filters.uf);
   if (filters.marca) query = query.eq("marca", filters.marca);
+  if (filters.tabela) query = query.eq("tabela", filters.tabela);
 
   const { data, error } = await query;
   if (error) throw error;
