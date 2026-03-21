@@ -814,8 +814,13 @@ async function handleWebhookPushConfig(
 }
 
 function jsonResponse(data: unknown, status = 200) {
+  const cors = _currentReq ? getCorsHeaders(_currentReq) : {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  };
   const headers = withSecurityHeaders(
-    { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key", "Content-Type": "application/json" },
+    { ...cors, "Content-Type": "application/json" },
     status === 401 || status === 403
   );
   return new Response(JSON.stringify(data), { status, headers });

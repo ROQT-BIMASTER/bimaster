@@ -6,7 +6,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ];
 
 const STANDARD_HEADERS = "authorization, x-client-info, apikey, content-type, x-api-key, x-idempotency-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
-const LOVABLE_ORIGIN_REGEX = /^https:\/\/([a-z0-9-]+\.)*lovable\.(app|dev)$/i;
+const LOVABLE_ORIGIN_REGEX = /^https:\/\/([a-z0-9-]+\.)*(lovable\.(app|dev)|lovableproject\.com)$/i;
 
 function buildAllowedHeaders(req: Request): string {
   const requestedHeaders = req.headers.get("access-control-request-headers");
