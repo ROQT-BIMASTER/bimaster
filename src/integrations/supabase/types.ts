@@ -16800,6 +16800,45 @@ export type Database = {
         }
         Relationships: []
       }
+      orcamentos_caixa: {
+        Row: {
+          ano: number
+          codigo_categoria: string
+          created_at: string
+          descricao_categoria: string | null
+          empresa_id: string
+          id: string
+          importado_api: boolean | null
+          mes: number
+          updated_at: string
+          valor_previsto: number
+        }
+        Insert: {
+          ano: number
+          codigo_categoria: string
+          created_at?: string
+          descricao_categoria?: string | null
+          empresa_id: string
+          id?: string
+          importado_api?: boolean | null
+          mes: number
+          updated_at?: string
+          valor_previsto?: number
+        }
+        Update: {
+          ano?: number
+          codigo_categoria?: string
+          created_at?: string
+          descricao_categoria?: string | null
+          empresa_id?: string
+          id?: string
+          importado_api?: boolean | null
+          mes?: number
+          updated_at?: string
+          valor_previsto?: number
+        }
+        Relationships: []
+      }
       origens_titulo: {
         Row: {
           ativo: boolean
