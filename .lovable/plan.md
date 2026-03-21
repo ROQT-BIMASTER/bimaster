@@ -1,65 +1,77 @@
 
 
-# API Departamentos (CRUD) — Padronização Omie
+# Bloquear Acesso: Central de Inteligência + Tela de Endpoints (Portal ERP)
 
-## Resumo
+## Situação Atual
 
-Criar Edge Function `departamentos-api` com 5 rotas CRUD seguindo o padrão Omie. Usa tabela `departamentos` existente (id, nome, descricao, ativo, responsavel_id, created_at, updated_at). Precisa adicionar colunas `codigo` (varchar(40), código Omie), `estrutura` (varchar(40)), e `nivel_totalizador` (varchar(1)) via migration.
+1. **Central de Inteligência** (sidebar lines 1110-1143): Renderizada **sem nenhuma verificação de permissão** — visível para todos os usuários. As rotas no `App.tsx` usam `ModuleRoute moduleCode="comercial"`, mas o sidebar não verifica `hasModulePermission`.
 
-## 1. Migration
+2. **Portal ERP / Integração ERP** (sidebar line 1308): Já está dentro do bloco `{isAdmin && (...)}`, visível apenas para admins. A rota usa `ScreenRoute screenCode="admin"`.
 
-```sql
-ALTER TABLE public.departamentos 
-  ADD COLUMN IF NOT EXISTS codigo_omie varchar(40) UNIQUE,
-  ADD COLUMN IF NOT EXISTS estrutura varchar(40),
-  ADD COLUMN IF NOT EXISTS nivel_totalizador varchar(1) DEFAULT 'N';
+## Plano
+
+### 1. Sidebar — Ocultar Central de Inteligência para todos
+
+Envolver o bloco da Central de Inteligência (linhas 1110-1143 do `AppSidebar.tsx`) com uma verificação de permissão de módulo:
+
+```tsx
+{hasModulePermission("central_inteligencia") && (
+  <SidebarGroup>... Central de Inteligência ...</SidebarGroup>
+)}
 ```
 
-## 2. Nova Edge Function: `departamentos-api`
+Como nenhum usuário terá a permissão `central_inteligencia` atribuída inicialmente, o módulo ficará oculto para todos.
 
-| Rota | Equivalente Omie | Descrição |
-|---|---|---|
-| POST `/incluir` | IncluirDepartamento | Inclui departamento |
-| POST `/alterar` | AlterarDepartamento | Altera departamento |
-| POST `/consultar` | ConsultarDepartamento | Consulta por código |
-| POST `/excluir` | ExcluirDepartamento | Exclui departamento |
-| POST `/listar` | ListarDepartamentos | Lista paginada |
-| GET `/status` | — | Health check |
+### 2. Sidebar — Ocultar Portal ERP para todos (inclusive admins)
 
-## 3. Mapeamento de Campos
+O Portal ERP (linha 1305-1318) está dentro do bloco `{isAdmin && ...}`. Adicionar uma condição extra para ocultá-lo:
 
-| Campo Omie | Coluna DB | Observação |
-|---|---|---|
-| `codigo` | `codigo_omie` | varchar(40) — identificador Omie |
-| `descricao` | `nome` | Nome do departamento |
-| `estrutura` | `estrutura` | Nova coluna |
-| `inativo` | `ativo` → invertido | `ativo=true` → `inativo="N"` |
-| `nivel_totalizador` | `nivel_totalizador` | Nova coluna |
+```tsx
+{isAdmin && hasModulePermission("integracao_erp") && (
+  <SidebarMenuItem>... Portal ERP ...</SidebarMenuItem>
+)}
+```
 
-## 4. Lógica
+### 3. App.tsx — Proteger rotas da Central de Inteligência
 
-- **Incluir**: Requer `codigo` + `descricao`. Cria com `ativo=true`.
-- **Alterar**: Busca por `codigo` (codigo_omie). Update de `descricao`.
-- **Consultar**: Retorna cadastro completo.
-- **Excluir**: Hard delete (departamento sem dados vinculados) ou soft delete (`ativo=false`). Usaremos soft delete por segurança.
-- **Listar**: Paginação com `pagina` + `registros_por_pagina`.
+Alterar as 8 rotas da Central de Inteligência (linhas 501-508) de `moduleCode="comercial"` para `moduleCode="central_inteligencia"`:
 
-Autenticação: `validateApiKey`.
+```tsx
+<Route path="/dashboard/painel-executivo" 
+  element={<ModuleRoute moduleCode="central_inteligencia"><PainelExecutivo /></ModuleRoute>} />
+```
 
-## 5. Documentação & UI
+### 4. App.tsx — Proteger rota do Portal ERP
 
-- Novo `docs/API_DEPARTAMENTOS.md`
-- Presets no `ApiTester.tsx`
-- Seção no `ApiDocumentation.tsx`
+A rota `/dashboard/integracao-erp` (linha 621) já usa `screenCode="admin"`. Adicionaremos também verificação de módulo:
+
+```tsx
+<Route path="/dashboard/integracao-erp" 
+  element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
+```
+
+### 5. Registrar módulos na tabela `modulos_sistema` (migration)
+
+Inserir os novos módulos para que possam ser atribuídos futuramente via painel de permissões:
+
+```sql
+INSERT INTO modulos_sistema (codigo, nome, descricao, ativo) VALUES
+  ('central_inteligencia', 'Central de Inteligência', 'Dashboards analíticos de vendas', true),
+  ('integracao_erp', 'Integração ERP', 'Portal de APIs e endpoints ERP', true)
+ON CONFLICT (codigo) DO NOTHING;
+```
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Adicionar 3 colunas |
-| `supabase/functions/departamentos-api/index.ts` | Criar |
-| `supabase/config.toml` | Adicionar `[functions.departamentos-api]` |
-| `docs/API_DEPARTAMENTOS.md` | Criar |
-| `src/components/erp/ApiTester.tsx` | Editar — presets |
-| `src/components/erp/ApiDocumentation.tsx` | Editar — seção |
+| `src/components/dashboard/AppSidebar.tsx` | Ocultar Central de Inteligência + Portal ERP |
+| `src/App.tsx` | Trocar moduleCode das 8 rotas + proteger integracao-erp |
+| Migration SQL | Registrar módulos `central_inteligencia` e `integracao_erp` |
+
+## Resultado
+
+- Nenhum usuário verá a Central de Inteligência ou o Portal ERP no sidebar
+- Acesso direto via URL será bloqueado (ModuleRoute nega)
+- Quando quiser liberar, basta atribuir a permissão do módulo ao usuário desejado
 
