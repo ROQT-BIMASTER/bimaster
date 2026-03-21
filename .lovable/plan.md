@@ -1,36 +1,78 @@
 
 
-## Plano: Enriquecer tabela `clientes` com dados de vendedor/supervisor
+## Plano: Painel Executivo — Dashboard de Vendas (Etapa 1)
 
-### Descobertas
+### Descoberta Importante
 
-- A tabela `clientes` usa `codigo` (varchar) como identificador do cliente, não `cod_cliente`.
-- Na `vendas_union`, o campo é `cod_cliente` (integer).
-- O JOIN funciona: `CAST(c.codigo AS INTEGER) = v.cod_cliente` (36.797 clientes têm código numérico).
-- A tabela `clientes` **já tem RLS habilitado** com 5 policies existentes (admin, supervisor, insert, delete, select por módulo).
-- Não existe `cod_vend`, `vendedor`, `cod_equipe`, `nome_equipe`, `supervisor`, nem `id_empresa` na tabela ainda.
+Os nomes de colunas na tabela `vendas_union` diferem do que foi descrito:
+- Não existe `receita_total` → existe `preco_venda` (preço unitário) e `quantidade`
+- Não existe `qtde` → existe `quantidade`
+- Receita será calculada como: `preco_venda * quantidade` (ou `preco_venda * quantidade - vl_desconto` se preferir receita líquida)
+- Há campo `operacao` que pode conter 'VENDA', 'SAIDA MONTAGEM DE KIT', etc. — as views filtrarão por `operacao = 'VENDA'` para KPIs consistentes (ou incluir todas, a definir)
 
-### O que será feito
+Também já existe um `EmpresaContext` no sistema que gerencia filtro por empresa do usuário — será integrado.
 
-**Migração única com 2 partes:**
+### Parte 1: Migrations SQL (4 views materializadas)
 
-1. **Adicionar 6 colunas** à tabela `clientes`: `cod_vend`, `vendedor`, `cod_equipe`, `nome_equipe`, `supervisor`, `id_empresa`.
+**`vw_dashboard_kpis`** — KPIs agregados por mês/empresa/supervisor/vendedor/UF:
+```sql
+SELECT 
+  EXTRACT(YEAR FROM data) AS ano,
+  EXTRACT(MONTH FROM data) AS mes,
+  id_empresa, supervisor, cod_vend, uf,
+  SUM(preco_venda * quantidade) AS receita_total,
+  COUNT(DISTINCT pedido) AS qtde_pedidos,
+  SUM(preco_venda * quantidade) / NULLIF(COUNT(DISTINCT pedido), 0) AS ticket_medio,
+  COUNT(DISTINCT cod_cliente) AS clientes_ativos,
+  SUM(quantidade) AS qtde_itens
+FROM vendas_union
+WHERE operacao = 'VENDA'
+GROUP BY ano, mes, id_empresa, supervisor, cod_vend, uf
+```
 
-2. **Popular via UPDATE** com o vendedor mais recente de cada cliente, usando JOIN adaptado:
-   ```sql
-   WHERE c.codigo ~ '^\d+$' AND CAST(c.codigo AS INTEGER) = v.cod_cliente
-   ```
+**`vw_receita_empresa`** — Receita por empresa/mês
 
-3. **Adicionar 3 novas RLS policies** (sem remover as existentes):
-   - `vendedor_clientes_own` — vendedor vê seus clientes via `dim_vendedor.user_id`
-   - `supervisor_clientes_team` — supervisor vê clientes da equipe via `dim_supervisor.user_id`
-   - `empresa_clientes_access` — acesso por empresa via `user_empresa_access`
+**`vw_ranking_supervisores`** — Receita + pedidos por supervisor/mês
 
-   A policy de admin já existe, não será duplicada.
+**`vw_ranking_vendedores`** — Receita + pedidos + clientes por vendedor/mês
 
-### Detalhe técnico
+Todas as views são `CREATE VIEW` (não materializadas) para herdar automaticamente o RLS da tabela `vendas_union`.
 
-- O UPDATE usará `DISTINCT ON (cod_cliente) ... ORDER BY cod_cliente, data DESC` para pegar o vendedor mais recente.
-- As novas policies usam `FOR SELECT` e complementam as policies existentes (OR entre policies).
-- Índice em `cod_vend` será criado para performance das queries RLS.
+### Parte 2: Página do Dashboard
+
+**Rota**: `/dashboard/painel-executivo` (nova página, não substitui a home atual que é um redirect dinâmico)
+
+**Estrutura de arquivos**:
+```
+src/pages/PainelExecutivo.tsx              — Página principal
+src/hooks/useDashboardKPIs.ts             — Hook para KPI cards
+src/hooks/useReceitaEmpresa.ts            — Hook para gráfico por empresa
+src/hooks/useRankingSupervisores.ts        — Hook para ranking supervisores
+src/hooks/useRankingVendedores.ts          — Hook para ranking vendedores
+src/components/painel-executivo/
+  DashboardFilters.tsx                     — Barra de filtros (Ano, Mês, Empresa, Supervisor, Vendedor, UF, Marca)
+  KPICards.tsx                             — 6 cards com badges de tendência
+  ReceitaMensalChart.tsx                   — LineChart com área gradiente
+  ReceitaEmpresaChart.tsx                  — BarChart horizontal
+  RankingSupervisoresChart.tsx             — BarChart horizontal top 10
+  RankingVendedoresChart.tsx               — BarChart horizontal top 10
+```
+
+**Filtros**: Período (Ano + Mês multi-select), Empresa (do EmpresaContext), Supervisor, Vendedor, UF, Marca — todos atualizando queries via React Query.
+
+**KPI Cards** (6): Receita Total, Qtde Pedidos, Ticket Médio, Clientes Ativos, Mix Médio (itens/pedido), Positivação % — cada um com badge % vs mês anterior (verde/vermelho).
+
+**Gráficos** (Recharts): Evolução mensal (AreaChart 12 meses), Receita por empresa (horizontal bar), Top 10 supervisores, Top 10 vendedores — em grid 2x2.
+
+**Hooks**: Cada hook consulta a view correspondente filtrando pelo período/filtros selecionados, usando `fetchAllRows` para garantir todos os dados.
+
+### Parte 3: Sidebar e Rota
+
+- Nova rota `/dashboard/painel-executivo` em `App.tsx`
+- Novo item "Painel Executivo" no sidebar (ícone BarChart3) — visível para todos os usuários autenticados
+- Lazy load com `lazyWithRetry`
+
+### Decisão necessária
+
+O cálculo de receita deve usar `preco_venda * quantidade` (receita bruta) ou `preco_venda * quantidade - vl_desconto` (receita líquida)? E deve filtrar apenas `operacao = 'VENDA'` ou incluir todas as operações?
 
