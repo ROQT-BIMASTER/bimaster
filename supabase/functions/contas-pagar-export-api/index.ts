@@ -122,9 +122,20 @@ Deno.serve(async (req) => {
       return await handleConfirm(supabase, req);
     } else if (req.method === "GET" && path === "status") {
       return await handleStatus(supabase);
+    } else if (req.method === "GET" && path === "history") {
+      return await handleExportHistory(supabase, url);
+    } else if (req.method === "POST" && path === "export-batch") {
+      return await handleExportBatch(supabase, req);
+    } else if (req.method === "POST" && path === "retry-failed") {
+      return await handleRetryFailed(supabase, req);
+    } else if (req.method === "GET" && path === "reconciliation") {
+      return await handleReconciliation(supabase, url);
+    } else if (req.method === "GET" && path === "export-summary") {
+      return await handleExportSummary(supabase, url);
+    } else if (req.method === "POST" && path === "webhook-push") {
+      return await handleWebhookPushConfig(supabase, req);
     } else {
       if (req.method === "GET") {
-        // Check if ?status includes cancelado
         const statusParam = url.searchParams.get("status");
         if (statusParam && statusParam.split(",").map(s => s.trim()).includes("cancelado")) {
           return await handleGetCancelledItems(supabase, url);
@@ -132,7 +143,7 @@ Deno.serve(async (req) => {
         return await handleGetItems(supabase, url, null);
       }
       return jsonResponse({
-        error: "Rota não encontrada. Rotas: GET /paid, GET /pending, GET /cancelled, POST /confirm, GET /status",
+        error: "Rota não encontrada. Rotas: GET /paid, /pending, /cancelled, /status, /history, /reconciliation, /export-summary | POST /confirm, /export-batch, /retry-failed, /webhook-push",
       }, 404);
     }
   } catch (err) {
