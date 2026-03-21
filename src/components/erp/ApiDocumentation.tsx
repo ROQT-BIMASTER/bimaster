@@ -1416,6 +1416,16 @@ export default function ApiDocumentation() {
             />
           </TabsContent>
 
+          <TabsContent value="tipos-atividade" className="space-y-1">
+            <ApiSection
+              icon={<Database className="h-4 w-4 text-primary" />}
+              title="Tipos de Atividade — ListarTipoAtiv (Padrão Omie)"
+              basePath="/tipos-atividade-api"
+              endpoints={tiposAtividadeCrud}
+              description="Listar tipos de atividade da empresa (código 1 char + descrição)"
+            />
+          </TabsContent>
+
           <TabsContent value="empresas" className="space-y-1">
             <ApiSection
               icon={<Database className="h-4 w-4 text-primary" />}
