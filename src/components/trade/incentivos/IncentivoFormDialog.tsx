@@ -11,6 +11,7 @@ import { useCreateIncentivo, useUpdateIncentivo, type TradeIncentivo } from "@/h
 import { toast } from "sonner";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { Upload, X, Loader2, Wand2 } from "lucide-react";
+import { AiBannerGenerator } from "@/components/trade/AiBannerGenerator";
 
 interface Props {
   open: boolean;
@@ -198,6 +199,26 @@ export function IncentivoFormDialog({ open, onOpenChange, editIncentivo }: Props
                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading || optimizing} />
               </label>
             )}
+
+            {/* AI Banner Generator */}
+            <AiBannerGenerator
+              disabled={uploading || optimizing}
+              onImageGenerated={async (base64) => {
+                setUploading(true);
+                try {
+                  const blob = base64ToBlob(base64);
+                  const path = `incentivos/ai_${Date.now()}.png`;
+                  const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob);
+                  if (upErr) throw upErr;
+                  const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
+                  setForm(f => ({ ...f, banner_url: publicUrl }));
+                } catch {
+                  toast.error("Erro ao salvar imagem gerada");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
           </div>
 
           <div>

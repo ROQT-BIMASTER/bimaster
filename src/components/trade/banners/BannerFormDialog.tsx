@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateBanner, useUpdateBanner, type TradeBanner } from "@/hooks/useTradeBanners";
 import { Upload, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { AiBannerGenerator } from "@/components/trade/AiBannerGenerator";
 import { toast } from "sonner";
 
 interface Props {
@@ -240,6 +241,26 @@ export function BannerFormDialog({ open, onOpenChange, editBanner }: Props) {
                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isProcessing} />
               </label>
             </div>
+
+            {/* AI Banner Generator */}
+            <AiBannerGenerator
+              disabled={isProcessing}
+              onImageGenerated={async (base64) => {
+                setUploading(true);
+                try {
+                  const blob = base64ToBlob(base64);
+                  const path = `ai_${Date.now()}.png`;
+                  const { error: upErr } = await supabase.storage.from("trade-banners").upload(path, blob);
+                  if (upErr) throw upErr;
+                  const { data: { publicUrl } } = supabase.storage.from("trade-banners").getPublicUrl(path);
+                  setForm(f => ({ ...f, imagem_url: publicUrl }));
+                } catch {
+                  toast.error("Erro ao salvar imagem gerada");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
           </div>
 
           <div>
