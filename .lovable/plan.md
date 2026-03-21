@@ -1,69 +1,76 @@
 
 
-# API Anexos de Documentos — Padronização Omie
+# API Extrato de Conta Corrente — Padronização Omie
 
 ## Resumo
 
-Criar a API de Anexos de Documentos seguindo o padrão Omie, com operações de inclusão (base64), consulta, obtenção (link download), listagem e exclusão de anexos vinculados a qualquer tabela (contas_pagar, contas_receber, etc.). Inclui nova tabela `documento_anexos`, Edge Function dedicada, storage bucket e documentação.
+Adicionar a rota `/extrato` na Edge Function `lancamentos-cc-api` existente, seguindo o padrão Omie `ListarExtrato`. A rota consulta a view `vw_extrato_conta_corrente` já existente e retorna saldos + lista de movimentos no formato Omie. Sem nova tabela — usa infraestrutura existente.
 
-## 1. Nova tabela `documento_anexos`
-
-Tabela genérica para anexos vinculados a qualquer entidade (como o Omie usa `cTabela` + `nId`):
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `id` | UUID PK | ID interno |
-| `empresa_id` | TEXT NOT NULL | Empresa |
-| `c_cod_int_anexo` | VARCHAR(20) | Código de integração do anexo |
-| `c_tabela` | VARCHAR(100) | Tabela de origem (contas_pagar, contas_receber, etc.) |
-| `n_id` | BIGINT | ID do documento na tabela de origem |
-| `n_id_anexo` | BIGINT | ID do anexo no Omie |
-| `c_nome_arquivo` | VARCHAR(100) | Nome do arquivo |
-| `c_tipo_arquivo` | VARCHAR(10) | Tipo/extensão do arquivo |
-| `c_md5` | VARCHAR(32) | MD5 do arquivo |
-| `storage_path` | TEXT | Caminho no Storage bucket |
-| `file_size` | BIGINT | Tamanho em bytes |
-| `importado_api` | BOOLEAN | Importado pela API |
-| `created_at` | TIMESTAMPTZ | Criação |
-| `updated_at` | TIMESTAMPTZ | Última alteração |
-
-Indexes: `(empresa_id, c_tabela, n_id)` para listagem, `(empresa_id, c_cod_int_anexo)` unique para upsert.
-
-Storage bucket: `documento-anexos` (privado), com RLS para usuários autenticados.
-
-## 2. Nova Edge Function: `anexos-api`
+## 1. Nova rota na Edge Function `lancamentos-cc-api`
 
 | Método | Rota | Descrição | Equivalente Omie |
 |---|---|---|---|
-| POST | `/incluir` | Upload de anexo (base64 zip) | IncluirAnexo |
-| GET | `/consultar` | Consultar metadados do anexo | ConsultarAnexo |
-| GET | `/obter` | Obter link de download (signed URL) | ObterAnexo |
-| GET | `/listar` | Listar anexos de um documento (paginado) | ListarAnexo |
-| DELETE | `/excluir` | Excluir anexo | ExcluirAnexo |
-| GET | `/status` | Health check | — |
+| GET | `/extrato` | Extrato de conta corrente com saldos e movimentos | ListarExtrato |
 
-Fluxo do `/incluir`: recebe `cArquivo` (conteúdo base64 do ZIP), valida MD5, salva no Storage bucket `documento-anexos`, registra metadados na tabela.
+**Parâmetros (query string):**
+- `nCodCC` — código Omie da conta corrente
+- `cCodIntCC` — código de integração da conta
+- `dPeriodoInicial` / `dPeriodoFinal` — filtro de período (dd/mm/yyyy ou yyyy-mm-dd)
+- `cExibirApenasSaldo` — "S" para retornar apenas saldos sem movimentos
 
-Fluxo do `/obter`: gera signed URL (expiração 1h) e retorna com `cLinkDownload` e `dDtExpiracao`.
+**Resposta Omie-style:**
+```json
+{
+  "nCodCC": 427619317,
+  "cCodIntCC": "CC001",
+  "cDescricao": "Conta Bradesco",
+  "nCodBanco": "237",
+  "nCodAgencia": "1234",
+  "nNumConta": "56789-0",
+  "cCodTipo": "CC",
+  "dPeriodoInicial": "01/03/2026",
+  "dPeriodoFinal": "21/03/2026",
+  "nSaldoAnterior": 10000.00,
+  "nSaldoAtual": 15230.50,
+  "nSaldoConciliado": 14800.00,
+  "listaMovimentos": [
+    {
+      "nCodLancamento": 123,
+      "dDataLancamento": "05/03/2026",
+      "cDesCliente": "Fornecedor XYZ",
+      "cTipoDocumento": "DIN",
+      "nValorDocumento": 500.00,
+      "nSaldo": 10500.00,
+      "cCodCategoria": "2.04.01",
+      "cOrigem": "CONP",
+      "cNatureza": "D"
+    }
+  ]
+}
+```
 
-Respostas seguem o padrão Omie com `cCodStatus`/`cDesStatus`.
+**Lógica:**
+1. Localizar a conta corrente (`contas_bancarias`) por `nCodCC` ou `cCodIntCC`
+2. Consultar `vw_extrato_conta_corrente` filtrando por `conta_bancaria_id` e período
+3. Calcular saldo anterior (soma de movimentos antes do período inicial)
+4. Calcular saldo atual (anterior + movimentos do período)
+5. Mapear campos para nomenclatura Omie (`listaMovimentos`)
 
-## 3. Documentação
+## 2. Documentação
 
-Novo `docs/API_ANEXOS.md` com endpoints, tipos, exemplos e notas sobre formato base64/zip.
+Atualizar `docs/API_LANCAMENTOS_CC.md` com a nova rota `/extrato`.
 
-## 4. API Tester & Portal
+## 3. API Tester & Portal
 
-- Presets no `ApiTester.tsx` (Incluir, Consultar, Obter, Listar, Excluir)
+- Preset no `ApiTester.tsx` para "Extrato de Conta Corrente"
 - Seção no `ApiDocumentation.tsx`
 
 ## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Criar — tabela `documento_anexos` + RLS + storage bucket |
-| `supabase/functions/anexos-api/index.ts` | Criar — nova Edge Function |
-| `docs/API_ANEXOS.md` | Criar — documentação |
-| `src/components/erp/ApiTester.tsx` | Editar — adicionar presets |
+| `supabase/functions/lancamentos-cc-api/index.ts` | Editar — adicionar rota `/extrato` |
+| `docs/API_LANCAMENTOS_CC.md` | Editar — documentar rota |
+| `src/components/erp/ApiTester.tsx` | Editar — adicionar preset |
 | `src/components/erp/ApiDocumentation.tsx` | Editar — adicionar seção |
 
