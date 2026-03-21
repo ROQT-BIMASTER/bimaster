@@ -1,17 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validateApiKey, AuthError } from "../_shared/auth.ts";
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
+import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-api-key",
-};
-
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function jsonResponse(data: unknown, status = 200, req?: Request) {
+  const cors = req ? getCorsHeaders(req) : {};
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 function formatDate(d: string | null): string {
