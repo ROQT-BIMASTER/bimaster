@@ -253,6 +253,8 @@ export default function IntegracaoERP() {
         </CardContent>
       </Card>
 
+      <ApiTester />
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
