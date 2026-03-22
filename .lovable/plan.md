@@ -1,71 +1,88 @@
 
 
-# Correção de Endpoints + Fluxogramas na Documentação
+# Teste Completo de Endpoints + Chat de Suporte por Endpoint
 
-## Problemas Encontrados nos Testes
+## Parte 1: Teste e Correção de Endpoints
 
-| API | Status Endpoint | Problema |
-|---|---|---|
-| `contas-correntes-api` | 401 | Auth executada ANTES do roteamento — `/status` bloqueado |
-| `lancamentos-cc-api` | 401 | Mesmo problema — auth antes do route matching |
-| `orcamentos-caixa-api` | 401 | Mesmo problema — auth antes do route matching |
-| `contas-pagar-api` | 401 | Rota `/status` existe mas exige API Key |
-| `contas-receber-api` | Retorna dados | Não existe rota `/status` — cai no fallback e retorna dump |
-| `contas-pagar-export-api` | 401 | Auth antes do route matching |
-| `webhook-dispatcher` | 404 | Não estava deployado (CORRIGIDO) |
-| `webhook-subscriptions-api` | 404 | Não estava deployado (CORRIGIDO) |
+### Status atual dos testes (via edge function logs)
 
-**Todas as outras 18+ APIs**: Funcionando corretamente (200 OK no `/status`).
+Todos os `/status` foram verificados e estão respondendo corretamente, incluindo as 6 funções corrigidas na iteração anterior (`contas-correntes-api`, `lancamentos-cc-api`, `orcamentos-caixa-api`, `contas-pagar-api`, `contas-receber-api`, `contas-pagar-export-api`).
 
-## Correções Necessárias
+### Teste end-to-end de cada fluxo CRUD
 
-### 1. Fix: Mover `/status` ANTES da autenticação (5 funções)
+Para garantir 0% de quebra, executarei chamadas `curl` reais via `supabase--curl_edge_functions` em cada endpoint documentado, validando:
+- Health check (`/status`) — 200 OK
+- Auth rejeitada (sem header) — 401
+- Operações CRUD com payloads de teste — verificação de response format
+- Rate limit headers presentes
 
-Para cada função afetada, mover a verificação da rota `/status` para antes do bloco `validateErpAuth`/`validateAnyAuth`:
+**APIs a testar (28 edge functions do portal):**
 
-- **`contas-correntes-api/index.ts`** (linha ~38): Adicionar check de `/status` antes da linha 39
-- **`lancamentos-cc-api/index.ts`** (linha ~38): Mesmo padrão
-- **`orcamentos-caixa-api/index.ts`** (linha ~37): Mesmo padrão
-- **`contas-pagar-api/index.ts`** (linha ~443): Remover `validateApiKey` do bloco `/status`
-- **`contas-receber-api/index.ts`**: Adicionar rota `/status` (inexistente hoje)
+| Módulo | APIs |
+|---|---|
+| Geral | clientes, empresas, departamentos, categorias, projetos, parcelas |
+| Auxiliares | tipos-atividade, tipos-anexo, tipos-entrega, tipos-documento, cnae, cidades, paises, bancos, bandeiras, origens, finalidades-transferencia, dre-cadastro |
+| Finanças | contas-pagar, contas-receber, boletos, contas-correntes, lancamentos-cc, contas-pagar-export, orcamentos-caixa, pesquisar-lancamentos, movimentos-financeiros, resumo-financeiro |
+| Complementar | anexos, webhook-inbound, webhook-dispatcher, webhook-subscriptions |
 
-### 2. Adicionar Fluxogramas por Endpoint na Documentação
+### Correções previstas
+- Qualquer endpoint que retorne erro inesperado será corrigido no `index.ts` da função
+- Flowcharts (`flow`) já estão definidos em todos os endpoints — verificar que nenhum ficou sem
 
-Adicionar ao `ApiDocumentation.tsx` um campo `flowchart` nos dados de cada endpoint com texto Mermaid inline. O componente `EndpointCard` renderizará o fluxograma como um diagrama ASCII/visual usando uma representação simplificada (sequência de passos com setas).
+---
 
-**Formato proposto**: Cada endpoint recebe um array `flow` com os passos do fluxo:
+## Parte 2: Chat de Suporte por Endpoint
 
-```typescript
-interface Endpoint {
-  // ... existing fields
-  flow?: string[]; // Ex: ["Request", "Auth (JWT/API Key)", "Validação", "Query DB", "Response 200"]
-}
+### Conceito
+Dentro de cada `EndpointCard` expandido, adicionar um botão "Dúvida sobre este endpoint?" que abre um mini-chat inline. A empresa terceira escreve sua dúvida, que fica salva no banco vinculada ao endpoint e API. O admin recebe e responde dentro do portal.
+
+### Database — Nova tabela `api_support_messages`
+
+```sql
+CREATE TABLE public.api_support_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_id text NOT NULL,           -- ex: 'contas-pagar'
+  endpoint_path text NOT NULL,    -- ex: 'POST /incluir'
+  empresa_id text,                -- empresa que perguntou
+  user_id uuid REFERENCES auth.users(id),
+  user_name text,
+  message text NOT NULL,
+  is_admin_reply boolean DEFAULT false,
+  admin_user_id uuid REFERENCES auth.users(id),
+  status text DEFAULT 'open',     -- open, answered, closed
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE api_support_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "authenticated_read" ON api_support_messages 
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert" ON api_support_messages 
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "service_full" ON api_support_messages 
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE INDEX idx_support_api ON api_support_messages(api_id, endpoint_path);
+CREATE INDEX idx_support_status ON api_support_messages(status) WHERE status = 'open';
 ```
 
-Renderizado como badges conectadas com setas no `EndpointCard`:
+### Frontend — Componente `EndpointSupportChat`
 
-```
-Request → Auth → Validação → Query DB → Response 200
-```
+Adicionado dentro do `EndpointCard` (abaixo do response):
+- Botão discreto "💬 Dúvida sobre este endpoint?"
+- Ao clicar, expande um mini-chat com:
+  - Lista de mensagens existentes (perguntas + respostas do admin)
+  - Campo de texto + botão enviar
+  - Badge com contagem de mensagens abertas
+- Admin vê todas as mensagens e pode responder inline
+- Usa `supabase.from("api_support_messages")` para CRUD
 
-**Fluxos por tipo de endpoint**:
-- **GET /listar**: Request → Auth → Rate Limit → Parse Params → Query DB → Paginação → Response 200
-- **POST /incluir**: Request → Auth → Rate Limit → Parse Body → Validação → Insert DB → Webhook Event → Response 201
-- **PUT /alterar**: Request → Auth → Rate Limit → Parse Body → Find Record → Update DB → Webhook Event → Response 200
-- **DELETE /excluir**: Request → Auth → Rate Limit → Find Record → Soft Delete → Webhook Event → Response 200
-- **POST /upsert**: Request → Auth → Rate Limit → Parse Body → Conflict Check → Upsert DB → Webhook Event → Response 200
-- **POST /upsert-lote**: Request → Auth → Rate Limit → Parse Array → Batch Process → Upsert DB → Response 200
-- **GET /status**: Request → Health Check → Response 200
-
-## Arquivos Impactados
+### Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/contas-correntes-api/index.ts` | Mover `/status` antes de auth |
-| `supabase/functions/lancamentos-cc-api/index.ts` | Mover `/status` antes de auth |
-| `supabase/functions/orcamentos-caixa-api/index.ts` | Mover `/status` antes de auth |
-| `supabase/functions/contas-pagar-api/index.ts` | Liberar `/status` sem auth |
-| `supabase/functions/contas-receber-api/index.ts` | Adicionar rota `/status` |
-| `supabase/functions/contas-pagar-export-api/index.ts` | Mover `/status` antes de auth |
-| `src/components/erp/ApiDocumentation.tsx` | Adicionar fluxogramas inline |
+| Migration SQL | Criar tabela `api_support_messages` |
+| `src/components/erp/EndpointSupportChat.tsx` | Criar — componente de chat inline |
+| `src/components/erp/ApiDocumentation.tsx` | Integrar chat no `EndpointCard` |
+| 28 Edge Functions | Testar via curl, corrigir se necessário |
 
