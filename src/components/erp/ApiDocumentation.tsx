@@ -191,20 +191,20 @@ const contasPagarComplementar: Endpoint[] = [
 ];
 
 const exportPull: Endpoint[] = [
-  { method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)", response: `{ "data": [{ "id": "uuid", "export_type": "registration", "fornecedor": { "nome": "ABC Ltda" }, "pagamento": { "valor": 1500 } }], "total": 5 }` },
-  { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)" },
-  { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação" },
-  { method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP", body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`, response: `{ "confirmed": 2, "export_type": "registration" }` },
-  { method: "GET", path: "/status", description: "Status global de pendências de exportação" },
+  { method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)", flow: FLOW.exportPull, response: `{ "data": [{ "id": "uuid", "export_type": "registration", "fornecedor": { "nome": "ABC Ltda" }, "pagamento": { "valor": 1500 } }], "total": 5 }` },
+  { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)", flow: FLOW.exportPull },
+  { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação", flow: FLOW.exportPull },
+  { method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP", flow: FLOW.confirm, body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`, response: `{ "confirmed": 2, "export_type": "registration" }` },
+  { method: "GET", path: "/status", description: "Status global de pendências de exportação", flow: FLOW.status },
 ];
 
 const exportAdvanced: Endpoint[] = [
-  { method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo", params: [{ name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" }, { name: "status", type: "string", required: false, description: "exported, pending, error" }, { name: "limit", type: "number", required: false, description: "Máx 500" }] },
-  { method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo", body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`, response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }` },
-  { method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo", body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }` },
-  { method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }], response: `{ "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 } }` },
-  { method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }, { name: "periodo_de", type: "date", required: false, description: "Data inicial" }, { name: "periodo_ate", type: "date", required: false, description: "Data final" }] },
-  { method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo", body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }` },
+  { method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo", flow: FLOW.listar, params: [{ name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" }, { name: "status", type: "string", required: false, description: "exported, pending, error" }, { name: "limit", type: "number", required: false, description: "Máx 500" }] },
+  { method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Parse IDs", "Enfileirar", "Response 200"], body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`, response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }` },
+  { method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Find Failed", "Re-enfileirar", "Response 200"], body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }` },
+  { method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo", flow: FLOW.consultar, params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }], response: `{ "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 } }` },
+  { method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo", flow: FLOW.consultar, params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }, { name: "periodo_de", type: "date", required: false, description: "Data inicial" }, { name: "periodo_ate", type: "date", required: false, description: "Data final" }] },
+  { method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Parse Config", "Save Webhook", "Response 200"], body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }` },
 ];
 
 const contasCorrentesCrud: Endpoint[] = [
