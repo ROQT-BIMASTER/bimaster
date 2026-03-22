@@ -24,6 +24,7 @@ interface Endpoint {
   params?: { name: string; type: string; required: boolean; description: string }[];
   body?: string;
   response?: string;
+  flow?: string[];
 }
 
 interface ApiDefinition {
