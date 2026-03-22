@@ -328,6 +328,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("POST /incluir", body, 201);
+      enqueueWebhookEvent("conta_corrente.criado", { id: data.id, nCodCC: data.n_cod_cc, cCodCCInt: data.codigo_integracao }, empresaId);
       return json({
         nCodCC: data.n_cod_cc,
         cCodCCInt: data.codigo_integracao,
