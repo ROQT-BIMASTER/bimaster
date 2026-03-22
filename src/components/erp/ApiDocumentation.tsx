@@ -111,6 +111,7 @@ const contasPagarCrud: Endpoint[] = [
 const contasPagarIntegracao: Endpoint[] = [
   {
     method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaPagar)", tag: "novo",
+    flow: FLOW.consultar,
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
@@ -120,16 +121,19 @@ const contasPagarIntegracao: Endpoint[] = [
   },
   {
     method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
+    flow: FLOW.incluir,
     body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
     method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
+    flow: FLOW.alterar,
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
   },
   {
     method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a pagar (ExcluirContaPagar)", tag: "novo",
+    flow: FLOW.excluir,
     params: [
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
       { name: "id", type: "uuid", required: false, description: "ID interno" },
@@ -137,25 +141,30 @@ const contasPagarIntegracao: Endpoint[] = [
   },
   {
     method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
+    flow: FLOW.upsert,
     body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
+    flow: FLOW.upsertLote,
     body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "valor_documento": 100 }] }`,
     response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
   },
   {
     method: "POST", path: "/lancar-pagamento", description: "Efetuar baixa de pagamento (LancarPagamento)", tag: "novo",
+    flow: FLOW.pagamento,
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
   {
     method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento)", tag: "novo",
+    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Webhook Event", "Response 200"],
     body: `{ "codigo_baixa": "uuid-pagamento" }`,
     response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
   },
   {
     method: "GET", path: "/listar", description: "Listagem paginada (ListarContasPagar)", tag: "novo",
+    flow: FLOW.listar,
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
