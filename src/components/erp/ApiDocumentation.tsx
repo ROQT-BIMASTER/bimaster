@@ -585,6 +585,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
             )}
             {endpoint.body && <CodeBlock code={endpoint.body} label="Body (JSON)" />}
             {endpoint.response && <CodeBlock code={endpoint.response} label="Resposta" />}
+            <EndpointSupportChat apiId={basePath.replace(/^\//, "")} endpointPath={`${endpoint.method} ${endpoint.path}`} />
           </div>
         </CollapsibleContent>
       )}
