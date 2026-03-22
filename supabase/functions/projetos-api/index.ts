@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -115,6 +116,7 @@ Deno.serve(async (req) => {
         throw error;
       }
 
+      enqueueWebhookEvent("projeto.criado", { id: data.id, nome: data.nome, codInt: data.codigo_integracao });
       return jsonResponse(statusResponse(data, "0", "Projeto incluído com sucesso!"), 201, req, { startMs });
     }
 
@@ -139,6 +141,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.from("projetos").update(updates).eq("id", existing.id).select().single();
       if (error) throw error;
 
+      enqueueWebhookEvent("projeto.alterado", { id: data.id, nome: data.nome, codInt: data.codigo_integracao });
       return jsonResponse(statusResponse(data, "0", "Projeto alterado com sucesso!"), 200, req, { startMs });
     }
 

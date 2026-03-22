@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 // ── Mapping helpers ──────────────────────────────────────────────
 
@@ -159,6 +160,7 @@ Deno.serve(async (req) => {
         return errorResponse(500, "DB_ERROR", error.message, req, startMs);
       }
 
+      enqueueWebhookEvent("cliente.criado", { id: data.id, codigo: data.codigo, ...body }, auth.empresaId ? parseInt(auth.empresaId) : undefined);
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Cliente incluído com sucesso!"), 201, req, { startMs });
     }
 
@@ -182,6 +184,7 @@ Deno.serve(async (req) => {
 
       if (error) return errorResponse(error.code === "PGRST116" ? 404 : 500, error.code === "PGRST116" ? "NOT_FOUND" : "DB_ERROR", error.code === "PGRST116" ? "Cliente não encontrado" : error.message, req, startMs);
 
+      enqueueWebhookEvent("cliente.alterado", { id: data.id, codigo: data.codigo }, auth.empresaId ? parseInt(auth.empresaId) : undefined);
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Cliente alterado com sucesso!"), 200, req, { startMs });
     }
 
@@ -218,6 +221,7 @@ Deno.serve(async (req) => {
       const { data, error } = await query.select("id, codigo").single();
       if (error) return errorResponse(error.code === "PGRST116" ? 404 : 500, error.code === "PGRST116" ? "NOT_FOUND" : "DB_ERROR", error.code === "PGRST116" ? "Cliente não encontrado" : error.message, req, startMs);
 
+      enqueueWebhookEvent("cliente.excluido", { id: data.id, codigo: data.codigo }, auth.empresaId ? parseInt(auth.empresaId) : undefined);
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Cliente excluído com sucesso!"), 200, req, { startMs });
     }
 

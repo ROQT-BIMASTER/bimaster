@@ -3,6 +3,7 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateErpAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   const cors = getCorsHeaders(req);
@@ -327,6 +328,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("POST /incluir", body, 201);
+      enqueueWebhookEvent("conta_corrente.criado", { id: data.id, nCodCC: data.n_cod_cc, cCodCCInt: data.codigo_integracao }, empresaId);
       return json({
         nCodCC: data.n_cod_cc,
         cCodCCInt: data.codigo_integracao,
@@ -361,6 +363,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("PUT /alterar", body, 200);
+      enqueueWebhookEvent("conta_corrente.alterado", { id: data.id, nCodCC: data.n_cod_cc, cCodCCInt: data.codigo_integracao }, empresaId);
       return json({
         nCodCC: data.n_cod_cc,
         cCodCCInt: data.codigo_integracao,

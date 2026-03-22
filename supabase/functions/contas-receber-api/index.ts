@@ -3,6 +3,7 @@ import { timingSafeEqual } from "../_shared/timing-safe.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 // =====================================================
 // v5.0.0 - REESCRITA COMPLETA PARA MÁXIMA PERFORMANCE
@@ -712,6 +713,7 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
     if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
+    enqueueWebhookEvent("conta_receber.criado", { id: data?.id, codigo_lancamento_integracao: data?.codigo_lancamento_integracao, valor: body.valor_documento });
     return apiResponse({
       codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
@@ -859,6 +861,7 @@ Deno.serve(async (req) => {
 
     if (updErr) return apiResponse({ codigo_status: "1", descricao_status: updErr.message }, 500);
 
+    enqueueWebhookEvent("conta_receber.recebido", { id: titulo.id, valor_baixado: valorBaixa, status: novoStatus });
     return apiResponse({
       codigo_lancamento: codLanc || null,
       codigo_lancamento_integracao: codInt || null,

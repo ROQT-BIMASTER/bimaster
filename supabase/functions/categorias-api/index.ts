@@ -3,6 +3,7 @@ import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { validateApiKey, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   const cors = getCorsHeaders(req);
@@ -125,6 +126,7 @@ Deno.serve(async (req) => {
 
       if (error) return errorResp(500, "DB_ERROR", error.message, req, startMs);
 
+      enqueueWebhookEvent("categoria.criado", { codigo: data.code, descricao });
       return json({
         codigo: data.code,
         codigo_status: "0",
@@ -193,6 +195,7 @@ Deno.serve(async (req) => {
       if (error) return errorResp(500, "DB_ERROR", error.message, req, startMs);
       if (!data) return errorResp(404, "NOT_FOUND", `Categoria '${codigo}' não encontrada`, req, startMs);
 
+      enqueueWebhookEvent("categoria.alterado", { codigo: data.code, descricao: data.name });
       return json({
         codigo: data.code,
         descricao: data.name,

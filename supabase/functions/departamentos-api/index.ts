@@ -3,6 +3,7 @@ import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 function jsonResponse(data: unknown, status = 200, req?: Request) {
   const cors = req ? getCorsHeaders(req) : {};
@@ -147,6 +148,7 @@ async function handleIncluir(
 
   if (error) throw error;
 
+  enqueueWebhookEvent("departamento.criado", { codigo, descricao });
   return jsonResponse({
     codigo,
     descricao,
@@ -184,6 +186,7 @@ async function handleAlterar(
 
   if (error) throw error;
 
+  enqueueWebhookEvent("departamento.alterado", { codigo, descricao: updates.nome || "" });
   return jsonResponse({
     codigo,
     descricao: updates.nome || "",

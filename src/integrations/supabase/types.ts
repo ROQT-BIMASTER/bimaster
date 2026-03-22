@@ -28943,6 +28943,149 @@ export type Database = {
           },
         ]
       }
+      webhook_delivery_log: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          erro: string | null
+          event_id: string | null
+          http_status: number | null
+          id: string
+          response_body: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          erro?: string | null
+          event_id?: string | null
+          http_status?: number | null
+          id?: string
+          response_body?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          erro?: string | null
+          event_id?: string | null
+          http_status?: number | null
+          id?: string
+          response_body?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_delivery_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_event_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_delivery_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_event_queue: {
+        Row: {
+          created_at: string | null
+          evento: string
+          http_status: number | null
+          id: string
+          max_tentativas: number | null
+          payload: Json
+          proxima_tentativa: string | null
+          sent_at: string | null
+          status: string
+          subscription_id: string | null
+          tentativas: number | null
+          ultimo_erro: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          evento: string
+          http_status?: number | null
+          id?: string
+          max_tentativas?: number | null
+          payload: Json
+          proxima_tentativa?: string | null
+          sent_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          tentativas?: number | null
+          ultimo_erro?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          evento?: string
+          http_status?: number | null
+          id?: string
+          max_tentativas?: number | null
+          payload?: Json
+          proxima_tentativa?: string | null
+          sent_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          tentativas?: number | null
+          ultimo_erro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_event_queue_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_subscriptions: {
+        Row: {
+          ativo: boolean
+          created_at: string | null
+          descricao: string | null
+          empresa_id: number
+          eventos: string[]
+          headers_customizados: Json | null
+          id: string
+          max_retries: number | null
+          secret: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id: number
+          eventos?: string[]
+          headers_customizados?: Json | null
+          id?: string
+          max_retries?: number | null
+          secret: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number
+          eventos?: string[]
+          headers_customizados?: Json | null
+          id?: string
+          max_retries?: number | null
+          secret?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversations: {
         Row: {
           context: Json | null
@@ -30280,6 +30423,10 @@ export type Database = {
         Returns: undefined
       }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
+      enqueue_webhook_event: {
+        Args: { p_empresa_id?: number; p_evento: string; p_payload: Json }
+        Returns: number
+      }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }
