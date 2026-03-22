@@ -514,6 +514,24 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
       {hasDetails && (
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
+            {/* Flow diagram */}
+            {endpoint.flow && endpoint.flow.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Fluxo</span>
+                <div className="flex items-center flex-wrap gap-1 py-2 px-3 bg-muted/40 rounded-lg">
+                  {endpoint.flow.map((step, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium border border-primary/20">
+                        {step}
+                      </span>
+                      {i < endpoint.flow!.length - 1 && (
+                        <span className="text-muted-foreground text-xs">→</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL completa</span>
               <CodeBlock code={`curl -H "x-api-key: SUA_CHAVE" \\\n  "${fullUrl}"`} />
