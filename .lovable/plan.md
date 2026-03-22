@@ -1,118 +1,212 @@
 
 
-# Hardening de Segurança — Todas as APIs do Portal de Integração
+# Sistema de Webhooks Outbound — Event-Driven (Opção A)
 
-## Problemas Identificados na Auditoria
+BiMaster como fonte de dados → notifica ERP externo via REST direto (sem N8N).
 
-### 1. CORS Aberto (`Allow-Origin: *`)
-~98 edge functions usam CORS hardcoded com `*` ao invés do helper `cors.ts` que faz whitelist de origens. Isso permite qualquer site fazer requests às APIs.
+## 1. Migration — Tabelas de Webhooks
 
-**Funções afetadas do Portal ERP:**
-- `departamentos-api`, `contas-pagar-api`, `contas-receber-api`, `boletos-api` — CORS inline `*`
-- As demais (tipos-*, bancos, clientes, projetos, etc.) já usam `handleCors` corretamente
+```sql
+-- Inscrições de webhooks do ERP
+CREATE TABLE public.webhook_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id integer NOT NULL,
+  url text NOT NULL,
+  secret text NOT NULL, -- HMAC-SHA256 signing secret
+  eventos text[] NOT NULL DEFAULT '{}', -- ex: {'cliente.criado','conta_pagar.pago'}
+  ativo boolean NOT NULL DEFAULT true,
+  descricao text,
+  headers_customizados jsonb DEFAULT '{}',
+  max_retries integer DEFAULT 3,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-### 2. Auth Inconsistente
-| Função | Auth Atual | Problema |
-|---|---|---|
-| `tipos-anexo-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `tipos-entrega-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `tipos-atividade-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `tipos-documento-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `clientes-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `projetos-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `empresas-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `bancos-api` | `validateApiKey` apenas | Sem suporte JWT |
-| `departamentos-api` | `validateApiKey` apenas | Sem suporte JWT, sem security headers |
-| `contas-pagar-api` | Auth inline própria | Não usa helpers compartilhados |
-| `contas-receber-api` | `validateAnyAuth` inline | OK mas CORS `*` |
-| `contas-correntes-api` | `validateErpAuth` | OK, já robusto |
-| `lancamentos-cc-api` | `validateErpAuth` | OK, já robusto |
-| `movimentos-financeiros-api` | `validateAnyAuth` | OK, tem rate limit |
+-- Fila de eventos para dispatch
+CREATE TABLE public.webhook_event_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  subscription_id uuid REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+  evento text NOT NULL, -- ex: 'conta_pagar.criado'
+  payload jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending', -- pending, sent, failed, dead
+  tentativas integer DEFAULT 0,
+  max_tentativas integer DEFAULT 3,
+  proxima_tentativa timestamptz DEFAULT now(),
+  ultimo_erro text,
+  http_status integer,
+  created_at timestamptz DEFAULT now(),
+  sent_at timestamptz
+);
 
-### 3. Sem Rate Limiting
-As seguintes APIs do portal **não têm rate limiting**: tipos-anexo, tipos-entrega, tipos-atividade, tipos-documento, clientes, projetos, empresas, bancos, bandeiras, origens, departamentos, categorias, parcelas, paises, cidades, cnae, finalidades-transferencia, dre-cadastro, boletos, anexos.
+-- Log de entregas
+CREATE TABLE public.webhook_delivery_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id uuid REFERENCES webhook_event_queue(id),
+  subscription_id uuid REFERENCES webhook_subscriptions(id),
+  http_status integer,
+  response_body text,
+  duration_ms integer,
+  erro text,
+  created_at timestamptz DEFAULT now()
+);
 
-### 4. Sem Security Headers
-Funções com CORS inline não incluem headers de segurança (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+ALTER TABLE webhook_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_event_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_delivery_log ENABLE ROW LEVEL SECURITY;
 
-## Plano de Implementação
+-- RLS: service_role full access (edge functions), authenticated read own empresa
+CREATE POLICY "service_full_ws" ON webhook_subscriptions FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_full_wq" ON webhook_event_queue FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_full_wl" ON webhook_delivery_log FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-### Etapa 1: Criar helper `validateAnyAuth` compartilhado em `_shared/auth.ts`
+-- Indexes
+CREATE INDEX idx_webhook_queue_pending ON webhook_event_queue(status, proxima_tentativa) WHERE status IN ('pending','failed');
+CREATE INDEX idx_webhook_queue_sub ON webhook_event_queue(subscription_id);
+CREATE INDEX idx_webhook_subs_empresa ON webhook_subscriptions(empresa_id) WHERE ativo = true;
 
-Adicionar ao `_shared/auth.ts` uma função `validateAnyAuth` que tenta JWT primeiro, depois API Key — padronizando a autenticação dual para todas as APIs do portal.
-
-```typescript
-export async function validateAnyAuth(req: Request): Promise<{
-  userId?: string; empresaId?: string; source: "jwt" | "api_key";
-}> {
-  try {
-    const jwt = await validateJWT(req);
-    return { userId: jwt.userId, source: "jwt" };
-  } catch {
-    const key = await validateApiKey(req);
-    return { empresaId: key.empresaId, source: "api_key" };
-  }
-}
+-- Função helper para enfileirar eventos
+CREATE OR REPLACE FUNCTION public.enqueue_webhook_event(
+  p_evento text,
+  p_payload jsonb,
+  p_empresa_id integer DEFAULT NULL
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_sub RECORD;
+  v_count integer := 0;
+BEGIN
+  FOR v_sub IN
+    SELECT id, max_retries FROM webhook_subscriptions
+    WHERE ativo = true
+      AND (p_empresa_id IS NULL OR empresa_id = p_empresa_id)
+      AND p_evento = ANY(eventos)
+  LOOP
+    INSERT INTO webhook_event_queue (subscription_id, evento, payload, max_tentativas)
+    VALUES (v_sub.id, p_evento, p_payload, v_sub.max_retries);
+    v_count := v_count + 1;
+  END LOOP;
+  RETURN v_count;
+END;
+$$;
 ```
 
-### Etapa 2: Padronizar TODAS as 20+ APIs do portal
+## 2. Edge Function: `webhook-dispatcher`
 
-Para cada função, aplicar o mesmo padrão:
-1. Importar `handleCors`, `getCorsHeaders` do `_shared/cors.ts`
-2. Importar `withSecurityHeaders` do `_shared/security-headers.ts`
-3. Usar `jsonResponse`/`errorResponse` do `_shared/response.ts`
-4. Usar `validateAnyAuth` do `_shared/auth.ts` (JWT + API Key)
-5. Adicionar `checkRateLimit` do `_shared/rate-limit.ts`
-6. Status endpoint livre de auth (health check padrão)
+Processa a fila e envia eventos para o ERP via REST direto.
 
-**Funções a atualizar (20 funções):**
-- `tipos-anexo-api` — adicionar JWT, rate limit
-- `tipos-entrega-api` — adicionar JWT, rate limit
-- `tipos-atividade-api` — adicionar JWT, rate limit
-- `tipos-documento-api` — adicionar JWT, rate limit
-- `clientes-api` — adicionar JWT, rate limit
-- `projetos-api` — adicionar JWT, rate limit
-- `empresas-api` — adicionar JWT, rate limit
-- `bancos-api` — adicionar JWT, rate limit
-- `bandeiras-api` — adicionar JWT, rate limit
-- `origens-api` — adicionar JWT, rate limit
-- `departamentos-api` — reescrever CORS + auth + headers + rate limit
-- `categorias-api` — adicionar JWT, rate limit
-- `parcelas-api` — adicionar JWT, rate limit
-- `paises-api` — adicionar JWT, rate limit
-- `cidades-api` — adicionar JWT, rate limit
-- `cnae-api` — adicionar JWT, rate limit
-- `finalidades-transferencia-api` — adicionar JWT, rate limit
-- `dre-cadastro-api` — adicionar JWT, rate limit
-- `boletos-api` — corrigir CORS (remover `*`)
-- `anexos-api` — corrigir CORS (remover `*`)
-- `contas-correntes-api` — adicionar status livre de auth
-- `contas-receber-api` — corrigir CORS (remover `*`)
+- Busca eventos com `status IN ('pending','failed')` e `proxima_tentativa <= now()`
+- Para cada evento, faz `POST` para a URL da subscription com:
+  - Header `X-Webhook-Event: conta_pagar.criado`
+  - Header `X-Webhook-Signature: sha256=<HMAC do payload com secret>`
+  - Header `X-Webhook-Timestamp: <unix timestamp>`
+  - Content-Type: `application/json`
+- Se sucesso (2xx): marca `status = 'sent'`, grava `sent_at`
+- Se falha: incrementa `tentativas`, calcula `proxima_tentativa` com backoff exponencial (`2^tentativas * 30s`), grava erro
+- Se `tentativas >= max_tentativas`: marca `status = 'dead'`
+- Grava cada tentativa em `webhook_delivery_log`
+- Rate limit: processa máx 50 eventos por execução
+- Pode ser chamado via cron (pg_cron) ou manualmente
 
-### Etapa 3: Atualizar `contas-pagar-api` (caso especial)
+| Rota | Método | Descrição |
+|---|---|---|
+| `/process` | POST | Processa fila de eventos pendentes |
+| `/retry-dead` | POST | Reprocessa eventos mortos |
+| `/stats` | GET | Estatísticas da fila |
+| `/status` | GET | Health check |
 
-Esta função tem 2271 linhas com auth inline. A abordagem é cirúrgica:
-- Substituir `corsHeaders` hardcoded por `getCorsHeaders(req)`
-- Substituir auth inline pela importação de `validateAnyAuth`
-- Adicionar security headers nas respostas
+## 3. Edge Function: `webhook-subscriptions-api`
 
-### Etapa 4: Atualizar documentação do portal
+CRUD de inscrições para o ERP configurar quais eventos quer receber.
 
-No `ApiDocumentation.tsx`, adicionar seção de segurança visível:
-- Badge "JWT + API Key" em cada endpoint
-- Indicador de rate limit (60 req/min)
-- Headers de segurança listados
-- Exemplo de autenticação JWT
+| Rota | Método | Descrição |
+|---|---|---|
+| `/listar` | GET | Listar inscrições |
+| `/consultar` | GET | Consultar por ID |
+| `/incluir` | POST | Criar inscrição |
+| `/alterar` | PUT | Alterar inscrição |
+| `/excluir` | DELETE | Remover inscrição |
+| `/eventos` | GET | Listar eventos disponíveis |
+| `/testar` | POST | Enviar evento de teste |
+| `/status` | GET | Health check |
 
-### Arquivos impactados
+**Eventos disponíveis:**
+
+| Evento | Descrição |
+|---|---|
+| `cliente.criado` | Novo cliente/fornecedor |
+| `cliente.alterado` | Cliente atualizado |
+| `cliente.excluido` | Cliente removido |
+| `conta_pagar.criado` | Novo título a pagar |
+| `conta_pagar.alterado` | Título atualizado |
+| `conta_pagar.pago` | Pagamento registrado |
+| `conta_pagar.cancelado` | Título cancelado |
+| `conta_receber.criado` | Novo título a receber |
+| `conta_receber.recebido` | Recebimento registrado |
+| `departamento.criado` | Novo departamento |
+| `departamento.alterado` | Departamento atualizado |
+| `categoria.criado` | Nova categoria |
+| `categoria.alterado` | Categoria atualizada |
+| `projeto.criado` | Novo projeto |
+| `projeto.alterado` | Projeto atualizado |
+| `conta_corrente.criado` | Nova conta corrente |
+| `conta_corrente.alterado` | Conta corrente atualizada |
+| `lancamento_cc.criado` | Novo lançamento CC |
+| `tarefa.criado` | Nova tarefa |
+| `tarefa.alterado` | Tarefa atualizada |
+| `tarefa.concluido` | Tarefa concluída |
+
+## 4. Integrar enfileiramento nas APIs existentes
+
+Após cada operação CRUD bem-sucedida nas 20+ edge functions, chamar o RPC `enqueue_webhook_event` com o evento e payload. Exemplo no `clientes-api`:
+
+```typescript
+// Após insert bem-sucedido
+await supabase.rpc("enqueue_webhook_event", {
+  p_evento: "cliente.criado",
+  p_payload: { id: inserted.id, codigo: inserted.codigo, ... },
+  p_empresa_id: auth.empresaId ? parseInt(auth.empresaId) : null
+});
+```
+
+**Funções a atualizar (adicionar enfileiramento):**
+- `clientes-api` → `cliente.criado/alterado/excluido`
+- `contas-pagar-api` → `conta_pagar.criado/alterado/pago/cancelado`
+- `contas-receber-api` → `conta_receber.criado/recebido`
+- `departamentos-api` → `departamento.criado/alterado`
+- `categorias-api` → `categoria.criado/alterado`
+- `projetos-api` → `projeto.criado/alterado`
+- `contas-correntes-api` → `conta_corrente.criado/alterado`
+- `lancamentos-cc-api` → `lancamento_cc.criado`
+- `tarefas-api` → `tarefa.criado/alterado/concluido`
+
+## 5. Implementar outbound no `integration-router`
+
+Substituir o `TODO` atual (linha 469) pela lógica real:
+- Busca config outbound, consulta dados da `entidade_destino`
+- Transforma com field mappings invertidos
+- Envia via REST direto para `endpoint_url` da config
+- Loga resultado em `integration_logs`
+
+## 6. Documentação no Portal
+
+Adicionar módulo **"Webhooks Outbound"** no `ApiDocumentation.tsx` com:
+- Lista de eventos disponíveis
+- Exemplo de payload recebido pelo ERP
+- Exemplo de validação HMAC no lado do ERP
+- Endpoints de gestão de inscrições
+
+## Arquivos impactados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/_shared/auth.ts` | Adicionar `validateAnyAuth` |
-| 20+ `supabase/functions/*/index.ts` | Padronizar auth, CORS, rate limit, security headers |
-| `src/components/erp/ApiDocumentation.tsx` | Adicionar seção de segurança |
-
-### Nota sobre N8N
-
-As APIs internas do N8N (`contas-pagar-api/sync`, `contas-pagar-api/bulk-sync`, `contas-receber-api/sync`, `n8n-contas-receber`, `estoque-n8n-sync`) continuam funcionando normalmente via `x-api-key` — o `validateAnyAuth` suporta ambos os métodos.
+| Migration SQL | Criar 3 tabelas + função `enqueue_webhook_event` |
+| `supabase/functions/webhook-dispatcher/index.ts` | Criar |
+| `supabase/functions/webhook-subscriptions-api/index.ts` | Criar |
+| `supabase/functions/integration-router/index.ts` | Implementar outbound |
+| 9 Edge Functions existentes | Adicionar `enqueue_webhook_event` após CRUD |
+| `src/components/erp/ApiDocumentation.tsx` | Adicionar módulo Webhooks |
 
