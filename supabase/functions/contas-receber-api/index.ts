@@ -861,6 +861,7 @@ Deno.serve(async (req) => {
 
     if (updErr) return apiResponse({ codigo_status: "1", descricao_status: updErr.message }, 500);
 
+    enqueueWebhookEvent("conta_receber.recebido", { id: titulo.id, valor_baixado: valorBaixa, status: novoStatus });
     return apiResponse({
       codigo_lancamento: codLanc || null,
       codigo_lancamento_integracao: codInt || null,
