@@ -3,6 +3,7 @@ import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
 
 function jsonResponse(data: unknown, status = 200, req?: Request) {
   const cors = req ? getCorsHeaders(req) : {};
