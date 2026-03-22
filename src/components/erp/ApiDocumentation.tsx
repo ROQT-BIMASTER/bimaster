@@ -182,12 +182,12 @@ const contasPagarIntegracao: Endpoint[] = [
 ];
 
 const contasPagarComplementar: Endpoint[] = [
-  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
-  { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
-  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
-  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
-  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título" },
-  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento" },
+  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", flow: FLOW.sync, body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
+  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
+  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título", flow: FLOW.consultar },
+  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento", flow: FLOW.incluir },
 ];
 
 const exportPull: Endpoint[] = [
