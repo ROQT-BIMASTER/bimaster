@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import EndpointSupportChat from "./EndpointSupportChat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -584,6 +585,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
             )}
             {endpoint.body && <CodeBlock code={endpoint.body} label="Body (JSON)" />}
             {endpoint.response && <CodeBlock code={endpoint.response} label="Resposta" />}
+            <EndpointSupportChat apiId={basePath.replace(/^\//, "")} endpointPath={`${endpoint.method} ${endpoint.path}`} />
           </div>
         </CollapsibleContent>
       )}
