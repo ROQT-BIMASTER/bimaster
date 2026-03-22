@@ -77,6 +77,7 @@ const FLOW = {
 const contasPagarCrud: Endpoint[] = [
   {
     method: "GET", path: "/query", description: "Consulta avançada com filtros e paginação", tag: "consulta",
+    flow: FLOW.listar,
     params: [
       { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
       { name: "status", type: "string", required: false, description: "Filtro: pendente, vencido, pago, cancelado" },
@@ -89,16 +90,19 @@ const contasPagarCrud: Endpoint[] = [
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
+    flow: FLOW.alterar,
     body: `{ "id": "uuid-titulo", "data_vencimento": "2026-04-15", "valor_original": 1600, "portador": "Banco Itaú" }`,
     response: `{ "success": true, "message": "Título atualizado", "updated_fields": ["data_vencimento", "valor_original", "portador"] }`,
   },
   {
     method: "POST", path: "/cancelar", description: "Cancelamento com motivo obrigatório (suporta batch)",
+    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse IDs", "Cancelar Titulos", "Webhook Event", "Response 200"],
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
     response: `{ "cancelados": 2, "message": "2 título(s) cancelado(s)" }`,
   },
   {
     method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
+    flow: FLOW.pagamento,
     body: `{ "id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
