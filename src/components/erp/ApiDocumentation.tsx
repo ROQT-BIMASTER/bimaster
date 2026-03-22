@@ -53,6 +53,24 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 // ═══════════════════════════════════════
+// REUSABLE FLOW PATTERNS
+// ═══════════════════════════════════════
+const FLOW = {
+  status: ["Request", "Health Check", "Response 200"],
+  listar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Params", "Query DB", "Paginacao", "Response 200"],
+  consultar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Params", "Query DB", "Response 200"],
+  incluir: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Validacao", "Insert DB", "Webhook Event", "Response 201"],
+  alterar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Find Record", "Update DB", "Webhook Event", "Response 200"],
+  excluir: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Record", "Soft Delete", "Webhook Event", "Response 200"],
+  upsert: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Conflict Check", "Upsert DB", "Webhook Event", "Response 200"],
+  upsertLote: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Array", "Batch Validate", "Upsert DB", "Response 200"],
+  pagamento: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Find Titulo", "Registra Baixa", "Webhook Event", "Response 200"],
+  sync: ["Request", "API Key", "Rate Limit", "Extract Records", "Transform", "Batch Upsert", "Sync Log", "Response 200"],
+  exportPull: ["Request", "API Key", "Rate Limit", "Query DB", "Transform Payload", "Response 200"],
+  confirm: ["Request", "API Key", "Rate Limit", "Parse IDs", "Update Status", "Response 200"],
+};
+
+// ═══════════════════════════════════════
 // ENDPOINT DATA
 // ═══════════════════════════════════════
 
