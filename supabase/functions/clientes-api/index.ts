@@ -184,6 +184,7 @@ Deno.serve(async (req) => {
 
       if (error) return errorResponse(error.code === "PGRST116" ? 404 : 500, error.code === "PGRST116" ? "NOT_FOUND" : "DB_ERROR", error.code === "PGRST116" ? "Cliente não encontrado" : error.message, req, startMs);
 
+      enqueueWebhookEvent("cliente.alterado", { id: data.id, codigo: data.codigo }, auth.empresaId ? parseInt(auth.empresaId) : undefined);
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Cliente alterado com sucesso!"), 200, req, { startMs });
     }
 
