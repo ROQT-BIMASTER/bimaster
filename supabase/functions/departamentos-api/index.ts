@@ -148,6 +148,7 @@ async function handleIncluir(
 
   if (error) throw error;
 
+  enqueueWebhookEvent("departamento.criado", { codigo, descricao });
   return jsonResponse({
     codigo,
     descricao,
