@@ -126,6 +126,7 @@ Deno.serve(async (req) => {
 
       if (error) return errorResp(500, "DB_ERROR", error.message, req, startMs);
 
+      enqueueWebhookEvent("categoria.criado", { codigo: data.code, descricao });
       return json({
         codigo: data.code,
         codigo_status: "0",
