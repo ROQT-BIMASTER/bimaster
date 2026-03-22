@@ -496,7 +496,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
   const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
-  const hasDetails = endpoint.params || endpoint.body || endpoint.response;
+  const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
