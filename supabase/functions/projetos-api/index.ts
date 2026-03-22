@@ -116,6 +116,7 @@ Deno.serve(async (req) => {
         throw error;
       }
 
+      enqueueWebhookEvent("projeto.criado", { id: data.id, nome: data.nome, codInt: data.codigo_integracao });
       return jsonResponse(statusResponse(data, "0", "Projeto incluído com sucesso!"), 201, req, { startMs });
     }
 
