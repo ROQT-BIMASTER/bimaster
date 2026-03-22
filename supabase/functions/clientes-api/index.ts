@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
         return errorResponse(500, "DB_ERROR", error.message, req, startMs);
       }
 
+      enqueueWebhookEvent("cliente.criado", { id: data.id, codigo: data.codigo, ...body }, auth.empresaId ? parseInt(auth.empresaId) : undefined);
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Cliente incluído com sucesso!"), 201, req, { startMs });
     }
 
