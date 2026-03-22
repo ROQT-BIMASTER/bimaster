@@ -880,6 +880,59 @@ export type Database = {
         }
         Relationships: []
       }
+      api_support_messages: {
+        Row: {
+          admin_user_id: string | null
+          api_id: string
+          created_at: string | null
+          empresa_id: string | null
+          endpoint_path: string
+          id: string
+          is_admin_reply: boolean | null
+          message: string
+          parent_id: string | null
+          status: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          admin_user_id?: string | null
+          api_id: string
+          created_at?: string | null
+          empresa_id?: string | null
+          endpoint_path: string
+          id?: string
+          is_admin_reply?: boolean | null
+          message: string
+          parent_id?: string | null
+          status?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          admin_user_id?: string | null
+          api_id?: string
+          created_at?: string | null
+          empresa_id?: string | null
+          endpoint_path?: string
+          id?: string
+          is_admin_reply?: boolean | null
+          message?: string
+          parent_id?: string | null
+          status?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_support_messages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "api_support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           cancelado_em: string | null
