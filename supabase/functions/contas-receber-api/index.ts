@@ -713,6 +713,7 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase.from('contas_receber').insert(mapped).select('id, codigo_lancamento_huggs, codigo_lancamento_integracao').single();
     if (error) return apiResponse({ codigo_status: "1", descricao_status: error.message }, 500);
 
+    enqueueWebhookEvent("conta_receber.criado", { id: data?.id, codigo_lancamento_integracao: data?.codigo_lancamento_integracao, valor: body.valor_documento });
     return apiResponse({
       codigo_lancamento_huggs: data?.codigo_lancamento_huggs || null,
       codigo_lancamento_integracao: data?.codigo_lancamento_integracao,
