@@ -242,6 +242,18 @@ Deno.serve(async (req) => {
 
   console.log(`[v${API_VERSION}] ${req.method} ${path} (clean: ${pathWithoutBase})`);
 
+  // Health check — antes de auth
+  if (req.method === "GET" && (pathWithoutBase === "/status" || pathWithoutBase === "/status/")) {
+    return new Response(JSON.stringify({
+      status: "ok",
+      service: "contas-receber-api",
+      version: API_VERSION,
+      timestamp: new Date().toISOString(),
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Validar API Key (com fallback erp_api_keys)
   async function validateApiKey(): Promise<boolean> {
     const apiKey = req.headers.get('x-api-key');

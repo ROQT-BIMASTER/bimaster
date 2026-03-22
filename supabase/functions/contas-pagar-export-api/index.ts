@@ -83,6 +83,15 @@ Deno.serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
+  // Health check — antes de auth
+  {
+    const url = new URL(req.url);
+    const p = url.pathname.split("/").pop();
+    if (req.method === "GET" && p === "status") {
+      return jsonResponse({ status: "ok", service: "contas-pagar-export-api", version: "1.0.0" }, 200);
+    }
+  }
+
   const apiKey = req.headers.get("x-api-key");
   const expectedKey = Deno.env.get("EXPORT_API_KEY");
 

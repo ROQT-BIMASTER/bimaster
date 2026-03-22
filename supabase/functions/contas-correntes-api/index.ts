@@ -30,6 +30,11 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname.replace(/^\/contas-correntes-api\/?/, "/").replace(/\/+$/, "") || "/";
 
+  // Health check — antes de auth
+  if (path === "/status" && req.method === "GET") {
+    return json({ status: "ok", service: "contas-correntes-api", version: "1.0.0" }, 200, req, startMs);
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

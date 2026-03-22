@@ -24,6 +24,7 @@ interface Endpoint {
   params?: { name: string; type: string; required: boolean; description: string }[];
   body?: string;
   response?: string;
+  flow?: string[];
 }
 
 interface ApiDefinition {
@@ -52,12 +53,31 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 // ═══════════════════════════════════════
+// REUSABLE FLOW PATTERNS
+// ═══════════════════════════════════════
+const FLOW = {
+  status: ["Request", "Health Check", "Response 200"],
+  listar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Params", "Query DB", "Paginacao", "Response 200"],
+  consultar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Params", "Query DB", "Response 200"],
+  incluir: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Validacao", "Insert DB", "Webhook Event", "Response 201"],
+  alterar: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Find Record", "Update DB", "Webhook Event", "Response 200"],
+  excluir: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Record", "Soft Delete", "Webhook Event", "Response 200"],
+  upsert: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Conflict Check", "Upsert DB", "Webhook Event", "Response 200"],
+  upsertLote: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Array", "Batch Validate", "Upsert DB", "Response 200"],
+  pagamento: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Body", "Find Titulo", "Registra Baixa", "Webhook Event", "Response 200"],
+  sync: ["Request", "API Key", "Rate Limit", "Extract Records", "Transform", "Batch Upsert", "Sync Log", "Response 200"],
+  exportPull: ["Request", "API Key", "Rate Limit", "Query DB", "Transform Payload", "Response 200"],
+  confirm: ["Request", "API Key", "Rate Limit", "Parse IDs", "Update Status", "Response 200"],
+};
+
+// ═══════════════════════════════════════
 // ENDPOINT DATA
 // ═══════════════════════════════════════
 
 const contasPagarCrud: Endpoint[] = [
   {
     method: "GET", path: "/query", description: "Consulta avançada com filtros e paginação", tag: "consulta",
+    flow: FLOW.listar,
     params: [
       { name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" },
       { name: "status", type: "string", required: false, description: "Filtro: pendente, vencido, pago, cancelado" },
@@ -70,16 +90,19 @@ const contasPagarCrud: Endpoint[] = [
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
+    flow: FLOW.alterar,
     body: `{ "id": "uuid-titulo", "data_vencimento": "2026-04-15", "valor_original": 1600, "portador": "Banco Itaú" }`,
     response: `{ "success": true, "message": "Título atualizado", "updated_fields": ["data_vencimento", "valor_original", "portador"] }`,
   },
   {
     method: "POST", path: "/cancelar", description: "Cancelamento com motivo obrigatório (suporta batch)",
+    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse IDs", "Cancelar Titulos", "Webhook Event", "Response 200"],
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
     response: `{ "cancelados": 2, "message": "2 título(s) cancelado(s)" }`,
   },
   {
     method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
+    flow: FLOW.pagamento,
     body: `{ "id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
@@ -88,6 +111,7 @@ const contasPagarCrud: Endpoint[] = [
 const contasPagarIntegracao: Endpoint[] = [
   {
     method: "GET", path: "/consultar", description: "Consultar título por ID ou código de integração (ConsultarContaPagar)", tag: "novo",
+    flow: FLOW.consultar,
     params: [
       { name: "id", type: "uuid", required: false, description: "ID interno" },
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
@@ -97,16 +121,19 @@ const contasPagarIntegracao: Endpoint[] = [
   },
   {
     method: "POST", path: "/incluir", description: "Incluir conta a pagar (IncluirContaPagar)", tag: "novo",
+    flow: FLOW.incluir,
     body: `{ "codigo_lancamento_integracao": "INT-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01", "data_previsao": "21/03/2026", "id_conta_corrente": 4243124 }`,
     response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }`,
   },
   {
     method: "PUT", path: "/alterar", description: "Alterar conta a pagar (AlterarContaPagar)", tag: "novo",
+    flow: FLOW.alterar,
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }`,
   },
   {
     method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a pagar (ExcluirContaPagar)", tag: "novo",
+    flow: FLOW.excluir,
     params: [
       { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" },
       { name: "id", type: "uuid", required: false, description: "ID interno" },
@@ -114,25 +141,30 @@ const contasPagarIntegracao: Endpoint[] = [
   },
   {
     method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
+    flow: FLOW.upsert,
     body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
+    flow: FLOW.upsertLote,
     body: `{ "lote": 1, "conta_pagar_cadastro": [{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "valor_documento": 100 }] }`,
     response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }`,
   },
   {
     method: "POST", path: "/lancar-pagamento", description: "Efetuar baixa de pagamento (LancarPagamento)", tag: "novo",
+    flow: FLOW.pagamento,
     body: `{ "codigo_lancamento_integracao": "INT-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026", "observacao": "Baixa via API" }`,
     response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_baixa": "uuid", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Pagamento registrado com sucesso!" }`,
   },
   {
     method: "POST", path: "/cancelar-pagamento", description: "Cancelar pagamento/baixa (CancelarPagamento)", tag: "novo",
+    flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Webhook Event", "Response 200"],
     body: `{ "codigo_baixa": "uuid-pagamento" }`,
     response: `{ "codigo_baixa": "uuid", "codigo_status": "0", "descricao_status": "Pagamento cancelado com sucesso!" }`,
   },
   {
     method: "GET", path: "/listar", description: "Listagem paginada (ListarContasPagar)", tag: "novo",
+    flow: FLOW.listar,
     params: [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
@@ -150,77 +182,77 @@ const contasPagarIntegracao: Endpoint[] = [
 ];
 
 const contasPagarComplementar: Endpoint[] = [
-  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
-  { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
-  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
-  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
-  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título" },
-  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento" },
+  { method: "GET", path: "/parcelas", description: "Consulta parcelas de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/parcelas/sync", description: "Sync de parcelas do ERP (máx 5000/request)", flow: FLOW.sync, body: `{ "parcelas": [{ "conta_pagar_id": "uuid", "numero": 1, "valor": 500, "data_vencimento": "2026-04-15" }] }` },
+  { method: "GET", path: "/pagamentos", description: "Histórico de pagamentos de um título", flow: FLOW.consultar, params: [{ name: "conta_pagar_id", type: "uuid", required: true, description: "ID do título" }] },
+  { method: "POST", path: "/estornar", description: "Estorno de pagamento com recálculo de saldo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Pagamento", "Estornar", "Recalcular Saldo", "Response 200"], body: `{ "id": "uuid-titulo", "motivo": "Pagamento indevido", "valor_estorno": 500 }` },
+  { method: "GET", path: "/anexos", description: "Consultar comprovantes de um título", flow: FLOW.consultar },
+  { method: "POST", path: "/anexos", description: "Registrar comprovante de pagamento", flow: FLOW.incluir },
 ];
 
 const exportPull: Endpoint[] = [
-  { method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)", response: `{ "data": [{ "id": "uuid", "export_type": "registration", "fornecedor": { "nome": "ABC Ltda" }, "pagamento": { "valor": 1500 } }], "total": 5 }` },
-  { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)" },
-  { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação" },
-  { method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP", body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`, response: `{ "confirmed": 2, "export_type": "registration" }` },
-  { method: "GET", path: "/status", description: "Status global de pendências de exportação" },
+  { method: "GET", path: "/pending", description: "Itens aceitos pendentes de exportação (provisão)", flow: FLOW.exportPull, response: `{ "data": [{ "id": "uuid", "export_type": "registration", "fornecedor": { "nome": "ABC Ltda" }, "pagamento": { "valor": 1500 } }], "total": 5 }` },
+  { method: "GET", path: "/paid", description: "Itens pagos pendentes de exportação (baixa)", flow: FLOW.exportPull },
+  { method: "GET", path: "/cancelled", description: "Títulos cancelados pendentes de exportação", flow: FLOW.exportPull },
+  { method: "POST", path: "/confirm", description: "Confirmar recebimento pelo ERP", flow: FLOW.confirm, body: `{ "ids": ["uuid-1", "uuid-2"], "export_type": "registration" }`, response: `{ "confirmed": 2, "export_type": "registration" }` },
+  { method: "GET", path: "/status", description: "Status global de pendências de exportação", flow: FLOW.status },
 ];
 
 const exportAdvanced: Endpoint[] = [
-  { method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo", params: [{ name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" }, { name: "status", type: "string", required: false, description: "exported, pending, error" }, { name: "limit", type: "number", required: false, description: "Máx 500" }] },
-  { method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo", body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`, response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }` },
-  { method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo", body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }` },
-  { method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }], response: `{ "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 } }` },
-  { method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo", params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }, { name: "periodo_de", type: "date", required: false, description: "Data inicial" }, { name: "periodo_ate", type: "date", required: false, description: "Data final" }] },
-  { method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo", body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }` },
+  { method: "GET", path: "/history", description: "Histórico completo de exportações com filtros", tag: "novo", flow: FLOW.listar, params: [{ name: "export_type", type: "string", required: false, description: "registration, payment, cancellation" }, { name: "status", type: "string", required: false, description: "exported, pending, error" }, { name: "limit", type: "number", required: false, description: "Máx 500" }] },
+  { method: "POST", path: "/export-batch", description: "Exportação em lote (até 200 itens)", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Parse IDs", "Enfileirar", "Response 200"], body: `{ "ids": ["uuid-1", "uuid-2"], "channel": "rest_api", "export_type": "payment" }`, response: `{ "queued": 2, "skipped": 0, "message": "2 item(ns) enfileirado(s)" }` },
+  { method: "POST", path: "/retry-failed", description: "Reprocessar exportações com erro", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Find Failed", "Re-enfileirar", "Response 200"], body: `{ "ids": ["queue-uuid-1"], "channel": "rest_api" }` },
+  { method: "GET", path: "/reconciliation", description: "Reconciliação BiMaster ↔ ERP", tag: "novo", flow: FLOW.consultar, params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }], response: `{ "resumo": { "total_titulos": 500, "exportados": 480, "com_erro": 5, "taxa_sincronizacao": 96.0 } }` },
+  { method: "GET", path: "/export-summary", description: "Resumo detalhado por empresa e período", tag: "novo", flow: FLOW.consultar, params: [{ name: "empresa_id", type: "number", required: false, description: "Filtro por empresa" }, { name: "periodo_de", type: "date", required: false, description: "Data inicial" }, { name: "periodo_ate", type: "date", required: false, description: "Data final" }] },
+  { method: "POST", path: "/webhook-push", description: "Configurar webhook outbound push", tag: "novo", flow: ["Request", "API Key", "Rate Limit", "Parse Config", "Save Webhook", "Response 200"], body: `{ "webhook_url": "https://erp.com/webhook", "events": ["accepted", "paid", "cancelled"], "secret": "hmac-secret" }` },
 ];
 
 const contasCorrentesCrud: Endpoint[] = [
-  { method: "GET", path: "/", description: "Listar contas correntes (paginado)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Número da página" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" }, { name: "filtrar_apenas_ativo", type: "string", required: false, description: "Filtrar ativos (S/N)" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 100, "total_de_registros": 250, "ListarContasCorrentes": [...] }` },
-  { method: "GET", path: "/resumo", description: "Listagem resumida de contas correntes", tag: "novo" },
-  { method: "GET", path: "/consultar", description: "Consultar conta corrente por ID ou código de integração", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "nCodCC", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú" } }` },
-  { method: "POST", path: "/incluir", description: "Incluir nova conta corrente", body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente incluída com sucesso" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar conta corrente existente", body: `{ "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú Atualizada", "valor_limite": 75000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente alterada com sucesso" }` },
-  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta corrente", params: [{ name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
-  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodCCInt)", body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }` },
-  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 contas)", body: `{ "lote": 1, "fin_conta_corrente_cadastro": [{ "cCodCCInt": "MyCC0001", "descricao": "Caixinha", "saldo_inicial": 0 }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
-  { method: "GET", path: "/status", description: "Health check da API" },
+  { method: "GET", path: "/", description: "Listar contas correntes (paginado)", tag: "novo", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Número da página" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" }, { name: "filtrar_apenas_ativo", type: "string", required: false, description: "Filtrar ativos (S/N)" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 100, "total_de_registros": 250, "ListarContasCorrentes": [...] }` },
+  { method: "GET", path: "/resumo", description: "Listagem resumida de contas correntes", tag: "novo", flow: FLOW.consultar },
+  { method: "GET", path: "/consultar", description: "Consultar conta corrente por ID ou código de integração", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "nCodCC", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "fin_conta_corrente_cadastro": { "nCodCC": 12345, "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú" } }` },
+  { method: "POST", path: "/incluir", description: "Incluir nova conta corrente", flow: FLOW.incluir, body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente incluída com sucesso" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar conta corrente existente", flow: FLOW.alterar, body: `{ "cCodCCInt": "MyCC0001", "descricao": "Conta Itaú Atualizada", "valor_limite": 75000 }`, response: `{ "cCodCCInt": "MyCC0001", "cCodStatus": "0", "cDesStatus": "Conta corrente alterada com sucesso" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta corrente", flow: FLOW.excluir, params: [{ name: "cCodCCInt", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodCCInt)", flow: FLOW.upsert, body: `{ "cCodCCInt": "MyCC0001", "tipo_conta_corrente": "CC", "codigo_banco": "341", "descricao": "Conta Itaú", "saldo_inicial": 10000 }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 contas)", flow: FLOW.upsertLote, body: `{ "lote": 1, "fin_conta_corrente_cadastro": [{ "cCodCCInt": "MyCC0001", "descricao": "Caixinha", "saldo_inicial": 0 }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
+  { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
 ];
 
 const lancamentosCcCrud: Endpoint[] = [
-  { method: "GET", path: "/", description: "Listar lançamentos de conta corrente (paginado)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Número da página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "nCodCC", type: "integer", required: false, description: "Código da conta corrente" }, { name: "cOrigem", type: "string", required: false, description: "Filtro: MANU, CONP, CONR, TRAN" }, { name: "dtPagInicial", type: "date", required: false, description: "Data inicial" }, { name: "dtPagFinal", type: "date", required: false, description: "Data final" }], response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 95, "listaLancamentos": [...] }` },
-  { method: "GET", path: "/consultar", description: "Consultar lançamento por ID ou código", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...} } }` },
-  { method: "POST", path: "/incluir", description: "Incluir novo lançamento de conta corrente", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": 2485994 } }`, response: `{ "nCodLanc": null, "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento incluído com sucesso" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar lançamento existente", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nValorLanc": 200.00 }, "detalhes": { "cObs": "Valor corrigido" } }`, response: `{ "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento alterado com sucesso" }` },
-  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) lançamento", params: [{ name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
-  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodIntLanc)", body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }` },
-  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 lançamentos)", body: `{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
-  { method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo", params: [{ name: "nCodCC", type: "integer", required: false, description: "Código Huggs da conta" }, { name: "cCodIntCC", type: "string", required: false, description: "Código de integração" }, { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial" }, { name: "dPeriodoFinal", type: "string", required: false, description: "Período final" }, { name: "cExibirApenasSaldo", type: "string", required: false, description: "S para apenas saldos" }], response: `{ "nCodCC": 427619317, "cDescricao": "Conta Bradesco", "nSaldoAnterior": 10000.00, "nSaldoAtual": 15230.50, "listaMovimentos": [...] }` },
-  { method: "GET", path: "/status", description: "Health check da API" },
+  { method: "GET", path: "/", description: "Listar lançamentos de conta corrente (paginado)", tag: "novo", flow: FLOW.listar, params: [{ name: "nPagina", type: "integer", required: false, description: "Número da página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "nCodCC", type: "integer", required: false, description: "Código da conta corrente" }, { name: "cOrigem", type: "string", required: false, description: "Filtro: MANU, CONP, CONR, TRAN" }, { name: "dtPagInicial", type: "date", required: false, description: "Data inicial" }, { name: "dtPagFinal", type: "date", required: false, description: "Data final" }], response: `{ "nPagina": 1, "nTotPaginas": 5, "nRegistros": 20, "nTotRegistros": 95, "listaLancamentos": [...] }` },
+  { method: "GET", path: "/consultar", description: "Consultar lançamento por ID ou código", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "nCodLanc", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "lancamento": { "nCodLanc": 12345, "cCodIntLanc": "LANC001", "cabecalho": {...}, "detalhes": {...} } }` },
+  { method: "POST", path: "/incluir", description: "Incluir novo lançamento de conta corrente", flow: FLOW.incluir, body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN", "nCodCliente": 2485994 } }`, response: `{ "nCodLanc": null, "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento incluído com sucesso" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar lançamento existente", flow: FLOW.alterar, body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nValorLanc": 200.00 }, "detalhes": { "cObs": "Valor corrigido" } }`, response: `{ "cCodIntLanc": "LANC001", "cCodStatus": "0", "cDesStatus": "Lançamento alterado com sucesso" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) lançamento", flow: FLOW.excluir, params: [{ name: "cCodIntLanc", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (cria ou atualiza por cCodIntLanc)", flow: FLOW.upsert, body: `{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 123.46 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500 lançamentos)", flow: FLOW.upsertLote, body: `{ "lote": 1, "lancamentos": [{ "cCodIntLanc": "LANC001", "cabecalho": { "nCodCC": 427619317, "dDtLanc": "21/03/2026", "nValorLanc": 100 }, "detalhes": { "cCodCateg": "1.01.02", "cTipo": "DIN" } }] }`, response: `{ "lote": 1, "cCodStatus": "0", "cDesStatus": "1 processado(s), 0 erro(s)" }` },
+  { method: "GET", path: "/extrato", description: "Extrato de conta corrente com saldos e movimentos (ListarExtrato)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse Params", "Query Movimentos", "Calcular Saldos", "Response 200"], params: [{ name: "nCodCC", type: "integer", required: false, description: "Código Huggs da conta" }, { name: "cCodIntCC", type: "string", required: false, description: "Código de integração" }, { name: "dPeriodoInicial", type: "string", required: false, description: "Período inicial" }, { name: "dPeriodoFinal", type: "string", required: false, description: "Período final" }, { name: "cExibirApenasSaldo", type: "string", required: false, description: "S para apenas saldos" }], response: `{ "nCodCC": 427619317, "cDescricao": "Conta Bradesco", "nSaldoAnterior": 10000.00, "nSaldoAtual": 15230.50, "listaMovimentos": [...] }` },
+  { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
 ];
 
 const contasReceberIntegracao: Endpoint[] = [
-  { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
-  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
-  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
-  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
-  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100 }` },
-  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "valor_documento": 100 }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
-  { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
-  { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }`, response: `{ "codigo_baixa": 0, "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }` },
-  { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }` },
-  { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", body: `{ "codigo_baixa": 0 }` },
-  { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", body: `{ "chave_lancamento": 0 }` },
-  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
+  { method: "GET", path: "/consultar", description: "Consultar título por ID ou código (ConsultarContaReceber)", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: false, description: "ID interno" }, { name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "codigo_lancamento_huggs", type: "integer", required: false, description: "Código numérico Huggs" }], response: `{ "conta_receber_cadastro": { "id": "uuid", "codigo_lancamento_integracao": "CR-001", "valor_original": 100 } }` },
+  { method: "POST", path: "/incluir", description: "Incluir conta a receber (IncluirContaReceber)", tag: "novo", flow: FLOW.incluir, body: `{ "codigo_lancamento_integracao": "CR-001", "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "1.01.02" }`, response: `{ "codigo_lancamento_huggs": null, "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro incluído com sucesso!" }` },
+  { method: "PUT", path: "/alterar", description: "Alterar conta a receber (AlterarContaReceber)", tag: "novo", flow: FLOW.alterar, body: `{ "codigo_lancamento_integracao": "CR-001", "valor_documento": 150, "data_vencimento": "30/04/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "codigo_status": "0", "descricao_status": "Cadastro alterado com sucesso!" }` },
+  { method: "DELETE", path: "/excluir", description: "Excluir (inativar) conta a receber (ExcluirContaReceber)", tag: "novo", flow: FLOW.excluir, params: [{ name: "codigo_lancamento_integracao", type: "string", required: false, description: "Código de integração" }, { name: "id", type: "uuid", required: false, description: "ID interno" }] },
+  { method: "POST", path: "/upsert", description: "Upsert unitário (UpsertContaReceber)", tag: "novo", flow: FLOW.upsert, body: `{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100 }` },
+  { method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaReceberPorLote)", tag: "novo", flow: FLOW.upsertLote, body: `{ "lote": 1, "conta_receber_cadastro": [{ "codigo_lancamento_integracao": "CR-001", "empresa_id": 8, "valor_documento": 100 }] }`, response: `{ "lote": 1, "codigo_status": "0", "descricao_status": "1 processado(s), 0 erro(s)" }` },
+  { method: "POST", path: "/lancar-recebimento", description: "Registrar recebimento/baixa (LancarRecebimento)", tag: "novo", flow: FLOW.pagamento, body: `{ "codigo_lancamento_integracao": "CR-001", "valor": 100.20, "desconto": 0, "juros": 0, "multa": 0, "data": "21/03/2026" }`, response: `{ "codigo_lancamento_integracao": "CR-001", "liquidado": "S", "valor_baixado": 100.20, "codigo_status": "0", "descricao_status": "Recebimento registrado com sucesso!" }` },
+  { method: "POST", path: "/cancelar-recebimento", description: "Cancelar recebimento (CancelarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Recebimento", "Estornar", "Response 200"], body: `{ "codigo_baixa": 0 }`, response: `{ "codigo_baixa": 0, "codigo_status": "0", "descricao_status": "Recebimento cancelado com sucesso!" }` },
+  { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": 0 }` },
+  { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": 0 }` },
+  { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Cancelar", "Webhook Event", "Response 200"], body: `{ "chave_lancamento": 0 }` },
+  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
 ];
 
 const boletosCrud: Endpoint[] = [
-  { method: "POST", path: "/gerar", description: "Gerar boleto para título CR (GerarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "nPerJuros": 2.0, "nPerMulta": 2.0 }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto gerado com sucesso!" }` },
-  { method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo", params: [{ name: "nCodTitulo", type: "integer", required: false, description: "Código do título" }, { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração" }], response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto localizado com sucesso!" }` },
-  { method: "POST", path: "/cancelar", description: "Cancelar boleto gerado (CancelarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001" }`, response: `{ "cCodStatus": "0", "cDesStatus": "Boleto cancelado com sucesso!" }` },
-  { method: "POST", path: "/prorrogar", description: "Prorrogar vencimento do boleto (ProrrogarBoleto)", tag: "novo", body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "dDtVenc": "30/04/2026" }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto prorrogado com sucesso!" }` },
-  { method: "GET", path: "/listar", description: "Listar boletos paginado", params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "status", type: "string", required: false, description: "Filtro: gerado, cancelado, prorrogado" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 20, "total_de_registros": 50, "boletos": [...] }` },
-  { method: "GET", path: "/status", description: "Health check da API" },
+  { method: "POST", path: "/gerar", description: "Gerar boleto para título CR (GerarBoleto)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Gerar Boleto", "Response 200"], body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "nPerJuros": 2.0, "nPerMulta": 2.0 }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto gerado com sucesso!" }` },
+  { method: "GET", path: "/obter", description: "Obter link e dados do boleto (ObterBoleto)", tag: "novo", flow: FLOW.consultar, params: [{ name: "nCodTitulo", type: "integer", required: false, description: "Código do título" }, { name: "cCodIntTitulo", type: "string", required: false, description: "Código de integração" }], response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto localizado com sucesso!" }` },
+  { method: "POST", path: "/cancelar", description: "Cancelar boleto gerado (CancelarBoleto)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Boleto", "Cancelar", "Response 200"], body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001" }`, response: `{ "cCodStatus": "0", "cDesStatus": "Boleto cancelado com sucesso!" }` },
+  { method: "POST", path: "/prorrogar", description: "Prorrogar vencimento do boleto (ProrrogarBoleto)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Boleto", "Atualizar Vencimento", "Response 200"], body: `{ "nCodTitulo": 0, "cCodIntTitulo": "CR-001", "dDtVenc": "30/04/2026" }`, response: `{ "cLinkBoleto": "https://...", "cCodStatus": "0", "cDesStatus": "Boleto prorrogado com sucesso!" }` },
+  { method: "GET", path: "/listar", description: "Listar boletos paginado", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "status", type: "string", required: false, description: "Filtro: gerado, cancelado, prorrogado" }], response: `{ "pagina": 1, "total_de_paginas": 3, "registros": 20, "total_de_registros": 50, "boletos": [...] }` },
+  { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
 ];
 
 const anexosCrud: Endpoint[] = [
@@ -495,7 +527,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
   const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
-  const hasDetails = endpoint.params || endpoint.body || endpoint.response;
+  const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -513,6 +545,24 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
       {hasDetails && (
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
+            {/* Flow diagram */}
+            {endpoint.flow && endpoint.flow.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Fluxo</span>
+                <div className="flex items-center flex-wrap gap-1 py-2 px-3 bg-muted/40 rounded-lg">
+                  {endpoint.flow.map((step, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium border border-primary/20">
+                        {step}
+                      </span>
+                      {i < endpoint.flow!.length - 1 && (
+                        <span className="text-muted-foreground text-xs">→</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL completa</span>
               <CodeBlock code={`curl -H "x-api-key: SUA_CHAVE" \\\n  "${fullUrl}"`} />
