@@ -186,6 +186,7 @@ async function handleAlterar(
 
   if (error) throw error;
 
+  enqueueWebhookEvent("departamento.alterado", { codigo, descricao: updates.nome || "" });
   return jsonResponse({
     codigo,
     descricao: updates.nome || "",

@@ -363,6 +363,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("PUT /alterar", body, 200);
+      enqueueWebhookEvent("conta_corrente.alterado", { id: data.id, nCodCC: data.n_cod_cc, cCodCCInt: data.codigo_integracao }, empresaId);
       return json({
         nCodCC: data.n_cod_cc,
         cCodCCInt: data.codigo_integracao,

@@ -352,6 +352,7 @@ Deno.serve(async (req) => {
       }
 
       await logSync("POST /incluir", body, 201);
+      enqueueWebhookEvent("lancamento_cc.criado", { id: data.id, nCodLanc: data.n_cod_lanc, valor: data.valor }, empresaId);
       return json({
         nCodLanc: data.n_cod_lanc,
         cCodIntLanc: data.c_cod_int_lanc || data.codigo_integracao,

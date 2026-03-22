@@ -195,6 +195,7 @@ Deno.serve(async (req) => {
       if (error) return errorResp(500, "DB_ERROR", error.message, req, startMs);
       if (!data) return errorResp(404, "NOT_FOUND", `Categoria '${codigo}' não encontrada`, req, startMs);
 
+      enqueueWebhookEvent("categoria.alterado", { codigo: data.code, descricao: data.name });
       return json({
         codigo: data.code,
         descricao: data.name,

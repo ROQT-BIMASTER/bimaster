@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.from("projetos").update(updates).eq("id", existing.id).select().single();
       if (error) throw error;
 
+      enqueueWebhookEvent("projeto.alterado", { id: data.id, nome: data.nome, codInt: data.codigo_integracao });
       return jsonResponse(statusResponse(data, "0", "Projeto alterado com sucesso!"), 200, req, { startMs });
     }
 
