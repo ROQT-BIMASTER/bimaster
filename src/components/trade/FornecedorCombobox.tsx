@@ -181,7 +181,7 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     if (data.regimeTributario) updateFields.regime_tributario = data.regimeTributario;
 
     if (Object.keys(updateFields).length > 0) {
-      await supabase.from("fabrica_fornecedores").update(updateFields).eq("id", value);
+      await supabase.from("fornecedores").update({ ...updateFields, updated_at: new Date().toISOString() }).eq("id", value);
       queryClient.invalidateQueries({ queryKey: ['trade-fornecedores-combobox'] });
     }
   };
