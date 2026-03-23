@@ -103,8 +103,10 @@ Deno.serve(async (req) => {
         return errorResp(404, "NOT_FOUND", "Nenhum fornecedor encontrado", req, startMs);
       }
 
+      // Map to backward-compatible format with `ativo` field
+      const mapped = data.map((f: any) => ({ ...f, ativo: f.status === "ativo" }));
       await logSync("GET /", { cnpj: cnpjParam }, 200);
-      return json({ fornecedores: data, total: data.length }, 200, req, startMs);
+      return json({ fornecedores: mapped, total: mapped.length }, 200, req, startMs);
     }
 
     // ==================== 404 ====================
