@@ -21,11 +21,6 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Eye, ChevronDown, FileBarChart, Landmark
 } from "lucide-react";
-import { 
-  Download, Receipt, AlertCircle, CheckCircle, Clock, ArrowLeft, Building2, ChevronsUpDown, 
-  LayoutDashboard, CalendarDays, TableIcon, AlertTriangle, RefreshCw, Upload,
-  ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
-} from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
