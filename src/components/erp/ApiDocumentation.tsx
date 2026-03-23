@@ -1325,6 +1325,45 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                           <span className="text-muted-foreground"> — Consultas avançadas (query endpoints)</span>
                         </div>
                       </div>
+
+                      {/* Pagination Iteration Examples */}
+                      <div className="mt-3">
+                        <h5 className="font-medium text-xs mb-2">Como percorrer todas as páginas:</h5>
+                        <Tabs defaultValue="js-pag" className="w-full">
+                          <TabsList className="h-7">
+                            <TabsTrigger value="js-pag" className="text-[11px]">JavaScript</TabsTrigger>
+                            <TabsTrigger value="py-pag" className="text-[11px]">Python</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value="js-pag" className="mt-1">
+                            <CodeBlock code={`async function fetchAllPages(baseUrl, apiKey) {
+  let pagina = 1, todas = [];
+  while (true) {
+    const res = await fetch(\`\${baseUrl}?pagina=\${pagina}&registros_por_pagina=500\`, {
+      headers: { "x-api-key": apiKey }
+    });
+    const data = await res.json();
+    todas.push(...(data.conta_pagar_cadastro || []));
+    if (pagina >= data.total_de_paginas) break;
+    pagina++;
+  }
+  return todas; // Array com TODOS os registros
+}`} />
+                          </TabsContent>
+                          <TabsContent value="py-pag" className="mt-1">
+                            <CodeBlock code={`def fetch_all_pages(base_url, api_key):
+    pagina, todas = 1, []
+    while True:
+        r = requests.get(f"{base_url}?pagina={pagina}&registros_por_pagina=500",
+                         headers={"x-api-key": api_key})
+        data = r.json()
+        todas.extend(data.get("conta_pagar_cadastro", []))
+        if pagina >= data["total_de_paginas"]:
+            break
+        pagina += 1
+    return todas  # Lista com TODOS os registros`} />
+                          </TabsContent>
+                        </Tabs>
+                      </div>
                     </div>
                   </div>
 
