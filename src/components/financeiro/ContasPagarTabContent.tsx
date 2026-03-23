@@ -512,9 +512,9 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             )}
             <div className="space-y-1.5">
               <Label>Fornecedor *</Label>
-              <Popover open={fornecedorOpen} onOpenChange={setFornecedorOpen}>
+              <Popover open={isReadOnly ? false : fornecedorOpen} onOpenChange={setFornecedorOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" className="w-full justify-between h-10 font-normal">
+                  <Button variant="outline" role="combobox" className="w-full justify-between h-10 font-normal" disabled={isReadOnly}>
                     {form.fornecedor_nome || "Selecionar fornecedor..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
