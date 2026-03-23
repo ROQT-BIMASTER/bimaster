@@ -176,6 +176,7 @@ const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarPro
 const FichaRevisaoDiretoria = lazyWithRetry(() => import("./pages/FichaRevisaoDiretoria"));
 const FabricaComunicacaoRevisoes = lazyWithRetry(() => import("./pages/FabricaComunicacaoRevisoes"));
 const Fornecedores = lazyWithRetry(() => import("./pages/Fornecedores"));
+const FabricaFornecedores = lazyWithRetry(() => import("./pages/FabricaFornecedores"));
 const Pagamentos = lazyWithRetry(() => import("./pages/Pagamentos"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
