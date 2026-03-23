@@ -803,26 +803,53 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
 // MAIN COMPONENT
 // ═══════════════════════════════════════
 
-export default function ApiDocumentation() {
+interface ApiDocumentationProps {
+  accessProfileModules?: { module_id: string; api_id: string | null; visivel: boolean }[] | null;
+}
+
+export default function ApiDocumentation({ accessProfileModules }: ApiDocumentationProps = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedApi, setExpandedApi] = useState<string | null>(null);
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const moduleRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Apply access profile filtering
+  const accessFilteredModules = useMemo(() => {
+    if (!accessProfileModules || accessProfileModules.length === 0) return API_MODULES;
+
+    return API_MODULES.map(mod => {
+      // Check if full module is allowed
+      const moduleEntry = accessProfileModules.find(m => m.module_id === mod.id && !m.api_id);
+      if (moduleEntry && moduleEntry.visivel) return mod;
+
+      // Check individual APIs
+      const allowedApiIds = accessProfileModules
+        .filter(m => m.module_id === mod.id && m.api_id && m.visivel)
+        .map(m => m.api_id);
+
+      if (allowedApiIds.length === 0 && !moduleEntry) return { ...mod, apis: [] };
+
+      return {
+        ...mod,
+        apis: mod.apis.filter(api => allowedApiIds.includes(api.id)),
+      };
+    }).filter(mod => mod.apis.length > 0);
+  }, [accessProfileModules]);
+
   const totalEndpoints = useMemo(() => {
     let count = 0;
-    for (const mod of API_MODULES) {
+    for (const mod of accessFilteredModules) {
       for (const api of mod.apis) {
         for (const s of api.sections) count += s.endpoints.length;
       }
     }
     return count;
-  }, []);
+  }, [accessFilteredModules]);
 
   const filteredModules = useMemo(() => {
-    if (!searchQuery.trim()) return API_MODULES;
+    if (!searchQuery.trim()) return accessFilteredModules;
     const q = searchQuery.toLowerCase();
-    return API_MODULES.map(mod => ({
+    return accessFilteredModules.map(mod => ({
       ...mod,
       apis: mod.apis.filter(api => {
         const nameMatch = api.name.toLowerCase().includes(q) || api.description.toLowerCase().includes(q) || api.basePath.toLowerCase().includes(q);
@@ -830,7 +857,7 @@ export default function ApiDocumentation() {
         return nameMatch || endpointMatch;
       }),
     })).filter(mod => mod.apis.length > 0);
-  }, [searchQuery]);
+  }, [searchQuery, accessFilteredModules]);
 
   const handleExportExcel = async () => {
     const sheets = buildExcelData(API_MODULES);
