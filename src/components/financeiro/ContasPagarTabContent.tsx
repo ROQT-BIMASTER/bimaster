@@ -504,7 +504,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             {/* Warning banner for locked status */}
             {isReadOnly && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
-                <Shield className="h-4 w-4 text-amber-600 shrink-0" />
+                <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
                 <p className="text-sm text-amber-700 dark:text-amber-400">
                   Este título está com status <strong>{editingStatus === "pago" ? "Pago" : "Cancelado"}</strong> e não pode ser alterado.
                 </p>
