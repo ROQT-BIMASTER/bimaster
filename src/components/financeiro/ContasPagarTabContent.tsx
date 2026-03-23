@@ -104,6 +104,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({ ...emptyForm });
   const [fornecedorOpen, setFornecedorOpen] = useState(false);
 
