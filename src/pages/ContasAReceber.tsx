@@ -1028,6 +1028,27 @@ export default function ContasAReceber() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ===== DETAIL DRAWER ===== */}
+      <Drawer open={detailDrawerOpen} onOpenChange={setDetailDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <div className="overflow-y-auto px-4 pb-6 md:px-6">
+            <DrawerHeader className="px-0">
+              <DrawerTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Detalhe — Conta a Receber
+              </DrawerTitle>
+              <DrawerDescription>
+                {selectedCR?.numero_documento}/{selectedCR?.parcela} — {selectedCR?.cliente_nome}
+              </DrawerDescription>
+            </DrawerHeader>
+
+            {selectedCR && (
+              <CRDetailContent conta={selectedCR} />
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </DashboardLayout>
   );
 }
