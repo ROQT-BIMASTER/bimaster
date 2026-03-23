@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useContasPagarSync, SyncMode } from '@/hooks/useContasPagarSync';
 import { N8NTabContent } from './N8NTabContent';
+import { DataSourceConfigPanel } from './DataSourceConfigPanel';
 import { 
   RefreshCw, 
   Database, 
@@ -83,6 +84,9 @@ export function ContasPagarSyncPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Config de Fonte de Dados */}
+      <DataSourceConfigPanel />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -126,6 +126,8 @@ export default function ContasPagarGestao() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   // Form state
   const [form, setForm] = useState({
@@ -142,18 +144,33 @@ export default function ContasPagarGestao() {
   });
 
   // ===== QUERIES =====
-  const { data: contas = [], isLoading } = useQuery({
-    queryKey: ["contas-pagar-gestao"],
+  const { data: contasResult, isLoading } = useQuery({
+    queryKey: ["contas-pagar-gestao", page, statusFilter, empresaFilter, fornecedorFilter, dateFrom?.toISOString(), dateTo?.toISOString(), search],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("contas_pagar")
-        .select("*")
-        .order("data_vencimento", { ascending: false })
-        .limit(500);
+        .select("*", { count: "exact" })
+        .order("data_vencimento", { ascending: false });
+
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (empresaFilter !== "all") q = q.eq("empresa_id", parseInt(empresaFilter));
+      if (search) q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%,categoria_nome.ilike.%${search}%`);
+      if (dateFrom) q = q.gte("data_vencimento", format(dateFrom, "yyyy-MM-dd"));
+      if (dateTo) q = q.lte("data_vencimento", format(dateTo, "yyyy-MM-dd"));
+
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      q = q.range(from, to);
+
+      const { data, error, count } = await q;
       if (error) throw error;
-      return (data || []) as ContaPagar[];
+      return { data: (data || []) as ContaPagar[], totalCount: count ?? 0 };
     },
   });
+
+  const contas = contasResult?.data ?? [];
+  const totalCount = contasResult?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-list"],
@@ -213,20 +230,10 @@ export default function ContasPagarGestao() {
   // ===== FILTERS =====
   const filtered = useMemo(() => {
     return contas.filter(c => {
-      if (search) {
-        const s = search.toLowerCase();
-        const match = [c.fornecedor_nome, c.numero_documento, c.tipo_documento, c.categoria_nome]
-          .some(f => f?.toLowerCase().includes(s));
-        if (!match) return false;
-      }
-      if (statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (empresaFilter !== "all" && String(c.empresa_id) !== empresaFilter) return false;
       if (fornecedorFilter !== "all" && (c.fornecedor_codigo || c.fornecedor_nome) !== fornecedorFilter) return false;
-      if (dateFrom && c.data_vencimento && c.data_vencimento < format(dateFrom, "yyyy-MM-dd")) return false;
-      if (dateTo && c.data_vencimento && c.data_vencimento > format(dateTo, "yyyy-MM-dd")) return false;
       return true;
     });
-  }, [contas, search, statusFilter, empresaFilter, fornecedorFilter, dateFrom, dateTo]);
+  }, [contas, fornecedorFilter]);
 
   // ===== SUMMARY CARDS =====
   const summary = useMemo(() => {
@@ -559,7 +566,7 @@ export default function ContasPagarGestao() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.slice(0, 100).map(c => (
+                    {filtered.map(c => (
                       <TableRow key={c.id} className="cursor-pointer hover:bg-muted/40" onClick={() => openDetail(c)}>
                         <TableCell className="font-mono text-xs">
                           {c.numero_documento || c.erp_id?.slice(0, 12)}
@@ -591,9 +598,31 @@ export default function ContasPagarGestao() {
                     ))}
                   </TableBody>
                 </Table>
-                {filtered.length > 100 && (
-                  <p className="text-xs text-muted-foreground text-center py-3">Exibindo 100 de {filtered.length} registros. Use os filtros para refinar.</p>
-                )}
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    {totalCount > 0
+                      ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, totalCount)} de ${totalCount} registros`
+                      : "Nenhum registro"}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(0)}>
+                      {"<<"}
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                      {"<"}
+                    </Button>
+                    <span className="text-xs px-2 text-muted-foreground">
+                      Pág. {page + 1} de {totalPages}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>
+                      {">"}
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage(totalPages - 1)}>
+                      {">>"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

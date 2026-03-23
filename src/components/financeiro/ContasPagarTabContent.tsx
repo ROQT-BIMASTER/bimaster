@@ -113,10 +113,10 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const [cancelJust, setCancelJust] = useState("");
 
   // ----- Queries -----
-  const { data: contas, isLoading } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, dateFrom?.toISOString(), dateTo?.toISOString()],
+  const { data: contasResult, isLoading } = useQuery({
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, dateFrom?.toISOString(), dateTo?.toISOString(), page],
     queryFn: async () => {
-      let q: any = supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: false });
+      let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
       if (filterAno !== "all") {
         q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
@@ -134,11 +134,18 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (dateFrom) q = q.gte("data_vencimento", dateFrom.toISOString().slice(0, 10));
       if (dateTo) q = q.lte("data_vencimento", dateTo.toISOString().slice(0, 10));
 
-      const { data, error } = await q.limit(500);
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      q = q.range(from, to);
+
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data || [];
+      return { data: data || [], totalCount: count ?? 0 };
     },
   });
+
+  const contas = contasResult?.data;
+  const totalCount = contasResult?.totalCount ?? 0;
 
   const { data: fornecedores } = useQuery({
     queryKey: ["fornecedores-autocomplete"],
@@ -188,9 +195,11 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     return items;
   }, [contas, erpFilter]);
 
-  // ----- Pagination -----
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // ----- Pagination (server-side, ERP filter remains client-side) -----
+  const totalPages = erpFilter === "all"
+    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+    : Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = erpFilter === "all" ? filtered : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // ----- Mutations -----
   const saveMutation = useMutation({
