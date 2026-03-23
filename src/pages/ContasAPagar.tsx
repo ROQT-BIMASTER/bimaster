@@ -212,7 +212,7 @@ export default function ContasAPagar() {
       q = q.in('portador', filterPortadores);
     }
 
-    // Filtro Dia Vencimento (data específica)
+    // Filtro Dia Vencimento (data específica) - tem prioridade sobre ano/mês
     if (filterDiaVencimento) {
       q = q.eq('data_vencimento', filterDiaVencimento);
     }
@@ -222,25 +222,27 @@ export default function ContasAPagar() {
       q = q.eq('data_pagamento', filterDiaPagamento);
     }
 
-    // Ano/Mês - Quando "Todos", buscar últimos 3 anos até 1 ano no futuro
-    if (filterAno === 'all') {
-      const hoje = new Date();
-      const anoAtual = hoje.getFullYear();
-      const startDate = `${anoAtual - 3}-01-01`;
-      const endDate = `${anoAtual + 1}-12-31`;
-      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-    } else {
-      const startDate = `${filterAno}-01-01`;
-      const endDate = `${filterAno}-12-31`;
-      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
-    }
-
-    if (filterMes !== 'all' && filterAno !== 'all') {
-      const mes = filterMes.padStart(2, '0');
-      const startDate = `${filterAno}-${mes}-01`;
-      const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-      const endDate = `${filterAno}-${mes}-${lastDay}`;
-      q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+    // Ano/Mês - Só aplicar se NÃO houver filtro de dia específico (evita conflito)
+    if (!filterDiaVencimento) {
+      if (filterMes !== 'all' && filterAno !== 'all') {
+        // Filtro por mês específico tem prioridade sobre ano genérico
+        const mes = filterMes.padStart(2, '0');
+        const startDate = `${filterAno}-${mes}-01`;
+        const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+        const endDate = `${filterAno}-${mes}-${lastDay}`;
+        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      } else if (filterAno !== 'all') {
+        const startDate = `${filterAno}-01-01`;
+        const endDate = `${filterAno}-12-31`;
+        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      } else {
+        // "Todos" - buscar últimos 3 anos até 1 ano no futuro
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        const startDate = `${anoAtual - 3}-01-01`;
+        const endDate = `${anoAtual + 1}-12-31`;
+        q = q.gte('data_vencimento', startDate).lte('data_vencimento', endDate);
+      }
     }
     
     return q;
