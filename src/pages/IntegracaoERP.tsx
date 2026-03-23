@@ -67,7 +67,7 @@ export default function IntegracaoERP() {
     setLoading(true);
     const { data, error } = await supabase
       .from("erp_api_keys")
-      .select("id, key_preview, empresa_id, nome_responsavel, expires_at, max_requests, request_count, active, created_at")
+      .select("id, key_preview, empresa_id, nome_responsavel, expires_at, max_requests, request_count, active, created_at, access_profile_id")
       .order("created_at", { ascending: false });
 
     if (error) {
