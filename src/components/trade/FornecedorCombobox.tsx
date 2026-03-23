@@ -105,7 +105,15 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
           .eq("id", value)
           .single();
         if (error) throw error;
-        setBankData(data as BankData);
+        setBankData({
+          banco: data.banco,
+          agencia: data.agencia,
+          conta: data.conta_bancaria,
+          tipo_conta: data.tipo_conta,
+          pix_chave: data.chave_pix,
+          pix_tipo: data.tipo_pix,
+          favorecido: data.favorecido,
+        });
       } catch {
         setBankData(null);
       } finally {
