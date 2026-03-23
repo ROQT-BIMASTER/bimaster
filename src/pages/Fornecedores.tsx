@@ -880,12 +880,6 @@ export default function Fornecedores() {
                   <Input value={form.chave_pix} onChange={(e) => setForm({ ...form, chave_pix: e.target.value })} placeholder="Digite a chave PIX" />
                 </div>
               </div>
-              <Separator />
-              <div className="grid gap-1.5">
-                <Label>Linha Digitável (Boleto)</Label>
-                <Input value={form.linha_digitavel} onChange={(e) => setForm({ ...form, linha_digitavel: e.target.value })}
-                  placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" className="font-mono text-xs" />
-              </div>
             </div>
           )}
 
