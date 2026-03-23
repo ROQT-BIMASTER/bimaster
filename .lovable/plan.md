@@ -1,40 +1,54 @@
 
 
-# Relatório Técnico — AP Module (Revisado)
+# Reestruturação AP Module — Plano de Execução
 
-## Revisão do Escopo
+## Escopo
 
-Voce tem razao. A auditoria do `ApiDocumentation.tsx` confirma **~168 endpoints** distribuidos em **4 modulos** e **30+ APIs**. O relatorio tecnico do AP Module precisa refletir esse universo completo, nao apenas os ~30 do `contas-pagar-api`.
+Criar 6 novas páginas + 3 componentes auxiliares. Modificar apenas `App.tsx` (rotas) e `AppSidebar.tsx` (menu).
 
-### Contagem real por modulo:
+**Regra zero**: NÃO tocar em ContasAPagar.tsx, ContasPagarGestao.tsx, ContaPagarDetalhe.tsx, ContasPagarAuditoria.tsx, ContasPagarSyncPage.tsx, ConciliacaoBancaria.tsx.
 
-| Modulo | APIs | Endpoints |
-|---|---|---|
-| **Geral** | clientes (10+5+4), empresas (3), departamentos (6), categorias (7), projetos (7), parcelas (3) | **45** |
-| **Cadastros Auxiliares** | tipos-atividade (2), tipos-anexo (2), tipos-entrega (6), tipos-documento (3), cnae (2), cidades (2), paises (2), bancos (3), bandeiras (2), origens (2), finalidades (3), dre (2) | **31** |
-| **Financas** | contas-pagar (19), contas-receber (13), boletos (6), contas-correntes (9), lancamentos-cc (10), exportacao-erp (11), orcamentos (4), pesquisar (2), movimentos (2), resumo (5) | **81** |
-| **Complementar** | anexos (6), webhook-inbound (1) | **7** |
-| **Webhooks Outbound** | dispatcher + subscriptions (nao contabilizados na doc atual) | **~12** |
-| **TOTAL** | | **~176** |
+## Arquivos a criar
 
-## O que muda no plano
+| # | Arquivo | Linhas est. | Descrição |
+|---|---|---|---|
+| 1 | `src/pages/financeiro/FilaExportacaoERP.tsx` | ~600 | 3 KPIs + 3 abas (Provisão/Baixa/Histórico) + ações batch + webhook config |
+| 2 | `src/pages/financeiro/PainelCentralAP.tsx` | ~800 | 4 KPIs + tabela com Status ERP + filtros + 8 ações por linha (modais) |
+| 3 | `src/pages/financeiro/CadastroTituloAP.tsx` | ~500 | Formulário via API (incluir/alterar) + selects via API + sugestão IA + prompt ERP |
+| 4 | `src/pages/financeiro/SyncCadastrosAP.tsx` | ~400 | 4 abas sync (Fornecedores/Categorias/Contas/Parcelas) + alertas |
+| 5 | `src/pages/financeiro/ConciliacaoManualAP.tsx` | ~350 | Split-view Pluggy vs AP + confirmar/rejeitar/vincular manual |
+| 6 | `src/pages/financeiro/RelatorioAPxERP.tsx` | ~400 | KPIs reais + health check + fluxograma SVG + erp_sync_log |
+| 7 | `src/components/financeiro/ap/PostPaymentErpPrompt.tsx` | ~60 | Dialog pós-pagamento para enviar baixa ao ERP |
+| 8 | `src/components/financeiro/ap/IACategorySuggestion.tsx` | ~50 | Badge "Sugerido por IA" com aceitar/ignorar |
+| 9 | `src/components/financeiro/ap/ErpStatusSection.tsx` | ~80 | Timeline de status ERP de um título |
 
-O `RelatorioAPModule.tsx` tera na **Secao 2 (AS-IS)** a contagem e listagem real de TODOS os 176 endpoints, agrupados por modulo, com a coluna "Relevancia para AP" indicando se o endpoint e direto (ex: contas-pagar), indireto (ex: categorias, fornecedores) ou auxiliar (ex: bancos, cidades).
+## Arquivos a modificar (mínimo)
 
-### Estrutura revisada:
+### `src/App.tsx`
+- Adicionar 6 lazy imports após linha 270
+- Adicionar 7 rotas entre linhas 571 e 572 (após auditoria, antes de contas-a-receber)
 
-**Secao 2 — Cenario Atual**: Tabela com os 176 endpoints reais, filtro por "Relevancia AP" (Direto/Indireto/Auxiliar), contadores por modulo, bloco colapsavel com schema completo.
+### `src/components/dashboard/AppSidebar.tsx`
+- Adicionar 4 itens no subgrupo `contas` (linhas 551-557): Painel AP Central, Fila Exportação ERP, Sync Cadastros AP, Conciliação Manual
+- Adicionar 1 item na seção admin: Relatório AP x ERP
 
-**Secao 3 — Cenario Futuro**: Endpoints novos planejados alem dos 176 existentes (aprovacao multinivel, conciliacao automatica, relatorios avancados).
+## Padrões técnicos
 
-**Secoes 4-7**: Mantidas conforme plano original (Mapa de Telas, Fluxogramas, Checklist, Glossario).
+- Todas as chamadas via `supabase.functions.invoke("nome-funcao", { body: { path: "/endpoint", ...payload } })`
+- Exceção: `contas-pagar-export-api` usa `fetch()` com `x-api-key` header
+- Valores BRL: `R$ #.###,##` (pt-BR). Datas: `DD/MM/AAAA`
+- Paleta: navy #1B2A4A, verde #16A34A, vermelho #DC2626, laranja #EA580C, azul #2563EB, cinza #6B7280
+- Skeleton loader, toast em todas as ações, paginação 20/50/100
+- Guards: `ScreenRoute screenCode="financeiro_contas_pagar"` para telas AP, `ScreenRoute screenCode="admin"` para relatório
 
-## Arquivos
+## Ordem de implementação
 
-| Arquivo | Acao |
-|---|---|
-| `src/pages/RelatorioAPModule.tsx` | Criar (~1200 linhas) com os 176 endpoints mapeados |
-| `src/App.tsx` | Adicionar lazy import + rota `/dashboard/relatorio-ap-module` |
-
-A pagina continua 100% estatica, somente leitura, dados mock/placeholder baseados nos endpoints reais do `ApiDocumentation.tsx`. Nenhum arquivo existente sera modificado alem da adicao da rota.
+1. Componentes auxiliares (PostPaymentErpPrompt, IACategorySuggestion, ErpStatusSection)
+2. FilaExportacaoERP
+3. PainelCentralAP
+4. CadastroTituloAP
+5. SyncCadastrosAP
+6. ConciliacaoManualAP
+7. RelatorioAPxERP
+8. App.tsx + AppSidebar.tsx (rotas e menu)
 
