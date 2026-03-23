@@ -842,6 +842,48 @@ function buildExcelData(modules: ApiModule[]): SheetData[] {
 }
 
 // ═══════════════════════════════════════
+// POSTMAN COLLECTION GENERATOR
+// ═══════════════════════════════════════
+
+function generatePostmanCollection(modules: ApiModule[]) {
+  const items = modules.flatMap(mod =>
+    mod.apis.map(api => ({
+      name: `${mod.name} / ${api.name}`,
+      item: api.sections.flatMap(section =>
+        section.endpoints.map(ep => {
+          const fullUrl = `${BASE_URL}${api.basePath}${ep.path}`;
+          const item: any = {
+            name: `${ep.method} ${ep.path} — ${ep.description}`,
+            request: {
+              method: ep.method,
+              header: [
+                { key: "x-api-key", value: "{{API_KEY}}", type: "text" },
+                { key: "Content-Type", value: "application/json", type: "text" },
+              ],
+              url: { raw: fullUrl, protocol: "https", host: [fullUrl.split("//")[1]?.split("/")[0] || ""], path: fullUrl.split("//")[1]?.split("/").slice(1) || [] },
+            },
+          };
+          if (ep.body) {
+            item.request.body = { mode: "raw", raw: ep.body, options: { raw: { language: "json" } } };
+          }
+          return item;
+        })
+      ),
+    }))
+  );
+
+  return {
+    info: {
+      name: "Huggs API Collection",
+      description: "Coleção completa das APIs de integração Huggs/BiMaster",
+      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    },
+    variable: [{ key: "API_KEY", value: "SUA_CHAVE_AQUI", type: "string" }],
+    item: items,
+  };
+}
+
+// ═══════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════
 
