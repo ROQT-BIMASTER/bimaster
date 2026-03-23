@@ -240,10 +240,10 @@ export default function PainelCentralAP() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <Label className="text-xs">Status</Label>
-          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+          <Select value={filtroStatus || "all"} onValueChange={(v) => setFiltroStatus(v === "all" ? "" : v)}>
             <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="vencido">Vencido</SelectItem>
               <SelectItem value="pago">Pago</SelectItem>
