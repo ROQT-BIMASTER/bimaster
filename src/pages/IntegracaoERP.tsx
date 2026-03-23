@@ -172,10 +172,12 @@ export default function IntegracaoERP() {
       <Tabs defaultValue="portal" className="w-full">
         <TabsList>
           <TabsTrigger value="portal">Portal</TabsTrigger>
-          <TabsTrigger value="configuracoes" className="gap-1.5">
-            <Settings className="h-3.5 w-3.5" />
-            Configurações
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="configuracoes" className="gap-1.5">
+              <Settings className="h-3.5 w-3.5" />
+              Configurações
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="portal" className="space-y-6 mt-4">
