@@ -118,13 +118,23 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
-      if (filterAno !== "all") {
-        q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
+      
+      // DateRange local tem prioridade sobre ano/mês do pai (evita conflito)
+      const hasLocalDateFilter = dateFrom || dateTo;
+      if (hasLocalDateFilter) {
+        if (dateFrom) q = q.gte("data_vencimento", dateFrom.toISOString().slice(0, 10));
+        if (dateTo) q = q.lte("data_vencimento", dateTo.toISOString().slice(0, 10));
+      } else {
+        // Só aplicar ano/mês se não houver filtro de data local
+        if (filterMes !== "all" && filterAno !== "all") {
+          const m = filterMes.padStart(2, "0");
+          const lastDay = new Date(parseInt(filterAno), parseInt(m), 0).getDate();
+          q = q.gte("data_vencimento", `${filterAno}-${m}-01`).lte("data_vencimento", `${filterAno}-${m}-${lastDay}`);
+        } else if (filterAno !== "all") {
+          q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
+        }
       }
-      if (filterMes !== "all" && filterAno !== "all") {
-        const m = filterMes.padStart(2, "0");
-        q = q.gte("data_vencimento", `${filterAno}-${m}-01`).lte("data_vencimento", `${filterAno}-${m}-31`);
-      }
+      
       if (filterDepartamento !== "all") q = q.eq("departamento_id", filterDepartamento);
       if (filterPortadores.length) q = q.in("portador_id", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
@@ -133,8 +143,6 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (search) {
         q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%`);
       }
-      if (dateFrom) q = q.gte("data_vencimento", dateFrom.toISOString().slice(0, 10));
-      if (dateTo) q = q.lte("data_vencimento", dateTo.toISOString().slice(0, 10));
 
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
