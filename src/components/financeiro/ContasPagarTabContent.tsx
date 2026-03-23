@@ -93,7 +93,7 @@ function isOverdue(dt: string | null) {
   return new Date(dt + "T00:00:00") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00");
 }
 
-export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores }: Props) {
+export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all" }: Props) {
   const qc = useQueryClient();
   const nav = useNavigate();
 
