@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
-const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 

@@ -1,22 +1,25 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
+import ApiStatusBadge from "./ApiStatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   BookOpen, ChevronDown, ChevronRight, Copy, Check,
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
-  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe
+  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe,
+  HelpCircle, PlayCircle, MessageCircle
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
 import type { SheetData } from "@/lib/excel-utils";
 
-const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 interface Endpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
