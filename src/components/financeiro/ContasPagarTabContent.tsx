@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/command";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, CheckCircle2, Clock } from "lucide-react";
+import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -104,6 +104,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({ ...emptyForm });
   const [fornecedorOpen, setFornecedorOpen] = useState(false);
 
@@ -309,6 +310,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   function openEdit(c: any) {
     setEditingId(c.id);
+    setEditingStatus(c.status || null);
     setForm({
       fornecedor_nome: c.fornecedor_nome || "",
       fornecedor_codigo: c.fornecedor_codigo || "",
@@ -337,7 +339,10 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   function closeDrawer() {
     setDrawerOpen(false);
     setEditingId(null);
+    setEditingStatus(null);
   }
+
+  const isReadOnly = editingStatus === "pago" || editingStatus === "cancelado";
 
   const valorLiquido = form.valor_original - form.valor_desconto + form.valor_juros + form.valor_ajustes;
 
@@ -496,12 +501,20 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <SheetDescription>{editingId ? "Altere os dados do título" : "Preencha os dados para criar um novo título a pagar"}</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 py-4">
-            {/* Fornecedor autocomplete */}
+            {/* Warning banner for locked status */}
+            {isReadOnly && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  Este título está com status <strong>{editingStatus === "pago" ? "Pago" : "Cancelado"}</strong> e não pode ser alterado.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Fornecedor *</Label>
-              <Popover open={fornecedorOpen} onOpenChange={setFornecedorOpen}>
+              <Popover open={isReadOnly ? false : fornecedorOpen} onOpenChange={setFornecedorOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" className="w-full justify-between h-10 font-normal">
+                  <Button variant="outline" role="combobox" className="w-full justify-between h-10 font-normal" disabled={isReadOnly}>
                     {form.fornecedor_nome || "Selecionar fornecedor..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -531,7 +544,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             {/* Empresa */}
             <div className="space-y-1.5">
               <Label>Empresa *</Label>
-              <Select value={form.empresa_id.toString()} onValueChange={v => {
+              <Select disabled={isReadOnly} value={form.empresa_id.toString()} onValueChange={v => {
                 const emp = empresas?.find(e => e.id.toString() === v);
                 setForm(prev => ({ ...prev, empresa_id: Number(v), empresa_nome: emp?.nome || "" }));
               }}>
@@ -545,7 +558,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo Documento</Label>
-                <Select value={form.tipo_documento} onValueChange={v => setForm(p => ({ ...p, tipo_documento: v }))}>
+                <Select disabled={isReadOnly} value={form.tipo_documento} onValueChange={v => setForm(p => ({ ...p, tipo_documento: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["NF", "NFS", "Boleto", "Recibo", "Contrato", "Fatura", "Outros"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -554,40 +567,40 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               </div>
               <div className="space-y-1.5">
                 <Label>Nº Documento</Label>
-                <Input value={form.numero_documento} onChange={e => setForm(p => ({ ...p, numero_documento: e.target.value }))} />
+                <Input disabled={isReadOnly} value={form.numero_documento} onChange={e => setForm(p => ({ ...p, numero_documento: e.target.value }))} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Data Emissão</Label>
-                <Input type="date" value={form.data_emissao} onChange={e => setForm(p => ({ ...p, data_emissao: e.target.value }))} />
+                <Input disabled={isReadOnly} type="date" value={form.data_emissao} onChange={e => setForm(p => ({ ...p, data_emissao: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Data Vencimento *</Label>
-                <Input type="date" value={form.data_vencimento} onChange={e => setForm(p => ({ ...p, data_vencimento: e.target.value }))} />
+                <Input disabled={isReadOnly} type="date" value={form.data_vencimento} onChange={e => setForm(p => ({ ...p, data_vencimento: e.target.value }))} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Valor Original *</Label>
-                <Input type="number" min={0} step="0.01" value={form.valor_original} onChange={e => setForm(p => ({ ...p, valor_original: Number(e.target.value) }))} />
+                <Input disabled={isReadOnly} type="number" min={0} step="0.01" value={form.valor_original} onChange={e => setForm(p => ({ ...p, valor_original: Number(e.target.value) }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Desconto</Label>
-                <Input type="number" min={0} step="0.01" value={form.valor_desconto} onChange={e => setForm(p => ({ ...p, valor_desconto: Number(e.target.value) }))} />
+                <Input disabled={isReadOnly} type="number" min={0} step="0.01" value={form.valor_desconto} onChange={e => setForm(p => ({ ...p, valor_desconto: Number(e.target.value) }))} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Juros</Label>
-                <Input type="number" min={0} step="0.01" value={form.valor_juros} onChange={e => setForm(p => ({ ...p, valor_juros: Number(e.target.value) }))} />
+                <Input disabled={isReadOnly} type="number" min={0} step="0.01" value={form.valor_juros} onChange={e => setForm(p => ({ ...p, valor_juros: Number(e.target.value) }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Ajustes</Label>
-                <Input type="number" min={0} step="0.01" value={form.valor_ajustes} onChange={e => setForm(p => ({ ...p, valor_ajustes: Number(e.target.value) }))} />
+                <Input disabled={isReadOnly} type="number" min={0} step="0.01" value={form.valor_ajustes} onChange={e => setForm(p => ({ ...p, valor_ajustes: Number(e.target.value) }))} />
               </div>
             </div>
 
@@ -609,7 +622,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Conta Bancária</Label>
-              <Select value={form.conta} onValueChange={v => setForm(p => ({ ...p, conta: v }))}>
+              <Select disabled={isReadOnly} value={form.conta} onValueChange={v => setForm(p => ({ ...p, conta: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                 <SelectContent>
                   {contasBancarias?.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.banco} - Ag {cb.agencia} / {cb.conta}</SelectItem>)}
@@ -619,12 +632,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Categoria</Label>
-              <Input value={form.categoria_nome} onChange={e => setForm(p => ({ ...p, categoria_nome: e.target.value }))} placeholder="Ex: Material de escritório" />
+              <Input disabled={isReadOnly} value={form.categoria_nome} onChange={e => setForm(p => ({ ...p, categoria_nome: e.target.value }))} placeholder="Ex: Material de escritório" />
             </div>
 
             <div className="space-y-1.5">
               <Label>Departamento</Label>
-              <Select value={form.departamento_id} onValueChange={v => setForm(p => ({ ...p, departamento_id: v }))}>
+              <Select disabled={isReadOnly} value={form.departamento_id} onValueChange={v => setForm(p => ({ ...p, departamento_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                 <SelectContent>
                   {departamentos?.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
@@ -634,7 +647,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
+              <Textarea disabled={isReadOnly} value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
             </div>
 
             {/* ERP Integration Code - readonly */}
@@ -652,10 +665,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             )}
           </div>
           <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={closeDrawer}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.fornecedor_nome || !form.data_vencimento || form.valor_original <= 0 || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : editingId ? "Salvar" : "Criar Título"}
-            </Button>
+            <Button variant="outline" onClick={closeDrawer}>{isReadOnly ? "Fechar" : "Cancelar"}</Button>
+            {!isReadOnly && (
+              <Button onClick={() => saveMutation.mutate()} disabled={!form.fornecedor_nome || !form.data_vencimento || form.valor_original <= 0 || saveMutation.isPending}>
+                {saveMutation.isPending ? "Salvando..." : editingId ? "Salvar" : "Criar Título"}
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

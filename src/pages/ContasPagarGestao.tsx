@@ -577,7 +577,7 @@ export default function ContasPagarGestao() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(c)} title="Ver detalhe">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title="Editar">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title="Editar" disabled={c.status === "pago" || c.status === "cancelado"}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {c.status !== "cancelado" && c.status !== "pago" && (
@@ -606,30 +606,39 @@ export default function ContasPagarGestao() {
               <DialogTitle>{editingId ? "Editar Título" : "Nova Conta a Pagar"}</DialogTitle>
               <DialogDescription>Preencha os dados do título</DialogDescription>
             </DialogHeader>
+            {/* Warning for locked status */}
+            {editingId && (form.status === "pago" || form.status === "cancelado") && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  Este título está com status <strong>{form.status === "pago" ? "Pago" : "Cancelado"}</strong> e não pode ser alterado.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <div>
                 <Label>Tipo Documento</Label>
-                <Input value={form.tipo_documento} onChange={e => setForm(f => ({ ...f, tipo_documento: e.target.value }))} placeholder="NF, Boleto..." />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.tipo_documento} onChange={e => setForm(f => ({ ...f, tipo_documento: e.target.value }))} placeholder="NF, Boleto..." />
               </div>
               <div>
                 <Label>Nº Documento</Label>
-                <Input value={form.numero_documento} onChange={e => setForm(f => ({ ...f, numero_documento: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.numero_documento} onChange={e => setForm(f => ({ ...f, numero_documento: e.target.value }))} />
               </div>
               <div>
                 <Label>Fornecedor Nome *</Label>
-                <Input value={form.fornecedor_nome} onChange={e => setForm(f => ({ ...f, fornecedor_nome: e.target.value }))} required />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.fornecedor_nome} onChange={e => setForm(f => ({ ...f, fornecedor_nome: e.target.value }))} required />
               </div>
               <div>
                 <Label>Fornecedor Código</Label>
-                <Input value={form.fornecedor_codigo} onChange={e => setForm(f => ({ ...f, fornecedor_codigo: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.fornecedor_codigo} onChange={e => setForm(f => ({ ...f, fornecedor_codigo: e.target.value }))} />
               </div>
               <div>
                 <Label>Valor Original *</Label>
-                <Input type="number" step="0.01" value={form.valor_original} onChange={e => setForm(f => ({ ...f, valor_original: e.target.value }))} required />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" step="0.01" value={form.valor_original} onChange={e => setForm(f => ({ ...f, valor_original: e.target.value }))} required />
               </div>
               <div>
                 <Label>Empresa</Label>
-                <Select value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v }))}>
+                <Select disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.empresa_id} onValueChange={v => setForm(f => ({ ...f, empresa_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {empresas.map(e => <SelectItem key={e.id} value={String(e.id)}>{e.nome}</SelectItem>)}
@@ -638,31 +647,31 @@ export default function ContasPagarGestao() {
               </div>
               <div>
                 <Label>Data Emissão</Label>
-                <Input type="date" value={form.data_emissao} onChange={e => setForm(f => ({ ...f, data_emissao: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="date" value={form.data_emissao} onChange={e => setForm(f => ({ ...f, data_emissao: e.target.value }))} />
               </div>
               <div>
                 <Label>Data Vencimento *</Label>
-                <Input type="date" value={form.data_vencimento} onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} required />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="date" value={form.data_vencimento} onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} required />
               </div>
               <div>
                 <Label>Data Competência</Label>
-                <Input type="date" value={form.data_competencia} onChange={e => setForm(f => ({ ...f, data_competencia: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="date" value={form.data_competencia} onChange={e => setForm(f => ({ ...f, data_competencia: e.target.value }))} />
               </div>
               <div>
                 <Label>Nº Parcelas</Label>
-                <Input type="number" min="1" max="120" value={form.numero_parcelas} onChange={e => setForm(f => ({ ...f, numero_parcelas: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" min="1" max="120" value={form.numero_parcelas} onChange={e => setForm(f => ({ ...f, numero_parcelas: e.target.value }))} />
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Input value={form.categoria_nome} onChange={e => setForm(f => ({ ...f, categoria_nome: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.categoria_nome} onChange={e => setForm(f => ({ ...f, categoria_nome: e.target.value }))} />
               </div>
               <div>
                 <Label>Portador</Label>
-                <Input value={form.portador} onChange={e => setForm(f => ({ ...f, portador: e.target.value }))} />
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.portador} onChange={e => setForm(f => ({ ...f, portador: e.target.value }))} />
               </div>
               <div>
                 <Label>Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                <Select disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
@@ -675,11 +684,15 @@ export default function ContasPagarGestao() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setModalOpen(false); resetForm(); }}>Cancelar</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento}>
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {editingId ? "Salvar" : "Criar"}
+              <Button variant="outline" onClick={() => { setModalOpen(false); resetForm(); }}>
+                {editingId && (form.status === "pago" || form.status === "cancelado") ? "Fechar" : "Cancelar"}
               </Button>
+              {!(editingId && (form.status === "pago" || form.status === "cancelado")) && (
+                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento}>
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {editingId ? "Salvar" : "Criar"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
