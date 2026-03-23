@@ -1462,6 +1462,45 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                         </div>
                       ))}
                     </div>
+
+                    {/* Webhook Payload Example */}
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <Webhook className="h-4 w-4 text-purple-500" />
+                        Exemplo de Payload Recebido
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Este é o formato exato do JSON que seu endpoint receberá via POST quando um evento for disparado:
+                      </p>
+                      <CodeBlock code={`// POST para sua URL de webhook
+// Headers:
+//   Content-Type: application/json
+//   x-hub-signature-256: sha256=a1b2c3d4e5...
+//   x-webhook-event: conta_pagar.criado
+//   x-delivery-id: uuid-da-entrega
+
+{
+  "event": "conta_pagar.criado",
+  "timestamp": "2026-03-23T22:00:00.000Z",
+  "delivery_id": "550e8400-e29b-41d4-a716-446655440000",
+  "subscription_id": "uuid-da-assinatura",
+  "data": {
+    "id": "uuid-do-titulo",
+    "codigo_lancamento_integracao": "INT-001",
+    "empresa_id": 8,
+    "fornecedor_nome": "ABC Ltda",
+    "fornecedor_codigo": 4214850,
+    "valor_documento": 1500.00,
+    "data_vencimento": "2026-04-15",
+    "status": "pendente",
+    "categoria_codigo": "2.04.01",
+    "created_at": "2026-03-23T22:00:00.000Z"
+  }
+}`} label="Payload completo de webhook" />
+                      <p className="text-[11px] text-muted-foreground mt-2">
+                        ⚠️ Seu endpoint deve retornar <code className="bg-muted px-1 rounded">200 OK</code> em até 30s. Caso contrário, o dispatcher reenviará até 3× com backoff exponencial.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
