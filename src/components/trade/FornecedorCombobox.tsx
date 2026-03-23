@@ -136,15 +136,16 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     setSavingBank(true);
     try {
       const { error } = await supabase
-        .from("fabrica_fornecedores")
+        .from("fornecedores")
         .update({
           banco: formBanco.trim() || null,
           agencia: formAgencia.trim() || null,
-          conta: formConta.trim() || null,
+          conta_bancaria: formConta.trim() || null,
           tipo_conta: formTipoConta || null,
           favorecido: formFavorecido.trim() || null,
-          pix_tipo: formPixTipo || null,
-          pix_chave: formPixChave.trim() || null,
+          tipo_pix: formPixTipo || null,
+          chave_pix: formPixChave.trim() || null,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", value);
       if (error) throw error;
