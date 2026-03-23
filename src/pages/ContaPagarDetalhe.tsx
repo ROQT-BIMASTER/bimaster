@@ -213,6 +213,11 @@ export default function ContaPagarDetalhe() {
               <Row label="Portador" value={titulo.portador} />
               <Row label="Plano de Contas" value={titulo.plano_contas_nome ? `${titulo.plano_contas_codigo} - ${titulo.plano_contas_nome}` : null} />
               <Row label="Origem Baixa" value={titulo.baixa_origem} />
+              <Row label="Chave NF-e" value={(titulo as any).chave_nfe} />
+              <Row label="Nº Documento Fiscal" value={(titulo as any).numero_documento_fiscal} />
+              <Row label="Código Projeto" value={(titulo as any).codigo_projeto} />
+              <Row label="Data Previsão" value={fmtDate((titulo as any).data_previsao)} />
+              <Row label="Conta Corrente" value={(titulo as any).id_conta_corrente ? String((titulo as any).id_conta_corrente) : null} />
               {/* ERP Status */}
               <ErpSyncStatus tituloId={titulo.id} importadoApi={(titulo as any).importado_api} codigoIntegracao={(titulo as any).codigo_integracao} status={titulo.status} />
             </CardContent>
