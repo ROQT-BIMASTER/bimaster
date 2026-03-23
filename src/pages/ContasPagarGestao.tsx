@@ -273,6 +273,14 @@ export default function ContasPagarGestao() {
         portador: form.portador || null,
         status: form.status || "pendente",
         total_parcelas: parseInt(form.numero_parcelas) || 1,
+        departamento_nome: form.departamento_nome || null,
+        plano_contas_codigo: form.plano_contas_codigo || null,
+        plano_contas_nome: form.plano_contas_nome || null,
+        chave_nfe: form.chave_nfe || null,
+        numero_documento_fiscal: form.numero_documento_fiscal || null,
+        codigo_projeto: form.codigo_projeto || null,
+        data_previsao: form.data_previsao || null,
+        id_conta_corrente: form.id_conta_corrente ? parseInt(form.id_conta_corrente) : null,
       };
       if (form.empresa_id) payload.empresa_id = parseInt(form.empresa_id);
 
