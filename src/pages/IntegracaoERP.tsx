@@ -363,6 +363,7 @@ export default function IntegracaoERP() {
                       <TableHead>Uso</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ativo</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
