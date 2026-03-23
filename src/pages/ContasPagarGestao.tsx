@@ -21,8 +21,9 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Receipt, Plus, Search, Pencil, Eye, Ban, Loader2, DollarSign,
-  AlertTriangle, CheckCircle, FileText, CalendarIcon, CreditCard, Wallet
+  AlertTriangle, CheckCircle, FileText, CalendarIcon, CreditCard, Wallet, Users
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Types
 interface ContaPagar {
