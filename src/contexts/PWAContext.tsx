@@ -262,6 +262,7 @@ export function usePWA(): PWAContextType {
       promptInstall: async () => false,
       dismissUpdateNotice: () => {},
       forceUpdate: async () => {},
+      checkForUpdate: async () => {},
     };
   }
   return context;
