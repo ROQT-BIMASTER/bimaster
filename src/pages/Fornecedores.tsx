@@ -99,7 +99,7 @@ const emptyForm: FornecedorForm = {
   endereco: "", endereco_numero: "", complemento: "", bairro: "", cidade: "", estado: "", cep: "",
   empresa_id: "", codigo_externo: "", fonte_erp: "", status: "ativo",
   banco: "", agencia: "", conta_bancaria: "", tipo_conta: "corrente", favorecido: "",
-  tipo_pix: "", chave_pix: "", linha_digitavel: "",
+  tipo_pix: "", chave_pix: "",
   inscricao_estadual: "", inscricao_municipal: "",
 };
 
