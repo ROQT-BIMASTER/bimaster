@@ -13268,6 +13268,7 @@ export type Database = {
           bairro: string | null
           banco: string | null
           bloqueado: boolean | null
+          capital_social: number | null
           cep: string | null
           chave_pix: string | null
           cidade: string | null
@@ -13284,7 +13285,11 @@ export type Database = {
           empresa_id: number | null
           endereco: string | null
           endereco_numero: string | null
+          erp_code: string | null
+          erp_sync_status: string | null
+          erp_synced_at: string | null
           estado: string | null
+          favorecido: string | null
           fax: string | null
           fonte_erp: string | null
           id: string
@@ -13293,17 +13298,22 @@ export type Database = {
           inscricao_estadual: string | null
           inscricao_municipal: string | null
           inscricao_suframa: string | null
+          linha_digitavel: string | null
           logradouro: string | null
+          matriz_filial: string | null
           nome: string
           nome_fantasia: string | null
           observacoes: string | null
           optante_simples_nacional: string | null
           pessoa_fisica: string | null
+          porte: string | null
           razao_social: string | null
           regime_tributario: string | null
+          situacao_cadastral: string | null
           status: string | null
           telefone: string | null
           telefone2: string | null
+          tipo_conta: string | null
           tipo_pix: string | null
           updated_at: string | null
           website: string | null
@@ -13313,6 +13323,7 @@ export type Database = {
           bairro?: string | null
           banco?: string | null
           bloqueado?: boolean | null
+          capital_social?: number | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -13329,7 +13340,11 @@ export type Database = {
           empresa_id?: number | null
           endereco?: string | null
           endereco_numero?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           estado?: string | null
+          favorecido?: string | null
           fax?: string | null
           fonte_erp?: string | null
           id?: string
@@ -13338,17 +13353,22 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           inscricao_suframa?: string | null
+          linha_digitavel?: string | null
           logradouro?: string | null
+          matriz_filial?: string | null
           nome: string
           nome_fantasia?: string | null
           observacoes?: string | null
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
+          porte?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          situacao_cadastral?: string | null
           status?: string | null
           telefone?: string | null
           telefone2?: string | null
+          tipo_conta?: string | null
           tipo_pix?: string | null
           updated_at?: string | null
           website?: string | null
@@ -13358,6 +13378,7 @@ export type Database = {
           bairro?: string | null
           banco?: string | null
           bloqueado?: boolean | null
+          capital_social?: number | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -13374,7 +13395,11 @@ export type Database = {
           empresa_id?: number | null
           endereco?: string | null
           endereco_numero?: string | null
+          erp_code?: string | null
+          erp_sync_status?: string | null
+          erp_synced_at?: string | null
           estado?: string | null
+          favorecido?: string | null
           fax?: string | null
           fonte_erp?: string | null
           id?: string
@@ -13383,17 +13408,22 @@ export type Database = {
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
           inscricao_suframa?: string | null
+          linha_digitavel?: string | null
           logradouro?: string | null
+          matriz_filial?: string | null
           nome?: string
           nome_fantasia?: string | null
           observacoes?: string | null
           optante_simples_nacional?: string | null
           pessoa_fisica?: string | null
+          porte?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          situacao_cadastral?: string | null
           status?: string | null
           telefone?: string | null
           telefone2?: string | null
+          tipo_conta?: string | null
           tipo_pix?: string | null
           updated_at?: string | null
           website?: string | null
