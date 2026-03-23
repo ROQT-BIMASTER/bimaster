@@ -665,10 +665,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             )}
           </div>
           <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={closeDrawer}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.fornecedor_nome || !form.data_vencimento || form.valor_original <= 0 || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : editingId ? "Salvar" : "Criar Título"}
-            </Button>
+            <Button variant="outline" onClick={closeDrawer}>{isReadOnly ? "Fechar" : "Cancelar"}</Button>
+            {!isReadOnly && (
+              <Button onClick={() => saveMutation.mutate()} disabled={!form.fornecedor_nome || !form.data_vencimento || form.valor_original <= 0 || saveMutation.isPending}>
+                {saveMutation.isPending ? "Salvando..." : editingId ? "Salvar" : "Criar Título"}
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
