@@ -403,9 +403,14 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">Limpar</Button>
           )}
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Novo Título
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetchContas()} className="gap-1.5" disabled={isLoading}>
+            <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} /> Atualizar
+          </Button>
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Novo Título
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
