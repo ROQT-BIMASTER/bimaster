@@ -320,9 +320,35 @@ export default function IntegracaoERP() {
                 <CardTitle className="text-lg">Chaves de API Registradas</CardTitle>
                 <CardDescription>{keys.length} chave(s) cadastrada(s)</CardDescription>
               </div>
-              <Button variant="ghost" size="icon" onClick={fetchKeys} disabled={loading}>
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              </Button>
+              <div className="flex items-center gap-2">
+                {expiredInactiveKeys.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Limpar Expiradas ({expiredInactiveKeys.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar limpeza em massa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Isso removerá permanentemente <strong>{expiredInactiveKeys.length}</strong> chave(s) expirada(s) ou inativa(s). Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBulkCleanup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir {expiredInactiveKeys.length} chave(s)
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                <Button variant="ghost" size="icon" onClick={fetchKeys} disabled={loading}>
+                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border overflow-x-auto">
