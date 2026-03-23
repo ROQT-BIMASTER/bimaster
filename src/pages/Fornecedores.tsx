@@ -454,7 +454,15 @@ export default function Fornecedores() {
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Banner de segregação */}
+      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-700 dark:text-blue-300 text-sm">
+          Fornecedores do módulo Financeiro/Comercial. Para fornecedores da Fábrica, acesse{" "}
+          <Link to="/dashboard/fabrica/fornecedores" className="underline font-medium">Fábrica → Fornecedores</Link>.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardContent className="pt-4">
           <div className="flex flex-wrap gap-3">
