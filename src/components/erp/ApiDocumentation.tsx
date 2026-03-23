@@ -1,22 +1,46 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
+import ApiStatusBadge from "./ApiStatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   BookOpen, ChevronDown, ChevronRight, Copy, Check,
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
-  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe
+  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe,
+  HelpCircle, PlayCircle, MessageCircle
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
 import type { SheetData } from "@/lib/excel-utils";
 
-const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+
+// Pagination patterns for each API
+const PAGINATION_PATTERNS: Record<string, "huggs" | "legado" | "rest"> = {
+  "contas-pagar": "huggs", "contas-receber": "huggs", "departamentos": "huggs",
+  "categorias": "huggs", "projetos": "huggs", "clientes": "huggs", "parcelas": "huggs",
+  "contas-correntes": "legado", "lancamentos-cc": "legado", "anexos": "legado",
+  "bandeiras": "legado", "cnae": "huggs", "cidades": "huggs",
+  "exportacao": "rest", "boletos": "huggs",
+};
+
+const PAGINATION_LABELS: Record<string, { label: string; color: string }> = {
+  huggs: { label: "Paginação Huggs", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  legado: { label: "Paginação Legada", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  rest: { label: "Paginação REST", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+};
+
+// Event emitter for opening ApiTester with pre-filled data
+export const apiTesterEventTarget = new EventTarget();
+export function openApiTester(data: { method: string; url: string; body?: string }) {
+  apiTesterEventTarget.dispatchEvent(new CustomEvent("open-tester", { detail: data }));
+}
 
 interface Endpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
@@ -631,7 +655,17 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
             {/* Curl copy button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => {
+                openApiTester({
+                  method: endpoint.method,
+                  url: `${BASE_URL}${basePath}${endpoint.path}`,
+                  body: endpoint.body,
+                });
+              }}>
+                <PlayCircle className="h-3 w-3" />
+                Testar
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleCopyCurl}>
                 {curlCopied ? <Check className="h-3 w-3 text-emerald-500" /> : <Terminal className="h-3 w-3" />}
                 {curlCopied ? "Copiado!" : "Copiar curl"}
@@ -932,6 +966,15 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
 
               <div className="border-t mt-4 pt-4 space-y-1">
                 <button
+                  onClick={() => scrollToModule("faq")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "faq" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <HelpCircle className="h-5 w-5" />
+                  <span>FAQ</span>
+                </button>
+                <button
                   onClick={() => scrollToModule("getting-started")}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
                     activeModule === "getting-started" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
@@ -1029,8 +1072,169 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                     </div>
                   </div>
 
-                  {/* Pagination Note */}
-                  <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
+                   {/* Multilingual Examples */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <Terminal className="h-4 w-4 text-primary" />
+                       Hello World — Exemplos Completos em 4 Linguagens
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-3">
+                       Fluxo completo: autenticação → health check → listar fornecedores. Copie e execute para validar sua integração.
+                     </p>
+                     <Tabs defaultValue="curl" className="w-full">
+                       <TabsList className="grid w-full grid-cols-4 h-8">
+                         <TabsTrigger value="curl" className="text-xs">cURL</TabsTrigger>
+                         <TabsTrigger value="js" className="text-xs">JavaScript</TabsTrigger>
+                         <TabsTrigger value="python" className="text-xs">Python</TabsTrigger>
+                         <TabsTrigger value="php" className="text-xs">PHP</TabsTrigger>
+                       </TabsList>
+                       <TabsContent value="curl" className="mt-2">
+                         <CodeBlock code={`# 1. Health check
+curl -s ${BASE_URL}/contas-pagar-api/status
+
+# 2. Listar fornecedores
+curl -H "x-api-key: SUA_CHAVE" \\
+  "${BASE_URL}/erp-fornecedores-query/"
+
+# 3. Criar conta a pagar
+curl -X POST \\
+  -H "x-api-key: SUA_CHAVE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"codigo_lancamento_integracao":"INT-001","codigo_cliente_fornecedor":4214850,"data_vencimento":"21/03/2026","valor_documento":100,"codigo_categoria":"2.04.01"}' \\
+  "${BASE_URL}/contas-pagar-api/incluir"`} />
+                       </TabsContent>
+                       <TabsContent value="js" className="mt-2">
+                         <CodeBlock code={`const API_KEY = "SUA_CHAVE";
+const BASE = "${BASE_URL}";
+
+// 1. Health check
+const health = await fetch(\`\${BASE}/contas-pagar-api/status\`);
+console.log("Status:", health.ok ? "Online" : "Offline");
+
+// 2. Listar fornecedores
+const fornecedores = await fetch(\`\${BASE}/erp-fornecedores-query/\`, {
+  headers: { "x-api-key": API_KEY }
+});
+const { fornecedores: lista } = await fornecedores.json();
+console.log(\`\${lista.length} fornecedores encontrados\`);
+
+// 3. Criar CP com tratamento de erro
+const res = await fetch(\`\${BASE}/contas-pagar-api/incluir\`, {
+  method: "POST",
+  headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    codigo_lancamento_integracao: "INT-001",
+    codigo_cliente_fornecedor: 4214850,
+    data_vencimento: "21/03/2026",
+    valor_documento: 100,
+    codigo_categoria: "2.04.01"
+  })
+});
+if (!res.ok) {
+  const err = await res.json();
+  console.error(\`Erro \${res.status}: \${err.message}\`);
+} else {
+  console.log("Título criado:", await res.json());
+}`} />
+                       </TabsContent>
+                       <TabsContent value="python" className="mt-2">
+                         <CodeBlock code={`import requests
+
+API_KEY = "SUA_CHAVE"
+BASE = "${BASE_URL}"
+HEADERS = {"x-api-key": API_KEY, "Content-Type": "application/json"}
+
+# 1. Health check
+r = requests.get(f"{BASE}/contas-pagar-api/status")
+print(f"Status: {'Online' if r.ok else 'Offline'}")
+
+# 2. Listar fornecedores
+r = requests.get(f"{BASE}/erp-fornecedores-query/", headers=HEADERS)
+print(f"{r.json()['total']} fornecedores encontrados")
+
+# 3. Criar CP
+r = requests.post(f"{BASE}/contas-pagar-api/incluir", headers=HEADERS, json={
+    "codigo_lancamento_integracao": "INT-001",
+    "codigo_cliente_fornecedor": 4214850,
+    "data_vencimento": "21/03/2026",
+    "valor_documento": 100,
+    "codigo_categoria": "2.04.01"
+})
+if r.ok:
+    print("Título criado:", r.json())
+else:
+    print(f"Erro {r.status_code}: {r.json().get('message', r.text)}")`} />
+                       </TabsContent>
+                       <TabsContent value="php" className="mt-2">
+                         <CodeBlock code={`<?php
+$api_key = "SUA_CHAVE";
+$base = "${BASE_URL}";
+
+// 1. Health check
+$status = file_get_contents("$base/contas-pagar-api/status");
+echo json_decode($status)->status === "ok" ? "Online\\n" : "Offline\\n";
+
+// 2. Listar fornecedores
+$ctx = stream_context_create(["http" => [
+    "header" => "x-api-key: $api_key"
+]]);
+$fornecedores = json_decode(file_get_contents("$base/erp-fornecedores-query/", false, $ctx));
+echo count($fornecedores->fornecedores) . " fornecedores\\n";
+
+// 3. Criar CP
+$ctx = stream_context_create(["http" => [
+    "method"  => "POST",
+    "header"  => "x-api-key: $api_key\\r\\nContent-Type: application/json",
+    "content" => json_encode([
+        "codigo_lancamento_integracao" => "INT-001",
+        "codigo_cliente_fornecedor" => 4214850,
+        "data_vencimento" => "21/03/2026",
+        "valor_documento" => 100,
+        "codigo_categoria" => "2.04.01"
+    ])
+]]);
+$result = json_decode(file_get_contents("$base/contas-pagar-api/incluir", false, $ctx));
+echo "Status: " . $result->descricao_status . "\\n";`} />
+                       </TabsContent>
+                     </Tabs>
+                   </div>
+
+                   {/* Field Glossary */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — CP /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para criação de Conta a Pagar via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
+                         { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do fornecedor cadastrado no sistema" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Data de vencimento (formato DD/MM/AAAA)" },
+                         { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
+                         { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria (ex: 2.04.01)" },
+                         { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
+                         { field: "data_previsao", type: "date", req: false, desc: "Data prevista para pagamento" },
+                         { field: "id_conta_corrente", type: "integer", req: false, desc: "Código da conta corrente" },
+                         { field: "observacao", type: "string", req: false, desc: "Observações do título (max 5000 chars)" },
+                         { field: "numero_documento_fiscal", type: "string", req: false, desc: "Número da NF-e" },
+                         { field: "chave_nfe", type: "string(44)", req: false, desc: "Chave de acesso da NF-e" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Pagination Note */}
+                   <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-sm text-blue-700">Padrões de Paginação</h4>
@@ -1152,6 +1356,72 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                   </div>
                 </div>
               </div>
+             )}
+
+            {/* ═══ FAQ / TROUBLESHOOTING ═══ */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["faq"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <HelpCircle className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">FAQ & Troubleshooting</h3>
+                      <p className="text-sm text-white/80">Problemas comuns e soluções rápidas</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-3">
+                  {[
+                    {
+                      q: "Recebo 401 mas minha API Key está correta",
+                      a: "Verifique se a chave não foi desativada no portal. Chaves expiram após rotação. Gere uma nova chave em Gerenciar Chaves API e substitua no seu sistema.",
+                    },
+                    {
+                      q: "Erro 'campo_obrigatorio: empresa_id' no /upsert",
+                      a: "O campo empresa_id é obrigatório em operações de upsert (tanto CP quanto CR) pois é usado na cláusula onConflict. Inclua-o sempre no body.",
+                    },
+                    {
+                      q: "Criei um título mas ele não aparece na listagem",
+                      a: "Verifique: (1) os cadastros base foram sincronizados primeiro (fornecedor, categoria)? (2) Está filtrando por empresa_id correto? (3) Limite de paginação — use registros_por_pagina=500.",
+                    },
+                    {
+                      q: "Qual a diferença entre Categorias e Plano de Contas?",
+                      a: "Categorias são agrupamentos internos do BiMaster (receita/despesa). Plano de Contas é a estrutura contábil oficial do ERP. Ambos podem ser usados para classificação, mas servem propósitos diferentes.",
+                    },
+                    {
+                      q: "Meu webhook não está recebendo eventos",
+                      a: "Verifique: (1) A URL é acessível publicamente (HTTPS). (2) Assinatura está ativa (GET /webhook-subscriptions-api/listar). (3) Use POST /testar para validar. (4) O dispatcher precisa estar ativo (POST /webhook-dispatcher/process).",
+                    },
+                    {
+                      q: "Recebo 429 Too Many Requests",
+                      a: "O rate limit é de 60 req/min por IP ou API key. Implemente backoff exponencial (1s → 2s → 4s). Para cargas em lote, use endpoints de upsert-lote com até 500 registros por chamada.",
+                    },
+                    {
+                      q: "Formato de data — DD/MM/AAAA ou YYYY-MM-DD?",
+                      a: "APIs de Integração (padrão Huggs) usam DD/MM/AAAA. APIs CRUD internas usam YYYY-MM-DD. Verifique a documentação de cada endpoint. Enviar no formato errado retorna erro 400.",
+                    },
+                    {
+                      q: "Como saber se a API está online?",
+                      a: "Cada API tem um endpoint GET /status que retorna 200 OK. Os badges verdes/vermelhos nesta documentação fazem essa verificação em tempo real.",
+                    },
+                  ].map((faq, i) => (
+                    <Collapsible key={i}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-start gap-3 p-3 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors">
+                          <MessageCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span className="text-sm font-medium text-foreground">{faq.q}</span>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="ml-10 mr-3 mb-2 p-3 bg-muted/30 rounded-lg">
+                          <p className="text-xs text-muted-foreground leading-relaxed">{faq.a}</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              </div>
             )}
 
             {filteredModules.map(mod => (
@@ -1191,7 +1461,15 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                             {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                             {api.icon}
                             <div className="min-w-0">
-                              <span className="font-medium text-sm text-foreground">{api.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm text-foreground">{api.name}</span>
+                                <ApiStatusBadge basePath={api.basePath} />
+                                {PAGINATION_PATTERNS[api.id] && (
+                                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${PAGINATION_LABELS[PAGINATION_PATTERNS[api.id]].color}`}>
+                                    {PAGINATION_LABELS[PAGINATION_PATTERNS[api.id]].label}
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground truncate">{api.description}</p>
                             </div>
                           </div>
@@ -1322,6 +1600,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v1.6.0", date: "2026-03-23", changes: ["Exemplos Hello World em 4 linguagens (cURL, JavaScript, Python, PHP)", "Glossário de campos detalhado para CP /incluir", "Seção FAQ/Troubleshooting com 8 perguntas comuns", "Botão 'Testar' em cada endpoint (preenche ApiTester automaticamente)", "Badges de paginação (Huggs/Legado/REST) em cada API", "Badges de status live (online/offline) em cada API", "BASE_URL dinâmica via variável de ambiente"] },
                     { version: "v1.5.0", date: "2026-03-23", changes: ["Corrigido body do /registrar-pagamento (id → conta_pagar_id)", "Corrigida resposta do /query com pagination e meta", "Corrigida resposta do /cancelar com success e ids", "Documentado empresa_id como obrigatório no /upsert CP", "Adicionados 7 filtros faltantes no /listar CP (emissão, conta corrente, CPF/CNPJ, vendedor, observações)", "Fornecedores migrados de 'Geral' para 'Cadastros Auxiliares'", "Seção de erros estruturados na documentação de autenticação"] },
                     { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
                     { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },

@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { apiTesterEventTarget } from "./ApiDocumentation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
-const BASE_URL = "https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -414,6 +415,32 @@ export default function ApiTester() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const testerRef = useState<HTMLDivElement | null>(null);
+
+  // Listen for pre-fill events from ApiDocumentation
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setMethod(detail.method as HttpMethod);
+        setUrl(detail.url);
+        if (detail.body) {
+          try {
+            setBody(JSON.stringify(JSON.parse(detail.body.replace(/\s+/g, " ").trim()), null, 2));
+          } catch {
+            setBody(detail.body);
+          }
+        } else {
+          setBody("");
+        }
+        // Scroll API Tester into view
+        const el = document.getElementById("api-tester-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    apiTesterEventTarget.addEventListener("open-tester", handler);
+    return () => apiTesterEventTarget.removeEventListener("open-tester", handler);
+  }, []);
 
   const handlePreset = (preset: typeof PRESET_ENDPOINTS[0]) => {
     setMethod(preset.method);
@@ -538,7 +565,7 @@ export default function ApiTester() {
   };
 
   return (
-    <Card className="border-border">
+    <Card className="border-border" id="api-tester-section">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Terminal className="h-5 w-5 text-primary" />
