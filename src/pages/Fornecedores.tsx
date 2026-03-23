@@ -777,6 +777,9 @@ export default function Fornecedores() {
                 <Select value={form.empresa_id} onValueChange={(v) => setForm({ ...form, empresa_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
                   <SelectContent>
+                    {!editingId && visibleEmpresas.length > 1 && (
+                      <SelectItem value="todas">📋 Cadastrar em Todas as Empresas</SelectItem>
+                    )}
                     {visibleEmpresas.map((e) => (
                       <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
                     ))}
