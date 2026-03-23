@@ -339,7 +339,10 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   function closeDrawer() {
     setDrawerOpen(false);
     setEditingId(null);
+    setEditingStatus(null);
   }
+
+  const isReadOnly = editingStatus === "pago" || editingStatus === "cancelado";
 
   const valorLiquido = form.valor_original - form.valor_desconto + form.valor_juros + form.valor_ajustes;
 
