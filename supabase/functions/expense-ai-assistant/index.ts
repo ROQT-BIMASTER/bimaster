@@ -1,13 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const ALLOWED_ORIGIN = "https://bimaster.lovable.app";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -123,7 +116,7 @@ async function handleExtractReceipt(imageBase64: string) {
     ],
     tools,
     { type: "function", function: { name: "extract_receipt_data" } },
-    "google/gemini-2.5-flash" // multimodal
+    "google/gemini-2.5-flash"
   );
 
   const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
@@ -140,7 +133,6 @@ async function handleChat(
 ) {
   const sb = getUserClient(authHeader);
 
-  // Build context text from real data
   let contextText = "Contexto do sistema:\n";
 
   if (context.event_id) {
@@ -181,7 +173,6 @@ async function handleChat(
     }
   }
 
-  // Financial policy
   const admin = getSupabaseAdmin();
   const { data: policy } = await admin
     .from("financial_payment_policies")
@@ -378,7 +369,6 @@ async function handleSuggestFields(expenseId: string, authHeader: string) {
     .eq("id", expenseId)
     .single();
 
-  // Also try department_expenses
   let expData = expense;
   if (!expData) {
     const { data: deptExp } = await sb
@@ -391,7 +381,6 @@ async function handleSuggestFields(expenseId: string, authHeader: string) {
 
   if (!expData) return { suggestions: {} };
 
-  // Get historical data for suggestions
   const admin = getSupabaseAdmin();
   const { data: history } = await admin
     .from("financial_payment_queue")
@@ -484,40 +473,40 @@ async function handleAuditDocument(params: {
 }) {
   const admin = getSupabaseAdmin();
 
-  // Download the file from Storage to base64
   let fileBase64: string;
   let mimeType = "image/jpeg";
 
   try {
-    // Extract bucket and path from the URL or path
     const url = params.attachmentUrl;
     let bucket = "";
     let filePath = "";
 
-    console.log("[audit_document] parsing URL:", url.substring(0, 120));
+    console.log("[audit_document] parsing URL:", url.substring(0, 200));
 
-    // Handle different URL formats
-    // Remove query params first for cleaner parsing
-    const urlWithoutQuery = url.split("?")[0];
-    
-    if (urlWithoutQuery.includes("/storage/v1/object/")) {
-      // Full Supabase URL: .../storage/v1/object/sign/BUCKET/PATH or .../storage/v1/object/public/BUCKET/PATH
-      const match = urlWithoutQuery.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/);
+    // Parse URL - handle signed URLs, public URLs, and authenticated URLs
+    try {
+      const urlObj = new URL(url);
+      // Match: /storage/v1/object/(public|sign|authenticated)/BUCKET/PATH
+      const match = urlObj.pathname.match(
+        /\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/
+      );
       if (match) {
         bucket = match[1];
         filePath = decodeURIComponent(match[2]);
       }
-    } else if (url.includes("/")) {
-      // Assume "bucket/path" format
-      const parts = url.split("/");
-      bucket = parts[0];
-      filePath = parts.slice(1).join("/");
+    } catch {
+      // Not a full URL — try bucket/path format
+      if (url.includes("/")) {
+        const parts = url.split("/");
+        bucket = parts[0];
+        filePath = parts.slice(1).join("/");
+      }
     }
 
-    console.log("[audit_document] bucket:", bucket, "filePath:", filePath);
+    console.log("[audit_document] resolved bucket:", bucket, "filePath:", filePath);
 
     if (!bucket || !filePath) {
-      throw new Error(`Could not parse attachment URL: ${url.substring(0, 100)}`);
+      throw new Error(`Could not parse attachment URL: ${url.substring(0, 150)}`);
     }
 
     // Determine mime type from extension
@@ -525,12 +514,18 @@ async function handleAuditDocument(params: {
     if (ext === "pdf") mimeType = "application/pdf";
     else if (ext === "png") mimeType = "image/png";
     else if (ext === "webp") mimeType = "image/webp";
+    else if (ext === "gif") mimeType = "image/gif";
+
+    console.log("[audit_document] downloading from bucket:", bucket, "path:", filePath, "mimeType:", mimeType);
 
     const { data: fileData, error: dlError } = await admin.storage
       .from(bucket)
       .download(filePath);
 
-    if (dlError || !fileData) throw dlError || new Error("Download failed");
+    if (dlError || !fileData) {
+      console.error("[audit_document] download error:", dlError);
+      throw dlError || new Error("Download failed");
+    }
 
     const arrayBuffer = await fileData.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -539,6 +534,7 @@ async function handleAuditDocument(params: {
       binary += String.fromCharCode(bytes[i]);
     }
     fileBase64 = btoa(binary);
+    console.log("[audit_document] file downloaded, base64 length:", fileBase64.length);
   } catch (err) {
     console.error("[audit_document] download error:", err);
     throw new Error("Não foi possível baixar o documento anexado para auditoria.");
@@ -611,21 +607,16 @@ async function handleAuditDocument(params: {
     `4. Se encontrar a chave de acesso da NF-e (44 dígitos numéricos), extraia em "extracted_chave_acesso".`,
   ].filter(Boolean).join("\n");
 
+  // Always use image_url format — Gemini supports PDF via data URI with correct mime type
   const contentParts: any[] = [
     { type: "text", text: contextLines },
-  ];
-
-  if (mimeType === "application/pdf") {
-    contentParts.push({
-      type: "file",
-      file: { filename: "documento.pdf", file_data: `data:application/pdf;base64,${fileBase64}` },
-    });
-  } else {
-    contentParts.push({
+    {
       type: "image_url",
       image_url: { url: `data:${mimeType};base64,${fileBase64}` },
-    });
-  }
+    },
+  ];
+
+  console.log("[audit_document] calling AI with mimeType:", mimeType, "contentParts:", contentParts.length);
 
   const result = await callAI(
     [
@@ -641,14 +632,17 @@ async function handleAuditDocument(params: {
   );
 
   const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("Não foi possível extrair dados do documento.");
+  if (!toolCall) {
+    console.error("[audit_document] No tool call in AI response:", JSON.stringify(result.choices?.[0]?.message).substring(0, 500));
+    throw new Error("Não foi possível extrair dados do documento.");
+  }
 
   const extracted = JSON.parse(toolCall.function.arguments);
+  console.log("[audit_document] AI extracted:", JSON.stringify(extracted).substring(0, 500));
 
   // Compare extracted vs expected
   const divergences: { field: string; expected: string; found: string; severity: "low" | "medium" | "high" }[] = [];
 
-  // CNPJ comparison (high severity)
   if (expectedData.cnpj && extracted.extracted_cnpj) {
     const normExpected = expectedData.cnpj.replace(/\D/g, "");
     const normFound = extracted.extracted_cnpj.replace(/\D/g, "");
@@ -662,11 +656,9 @@ async function handleAuditDocument(params: {
     }
   }
 
-  // Supplier name comparison (medium severity)
   if (expectedData.supplier_name && extracted.extracted_name) {
     const normExp = expectedData.supplier_name.toLowerCase().trim();
     const normFound = extracted.extracted_name.toLowerCase().trim();
-    // Fuzzy: if neither contains the other and they differ significantly
     if (!normExp.includes(normFound) && !normFound.includes(normExp) && normExp !== normFound) {
       divergences.push({
         field: "supplier_name",
@@ -677,10 +669,9 @@ async function handleAuditDocument(params: {
     }
   }
 
-  // Amount comparison (high severity)
   if (expectedData.amount && extracted.extracted_amount) {
     const diff = Math.abs(expectedData.amount - extracted.extracted_amount);
-    const threshold = expectedData.amount * 0.02; // 2% tolerance
+    const threshold = expectedData.amount * 0.02;
     if (diff > threshold && diff > 1) {
       divergences.push({
         field: "amount",
@@ -691,7 +682,6 @@ async function handleAuditDocument(params: {
     }
   }
 
-  // Document number comparison (low severity)
   if (expectedData.document_number && extracted.extracted_document_number) {
     const normExp = expectedData.document_number.replace(/\D/g, "");
     const normFound = extracted.extracted_document_number.replace(/\D/g, "");
@@ -705,7 +695,7 @@ async function handleAuditDocument(params: {
     }
   }
 
-  // Merge AI divergences with code-based divergences (prefer AI when both exist)
+  // Merge AI divergences with code-based divergences
   const aiDivs = extracted.ai_divergences || [];
   const aiFields = new Set(aiDivs.map((d: any) => d.field));
   const mergedDivergences = [
@@ -732,7 +722,10 @@ async function handleAuditDocument(params: {
 
 // ────────── MAIN HANDLER ──────────
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // JWT Authentication
