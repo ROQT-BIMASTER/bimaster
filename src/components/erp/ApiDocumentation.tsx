@@ -1233,6 +1233,76 @@ echo "Status: " . $result->descricao_status . "\\n";`} />
                      </div>
                    </div>
 
+                   {/* Field Glossary — CR /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — CR /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para criação de Conta a Receber via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
+                         { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do cliente cadastrado no sistema" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Data de vencimento (formato DD/MM/AAAA)" },
+                         { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
+                         { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria de receita (ex: 1.01.02)" },
+                         { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
+                         { field: "data_previsao", type: "date", req: false, desc: "Data prevista para recebimento" },
+                         { field: "id_conta_corrente", type: "integer", req: false, desc: "Código da conta corrente para recebimento" },
+                         { field: "observacao", type: "string", req: false, desc: "Observações do título (max 5000 chars)" },
+                         { field: "numero_pedido", type: "string", req: false, desc: "Número do pedido de venda vinculado" },
+                         { field: "numero_contrato", type: "string", req: false, desc: "Número do contrato vinculado" },
+                         { field: "numero_ordem_servico", type: "string", req: false, desc: "Número da ordem de serviço" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Field Glossary — Fornecedores /incluir */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — Fornecedores /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para cadastro de Fornecedores via sync bidirecional.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "cnpj_cpf", type: "string", req: true, desc: "CPF ou CNPJ do fornecedor (sem pontuação)" },
+                         { field: "razao_social", type: "string", req: true, desc: "Razão social ou nome completo" },
+                         { field: "nome_fantasia", type: "string", req: false, desc: "Nome fantasia da empresa" },
+                         { field: "codigo_integracao", type: "string", req: false, desc: "Código do fornecedor no ERP externo" },
+                         { field: "email", type: "string", req: false, desc: "E-mail de contato" },
+                         { field: "telefone", type: "string", req: false, desc: "Telefone de contato" },
+                         { field: "endereco", type: "string", req: false, desc: "Logradouro" },
+                         { field: "cidade", type: "string", req: false, desc: "Cidade" },
+                         { field: "estado", type: "string(2)", req: false, desc: "UF (ex: SP, RJ)" },
+                         { field: "cep", type: "string(8)", req: false, desc: "CEP sem pontuação" },
+                         { field: "inscricao_estadual", type: "string", req: false, desc: "Inscrição estadual" },
+                         { field: "empresa_ids", type: "integer[]", req: false, desc: "IDs das empresas para vinculação (multi-empresa)" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
                    {/* Pagination Note */}
                    <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
