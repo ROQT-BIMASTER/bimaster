@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -17,6 +17,7 @@ import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySugge
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, dateToApi } from "@/lib/utils/api-helpers";
 import { cn } from "@/lib/utils";
+import { debounce } from "@/lib/utils/debounce";
 
 export default function CadastroTituloAP() {
   const { id } = useParams();
@@ -29,6 +30,7 @@ export default function CadastroTituloAP() {
   const [fornecedorCodigo, setFornecedorCodigo] = useState("");
   const [fornecedorLabel, setFornecedorLabel] = useState("");
   const [fornecedorBusca, setFornecedorBusca] = useState("");
+  const [fornecedorBuscaDebounced, setFornecedorBuscaDebounced] = useState("");
   const [fornecedorOpen, setFornecedorOpen] = useState(false);
   const [valorDocumento, setValorDocumento] = useState("");
   const [dataVencimento, setDataVencimento] = useState("");
@@ -49,6 +51,15 @@ export default function CadastroTituloAP() {
 
   // ERP prompt
   const [erpPromptId, setErpPromptId] = useState<string | null>(null);
+
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Debounced fornecedor search
+  const debouncedSetFornecedorBusca = useMemo(
+    () => debounce((v: string) => setFornecedorBuscaDebounced(v), 400),
+    []
+  );
 
   // Load existing title for edit
   const { data: existingTitle, isLoading: loadingTitle } = useQuery({
@@ -76,12 +87,12 @@ export default function CadastroTituloAP() {
 
   // Lookups
   const { data: fornecedores } = useQuery({
-    queryKey: ["ap-fornecedores", fornecedorBusca],
+    queryKey: ["ap-fornecedores", fornecedorBuscaDebounced],
     queryFn: () => callApi("clientes-api", {
       path: "/listar",
       pagina: 1,
       registros_por_pagina: 50,
-      ...(fornecedorBusca ? { clientesFiltro: { razao_social: fornecedorBusca } } : {}),
+      ...(fornecedorBuscaDebounced ? { clientesFiltro: { razao_social: fornecedorBuscaDebounced } } : {}),
     }),
     staleTime: 60_000,
   });
@@ -142,11 +153,35 @@ export default function CadastroTituloAP() {
     return () => clearTimeout(timer);
   }, [categoria]);
 
+  // Validation
+  function validate(): boolean {
+    const errs: Record<string, string> = {};
+    const code = codigoIntegracao.trim();
+    if (!code) errs.codigoIntegracao = "Código de integração é obrigatório";
+    if (!fornecedorCodigo) errs.fornecedor = "Selecione um fornecedor";
+    if (!valorDocumento || Number(valorDocumento) <= 0) errs.valor = "Valor deve ser maior que zero";
+    if (!dataVencimento) errs.dataVencimento = "Data de vencimento é obrigatória";
+    if (!categoria) errs.categoria = "Categoria é obrigatória";
+    if (!contaCorrente) errs.contaCorrente = "Conta corrente é obrigatória";
+    if (nfeChave && nfeChave.length !== 44) errs.nfeChave = "Chave NF-e deve ter exatamente 44 dígitos";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error("Preencha os campos obrigatórios corretamente");
+      return false;
+    }
+    return true;
+  }
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!validate()) throw new Error("Validação falhou");
+
+      // Auto-generate integration code if empty (shouldn't happen due to validation, but safety)
+      const finalCode = codigoIntegracao.trim() || `BIM-${Date.now()}`;
+
       const body: any = {
-        codigo_lancamento_integracao: codigoIntegracao,
+        codigo_lancamento_integracao: finalCode,
         codigo_cliente_fornecedor: Number(fornecedorCodigo),
         data_vencimento: dateToApi(dataVencimento),
         valor_documento: Number(valorDocumento),
@@ -183,7 +218,9 @@ export default function CadastroTituloAP() {
         navigate(-1);
       }
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      if (e.message !== "Validação falhou") toast.error(e.message);
+    },
   });
 
   if (isEdit && loadingTitle) {
@@ -209,6 +246,7 @@ export default function CadastroTituloAP() {
     if (!numParcelas || Number(numParcelas) <= 1 || !valorDocumento || !dataVencimento) return [];
     const n = Number(numParcelas);
     const val = Number(valorDocumento);
+    if (val <= 0 || n <= 0) return [];
     const parcVal = Math.floor((val / n) * 100) / 100;
     const diff = Math.round((val - parcVal * n) * 100) / 100;
     const result = [];
@@ -223,6 +261,10 @@ export default function CadastroTituloAP() {
     }
     return result;
   })();
+
+  function FieldError({ field }: { field: string }) {
+    return errors[field] ? <p className="text-xs text-destructive mt-1">{errors[field]}</p> : null;
+  }
 
   return (
     <DashboardLayout>
@@ -245,7 +287,14 @@ export default function CadastroTituloAP() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Código ERP / Integração *</Label>
-              <Input value={codigoIntegracao} onChange={(e) => setCodigoIntegracao(e.target.value)} placeholder="INT-001" />
+              <Input
+                value={codigoIntegracao}
+                onChange={(e) => { setCodigoIntegracao(e.target.value); setErrors((p) => ({ ...p, codigoIntegracao: "" })); }}
+                placeholder="INT-001 (auto-gerado se vazio)"
+                className={errors.codigoIntegracao ? "border-destructive" : ""}
+              />
+              <p className="text-xs text-muted-foreground">Deixe vazio para gerar automaticamente</p>
+              <FieldError field="codigoIntegracao" />
             </div>
             <div className="space-y-2">
               <Label>N° do Documento</Label>
@@ -267,7 +316,7 @@ export default function CadastroTituloAP() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={fornecedorOpen}
-                    className="w-full justify-between font-normal"
+                    className={cn("w-full justify-between font-normal", errors.fornecedor && "border-destructive")}
                   >
                     {fornecedorLabel || "Selecionar fornecedor..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -278,7 +327,7 @@ export default function CadastroTituloAP() {
                     <CommandInput
                       placeholder="Buscar fornecedor..."
                       value={fornecedorBusca}
-                      onValueChange={setFornecedorBusca}
+                      onValueChange={(v) => { setFornecedorBusca(v); debouncedSetFornecedorBusca(v); }}
                     />
                     <CommandList>
                       <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
@@ -294,6 +343,7 @@ export default function CadastroTituloAP() {
                                 setFornecedorCodigo(code);
                                 setFornecedorLabel(label);
                                 setFornecedorOpen(false);
+                                setErrors((p) => ({ ...p, fornecedor: "" }));
                               }}
                             >
                               <Check className={cn("mr-2 h-4 w-4", fornecedorCodigo === code ? "opacity-100" : "opacity-0")} />
@@ -306,14 +356,30 @@ export default function CadastroTituloAP() {
                   </Command>
                 </PopoverContent>
               </Popover>
+              <FieldError field="fornecedor" />
             </div>
             <div className="space-y-2">
               <Label>Valor do Documento (R$) *</Label>
-              <Input type="number" step="0.01" value={valorDocumento} onChange={(e) => setValorDocumento(e.target.value)} placeholder="0,00" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={valorDocumento}
+                onChange={(e) => { setValorDocumento(e.target.value); setErrors((p) => ({ ...p, valor: "" })); }}
+                placeholder="0,00"
+                className={errors.valor ? "border-destructive" : ""}
+              />
+              <FieldError field="valor" />
             </div>
             <div className="space-y-2">
               <Label>Data de Vencimento *</Label>
-              <Input type="date" value={dataVencimento} onChange={(e) => setDataVencimento(e.target.value)} />
+              <Input
+                type="date"
+                value={dataVencimento}
+                onChange={(e) => { setDataVencimento(e.target.value); setErrors((p) => ({ ...p, dataVencimento: "" })); }}
+                className={errors.dataVencimento ? "border-destructive" : ""}
+              />
+              <FieldError field="dataVencimento" />
             </div>
             <div className="space-y-2">
               <Label>Data de Previsão *</Label>
@@ -321,8 +387,8 @@ export default function CadastroTituloAP() {
             </div>
             <div className="space-y-2">
               <Label>Conta Corrente *</Label>
-              <Select value={contaCorrente} onValueChange={setContaCorrente}>
-                <SelectTrigger><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
+              <Select value={contaCorrente} onValueChange={(v) => { setContaCorrente(v); setErrors((p) => ({ ...p, contaCorrente: "" })); }}>
+                <SelectTrigger className={errors.contaCorrente ? "border-destructive" : ""}><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
                 <SelectContent>
                   {contasCCList.map((c: any) => (
                     <SelectItem key={c.nCodCC || c.id} value={String(c.nCodCC || c.id)}>
@@ -331,6 +397,7 @@ export default function CadastroTituloAP() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError field="contaCorrente" />
             </div>
           </CardContent>
         </Card>
@@ -342,8 +409,8 @@ export default function CadastroTituloAP() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Categoria *</Label>
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+              <Select value={categoria} onValueChange={(v) => { setCategoria(v); setErrors((p) => ({ ...p, categoria: "" })); }}>
+                <SelectTrigger className={errors.categoria ? "border-destructive" : ""}><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
                 <SelectContent>
                   {categoriasList.map((c: any) => (
                     <SelectItem key={c.codigo || c.id} value={c.codigo || c.id}>
@@ -352,6 +419,7 @@ export default function CadastroTituloAP() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError field="categoria" />
             </div>
             <div className="space-y-2">
               <Label>Departamento</Label>
@@ -426,7 +494,7 @@ export default function CadastroTituloAP() {
                   <span className="font-medium">Valor</span>
                   <span className="font-medium">Vencimento</span>
                   {parcPreview.map((p) => (
-                    <>
+                    <> 
                       <span key={`n-${p.num}`}>{p.num}/{parcPreview.length}</span>
                       <span key={`v-${p.num}`}>R$ {p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                       <span key={`d-${p.num}`}>{p.vencimento}</span>
@@ -451,10 +519,15 @@ export default function CadastroTituloAP() {
               <Label>Chave de Acesso NF-e (44 dígitos, opcional)</Label>
               <Input
                 value={nfeChave}
-                onChange={(e) => setNfeChave(e.target.value.replace(/\D/g, "").slice(0, 44))}
+                onChange={(e) => { setNfeChave(e.target.value.replace(/\D/g, "").slice(0, 44)); setErrors((p) => ({ ...p, nfeChave: "" })); }}
                 maxLength={44}
                 placeholder="00000000000000000000000000000000000000000000"
+                className={errors.nfeChave ? "border-destructive" : ""}
               />
+              {nfeChave && nfeChave.length > 0 && nfeChave.length !== 44 && (
+                <p className="text-xs text-amber-600">{nfeChave.length}/44 dígitos</p>
+              )}
+              <FieldError field="nfeChave" />
             </div>
           </CardContent>
         </Card>
@@ -463,7 +536,7 @@ export default function CadastroTituloAP() {
           <Button variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
           <Button
             onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !codigoIntegracao || !fornecedorCodigo || !valorDocumento || !dataVencimento || !categoria || !contaCorrente}
+            disabled={saveMutation.isPending}
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Save className="mr-2 h-4 w-4" />

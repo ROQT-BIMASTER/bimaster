@@ -41,6 +41,7 @@ export default function FilaExportacaoERP() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("provisao");
   const [reconcModal, setReconcModal] = useState(false);
+  const [reconcData, setReconcData] = useState<any>(null);
   const [webhookOpen, setWebhookOpen] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -82,10 +83,13 @@ export default function FilaExportacaoERP() {
     staleTime: 30_000,
   });
 
-  // Reconciliation
+  // Reconciliation — store result in state
   const reconcMutation = useMutation({
     mutationFn: () => callExportApi("/reconciliation"),
-    onSuccess: () => setReconcModal(true),
+    onSuccess: (data) => {
+      setReconcData(data);
+      setReconcModal(true);
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -269,6 +273,9 @@ export default function FilaExportacaoERP() {
     );
   }
 
+  // Use reconcData from state (populated by mutation)
+  const reconcResumo = reconcData?.resumo || {};
+
   return (
     <DashboardLayout>
       <div className="p-6 max-w-[1400px] mx-auto space-y-6">
@@ -393,21 +400,23 @@ export default function FilaExportacaoERP() {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Reconciliation Modal */}
+        {/* Reconciliation Modal — now uses reconcData state */}
         <Dialog open={reconcModal} onOpenChange={setReconcModal}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-[#1B2A4A]">Reconciliação BiMaster x ERP</DialogTitle>
             </DialogHeader>
-            {reconcMutation.data?.resumo && (
+            {reconcResumo && Object.keys(reconcResumo).length > 0 ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>Total Títulos: <strong>{reconcMutation.data.resumo.total_titulos}</strong></div>
-                  <div>Exportados: <strong className="text-[#16A34A]">{reconcMutation.data.resumo.exportados}</strong></div>
-                  <div>Com Erro: <strong className="text-[#DC2626]">{reconcMutation.data.resumo.com_erro}</strong></div>
-                  <div>Taxa Sinc.: <strong className="text-[#2563EB]">{reconcMutation.data.resumo.taxa_sincronizacao}%</strong></div>
+                  <div>Total Títulos: <strong>{reconcResumo.total_titulos}</strong></div>
+                  <div>Exportados: <strong className="text-[#16A34A]">{reconcResumo.exportados}</strong></div>
+                  <div>Com Erro: <strong className="text-[#DC2626]">{reconcResumo.com_erro}</strong></div>
+                  <div>Taxa Sinc.: <strong className="text-[#2563EB]">{reconcResumo.taxa_sincronizacao}%</strong></div>
                 </div>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado de reconciliação disponível.</p>
             )}
           </DialogContent>
         </Dialog>
