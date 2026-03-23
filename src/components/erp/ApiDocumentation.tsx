@@ -908,7 +908,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
           <div className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-4 space-y-1">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 mb-2">Módulos</p>
-              {API_MODULES.map(mod => (
+              {accessFilteredModules.map(mod => (
                 <button
                   key={mod.id}
                   onClick={() => scrollToModule(mod.id)}
