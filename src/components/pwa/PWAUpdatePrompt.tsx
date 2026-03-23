@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { usePWA } from '@/contexts/PWAContext';
 
 export function PWAUpdatePrompt() {
-  const { wasUpdated, needRefresh, appVersion, dismissUpdateNotice, updateServiceWorker } = usePWA();
+  const { wasUpdated, needRefresh, appVersion, dismissUpdateNotice, updateServiceWorker, forceUpdate } = usePWA();
   const [showUpdated, setShowUpdated] = useState(false);
 
   // Mostrar notificação quando o app foi atualizado
