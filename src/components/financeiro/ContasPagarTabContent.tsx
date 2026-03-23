@@ -632,7 +632,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Categoria</Label>
-              <Input value={form.categoria_nome} onChange={e => setForm(p => ({ ...p, categoria_nome: e.target.value }))} placeholder="Ex: Material de escritório" />
+              <Input disabled={isReadOnly} value={form.categoria_nome} onChange={e => setForm(p => ({ ...p, categoria_nome: e.target.value }))} placeholder="Ex: Material de escritório" />
             </div>
 
             <div className="space-y-1.5">
