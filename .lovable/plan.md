@@ -1,34 +1,35 @@
 
-# Segregação Configurável de Fornecedores por Módulo — Concluído
+# Fornecedores — Menu, Validação ERP e Visibilidade por Empresa — Concluído
 
 ## O que foi feito
 
-### 1. Tabela de configuração `fornecedor_modulo_config`
-- Criada com mapeamento modulo → tabela: fabrica→fabrica_fornecedores, contas_pagar/trade/eventos→fornecedores
-- RLS habilitado com leitura para autenticados
+### 1. Rota realocada para módulo Financeiro
+- Rota principal: `/dashboard/financeiro/fornecedores` (screenCode: `financeiro_fornecedores`)
+- Redirect de compatibilidade: `/dashboard/fornecedores` → `/dashboard/financeiro/fornecedores`
 
-### 2. Página FabricaFornecedores (`/dashboard/fabrica/fornecedores`)
-- CRUD completo em `fabrica_fornecedores`
-- CnpjSearchButton integrado (consulta Receita Federal)
-- Painel de detalhes expansível (endereço, bancário, fiscal)
-- Filtros por status (ativo/inativo) e busca por razão social/CNPJ
-- Formulário com 3 abas: Dados Básicos, Endereço, Dados Bancários
+### 2. Edge function `erp-fornecedores-sync`
+- `POST /check` — verifica CNPJ no ERP via `erp_config`, retorna `erp_code` se existir
+- `POST /sync` — cadastra fornecedor no ERP, persiste `erp_code` e `erp_synced_at`
+- Fallback gracioso quando ERP não configurado (salva apenas local)
+- Logs em `erp_sync_log` para auditoria
 
-### 3. FabricaFornecedorQuickAdd
-- Componente de cadastro rápido específico para `fabrica_fornecedores`
-- Upsert por CNPJ (atualiza se já existir)
-- CnpjSearchButton integrado
+### 3. Integração ERP no fluxo de cadastro
+- Após salvar novo fornecedor, chama `/check` → `/sync` automaticamente
+- Botão de sync manual (ícone RefreshCw) para fornecedores sem `erp_code`
+- Toasts informativos em cada etapa (encontrado, cadastrado, falha)
 
-### 4. Banners de segregação
-- Página Fornecedores (AP): banner azul com link para Fábrica → Fornecedores
-- Página FabricaFornecedores: banner âmbar com link para Cadastros → Fornecedores
+### 4. Filtro por empresa do usuário
+- Integração com `useEmpresaFilter` — mostra apenas fornecedores das empresas do usuário
+- Select de empresa no filtro e formulário lista apenas empresas visíveis
+- `empresa_id` obrigatório no cadastro (auto-preenchido se usuário tem 1 empresa)
 
-### 5. Rota e navegação
-- Rota `/dashboard/fabrica/fornecedores` com screenCode `fabrica_fornecedores`
-- Card "Fornecedores" adicionado ao hub da Fábrica (Cadastros Básicos)
-- Smart redirect inclui `fabrica_fornecedores`
+### 5. Configuração de visibilidade
+- Tabela `config_fornecedor_visibilidade` (empresa_id, módulo, visibilidade: propria/grupo/todas)
+- RLS: leitura para autenticados, gestão para admins
+- Página `/dashboard/configuracoes/fornecedores-visibilidade` para admins
 
-### Separação mantida
-- **`fornecedores`** → Contas a Pagar, Trade, Eventos, Departamentos
-- **`fabrica_fornecedores`** → Fábrica (matérias-primas, recebimentos, NF-e)
-- FKs existentes intactas em ambas as tabelas
+### Arquivos criados/modificados
+- `supabase/functions/erp-fornecedores-sync/index.ts` — novo
+- `src/pages/ConfigFornecedorVisibilidade.tsx` — novo
+- `src/pages/Fornecedores.tsx` — refatorado (empresa context, ERP sync, empresa obrigatória)
+- `src/App.tsx` — rotas atualizadas
