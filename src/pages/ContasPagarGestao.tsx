@@ -126,6 +126,8 @@ export default function ContasPagarGestao() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   // Form state
   const [form, setForm] = useState({
