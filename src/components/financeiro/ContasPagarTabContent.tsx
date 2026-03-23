@@ -574,7 +574,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Data Emissão</Label>
-                <Input type="date" value={form.data_emissao} onChange={e => setForm(p => ({ ...p, data_emissao: e.target.value }))} />
+                <Input disabled={isReadOnly} type="date" value={form.data_emissao} onChange={e => setForm(p => ({ ...p, data_emissao: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Data Vencimento *</Label>
