@@ -1072,8 +1072,169 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                     </div>
                   </div>
 
-                  {/* Pagination Note */}
-                  <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
+                   {/* Multilingual Examples */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <Terminal className="h-4 w-4 text-primary" />
+                       Hello World — Exemplos Completos em 4 Linguagens
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-3">
+                       Fluxo completo: autenticação → health check → listar fornecedores. Copie e execute para validar sua integração.
+                     </p>
+                     <Tabs defaultValue="curl" className="w-full">
+                       <TabsList className="grid w-full grid-cols-4 h-8">
+                         <TabsTrigger value="curl" className="text-xs">cURL</TabsTrigger>
+                         <TabsTrigger value="js" className="text-xs">JavaScript</TabsTrigger>
+                         <TabsTrigger value="python" className="text-xs">Python</TabsTrigger>
+                         <TabsTrigger value="php" className="text-xs">PHP</TabsTrigger>
+                       </TabsList>
+                       <TabsContent value="curl" className="mt-2">
+                         <CodeBlock code={`# 1. Health check
+curl -s ${BASE_URL}/contas-pagar-api/status
+
+# 2. Listar fornecedores
+curl -H "x-api-key: SUA_CHAVE" \\
+  "${BASE_URL}/erp-fornecedores-query/"
+
+# 3. Criar conta a pagar
+curl -X POST \\
+  -H "x-api-key: SUA_CHAVE" \\
+  -H "Content-Type: application/json" \\
+  -d '{"codigo_lancamento_integracao":"INT-001","codigo_cliente_fornecedor":4214850,"data_vencimento":"21/03/2026","valor_documento":100,"codigo_categoria":"2.04.01"}' \\
+  "${BASE_URL}/contas-pagar-api/incluir"`} />
+                       </TabsContent>
+                       <TabsContent value="js" className="mt-2">
+                         <CodeBlock code={`const API_KEY = "SUA_CHAVE";
+const BASE = "${BASE_URL}";
+
+// 1. Health check
+const health = await fetch(\`\${BASE}/contas-pagar-api/status\`);
+console.log("Status:", health.ok ? "Online" : "Offline");
+
+// 2. Listar fornecedores
+const fornecedores = await fetch(\`\${BASE}/erp-fornecedores-query/\`, {
+  headers: { "x-api-key": API_KEY }
+});
+const { fornecedores: lista } = await fornecedores.json();
+console.log(\`\${lista.length} fornecedores encontrados\`);
+
+// 3. Criar CP com tratamento de erro
+const res = await fetch(\`\${BASE}/contas-pagar-api/incluir\`, {
+  method: "POST",
+  headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    codigo_lancamento_integracao: "INT-001",
+    codigo_cliente_fornecedor: 4214850,
+    data_vencimento: "21/03/2026",
+    valor_documento: 100,
+    codigo_categoria: "2.04.01"
+  })
+});
+if (!res.ok) {
+  const err = await res.json();
+  console.error(\`Erro \${res.status}: \${err.message}\`);
+} else {
+  console.log("Título criado:", await res.json());
+}`} />
+                       </TabsContent>
+                       <TabsContent value="python" className="mt-2">
+                         <CodeBlock code={`import requests
+
+API_KEY = "SUA_CHAVE"
+BASE = "${BASE_URL}"
+HEADERS = {"x-api-key": API_KEY, "Content-Type": "application/json"}
+
+# 1. Health check
+r = requests.get(f"{BASE}/contas-pagar-api/status")
+print(f"Status: {'Online' if r.ok else 'Offline'}")
+
+# 2. Listar fornecedores
+r = requests.get(f"{BASE}/erp-fornecedores-query/", headers=HEADERS)
+print(f"{r.json()['total']} fornecedores encontrados")
+
+# 3. Criar CP
+r = requests.post(f"{BASE}/contas-pagar-api/incluir", headers=HEADERS, json={
+    "codigo_lancamento_integracao": "INT-001",
+    "codigo_cliente_fornecedor": 4214850,
+    "data_vencimento": "21/03/2026",
+    "valor_documento": 100,
+    "codigo_categoria": "2.04.01"
+})
+if r.ok:
+    print("Título criado:", r.json())
+else:
+    print(f"Erro {r.status_code}: {r.json().get('message', r.text)}")`} />
+                       </TabsContent>
+                       <TabsContent value="php" className="mt-2">
+                         <CodeBlock code={`<?php
+$api_key = "SUA_CHAVE";
+$base = "${BASE_URL}";
+
+// 1. Health check
+$status = file_get_contents("$base/contas-pagar-api/status");
+echo json_decode($status)->status === "ok" ? "Online\\n" : "Offline\\n";
+
+// 2. Listar fornecedores
+$ctx = stream_context_create(["http" => [
+    "header" => "x-api-key: $api_key"
+]]);
+$fornecedores = json_decode(file_get_contents("$base/erp-fornecedores-query/", false, $ctx));
+echo count($fornecedores->fornecedores) . " fornecedores\\n";
+
+// 3. Criar CP
+$ctx = stream_context_create(["http" => [
+    "method"  => "POST",
+    "header"  => "x-api-key: $api_key\\r\\nContent-Type: application/json",
+    "content" => json_encode([
+        "codigo_lancamento_integracao" => "INT-001",
+        "codigo_cliente_fornecedor" => 4214850,
+        "data_vencimento" => "21/03/2026",
+        "valor_documento" => 100,
+        "codigo_categoria" => "2.04.01"
+    ])
+]]);
+$result = json_decode(file_get_contents("$base/contas-pagar-api/incluir", false, $ctx));
+echo "Status: " . $result->descricao_status . "\\n";`} />
+                       </TabsContent>
+                     </Tabs>
+                   </div>
+
+                   {/* Field Glossary */}
+                   <div>
+                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                       <FileText className="h-4 w-4 text-primary" />
+                       Glossário de Campos — CP /incluir
+                     </h4>
+                     <p className="text-xs text-muted-foreground mb-2">Referência detalhada dos campos para criação de Conta a Pagar via integração.</p>
+                     <div className="border rounded-lg overflow-hidden text-xs">
+                       <div className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                         <span>Campo</span><span>Tipo</span><span>Obrigatório</span><span>Descrição</span>
+                       </div>
+                       {[
+                         { field: "codigo_lancamento_integracao", type: "string", req: true, desc: "Código único do título no seu ERP (chave de integração)" },
+                         { field: "codigo_cliente_fornecedor", type: "integer", req: true, desc: "Código do fornecedor cadastrado no sistema" },
+                         { field: "data_vencimento", type: "date", req: true, desc: "Data de vencimento (formato DD/MM/AAAA)" },
+                         { field: "valor_documento", type: "decimal", req: true, desc: "Valor do título em BRL" },
+                         { field: "codigo_categoria", type: "string", req: true, desc: "Código da categoria (ex: 2.04.01)" },
+                         { field: "empresa_id", type: "integer", req: false, desc: "ID da empresa (obrigatório no upsert)" },
+                         { field: "data_previsao", type: "date", req: false, desc: "Data prevista para pagamento" },
+                         { field: "id_conta_corrente", type: "integer", req: false, desc: "Código da conta corrente" },
+                         { field: "observacao", type: "string", req: false, desc: "Observações do título (max 5000 chars)" },
+                         { field: "numero_documento_fiscal", type: "string", req: false, desc: "Número da NF-e" },
+                         { field: "chave_nfe", type: "string(44)", req: false, desc: "Chave de acesso da NF-e" },
+                       ].map(f => (
+                         <div key={f.field} className="grid grid-cols-[180px_80px_80px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                           <code className="font-mono text-[11px] text-primary">{f.field}</code>
+                           <span className="text-muted-foreground">{f.type}</span>
+                           <span>{f.req ? <Badge variant="outline" className="text-[9px] h-4 px-1">sim</Badge> : <span className="text-muted-foreground">não</span>}</span>
+                           <span className="text-muted-foreground">{f.desc}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Pagination Note */}
+                   <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
                     <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-sm text-blue-700">Padrões de Paginação</h4>
