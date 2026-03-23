@@ -176,6 +176,7 @@ const ImportarProdutosAcabados = lazyWithRetry(() => import("./pages/ImportarPro
 const FichaRevisaoDiretoria = lazyWithRetry(() => import("./pages/FichaRevisaoDiretoria"));
 const FabricaComunicacaoRevisoes = lazyWithRetry(() => import("./pages/FabricaComunicacaoRevisoes"));
 const Fornecedores = lazyWithRetry(() => import("./pages/Fornecedores"));
+const FabricaFornecedores = lazyWithRetry(() => import("./pages/FabricaFornecedores"));
 const Pagamentos = lazyWithRetry(() => import("./pages/Pagamentos"));
 const Empresas = lazyWithRetry(() => import("./pages/Empresas"));
 const CentrosCusto = lazyWithRetry(() => import("./pages/CentrosCusto"));
@@ -492,6 +493,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/revisao-fichas" element={<ScreenRoute screenCode="fabrica_revisao_fichas"><FichaRevisaoDiretoria /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ScreenRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ScreenRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenRoute>} />
+            <Route path="/dashboard/fabrica/fornecedores" element={<ScreenRoute screenCode="fabrica_fornecedores"><FabricaFornecedores /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/manual" element={<ModuleRoute moduleCode="fabrica"><FabricaManualPage /></ModuleRoute>} />
 
             {/* Módulo Fábrica China */}

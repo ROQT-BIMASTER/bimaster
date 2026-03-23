@@ -13262,6 +13262,33 @@ export type Database = {
           },
         ]
       }
+      fornecedor_modulo_config: {
+        Row: {
+          compartilhado: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          modulo: string
+          tabela_fornecedores: string
+        }
+        Insert: {
+          compartilhado?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          modulo: string
+          tabela_fornecedores?: string
+        }
+        Update: {
+          compartilhado?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          modulo?: string
+          tabela_fornecedores?: string
+        }
+        Relationships: []
+      }
       fornecedores: {
         Row: {
           agencia: string | null

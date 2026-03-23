@@ -81,6 +81,7 @@ const FabricaModule = () => {
       { screen: "fabrica_operadores", path: "/dashboard/fabrica/operadores" },
       { screen: "fabrica_planejamento", path: "/dashboard/fabrica/planejamento" },
       { screen: "fabrica_fiscal", path: "/dashboard/fabrica/fiscal" },
+      { screen: "fabrica_fornecedores", path: "/dashboard/fabrica/fornecedores" },
       { screen: "fabrica_paradas", path: "/dashboard/fabrica/paradas" },
       { screen: "comercial_lancamentos", path: "/dashboard/comercial/lancamentos" },
     ];
@@ -109,6 +110,7 @@ const FabricaModule = () => {
   // Módulos secundários agrupados
   const secondaryModules = {
     "Cadastros Básicos": [
+      { title: "Fornecedores", to: "/dashboard/fabrica/fornecedores", icon: Package, color: "text-amber-600" },
       { title: "Máquinas", to: "/dashboard/fabrica/maquinas", icon: Settings, color: "text-gray-600" },
       { title: "Operadores", to: "/dashboard/fabrica/operadores", icon: UserCircle, color: "text-purple-600" },
     ],
