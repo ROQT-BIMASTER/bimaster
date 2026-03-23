@@ -223,6 +223,97 @@ export default function ContaPagarDetalhe() {
             </CardContent>
           </Card>
 
+          {/* Impostos Retidos */}
+          <Collapsible>
+            <Card>
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2"><Receipt className="h-4 w-4" /> Impostos Retidos</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-2 text-sm pt-0">
+                  <div className="grid grid-cols-2 gap-x-6">
+                    <Row label="PIS" value={BRL.format((titulo as any).valor_pis || 0)} />
+                    <Row label="Reter PIS" value={(titulo as any).retem_pis ? "Sim" : "Não"} />
+                    <Row label="COFINS" value={BRL.format((titulo as any).valor_cofins || 0)} />
+                    <Row label="Reter COFINS" value={(titulo as any).retem_cofins ? "Sim" : "Não"} />
+                    <Row label="CSLL" value={BRL.format((titulo as any).valor_csll || 0)} />
+                    <Row label="Reter CSLL" value={(titulo as any).retem_csll ? "Sim" : "Não"} />
+                    <Row label="IR" value={BRL.format((titulo as any).valor_ir || 0)} />
+                    <Row label="Reter IR" value={(titulo as any).retem_ir ? "Sim" : "Não"} />
+                    <Row label="ISS" value={BRL.format((titulo as any).valor_iss || 0)} />
+                    <Row label="Reter ISS" value={(titulo as any).retem_iss ? "Sim" : "Não"} />
+                    <Row label="INSS" value={BRL.format((titulo as any).valor_inss || 0)} />
+                    <Row label="Reter INSS" value={(titulo as any).retem_inss ? "Sim" : "Não"} />
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Rateios */}
+          {((titulo as any).rateio_categorias || (titulo as any).rateio_departamentos) && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="flex items-center gap-2"><FileBarChart className="h-4 w-4" /> Rateios</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 text-sm pt-0">
+                    {(titulo as any).rateio_categorias && (
+                      <div>
+                        <p className="font-medium text-xs text-muted-foreground mb-1">Rateio por Categorias</p>
+                        <pre className="bg-muted/50 p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify((titulo as any).rateio_categorias, null, 2)}</pre>
+                      </div>
+                    )}
+                    {(titulo as any).rateio_departamentos && (
+                      <div>
+                        <p className="font-medium text-xs text-muted-foreground mb-1">Rateio por Departamentos</p>
+                        <pre className="bg-muted/50 p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify((titulo as any).rateio_departamentos, null, 2)}</pre>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* CNAB / Bancário */}
+          {((titulo as any).codigo_barras_ficha_compensacao || (titulo as any).cnab_dados) && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="flex items-center gap-2"><Landmark className="h-4 w-4" /> CNAB / Bancário</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-2 text-sm pt-0">
+                    <Row label="Código de Barras" value={(titulo as any).codigo_barras_ficha_compensacao} />
+                    {(titulo as any).cnab_dados && (
+                      <div>
+                        <p className="font-medium text-xs text-muted-foreground mb-1">Dados CNAB</p>
+                        <pre className="bg-muted/50 p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify((titulo as any).cnab_dados, null, 2)}</pre>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
           {/* Right - Parcelas + Pagamentos */}
           <div className="space-y-6">
             {/* Parcelas */}
