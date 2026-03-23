@@ -1234,7 +1234,15 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                             {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                             {api.icon}
                             <div className="min-w-0">
-                              <span className="font-medium text-sm text-foreground">{api.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm text-foreground">{api.name}</span>
+                                <ApiStatusBadge basePath={api.basePath} />
+                                {PAGINATION_PATTERNS[api.id] && (
+                                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${PAGINATION_LABELS[PAGINATION_PATTERNS[api.id]].color}`}>
+                                    {PAGINATION_LABELS[PAGINATION_PATTERNS[api.id]].label}
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground truncate">{api.description}</p>
                             </div>
                           </div>
