@@ -72,9 +72,9 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     queryKey: ['trade-fornecedores-combobox'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("fabrica_fornecedores")
+        .from("fornecedores")
         .select("id, razao_social, nome_fantasia, cnpj")
-        .eq("ativo", true)
+        .eq("status", "ativo")
         .order("razao_social")
         .limit(500);
       if (error) throw error;
