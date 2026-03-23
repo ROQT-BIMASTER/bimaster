@@ -415,6 +415,32 @@ export default function ApiTester() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const testerRef = useState<HTMLDivElement | null>(null);
+
+  // Listen for pre-fill events from ApiDocumentation
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setMethod(detail.method as HttpMethod);
+        setUrl(detail.url);
+        if (detail.body) {
+          try {
+            setBody(JSON.stringify(JSON.parse(detail.body.replace(/\s+/g, " ").trim()), null, 2));
+          } catch {
+            setBody(detail.body);
+          }
+        } else {
+          setBody("");
+        }
+        // Scroll API Tester into view
+        const el = document.getElementById("api-tester-section");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    apiTesterEventTarget.addEventListener("open-tester", handler);
+    return () => apiTesterEventTarget.removeEventListener("open-tester", handler);
+  }, []);
 
   const handlePreset = (preset: typeof PRESET_ENDPOINTS[0]) => {
     setMethod(preset.method);
