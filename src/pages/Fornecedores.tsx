@@ -90,7 +90,6 @@ interface FornecedorForm {
   favorecido: string;
   tipo_pix: string;
   chave_pix: string;
-  linha_digitavel: string;
   inscricao_estadual: string;
   inscricao_municipal: string;
 }
@@ -100,7 +99,7 @@ const emptyForm: FornecedorForm = {
   endereco: "", endereco_numero: "", complemento: "", bairro: "", cidade: "", estado: "", cep: "",
   empresa_id: "", codigo_externo: "", fonte_erp: "", status: "ativo",
   banco: "", agencia: "", conta_bancaria: "", tipo_conta: "corrente", favorecido: "",
-  tipo_pix: "", chave_pix: "", linha_digitavel: "",
+  tipo_pix: "", chave_pix: "",
   inscricao_estadual: "", inscricao_municipal: "",
 };
 
@@ -200,10 +199,7 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
                   <QrCode className="h-3 w-3" />
                   <Badge variant="outline" className="text-[9px]">{f.tipo_pix?.toUpperCase()}</Badge>
                   {f.chave_pix}
-                </p>
-              )}
-              {f.linha_digitavel && (
-                <p className="font-mono text-[10px] break-all text-muted-foreground">{f.linha_digitavel}</p>
+               </p>
               )}
             </div>
           ) : (
@@ -383,7 +379,7 @@ export default function Fornecedores() {
       banco: f.banco || "", agencia: f.agencia || "",
       conta_bancaria: f.conta_bancaria || "", tipo_conta: f.tipo_conta || "corrente",
       favorecido: f.favorecido || "", tipo_pix: f.tipo_pix || "",
-      chave_pix: f.chave_pix || "", linha_digitavel: f.linha_digitavel || "",
+      chave_pix: f.chave_pix || "",
       inscricao_estadual: f.inscricao_estadual || "",
       inscricao_municipal: f.inscricao_municipal || "",
     });
@@ -449,7 +445,6 @@ export default function Fornecedores() {
       favorecido: form.favorecido.trim() || null,
       tipo_pix: form.tipo_pix || null,
       chave_pix: form.chave_pix.trim() || null,
-      linha_digitavel: form.linha_digitavel.trim() || null,
       inscricao_estadual: form.inscricao_estadual.trim() || null,
       inscricao_municipal: form.inscricao_municipal.trim() || null,
       updated_at: new Date().toISOString(),
@@ -884,12 +879,6 @@ export default function Fornecedores() {
                   <Label>Chave PIX</Label>
                   <Input value={form.chave_pix} onChange={(e) => setForm({ ...form, chave_pix: e.target.value })} placeholder="Digite a chave PIX" />
                 </div>
-              </div>
-              <Separator />
-              <div className="grid gap-1.5">
-                <Label>Linha Digitável (Boleto)</Label>
-                <Input value={form.linha_digitavel} onChange={(e) => setForm({ ...form, linha_digitavel: e.target.value })}
-                  placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" className="font-mono text-xs" />
               </div>
             </div>
           )}
