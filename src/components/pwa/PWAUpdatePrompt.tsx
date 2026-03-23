@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { usePWA } from '@/contexts/PWAContext';
 
 export function PWAUpdatePrompt() {
-  const { wasUpdated, needRefresh, appVersion, dismissUpdateNotice, updateServiceWorker } = usePWA();
+  const { wasUpdated, needRefresh, appVersion, dismissUpdateNotice, updateServiceWorker, forceUpdate } = usePWA();
   const [showUpdated, setShowUpdated] = useState(false);
 
   // Mostrar notificação quando o app foi atualizado
@@ -26,7 +26,12 @@ export function PWAUpdatePrompt() {
   };
 
   const handleApplyUpdate = () => {
-    updateServiceWorker();
+    if (needRefresh) {
+      updateServiceWorker();
+    } else {
+      // Fallback: force clean reload when SW doesn't detect update
+      forceUpdate();
+    }
   };
 
   const handleDismissRefresh = () => {

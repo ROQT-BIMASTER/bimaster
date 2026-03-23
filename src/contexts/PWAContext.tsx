@@ -18,6 +18,7 @@ interface PWAContextType extends PWAState {
   promptInstall: () => Promise<boolean>;
   dismissUpdateNotice: () => void;
   forceUpdate: () => Promise<void>;
+  checkForUpdate: () => Promise<void>;
 }
 
 const PWAContext = createContext<PWAContextType | null>(null);
@@ -26,6 +27,7 @@ const PWAContext = createContext<PWAContextType | null>(null);
 let swRegistered = false;
 let deferredPromptRef: any = null;
 let updateSWRef: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let swRegistrationRef: ServiceWorkerRegistration | null = null;
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PWAState>({
@@ -115,6 +117,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             console.log('[PWA] Service Worker registrado:', swUrl);
             
             if (registration) {
+              swRegistrationRef = registration;
               // Verificar atualizações a cada 5 minutos
               setInterval(() => {
                 console.log('[PWA] Verificando atualizações...');
@@ -221,8 +224,22 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     await forceCleanReload();
   }, []);
 
+  const checkForUpdate = useCallback(async () => {
+    console.log('[PWA] Verificação manual de atualização...');
+    if (swRegistrationRef) {
+      try {
+        await swRegistrationRef.update();
+        console.log('[PWA] Verificação de SW concluída');
+      } catch (error) {
+        console.error('[PWA] Erro ao verificar SW:', error);
+      }
+    } else {
+      console.log('[PWA] Nenhum SW registrado, forçando reload...');
+    }
+  }, []);
+
   return (
-    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate }}>
+    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate, checkForUpdate }}>
       {children}
     </PWAContext.Provider>
   );
@@ -245,6 +262,7 @@ export function usePWA(): PWAContextType {
       promptInstall: async () => false,
       dismissUpdateNotice: () => {},
       forceUpdate: async () => {},
+      checkForUpdate: async () => {},
     };
   }
   return context;

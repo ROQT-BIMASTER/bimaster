@@ -44,6 +44,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePWA } from "@/hooks/usePWA";
 
 // Module color configuration
 const moduleColors = {
@@ -286,6 +287,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { data: userDepartments = [] } = useUserDepartments();
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
+  const { needRefresh } = usePWA();
   
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [openFinSubgroups, setOpenFinSubgroups] = useState<Set<string>>(new Set());
@@ -1155,7 +1157,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
-              <MenuItemLink to="/dashboard/instalar-app" icon={Download} title={t("nav.install_app")} />
+              <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
