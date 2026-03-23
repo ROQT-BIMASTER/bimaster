@@ -1,42 +1,66 @@
 
 
-# Fornecedores — Botão Voltar, Menu Lateral, Atalho em AP e Persistência de Estado
+# Auditor IA — Análise Contextual + Chave de Acesso NF-e
 
-## Problemas Identificados
+## Problemas
 
-1. **Sem botão "Voltar"** na tela `/dashboard/financeiro/fornecedores`
-2. **Sem acesso pelo menu lateral** — a rota existe mas não está no sidebar dinâmico (baseado em banco)
-3. **Sem atalho em Contas a Pagar** — a tela `ContasPagarGestao` não tem link para fornecedores
-4. **Perda de estado ao navegar** — ao sair da tela e voltar, o formulário/dialog fecha e perde dados preenchidos
+1. **IA não analisa contexto**: O prompt atual só pede extração de dados do documento — não recebe os dados do lançamento para confronto contextualizado. A comparação é feita no backend com lógica hardcoded, mas a IA não "vê" o que está sendo comparado.
+2. **Falta campo de Chave de Acesso NF-e**: Não há como informar a chave de acesso da nota fiscal no fluxo de revisão de pagamento.
+3. **IA deveria auto-preencher a chave**: Se a IA detectar uma chave de acesso no documento, deve sugerir o preenchimento com confirmação do operador.
 
 ## Plano
 
-### 1. Adicionar botão "Voltar" na página Fornecedores
+### 1. Melhorar o prompt da IA com contexto do lançamento
 
-No header da página `Fornecedores.tsx`, adicionar um `Link` com `ArrowLeft` apontando para `/dashboard/financeiro` (módulo financeiro), usando o padrão `ModuleBreadcrumb` já existente no projeto.
+No `expense-ai-assistant/index.ts`, função `handleAuditDocument`:
+- Incluir os dados esperados (CNPJ, nome, valor, nº documento) diretamente no prompt para a IA
+- Pedir à IA que faça a comparação e aponte divergências (em vez de apenas extrair e comparar via código)
+- Adicionar extração de `chave_acesso_nfe` (44 dígitos) ao tool schema
 
-### 2. Registrar tela no menu lateral (banco)
+Isso permite que a IA interprete o contexto visual (ex: WhatsApp images de boletos, comprovantes) de forma mais inteligente.
 
-O sidebar é dinâmico via tabelas `sidebar_categories` e `sidebar_category_modules`. Para incluir "Fornecedores" no menu, precisa inserir na tabela `sidebar_category_modules` um registro vinculando o screenCode `financeiro_fornecedores` à categoria do módulo Financeiro. Isso será feito via migração SQL — inserindo o módulo na categoria "Cadastros" do financeiro (ou criando a categoria se não existir).
+### 2. Expandir o tool schema para incluir chave de acesso
 
-### 3. Adicionar atalho na tela de Contas a Pagar
+No schema `audit_document_result`, adicionar:
+- `extracted_chave_acesso` (string) — chave de acesso NF-e detectada no documento
+- `ai_divergences` (array) — divergências identificadas pela própria IA com justificativa
 
-No header do `ContasPagarGestao.tsx`, adicionar um botão/link "Fornecedores" ao lado das ações existentes, navegando para `/dashboard/financeiro/fornecedores`.
+### 3. Adicionar campo de Chave de Acesso NF-e no `DocumentAuditCard`
 
-### 4. Persistir estado do formulário ao navegar para fora
+No componente `DocumentAuditCard.tsx`:
+- Adicionar input para "Chave de Acesso NF-e" (44 dígitos) com máscara
+- Se a IA extrair uma chave, exibir sugestão com botão "Aplicar" (padrão `FiscalSuggestionBadge`)
+- O operador revisa e confirma antes de persistir
+- Callback `onChaveAcessoChange` para propagar o valor ao componente pai
 
-O problema ocorre porque o `Dialog` é controlado por `dialogOpen` state, que reseta quando o componente desmonta (navegação). Solução:
+### 4. Propagar chave de acesso ao `PaymentReviewDialog`
 
-- Salvar o estado do formulário (`form`, `editingId`, `dialogOpen`, `dialogTab`) no `sessionStorage` ao navegar para fora
-- Restaurar ao montar o componente
-- Usar `useEffect` com `beforeunload` e um wrapper para detectar navegação
-- Limpar o sessionStorage ao fechar o dialog normalmente (salvar/cancelar)
+No `PaymentReviewDialog.tsx`:
+- Receber a chave de acesso do `DocumentAuditCard` via callback
+- Exibir badge com a chave confirmada
+- Persistir na tabela `payment_queue` (campo `chave_acesso_nfe` — nova coluna)
+
+### 5. Migração SQL
+
+Adicionar coluna `chave_acesso_nfe` à tabela `payment_queue`:
+
+```sql
+ALTER TABLE payment_queue ADD COLUMN chave_acesso_nfe text;
+```
+
+### 6. Atualizar `DocumentAuditResult` no hook
+
+Em `useDocumentAudit.ts`, expandir a interface:
+- `extracted_chave_acesso?: string`
+- Retornar o campo no resultado
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/Fornecedores.tsx` | Adicionar botão Voltar + persistência de formulário via sessionStorage |
-| `src/pages/ContasPagarGestao.tsx` | Adicionar botão/atalho para Fornecedores no header |
-| Migração SQL | Inserir `financeiro_fornecedores` no sidebar_category_modules |
+| `supabase/functions/expense-ai-assistant/index.ts` | Melhorar prompt com contexto + extrair chave de acesso |
+| `src/components/financeiro/payments/DocumentAuditCard.tsx` | Input de chave de acesso + sugestão IA |
+| `src/hooks/useDocumentAudit.ts` | Expandir interface com `extracted_chave_acesso` |
+| `src/components/financeiro/payments/PaymentReviewDialog.tsx` | Receber/persistir chave de acesso |
+| Migração SQL | Coluna `chave_acesso_nfe` em `payment_queue` |
 
