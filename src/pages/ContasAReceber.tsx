@@ -1052,3 +1052,175 @@ export default function ContasAReceber() {
     </DashboardLayout>
   );
 }
+
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+function CRDetailContent({ conta }: { conta: ContaReceber }) {
+  // Fetch full record with all fields
+  const { data: full } = useQuery({
+    queryKey: ["cr-detail-full", conta.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("contas_receber" as any).select("*").eq("id", conta.id).single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const r = full || conta;
+
+  return (
+    <div className="space-y-6">
+      {/* Dados Principais */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <DetailField label="Empresa" value={r.empresa_nome} />
+        <DetailField label="Documento" value={`${r.numero_documento}/${r.parcela}`} />
+        <DetailField label="Cliente" value={r.cliente_nome} />
+        <DetailField label="Cód. Cliente" value={r.cliente_codigo} />
+        <DetailField label="Vendedor" value={r.vendedor_nome} />
+        <DetailField label="Status" value={r.status} />
+        <DetailField label="Emissão" value={formatLocalDate(r.data_emissao)} />
+        <DetailField label="Vencimento" value={formatLocalDate(r.data_vencimento)} />
+        <DetailField label="Recebimento" value={r.data_recebimento ? formatLocalDate(r.data_recebimento) : null} />
+        <DetailField label="Portador" value={r.portador} />
+        <DetailField label="Conta" value={r.conta} />
+        <DetailField label="Tipo Documento" value={r.tipo_documento} />
+      </div>
+
+      <Separator />
+
+      {/* Valores */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <DetailField label="Valor Original" value={BRL.format(r.valor_original || 0)} highlight />
+        <DetailField label="Valor Aberto" value={BRL.format(r.valor_aberto || 0)} highlight />
+        <DetailField label="Valor Recebido" value={BRL.format(r.valor_recebido || 0)} highlight />
+        <DetailField label="Juros" value={BRL.format(r.valor_juros || 0)} />
+        <DetailField label="Desconto" value={BRL.format(r.valor_desconto || 0)} />
+        <DetailField label="Categoria" value={r.categoria_nome} />
+        <DetailField label="Observações" value={r.observacoes} />
+        <DetailField label="Descrição" value={r.descricao} />
+        <DetailField label="NSU" value={r.nsu} />
+      </div>
+
+      {/* Boleto */}
+      {(r.boleto_gerado || r.boleto_numero) && (
+        <>
+          <Separator />
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+              <span className="text-sm font-semibold flex items-center gap-2"><Landmark className="h-4 w-4" /> Dados do Boleto</span>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                <DetailField label="Boleto Gerado" value={r.boleto_gerado ? "Sim" : "Não"} />
+                <DetailField label="Número" value={r.boleto_numero} />
+                <DetailField label="Nº Bancário" value={r.boleto_numero_bancario} />
+                <DetailField label="% Juros" value={r.boleto_per_juros != null ? `${r.boleto_per_juros}%` : null} />
+                <DetailField label="% Multa" value={r.boleto_per_multa != null ? `${r.boleto_per_multa}%` : null} />
+                <DetailField label="Data Emissão" value={r.boleto_data_emissao ? formatLocalDate(r.boleto_data_emissao) : null} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </>
+      )}
+
+      {/* Impostos Retidos */}
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+          <span className="text-sm font-semibold flex items-center gap-2"><Receipt className="h-4 w-4" /> Impostos Retidos</span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+            <DetailField label="PIS" value={BRL.format(r.valor_pis || 0)} />
+            <DetailField label="Reter PIS" value={r.retem_pis ? "Sim" : "Não"} />
+            <DetailField label="COFINS" value={BRL.format(r.valor_cofins || 0)} />
+            <DetailField label="Reter COFINS" value={r.retem_cofins ? "Sim" : "Não"} />
+            <DetailField label="CSLL" value={BRL.format(r.valor_csll || 0)} />
+            <DetailField label="Reter CSLL" value={r.retem_csll ? "Sim" : "Não"} />
+            <DetailField label="IR" value={BRL.format(r.valor_ir || 0)} />
+            <DetailField label="Reter IR" value={r.retem_ir ? "Sim" : "Não"} />
+            <DetailField label="ISS" value={BRL.format(r.valor_iss || 0)} />
+            <DetailField label="Reter ISS" value={r.retem_iss ? "Sim" : "Não"} />
+            <DetailField label="INSS" value={BRL.format(r.valor_inss || 0)} />
+            <DetailField label="Reter INSS" value={r.retem_inss ? "Sim" : "Não"} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Rateios */}
+      {(r.rateio_categorias || r.rateio_departamentos) && (
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+            <span className="text-sm font-semibold flex items-center gap-2"><FileBarChart className="h-4 w-4" /> Rateios</span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-3 pt-2">
+              {r.rateio_categorias && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Categorias</p>
+                  <pre className="bg-muted/50 p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(r.rateio_categorias, null, 2)}</pre>
+                </div>
+              )}
+              {r.rateio_departamentos && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Departamentos</p>
+                  <pre className="bg-muted/50 p-2 rounded text-xs overflow-auto max-h-40">{JSON.stringify(r.rateio_departamentos, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Comercial */}
+      {(r.n_cod_os || r.n_cod_pedido || r.c_numero_contrato || r.c_pedido_cliente) && (
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+            <span className="text-sm font-semibold flex items-center gap-2"><Building2 className="h-4 w-4" /> Dados Comerciais</span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+              <DetailField label="Cód. OS" value={r.n_cod_os ? String(r.n_cod_os) : null} />
+              <DetailField label="Cód. Pedido" value={r.n_cod_pedido ? String(r.n_cod_pedido) : null} />
+              <DetailField label="Nº Contrato" value={r.c_numero_contrato} />
+              <DetailField label="Pedido Cliente" value={r.c_pedido_cliente} />
+              <DetailField label="Tabela Preço" value={r.tabela_preco} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Auditoria */}
+      {(r.data_inc || r.user_inc) && (
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+            <span className="text-sm font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Auditoria</span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+              <DetailField label="Incluído em" value={r.data_inc} />
+              <DetailField label="Hora Inclusão" value={r.hora_inc} />
+              <DetailField label="Usuário Inc." value={r.user_inc} />
+              <DetailField label="Alterado em" value={r.data_alt} />
+              <DetailField label="Hora Alteração" value={r.hora_alt} />
+              <DetailField label="Usuário Alt." value={r.user_alt} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
+  );
+}
+
+function DetailField({ label, value, highlight }: { label: string; value: string | null | undefined; highlight?: boolean }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`font-medium text-sm ${highlight ? "font-semibold" : ""}`}>{value || "—"}</p>
+    </div>
+  );
+}
