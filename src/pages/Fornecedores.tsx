@@ -379,7 +379,7 @@ export default function Fornecedores() {
       banco: f.banco || "", agencia: f.agencia || "",
       conta_bancaria: f.conta_bancaria || "", tipo_conta: f.tipo_conta || "corrente",
       favorecido: f.favorecido || "", tipo_pix: f.tipo_pix || "",
-      chave_pix: f.chave_pix || "", linha_digitavel: f.linha_digitavel || "",
+      chave_pix: f.chave_pix || "",
       inscricao_estadual: f.inscricao_estadual || "",
       inscricao_municipal: f.inscricao_municipal || "",
     });
