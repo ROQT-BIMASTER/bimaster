@@ -52,6 +52,7 @@ async function hashKey(key: string): Promise<string> {
 }
 
 export default function IntegracaoERP() {
+  const navigate = useNavigate();
   const { data: profiles } = useErpAccessProfiles();
   const assignProfile = useAssignProfileToKey();
   const { user } = useAuth();
