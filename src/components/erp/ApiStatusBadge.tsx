@@ -22,6 +22,8 @@ export default function ApiStatusBadge({ basePath, className }: ApiStatusBadgePr
           method: "GET",
           signal: AbortSignal.timeout(5000),
         });
+        // Consume body to prevent resource leaks and suppress console errors
+        await res.text().catch(() => {});
         if (!cancelled) {
           setLatency(Math.round(performance.now() - start));
           // 401/403/405 mean the API is online but requires auth or different method
