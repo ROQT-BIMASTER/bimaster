@@ -109,6 +109,7 @@ const FabricaModule = () => {
   // Módulos secundários agrupados
   const secondaryModules = {
     "Cadastros Básicos": [
+      { title: "Fornecedores", to: "/dashboard/fabrica/fornecedores", icon: Package, color: "text-amber-600" },
       { title: "Máquinas", to: "/dashboard/fabrica/maquinas", icon: Settings, color: "text-gray-600" },
       { title: "Operadores", to: "/dashboard/fabrica/operadores", icon: UserCircle, color: "text-purple-600" },
     ],
