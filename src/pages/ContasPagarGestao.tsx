@@ -415,9 +415,16 @@ export default function ContasPagarGestao() {
             <h1 className="text-2xl font-semibold tracking-tight">Contas a Pagar</h1>
             <p className="text-sm text-muted-foreground">Gerencie títulos, parcelas e pagamentos</p>
           </div>
-          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Nova Conta a Pagar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild className="gap-2">
+              <Link to="/dashboard/financeiro/fornecedores">
+                <Users className="h-4 w-4" /> Fornecedores
+              </Link>
+            </Button>
+            <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova Conta a Pagar
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
