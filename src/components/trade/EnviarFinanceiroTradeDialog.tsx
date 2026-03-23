@@ -6,48 +6,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DOCUMENT_TYPES, usePortadores } from "@/hooks/useEventExpenses";
-import { Loader2, Send, FileText, Building2, Check, ChevronsUpDown, AlertTriangle, Clock, CalendarCheck, SplitSquareVertical } from "lucide-react";
+import { Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { FornecedorQuickAdd } from "@/components/fabrica/FornecedorQuickAdd";
-import { FornecedorPaymentInfo } from "@/components/shared/FornecedorPaymentInfo";
-import { FinancialFieldsSuggestion } from "@/components/ai/FinancialFieldsSuggestion";
-import { useActivePaymentPolicy, isWithinCutoff, getPolicySummary, getNextPaymentDateFormatted } from "@/hooks/useFinancialPaymentPolicies";
-import { useActiveCorrectionRule, getCorrectionLocks } from "@/hooks/useFinancialCorrectionRules";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { getSafeErrorMessage } from "@/lib/utils/sanitize";
-
-interface Fornecedor {
-  id: string;
-  razao_social: string;
-  cnpj: string | null;
-}
+import { FinancialSubmissionForm, type FinancialFormData } from "@/components/shared/FinancialSubmissionForm";
+import { useFinancialSubmission } from "@/hooks/useFinancialSubmission";
 
 interface EnviarFinanceiroTradeDialogProps {
   entry: any;
@@ -62,248 +24,66 @@ export function EnviarFinanceiroTradeDialog({
   onOpenChange,
   onSuccess,
 }: EnviarFinanceiroTradeDialogProps) {
-  const { data: activePolicy } = useActivePaymentPolicy();
-  const { data: correctionRule } = useActiveCorrectionRule();
-  const { data: portadores } = usePortadores();
-  const [loading, setLoading] = useState(false);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [fornecedorId, setFornecedorId] = useState<string>("");
-  const [openCombobox, setOpenCombobox] = useState(false);
-
-  const [formData, setFormData] = useState({
-    supplier_name: "",
-    supplier_document: "",
-    document_type: "",
-    document_number: "",
-    due_date: "",
-    portador: "",
-    payment_notes: "",
-  });
+  const { submit, loading } = useFinancialSubmission();
 
   const hasAttachments = entry?.attachments && entry.attachments.length > 0;
   const isApproved = entry?.approval_status === "approved";
-  const withinCutoff = activePolicy ? isWithinCutoff(activePolicy) : true;
   const isInstallment = entry?.installment_number && entry?.installment_total;
-  const hasBoleto = entry?.boleto_barcode;
   const isCorrection = !!entry?.payment_queue_id;
-  const locks = isCorrection ? getCorrectionLocks(correctionRule) : null;
 
-  // Fetch suppliers when dialog opens
-  useEffect(() => {
-    if (open) {
-      supabase
-        .from("fabrica_fornecedores")
-        .select("id, razao_social, cnpj")
-        .eq("ativo", true)
-        .order("razao_social")
-        .then(({ data }) => setFornecedores(data || []));
+  const initialData = entry ? {
+    supplier_name: entry.supplier_name || "",
+    supplier_document: entry.supplier_document || "",
+    document_type: entry.document_type || "",
+    document_number: entry.document_number || "",
+    due_date: entry.due_date || "",
+    portador: entry.portador || "",
+    payment_notes: entry.payment_notes || "",
+  } : undefined;
 
-      // Pre-fill ALL fields if entry already has data (correction or re-send)
-      if (entry) {
-        setFormData((prev) => ({
-          ...prev,
-          supplier_name: entry.supplier_name || prev.supplier_name,
-          supplier_document: entry.supplier_document || prev.supplier_document,
-          document_type: entry.document_type || prev.document_type,
-          document_number: entry.document_number || prev.document_number,
-          due_date: entry.due_date || prev.due_date,
-          portador: entry.portador || prev.portador,
-          payment_notes: entry.payment_notes || prev.payment_notes,
-        }));
-      }
-    }
-  }, [open, entry]);
+  const handleSubmit = async (formData: FinancialFormData) => {
+    if (!isApproved || !hasAttachments) return;
 
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setFornecedorId("");
-      setFormData({
-        supplier_name: "",
-        supplier_document: "",
-        document_type: "",
-        document_number: "",
-        due_date: "",
-        portador: "",
-        payment_notes: "",
-      });
-    }
-  }, [open]);
-
-  const handleSelectFornecedor = (id: string) => {
-    const fornecedor = fornecedores.find((f) => f.id === id);
-    if (fornecedor) {
-      setFornecedorId(id);
-      setFormData({
-        ...formData,
-        supplier_name: fornecedor.razao_social,
-        supplier_document: fornecedor.cnpj || "",
-      });
-    }
-    setOpenCombobox(false);
-  };
-
-  const handleFornecedorCriado = (novo: { id: string; nome: string }) => {
-    supabase
-      .from("fabrica_fornecedores")
-      .select("id, razao_social, cnpj")
-      .eq("id", novo.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setFornecedores((prev) => [...prev, data]);
-          setFornecedorId(data.id);
-          setFormData({
-            ...formData,
-            supplier_name: data.razao_social,
-            supplier_document: data.cnpj || "",
-          });
-        }
-      });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate approval status
-    if (!isApproved) {
-      toast.error("Lançamento precisa estar aprovado para enviar ao financeiro");
-      return;
-    }
-
-    // Validate attachments
-    if (!hasAttachments) {
-      toast.error("Adicione pelo menos um anexo antes de enviar ao financeiro");
-      return;
-    }
-
-    if (
-      (!fornecedorId && !isCorrection) ||
-      !formData.document_type ||
-      !formData.document_number ||
-      !formData.due_date ||
-      !formData.portador
-    ) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const code = `TRD-${Date.now()}`;
-      const existingQueueId = entry.payment_queue_id;
-
-      // Get user name for history
-      let userName = "Usuário";
-      const { data: profile } = await supabase.from("profiles").select("nome").eq("id", user.id).single();
-      if (profile?.nome) userName = profile.nome;
-
-      const queuePayload = {
-        source_type: "trade_entry" as const,
-        source_id: entry.id,
-        source_code: entry.account?.code || null,
-        supplier_name: formData.supplier_name,
-        supplier_document: formData.supplier_document || null,
-        document_type: formData.document_type,
-        document_number: formData.document_number,
-        amount: parseFloat(entry.amount),
-        due_date: formData.due_date,
-        portador: formData.portador,
-        description: entry.description || null,
-        notes: [
-          formData.payment_notes,
-          hasBoleto ? `Linha digitável: ${entry.boleto_barcode}` : null,
-          isInstallment ? `Parcela ${entry.installment_number}/${entry.installment_total}` : null,
-        ].filter(Boolean).join(" | ") || null,
-        department_name: "Trade Marketing",
-        requested_by: user.id,
-        attachments: entry.attachments || null,
-        empresa_id: entry.empresa_id || null,
-        empresa_nome: entry.empresa_nome || null,
-      };
-
-      let finalQueueId = existingQueueId;
-
-      if (existingQueueId) {
-        // CORRECTION: Update existing record
-        const { error: updateQueueError } = await supabase
-          .from("financial_payment_queue")
+    const success = await submit({
+      sourceType: "trade_entry",
+      sourceId: entry.id,
+      sourceCode: entry.account?.code || null,
+      amount: parseFloat(entry.amount),
+      description: entry.description || null,
+      departmentName: "Trade Marketing",
+      attachments: entry.attachments || null,
+      empresaId: entry.empresa_id || null,
+      empresaNome: entry.empresa_nome || null,
+      existingQueueId: entry.payment_queue_id || null,
+      installmentNumber: entry.installment_number,
+      installmentTotal: entry.installment_total,
+      boletoBarcode: entry.boleto_barcode,
+      onUpdateSource: async (queueId, data, notes) => {
+        await supabase
+          .from("trade_financial_entries")
           .update({
-            ...queuePayload,
-            financial_status: 'pending',
-            financial_notes: null,
-            reviewed_at: null,
-            reviewed_by: null,
-            rejection_category: null,
-            rejection_fields: null,
+            send_to_financial: true,
+            status: "pending_financial",
+            payment_queue_id: queueId,
+            document_type: data.document_type,
+            document_number: data.document_number,
+            due_date: data.due_date,
+            portador: data.portador,
+            supplier_name: data.supplier_name,
+            supplier_document: data.supplier_document || null,
+            updated_at: new Date().toISOString(),
           })
-          .eq("id", existingQueueId);
+          .eq("id", entry.id);
+      },
+    }, formData);
 
-        if (updateQueueError) throw updateQueueError;
-
-        await supabase.from("financial_payment_queue_history" as any).insert({
-          payment_queue_id: existingQueueId,
-          changed_by: user.id,
-          changed_by_name: userName,
-          action: 'corrected',
-          snapshot: queuePayload,
-        });
-
-        finalQueueId = existingQueueId;
-      } else {
-        // FIRST SUBMISSION
-        const { data: queueEntry, error: queueError } = await supabase
-          .from("financial_payment_queue")
-          .insert({ code, ...queuePayload })
-          .select("id")
-          .single();
-
-        if (queueError) throw queueError;
-        finalQueueId = queueEntry.id;
-
-        await supabase.from("financial_payment_queue_history" as any).insert({
-          payment_queue_id: queueEntry.id,
-          changed_by: user.id,
-          changed_by_name: userName,
-          action: 'submitted',
-          snapshot: queuePayload,
-        });
-      }
-
-      const { error: updateError } = await supabase
-        .from("trade_financial_entries")
-        .update({
-          send_to_financial: true,
-          status: "pending_financial",
-          payment_queue_id: finalQueueId,
-          document_type: formData.document_type,
-          document_number: formData.document_number,
-          due_date: formData.due_date,
-          portador: formData.portador,
-          supplier_name: formData.supplier_name,
-          supplier_document: formData.supplier_document || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", entry.id);
-
-      if (updateError) throw updateError;
-
-      toast.success("Lançamento enviado ao financeiro com sucesso!");
+    if (success) {
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(getSafeErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
   };
 
-  const selectedFornecedor = fornecedores.find((f) => f.id === fornecedorId);
+  if (!entry) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -318,311 +98,21 @@ export function EnviarFinanceiroTradeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Installment context */}
-        {isInstallment && (
-          <Alert variant="info">
-            <SplitSquareVertical className="h-4 w-4" />
-            <AlertDescription>
-              Esta é a <strong>parcela {entry.installment_number} de {entry.installment_total}</strong>
-              {hasBoleto && (
-                <span className="block text-xs mt-1 font-mono">
-                  Boleto: {entry.boleto_barcode}
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Attachment validation alert */}
-        {!hasAttachments && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Este lançamento não possui anexos. Adicione pelo menos um comprovante antes de enviar ao financeiro.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Approval status alert */}
-        {!isApproved && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Este lançamento ainda não foi aprovado. Somente lançamentos aprovados podem ser enviados ao financeiro.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Payment policy banner */}
-        {activePolicy && (
-          <Alert variant={withinCutoff ? "info" : "warning"}>
-            {withinCutoff ? (
-              <CalendarCheck className="h-4 w-4" />
-            ) : (
-              <Clock className="h-4 w-4" />
-            )}
-            <AlertDescription className="text-xs">
-              {withinCutoff ? (
-                <>
-                  <strong>Dentro do corte.</strong> {getPolicySummary(activePolicy)} — Pagamento previsto: {getNextPaymentDateFormatted(activePolicy)}
-                </>
-              ) : (
-                <>
-                  <strong>Fora do corte.</strong> {getPolicySummary(activePolicy)} — Este envio será processado na próxima semana.
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* AI Suggestions */}
-          {entry?.id && (
-            <FinancialFieldsSuggestion
-              expenseId={entry.id}
-              onApplySuggestions={(fields) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  document_type: fields.document_type || prev.document_type,
-                  portador: fields.portador || prev.portador,
-                  due_date: fields.due_date || prev.due_date,
-                }));
-              }}
-            />
-          )}
-
-          {/* Dados do Fornecedor */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Building2 className="h-4 w-4" />
-              Dados do Fornecedor
-              {isCorrection && locks?.supplier_name && (
-                <span className="text-xs text-amber-600 ml-auto">🔒 Bloqueado para correção</span>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fornecedor *</Label>
-              <div className="flex gap-2">
-                {isCorrection && locks?.supplier_name ? (
-                  <Input
-                    value={formData.supplier_name}
-                    disabled
-                    className="flex-1 bg-muted/50 cursor-not-allowed"
-                  />
-                ) : (
-                  <>
-                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openCombobox}
-                          className="flex-1 justify-between font-normal"
-                        >
-                          {selectedFornecedor ? (
-                            <span className="truncate">
-                              {selectedFornecedor.razao_social}
-                              {selectedFornecedor.cnpj && (
-                                <span className="text-muted-foreground ml-2">
-                                  - {selectedFornecedor.cnpj}
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Selecione um fornecedor...
-                            </span>
-                          )}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar fornecedor..." />
-                          <CommandList>
-                            <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {fornecedores.map((fornecedor) => (
-                                <CommandItem
-                                  key={fornecedor.id}
-                                  value={`${fornecedor.razao_social} ${fornecedor.cnpj || ""}`}
-                                  onSelect={() =>
-                                    handleSelectFornecedor(fornecedor.id)
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      fornecedorId === fornecedor.id
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  <div className="flex flex-col">
-                                    <span>{fornecedor.razao_social}</span>
-                                    {fornecedor.cnpj && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {fornecedor.cnpj}
-                                      </span>
-                                    )}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FornecedorQuickAdd onFornecedorCriado={handleFornecedorCriado} />
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="supplier_document">CNPJ/CPF</Label>
-              <Input
-                id="supplier_document"
-                value={formData.supplier_document}
-                onChange={(e) =>
-                  setFormData({ ...formData, supplier_document: e.target.value })
-                }
-                disabled={isCorrection && locks?.supplier_document}
-                placeholder="Preenchido automaticamente"
-                className="bg-muted/50"
-              />
-            </div>
-
-            {/* Supplier payment info */}
-            {(fornecedorId || (isCorrection && formData.supplier_name)) && (
-              <FornecedorPaymentInfo 
-                fornecedorId={fornecedorId || undefined}
-                supplierName={formData.supplier_name}
-                supplierDocument={formData.supplier_document}
-              />
-            )}
-          </div>
-
-          {/* Dados do Documento */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <FileText className="h-4 w-4" />
-              Dados do Documento
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="document_type">Tipo de Documento *</Label>
-                <Select
-                  value={formData.document_type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, document_type: value })
-                  }
-                  disabled={isCorrection && locks?.document_type}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DOCUMENT_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="document_number">Número do Documento *</Label>
-                <Input
-                  id="document_number"
-                  value={formData.document_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, document_number: e.target.value })
-                  }
-                  disabled={isCorrection && locks?.document_number}
-                  placeholder="Ex: 12345"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="due_date">Data de Vencimento *</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, due_date: e.target.value })
-                  }
-                  disabled={isCorrection && locks?.due_date}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="portador">Portador/Forma de Pagamento *</Label>
-                <Select
-                  value={formData.portador}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, portador: value })
-                  }
-                  disabled={isCorrection && locks?.portador}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {portadores?.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="BRADESCO">BRADESCO</SelectItem>
-                    <SelectItem value="ITAU">ITAÚ</SelectItem>
-                    <SelectItem value="CARTEIRA">CARTEIRA</SelectItem>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="DEPOSITO">DEPÓSITO</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Observações */}
-          <div className="space-y-2">
-            <Label htmlFor="payment_notes">Observações para Pagamento</Label>
-            <Textarea
-              id="payment_notes"
-              value={formData.payment_notes}
-              onChange={(e) =>
-                setFormData({ ...formData, payment_notes: e.target.value })
-              }
-              placeholder="Informações adicionais para o financeiro..."
-              rows={2}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading || (!fornecedorId && !isCorrection) || !hasAttachments || !isApproved}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Send className="mr-2 h-4 w-4" />
-              Enviar ao Financeiro
-            </Button>
-          </div>
-        </form>
+        <FinancialSubmissionForm
+          expenseId={entry.id}
+          isApproved={isApproved}
+          hasAttachments={hasAttachments}
+          isCorrection={isCorrection}
+          installmentInfo={isInstallment ? {
+            number: entry.installment_number,
+            total: entry.installment_total,
+            boletoBarcode: entry.boleto_barcode,
+          } : null}
+          initialData={initialData}
+          loading={loading}
+          onSubmit={handleSubmit}
+          onCancel={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
