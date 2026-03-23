@@ -105,7 +105,7 @@ const contasPagarCrud: Endpoint[] = [
   {
     method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
     flow: FLOW.pagamento,
-    body: `{ "id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
+    body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
 ];
