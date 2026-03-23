@@ -10,7 +10,7 @@ import {
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
-  Rocket, AlertTriangle, Info, Zap
+  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
