@@ -493,8 +493,6 @@ const API_MODULES: ApiModule[] = [
     color: "from-blue-600 to-blue-500",
     apis: [
       { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores. ⚠️ Este é o cadastro geral de pessoas (clientes e fornecedores). Para consultas específicas de fornecedores do Contas a Pagar, use a API de Fornecedores.", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
-      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ⚠️ Subset do cadastro de Clientes: retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
-      { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-blue-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
       { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
       { id: "projetos", name: "Projetos", description: "CRUD completo de projetos", basePath: "/projetos-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: projetosCrud }] },
     ],
