@@ -191,7 +191,7 @@ export default function FilaExportacaoERP() {
         </div>
       );
     }
-    const list = Array.isArray(items) ? items : items?.data || [];
+    const list = Array.isArray(items) ? items : (items as any)?.data || [];
     if (list.length === 0) {
       return <p className="text-sm text-muted-foreground py-8 text-center">Nenhum registro encontrado.</p>;
     }

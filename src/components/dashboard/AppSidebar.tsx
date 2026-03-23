@@ -550,6 +550,10 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       icon: CreditCard,
       items: [
         { title: "Contas a Pagar", url: "/dashboard/financeiro/contas-a-pagar", icon: Receipt, screenCode: "financeiro_contas_pagar" },
+        { title: "Painel AP Central", url: "/dashboard/financeiro/ap-central", icon: BarChart2, screenCode: "financeiro_contas_pagar" },
+        { title: "Fila Exportação ERP", url: "/dashboard/financeiro/contas-a-pagar/exportacao-erp", icon: Upload, screenCode: "financeiro_contas_pagar" },
+        { title: "Sync Cadastros AP", url: "/dashboard/financeiro/contas-a-pagar/sync-cadastros", icon: RefreshCw, screenCode: "financeiro_contas_pagar" },
+        { title: "Conciliação Manual AP", url: "/dashboard/financeiro/contas-a-pagar/conciliacao", icon: Scale, screenCode: "financeiro_contas_pagar" },
         { title: "Contas a Receber", url: "/dashboard/financeiro/contas-a-receber", icon: DollarSign, screenCode: "financeiro_contas_receber" },
         { title: "Conciliação Bancária", url: "/dashboard/financeiro/conciliacao-bancaria", icon: Landmark, screenCode: "financeiro_saldos_bancarios" },
         { title: "Cobrança Inadimplentes", url: "/dashboard/financeiro/cobranca", icon: AlertTriangle, screenCode: "financeiro_contas_receber" },
