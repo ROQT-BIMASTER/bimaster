@@ -1,102 +1,94 @@
 
 
-# Análise Completa — Portal de Integração ERP (Documentação para o ERP)
+# Auditoria do Portal de Integração ERP — Análise de Qualidade
 
-## Situação Atual
+## Nota Geral: **8.5 / 10**
 
-O portal documenta **30 APIs** organizadas em 4 módulos (Geral, Cadastros Auxiliares, Finanças, Complementar). Nenhuma referência a N8N foi encontrada na documentação — isso está correto.
+O portal é bem estruturado, com fluxogramas, exportação Excel, chat de suporte por endpoint e cobertura ampla. Existem pontos de melhoria específicos abaixo.
 
-## APIs com Edge Functions criadas MAS não documentadas no Portal
+---
 
-Estas são APIs ERP-relevantes que já existem como edge functions mas não aparecem na documentação:
+## Problemas Encontrados
 
-| Edge Function | Descrição | Rotas Implementadas | Precisa Documentar? |
-|---|---|---|---|
-| `erp-fornecedores-query` | Consulta fornecedores por CNPJ | GET / (com filtro cnpj) | **SIM** — essencial para o ERP |
-| `erp-fornecedores-sync` | Sync bidirecional de fornecedores com ERP | CRUD completo (338 linhas) | **SIM** — essencial para o ERP |
-| `erp-plano-contas-api` | Plano de contas (chart of accounts) | GET / (listar ativos) | **SIM** — essencial para o ERP |
-| `erp-portadores-api` | Portadores/contas bancárias para ERP | GET /, POST /sync | **SIM** — essencial para o ERP |
-| `webhook-subscriptions-api` | CRUD de assinaturas webhook outbound | /listar, /consultar, /incluir, /alterar, /excluir, /testar, /eventos, /status | **SIM** — o ERP precisa gerenciar seus webhooks |
-| `webhook-dispatcher` | Processador da fila de webhooks | POST / (internal processing) | **SIM** — complementa o webhook-subscriptions |
-| `erp-export-payment` | Exporta pagamentos para fila ERP | POST (action: export/status/pending/confirm) | Já parcialmente coberto em "Exportação ERP" mas falta a API direta |
-| `conciliacao-bancaria` | Conciliação bancária via Pluggy | Múltiplas rotas | **NÃO** — é interna (Pluggy), não para o ERP |
-| `fiscal-iva-api` | Cálculos fiscais IVA | POST / | **OPCIONAL** — depende se o ERP precisa |
+### 1. Duplicidades no ApiTester (Nota: 6/10)
 
-## APIs Documentadas SEM Edge Function criada
+| Problema | Detalhe |
+|---|---|
+| **Movimentos duplicados** | "Movimentos — Listar CP", "Listar CR", "Listar CC" e "Listar Todos" apontam para o **mesmo path** `/movimentos-financeiros-api/listar` sem body diferenciado no preset |
+| **Resumo duplicados** | "Resumo — Em Aberto CP" e "Em Aberto CR" usam o mesmo path `/resumo-financeiro-api/em-aberto` sem distinção |
+| **Pesquisar duplicado** | "Pesquisar — Contas a Receber" e "Pesquisar — Contas a Pagar" apontam para o mesmo path `/pesquisar-lancamentos-api/pesquisar` |
+| **DRE duplicados** | "DRE — Listar Ativas" e "DRE — Listar Todas" apontam para o mesmo path |
+| **Origens duplicados** | "Origens — Listar Todas" e "Listar por Código" apontam para o mesmo path |
 
-Estas APIs aparecem no portal mas **não têm edge function implementada**:
+**Solução**: Diferenciar os bodies default de cada preset ou unificar em um só com body editável.
 
-| API Documentada | basePath | Status |
+### 2. Sobreposição Funcional entre APIs (Nota: 7/10)
+
+| Sobreposição | APIs Envolvidas | Risco para o ERP |
 |---|---|---|
-| Boletos | `/boletos-api` | ✅ Edge function existe |
-| Contas Correntes | `/contas-correntes-api` | ✅ Existe |
-| Lançamentos CC | `/lancamentos-cc-api` | ✅ Existe |
-| Orçamentos de Caixa | `/orcamentos-caixa-api` | ✅ Existe |
-| Pesquisar Lançamentos | `/pesquisar-lancamentos-api` | ✅ Existe |
-| Movimentos Financeiros | `/movimentos-financeiros-api` | ✅ Existe |
-| Resumo Financeiro | `/resumo-financeiro-api` | ✅ Existe |
+| **Webhook Push vs Webhook Subscriptions** | `exportAdvanced` tem `/webhook-push` (em Exportação ERP) E existe `webhook-subscriptions-api/incluir` (em Complementar) | Confusão: 2 formas de configurar webhooks outbound |
+| **Fornecedores Query vs Clientes** | `erp-fornecedores-query` lista fornecedores, mas `clientes-api` também gerencia clientes/fornecedores | Precisa nota explicativa de que Clientes = cadastro geral, Fornecedores = subset para AP |
+| **Plano de Contas vs Categorias** | `erp-plano-contas-api` e `categorias-api` são entidades diferentes mas podem confundir o ERP | Precisa nota explicativa |
 
-Todas as APIs documentadas têm suas edge functions criadas.
+### 3. APIs desnecessárias para o ERP (Nota: 8/10)
 
-## Rotas Documentadas vs Implementadas — Verificação por API
+Estas APIs são **tabelas de referência estáticas** que raramente mudam e provavelmente o ERP já tem internamente:
 
-As rotas de integração Huggs em `contas-pagar-api` (consultar, incluir, alterar, excluir, upsert, upsert-lote, lancar-pagamento, cancelar-pagamento, listar) estão **todas implementadas** na edge function (linhas 1711-2262).
+| API | Justificativa |
+|---|---|
+| **CNAE** | Tabela IBGE pública, todo ERP já tem |
+| **Cidades** | Tabela IBGE pública |
+| **Países** | Lista estática |
+| **Bandeiras de Cartão** | Lista estática (Visa, Master, etc.) |
+| **Origens de Lançamento** | Interno do BiMaster |
+
+**Sugestão**: Mover para uma seção "Tabelas de Referência (Opcional)" com nota explicativa de que são read-only e opcionais.
+
+### 4. Inconsistências de Convenção HTTP (Nota: 7/10)
+
+| API | Problema | Correto |
+|---|---|---|
+| Empresas | `POST /consultar`, `POST /listar` | Deveria ser `GET` com query params |
+| Departamentos | Tudo é `POST` (incluir, alterar, excluir, listar) | `PUT` para alterar, `DELETE` para excluir, `GET` para listar |
+| Categorias | Tudo é `POST` | Idem |
+| Projetos | Tudo é `POST` | Idem |
+
+**Nota**: Isso segue o padrão Omie/Huggs (tudo POST), que pode ser intencional para compatibilidade. Se for intencional, adicionar uma nota no portal explicando a convenção.
+
+---
+
+## Sugestões de Melhoria
+
+### Prioridade Alta
+1. **Remover `/webhook-push` de `exportAdvanced`** — já existe em `webhook-subscriptions-api`. Ter dois endpoints para a mesma função vai confundir o ERP.
+2. **Deduplicar presets no ApiTester** — Unificar os que apontam para o mesmo path, diferenciando apenas o body default.
+3. **Adicionar notas explicativas** em "Fornecedores" e "Plano de Contas" esclarecendo a diferença para Clientes e Categorias.
+
+### Prioridade Média
+4. **Criar seção "Tabelas de Referência (Opcional)"** para CNAE, Cidades, Países, Bandeiras, Origens — reduz ruído para o dev do ERP.
+5. **Adicionar nota sobre convenção POST** nos módulos que seguem padrão Huggs (tudo POST).
+
+### Prioridade Baixa
+6. **Versionamento da API** — Adicionar `v1/` nos paths para facilitar evolução futura.
+
+---
+
+## Resumo por Módulo
+
+| Módulo | APIs | Nota | Observação |
+|---|---|---|---|
+| **Geral** | 5 (Clientes, Fornecedores Q+S, Empresas, Projetos) | 9/10 | Completo e bem documentado |
+| **Cadastros Auxiliares** | 14 | 7/10 | Muitas tabelas de referência que o ERP já tem |
+| **Finanças** | 10 | 9/10 | Core do sistema, muito bem coberto |
+| **Complementar** | 4 (Anexos, Webhooks) | 8/10 | Sobreposição webhook-push |
 
 ## Plano de Ação
 
-### Parte 1 — Adicionar 6 APIs faltantes ao Portal
+### Arquivo: `src/components/erp/ApiDocumentation.tsx`
+1. Remover endpoint `/webhook-push` de `exportAdvanced` (duplica webhook-subscriptions)
+2. Reorganizar Cadastros Auxiliares: separar "Essenciais" (Plano de Contas, Portadores, Categorias, Departamentos, Parcelas, DRE, Bancos) de "Referência Opcional" (CNAE, Cidades, Países, Bandeiras, Origens, Tipos diversos)
+3. Adicionar notas explicativas nas APIs de Fornecedores e Plano de Contas
 
-Adicionar ao `ApiDocumentation.tsx`:
-
-1. **Fornecedores (Query)** — `/erp-fornecedores-query`
-   - GET / (listar ativos, filtro por CNPJ)
-
-2. **Fornecedores (Sync)** — `/erp-fornecedores-sync`
-   - CRUD completo para sync bidirecional
-
-3. **Plano de Contas** — `/erp-plano-contas-api`
-   - GET / (listar contas ativas)
-
-4. **Portadores** — `/erp-portadores-api`
-   - GET / (listar por empresa)
-   - POST /sync (upsert em massa)
-
-5. **Webhook Subscriptions** — `/webhook-subscriptions-api`
-   - GET /eventos (listar eventos disponíveis)
-   - GET /listar (listar assinaturas)
-   - GET /consultar (consultar por ID)
-   - POST /incluir (criar assinatura)
-   - PUT /alterar (atualizar)
-   - DELETE /excluir (remover)
-   - POST /testar (enviar evento teste)
-   - GET /status (health check)
-
-6. **Webhook Dispatcher** — `/webhook-dispatcher`
-   - POST / (processar fila de eventos)
-   - GET /status (health check)
-
-### Parte 2 — Organização dos Módulos
-
-Adicionar as APIs nos módulos corretos:
-- **Geral**: Fornecedores Query + Sync (junto com Clientes)
-- **Cadastros Auxiliares**: Plano de Contas, Portadores
-- **Complementar**: Webhook Subscriptions, Webhook Dispatcher (junto com o Inbound existente)
-
-### Parte 3 — Atualizar ApiTester
-
-Verificar se os endpoints pré-configurados do `ApiTester.tsx` incluem as novas APIs.
-
-## Arquivos Afetados
-
-| Arquivo | Ação |
-|---|---|
-| `src/components/erp/ApiDocumentation.tsx` | Adicionar 6 APIs (endpoints + módulos) |
-| `src/components/erp/ApiTester.tsx` | Adicionar endpoints pré-configurados das novas APIs |
-
-## Resumo
-
-- **0 APIs N8N** no portal (correto)
-- **6 APIs faltantes** para documentar (fornecedores, plano de contas, portadores, webhooks)
-- **Todas as rotas documentadas têm edge functions** implementadas
-- **Nenhuma edge function ERP-relevante** sem implementação
+### Arquivo: `src/components/erp/ApiTester.tsx`
+1. Deduplicar 10 presets que apontam para o mesmo path (Movimentos, Resumo, Pesquisar, DRE, Origens) — diferenciar pelo body default ou unificar
 
