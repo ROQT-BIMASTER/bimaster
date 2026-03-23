@@ -1,32 +1,43 @@
 
 
-# Fix: Dialog fecha ao abrir documento em nova aba
+# Fix: Erro ao Auditar Documento
 
-## Problema
+## Causa Raiz
 
-Quando o usuário clica "Abrir" no anexo, o `window.open` abre uma nova aba. O Radix Dialog detecta perda de foco/interação fora e fecha automaticamente o dialog. Isso causa retrabalho pois o operador perde todo o estado da revisão.
+Após análise do código da Edge Function `expense-ai-assistant`, identifiquei **dois problemas prováveis**:
+
+### 1. PDF não suportado pelo gateway de IA
+Na linha 618-622, quando o documento é PDF, o código envia `type: "file"` com `file_data` — esse formato **não é suportado** pela API do gateway Lovable (compatível com OpenAI). Apenas `image_url` e `text` são formatos válidos. Isso causa erro silencioso na chamada de IA.
+
+### 2. URL do anexo pode não ser parseada corretamente
+Se o `attachment_url` vier como URL assinada com token (ex: `?token=...`), a lógica de parsing pode falhar ao extrair bucket/path, gerando erro "Não foi possível baixar o documento".
+
+### 3. CORS hardcoded
+A função usa `ALLOWED_ORIGIN` hardcoded ao invés do módulo `_shared/cors.ts`, podendo bloquear requests do preview.
 
 ## Solução
 
-Adicionar `onInteractOutside` e `onPointerDownOutside` com `e.preventDefault()` no `DialogContent` do `PaymentReviewDialog.tsx` — mesmo padrão já usado em outros dialogs do projeto (ex: `NovoProdutoImportadoDialog`, `NovoProdutoAcabadoDialog`).
+### Arquivo: `supabase/functions/expense-ai-assistant/index.ts`
 
-Isso impede que cliques fora ou perda de foco fechem o dialog. O usuário só fecha via botões explícitos ("Fechar", "Aceitar", "Rejeitar").
+1. **Substituir CORS hardcoded** pelo módulo `_shared/cors.ts` compartilhado (já tem os dois domínios)
 
-## Alteração
+2. **Corrigir tratamento de PDF**: Converter PDF para imagens antes de enviar, OU enviar como `image_url` com base64 (Gemini aceita PDF via `image_url` com mime type `application/pdf`)
+   ```ts
+   // Ao invés de type: "file", usar:
+   contentParts.push({
+     type: "image_url",
+     image_url: { url: `data:${mimeType};base64,${fileBase64}` },
+   });
+   ```
+   Remover o bloco condicional PDF vs imagem — usar sempre `image_url` com o mimeType correto.
 
-**`src/components/financeiro/payments/PaymentReviewDialog.tsx`** — linha 262:
+3. **Melhorar parsing de URL**: Adicionar suporte para URLs assinadas com query params e para o formato `/object/authenticated/`
 
-```tsx
-// De:
-<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+4. **Adicionar logs detalhados** nos pontos de falha para diagnóstico futuro
 
-// Para:
-<DialogContent 
-  className="max-w-2xl max-h-[90vh] overflow-y-auto"
-  onInteractOutside={(e) => e.preventDefault()}
-  onPointerDownOutside={(e) => e.preventDefault()}
->
-```
+## Arquivos Afetados
 
-Uma única linha alterada. O dialog só fechará por ação explícita do usuário.
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/expense-ai-assistant/index.ts` | Corrigir CORS, PDF handling, URL parsing, logs |
 
