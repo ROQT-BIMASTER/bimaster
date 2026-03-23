@@ -1317,6 +1317,9 @@ export default function ContasAPagar() {
               filterMes={filterMes}
               filterDepartamento={filterDepartamento}
               filterPortadores={filterPortadores}
+              filterDiaVencimento={filterDiaVencimento}
+              filterDiaPagamento={filterDiaPagamento}
+              filterConta={filterConta}
             />
           </TabsContent>
 

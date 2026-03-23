@@ -38,6 +38,9 @@ interface Props {
   filterMes: string;
   filterDepartamento: string;
   filterPortadores: string[];
+  filterDiaVencimento?: string;
+  filterDiaPagamento?: string;
+  filterConta?: string;
 }
 
 interface FormData {
@@ -90,7 +93,7 @@ function isOverdue(dt: string | null) {
   return new Date(dt + "T00:00:00") < new Date(new Date().toISOString().slice(0, 10) + "T00:00:00");
 }
 
-export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores }: Props) {
+export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, filterDepartamento, filterPortadores, filterDiaVencimento = "", filterDiaPagamento = "", filterConta = "all" }: Props) {
   const qc = useQueryClient();
   const nav = useNavigate();
 
@@ -114,29 +117,39 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   // ----- Queries -----
   const { data: contasResult, isLoading, refetch: refetchContas } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page],
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page, filterDiaVencimento, filterDiaPagamento, filterConta],
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
       
-      // DateRange local tem prioridade sobre ano/mês do pai (evita conflito)
+      // Filtros de dia específico (prioridade máxima)
+      if (filterDiaVencimento) {
+        q = q.eq("data_vencimento", filterDiaVencimento);
+      }
+      if (filterDiaPagamento) {
+        q = q.eq("data_pagamento", filterDiaPagamento);
+      }
+
+      // DateRange local tem prioridade sobre ano/mês do pai
       const hasLocalDateFilter = dateFrom || dateTo;
-      if (hasLocalDateFilter) {
-        if (dateFrom) q = q.gte("data_vencimento", dateFrom.toISOString().slice(0, 10));
-        if (dateTo) q = q.lte("data_vencimento", dateTo.toISOString().slice(0, 10));
-      } else {
-        // Só aplicar ano/mês se não houver filtro de data local
-        if (filterMes !== "all" && filterAno !== "all") {
-          const m = filterMes.padStart(2, "0");
-          const lastDay = new Date(parseInt(filterAno), parseInt(m), 0).getDate();
-          q = q.gte("data_vencimento", `${filterAno}-${m}-01`).lte("data_vencimento", `${filterAno}-${m}-${lastDay}`);
-        } else if (filterAno !== "all") {
-          q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
+      if (!filterDiaVencimento && !filterDiaPagamento) {
+        if (hasLocalDateFilter) {
+          if (dateFrom) q = q.gte("data_vencimento", dateFrom.toISOString().slice(0, 10));
+          if (dateTo) q = q.lte("data_vencimento", dateTo.toISOString().slice(0, 10));
+        } else {
+          if (filterMes !== "all" && filterAno !== "all") {
+            const m = filterMes.padStart(2, "0");
+            const lastDay = new Date(parseInt(filterAno), parseInt(m), 0).getDate();
+            q = q.gte("data_vencimento", `${filterAno}-${m}-01`).lte("data_vencimento", `${filterAno}-${m}-${lastDay}`);
+          } else if (filterAno !== "all") {
+            q = q.gte("data_vencimento", `${filterAno}-01-01`).lte("data_vencimento", `${filterAno}-12-31`);
+          }
         }
       }
       
       if (filterDepartamento !== "all") q = q.eq("departamento_id", filterDepartamento);
-      if (filterPortadores.length) q = q.in("portador_id", filterPortadores);
+      if (filterConta !== "all") q = q.eq("portador", filterConta);
+      if (filterPortadores.length) q = q.in("portador", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
       if (erpFilter === "pendente") q = q.eq("importado_api", false);
