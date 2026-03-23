@@ -38,6 +38,9 @@ interface Props {
   filterMes: string;
   filterDepartamento: string;
   filterPortadores: string[];
+  filterDiaVencimento?: string;
+  filterDiaPagamento?: string;
+  filterConta?: string;
 }
 
 interface FormData {
