@@ -1356,6 +1356,72 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                   </div>
                 </div>
               </div>
+             )}
+
+            {/* ═══ FAQ / TROUBLESHOOTING ═══ */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["faq"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <HelpCircle className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">FAQ & Troubleshooting</h3>
+                      <p className="text-sm text-white/80">Problemas comuns e soluções rápidas</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-3">
+                  {[
+                    {
+                      q: "Recebo 401 mas minha API Key está correta",
+                      a: "Verifique se a chave não foi desativada no portal. Chaves expiram após rotação. Gere uma nova chave em Gerenciar Chaves API e substitua no seu sistema.",
+                    },
+                    {
+                      q: "Erro 'campo_obrigatorio: empresa_id' no /upsert",
+                      a: "O campo empresa_id é obrigatório em operações de upsert (tanto CP quanto CR) pois é usado na cláusula onConflict. Inclua-o sempre no body.",
+                    },
+                    {
+                      q: "Criei um título mas ele não aparece na listagem",
+                      a: "Verifique: (1) os cadastros base foram sincronizados primeiro (fornecedor, categoria)? (2) Está filtrando por empresa_id correto? (3) Limite de paginação — use registros_por_pagina=500.",
+                    },
+                    {
+                      q: "Qual a diferença entre Categorias e Plano de Contas?",
+                      a: "Categorias são agrupamentos internos do BiMaster (receita/despesa). Plano de Contas é a estrutura contábil oficial do ERP. Ambos podem ser usados para classificação, mas servem propósitos diferentes.",
+                    },
+                    {
+                      q: "Meu webhook não está recebendo eventos",
+                      a: "Verifique: (1) A URL é acessível publicamente (HTTPS). (2) Assinatura está ativa (GET /webhook-subscriptions-api/listar). (3) Use POST /testar para validar. (4) O dispatcher precisa estar ativo (POST /webhook-dispatcher/process).",
+                    },
+                    {
+                      q: "Recebo 429 Too Many Requests",
+                      a: "O rate limit é de 60 req/min por IP ou API key. Implemente backoff exponencial (1s → 2s → 4s). Para cargas em lote, use endpoints de upsert-lote com até 500 registros por chamada.",
+                    },
+                    {
+                      q: "Formato de data — DD/MM/AAAA ou YYYY-MM-DD?",
+                      a: "APIs de Integração (padrão Huggs) usam DD/MM/AAAA. APIs CRUD internas usam YYYY-MM-DD. Verifique a documentação de cada endpoint. Enviar no formato errado retorna erro 400.",
+                    },
+                    {
+                      q: "Como saber se a API está online?",
+                      a: "Cada API tem um endpoint GET /status que retorna 200 OK. Os badges verdes/vermelhos nesta documentação fazem essa verificação em tempo real.",
+                    },
+                  ].map((faq, i) => (
+                    <Collapsible key={i}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-start gap-3 p-3 hover:bg-muted/30 rounded-lg cursor-pointer transition-colors">
+                          <MessageCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span className="text-sm font-medium text-foreground">{faq.q}</span>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="ml-10 mr-3 mb-2 p-3 bg-muted/30 rounded-lg">
+                          <p className="text-xs text-muted-foreground leading-relaxed">{faq.a}</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              </div>
             )}
 
             {filteredModules.map(mod => (
