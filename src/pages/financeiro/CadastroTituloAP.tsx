@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, ChevronsUpDown, Check, Info } from "lucide-react";
 import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySuggestion";
+import { ChaveAcessoInput, type XmlExtractedData } from "@/components/financeiro/ChaveAcessoInput";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, dateToApi } from "@/lib/utils/api-helpers";
 import { cn } from "@/lib/utils";
@@ -516,20 +517,15 @@ export default function CadastroTituloAP() {
               <Label>Observação</Label>
               <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} />
             </div>
-            <div className="space-y-2">
-              <Label>Chave de Acesso NF-e (44 dígitos numéricos, opcional)</Label>
-              <Input
-                value={nfeChave}
-                onChange={(e) => { setNfeChave(e.target.value.replace(/\D/g, "").slice(0, 44)); setErrors((p) => ({ ...p, nfeChave: "" })); }}
-                maxLength={44}
-                placeholder="00000000000000000000000000000000000000000000"
-                className={errors.nfeChave ? "border-destructive" : ""}
-              />
-              {nfeChave && nfeChave.length > 0 && nfeChave.length !== 44 && (
-                <p className="text-xs text-amber-600">{nfeChave.length}/44 dígitos</p>
-              )}
-              <FieldError field="nfeChave" />
-            </div>
+            <ChaveAcessoInput
+              value={nfeChave}
+              onChange={(v) => { setNfeChave(v); setErrors((p) => ({ ...p, nfeChave: "" })); }}
+              onXmlExtracted={(data: XmlExtractedData) => {
+                if (data.numero && !numeroDocumento) setNumeroDocumento(data.numero);
+                if (data.valorTotal > 0 && !valorDocumento) setValorDocumento(String(data.valorTotal));
+              }}
+              error={errors.nfeChave}
+            />
           </CardContent>
         </Card>
 
