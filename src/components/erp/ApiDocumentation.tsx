@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
 import ApiStatusBadge from "./ApiStatusBadge";
+import ApiGlobalStatus from "./ApiGlobalStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
