@@ -46,23 +46,6 @@ export function DocumentAuditCard({ item, onChaveAcessoChange }: DocumentAuditCa
     });
   };
 
-  const handleChaveChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 44);
-    setChaveAcesso(digits);
-    onChaveAcessoChange?.(digits);
-  };
-
-  const handleApplySuggestion = () => {
-    if (auditResult?.extracted_chave_acesso) {
-      const digits = auditResult.extracted_chave_acesso.replace(/\D/g, "").slice(0, 44);
-      setChaveAcesso(digits);
-      onChaveAcessoChange?.(digits);
-      setShowSuggestion(false);
-    }
-  };
-
-  const suggestedChave = auditResult?.extracted_chave_acesso?.replace(/\D/g, "");
-  const hasSuggestion = suggestedChave && suggestedChave.length === 44 && suggestedChave !== chaveAcesso && showSuggestion;
 
   return (
     <Card className="border-primary/20">
