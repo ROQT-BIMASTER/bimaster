@@ -647,7 +647,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
+              <Textarea disabled={isReadOnly} value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
             </div>
 
             {/* ERP Integration Code - readonly */}
