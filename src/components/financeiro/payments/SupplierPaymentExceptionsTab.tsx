@@ -91,9 +91,9 @@ export function SupplierPaymentExceptionsTab() {
     if (!showForm) return;
     setLoadingSuppliers(true);
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("id, razao_social, cnpj")
-      .eq("ativo", true)
+      .eq("status", "ativo")
       .order("razao_social")
       .then(({ data }) => {
         setSuppliers(data || []);

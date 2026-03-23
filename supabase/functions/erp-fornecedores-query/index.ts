@@ -77,9 +77,9 @@ Deno.serve(async (req) => {
       const cnpjParam = url.searchParams.get("cnpj");
 
       let query = supabase
-        .from("fabrica_fornecedores")
-        .select("id, cnpj, razao_social, nome_fantasia, erp_code, erp_synced_at, email, telefone, ativo")
-        .eq("ativo", true)
+        .from("fornecedores")
+        .select("id, cnpj, razao_social, nome_fantasia, erp_code, erp_synced_at, email, telefone, status")
+        .eq("status", "ativo")
         .order("razao_social");
 
       if (cnpjParam) {
