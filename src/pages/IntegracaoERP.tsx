@@ -375,12 +375,14 @@ export default function IntegracaoERP() {
             </CardContent>
           </Card>
 
-          <ApiDocumentation />
+          <ApiDocumentation accessProfileModules={isAdmin ? undefined : (userProfileModules as any) || undefined} />
         </TabsContent>
 
-        <TabsContent value="configuracoes" className="mt-4">
-          <ErpPortalSettings />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="configuracoes" className="mt-4">
+            <ErpPortalSettings />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
