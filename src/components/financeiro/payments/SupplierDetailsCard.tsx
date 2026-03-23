@@ -110,10 +110,10 @@ export function SupplierDetailsCard({
     // Load local supplier data
     setLoadingLocal(true);
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("*")
       .eq("cnpj", cnpjClean)
-      .eq("ativo", true)
+      .eq("status", "ativo")
       .maybeSingle()
       .then(({ data }) => {
         if (data) setLocalSupplier(data as unknown as LocalSupplierData);
@@ -181,7 +181,7 @@ export function SupplierDetailsCard({
       if (localSupplier) {
         // Update existing supplier
         const { error } = await supabase
-          .from("fabrica_fornecedores")
+          .from("fornecedores")
           .update({ ...updatePayload, updated_at: new Date().toISOString() })
           .eq("id", localSupplier.id);
 
@@ -193,15 +193,16 @@ export function SupplierDetailsCard({
       } else {
         // Create new supplier entry
         const { data: newSupplier, error } = await supabase
-          .from("fabrica_fornecedores")
+          .from("fornecedores")
           .insert({
             cnpj: cnpjClean,
+            nome: enrichedData.razaoSocial || supplierName,
             razao_social: enrichedData.razaoSocial || supplierName,
             nome_fantasia: enrichedData.nomeFantasia || null,
             telefone: enrichedData.telefone || null,
             email: enrichedData.email || null,
             endereco: updatePayload.endereco || null,
-            ativo: true,
+            status: "ativo",
           })
           .select()
           .single();

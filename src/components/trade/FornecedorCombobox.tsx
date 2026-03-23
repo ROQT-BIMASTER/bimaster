@@ -72,9 +72,9 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     queryKey: ['trade-fornecedores-combobox'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("fabrica_fornecedores")
+        .from("fornecedores")
         .select("id, razao_social, nome_fantasia, cnpj")
-        .eq("ativo", true)
+        .eq("status", "ativo")
         .order("razao_social")
         .limit(500);
       if (error) throw error;
@@ -100,12 +100,20 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
       setSkipBank(false);
       try {
         const { data, error } = await supabase
-          .from("fabrica_fornecedores")
-          .select("banco, agencia, conta, tipo_conta, pix_chave, pix_tipo, favorecido")
+          .from("fornecedores")
+          .select("banco, agencia, conta_bancaria, tipo_conta, chave_pix, tipo_pix, favorecido")
           .eq("id", value)
           .single();
         if (error) throw error;
-        setBankData(data as BankData);
+        setBankData({
+          banco: data.banco,
+          agencia: data.agencia,
+          conta: data.conta_bancaria,
+          tipo_conta: data.tipo_conta,
+          pix_chave: data.chave_pix,
+          pix_tipo: data.tipo_pix,
+          favorecido: data.favorecido,
+        });
       } catch {
         setBankData(null);
       } finally {
@@ -128,15 +136,16 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     setSavingBank(true);
     try {
       const { error } = await supabase
-        .from("fabrica_fornecedores")
+        .from("fornecedores")
         .update({
           banco: formBanco.trim() || null,
           agencia: formAgencia.trim() || null,
-          conta: formConta.trim() || null,
+          conta_bancaria: formConta.trim() || null,
           tipo_conta: formTipoConta || null,
           favorecido: formFavorecido.trim() || null,
-          pix_tipo: formPixTipo || null,
-          pix_chave: formPixChave.trim() || null,
+          tipo_pix: formPixTipo || null,
+          chave_pix: formPixChave.trim() || null,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", value);
       if (error) throw error;
@@ -172,7 +181,7 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
     if (data.regimeTributario) updateFields.regime_tributario = data.regimeTributario;
 
     if (Object.keys(updateFields).length > 0) {
-      await supabase.from("fabrica_fornecedores").update(updateFields).eq("id", value);
+      await supabase.from("fornecedores").update({ ...updateFields, updated_at: new Date().toISOString() }).eq("id", value);
       queryClient.invalidateQueries({ queryKey: ['trade-fornecedores-combobox'] });
     }
   };

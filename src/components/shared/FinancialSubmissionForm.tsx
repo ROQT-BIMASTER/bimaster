@@ -133,9 +133,9 @@ export function FinancialSubmissionForm({
   // Fetch suppliers on mount
   useEffect(() => {
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("id, razao_social, cnpj")
-      .eq("ativo", true)
+      .eq("status", "ativo")
       .order("razao_social")
       .then(({ data }) => setFornecedores(data || []));
   }, []);
@@ -171,7 +171,7 @@ export function FinancialSubmissionForm({
 
   const handleFornecedorCriado = (novo: { id: string; nome: string }) => {
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("id, razao_social, cnpj")
       .eq("id", novo.id)
       .single()
