@@ -445,7 +445,6 @@ export default function Fornecedores() {
       favorecido: form.favorecido.trim() || null,
       tipo_pix: form.tipo_pix || null,
       chave_pix: form.chave_pix.trim() || null,
-      linha_digitavel: form.linha_digitavel.trim() || null,
       inscricao_estadual: form.inscricao_estadual.trim() || null,
       inscricao_municipal: form.inscricao_municipal.trim() || null,
       updated_at: new Date().toISOString(),
