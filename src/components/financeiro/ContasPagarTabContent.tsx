@@ -578,7 +578,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               </div>
               <div className="space-y-1.5">
                 <Label>Data Vencimento *</Label>
-                <Input type="date" value={form.data_vencimento} onChange={e => setForm(p => ({ ...p, data_vencimento: e.target.value }))} />
+                <Input disabled={isReadOnly} type="date" value={form.data_vencimento} onChange={e => setForm(p => ({ ...p, data_vencimento: e.target.value }))} />
               </div>
             </div>
 
