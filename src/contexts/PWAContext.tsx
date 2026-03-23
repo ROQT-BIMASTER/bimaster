@@ -117,6 +117,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             console.log('[PWA] Service Worker registrado:', swUrl);
             
             if (registration) {
+              swRegistrationRef = registration;
               // Verificar atualizações a cada 5 minutos
               setInterval(() => {
                 console.log('[PWA] Verificando atualizações...');
