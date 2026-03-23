@@ -63,6 +63,7 @@ export function AttachmentAcknowledgement({
       const { signedUrl, error } = await resolveStorageUrl(url);
 
       if (error || !signedUrl) {
+        console.warn('[AttachmentAcknowledgement] resolveStorageUrl failed:', { url, error });
         setErrorFiles((prev) => new Map(prev).set(url, error || 'Erro desconhecido'));
         toast({
           title: "Arquivo não encontrado",
@@ -72,8 +73,9 @@ export function AttachmentAcknowledgement({
         return;
       }
 
-      window.open(signedUrl, "_blank", "noopener,noreferrer");
+      // Mark as opened BEFORE window.open to ensure state updates even if popup is blocked
       setOpenedFiles((prev) => new Set(prev).add(url));
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
     } catch {
       setErrorFiles((prev) =>
         new Map(prev).set(url, 'Erro ao acessar o armazenamento.')
