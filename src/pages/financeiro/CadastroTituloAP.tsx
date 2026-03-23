@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Save, ChevronsUpDown, Check, Info } from "lucide-react";
 import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySuggestion";
+import { ChaveAcessoInput, type XmlExtractedData } from "@/components/financeiro/ChaveAcessoInput";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, dateToApi } from "@/lib/utils/api-helpers";
 import { cn } from "@/lib/utils";
