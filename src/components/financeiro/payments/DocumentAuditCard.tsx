@@ -28,11 +28,6 @@ const fieldLabels: Record<string, string> = {
   document_number: "Nº Documento",
 };
 
-function formatChaveAcesso(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 44);
-  return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-}
-
 export function DocumentAuditCard({ item, onChaveAcessoChange }: DocumentAuditCardProps) {
   const { audit, isAuditing, auditResult } = useDocumentAudit();
   const [chaveAcesso, setChaveAcesso] = useState((item as any).chave_acesso_nfe || "");
