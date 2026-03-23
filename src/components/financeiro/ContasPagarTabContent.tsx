@@ -149,7 +149,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       
       if (filterDepartamento !== "all") q = q.eq("departamento_id", filterDepartamento);
       if (filterConta !== "all") q = q.eq("portador", filterConta);
-      if (filterPortadores.length) q = q.in("portador_id", filterPortadores);
+      if (filterPortadores.length) q = q.in("portador", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
       if (erpFilter === "pendente") q = q.eq("importado_api", false);
