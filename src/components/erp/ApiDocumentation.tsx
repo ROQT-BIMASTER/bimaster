@@ -1304,6 +1304,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v1.5.0", date: "2026-03-23", changes: ["Corrigido body do /registrar-pagamento (id → conta_pagar_id)", "Corrigida resposta do /query com pagination e meta", "Corrigida resposta do /cancelar com success e ids", "Documentado empresa_id como obrigatório no /upsert CP", "Adicionados 7 filtros faltantes no /listar CP (emissão, conta corrente, CPF/CNPJ, vendedor, observações)", "Fornecedores migrados de 'Geral' para 'Cadastros Auxiliares'", "Seção de erros estruturados na documentação de autenticação"] },
                     { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
                     { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },
                     { version: "v1.2.0", date: "2026-03-15", changes: ["Adicionadas 6 APIs: Fornecedores, Plano de Contas, Portadores, Webhook Subscriptions, Webhook Dispatcher", "Separação de 'Tabelas de Referência (Opcional)'", "Remoção de duplicidade webhook-push"] },
