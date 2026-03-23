@@ -158,6 +158,30 @@ export default function IntegracaoERP() {
 
   const isExpired = (date: string) => new Date(date) < new Date();
 
+  const handleDeleteKey = async (id: string) => {
+    const { error } = await supabase.from("erp_api_keys").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir chave: " + error.message);
+    } else {
+      toast.success("Chave excluída com sucesso");
+      fetchKeys();
+    }
+  };
+
+  const expiredInactiveKeys = keys.filter(k => (isExpired(k.expires_at) || !k.active));
+
+  const handleBulkCleanup = async () => {
+    const ids = expiredInactiveKeys.map(k => k.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("erp_api_keys").delete().in("id", ids);
+    if (error) {
+      toast.error("Erro ao limpar chaves: " + error.message);
+    } else {
+      toast.success(`${ids.length} chave(s) removida(s)`);
+      fetchKeys();
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
