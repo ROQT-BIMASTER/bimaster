@@ -14,7 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings, ArrowLeft } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings, ArrowLeft, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
@@ -157,6 +158,30 @@ export default function IntegracaoERP() {
 
   const isExpired = (date: string) => new Date(date) < new Date();
 
+  const handleDeleteKey = async (id: string) => {
+    const { error } = await supabase.from("erp_api_keys").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir chave: " + error.message);
+    } else {
+      toast.success("Chave excluída com sucesso");
+      fetchKeys();
+    }
+  };
+
+  const expiredInactiveKeys = keys.filter(k => (isExpired(k.expires_at) || !k.active));
+
+  const handleBulkCleanup = async () => {
+    const ids = expiredInactiveKeys.map(k => k.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("erp_api_keys").delete().in("id", ids);
+    if (error) {
+      toast.error("Erro ao limpar chaves: " + error.message);
+    } else {
+      toast.success(`${ids.length} chave(s) removida(s)`);
+      fetchKeys();
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -295,9 +320,35 @@ export default function IntegracaoERP() {
                 <CardTitle className="text-lg">Chaves de API Registradas</CardTitle>
                 <CardDescription>{keys.length} chave(s) cadastrada(s)</CardDescription>
               </div>
-              <Button variant="ghost" size="icon" onClick={fetchKeys} disabled={loading}>
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              </Button>
+              <div className="flex items-center gap-2">
+                {expiredInactiveKeys.length > 0 && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Limpar Expiradas ({expiredInactiveKeys.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar limpeza em massa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Isso removerá permanentemente <strong>{expiredInactiveKeys.length}</strong> chave(s) expirada(s) ou inativa(s). Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBulkCleanup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir {expiredInactiveKeys.length} chave(s)
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                <Button variant="ghost" size="icon" onClick={fetchKeys} disabled={loading}>
+                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border overflow-x-auto">
@@ -312,6 +363,7 @@ export default function IntegracaoERP() {
                       <TableHead>Uso</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ativo</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -371,6 +423,31 @@ export default function IntegracaoERP() {
                             </TableCell>
                             <TableCell className="text-right">
                               <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} />
+                            </TableCell>
+                            <TableCell>
+                              {(!k.active || expired) && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir chave de API</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja excluir a chave <strong>{k.key_preview}</strong> da empresa <strong>{k.empresa_id}</strong>? Esta ação é irreversível.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteKey(k.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
