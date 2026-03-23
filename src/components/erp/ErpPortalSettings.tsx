@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Plus, Pencil, Trash2, Shield, Users } from "lucide-react";
 import { useErpAccessProfiles, useCreateProfile, useUpdateProfile, useDeleteProfile, type AccessProfile } from "@/hooks/useErpAccessProfiles";
 import AccessProfileForm from "./AccessProfileForm";
+import UserProfileAssignment from "./UserProfileAssignment";
 import {
   AlertDialog,
   AlertDialogAction,
