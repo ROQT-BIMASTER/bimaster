@@ -1,97 +1,75 @@
 
 
-# Correções Sugeridas — Central de Pagamentos
+# Unificação de Fornecedores — Tabela Unica + Consulta CNPJ
 
-## Nota Atual: 7.5/10
+## Diagnóstico
 
----
+O sistema tem **duas tabelas de fornecedores independentes**:
 
-## Problemas Identificados
+| Aspecto | `fornecedores` | `fabrica_fornecedores` |
+|---------|---------------|----------------------|
+| Usado por | Página /fornecedores, ContasPagarTabContent | Fila de pagamentos, Trade, Eventos, QuickAdd, FornecedorPaymentInfo |
+| Campos bancários | Sim (chave_pix, tipo_pix, conta_bancaria) | Sim (pix_chave, pix_tipo, banco, agencia, conta) |
+| Empresa | empresa_id (int) | Nao tem |
+| ERP | codigo_externo, fonte_erp | erp_code, erp_synced_at |
+| Endereço | endereco, bairro, cidade, estado, cep | endereco, bairro, cidade, uf, cep |
+| Status | status (ativo/inativo/bloqueado) | ativo (boolean) |
+| CNPJ | cnpj (obrigatório) | cnpj (opcional) |
 
-### Criticidade Alta
+A imagem de referência mostra um painel de detalhes do fornecedor com consulta Receita Federal (badges Ativa/Matriz/ME/Simples), dados bancários e botão "Atualizar Cadastro" — funcionalidade que não existe na tela atual.
 
-**1. `window as any` para armazenar dados de edição (Segurança/Memória)**
-`PaymentReviewDialog.tsx` linhas 117-118 e 124-125 usam `(window as any).__editUserInfo` e `__editJustificativa` para passar dados entre funções. Isso é um antipattern grave — dados ficam acessíveis globalmente, vazam entre sessões e nunca são limpos se o dialog fechar inesperadamente.
-- **Correção**: Mover para `useRef` ou state local no componente.
+## Estrategia: `fornecedores` como tabela unica
 
-**2. Header duplicado no DialogContent**
-`PaymentReviewDialog.tsx` tem dois `<DialogHeader>` idênticos — linhas 251-264 (fora das tabs) e linhas 281-292 (dentro da tab "details"). O título e badge aparecem duplicados na UI.
-- **Correção**: Remover o `DialogHeader` duplicado dentro da `TabsContent`.
+A tabela `fornecedores` é mais completa (empresa_id, campos tributarios, endereço detalhado). Vamos:
 
-**3. Sem debounce na busca da tabela**
-`PaymentQueueTable.tsx` linha 78 — `onChange` dispara query a cada keystroke via `onFiltersChange`. Com `fetchAllRows`, isso gera múltiplas queries simultâneas ao banco.
-- **Correção**: Adicionar debounce de 400ms no campo de busca.
+1. **Adicionar campos faltantes** na tabela `fornecedores` (dados bancarios PIX, erp_code, erp_synced_at)
+2. **Migrar dados** de `fabrica_fornecedores` para `fornecedores`
+3. **Criar view** `fabrica_fornecedores` apontando para `fornecedores` (compatibilidade temporaria)
+4. **Atualizar a pagina** Fornecedores com consulta CNPJ e painel de detalhes
 
-**4. `acceptPaymentMutation` — `empresa_id` fallback hardcoded**
-`useFinancialPaymentQueue.ts` linha 464: `empresa_id: item.empresa_id || 1`. Se a empresa 1 não existir, o título é criado com empresa errada. Se `empresa_id` for null, deveria buscar a empresa padrão do usuário.
-- **Correção**: Buscar empresa padrão do perfil do usuário em vez de hardcodar `1`.
+## Plano de Implementacao
 
-**5. KPIs não filtram por empresa/origem**
-`useFinancialPaymentQueue.ts` linhas 273-308 — a query de KPIs só filtra por `startDate`/`endDate`, ignorando `status`, `source_type` e `empresa_id`. Os KPIs mostram totais globais mesmo quando o usuário filtra a tabela por departamento ou filial.
-- **Correção**: Propagar os filtros ativos para a query de KPIs.
+### 1. Migracao SQL
+- Adicionar colunas em `fornecedores`: `banco`, `agencia`, `conta_corrente`, `tipo_conta`, `favorecido`, `pix_tipo_novo`, `pix_chave_nova`, `linha_digitavel`, `erp_code`, `erp_sync_status`, `erp_synced_at`, `inscricao_estadual` (se nao existe), `inscricao_municipal`
+- INSERT de registros de `fabrica_fornecedores` que nao existam em `fornecedores` (match por CNPJ)
+- UPDATE registros existentes com dados bancarios de `fabrica_fornecedores`
 
-### Criticidade Média
+### 2. Pagina Fornecedores — Redesign com detalhes e consulta CNPJ
+- Adicionar `CnpjSearchButton` ao formulario de cadastro/edicao
+- Auto-preencher campos ao consultar (razao social, endereco, situacao, porte, CNAE, regime tributario)
+- Adicionar painel de detalhes expandivel na tabela (como na imagem de referencia):
+  - Badges: Situacao (Ativa/Baixada), Tipo (Matriz/Filial), Porte (ME/EPP), Regime
+  - Endereco completo
+  - Telefone e email
+  - Dados bancarios (Cadastro) com botao "Atualizar Cadastro"
+  - PIX com chave
 
-**6. Sem paginação na tabela**
-A tabela carrega TODOS os registros via `fetchAllRows` e renderiza tudo. Com milhares de solicitações, a performance degrada significativamente.
-- **Correção**: Implementar paginação server-side (20-50 itens por página).
+### 3. Atualizar referencias de `fabrica_fornecedores` no frontend
+Arquivos a atualizar para usar `fornecedores`:
+- `FornecedorQuickAdd.tsx` — insert em `fornecedores`
+- `FinancialSubmissionForm.tsx` — select de `fornecedores`
+- `FornecedorPaymentInfo.tsx` — select/update de `fornecedores`
+- `SupplierPaymentExceptionsTab.tsx` — select de `fornecedores`
+- `FornecedorCombobox.tsx` — select de `fornecedores`
+- `erp-fornecedores-query/index.ts` — query de `fornecedores`
 
-**7. `syncStatusToSource` falha silenciosamente**
-Linhas 97-164 — o `catch` apenas loga no console. Se a sincronização falhar, o status da fila fica "paid" mas a despesa original permanece "approved", gerando inconsistência.
-- **Correção**: Retornar o erro para o mutation handler e exibir toast de warning.
+### 4. Edge function `opencnpj-consulta` — ja funciona, sem mudancas
 
-**8. Sem confirmação antes de "Aceitar e Criar Conta"**
-O botão "Aceitar" (linha 693-704) executa imediatamente, criando um título em `contas_pagar` e disparando exportação ERP. Ação irreversível sem dialog de confirmação.
-- **Correção**: Adicionar `AlertDialog` de confirmação.
+## Arquivos afetados
 
-**9. Botão "Reabrir para Reanálise" sem justificativa**
-Linha 165: `financial_notes: 'Reaberto para reanálise'` — texto fixo. Deveria exigir justificativa do usuário para auditoria.
-- **Correção**: Abrir input de justificativa antes de reabrir.
+| Arquivo | Acao |
+|---------|------|
+| Nova migracao SQL | Adicionar colunas + migrar dados |
+| `src/pages/Fornecedores.tsx` | Redesign com CnpjSearchButton, painel de detalhes expandivel |
+| `src/components/fabrica/FornecedorQuickAdd.tsx` | Trocar `fabrica_fornecedores` por `fornecedores` |
+| `src/components/shared/FinancialSubmissionForm.tsx` | Trocar tabela |
+| `src/components/shared/FornecedorPaymentInfo.tsx` | Trocar tabela |
+| `src/components/financeiro/payments/SupplierPaymentExceptionsTab.tsx` | Trocar tabela |
+| `src/components/trade/FornecedorCombobox.tsx` | Trocar tabela |
+| `supabase/functions/erp-fornecedores-query/index.ts` | Trocar tabela |
 
-**10. Filtro de data ausente na aba "Fila de Pagamentos"**
-A tabela não tem filtro por período (data de vencimento ou data de criação). O usuário não consegue ver apenas itens do mês atual ou vencidos.
-- **Correção**: Adicionar filtros de data (vencimento de/até).
-
-### Criticidade Baixa
-
-**11. `rejection_fields` não tipado corretamente**
-Linha 359: `updateData.rejection_fields = rejection_fields || []`. O campo é tratado como array genérico mas deveria ter tipo definido para os campos rejeitáveis.
-
-**12. Chat dialog na tabela não reutiliza o PaymentChatPanel do ReviewDialog**
-O chat abre em dois lugares (tabela e review dialog) com implementações separadas, mas sem compartilhar estado de leitura.
-
-**13. Export Excel não filtra — exporta tudo**
-`handleExport` exporta `items` (resultado filtrado), mas como `fetchAllRows` já traz tudo, a exportação pode ser muito grande sem aviso.
-- **Correção**: Adicionar confirmação com contagem antes de exportar.
-
-**14. KPI "Rejeitados" não mostra valor monetário**
-O card de rejeitados mostra apenas contagem + texto "itens", enquanto os outros mostram valor. Deveria incluir `rejectedAmount`.
-
----
-
-## Plano de Implementação (14 itens)
-
-| # | Arquivo | Correção |
-|---|---------|----------|
-| 1 | `PaymentReviewDialog.tsx` | Substituir `window as any` por `useRef` para `editUserInfo`/`editJustificativa` |
-| 2 | `PaymentReviewDialog.tsx` | Remover `DialogHeader` duplicado (linhas 281-292) |
-| 3 | `PaymentQueueTable.tsx` | Debounce 400ms no campo de busca |
-| 4 | `useFinancialPaymentQueue.ts` | Remover fallback `empresa_id: 1`, buscar do perfil |
-| 5 | `useFinancialPaymentQueue.ts` | Propagar filtros de empresa/origem para query de KPIs |
-| 6 | `PaymentQueueTable.tsx` | Paginação server-side (50 itens/página) |
-| 7 | `useFinancialPaymentQueue.ts` | `syncStatusToSource` retornar erro + toast warning |
-| 8 | `PaymentReviewDialog.tsx` | AlertDialog de confirmação no "Aceitar e Criar Conta" |
-| 9 | `FinancialPaymentCentral.tsx` | Justificativa obrigatória no "Reabrir para Reanálise" |
-| 10 | `PaymentQueueTable.tsx` | Filtros de data (vencimento de/até) |
-| 11 | `useFinancialPaymentQueue.ts` | Tipar `rejection_fields` corretamente |
-| 12 | `PaymentQueueKPIs.tsx` | Adicionar `rejectedAmount` ao card de rejeitados |
-| 13 | `FinancialPaymentCentral.tsx` | Confirmação com contagem antes de exportar Excel |
-| 14 | `PaymentReviewDialog.tsx` | Adicionar filtro de data na aba fila |
-
-### Arquivos afetados
-- `src/components/financeiro/payments/PaymentReviewDialog.tsx` (itens 1, 2, 8)
-- `src/components/financeiro/payments/PaymentQueueTable.tsx` (itens 3, 6, 10)
-- `src/hooks/useFinancialPaymentQueue.ts` (itens 4, 5, 7, 11)
-- `src/components/financeiro/payments/PaymentQueueKPIs.tsx` (item 12)
-- `src/pages/FinancialPaymentCentral.tsx` (itens 9, 13)
+### Compatibilidade
+- A view `fabrica_fornecedores` mantem o sistema funcionando durante a transicao
+- Modulos de fabrica (materias primas, recebimentos) continuam operando via view
+- Nenhuma funcionalidade existente e quebrada
 
