@@ -6551,6 +6551,38 @@ export type Database = {
         }
         Relationships: []
       }
+      erp_portal_user_profiles: {
+        Row: {
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_portal_user_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "erp_portal_access_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       erp_sync_log: {
         Row: {
           action: string

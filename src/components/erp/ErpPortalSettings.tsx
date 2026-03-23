@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Plus, Pencil, Trash2, Shield, Users } from "lucide-react";
 import { useErpAccessProfiles, useCreateProfile, useUpdateProfile, useDeleteProfile, type AccessProfile } from "@/hooks/useErpAccessProfiles";
 import AccessProfileForm from "./AccessProfileForm";
+import UserProfileAssignment from "./UserProfileAssignment";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,8 @@ export default function ErpPortalSettings() {
 
   return (
     <div className="space-y-6">
+      <UserProfileAssignment />
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div className="flex items-center gap-3">

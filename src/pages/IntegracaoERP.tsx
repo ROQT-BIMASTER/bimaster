@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,8 @@ import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
 import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
-import { useErpAccessProfiles, useAssignProfileToKey } from "@/hooks/useErpAccessProfiles";
+import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
+import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
 
 interface ErpApiKey {
@@ -52,6 +54,9 @@ export default function IntegracaoERP() {
   const { data: profiles } = useErpAccessProfiles();
   const assignProfile = useAssignProfileToKey();
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
+  const { data: currentUserProfileId } = useCurrentUserProfile();
+  const { data: userProfileModules } = useAccessProfileForKey(isAdmin ? null : currentUserProfileId);
   const [keys, setKeys] = useState<ErpApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -167,10 +172,12 @@ export default function IntegracaoERP() {
       <Tabs defaultValue="portal" className="w-full">
         <TabsList>
           <TabsTrigger value="portal">Portal</TabsTrigger>
-          <TabsTrigger value="configuracoes" className="gap-1.5">
-            <Settings className="h-3.5 w-3.5" />
-            Configurações
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="configuracoes" className="gap-1.5">
+              <Settings className="h-3.5 w-3.5" />
+              Configurações
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="portal" className="space-y-6 mt-4">
@@ -368,12 +375,14 @@ export default function IntegracaoERP() {
             </CardContent>
           </Card>
 
-          <ApiDocumentation />
+          <ApiDocumentation accessProfileModules={isAdmin ? undefined : (userProfileModules as any) || undefined} />
         </TabsContent>
 
-        <TabsContent value="configuracoes" className="mt-4">
-          <ErpPortalSettings />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="configuracoes" className="mt-4">
+            <ErpPortalSettings />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
