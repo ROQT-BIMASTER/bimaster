@@ -20,7 +20,7 @@ export function parseBucketAndPath(url: string): { bucket: string; path: string 
     const urlObj = new URL(url);
     // Pattern: /storage/v1/object/(public|sign)/<bucket>/<path>
     const match = urlObj.pathname.match(
-      /\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/
+      /\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/
     );
     if (match) {
       return { bucket: match[1], path: decodeURIComponent(match[2].split('?')[0]) };
