@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,8 @@ import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
 import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
-import { useErpAccessProfiles, useAssignProfileToKey } from "@/hooks/useErpAccessProfiles";
+import { useErpAccessProfiles, useAssignProfileToKey, useAccessProfileForKey } from "@/hooks/useErpAccessProfiles";
+import { useCurrentUserProfile } from "@/hooks/useErpUserProfiles";
 import { ptBR } from "date-fns/locale";
 
 interface ErpApiKey {
