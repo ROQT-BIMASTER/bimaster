@@ -431,6 +431,48 @@ const webhookInbound: Endpoint[] = [
 ];
 
 // ═══════════════════════════════════════
+// NEW APIs — Fornecedores, Plano de Contas, Portadores, Webhooks
+// ═══════════════════════════════════════
+
+const fornecedoresQueryCrud: Endpoint[] = [
+  { method: "GET", path: "/", description: "Listar fornecedores ativos (com filtro por CNPJ)", tag: "novo", flow: FLOW.listar, params: [{ name: "cnpj", type: "string", required: false, description: "Filtro por CNPJ (parcial ou completo, com ou sem máscara)" }], response: `{ "fornecedores": [{ "id": "uuid", "cnpj": "12345678000190", "razao_social": "ABC Ltda", "nome_fantasia": "ABC", "erp_code": "4214850", "email": "contato@abc.com", "telefone": "11999998888", "status": "ativo", "ativo": true }], "total": 1 }` },
+];
+
+const fornecedoresSyncCrud: Endpoint[] = [
+  { method: "POST", path: "/consultar", description: "Consultar fornecedor no ERP por CNPJ", tag: "novo", flow: FLOW.consultar, body: `{ "cnpj": "12.345.678/0001-90" }`, response: `{ "encontrado": true, "fornecedor": { "erp_code": "4214850", "razao_social": "ABC Ltda" } }` },
+  { method: "POST", path: "/cadastrar", description: "Cadastrar fornecedor no ERP e salvar código retornado", tag: "novo", flow: FLOW.incluir, body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "Novo Fornecedor", "nome_fantasia": "Novo", "email": "contato@novo.com" }`, response: `{ "success": true, "erp_code": "4214851", "message": "Fornecedor cadastrado no ERP" }` },
+  { method: "POST", path: "/sync-bidirecional", description: "Sincronização bidirecional completa (BiMaster ↔ ERP)", tag: "novo", flow: FLOW.sync, body: `{ "empresa_id": 8, "modo": "full" }`, response: `{ "sincronizados": 45, "novos_no_erp": 3, "novos_no_bimaster": 2, "erros": 0 }` },
+  { method: "POST", path: "/cadastrar-todas", description: "Cadastrar fornecedor em todas as empresas autorizadas", tag: "novo", flow: ["Request", "Auth (JWT)", "Rate Limit", "Parse Body", "Loop Empresas", "Cadastrar ERP", "Sync Log", "Response 200"], body: `{ "cnpj": "12.345.678/0001-90", "razao_social": "Fornecedor Multi" }`, response: `{ "empresas_cadastradas": 3, "erros": [] }` },
+];
+
+const planoContasCrud: Endpoint[] = [
+  { method: "GET", path: "/", description: "Listar plano de contas ativo (chart of accounts)", tag: "novo", flow: FLOW.listar, response: `{ "plano_contas": [{ "id": "uuid", "codigo": "2.04.01", "nome": "Serviços Terceiros", "erp_code": "ERP001", "tipo": "D", "ativo": true }], "total": 25 }` },
+];
+
+const portadoresCrud: Endpoint[] = [
+  { method: "GET", path: "/", description: "Listar portadores/contas bancárias ativos por empresa", tag: "novo", flow: FLOW.listar, response: `{ "data": [{ "id": "uuid", "nome": "Banco Itaú", "banco_codigo": "341", "banco_nome": "Itaú Unibanco", "agencia": "1234", "conta": "56789-0", "tipo": "corrente", "codigo_erp": "PORT001" }], "total": 5 }` },
+  { method: "POST", path: "/sync", description: "Upsert em massa de portadores (máx 5000/request)", tag: "novo", flow: FLOW.sync, body: `{ "portadores": [{ "codigo_erp": "PORT001", "nome": "Banco Itaú", "banco_codigo": "341", "banco_nome": "Itaú Unibanco", "agencia": "1234", "conta": "56789-0", "tipo": "corrente" }] }`, response: `{ "success": true, "upserted": 5 }` },
+];
+
+const webhookSubscriptionsCrud: Endpoint[] = [
+  { method: "GET", path: "/eventos", description: "Listar todos os eventos disponíveis para inscrição", tag: "novo", flow: FLOW.status, response: `{ "eventos": [{ "evento": "conta_pagar.criado", "descricao": "Novo título a pagar criado" }, { "evento": "conta_pagar.pago", "descricao": "Pagamento registrado" }] }` },
+  { method: "GET", path: "/listar", description: "Listar assinaturas de webhook ativas", tag: "novo", flow: FLOW.listar, response: `{ "subscriptions": [{ "id": "uuid", "url": "https://erp.com/webhook", "eventos": ["conta_pagar.criado"], "ativo": true }], "total": 3 }` },
+  { method: "GET", path: "/consultar", description: "Consultar assinatura por ID", tag: "novo", flow: FLOW.consultar, params: [{ name: "id", type: "uuid", required: true, description: "ID da assinatura" }], response: `{ "subscription": { "id": "uuid", "url": "https://erp.com/webhook", "eventos": ["conta_pagar.criado"], "secret": "hmac-***", "ativo": true } }` },
+  { method: "POST", path: "/incluir", description: "Criar nova assinatura de webhook", tag: "novo", flow: FLOW.incluir, body: `{ "url": "https://erp.com/webhook", "eventos": ["conta_pagar.criado", "conta_pagar.pago"], "secret": "meu-segredo-hmac", "headers_customizados": { "X-ERP-Token": "abc123" } }`, response: `{ "id": "uuid", "message": "Assinatura criada com sucesso" }` },
+  { method: "PUT", path: "/alterar", description: "Atualizar assinatura existente", tag: "novo", flow: FLOW.alterar, body: `{ "id": "uuid", "url": "https://erp.com/webhook-v2", "eventos": ["conta_pagar.criado", "conta_pagar.pago", "conta_pagar.cancelado"] }`, response: `{ "message": "Assinatura atualizada" }` },
+  { method: "DELETE", path: "/excluir", description: "Remover assinatura de webhook", tag: "novo", flow: FLOW.excluir, params: [{ name: "id", type: "uuid", required: true, description: "ID da assinatura" }], response: `{ "message": "Assinatura removida" }` },
+  { method: "POST", path: "/testar", description: "Enviar evento de teste para a URL da assinatura", tag: "novo", flow: ["Request", "Auth", "Rate Limit", "Build Test Payload", "Sign HMAC", "POST to URL", "Response 200"], body: `{ "id": "uuid" }`, response: `{ "success": true, "http_status": 200, "duration_ms": 150 }` },
+  { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
+];
+
+const webhookDispatcherCrud: Endpoint[] = [
+  { method: "POST", path: "/process", description: "Processar fila de eventos pendentes (máx 50/execução)", tag: "novo", flow: ["Request", "Auth", "Rate Limit", "Query Pending", "Sign HMAC", "POST to Subscribers", "Update Queue", "Log Delivery", "Response 200"], response: `{ "processed": 10, "sent": 8, "failed": 2 }` },
+  { method: "POST", path: "/retry-dead", description: "Reprocessar eventos mortos (dead letter)", tag: "novo", flow: ["Request", "Auth", "Rate Limit", "Find Dead Events", "Reset Status", "Response 200"], response: `{ "requeued": 5 }` },
+  { method: "GET", path: "/stats", description: "Estatísticas da fila de webhooks", tag: "novo", flow: FLOW.status, response: `{ "subscriptions_ativas": 3, "fila": { "pending": 12, "failed": 2, "sent": 450, "dead": 1 } }` },
+  { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
+];
+
+// ═══════════════════════════════════════
 // MODULE DEFINITIONS
 // ═══════════════════════════════════════
 
@@ -443,6 +485,8 @@ const API_MODULES: ApiModule[] = [
     color: "from-blue-600 to-blue-500",
     apis: [
       { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
+      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
+      { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-blue-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
       { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
       { id: "departamentos", name: "Departamentos", description: "CRUD completo de departamentos", basePath: "/departamentos-api", icon: <Layers className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: departamentosCrud }] },
       { id: "categorias", name: "Categorias", description: "Categorias e grupos totalizadores", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
@@ -457,6 +501,8 @@ const API_MODULES: ApiModule[] = [
     icon: <Package className="h-5 w-5" />,
     color: "from-emerald-600 to-emerald-500",
     apis: [
+      { id: "plano-contas", name: "Plano de Contas", description: "Chart of Accounts para classificação contábil", basePath: "/erp-plano-contas-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: planoContasCrud }] },
+      { id: "portadores", name: "Portadores", description: "Contas bancárias/portadores para pagamento", basePath: "/erp-portadores-api", icon: <DollarSign className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta & Sync", endpoints: portadoresCrud }] },
       { id: "tipos-atividade", name: "Tipos de Atividade", description: "Listagem de tipos", basePath: "/tipos-atividade-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: tiposAtividadeCrud }] },
       { id: "tipos-anexo", name: "Tipos de Anexo", description: "Tipos de documentos anexos", basePath: "/tipos-anexo-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: tiposAnexoCrud }] },
       { id: "tipos-entrega", name: "Tipos de Entrega", description: "CRUD de tipos de entrega", basePath: "/tipos-entrega-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: tiposEntregaCrud }] },
@@ -499,6 +545,8 @@ const API_MODULES: ApiModule[] = [
     apis: [
       { id: "anexos", name: "Anexos", description: "Gestão de documentos anexos", basePath: "/anexos-api", icon: <FileText className="h-4 w-4 text-purple-500" />, sections: [{ title: "CRUD de Anexos", endpoints: anexosCrud }] },
       { id: "webhook-inbound", name: "Webhook Inbound", description: "Callbacks do ERP para o BiMaster", basePath: "/erp-webhook-inbound", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Inbound", endpoints: webhookInbound }] },
+      { id: "webhook-subscriptions", name: "Webhook Subscriptions", description: "CRUD de assinaturas para webhooks outbound", basePath: "/webhook-subscriptions-api", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Gestão de Assinaturas", endpoints: webhookSubscriptionsCrud }] },
+      { id: "webhook-dispatcher", name: "Webhook Dispatcher", description: "Processamento e monitoramento da fila de webhooks", basePath: "/webhook-dispatcher", icon: <RefreshCw className="h-4 w-4 text-purple-500" />, sections: [{ title: "Processamento & Monitoramento", endpoints: webhookDispatcherCrud }] },
     ],
   },
 ];

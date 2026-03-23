@@ -252,6 +252,33 @@ const PRESET_ENDPOINTS = [
   { label: "Tipos Entrega — Excluir", method: "POST" as HttpMethod, path: "/tipos-entrega-api/excluir" },
   { label: "Tipos Entrega — Listar", method: "POST" as HttpMethod, path: "/tipos-entrega-api/listar" },
   { label: "Tipos Entrega — Status", method: "GET" as HttpMethod, path: "/tipos-entrega-api/status" },
+  // Fornecedores (Query)
+  { label: "Fornecedores — Listar", method: "GET" as HttpMethod, path: "/erp-fornecedores-query/" },
+  { label: "Fornecedores — Buscar CNPJ", method: "GET" as HttpMethod, path: "/erp-fornecedores-query/?cnpj=12345678000190" },
+  // Fornecedores (Sync)
+  { label: "Fornecedores Sync — Consultar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/consultar" },
+  { label: "Fornecedores Sync — Cadastrar ERP", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/cadastrar" },
+  { label: "Fornecedores Sync — Sync Bidirecional", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/sync-bidirecional" },
+  { label: "Fornecedores Sync — Cadastrar Todas", method: "POST" as HttpMethod, path: "/erp-fornecedores-sync/cadastrar-todas" },
+  // Plano de Contas
+  { label: "Plano de Contas — Listar", method: "GET" as HttpMethod, path: "/erp-plano-contas-api/" },
+  // Portadores
+  { label: "Portadores — Listar", method: "GET" as HttpMethod, path: "/erp-portadores-api/" },
+  { label: "Portadores — Sync", method: "POST" as HttpMethod, path: "/erp-portadores-api/sync" },
+  // Webhook Subscriptions
+  { label: "Webhook Sub — Eventos Disponíveis", method: "GET" as HttpMethod, path: "/webhook-subscriptions-api/eventos" },
+  { label: "Webhook Sub — Listar", method: "GET" as HttpMethod, path: "/webhook-subscriptions-api/listar" },
+  { label: "Webhook Sub — Consultar", method: "GET" as HttpMethod, path: "/webhook-subscriptions-api/consultar?id=COLE_O_UUID" },
+  { label: "Webhook Sub — Incluir", method: "POST" as HttpMethod, path: "/webhook-subscriptions-api/incluir" },
+  { label: "Webhook Sub — Alterar", method: "PUT" as HttpMethod, path: "/webhook-subscriptions-api/alterar" },
+  { label: "Webhook Sub — Excluir", method: "DELETE" as HttpMethod, path: "/webhook-subscriptions-api/excluir?id=COLE_O_UUID" },
+  { label: "Webhook Sub — Testar", method: "POST" as HttpMethod, path: "/webhook-subscriptions-api/testar" },
+  { label: "Webhook Sub — Status", method: "GET" as HttpMethod, path: "/webhook-subscriptions-api/status" },
+  // Webhook Dispatcher
+  { label: "Webhook Dispatch — Processar Fila", method: "POST" as HttpMethod, path: "/webhook-dispatcher/process" },
+  { label: "Webhook Dispatch — Retry Dead", method: "POST" as HttpMethod, path: "/webhook-dispatcher/retry-dead" },
+  { label: "Webhook Dispatch — Stats", method: "GET" as HttpMethod, path: "/webhook-dispatcher/stats" },
+  { label: "Webhook Dispatch — Status", method: "GET" as HttpMethod, path: "/webhook-dispatcher/status" },
 ];
 
 const BODY_TEMPLATES: Record<string, string> = {
