@@ -924,10 +924,25 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
             <CardTitle className="text-lg">Documentação das APIs</CardTitle>
             <Badge variant="secondary" className="text-xs">{totalEndpoints} endpoints</Badge>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar Excel
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              const collection = generatePostmanCollection(accessFilteredModules);
+              const blob = new Blob([JSON.stringify(collection, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "Huggs_API_Collection.postman_collection.json";
+              a.click();
+              URL.revokeObjectURL(url);
+            }} className="gap-2">
+              <Globe className="h-4 w-4" />
+              Postman Collection
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </div>
         <CardDescription>
           Referência completa de todos os endpoints disponíveis para integração
