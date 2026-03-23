@@ -1010,6 +1010,66 @@ export default function ApiDocumentation() {
                     </div>
                   </div>
 
+                  {/* Retry / Backoff Guide */}
+                  <div className="border border-orange-500/30 bg-orange-500/5 rounded-lg p-3 flex gap-3">
+                    <RotateCcw className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-orange-700">Estratégia de Retry</h4>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Quando receber <code className="bg-muted px-1 rounded">429</code> ou <code className="bg-muted px-1 rounded">5xx</code>, aplique backoff exponencial:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">1ª tentativa:</span> aguardar <code className="bg-muted px-1 rounded">Retry-After</code> header (ou 1s)</div>
+                        <div><span className="font-medium">2ª tentativa:</span> aguardar 2s</div>
+                        <div><span className="font-medium">3ª tentativa:</span> aguardar 4s</div>
+                        <div className="text-muted-foreground mt-1">Máximo de 3 tentativas. Após isso, registrar erro e notificar.</div>
+                      </div>
+                      <CodeBlock code={`// Exemplo Node.js
+async function fetchWithRetry(url, opts, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const res = await fetch(url, opts);
+    if (res.ok) return res;
+    if (res.status === 429 || res.status >= 500) {
+      const wait = parseInt(res.headers.get("Retry-After") || String(Math.pow(2, i)));
+      await new Promise(r => setTimeout(r, wait * 1000));
+    } else throw new Error(\`HTTP \${res.status}\`);
+  }
+  throw new Error("Max retries exceeded");
+}`} />
+                    </div>
+                  </div>
+
+                  {/* HMAC Webhook Verification Guide */}
+                  <div className="border border-purple-500/30 bg-purple-500/5 rounded-lg p-3 flex gap-3">
+                    <Shield className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-purple-700">Verificação HMAC de Webhooks</h4>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Ao receber webhooks do BiMaster, verifique a assinatura <code className="bg-muted px-1 rounded">x-hub-signature-256</code> para garantir autenticidade:
+                      </p>
+                      <CodeBlock code={`// Node.js
+const crypto = require("crypto");
+function verifySignature(payload, signature, secret) {
+  const expected = "sha256=" + crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(signature), Buffer.from(expected)
+  );
+}`} label="Node.js" />
+                      <div className="mt-2">
+                        <CodeBlock code={`# Python
+import hmac, hashlib
+def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), payload, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)`} label="Python" />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Webhook Events Catalog */}
                   <div>
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
