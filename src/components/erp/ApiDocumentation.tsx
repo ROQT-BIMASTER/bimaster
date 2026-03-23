@@ -359,7 +359,7 @@ const origensCrud: Endpoint[] = [
 ];
 
 const bandeirasCrud: Endpoint[] = [
-  { method: "GET", path: "/listar", description: "Listar bandeiras de cartão (ListarBandeiras)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página" }], response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa" }] }` },
+  { method: "GET", path: "/listar", description: "Listar bandeiras de cartão (ListarBandeiras)", tag: "novo", params: [{ name: "nPagina", type: "integer", required: false, description: "Página" }, { name: "nRegPorPagina", type: "integer", required: false, description: "Registros por página" }], response: `{ "nPagina": 1, "nTotPaginas": 1, "nRegistros": 8, "nTotRegistros": 8, "listaBandeira": [{ "cCodigo": "VISA", "cDescricao": "Visa", "cTipo": "credito" }] }` },
   { method: "GET", path: "/status", description: "Health check da API" },
 ];
 

@@ -31,8 +31,8 @@ Header `x-api-key` obrigatório (exceto `/status`).
   "nRegistros": 8,
   "nTotRegistros": 8,
   "listaBandeira": [
-    { "cCodigo": "VISA", "cDescricao": "Visa" },
-    { "cCodigo": "MASTER", "cDescricao": "Mastercard" }
+    { "cCodigo": "VISA", "cDescricao": "Visa", "cTipo": "credito" },
+    { "cCodigo": "MASTER", "cDescricao": "Mastercard", "cTipo": "credito" }
   ]
 }
 ```
@@ -43,6 +43,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 |---|---|---|
 | `cCodigo` | `codigo` | Código da bandeira |
 | `cDescricao` | `descricao` | Descrição da bandeira |
+| `cTipo` | `tipo` | Tipo: credito, debito, ambos |
 
 ## Erros
 

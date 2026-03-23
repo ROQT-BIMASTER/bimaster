@@ -135,6 +135,9 @@ export default function ContasPagarGestao() {
     descricao: "", valor_original: "", data_emissao: "", data_vencimento: "",
     data_competencia: "", numero_parcelas: "1", empresa_id: "", categoria_nome: "",
     portador: "", status: "pendente",
+    departamento_nome: "", plano_contas_codigo: "", plano_contas_nome: "",
+    chave_nfe: "", numero_documento_fiscal: "", codigo_projeto: "",
+    data_previsao: "", id_conta_corrente: "",
   });
 
   // Payment form
@@ -270,6 +273,14 @@ export default function ContasPagarGestao() {
         portador: form.portador || null,
         status: form.status || "pendente",
         total_parcelas: parseInt(form.numero_parcelas) || 1,
+        departamento_nome: form.departamento_nome || null,
+        plano_contas_codigo: form.plano_contas_codigo || null,
+        plano_contas_nome: form.plano_contas_nome || null,
+        chave_nfe: form.chave_nfe || null,
+        numero_documento_fiscal: form.numero_documento_fiscal || null,
+        codigo_projeto: form.codigo_projeto || null,
+        data_previsao: form.data_previsao || null,
+        id_conta_corrente: form.id_conta_corrente ? parseInt(form.id_conta_corrente) : null,
       };
       if (form.empresa_id) payload.empresa_id = parseInt(form.empresa_id);
 
@@ -381,7 +392,7 @@ export default function ContasPagarGestao() {
 
   // ===== HELPERS =====
   const resetForm = useCallback(() => {
-    setForm({ tipo_documento: "", numero_documento: "", fornecedor_nome: "", fornecedor_codigo: "", descricao: "", valor_original: "", data_emissao: "", data_vencimento: "", data_competencia: "", numero_parcelas: "1", empresa_id: "", categoria_nome: "", portador: "", status: "pendente" });
+    setForm({ tipo_documento: "", numero_documento: "", fornecedor_nome: "", fornecedor_codigo: "", descricao: "", valor_original: "", data_emissao: "", data_vencimento: "", data_competencia: "", numero_parcelas: "1", empresa_id: "", categoria_nome: "", portador: "", status: "pendente", departamento_nome: "", plano_contas_codigo: "", plano_contas_nome: "", chave_nfe: "", numero_documento_fiscal: "", codigo_projeto: "", data_previsao: "", id_conta_corrente: "" });
     setEditingId(null);
   }, []);
 
@@ -394,6 +405,10 @@ export default function ContasPagarGestao() {
       data_competencia: c.data_competencia || "", numero_parcelas: String(c.total_parcelas || 1),
       empresa_id: String(c.empresa_id || ""), categoria_nome: c.categoria_nome || "",
       portador: c.portador || "", status: c.status || "pendente",
+      departamento_nome: (c as any).departamento_nome || "", plano_contas_codigo: (c as any).plano_contas_codigo || "",
+      plano_contas_nome: (c as any).plano_contas_nome || "", chave_nfe: (c as any).chave_nfe || "",
+      numero_documento_fiscal: (c as any).numero_documento_fiscal || "", codigo_projeto: (c as any).codigo_projeto || "",
+      data_previsao: (c as any).data_previsao || "", id_conta_corrente: String((c as any).id_conta_corrente || ""),
     });
     setEditingId(c.id);
     setModalOpen(true);
@@ -710,6 +725,43 @@ export default function ContasPagarGestao() {
                     <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              {/* === Campos Adicionais === */}
+              <div className="col-span-1 md:col-span-2">
+                <Separator className="my-2" />
+                <p className="text-xs font-semibold text-muted-foreground mb-3">Classificação & NF-e</p>
+              </div>
+              <div>
+                <Label>Departamento</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.departamento_nome} onChange={e => setForm(f => ({ ...f, departamento_nome: e.target.value }))} placeholder="Ex: Financeiro" />
+              </div>
+              <div>
+                <Label>Plano de Contas (Código)</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.plano_contas_codigo} onChange={e => setForm(f => ({ ...f, plano_contas_codigo: e.target.value }))} placeholder="Ex: 2.04.01" />
+              </div>
+              <div>
+                <Label>Plano de Contas (Nome)</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.plano_contas_nome} onChange={e => setForm(f => ({ ...f, plano_contas_nome: e.target.value }))} placeholder="Ex: Serviços Terceiros" />
+              </div>
+              <div>
+                <Label>Chave NF-e</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.chave_nfe} onChange={e => setForm(f => ({ ...f, chave_nfe: e.target.value }))} placeholder="44 dígitos" />
+              </div>
+              <div>
+                <Label>Nº Documento Fiscal</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.numero_documento_fiscal} onChange={e => setForm(f => ({ ...f, numero_documento_fiscal: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Código Projeto</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.codigo_projeto} onChange={e => setForm(f => ({ ...f, codigo_projeto: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data Previsão</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="date" value={form.data_previsao} onChange={e => setForm(f => ({ ...f, data_previsao: e.target.value }))} />
+              </div>
+              <div>
+                <Label>ID Conta Corrente</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" value={form.id_conta_corrente} onChange={e => setForm(f => ({ ...f, id_conta_corrente: e.target.value }))} />
               </div>
             </div>
             <DialogFooter>
