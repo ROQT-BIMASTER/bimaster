@@ -213,7 +213,6 @@ export default function ContaPagarDetalhe() {
               <Row label="Origem Baixa" value={titulo.baixa_origem} />
               {/* ERP Status */}
               <ErpSyncStatus tituloId={titulo.id} importadoApi={(titulo as any).importado_api} codigoIntegracao={(titulo as any).codigo_integracao} status={titulo.status} />
-              </div>
             </CardContent>
           </Card>
 
