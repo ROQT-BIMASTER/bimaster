@@ -84,6 +84,9 @@ export function ContasPagarSyncPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Config de Fonte de Dados */}
+      <DataSourceConfigPanel />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
