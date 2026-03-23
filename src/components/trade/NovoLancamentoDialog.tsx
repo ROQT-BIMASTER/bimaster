@@ -310,7 +310,7 @@ export function NovoLancamentoDialog({ onSuccess }: NovoLancamentoDialogProps) {
 
       if (hasFornecedor) {
         const { data: fornData } = await supabase
-          .from("fabrica_fornecedores")
+          .from("fornecedores")
           .select("razao_social, nome_fantasia, cnpj")
           .eq("id", fornecedorId)
           .single();
