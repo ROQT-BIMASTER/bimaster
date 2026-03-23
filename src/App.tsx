@@ -637,7 +637,9 @@ function AppContent() {
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-ap-module" element={<ScreenRoute screenCode="admin"><RelatorioAPModule /></ScreenRoute>} />
             <Route path="/dashboard/integracao-erp" element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
-            <Route path="/dashboard/fornecedores" element={<ScreenRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/fornecedores" element={<ScreenRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenRoute>} />
+            <Route path="/dashboard/fornecedores" element={<Navigate to="/dashboard/financeiro/fornecedores" replace />} />
+            <Route path="/dashboard/configuracoes/fornecedores-visibilidade" element={<ScreenRoute screenCode="admin"><ConfigFornecedorVisibilidade /></ScreenRoute>} />
             <Route path="/dashboard/pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><Pagamentos /></ScreenRoute>} />
             <Route path="/dashboard/empresas" element={<ScreenRoute screenCode="financeiro_empresas"><Empresas /></ScreenRoute>} />
             <Route path="/dashboard/centros-custo" element={<ScreenRoute screenCode="financeiro_centros_custo"><CentrosCusto /></ScreenRoute>} />
