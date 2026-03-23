@@ -631,7 +631,7 @@ async function handleAuditDocument(params: {
     [
       {
         role: "system",
-        content: "Você é um auditor fiscal especializado. Extraia com máxima precisão os dados do documento. Foque em CNPJ, nome do emitente, valor total e número do documento.",
+        content: "Você é um auditor fiscal especializado em documentos fiscais brasileiros. Sua tarefa é extrair dados do documento E confrontá-los com os dados do lançamento fornecidos pelo usuário. Aponte divergências com precisão, incluindo justificativa. Extraia a chave de acesso da NF-e (44 dígitos) se estiver visível.",
       },
       { role: "user", content: contentParts },
     ],
