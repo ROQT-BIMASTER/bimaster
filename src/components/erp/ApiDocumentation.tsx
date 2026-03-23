@@ -885,6 +885,136 @@ export default function ApiDocumentation() {
 
           {/* Main content */}
           <div className="flex-1 min-w-0 space-y-8">
+            {/* ═══ GETTING STARTED ═══ */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["getting-started"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <Rocket className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Início Rápido</h3>
+                      <p className="text-sm text-white/80">Guia para integrar seu ERP com o BiMaster em 4 passos</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-6">
+                  {/* 4 Steps */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[
+                      { step: "1", title: "Obter API Key", desc: "Gere sua chave no portal acima (Gerenciar Chaves API)", icon: <Shield className="h-4 w-4" /> },
+                      { step: "2", title: "Testar Health Check", desc: "GET /status em qualquer API para validar conectividade", icon: <Zap className="h-4 w-4" /> },
+                      { step: "3", title: "Sync Cadastros Base", desc: "Empresas → Fornecedores → Categorias → Plano de Contas → Portadores", icon: <Database className="h-4 w-4" /> },
+                      { step: "4", title: "Integrar Financeiro", desc: "Contas a Pagar/Receber → Boletos → Webhooks", icon: <DollarSign className="h-4 w-4" /> },
+                    ].map(s => (
+                      <div key={s.step} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/15 text-primary text-xs font-bold">{s.step}</span>
+                          {s.icon}
+                          <span className="font-medium text-sm">{s.title}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{s.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Integration Order Flow */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" />
+                      Ordem de Integração Sugerida
+                    </h4>
+                    <div className="flex items-center flex-wrap gap-1 py-3 px-4 bg-muted/40 rounded-lg">
+                      {["Empresas", "→", "Fornecedores / Clientes", "→", "Categorias + Plano de Contas", "→", "Portadores", "→", "Contas a Pagar / Receber", "→", "Boletos", "→", "Webhooks"].map((item, i) => (
+                        item === "→" ? (
+                          <span key={i} className="text-muted-foreground text-sm font-bold">→</span>
+                        ) : (
+                          <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium border border-primary/20">{item}</span>
+                        )
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      ⚠️ Respeite esta ordem para evitar erros de referência (ex: incluir título sem fornecedor cadastrado).
+                    </p>
+                  </div>
+
+                  {/* POST Convention Note */}
+                  <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3 flex gap-3">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-amber-700">Convenção POST (Padrão Huggs)</h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Algumas APIs (Empresas, Departamentos, Categorias, Projetos) utilizam <code className="bg-muted px-1 rounded">POST</code> para todas as operações,
+                        incluindo consultas e listagens. Isso segue o padrão Huggs para compatibilidade. O body JSON substitui query params.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Pagination Note */}
+                  <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
+                    <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-blue-700">Padrões de Paginação</h4>
+                      <div className="mt-2 space-y-1.5">
+                        <div className="text-xs">
+                          <span className="font-medium">Padrão 1 (Huggs):</span>{" "}
+                          <code className="bg-muted px-1 rounded text-[11px]">pagina</code> + <code className="bg-muted px-1 rounded text-[11px]">registros_por_pagina</code>
+                          <span className="text-muted-foreground"> — Contas a Pagar, Contas a Receber, Departamentos, Categorias</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-medium">Padrão 2 (Legado):</span>{" "}
+                          <code className="bg-muted px-1 rounded text-[11px]">nPagina</code> + <code className="bg-muted px-1 rounded text-[11px]">nRegPorPagina</code>
+                          <span className="text-muted-foreground"> — Contas Correntes, Lançamentos CC, Anexos</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-medium">Padrão 3 (REST):</span>{" "}
+                          <code className="bg-muted px-1 rounded text-[11px]">limit</code> + <code className="bg-muted px-1 rounded text-[11px]">offset</code>
+                          <span className="text-muted-foreground"> — Consultas avançadas (query endpoints)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Webhook Events Catalog */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Webhook className="h-4 w-4 text-purple-500" />
+                      Catálogo de Eventos Webhook
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Eventos disponíveis para assinatura via <code className="bg-muted px-1 rounded">webhook-subscriptions-api</code>. Use <code className="bg-muted px-1 rounded">GET /eventos</code> para lista atualizada em tempo real.
+                    </p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="grid grid-cols-[180px_1fr_180px] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                        <span>Evento</span>
+                        <span>Descrição</span>
+                        <span>Módulo</span>
+                      </div>
+                      {[
+                        { event: "conta_pagar.criado", desc: "Novo título de AP incluído", mod: "Contas a Pagar" },
+                        { event: "conta_pagar.alterado", desc: "Título de AP atualizado", mod: "Contas a Pagar" },
+                        { event: "conta_pagar.pago", desc: "Baixa/pagamento registrado", mod: "Contas a Pagar" },
+                        { event: "conta_pagar.cancelado", desc: "Título cancelado", mod: "Contas a Pagar" },
+                        { event: "conta_receber.criado", desc: "Novo título de AR incluído", mod: "Contas a Receber" },
+                        { event: "conta_receber.alterado", desc: "Título de AR atualizado", mod: "Contas a Receber" },
+                        { event: "conta_receber.recebido", desc: "Recebimento registrado", mod: "Contas a Receber" },
+                        { event: "cliente.criado", desc: "Novo cliente cadastrado", mod: "Clientes" },
+                        { event: "cliente.alterado", desc: "Dados do cliente atualizados", mod: "Clientes" },
+                        { event: "fornecedor.criado", desc: "Novo fornecedor cadastrado", mod: "Fornecedores" },
+                        { event: "fornecedor.alterado", desc: "Dados do fornecedor atualizados", mod: "Fornecedores" },
+                      ].map(ev => (
+                        <div key={ev.event} className="grid grid-cols-[180px_1fr_180px] gap-2 px-3 py-2 border-b last:border-b-0 text-xs hover:bg-muted/30">
+                          <code className="font-mono text-[11px] text-primary">{ev.event}</code>
+                          <span className="text-muted-foreground">{ev.desc}</span>
+                          <Badge variant="outline" className="text-[10px] w-fit">{ev.mod}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {filteredModules.map(mod => (
               <div key={mod.id} ref={el => { moduleRefs.current[mod.id] = el; }}>
                 {/* Module header */}
