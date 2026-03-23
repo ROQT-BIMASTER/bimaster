@@ -110,10 +110,10 @@ export function SupplierDetailsCard({
     // Load local supplier data
     setLoadingLocal(true);
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("*")
       .eq("cnpj", cnpjClean)
-      .eq("ativo", true)
+      .eq("status", "ativo")
       .maybeSingle()
       .then(({ data }) => {
         if (data) setLocalSupplier(data as unknown as LocalSupplierData);
