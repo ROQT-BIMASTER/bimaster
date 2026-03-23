@@ -584,8 +584,27 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
+  const [curlCopied, setCurlCopied] = useState(false);
   const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
   const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
+
+  const generateCurl = () => {
+    const parts = [`curl -X ${endpoint.method}`];
+    parts.push(`  -H "x-api-key: SUA_CHAVE"`);
+    if (endpoint.body) {
+      parts.push(`  -H "Content-Type: application/json"`);
+      const compactBody = endpoint.body.replace(/\s+/g, " ").trim();
+      parts.push(`  -d '${compactBody}'`);
+    }
+    parts.push(`  "${fullUrl}"`);
+    return parts.join(" \\\n");
+  };
+
+  const handleCopyCurl = () => {
+    navigator.clipboard.writeText(generateCurl());
+    setCurlCopied(true);
+    setTimeout(() => setCurlCopied(false), 2000);
+  };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -603,6 +622,13 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
       {hasDetails && (
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
+            {/* Curl copy button */}
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleCopyCurl}>
+                {curlCopied ? <Check className="h-3 w-3 text-emerald-500" /> : <Terminal className="h-3 w-3" />}
+                {curlCopied ? "Copiado!" : "Copiar curl"}
+              </Button>
+            </div>
             {/* Flow diagram */}
             {endpoint.flow && endpoint.flow.length > 0 && (
               <div className="space-y-1">
@@ -623,7 +649,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
             )}
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL completa</span>
-              <CodeBlock code={`curl -H "x-api-key: SUA_CHAVE" \\\n  "${fullUrl}"`} />
+              <CodeBlock code={generateCurl()} />
             </div>
             {endpoint.params && (
               <div>
