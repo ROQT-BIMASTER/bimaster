@@ -1,39 +1,43 @@
 
 
-# Chave de Acesso NF-e — Digitação Manual, Upload XML e Auto-Preenchimento
+# Fix: Atualização de Versão no PWA (iPhone) + Botão "Atualizar Versão"
 
-## Contexto
+## Problema
 
-Atualmente a chave de acesso NF-e só pode ser digitada manualmente ou sugerida pela IA após auditoria. O usuário quer:
-1. **Digitação manual** (já existe)
-2. **Upload de XML** que preenche automaticamente a chave e outros dados
-3. Essas opções devem estar disponíveis **desde a origem do documento** (CadastroTituloAP) e também na revisão (DocumentAuditCard)
+No iPhone (PWA standalone), o Service Worker não detecta atualizações de forma confiável — o evento `onNeedRefresh` pode nunca disparar. Resultado: a versão exibida fica antiga e o usuário não tem como forçar a atualização.
 
-## Plano
+## Solução
 
-### 1. Criar componente reutilizável `ChaveAcessoInput`
+### 1. Página "Instalar App" — Adicionar seção de versão e atualização
 
-Novo componente `src/components/financeiro/ChaveAcessoInput.tsx` que encapsula:
-- Input manual com máscara (4 em 4 dígitos), contador de dígitos, validação visual
-- Botão "Upload XML" que abre file picker para `.xml`
-- Ao selecionar XML, usa o parser `parseNFeXml` existente para extrair `chave_acesso`
-- Exibe preview dos dados extraídos (número NF, fornecedor, valor) para confirmação do operador
-- Botão "Aplicar" para confirmar o preenchimento automático
-- Sugestão IA (quando disponível) com botão aplicar
+No `src/pages/InstalarApp.tsx`:
+- Exibir versão atual (`appVersion`) sempre visível
+- Adicionar botão **"Verificar Atualização"** que chama `forceUpdate()` — sempre disponível, independente do estado do SW
+- Quando `needRefresh` estiver ativo, exibir botão **"Atualizar Versão"** em destaque (substituindo "Instalar Agora")
+- Quando já instalado, trocar card de instalação por card de versão/atualização
 
-### 2. Usar o componente na página CadastroTituloAP
+### 2. Sidebar — Label dinâmico
 
-Substituir o campo simples de chave NF-e (linhas 519-532) pelo novo `ChaveAcessoInput`. Ao fazer upload do XML, além da chave, preencher automaticamente campos como `numeroDocumento` e `valorDocumento` (com confirmação do operador).
+No `src/components/dashboard/AppSidebar.tsx`:
+- Quando `needRefresh === true`, mudar o label do menu de "Instalar App" para "Atualizar App" com badge visual
 
-### 3. Usar o componente no DocumentAuditCard
+### 3. PWAContext — Verificação ativa de atualização
 
-Substituir o bloco de input manual + sugestão IA (linhas 107-148) pelo `ChaveAcessoInput`, passando a sugestão da IA como prop.
+No `src/contexts/PWAContext.tsx`:
+- Adicionar método `checkForUpdate()` que força `registration.update()` manualmente e retorna se há atualização
+- Expor no contexto para uso na página
+
+### 4. PWAUpdatePrompt — Botão "Atualizar" sempre funcional
+
+No `src/components/pwa/PWAUpdatePrompt.tsx`:
+- Quando `needRefresh` não dispara mas versão no localStorage difere, oferecer `forceUpdate()` como fallback
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/financeiro/ChaveAcessoInput.tsx` | **Novo** — componente reutilizável |
-| `src/pages/financeiro/CadastroTituloAP.tsx` | Substituir campo simples pelo novo componente + auto-fill de campos via XML |
-| `src/components/financeiro/payments/DocumentAuditCard.tsx` | Substituir bloco manual pelo novo componente |
+| `src/pages/InstalarApp.tsx` | Seção de versão + botões atualizar/verificar |
+| `src/contexts/PWAContext.tsx` | Método `checkForUpdate()` |
+| `src/components/dashboard/AppSidebar.tsx` | Label dinâmico com badge |
+| `src/components/pwa/PWAUpdatePrompt.tsx` | Fallback para forceUpdate |
 
