@@ -860,7 +860,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
   }, [searchQuery, accessFilteredModules]);
 
   const handleExportExcel = async () => {
-    const sheets = buildExcelData(API_MODULES);
+    const sheets = buildExcelData(accessFilteredModules);
     await exportToExcel(sheets, "Huggs_API_Collection");
   };
 
