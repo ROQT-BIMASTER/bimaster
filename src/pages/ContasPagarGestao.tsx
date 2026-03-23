@@ -566,7 +566,7 @@ export default function ContasPagarGestao() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.slice(0, 100).map(c => (
+                    {filtered.map(c => (
                       <TableRow key={c.id} className="cursor-pointer hover:bg-muted/40" onClick={() => openDetail(c)}>
                         <TableCell className="font-mono text-xs">
                           {c.numero_documento || c.erp_id?.slice(0, 12)}
@@ -598,9 +598,31 @@ export default function ContasPagarGestao() {
                     ))}
                   </TableBody>
                 </Table>
-                {filtered.length > 100 && (
-                  <p className="text-xs text-muted-foreground text-center py-3">Exibindo 100 de {filtered.length} registros. Use os filtros para refinar.</p>
-                )}
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    {totalCount > 0
+                      ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, totalCount)} de ${totalCount} registros`
+                      : "Nenhum registro"}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(0)}>
+                      {"<<"}
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                      {"<"}
+                    </Button>
+                    <span className="text-xs px-2 text-muted-foreground">
+                      Pág. {page + 1} de {totalPages}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>
+                      {">"}
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage(totalPages - 1)}>
+                      {">>"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
