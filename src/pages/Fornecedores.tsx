@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { Link } from "react-router-dom";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Fornecedor {
   id: string;
@@ -230,16 +231,55 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
 export default function Fornecedores() {
   const queryClient = useQueryClient();
   const { empresasDoUsuario, empresaIds, empresaSelecionada, loading: empresaLoading } = useEmpresaFilter();
+
+  // Restore persisted state from sessionStorage
+  const STORAGE_KEY = "fornecedores_form_state";
+  const getPersistedState = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return JSON.parse(raw);
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+  const persisted = useState(() => getPersistedState())[0];
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<FornecedorForm>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(persisted?.dialogOpen ?? false);
+  const [form, setForm] = useState<FornecedorForm>(persisted?.form ?? emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(persisted?.editingId ?? null);
   const [upsertConfirm, setUpsertConfirm] = useState<{ existingId: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">("basico");
+  const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">(persisted?.dialogTab ?? "basico");
   const [syncingErp, setSyncingErp] = useState(false);
+
+  // Persist form state before navigating away
+  const persistFormState = useCallback(() => {
+    if (dialogOpen) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ dialogOpen, form, editingId, dialogTab }));
+    }
+  }, [dialogOpen, form, editingId, dialogTab]);
+
+  // Save state on visibility change (tab switch) and beforeunload
+  const persistRef = useRef(persistFormState);
+  persistRef.current = persistFormState;
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") persistRef.current();
+    };
+    const handleBeforeUnload = () => persistRef.current();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   // Filter empresas to only those in user context
   const visibleEmpresas = empresasDoUsuario;
@@ -541,6 +581,11 @@ export default function Fornecedores() {
 
   return (
     <div className="space-y-6 p-6">
+      <ModuleBreadcrumb
+        moduleName="Financeiro"
+        moduleHref="/dashboard/financeiro"
+        currentPage="Fornecedores"
+      />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-primary" />
@@ -708,7 +753,10 @@ export default function Fornecedores() {
       </Card>
 
       {/* Form Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) sessionStorage.removeItem(STORAGE_KEY);
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
