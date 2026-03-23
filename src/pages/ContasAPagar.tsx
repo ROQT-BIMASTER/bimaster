@@ -223,7 +223,7 @@ export default function ContasAPagar() {
     }
 
     // Ano/Mês - Só aplicar se NÃO houver filtro de dia específico (evita conflito)
-    if (!filterDiaVencimento) {
+    if (!filterDiaVencimento && !filterDiaPagamento) {
       if (filterMes !== 'all' && filterAno !== 'all') {
         // Filtro por mês específico tem prioridade sobre ano genérico
         const mes = filterMes.padStart(2, '0');
