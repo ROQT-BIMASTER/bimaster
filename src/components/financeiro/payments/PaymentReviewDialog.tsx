@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MarcarPagoDialog } from "./MarcarPagoDialog";
 import { RejeicaoFinanceiraDialog, REJECTION_CATEGORY_LABELS, type RejectionData } from "./RejeicaoFinanceiraDialog";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,7 @@ export function PaymentReviewDialog({
   const [rejeicaoOpen, setRejeicaoOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [acceptConfirmOpen, setAcceptConfirmOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     document_type: "",
     document_number: "",
@@ -97,6 +99,10 @@ export function PaymentReviewDialog({
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { messages } = usePaymentMessages(item?.id || null);
+
+  // Item 1: Replace window globals with useRef
+  const editUserInfoRef = useRef<{ id: string; email: string; nome: string } | null>(null);
+  const editJustificativaRef = useRef<string>("");
 
   const startEdit = () => {
     if (!item) return;
@@ -113,19 +119,17 @@ export function PaymentReviewDialog({
 
   const handlePasswordConfirmed = async (justificativa: string, userInfo: { id: string; email: string; nome: string }) => {
     setEditMode(true);
-    // Store userInfo for later save
-    (window as any).__editUserInfo = userInfo;
-    (window as any).__editJustificativa = justificativa;
+    editUserInfoRef.current = userInfo;
+    editJustificativaRef.current = justificativa;
   };
 
   const handleSaveEdit = async () => {
     if (!item) return;
     setIsSavingEdit(true);
-    const userInfo = (window as any).__editUserInfo;
-    const justificativa = (window as any).__editJustificativa;
+    const userInfo = editUserInfoRef.current;
+    const justificativa = editJustificativaRef.current;
 
     try {
-      // Build snapshot of old values
       const oldSnapshot: Record<string, any> = {
         document_type: item.document_type,
         document_number: item.document_number,
@@ -135,7 +139,6 @@ export function PaymentReviewDialog({
         description: item.description,
       };
 
-      // Update record
       const { error } = await supabase
         .from("financial_payment_queue")
         .update({
@@ -150,7 +153,6 @@ export function PaymentReviewDialog({
 
       if (error) throw error;
 
-      // Log history
       const changes: Record<string, { old: any; new: any }> = {};
       for (const key of Object.keys(editForm) as (keyof typeof editForm)[]) {
         if (String(editForm[key]) !== String(oldSnapshot[key])) {
@@ -169,8 +171,8 @@ export function PaymentReviewDialog({
 
       toast.success("Documento atualizado com sucesso");
       setEditMode(false);
-      delete (window as any).__editUserInfo;
-      delete (window as any).__editJustificativa;
+      editUserInfoRef.current = null;
+      editJustificativaRef.current = "";
       onRefresh?.();
     } catch (err: any) {
       toast.error("Erro ao salvar alterações: " + (err.message || ""));
@@ -181,8 +183,8 @@ export function PaymentReviewDialog({
 
   const cancelEdit = () => {
     setEditMode(false);
-    delete (window as any).__editUserInfo;
-    delete (window as any).__editJustificativa;
+    editUserInfoRef.current = null;
+    editJustificativaRef.current = "";
   };
 
   const handleAction = (actionType: 'accept' | 'reject' | 'paid') => {
@@ -198,11 +200,20 @@ export function PaymentReviewDialog({
       return;
     }
 
-    setAction(actionType);
-    
+    // Item 8: Show confirmation before accepting
     if (actionType === 'accept') {
-      onAccept(item.id, notes);
+      setAcceptConfirmOpen(true);
+      return;
     }
+
+    setAction(actionType);
+  };
+
+  const handleConfirmAccept = () => {
+    if (!item) return;
+    setAction('accept');
+    setAcceptConfirmOpen(false);
+    onAccept(item.id, notes);
   };
 
   const handleConfirmarRejeicao = (data: RejectionData) => {
@@ -227,6 +238,8 @@ export function PaymentReviewDialog({
     setAction(null);
     setAllAttachmentsAcknowledged(false);
     setEditMode(false);
+    editUserInfoRef.current = null;
+    editJustificativaRef.current = "";
     onOpenChange(false);
   };
 
@@ -277,20 +290,8 @@ export function PaymentReviewDialog({
             </TabsTrigger>
           </TabsList>
 
+          {/* Item 2: Removed duplicate DialogHeader */}
           <TabsContent value="details" className="mt-4">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Revisão de Pagamento
-            </DialogTitle>
-            <Badge className={cn("text-white", status.color)}>{status.label}</Badge>
-          </div>
-          <DialogDescription>
-            {item.code} • {sourceTypeLabels[item.source_type]}
-          </DialogDescription>
-        </DialogHeader>
-
         <div className="space-y-6">
           {/* Supplier Details with enrichment */}
           <SupplierDetailsCard
@@ -739,6 +740,29 @@ export function PaymentReviewDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Item 8: Accept confirmation AlertDialog */}
+      <AlertDialog open={acceptConfirmOpen} onOpenChange={setAcceptConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Aceitação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao aceitar, um título será criado automaticamente em <strong>Contas a Pagar</strong> e a provisão será exportada ao <strong>ERP</strong>. Esta ação não pode ser desfeita.
+              <br /><br />
+              <strong>Fornecedor:</strong> {item.supplier_name}<br />
+              <strong>Valor:</strong> {formatCurrency(item.amount)}<br />
+              <strong>Vencimento:</strong> {formatLocalDate(item.due_date, "dd/MM/yyyy")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAccept}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Confirmar e Criar Conta
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {item && (
         <>

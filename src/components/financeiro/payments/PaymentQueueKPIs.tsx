@@ -10,6 +10,7 @@ interface PaymentQueueKPIsProps {
     acceptedCount: number;
     acceptedAmount: number;
     rejectedCount: number;
+    rejectedAmount: number; // Item 12/14: now includes amount
     paidCount: number;
     paidAmount: number;
     totalAmount: number;
@@ -51,7 +52,7 @@ export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
     {
       title: t("pq.rejected"),
       value: kpis.rejectedCount,
-      subtitle: t("pq.items"),
+      subtitle: formatCurrency(kpis.rejectedAmount),
       icon: XCircle,
       color: "text-red-500",
       bgColor: "bg-red-500/10",

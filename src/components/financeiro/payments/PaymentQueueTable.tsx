@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Eye, Target, Calendar, Loader2, Building, MessageCircle } from "lucide-react";
+import { Search, Eye, Target, Calendar, Loader2, Building, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatLocalDate, parseLocalDate, getToday } from "@/utils/dateUtils";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { PaymentQueueItem, PaymentQueueStatus, SourceType } from "@/hooks/useFinancialPaymentQueue";
 import { usePaymentMessageCounts } from "@/hooks/usePaymentMessages";
 import { PaymentChatPanel } from "./PaymentChatPanel";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 
 interface Department {
   id: string;
@@ -32,12 +33,14 @@ interface PaymentQueueTableProps {
   empresas: Empresa[];
   filters: {
     status: PaymentQueueStatus | 'all';
-    source_type: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
+    source_type: string;
     empresa_id: number | 'all';
     search: string;
   };
   onFiltersChange: (filters: PaymentQueueTableProps['filters']) => void;
 }
+
+const PAGE_SIZE = 50;
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -66,6 +69,51 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
   const [chatItem, setChatItem] = useState<PaymentQueueItem | null>(null);
   const { data: messageCounts } = usePaymentMessageCounts(items.map(i => i.id));
 
+  // Item 3: Debounce search
+  const [searchInput, setSearchInput] = useState(filters.search);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== filters.search) {
+        onFiltersChange({ ...filters, search: searchInput });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Sync external filter changes
+  useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
+
+  // Item 10: Date range filters
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
+  // Item 6: Client-side pagination
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filters.status, filters.source_type, filters.empresa_id, filters.search, dateFrom, dateTo]);
+
+  // Filter by date range (due_date)
+  const dateFilteredItems = items.filter(item => {
+    if (!dateFrom && !dateTo) return true;
+    const d = parseLocalDate(item.due_date);
+    if (!d) return true;
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      if (d > end) return false;
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(dateFilteredItems.length / PAGE_SIZE);
+  const paginatedItems = dateFilteredItems.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -74,8 +122,8 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por fornecedor ou código..."
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -154,6 +202,22 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
         </Select>
       </div>
 
+      {/* Item 10: Date range filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Vencimento:</span>
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+        />
+        {dateFilteredItems.length !== items.length && (
+          <span className="text-xs text-muted-foreground ml-2">
+            {dateFilteredItems.length} de {items.length} itens
+          </span>
+        )}
+      </div>
+
       {/* Table */}
       <div className="rounded-lg border overflow-hidden">
         <Table>
@@ -177,14 +241,14 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : paginatedItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   Nenhum item encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => {
+              paginatedItems.map((item) => {
                 const sourceConfig = sourceTypeConfig[item.source_type];
                 const status = statusConfig[item.financial_status];
                 const parsedDueDate = parseLocalDate(item.due_date);
@@ -285,6 +349,38 @@ export function PaymentQueueTable({ items, isLoading, onReview, departments, emp
           </TableBody>
         </Table>
       </div>
+
+      {/* Item 6: Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            Mostrando {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, dateFilteredItems.length)} de {dateFilteredItems.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Chat Dialog */}
       <Dialog open={!!chatItem} onOpenChange={(open) => !open && setChatItem(null)}>

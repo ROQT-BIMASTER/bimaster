@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, CreditCard, ArrowLeft, Download, Loader2, LayoutDashboard, CalendarDays, Settings2, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { PaymentChatConsolidado } from "@/components/financeiro/payments/PaymentChatConsolidado";
 import { useAllPaymentConversations } from "@/hooks/usePaymentMessages";
 import { PaymentPolicyConfigDialog } from "@/components/financeiro/payments/PaymentPolicyConfigDialog";
@@ -86,6 +89,14 @@ export default function FinancialPaymentCentral() {
   const [isExporting, setIsExporting] = useState(false);
   const [policyConfigOpen, setPolicyConfigOpen] = useState(false);
 
+  // Item 13: Export confirmation
+  const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
+
+  // Item 9: Reopen justification
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [reopenJustificativa, setReopenJustificativa] = useState("");
+  const [reopenItemId, setReopenItemId] = useState<string | null>(null);
+
   // Consolidated dashboard state
   const [datePreset, setDatePreset] = useState<DatePreset>("this_year");
   const [customRange, setCustomRange] = useState<DateRangeFilter | undefined>();
@@ -161,18 +172,38 @@ export default function FinancialPaymentCentral() {
     });
   };
 
+  // Item 9: Reopen with mandatory justification
   const handleReopen = (id: string) => {
-    updateStatus({ id, financial_status: 'pending', financial_notes: 'Reaberto para reanálise' }, {
+    setReopenItemId(id);
+    setReopenJustificativa("");
+    setReopenDialogOpen(true);
+  };
+
+  const handleConfirmReopen = () => {
+    if (!reopenItemId || !reopenJustificativa.trim()) return;
+    updateStatus({ id: reopenItemId, financial_status: 'pending', financial_notes: `Reaberto para reanálise: ${reopenJustificativa.trim()}` }, {
       onSuccess: () => {
         setReviewDialogOpen(false);
         setSelectedItem(null);
+        setReopenDialogOpen(false);
+        setReopenItemId(null);
         toast.success("Solicitação reaberta para reanálise");
       },
     });
   };
 
-  const handleExport = async () => {
+  // Item 13: Export with confirmation
+  const handleExportClick = () => {
+    if (items.length > 100) {
+      setExportConfirmOpen(true);
+    } else {
+      doExport();
+    }
+  };
+
+  const doExport = async () => {
     setIsExporting(true);
+    setExportConfirmOpen(false);
     try {
       await exportPaymentQueueToExcel(items, "central-pagamentos");
       toast.success("Exportação concluída com sucesso!");
@@ -265,7 +296,7 @@ export default function FinancialPaymentCentral() {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={handleExport}
+                onClick={handleExportClick}
                 disabled={isExporting || items.length === 0}
               >
                 {isExporting ? (
@@ -408,6 +439,59 @@ export default function FinancialPaymentCentral() {
           open={policyConfigOpen}
           onOpenChange={setPolicyConfigOpen}
         />
+
+        {/* Item 9: Reopen justification dialog */}
+        <AlertDialog open={reopenDialogOpen} onOpenChange={setReopenDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reabrir para Reanálise</AlertDialogTitle>
+              <AlertDialogDescription>
+                Informe a justificativa para reabrir esta solicitação. Este registro será salvo no histórico de auditoria.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-2">
+              <Label htmlFor="reopen-justificativa" className="text-sm font-medium">
+                Justificativa <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="reopen-justificativa"
+                placeholder="Descreva o motivo da reabertura..."
+                value={reopenJustificativa}
+                onChange={(e) => setReopenJustificativa(e.target.value)}
+                rows={3}
+                className="mt-1.5"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmReopen}
+                disabled={!reopenJustificativa.trim()}
+              >
+                Confirmar Reabertura
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Item 13: Export confirmation dialog */}
+        <AlertDialog open={exportConfirmOpen} onOpenChange={setExportConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Exportar para Excel</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a exportar <strong>{items.length} registros</strong>. Deseja continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={doExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar {items.length} registros
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
