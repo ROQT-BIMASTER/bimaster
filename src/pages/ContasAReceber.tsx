@@ -908,7 +908,7 @@ export default function ContasAReceber() {
                         </TableRow>
                       ) : sortedAndPaginatedData.data && sortedAndPaginatedData.data.length > 0 ? (
                         sortedAndPaginatedData.data.map((conta) => (
-                          <TableRow key={conta.id}>
+                          <TableRow key={conta.id} className="cursor-pointer hover:bg-muted/40" onClick={() => { setSelectedCR(conta); setDetailDrawerOpen(true); }}>
                             <TableCell className="font-medium">{conta.empresa_nome}</TableCell>
                             <TableCell>{conta.numero_documento}/{conta.parcela}</TableCell>
                             <TableCell>{conta.cliente_nome}</TableCell>
@@ -930,6 +930,11 @@ export default function ContasAReceber() {
                             </TableCell>
                             <TableCell>{getStatusBadge(conta.status)}</TableCell>
                             <TableCell>{conta.portador}</TableCell>
+                            <TableCell onClick={e => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedCR(conta); setDetailDrawerOpen(true); }}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
