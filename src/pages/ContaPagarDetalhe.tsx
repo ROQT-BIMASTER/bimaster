@@ -237,17 +237,23 @@ export default function ContaPagarDetalhe() {
                     className="w-full mt-1 gap-2 text-xs"
                     onClick={async () => {
                       try {
-                        await supabase.from("erp_sync_log" as any).insert({
+                        const { error } = await supabase.from("erp_sync_log" as any).insert({
                           entity_type: "conta_pagar",
                           entity_id: titulo.id,
+                          conta_pagar_id: titulo.id,
                           action: "export_titulo",
                           direction: "outbound",
-                          status: "pendente",
+                          sync_status: "pendente",
+                          tabela_origem: "contas_pagar",
+                          registro_id: titulo.id,
+                          operacao: "provisao",
                         });
+                        if (error) throw error;
                         toast.success("Título adicionado à fila de envio ao ERP");
                         qc.invalidateQueries({ queryKey: ["cp-detalhe", id] });
-                      } catch {
-                        toast.error("Erro ao enfileirar envio");
+                      } catch (err: any) {
+                        console.error("ERP enqueue error:", err);
+                        toast.error("Erro ao enfileirar envio: " + (err?.message || ""));
                       }
                     }}
                   >
