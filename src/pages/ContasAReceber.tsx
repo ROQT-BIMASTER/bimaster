@@ -71,6 +71,8 @@ export default function ContasAReceber() {
   const { canEdit: canManageRecebimento } = useUIPermissions("financeiro_contas_receber");
   
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedCR, setSelectedCR] = useState<ContaReceber | null>(null);
   const [searchCliente, setSearchCliente] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterEmpresas, setFilterEmpresas] = useState<number[]>([]);
