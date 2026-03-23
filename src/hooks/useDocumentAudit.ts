@@ -17,6 +17,7 @@ export interface DocumentAuditResult {
   extracted_name?: string;
   extracted_amount?: number;
   extracted_document_number?: string;
+  extracted_chave_acesso?: string | null;
 }
 
 export function useDocumentAudit() {

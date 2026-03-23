@@ -557,7 +557,7 @@ async function handleAuditDocument(params: {
       type: "function",
       function: {
         name: "audit_document_result",
-        description: "Retorna os dados extraídos do documento fiscal para confronto.",
+        description: "Retorna os dados extraídos do documento fiscal com análise de divergências em relação ao lançamento esperado.",
         parameters: {
           type: "object",
           properties: {
@@ -565,7 +565,24 @@ async function handleAuditDocument(params: {
             extracted_name: { type: "string", description: "Nome/razão social do emitente no documento" },
             extracted_amount: { type: "number", description: "Valor total encontrado no documento" },
             extracted_document_number: { type: "string", description: "Número do documento fiscal" },
+            extracted_chave_acesso: { type: "string", description: "Chave de acesso da NF-e (44 dígitos numéricos), se visível no documento" },
             confidence: { type: "number", description: "Confiança na extração, de 0 a 1" },
+            ai_divergences: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  field: { type: "string", description: "Campo divergente: cnpj, supplier_name, amount, document_number" },
+                  expected: { type: "string", description: "Valor esperado (do lançamento)" },
+                  found: { type: "string", description: "Valor encontrado no documento" },
+                  severity: { type: "string", enum: ["low", "medium", "high"], description: "Gravidade da divergência" },
+                  justification: { type: "string", description: "Justificativa da IA para a divergência" },
+                },
+                required: ["field", "expected", "found", "severity"],
+                additionalProperties: false,
+              },
+              description: "Divergências identificadas pela IA entre o documento e o lançamento",
+            },
           },
           required: ["extracted_cnpj", "extracted_name", "extracted_amount", "confidence"],
           additionalProperties: false,
@@ -574,17 +591,28 @@ async function handleAuditDocument(params: {
     },
   ];
 
-  const contentParts: any[] = [
-    {
-      type: "text",
-      text: `Analise este documento fiscal e extraia os seguintes dados com precisão:
-- CNPJ ou CPF do emitente/fornecedor
-- Nome ou Razão Social do emitente/fornecedor
-- Valor total do documento
-- Número do documento fiscal
+  const contextLines = [
+    `Analise este documento fiscal e confronte com os dados do lançamento no sistema.`,
+    ``,
+    `DADOS DO LANÇAMENTO (esperados):`,
+    expectedData.cnpj ? `- CNPJ/CPF do fornecedor: ${expectedData.cnpj}` : `- CNPJ/CPF do fornecedor: NÃO INFORMADO`,
+    expectedData.supplier_name ? `- Nome do fornecedor: ${expectedData.supplier_name}` : `- Nome do fornecedor: NÃO INFORMADO`,
+    expectedData.amount ? `- Valor: R$ ${expectedData.amount.toFixed(2)}` : `- Valor: NÃO INFORMADO`,
+    expectedData.document_number ? `- Nº do documento: ${expectedData.document_number}` : `- Nº do documento: NÃO INFORMADO`,
+    params.documentType ? `- Tipo de documento: ${params.documentType}` : ``,
+    ``,
+    `INSTRUÇÕES:`,
+    `1. Extraia os dados visíveis do documento (CNPJ, nome, valor, número do documento, chave de acesso NF-e se presente).`,
+    `2. Compare cada campo extraído com os dados esperados do lançamento acima.`,
+    `3. Se houver divergências, liste-as em "ai_divergences" com severidade:`,
+    `   - high: CNPJ diferente ou valor com diferença >10%`,
+    `   - medium: nome do fornecedor diferente ou valor com diferença entre 2% e 10%`,
+    `   - low: número do documento diferente`,
+    `4. Se encontrar a chave de acesso da NF-e (44 dígitos numéricos), extraia em "extracted_chave_acesso".`,
+  ].filter(Boolean).join("\n");
 
-Estes dados serão usados para confrontar com o lançamento no sistema.`,
-    },
+  const contentParts: any[] = [
+    { type: "text", text: contextLines },
   ];
 
   if (mimeType === "application/pdf") {
@@ -603,7 +631,7 @@ Estes dados serão usados para confrontar com o lançamento no sistema.`,
     [
       {
         role: "system",
-        content: "Você é um auditor fiscal especializado. Extraia com máxima precisão os dados do documento. Foque em CNPJ, nome do emitente, valor total e número do documento.",
+        content: "Você é um auditor fiscal especializado em documentos fiscais brasileiros. Sua tarefa é extrair dados do documento E confrontá-los com os dados do lançamento fornecidos pelo usuário. Aponte divergências com precisão, incluindo justificativa. Extraia a chave de acesso da NF-e (44 dígitos) se estiver visível.",
       },
       { role: "user", content: contentParts },
     ],
@@ -677,14 +705,28 @@ Estes dados serão usados para confrontar com o lançamento no sistema.`,
     }
   }
 
+  // Merge AI divergences with code-based divergences (prefer AI when both exist)
+  const aiDivs = extracted.ai_divergences || [];
+  const aiFields = new Set(aiDivs.map((d: any) => d.field));
+  const mergedDivergences = [
+    ...aiDivs.map((d: any) => ({
+      field: d.field,
+      expected: d.expected,
+      found: d.found,
+      severity: d.severity as "low" | "medium" | "high",
+    })),
+    ...divergences.filter(d => !aiFields.has(d.field)),
+  ];
+
   return {
-    matches: divergences.length === 0,
-    divergences,
+    matches: mergedDivergences.length === 0,
+    divergences: mergedDivergences,
     confidence: extracted.confidence || 0,
     extracted_cnpj: extracted.extracted_cnpj,
     extracted_name: extracted.extracted_name,
     extracted_amount: extracted.extracted_amount,
     extracted_document_number: extracted.extracted_document_number,
+    extracted_chave_acesso: extracted.extracted_chave_acesso || null,
   };
 }
 

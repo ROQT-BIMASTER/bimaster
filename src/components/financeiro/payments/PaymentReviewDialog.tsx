@@ -587,7 +587,22 @@ export function PaymentReviewDialog({
 
           {/* Document Audit - AI cross-reference */}
           {(item.attachment_url || (item.attachments && item.attachments.length > 0)) && (
-            <DocumentAuditCard item={item} />
+            <DocumentAuditCard
+              item={item}
+              onChaveAcessoChange={async (chave) => {
+                if (!chave || chave.length !== 44) return;
+                try {
+                  await supabase
+                    .from("financial_payment_queue")
+                    .update({ chave_acesso_nfe: chave } as any)
+                    .eq("id", item.id);
+                  toast.success("Chave de acesso salva");
+                  onRefresh?.();
+                } catch {
+                  toast.error("Erro ao salvar chave de acesso");
+                }
+              }}
+            />
           )}
 
           {/* Receipt Upload Section - for accepted/paid payments */}
