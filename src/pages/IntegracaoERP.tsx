@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -13,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings, ArrowLeft } from "lucide-react";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
@@ -51,6 +52,7 @@ async function hashKey(key: string): Promise<string> {
 }
 
 export default function IntegracaoERP() {
+  const navigate = useNavigate();
   const { data: profiles } = useErpAccessProfiles();
   const assignProfile = useAssignProfileToKey();
   const { user } = useAuth();
@@ -158,14 +160,19 @@ export default function IntegracaoERP() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-7 w-7 text-primary" />
-            Portal de Integração ERP
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie chaves de API para integração com sistemas ERP externos
-          </p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="h-7 w-7 text-primary" />
+              Portal de Integração ERP
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie chaves de API para integração com sistemas ERP externos
+            </p>
+          </div>
         </div>
       </div>
 

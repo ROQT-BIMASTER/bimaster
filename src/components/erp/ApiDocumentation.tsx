@@ -88,7 +88,7 @@ const contasPagarCrud: Endpoint[] = [
       { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 500)" },
       { name: "offset", type: "number", required: false, description: "Paginação" },
     ],
-    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "total": 250, "offset": 0, "limit": 100 }`,
+    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "pagination": { "total": 250, "offset": 0, "limit": 100 }, "meta": { "filters_applied": { "status": "pendente" } } }`,
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
@@ -100,12 +100,12 @@ const contasPagarCrud: Endpoint[] = [
     method: "POST", path: "/cancelar", description: "Cancelamento com motivo obrigatório (suporta batch)",
     flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse IDs", "Cancelar Titulos", "Webhook Event", "Response 200"],
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
-    response: `{ "cancelados": 2, "message": "2 título(s) cancelado(s)" }`,
+    response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "message": "2 título(s) cancelado(s)" }`,
   },
   {
     method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
     flow: FLOW.pagamento,
-    body: `{ "id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
+    body: `{ "conta_pagar_id": "uuid-titulo", "valor_pago": 1500, "data_pagamento": "2026-03-15", "metodo_pagamento": "PIX", "portador_id": "uuid" }`,
     response: `{ "success": true, "pagamento_id": "uuid", "novo_status": "pago", "valor_aberto": 0 }`,
   },
 ];
@@ -145,6 +145,8 @@ const contasPagarIntegracao: Endpoint[] = [
     method: "POST", path: "/upsert", description: "Upsert unitário por codigo_lancamento_integracao (UpsertContaPagar)", tag: "novo",
     flow: FLOW.upsert,
     body: `{ "codigo_lancamento_integracao": "INT-001", "empresa_id": 8, "codigo_cliente_fornecedor": 4214850, "data_vencimento": "21/03/2026", "valor_documento": 100, "codigo_categoria": "2.04.01" }`,
+    response: `{ "codigo_lancamento_integracao": "INT-001", "codigo_status": "0", "descricao_status": "Upsert realizado com sucesso!" }`,
+    params: [{ name: "empresa_id", type: "integer", required: true, description: "⚠️ Obrigatório para resolução de conflito (onConflict)" }],
   },
   {
     method: "POST", path: "/upsert-lote", description: "Upsert em lote (máx 500) (UpsertContaPagarPorLote)", tag: "novo",
@@ -171,13 +173,19 @@ const contasPagarIntegracao: Endpoint[] = [
       { name: "pagina", type: "integer", required: false, description: "Número da página (default: 1)" },
       { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" },
       { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados (S/N)" },
-      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" },
+      { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" },
       { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" },
       { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" },
+      { name: "filtrar_por_emissao_de", type: "date", required: false, description: "Emissão a partir de" },
+      { name: "filtrar_por_emissao_ate", type: "date", required: false, description: "Emissão até" },
       { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente/fornecedor" },
+      { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" },
       { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" },
-      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação" },
+      { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" },
+      { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ" },
+      { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" },
       { name: "ordem_descrescente", type: "string", required: false, description: "S para decrescente" },
+      { name: "exibir_obs", type: "string", required: false, description: "Exibir observações (S/N, default: N)" },
     ],
     response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_pagar_cadastro": [...] }`,
   },
@@ -485,8 +493,6 @@ const API_MODULES: ApiModule[] = [
     color: "from-blue-600 to-blue-500",
     apis: [
       { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores. ⚠️ Este é o cadastro geral de pessoas (clientes e fornecedores). Para consultas específicas de fornecedores do Contas a Pagar, use a API de Fornecedores.", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
-      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ⚠️ Subset do cadastro de Clientes: retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
-      { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-blue-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
       { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
       { id: "projetos", name: "Projetos", description: "CRUD completo de projetos", basePath: "/projetos-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: projetosCrud }] },
     ],
@@ -498,6 +504,8 @@ const API_MODULES: ApiModule[] = [
     icon: <Package className="h-5 w-5" />,
     color: "from-emerald-600 to-emerald-500",
     apis: [
+      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ⚠️ Subset do cadastro de Clientes: retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
+      { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
       { id: "plano-contas", name: "Plano de Contas", description: "Chart of Accounts para classificação contábil. ⚠️ Diferente de Categorias: Plano de Contas é a estrutura contábil oficial, Categorias são agrupamentos internos do BiMaster.", basePath: "/erp-plano-contas-api", icon: <BarChart3 className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Listagem", endpoints: planoContasCrud }] },
       { id: "portadores", name: "Portadores", description: "Contas bancárias/portadores para pagamento", basePath: "/erp-portadores-api", icon: <DollarSign className="h-4 w-4 text-emerald-500" />, sections: [{ title: "Consulta & Sync", endpoints: portadoresCrud }] },
       { id: "categorias", name: "Categorias", description: "Categorias financeiras internas (receita/despesa). ⚠️ Diferente de Plano de Contas: Categorias são agrupamentos internos, Plano de Contas é a estrutura contábil.", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-emerald-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
@@ -1278,6 +1286,24 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Estrutura de Erros</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Todas as APIs retornam erros com estrutura padronizada:
+                  </p>
+                  <CodeBlock code={`// Erro de validação (400)
+{ "error": "campo_obrigatorio", "message": "O campo codigo_lancamento_integracao é obrigatório", "field": "codigo_lancamento_integracao" }
+
+// Erro de autenticação (401)
+{ "error": "unauthorized", "message": "API key inválida ou ausente" }
+
+// Rate limit (429)
+{ "error": "rate_limit", "message": "Limite de 60 req/min excedido", "retry_after": 60 }
+
+// Erro interno (500)
+{ "error": "internal_error", "message": "Erro ao processar requisição", "request_id": "uuid" }`} label="Exemplos de resposta de erro" />
+                </div>
               </div>
             </div>
 
@@ -1296,6 +1322,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v1.5.0", date: "2026-03-23", changes: ["Corrigido body do /registrar-pagamento (id → conta_pagar_id)", "Corrigida resposta do /query com pagination e meta", "Corrigida resposta do /cancelar com success e ids", "Documentado empresa_id como obrigatório no /upsert CP", "Adicionados 7 filtros faltantes no /listar CP (emissão, conta corrente, CPF/CNPJ, vendedor, observações)", "Fornecedores migrados de 'Geral' para 'Cadastros Auxiliares'", "Seção de erros estruturados na documentação de autenticação"] },
                     { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
                     { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },
                     { version: "v1.2.0", date: "2026-03-15", changes: ["Adicionadas 6 APIs: Fornecedores, Plano de Contas, Portadores, Webhook Subscriptions, Webhook Dispatcher", "Separação de 'Tabelas de Referência (Opcional)'", "Remoção de duplicidade webhook-push"] },
