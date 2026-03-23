@@ -21,6 +21,27 @@ import type { SheetData } from "@/lib/excel-utils";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
+// Pagination patterns for each API
+const PAGINATION_PATTERNS: Record<string, "huggs" | "legado" | "rest"> = {
+  "contas-pagar": "huggs", "contas-receber": "huggs", "departamentos": "huggs",
+  "categorias": "huggs", "projetos": "huggs", "clientes": "huggs", "parcelas": "huggs",
+  "contas-correntes": "legado", "lancamentos-cc": "legado", "anexos": "legado",
+  "bandeiras": "legado", "cnae": "huggs", "cidades": "huggs",
+  "exportacao": "rest", "boletos": "huggs",
+};
+
+const PAGINATION_LABELS: Record<string, { label: string; color: string }> = {
+  huggs: { label: "Paginação Huggs", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  legado: { label: "Paginação Legada", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  rest: { label: "Paginação REST", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+};
+
+// Event emitter for opening ApiTester with pre-filled data
+export const apiTesterEventTarget = new EventTarget();
+export function openApiTester(data: { method: string; url: string; body?: string }) {
+  apiTesterEventTarget.dispatchEvent(new CustomEvent("open-tester", { detail: data }));
+}
+
 interface Endpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
