@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Circle } from "lucide-react";
-
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApiStatusBadgeProps {
   basePath: string;
@@ -16,19 +15,19 @@ export default function ApiStatusBadge({ basePath, className }: ApiStatusBadgePr
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const start = performance.now();
       try {
-        const res = await fetch(`${BASE_URL}${basePath}/status`, {
-          method: "GET",
-          signal: AbortSignal.timeout(5000),
+        const { data, error } = await supabase.functions.invoke("api-health-check", {
+          body: { paths: [basePath] },
         });
-        // Consume body to prevent resource leaks and suppress console errors
-        await res.text().catch(() => {});
-        if (!cancelled) {
-          setLatency(Math.round(performance.now() - start));
-          // 401/403/405 mean the API is online but requires auth or different method
-          setStatus(res.ok || res.status === 401 || res.status === 403 || res.status === 405 ? "online" : "offline");
+        if (cancelled) return;
+        if (error || !data?.results?.[0]) {
+          setStatus("offline");
+          setLatency(null);
+          return;
         }
+        const result = data.results[0];
+        setStatus(result.status === "online" ? "online" : "offline");
+        setLatency(result.latency || null);
       } catch {
         if (!cancelled) {
           setLatency(null);
