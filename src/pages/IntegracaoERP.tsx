@@ -49,6 +49,8 @@ async function hashKey(key: string): Promise<string> {
 }
 
 export default function IntegracaoERP() {
+  const { data: profiles } = useErpAccessProfiles();
+  const assignProfile = useAssignProfileToKey();
   const { user } = useAuth();
   const [keys, setKeys] = useState<ErpApiKey[]>([]);
   const [loading, setLoading] = useState(true);
