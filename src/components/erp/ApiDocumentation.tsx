@@ -966,6 +966,15 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
 
               <div className="border-t mt-4 pt-4 space-y-1">
                 <button
+                  onClick={() => scrollToModule("faq")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "faq" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <HelpCircle className="h-5 w-5" />
+                  <span>FAQ</span>
+                </button>
+                <button
                   onClick={() => scrollToModule("getting-started")}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
                     activeModule === "getting-started" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"

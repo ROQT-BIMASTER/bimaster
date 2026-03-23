@@ -565,7 +565,7 @@ export default function ApiTester() {
   };
 
   return (
-    <Card className="border-border">
+    <Card className="border-border" id="api-tester-section">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <Terminal className="h-5 w-5 text-primary" />
