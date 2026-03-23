@@ -655,7 +655,17 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
             {/* Curl copy button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => {
+                openApiTester({
+                  method: endpoint.method,
+                  url: `${BASE_URL}${basePath}${endpoint.path}`,
+                  body: endpoint.body,
+                });
+              }}>
+                <PlayCircle className="h-3 w-3" />
+                Testar
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleCopyCurl}>
                 {curlCopied ? <Check className="h-3 w-3 text-emerald-500" /> : <Terminal className="h-3 w-3" />}
                 {curlCopied ? "Copiado!" : "Copiar curl"}
