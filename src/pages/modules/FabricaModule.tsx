@@ -81,6 +81,7 @@ const FabricaModule = () => {
       { screen: "fabrica_operadores", path: "/dashboard/fabrica/operadores" },
       { screen: "fabrica_planejamento", path: "/dashboard/fabrica/planejamento" },
       { screen: "fabrica_fiscal", path: "/dashboard/fabrica/fiscal" },
+      { screen: "fabrica_fornecedores", path: "/dashboard/fabrica/fornecedores" },
       { screen: "fabrica_paradas", path: "/dashboard/fabrica/paradas" },
       { screen: "comercial_lancamentos", path: "/dashboard/comercial/lancamentos" },
     ];
