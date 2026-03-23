@@ -1098,9 +1098,15 @@ export default function ApiDocumentation() {
                         {isExpanded && (
                           <div className="px-4 pb-4 border-t bg-muted/10">
                             <div className="mt-3 space-y-1">
-                              <code className="text-[11px] font-mono text-muted-foreground block mb-3">
-                                Base: {BASE_URL}{api.basePath}
-                              </code>
+                              <div className="flex items-center gap-2 mb-3">
+                                <code className="text-[11px] font-mono text-muted-foreground">
+                                  Base: {BASE_URL}{api.basePath}
+                                </code>
+                                <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[9px]">
+                                  <Globe className="h-2.5 w-2.5 mr-1" />
+                                  Produção
+                                </Badge>
+                              </div>
                               {api.sections.map((section, si) => (
                                 <ApiSectionBlock
                                   key={si}
