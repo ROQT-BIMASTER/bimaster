@@ -1,69 +1,36 @@
 
 
-# Consistência de Dados N8N + Painel de Configuração de Fonte de Dados
+# Fix: Filtro "Dia Pagamento" conflitando com filtro de Ano/Mês
 
 ## Problema
 
-1. **Inconsistência de busca**: O calendário busca todos os registros com paginação automática, mas as tabelas (ContasPagarGestao e ContasPagarTabContent) usam `.limit(500)`, cortando registros N8N
-2. **Sem configuração de fonte**: Não há forma de a gestora controlar qual fonte de dados está ativa (N8N vs ERP API) para uma transição suave
+Quando o usuário seleciona uma data no filtro **"Dia Pagamento"**, a query adiciona `.eq('data_pagamento', '2026-03-19')` — mas o filtro de **ano/mês** continua sendo aplicado sobre `data_vencimento`. Isso significa que o sistema filtra por `data_pagamento = 19/03/2026` **E** `data_vencimento` dentro do mês/ano selecionado, retornando zero resultados quando a data de vencimento não cai no mesmo período.
+
+A guarda `!filterDiaVencimento` na linha 226 só desativa o filtro de ano/mês quando "Dia Vencimento" está preenchido — mas ignora o cenário de "Dia Pagamento".
 
 ## Solução
 
-### Parte 1 — Corrigir consistência das tabelas
+**Arquivo**: `src/pages/ContasAPagar.tsx` — função `buildBaseFilters`
 
-**Arquivos**: `ContasPagarGestao.tsx`, `ContasPagarTabContent.tsx`
+Alterar a condição na linha 226 de:
 
-- Substituir `.limit(500)` por paginação server-side real (como já existe em `ContasAPagar.tsx` com `range()`)
-- ContasPagarGestao: implementar paginação com `range(from, to)` e `count: 'exact'`, permitindo navegar todos os registros
-- ContasPagarTabContent: mesma abordagem — paginação server-side com `range()` em vez de buscar 500 e paginar em memória
-
-### Parte 2 — Tabela de configuração de fonte de dados
-
-**Migração SQL**: Criar tabela `ap_data_source_config`
-
-```text
-ap_data_source_config
-├── id (uuid, PK)
-├── source_type ('n8n' | 'erp_api' | 'both')  -- fonte ativa
-├── n8n_enabled (boolean, default true)        -- N8N ativo?
-├── erp_api_enabled (boolean, default false)   -- ERP API ativo?
-├── auto_sync_interval_minutes (int, default 60)
-├── transition_date (date, nullable)           -- data planejada para migração
-├── updated_by (uuid, FK profiles)
-├── updated_at (timestamptz)
-└── notes (text)
+```
+if (!filterDiaVencimento) {
 ```
 
-RLS: apenas usuários com role admin/financeiro podem ler/editar.
+Para:
 
-### Parte 3 — Painel de configuração na UI
+```
+if (!filterDiaVencimento && !filterDiaPagamento) {
+```
 
-**Novo componente**: `src/components/financeiro/DataSourceConfigPanel.tsx`
+Isso garante que quando qualquer filtro de data específica estiver ativo (vencimento **ou** pagamento), o filtro de range por ano/mês sobre `data_vencimento` seja desabilitado, evitando o conflito.
 
-- Card com toggle visual: "N8N (Webhook)" ↔ "ERP API (Direto)" ↔ "Ambos"
-- Indicador de status: última sync N8N, última sync ERP API
-- Campo de "Data prevista de migração" para planejamento
-- Notas/observações da gestora
-- Badge no sidebar indicando fonte ativa
-
-**Integração**: Adicionar como seção na página de Sync existente (`ContasPagarSyncPage.tsx`) ou como tab adicional no `ContasPagarSyncPanel.tsx`.
-
-### Parte 4 — Hook de configuração
-
-**Novo hook**: `src/hooks/useDataSourceConfig.ts`
-
-- Busca a config ativa da tabela `ap_data_source_config`
-- Expõe `{ n8nEnabled, erpApiEnabled, sourceType }` para que qualquer view possa verificar
-- Mutation para salvar alterações
+A mesma correção será aplicada na query de portadores únicos (linhas 404-417) que replica a mesma lógica de filtros.
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/ContasPagarGestao.tsx` | Paginação server-side (remover `.limit(500)`) |
-| `src/components/financeiro/ContasPagarTabContent.tsx` | Paginação server-side (remover `.limit(500)`) |
-| `src/components/financeiro/DataSourceConfigPanel.tsx` | **Novo** — painel de config de fonte de dados |
-| `src/hooks/useDataSourceConfig.ts` | **Novo** — hook para ler/salvar config |
-| `src/components/financeiro/ContasPagarSyncPanel.tsx` | Integrar painel de config |
-| Migração SQL | Criar tabela `ap_data_source_config` com RLS |
+| `src/pages/ContasAPagar.tsx` | Corrigir guarda do filtro ano/mês em `buildBaseFilters` e query de portadores |
 
