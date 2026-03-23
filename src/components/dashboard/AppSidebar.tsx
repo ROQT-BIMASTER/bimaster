@@ -1155,7 +1155,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               {isAdmin && hasPermission("auditoria") && (
                 <MenuItemLink to="/dashboard/auditoria" icon={Shield} title={t("nav.audit")} />
               )}
-              <MenuItemLink to="/dashboard/instalar-app" icon={Download} title={t("nav.install_app")} />
+              <MenuItemLink to="/dashboard/instalar-app" icon={needRefresh ? RefreshCw : Download} title={needRefresh ? "Atualizar App" : t("nav.install_app")} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

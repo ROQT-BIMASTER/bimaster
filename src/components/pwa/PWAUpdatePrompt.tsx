@@ -26,7 +26,12 @@ export function PWAUpdatePrompt() {
   };
 
   const handleApplyUpdate = () => {
-    updateServiceWorker();
+    if (needRefresh) {
+      updateServiceWorker();
+    } else {
+      // Fallback: force clean reload when SW doesn't detect update
+      forceUpdate();
+    }
   };
 
   const handleDismissRefresh = () => {
