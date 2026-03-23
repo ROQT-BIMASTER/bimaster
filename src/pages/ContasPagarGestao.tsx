@@ -135,6 +135,9 @@ export default function ContasPagarGestao() {
     descricao: "", valor_original: "", data_emissao: "", data_vencimento: "",
     data_competencia: "", numero_parcelas: "1", empresa_id: "", categoria_nome: "",
     portador: "", status: "pendente",
+    departamento_nome: "", plano_contas_codigo: "", plano_contas_nome: "",
+    chave_nfe: "", numero_documento_fiscal: "", codigo_projeto: "",
+    data_previsao: "", id_conta_corrente: "",
   });
 
   // Payment form
