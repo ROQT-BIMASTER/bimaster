@@ -557,7 +557,7 @@ async function handleAuditDocument(params: {
       type: "function",
       function: {
         name: "audit_document_result",
-        description: "Retorna os dados extraídos do documento fiscal para confronto.",
+        description: "Retorna os dados extraídos do documento fiscal com análise de divergências em relação ao lançamento esperado.",
         parameters: {
           type: "object",
           properties: {
@@ -565,7 +565,24 @@ async function handleAuditDocument(params: {
             extracted_name: { type: "string", description: "Nome/razão social do emitente no documento" },
             extracted_amount: { type: "number", description: "Valor total encontrado no documento" },
             extracted_document_number: { type: "string", description: "Número do documento fiscal" },
+            extracted_chave_acesso: { type: "string", description: "Chave de acesso da NF-e (44 dígitos numéricos), se visível no documento" },
             confidence: { type: "number", description: "Confiança na extração, de 0 a 1" },
+            ai_divergences: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  field: { type: "string", description: "Campo divergente: cnpj, supplier_name, amount, document_number" },
+                  expected: { type: "string", description: "Valor esperado (do lançamento)" },
+                  found: { type: "string", description: "Valor encontrado no documento" },
+                  severity: { type: "string", enum: ["low", "medium", "high"], description: "Gravidade da divergência" },
+                  justification: { type: "string", description: "Justificativa da IA para a divergência" },
+                },
+                required: ["field", "expected", "found", "severity"],
+                additionalProperties: false,
+              },
+              description: "Divergências identificadas pela IA entre o documento e o lançamento",
+            },
           },
           required: ["extracted_cnpj", "extracted_name", "extracted_amount", "confidence"],
           additionalProperties: false,
