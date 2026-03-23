@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, X, Link2, Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { callApi, formatBRL, fmtDate } from "@/lib/utils/api-helpers";
+import { debounce } from "@/lib/utils/debounce";
 
 const METODOS_PAGAMENTO = ["PIX", "TED", "Boleto", "Dinheiro", "Cartão", "Débito Automático"];
 
@@ -22,8 +23,15 @@ export default function ConciliacaoManualAP() {
   const qc = useQueryClient();
   const [vincularModal, setVincularModal] = useState<any>(null);
   const [buscaTitulo, setBuscaTitulo] = useState("");
+  const [buscaTituloDebounced, setBuscaTituloDebounced] = useState("");
   const [tituloSelecionado, setTituloSelecionado] = useState<any>(null);
   const [metodoPagamento, setMetodoPagamento] = useState("PIX");
+
+  // Debounced title search
+  const debouncedSetBuscaTitulo = useMemo(
+    () => debounce((v: string) => setBuscaTituloDebounced(v), 400),
+    []
+  );
 
   // Fetch medium-confidence matches
   const { data: matches, isLoading } = useQuery({
@@ -42,16 +50,16 @@ export default function ConciliacaoManualAP() {
     staleTime: 30_000,
   });
 
-  // Search titles for manual linking
+  // Search titles for manual linking — uses debounced value
   const { data: titulosBusca } = useQuery({
-    queryKey: ["busca-titulos-vincular", buscaTitulo],
+    queryKey: ["busca-titulos-vincular", buscaTituloDebounced],
     queryFn: () => callApi("contas-pagar-api", {
       path: "/listar",
       pagina: 1,
       registros_por_pagina: 10,
-      filtrar_cliente: buscaTitulo,
+      filtrar_cliente: buscaTituloDebounced,
     }),
-    enabled: !!buscaTitulo && buscaTitulo.length >= 3,
+    enabled: !!buscaTituloDebounced && buscaTituloDebounced.length >= 3,
     staleTime: 30_000,
   });
 
@@ -133,6 +141,7 @@ export default function ConciliacaoManualAP() {
       setVincularModal(null);
       setTituloSelecionado(null);
       setBuscaTitulo("");
+      setBuscaTituloDebounced("");
       qc.invalidateQueries({ queryKey: ["conciliacao-manual-ap"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -148,7 +157,7 @@ export default function ConciliacaoManualAP() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1B2A4A]">Conciliação Manual AP</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Conciliação Manual AP</h1>
             <p className="text-sm text-muted-foreground">Confirme, rejeite ou vincule manualmente transações bancárias</p>
           </div>
         </div>
@@ -168,9 +177,9 @@ export default function ConciliacaoManualAP() {
               return (
                 <div key={match.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Left — Bank Transaction */}
-                  <Card className="border-l-4 border-l-[#2563EB]">
+                  <Card className="border-l-4 border-l-primary">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-[#1B2A4A]">Transação Bancária</CardTitle>
+                      <CardTitle className="text-sm text-foreground">Transação Bancária</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1 text-sm">
                       <div className="flex justify-between">
@@ -197,9 +206,9 @@ export default function ConciliacaoManualAP() {
                   </Card>
 
                   {/* Right — AP Title */}
-                  <Card className="border-l-4 border-l-[#16A34A]">
+                  <Card className="border-l-4 border-l-success">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-[#1B2A4A]">Título AP Sugerido</CardTitle>
+                      <CardTitle className="text-sm text-foreground">Título AP Sugerido</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1 text-sm">
                       <div className="flex justify-between">
@@ -243,7 +252,7 @@ export default function ConciliacaoManualAP() {
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => { setVincularModal(match); setBuscaTitulo(""); setTituloSelecionado(null); setMetodoPagamento(inferredMetodo); }}
+                          onClick={() => { setVincularModal(match); setBuscaTitulo(""); setBuscaTituloDebounced(""); setTituloSelecionado(null); setMetodoPagamento(inferredMetodo); }}
                         >
                           <Link2 className="mr-1 h-3.5 w-3.5" /> Vincular outro
                         </Button>
@@ -260,7 +269,7 @@ export default function ConciliacaoManualAP() {
         <Dialog open={!!vincularModal} onOpenChange={(o) => !o && setVincularModal(null)}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-[#1B2A4A]">Vincular a Outro Título</DialogTitle>
+              <DialogTitle className="text-foreground">Vincular a Outro Título</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
@@ -290,7 +299,11 @@ export default function ConciliacaoManualAP() {
                   <Input
                     placeholder="Nome do fornecedor..."
                     value={buscaTitulo}
-                    onChange={(e) => { setBuscaTitulo(e.target.value); setTituloSelecionado(null); }}
+                    onChange={(e) => {
+                      setBuscaTitulo(e.target.value);
+                      setTituloSelecionado(null);
+                      debouncedSetBuscaTitulo(e.target.value);
+                    }}
                   />
                   <Button size="icon" variant="outline" disabled>
                     <Search className="h-4 w-4" />
@@ -302,7 +315,7 @@ export default function ConciliacaoManualAP() {
                   {titulosResult.map((t: any) => (
                     <div
                       key={t.id}
-                      className={`flex justify-between items-center p-2 cursor-pointer hover:bg-muted/50 text-sm ${tituloSelecionado?.id === t.id ? "bg-blue-50 border-l-2 border-l-[#2563EB]" : ""}`}
+                      className={`flex justify-between items-center p-2 cursor-pointer hover:bg-muted/50 text-sm ${tituloSelecionado?.id === t.id ? "bg-accent/20 border-l-2 border-l-primary" : ""}`}
                       onClick={() => setTituloSelecionado(t)}
                     >
                       <div>
@@ -315,8 +328,8 @@ export default function ConciliacaoManualAP() {
                 </div>
               )}
               {tituloSelecionado && (
-                <div className="rounded-md bg-green-50 p-2 text-sm flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-600" />
+                <div className="rounded-md bg-success/10 p-2 text-sm flex items-center gap-2">
+                  <Check className="h-4 w-4 text-success" />
                   Selecionado: <strong>{tituloSelecionado.fornecedor_nome}</strong> — {formatBRL(tituloSelecionado.valor_documento)}
                 </div>
               )}

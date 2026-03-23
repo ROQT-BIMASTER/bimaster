@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, ChevronsUpDown, Check } from "lucide-react";
+import { ArrowLeft, Loader2, Save, ChevronsUpDown, Check, Info } from "lucide-react";
 import { IACategorySuggestion } from "@/components/financeiro/ap/IACategorySuggestion";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
 import { callApi, callExportApi, dateToApi } from "@/lib/utils/api-helpers";
@@ -153,17 +153,15 @@ export default function CadastroTituloAP() {
     return () => clearTimeout(timer);
   }, [categoria]);
 
-  // Validation
+  // Validation — auto-generate codigoIntegracao if empty (not required)
   function validate(): boolean {
     const errs: Record<string, string> = {};
-    const code = codigoIntegracao.trim();
-    if (!code) errs.codigoIntegracao = "Código de integração é obrigatório";
     if (!fornecedorCodigo) errs.fornecedor = "Selecione um fornecedor";
     if (!valorDocumento || Number(valorDocumento) <= 0) errs.valor = "Valor deve ser maior que zero";
     if (!dataVencimento) errs.dataVencimento = "Data de vencimento é obrigatória";
     if (!categoria) errs.categoria = "Categoria é obrigatória";
     if (!contaCorrente) errs.contaCorrente = "Conta corrente é obrigatória";
-    if (nfeChave && nfeChave.length !== 44) errs.nfeChave = "Chave NF-e deve ter exatamente 44 dígitos";
+    if (nfeChave && !/^\d{44}$/.test(nfeChave)) errs.nfeChave = "Chave NF-e deve ter exatamente 44 dígitos numéricos";
     setErrors(errs);
     if (Object.keys(errs).length > 0) {
       toast.error("Preencha os campos obrigatórios corretamente");
@@ -177,8 +175,8 @@ export default function CadastroTituloAP() {
     mutationFn: async () => {
       if (!validate()) throw new Error("Validação falhou");
 
-      // Auto-generate integration code if empty (shouldn't happen due to validation, but safety)
-      const finalCode = codigoIntegracao.trim() || `BIM-${Date.now()}`;
+      // Auto-generate integration code if empty
+      const finalCode = codigoIntegracao.trim() || `BIM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
       const body: any = {
         codigo_lancamento_integracao: finalCode,
@@ -274,7 +272,7 @@ export default function CadastroTituloAP() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-semibold text-[#1B2A4A]">
+          <h1 className="text-2xl font-semibold text-foreground">
             {isEdit ? "Editar Título AP" : "Novo Título AP"}
           </h1>
         </div>
@@ -282,19 +280,17 @@ export default function CadastroTituloAP() {
         {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Identificação</CardTitle>
+            <CardTitle className="text-lg text-foreground">Identificação</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Código ERP / Integração *</Label>
+              <Label>Código ERP / Integração</Label>
               <Input
                 value={codigoIntegracao}
                 onChange={(e) => { setCodigoIntegracao(e.target.value); setErrors((p) => ({ ...p, codigoIntegracao: "" })); }}
-                placeholder="INT-001 (auto-gerado se vazio)"
-                className={errors.codigoIntegracao ? "border-destructive" : ""}
+                placeholder="Gerado automaticamente se vazio"
               />
-              <p className="text-xs text-muted-foreground">Deixe vazio para gerar automaticamente</p>
-              <FieldError field="codigoIntegracao" />
+              <p className="text-xs text-muted-foreground">Deixe vazio para gerar automaticamente (BIM-timestamp)</p>
             </div>
             <div className="space-y-2">
               <Label>N° do Documento</Label>
@@ -305,7 +301,7 @@ export default function CadastroTituloAP() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Fornecedor e Financeiro</CardTitle>
+            <CardTitle className="text-lg text-foreground">Fornecedor e Financeiro</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -382,7 +378,7 @@ export default function CadastroTituloAP() {
               <FieldError field="dataVencimento" />
             </div>
             <div className="space-y-2">
-              <Label>Data de Previsão *</Label>
+              <Label>Data de Previsão</Label>
               <Input type="date" value={dataPrevisao} onChange={(e) => setDataPrevisao(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -404,7 +400,7 @@ export default function CadastroTituloAP() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Classificação</CardTitle>
+            <CardTitle className="text-lg text-foreground">Classificação</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -464,7 +460,7 @@ export default function CadastroTituloAP() {
         {/* Parcelamento */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Parcelamento (opcional)</CardTitle>
+            <CardTitle className="text-lg text-foreground">Parcelamento (opcional)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -488,17 +484,22 @@ export default function CadastroTituloAP() {
             </div>
             {parcPreview.length > 0 && (
               <div className="rounded-md border p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Preview de Parcelas:</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs font-medium text-muted-foreground">Preview de Parcelas</p>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Info className="h-3 w-3" /> Estimativa — vencimentos reais podem variar conforme a condição de pagamento
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-1 text-xs">
                   <span className="font-medium">Parcela</span>
                   <span className="font-medium">Valor</span>
                   <span className="font-medium">Vencimento</span>
                   {parcPreview.map((p) => (
-                    <> 
-                      <span key={`n-${p.num}`}>{p.num}/{parcPreview.length}</span>
-                      <span key={`v-${p.num}`}>R$ {p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                      <span key={`d-${p.num}`}>{p.vencimento}</span>
-                    </>
+                    <Fragment key={p.num}>
+                      <span>{p.num}/{parcPreview.length}</span>
+                      <span>R$ {p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span>{p.vencimento}</span>
+                    </Fragment>
                   ))}
                 </div>
               </div>
@@ -508,7 +509,7 @@ export default function CadastroTituloAP() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Complemento</CardTitle>
+            <CardTitle className="text-lg text-foreground">Complemento</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -516,7 +517,7 @@ export default function CadastroTituloAP() {
               <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} />
             </div>
             <div className="space-y-2">
-              <Label>Chave de Acesso NF-e (44 dígitos, opcional)</Label>
+              <Label>Chave de Acesso NF-e (44 dígitos numéricos, opcional)</Label>
               <Input
                 value={nfeChave}
                 onChange={(e) => { setNfeChave(e.target.value.replace(/\D/g, "").slice(0, 44)); setErrors((p) => ({ ...p, nfeChave: "" })); }}

@@ -4,7 +4,9 @@ import { toast } from "sonner";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 /**
- * Centralized API caller for edge functions with 401/429/500 handling
+ * Centralized API caller for edge functions with 401/429/500 handling.
+ * NOTE: Always sends POST with JSON body via supabase.functions.invoke().
+ * Edge functions must accept POST and route internally via `body.path`.
  */
 export async function callApi(fn: string, body: any) {
   const { data, error } = await supabase.functions.invoke(fn, { body });
