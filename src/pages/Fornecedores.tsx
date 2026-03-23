@@ -13,12 +13,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Users, Plus, Search, Pencil, ToggleLeft, ToggleRight, Loader2,
   ChevronDown, ChevronRight, Building2, MapPin, Phone, Mail,
-  QrCode, CreditCard, FileText, Globe, Briefcase,
+  QrCode, CreditCard, FileText, Globe, Briefcase, Info,
 } from "lucide-react";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
+import { Link } from "react-router-dom";
 
 interface Fornecedor {
   id: string;
