@@ -265,18 +265,21 @@ export default function Fornecedores() {
   }, [dialogOpen, form, editingId, dialogTab]);
 
   // Save state on visibility change (tab switch) and beforeunload
-  useState(() => {
+  const persistRef = useRef(persistFormState);
+  persistRef.current = persistFormState;
+
+  useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") persistFormState();
+      if (document.visibilityState === "hidden") persistRef.current();
     };
-    const handleBeforeUnload = () => persistFormState();
+    const handleBeforeUnload = () => persistRef.current();
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  });
+  }, []);
 
   // Filter empresas to only those in user context
   const visibleEmpresas = empresasDoUsuario;
