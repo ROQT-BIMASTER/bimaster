@@ -456,6 +456,29 @@ export default function Fornecedores() {
 
     const cnpjDigits = form.cnpj.replace(/\D/g, "");
 
+    // "Todas" — insert one record per empresa
+    if (form.empresa_id === "todas" && !editingId) {
+      const base = buildPayload();
+      const payloads = visibleEmpresas.map(e => ({ ...base, empresa_id: e.id }));
+      try {
+        for (const p of payloads) {
+          const { data: existing } = await supabase.from("fornecedores").select("id").eq("cnpj", cnpjDigits).eq("empresa_id", p.empresa_id).maybeSingle();
+          if (existing) {
+            await supabase.from("fornecedores").update(p).eq("id", existing.id);
+          } else {
+            await supabase.from("fornecedores").insert(p);
+          }
+        }
+        toast.success(`Fornecedor cadastrado em ${payloads.length} empresas!`);
+        queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+        setDialogOpen(false);
+        setForm(emptyForm);
+      } catch (err: any) {
+        toast.error("Erro ao salvar: " + err.message);
+      }
+      return;
+    }
+
     if (!editingId) {
       const { data: existing } = await supabase.from("fornecedores").select("id").eq("cnpj", cnpjDigits).maybeSingle();
       if (existing) {
