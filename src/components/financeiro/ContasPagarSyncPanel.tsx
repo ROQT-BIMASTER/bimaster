@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useContasPagarSync, SyncMode } from '@/hooks/useContasPagarSync';
 import { N8NTabContent } from './N8NTabContent';
+import { DataSourceConfigPanel } from './DataSourceConfigPanel';
 import { 
   RefreshCw, 
   Database, 
