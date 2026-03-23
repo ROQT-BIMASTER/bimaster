@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,27 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, RefreshCw, CheckCircle2, Upload, ChevronDown, Settings, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-async function callExportApi(path: string, method = "GET", body?: any) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/contas-pagar-export-api${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Erro ${res.status}`);
-  }
-  return res.json();
-}
+import { callExportApi, formatBRL, fmtDateTime } from "@/lib/utils/api-helpers";
 
 const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   pending: { label: "Pendente", cls: "bg-yellow-100 text-yellow-800" },
@@ -54,16 +34,6 @@ const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   error: { label: "Erro", cls: "bg-red-100 text-red-800" },
   cancelled: { label: "Cancelado", cls: "bg-gray-100 text-gray-700" },
 };
-
-function formatBRL(v: number | null | undefined) {
-  if (v == null) return "—";
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(d: string | null | undefined) {
-  if (!d) return "—";
-  try { return format(new Date(d), "dd/MM/yyyy HH:mm"); } catch { return d; }
-}
 
 export default function FilaExportacaoERP() {
   const navigate = useNavigate();
@@ -90,10 +60,18 @@ export default function FilaExportacaoERP() {
     staleTime: 30_000,
   });
 
-  // Paid
-  const { data: paid, isLoading: paidLoading } = useQuery({
-    queryKey: ["erp-export-paid"],
-    queryFn: () => callExportApi("/paid"),
+  // Paid + Cancelled merged
+  const { data: paidAndCancelled, isLoading: paidLoading } = useQuery({
+    queryKey: ["erp-export-paid-cancelled"],
+    queryFn: async () => {
+      const [paidRes, cancelledRes] = await Promise.allSettled([
+        callExportApi("/paid"),
+        callExportApi("/cancelled"),
+      ]);
+      const paidData = paidRes.status === "fulfilled" ? (Array.isArray(paidRes.value) ? paidRes.value : paidRes.value?.data || []) : [];
+      const cancelledData = cancelledRes.status === "fulfilled" ? (Array.isArray(cancelledRes.value) ? cancelledRes.value : cancelledRes.value?.data || []) : [];
+      return [...paidData, ...cancelledData];
+    },
     staleTime: 30_000,
   });
 
@@ -262,12 +240,12 @@ export default function FilaExportacaoERP() {
                         {item.export_type || exportType}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs">{formatDate(item.created_at)}</TableCell>
+                    <TableCell className="text-xs">{fmtDateTime(item.created_at)}</TableCell>
                     <TableCell>
                       <Badge className={`${st.cls} text-xs`}>{st.label}</Badge>
                     </TableCell>
                     {showErpRef && <TableCell className="text-xs">{item.erp_reference || "—"}</TableCell>}
-                    {showErpRef && <TableCell className="text-xs">{formatDate(item.confirmed_at)}</TableCell>}
+                    {showErpRef && <TableCell className="text-xs">{fmtDateTime(item.confirmed_at)}</TableCell>}
                     <TableCell>
                       {item.status === "error" && (
                         <Button
@@ -292,146 +270,148 @@ export default function FilaExportacaoERP() {
   }
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1B2A4A]">Fila de Exportação ERP</h1>
-          <p className="text-sm text-muted-foreground">Gerencie provisões, baixas e histórico de exportação</p>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="pt-6">
-              {statusLoading ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <div className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</div>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">{kpi.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIds(new Set()); }}>
-        <TabsList>
-          <TabsTrigger value="provisao">Pendentes Provisão</TabsTrigger>
-          <TabsTrigger value="baixa">Pendentes Baixa / Cancel.</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="provisao" className="mt-4">
-          {renderTable(pending, pendingLoading, "registration")}
-        </TabsContent>
-
-        <TabsContent value="baixa" className="mt-4">
-          {renderTable(paid, paidLoading, "payment")}
-        </TabsContent>
-
-        <TabsContent value="historico" className="mt-4">
-          <div className="flex justify-end mb-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => reconcMutation.mutate()}
-              disabled={reconcMutation.isPending}
-            >
-              {reconcMutation.isPending && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-              Reconciliar BiMaster x ERP
-            </Button>
-          </div>
-          {renderTable(history, historyLoading, "registration", true)}
-        </TabsContent>
-      </Tabs>
-
-      {/* Webhook Config */}
-      <Collapsible open={webhookOpen} onOpenChange={setWebhookOpen}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="gap-2 text-sm text-muted-foreground">
-            <Settings className="h-4 w-4" />
-            Configuração Webhook Push
-            <ChevronDown className={`h-4 w-4 transition-transform ${webhookOpen ? "rotate-180" : ""}`} />
+    <DashboardLayout>
+      <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <Card className="mt-2">
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>URL destino ERP</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://erp.example.com/webhook"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>HMAC Secret</Label>
-                  <Input
-                    type="text"
-                    placeholder="Secret para assinatura HMAC"
-                    value={webhookSecret}
-                    onChange={(e) => setWebhookSecret(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Eventos</Label>
-                <div className="flex gap-4">
-                  {["accepted", "paid", "cancelled"].map((ev) => (
-                    <label key={ev} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={webhookEvents.includes(ev)}
-                        onCheckedChange={(checked) => {
-                          setWebhookEvents((prev) =>
-                            checked ? [...prev, ev] : prev.filter((e) => e !== ev)
-                          );
-                        }}
-                      />
-                      {ev}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <Button
-                onClick={() => webhookMutation.mutate()}
-                disabled={webhookMutation.isPending || !webhookUrl}
-              >
-                {webhookMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Configuração
-              </Button>
-            </CardContent>
-          </Card>
-        </CollapsibleContent>
-      </Collapsible>
+          <div>
+            <h1 className="text-2xl font-semibold text-[#1B2A4A]">Fila de Exportação ERP</h1>
+            <p className="text-sm text-muted-foreground">Gerencie provisões, baixas e histórico de exportação</p>
+          </div>
+        </div>
 
-      {/* Reconciliation Modal */}
-      <Dialog open={reconcModal} onOpenChange={setReconcModal}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-[#1B2A4A]">Reconciliação BiMaster x ERP</DialogTitle>
-          </DialogHeader>
-          {reconcMutation.data?.resumo && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Total Títulos: <strong>{reconcMutation.data.resumo.total_titulos}</strong></div>
-                <div>Exportados: <strong className="text-[#16A34A]">{reconcMutation.data.resumo.exportados}</strong></div>
-                <div>Com Erro: <strong className="text-[#DC2626]">{reconcMutation.data.resumo.com_erro}</strong></div>
-                <div>Taxa Sinc.: <strong className="text-[#2563EB]">{reconcMutation.data.resumo.taxa_sincronizacao}%</strong></div>
-              </div>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {kpis.map((kpi) => (
+            <Card key={kpi.label}>
+              <CardContent className="pt-6">
+                {statusLoading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <div className={`text-3xl font-bold ${kpi.color}`}>{kpi.value}</div>
+                )}
+                <p className="text-sm text-muted-foreground mt-1">{kpi.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIds(new Set()); }}>
+          <TabsList>
+            <TabsTrigger value="provisao">Pendentes Provisão</TabsTrigger>
+            <TabsTrigger value="baixa">Pendentes Baixa / Cancel.</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="provisao" className="mt-4">
+            {renderTable(pending, pendingLoading, "registration")}
+          </TabsContent>
+
+          <TabsContent value="baixa" className="mt-4">
+            {renderTable(paidAndCancelled, paidLoading, "payment")}
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-4">
+            <div className="flex justify-end mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => reconcMutation.mutate()}
+                disabled={reconcMutation.isPending}
+              >
+                {reconcMutation.isPending && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                Reconciliar BiMaster x ERP
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            {renderTable(history, historyLoading, "registration", true)}
+          </TabsContent>
+        </Tabs>
+
+        {/* Webhook Config */}
+        <Collapsible open={webhookOpen} onOpenChange={setWebhookOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="gap-2 text-sm text-muted-foreground">
+              <Settings className="h-4 w-4" />
+              Configuração Webhook Push
+              <ChevronDown className={`h-4 w-4 transition-transform ${webhookOpen ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="mt-2">
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>URL destino ERP</Label>
+                    <Input
+                      type="url"
+                      placeholder="https://erp.example.com/webhook"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>HMAC Secret</Label>
+                    <Input
+                      type="text"
+                      placeholder="Secret para assinatura HMAC"
+                      value={webhookSecret}
+                      onChange={(e) => setWebhookSecret(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Eventos</Label>
+                  <div className="flex gap-4">
+                    {["accepted", "paid", "cancelled"].map((ev) => (
+                      <label key={ev} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={webhookEvents.includes(ev)}
+                          onCheckedChange={(checked) => {
+                            setWebhookEvents((prev) =>
+                              checked ? [...prev, ev] : prev.filter((e) => e !== ev)
+                            );
+                          }}
+                        />
+                        {ev}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  onClick={() => webhookMutation.mutate()}
+                  disabled={webhookMutation.isPending || !webhookUrl}
+                >
+                  {webhookMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Configuração
+                </Button>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Reconciliation Modal */}
+        <Dialog open={reconcModal} onOpenChange={setReconcModal}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Reconciliação BiMaster x ERP</DialogTitle>
+            </DialogHeader>
+            {reconcMutation.data?.resumo && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>Total Títulos: <strong>{reconcMutation.data.resumo.total_titulos}</strong></div>
+                  <div>Exportados: <strong className="text-[#16A34A]">{reconcMutation.data.resumo.exportados}</strong></div>
+                  <div>Com Erro: <strong className="text-[#DC2626]">{reconcMutation.data.resumo.com_erro}</strong></div>
+                  <div>Taxa Sinc.: <strong className="text-[#2563EB]">{reconcMutation.data.resumo.taxa_sincronizacao}%</strong></div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DashboardLayout>
   );
 }
