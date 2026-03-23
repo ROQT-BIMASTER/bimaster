@@ -1,112 +1,127 @@
 
 
-# Análise de Brechas e Avaliação — Módulo AP
+# Análise Final de Fragilidades — Nota para 10/10
 
-## Nota Geral: 7.5 / 10
+## Nota Atual: 8.5/10
 
-O módulo está **estruturalmente completo** — todas as 6 telas, 3 componentes auxiliares, rotas e menu foram implementados. A arquitetura de chamadas API, o padrão visual e o fluxo de integração ERP estão coerentes. Porém, existem brechas funcionais e de robustez que impedem a nota máxima.
-
----
-
-## Brechas Identificadas
-
-### Criticidade Alta (Impactam operação real)
-
-**1. PainelCentralAP — Falta ação "Anexar Comprovante"**
-O plano exigia "Anexar Comprovante → drawer com GET /anexos + upload via POST /anexos". O menu de ações (linha 380-409) tem 7 dos 8 itens, mas o upload de comprovantes não foi implementado.
-
-**2. PainelCentralAP — Histórico de Pagamentos sem "Cancelar Pagamento"**
-O drawer de pagamentos (linhas 574-602) exibe a tabela, mas falta o botão "Cancelar Pagamento" por linha (POST /cancelar-pagamento com `codigo_baixa`), conforme especificado no plano.
-
-**3. CadastroTituloAP — Validação fraca no formulário**
-- `codigo_lancamento_integracao` não valida unicidade nem formato
-- `nfe_chave_acesso` aceita qualquer texto (deveria validar 44 dígitos numéricos)
-- `valor_documento` aceita zero ou negativo
-- Campos obrigatórios (*) não estão sendo checados antes do submit — apenas `saveMutation` falha silenciosamente
-
-**4. ConciliacaoManualAP — Método de pagamento fixo "PIX"**
-Tanto o `confirmMutation` (linha 62) quanto o `vincularMutation` (linha 104) hardcodam `metodo_pagamento: "PIX"`. Deveria inferir do tipo de transação Pluggy ou permitir escolha.
-
-**5. SyncCadastrosAP — Aba Parcelas sem botão "Nova Condição"**
-O plano exigia modal para POST `parcelas-api/incluir`. Verificando o restante do arquivo, a aba Parcelas provavelmente exibe apenas a tabela sem ação de criação.
-
-**6. FilaExportacaoERP — Reconciliação armazena dados em mutation mas não mostra no modal**
-`reconcMutation` (linha 86) chama `/reconciliation` e abre modal, mas o resultado da chamada não é passado ao modal — os dados ficam perdidos. O modal provavelmente está vazio.
-
-### Criticidade Média (UX e completude)
-
-**7. PainelCentralAP — Datas de filtro não convertidas para DD/MM/AAAA**
-Os filtros `filtroDataDe` e `filtroDataAte` são enviados no formato nativo `YYYY-MM-DD` do browser (linhas 95-96), mas a API `/listar` espera `DD/MM/AAAA`. A função `dateToApi` existe em `api-helpers.ts` mas não está sendo usada aqui.
-
-**8. PainelCentralAP — Coluna "Origem Baixa" ausente**
-O plano exigia coluna `baixa_origem` (pluggy / erp_webhook / manual). A tabela atual (linhas 346-355) não inclui essa coluna.
-
-**9. PainelCentralAP — Coluna "Departamento" ausente**
-O plano exigia a coluna `departamento_nome`, mas não está na tabela.
-
-**10. RelatorioAPxERP — Seção export-summary não utilizada**
-A query `summary` (linha 53) busca `/export-summary`, mas os dados não são renderizados em nenhum lugar do JSX — os KPIs usam apenas `/reconciliation`.
-
-**11. SyncCadastrosAP — Botões "Incluir Categoria" e "Incluir Grupo" ausentes**
-O plano exigia modais para POST `categorias-api/incluir` e `categorias-api/incluir-grupo`. Provavelmente não foram implementados.
-
-**12. Nenhuma tela tem loading state nos botões de filtro**
-Ao mudar filtros, a tabela mostra skeleton mas os selects permanecem interativos, podendo causar múltiplas queries simultâneas.
-
-### Criticidade Baixa (Polimento)
-
-**13. Todas as telas — Sem debounce na busca por fornecedor**
-O campo de texto "Fornecedor" no PainelCentralAP dispara query a cada keystroke (`onChange`). Deveria ter debounce de 300-500ms.
-
-**14. PainelCentralAP — KPI "Vencidos" exibe valor monetário, não contador**
-O plano dizia "contar registros com vencimento < hoje", mas o KPI exibe `formatBRL(resumo?.contaPagar?.vVencido)` — um valor, não uma contagem.
-
-**15. ErpStatusSection — Não usado no PainelCentralAP**
-O componente `ErpStatusSection.tsx` existe mas é usado apenas em `ContaPagarDetalhe.tsx`. No Painel, o status ERP é resolvido via query secundária (`erpSyncMap`) — abordagem válida mas duplica lógica.
+O módulo está funcional, completo em features e visualmente consistente. Para atingir 10/10, restam fragilidades em **segurança**, **robustez de dados**, **UX edge cases** e **integridade operacional**.
 
 ---
 
-## O que está bem feito
+## Fragilidades Críticas (Segurança / Integridade de Dados)
 
-- DashboardLayout em todas as telas
-- Status ERP reativo via `erp_sync_log` com query secundária no PainelCentralAP
-- Cancelamento e Estorno enfileiram automaticamente para ERP
-- Combobox de fornecedor com busca funcional no CadastroTituloAP
-- Parcelamento com preview calculado no frontend
-- Sugestão IA de departamento com badge aceitar/ignorar
-- PostPaymentErpPrompt como dialog reutilizável
-- Filtros de Categoria e Departamento adicionados
-- Campo Portador no modal de pagamento
-- Fluxograma SVG completo no Relatório
-- callExportApi com tratamento 401/429/500
-- dateToApi helper implementado (mesmo que não usado em todos os lugares)
-- FilaExportacaoERP merge `/paid` + `/cancelled`
-- ConciliacaoManualAP com "Vincular a outro título" funcional
+### 1. RLS: `erp_sync_log` INSERT permitido apenas para `service_role`
+A policy de INSERT na `erp_sync_log` é `TO service_role` (migração `20260319134029`). Todo INSERT feito pelo frontend via `supabase.from("erp_sync_log").insert(...)` usa o role `authenticated` e será **silenciosamente bloqueado pelo RLS**. Isso significa que:
+- O botão "Enviar ao ERP" no `PainelCentralAP` (linha 222) falha silenciosamente
+- O botão "Enviar ao ERP" no `ContaPagarDetalhe` falha silenciosamente
+- Os enfileiramentos automáticos de cancel/estorno (linhas 188-189, 207) falham silenciosamente
+- A função `enqueueErpSync` em `api-helpers.ts` falha silenciosamente
+
+**Correção**: Adicionar policy `erp_sync_log_insert_authenticated` para `authenticated` com `WITH CHECK (true)`, ou usar a RPC `fn_enfileirar_erp` que é `SECURITY DEFINER`.
+
+### 2. Storage bucket "comprovantes" pode não existir
+O upload de anexos (PainelCentralAP linha 272) referencia `supabase.storage.from("comprovantes")`, mas não há migração criando esse bucket. O upload falhará em produção.
+
+**Correção**: Criar o bucket via migração ou usar um bucket existente como `trade-photos`.
+
+### 3. React key warning no parcPreview
+`CadastroTituloAP` linhas 497-501 usa `<>` (Fragment) sem key dentro de um `.map()`. React emitirá warning e pode renderizar incorretamente.
+
+**Correção**: Usar `<Fragment key={p.num}>` em vez de `<>`.
+
+### 4. `callApi` envia body em todas as chamadas — GET endpoints falham
+`callApi` usa `supabase.functions.invoke(fn, { body })`, que sempre faz POST. Endpoints GET como `/listar`, `/consultar`, `/parcelas`, `/pagamentos`, `/anexos` não receberão os parâmetros corretamente se a edge function espera query params em GET.
+
+**Correção**: Verificar se a edge function `contas-pagar-api` aceita POST com body para rotas GET (via campo `path`). Se sim, documentar. Se não, adicionar suporte a query params no `callApi`.
+
+### 5. Filtro "Vencidos" KPI baseado na página atual, não no total
+O `vencidosCount` (linha 293-296) filtra apenas os itens da página atual (`list`), não o total de registros. Se há 100 vencidos mas a página exibe 20, o KPI mostrará no máximo 20.
+
+**Correção**: Obter contagem de vencidos via query separada ao backend ou via campo do `resumo-financeiro-api`.
 
 ---
 
-## Plano de Correção (14 itens)
+## Fragilidades Médias (Robustez / UX)
 
-1. **PainelCentralAP** — Adicionar ação "Anexar Comprovante" com drawer + upload
-2. **PainelCentralAP** — Adicionar botão "Cancelar Pagamento" por linha no drawer de histórico
-3. **PainelCentralAP** — Aplicar `dateToApi()` nos filtros de data antes de enviar
-4. **PainelCentralAP** — Adicionar colunas "Departamento" e "Origem Baixa"
-5. **PainelCentralAP** — Debounce no campo de busca de fornecedor
-6. **CadastroTituloAP** — Validação: NFe 44 dígitos, valor > 0, campos obrigatórios
-7. **ConciliacaoManualAP** — Permitir escolha de método de pagamento (não hardcodar PIX)
-8. **SyncCadastrosAP** — Adicionar modal "Nova Condição" na aba Parcelas
-9. **SyncCadastrosAP** — Adicionar botões "Incluir Categoria" e "Incluir Grupo"
-10. **FilaExportacaoERP** — Passar resultado de reconcMutation para o modal
-11. **RelatorioAPxERP** — Renderizar dados de `/export-summary` no JSX
-12. **PainelCentralAP** — KPI "Vencidos" como contagem de registros, não valor
-13. **CadastroTituloAP** — Gerar `codigo_lancamento_integracao` automático se vazio (UUID ou sequencial)
-14. **Todas as telas** — Debounce em campos de busca texto
+### 6. Nenhuma confirmação antes de ações destrutivas no menu dropdown
+Os itens "Enviar ao ERP" e "Estornar Pagamento" no dropdown executam imediatamente sem confirmação. Ações irreversíveis devem ter dialog de confirmação.
+
+### 7. Payment modal sem validação de valor vs. saldo devedor
+O modal de pagamento aceita qualquer valor, inclusive maior que o `valor_documento`. Deveria validar `payValor <= item.valor_documento - item.valor_pago`.
+
+### 8. `conciliacoes_bancarias` — query sem filtro de empresa
+A query em `ConciliacaoManualAP` (linha 32-42) não filtra por `empresa_id`. Em ambientes multi-empresa, um usuário pode ver conciliações de outras empresas (dependendo do RLS aplicado via `bank_connections`).
+
+### 9. Upload de anexo sem validação de tamanho de arquivo
+O input aceita `.pdf,.jpg,.jpeg,.png,.xml` mas não verifica tamanho máximo. Uploads de PDFs de 100MB+ podem travar a UI.
+
+**Correção**: Adicionar `maxSize` check (ex: 10MB) antes de chamar `supabase.storage.upload`.
+
+### 10. `cancelPaymentMutation` não enfileira cancelamento para ERP
+Ao cancelar um pagamento individual no drawer de histórico (linha 683), não há chamada a `enqueueErpSync` para notificar o ERP da reversão.
+
+### 11. Debounce no fornecedor do PainelCentralAP, mas não no ConciliacaoManualAP
+O campo de busca de título no modal "Vincular outro" (ConciliacaoManualAP linha 293) não tem debounce — dispara query a cada keystroke.
+
+### 12. `parcPreview` não ajusta para condições de pagamento reais
+O preview de parcelas no CadastroTituloAP calcula vencimentos com `d.setMonth(d.getMonth() + i)` — sempre mensal. Condições como "30/60/90" ou "à vista + 30" não são respeitadas. O preview é meramente ilustrativo.
+
+### 13. Sem empty state diferenciado para erro de API vs. sem dados
+Quando a API retorna erro 500, a tabela mostra "Nenhum título encontrado" — mesmo texto de quando não há dados. Deveria diferenciar erro de carregamento vs. lista vazia.
+
+### 14. Webhook config no FilaExportacaoERP armazena secret em state, não persiste
+A seção de webhook (linhas 342-401) tem inputs para URL, secret e eventos, mas ao recarregar a página os valores são perdidos. Deveria carregar config existente e persistir no backend.
+
+---
+
+## Fragilidades Menores (Polimento)
+
+### 15. Data de pagamento no modal sem default "hoje"
+O campo `payData` começa vazio. Deveria iniciar com `new Date().toISOString().split("T")[0]`.
+
+### 16. `dateToApi` não é chamado no `payData` do modal de pagamento
+A data do pagamento (linha 559) é enviada como `YYYY-MM-DD`, mas a API pode esperar `DD/MM/AAAA`.
+
+### 17. Tabela de parcelas/pagamentos/anexos sem estado vazio explícito
+Os Sheets de parcelas/pagamentos/anexos mostram tabela vazia se não há dados — sem mensagem "Nenhuma parcela encontrada".
+
+### 18. Sem loading state no botão "Enviar ao ERP" individual
+O dropdown item "Enviar ao ERP" (linha 487) usa `erpExportMutation.mutate` mas não mostra loading indicator — o usuário pode clicar múltiplas vezes.
+
+### 19. `CadastroTituloAP` — código de integração obrigatório mas diz "auto-gerado se vazio"
+A validação exige `codigoIntegracao` preenchido (linha 160), mas o placeholder diz "auto-gerado se vazio". Contradição — deveria ou gerar automaticamente OU exigir.
+
+---
+
+## Plano de Correção (19 itens, ordem de prioridade)
+
+| # | Arquivo | Correção |
+|---|---------|----------|
+| 1 | **Migração SQL** | Criar policy INSERT em `erp_sync_log` para `authenticated`, ou migrar todos os inserts para usar RPC `fn_enfileirar_erp` |
+| 2 | **Migração SQL** | Criar storage bucket `comprovantes` (privado, com RLS) |
+| 3 | **CadastroTituloAP** | Fix React Fragment key warning no parcPreview |
+| 4 | **PainelCentralAP** | KPI "Vencidos" — buscar do `resumo-financeiro-api` em vez de contar na página |
+| 5 | **PainelCentralAP** | Validação de valor no modal de pagamento (vs. saldo devedor) |
+| 6 | **PainelCentralAP** | Default `payData` para hoje |
+| 7 | **PainelCentralAP** | Aplicar `dateToApi` no `payData` antes de enviar |
+| 8 | **PainelCentralAP** | Enfileirar ERP em `cancelPaymentMutation` |
+| 9 | **PainelCentralAP** | Validação tamanho de arquivo no upload (10MB max) |
+| 10 | **PainelCentralAP** | Empty states nos Sheets (parcelas/pagamentos/anexos) |
+| 11 | **PainelCentralAP** | Confirmação dialog antes de "Enviar ao ERP" individual |
+| 12 | **PainelCentralAP** | Loading indicator no botão "Enviar ao ERP" (desabilitar durante mutação) |
+| 13 | **PainelCentralAP** | Diferenciar erro de API vs. lista vazia na tabela |
+| 14 | **CadastroTituloAP** | Remover obrigatoriedade do código de integração — gerar automaticamente se vazio |
+| 15 | **ConciliacaoManualAP** | Debounce na busca de título no modal "Vincular outro" |
+| 16 | **FilaExportacaoERP** | Persistir/carregar config de webhook do backend |
+| 17 | **api-helpers.ts** | Documentar que `callApi` sempre usa POST — ou adicionar suporte GET |
+| 18 | **ConciliacaoManualAP** | Adicionar filtro `empresa_id` se multi-empresa |
+| 19 | **CadastroTituloAP** | Nota visual que preview de parcelas é estimativa |
 
 ### Arquivos afetados
-- `src/pages/financeiro/PainelCentralAP.tsx` — itens 1-5, 12
-- `src/pages/financeiro/CadastroTituloAP.tsx` — itens 6, 13
-- `src/pages/financeiro/ConciliacaoManualAP.tsx` — item 7
-- `src/pages/financeiro/SyncCadastrosAP.tsx` — itens 8, 9
-- `src/pages/financeiro/FilaExportacaoERP.tsx` — item 10
-- `src/pages/financeiro/RelatorioAPxERP.tsx` — item 11
+- Nova migração SQL (itens 1, 2)
+- `src/pages/financeiro/PainelCentralAP.tsx` (itens 4-13)
+- `src/pages/financeiro/CadastroTituloAP.tsx` (itens 3, 14, 19)
+- `src/pages/financeiro/ConciliacaoManualAP.tsx` (itens 15, 18)
+- `src/pages/financeiro/FilaExportacaoERP.tsx` (item 16)
+- `src/lib/utils/api-helpers.ts` (item 17)
 
