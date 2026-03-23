@@ -30,8 +30,6 @@ const fieldLabels: Record<string, string> = {
 
 export function DocumentAuditCard({ item, onChaveAcessoChange }: DocumentAuditCardProps) {
   const { audit, isAuditing, auditResult } = useDocumentAudit();
-  const [chaveAcesso, setChaveAcesso] = useState((item as any).chave_acesso_nfe || "");
-  const [showSuggestion, setShowSuggestion] = useState(true);
 
   const attachmentUrl = item.attachment_url || (item.attachments && item.attachments.length > 0 ? item.attachments[0].url : null);
 
