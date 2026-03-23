@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/command";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
+import { Plus, Eye, Pencil, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, CheckCircle2, Clock, ShieldAlert, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -113,8 +113,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const [cancelJust, setCancelJust] = useState("");
 
   // ----- Queries -----
-  const { data: contasResult, isLoading } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, dateFrom?.toISOString(), dateTo?.toISOString(), page],
+  const { data: contasResult, isLoading, refetch: refetchContas } = useQuery({
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page],
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
@@ -128,6 +128,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (filterDepartamento !== "all") q = q.eq("departamento_id", filterDepartamento);
       if (filterPortadores.length) q = q.in("portador_id", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
+      if (erpFilter === "pendente") q = q.eq("importado_api", false);
       if (search) {
         q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%`);
       }
@@ -142,6 +144,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (error) throw error;
       return { data: data || [], totalCount: count ?? 0 };
     },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Auto-refresh every 30s for N8N sync
   });
 
   const contas = contasResult?.data;
@@ -187,19 +191,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     },
   });
 
-  // ERP filter on client side
-  const filtered = useMemo(() => {
-    let items = contas || [];
-    if (erpFilter === "sincronizado") items = items.filter((c: any) => c.importado_api === true);
-    if (erpFilter === "pendente") items = items.filter((c: any) => !c.importado_api);
-    return items;
-  }, [contas, erpFilter]);
+  // ERP filter is now server-side
+  const filtered = contas || [];
 
-  // ----- Pagination (server-side, ERP filter remains client-side) -----
-  const totalPages = erpFilter === "all"
-    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
-    : Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = erpFilter === "all" ? filtered : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // ----- Pagination (fully server-side) -----
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const paginated = filtered;
 
   // ----- Mutations -----
   const saveMutation = useMutation({
@@ -406,9 +403,14 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">Limpar</Button>
           )}
         </div>
-        <Button size="sm" onClick={openCreate} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Novo Título
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetchContas()} className="gap-1.5" disabled={isLoading}>
+            <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} /> Atualizar
+          </Button>
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Novo Título
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
