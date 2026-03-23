@@ -70,6 +70,7 @@ const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
 const MenuConfig = lazyWithRetry(() => import("./pages/dashboard/configuracoes/MenuConfig"));
 const PermissoesModulo = lazyWithRetry(() => import("./pages/dashboard/configuracoes/PermissoesModulo"));
 const ConfiguracoesAcesso = lazyWithRetry(() => import("./pages/dashboard/configuracoes/ConfiguracoesAcesso"));
+const ConfigFornecedorVisibilidade = lazyWithRetry(() => import("./pages/ConfigFornecedorVisibilidade"));
 const PainelExecutivo = lazyWithRetry(() => import("./pages/PainelExecutivo"));
 const PerformanceVendas = lazyWithRetry(() => import("./pages/PerformanceVendas"));
 const AnaliseClientes = lazyWithRetry(() => import("./pages/AnaliseClientes"));
