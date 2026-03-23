@@ -1335,6 +1335,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                         <span>Rel. AP x ERP</span>
                       </NavLink>
                     </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  {hasModulePermission("integracao_erp") && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink 
