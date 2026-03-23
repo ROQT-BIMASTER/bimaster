@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,44 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, Paperclip, MoreHorizontal, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
-import { ErpStatusSection } from "@/components/financeiro/ap/ErpStatusSection";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-async function callApi(fn: string, body: any) {
-  const { data, error } = await supabase.functions.invoke(fn, { body });
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function callExportApi(path: string, method = "GET", body?: any) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/contas-pagar-export-api${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  if (!res.ok) throw new Error(`Erro ${res.status}`);
-  return res.json();
-}
-
-function formatBRL(v: number | null | undefined) {
-  if (v == null) return "R$ 0,00";
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function fmtDate(d: string | null | undefined) {
-  if (!d) return "—";
-  try { return format(new Date(d), "dd/MM/yyyy"); } catch { return d; }
-}
+import { callApi, callExportApi, formatBRL, fmtDate, enqueueErpSync } from "@/lib/utils/api-helpers";
 
 const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   pendente: { label: "Pendente", cls: "bg-blue-100 text-blue-800" },
@@ -61,10 +29,10 @@ const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
 
 const ERP_BADGES: Record<string, { label: string; cls: string }> = {
   sem_exportacao: { label: "Sem Export.", cls: "bg-gray-100 text-gray-600" },
-  na_fila: { label: "Na Fila", cls: "bg-yellow-100 text-yellow-800" },
-  exportado: { label: "Exportado", cls: "bg-blue-100 text-blue-800" },
-  confirmado_erp: { label: "Confirmado", cls: "bg-green-100 text-green-800" },
-  erro_erp: { label: "Erro ERP", cls: "bg-red-100 text-red-800" },
+  pendente: { label: "Na Fila", cls: "bg-yellow-100 text-yellow-800" },
+  enviado: { label: "Exportado", cls: "bg-blue-100 text-blue-800" },
+  sucesso: { label: "Confirmado", cls: "bg-green-100 text-green-800" },
+  erro: { label: "Erro ERP", cls: "bg-red-100 text-red-800" },
 };
 
 export default function PainelCentralAP() {
@@ -78,6 +46,8 @@ export default function PainelCentralAP() {
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
   const [filtroDataDe, setFiltroDataDe] = useState("");
   const [filtroDataAte, setFiltroDataAte] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroDepartamento, setFiltroDepartamento] = useState("");
 
   // Modals
   const [paymentModal, setPaymentModal] = useState<any>(null);
@@ -115,7 +85,7 @@ export default function PainelCentralAP() {
 
   // Main table
   const { data: titulos, isLoading: titulosLoading } = useQuery({
-    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedor, filtroDataDe, filtroDataAte],
+    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedor, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento],
     queryFn: () => callApi("contas-pagar-api", {
       path: "/listar",
       pagina,
@@ -124,8 +94,48 @@ export default function PainelCentralAP() {
       ...(filtroDataDe ? { filtrar_por_data_de: filtroDataDe } : {}),
       ...(filtroDataAte ? { filtrar_por_data_ate: filtroDataAte } : {}),
       ...(filtroFornecedor ? { filtrar_cliente: filtroFornecedor } : {}),
+      ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
+      ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
     }),
     staleTime: 30_000,
+  });
+
+  // ERP sync status per title (secondary query)
+  const list = titulos?.conta_pagar_cadastro || [];
+  const titleIds = list.map((t: any) => t.id).filter(Boolean);
+
+  const { data: erpSyncMap } = useQuery({
+    queryKey: ["erp-sync-status-map", titleIds.join(",")],
+    queryFn: async () => {
+      if (titleIds.length === 0) return {};
+      const { data } = await supabase
+        .from("erp_sync_log" as any)
+        .select("conta_pagar_id, sync_status, created_at")
+        .in("conta_pagar_id", titleIds)
+        .order("created_at", { ascending: false });
+      const map: Record<string, string> = {};
+      (data || []).forEach((row: any) => {
+        if (!map[row.conta_pagar_id]) {
+          map[row.conta_pagar_id] = row.sync_status;
+        }
+      });
+      return map;
+    },
+    enabled: titleIds.length > 0,
+    staleTime: 15_000,
+  });
+
+  // Lookups for filters
+  const { data: categorias } = useQuery({
+    queryKey: ["ap-categorias-filter"],
+    queryFn: () => callApi("categorias-api", { path: "/listar" }),
+    staleTime: 120_000,
+  });
+
+  const { data: departamentos } = useQuery({
+    queryKey: ["ap-departamentos-filter"],
+    queryFn: () => callApi("departamentos-api", { path: "/listar" }),
+    staleTime: 120_000,
   });
 
   // Contas correntes for payment modal
@@ -134,6 +144,10 @@ export default function PainelCentralAP() {
     queryFn: () => callApi("contas-correntes-api", { path: "/resumo" }),
     staleTime: 120_000,
   });
+
+  const contasCCList = contasCC?.data || contasCC?.contas || [];
+  const categoriasList = categorias?.data || categorias?.categorias || [];
+  const departamentosList = departamentos?.data || departamentos?.departamentos || [];
 
   // Payment mutation
   const payMutation = useMutation({
@@ -148,35 +162,51 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Cancel mutation
+  // Cancel mutation — enqueues ERP cancellation
   const cancelMutation = useMutation({
-    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/cancelar", ...body }),
+    mutationFn: async (body: any) => {
+      const result = await callApi("contas-pagar-api", { path: "/cancelar", ...body });
+      // Enqueue cancellation to ERP
+      for (const id of (body.ids || [])) {
+        await enqueueErpSync({ contaPagarId: id, operacao: "cancelamento", action: "export_cancelamento" });
+      }
+      return result;
+    },
     onSuccess: () => {
-      toast.success("Título cancelado");
+      toast.success("Título cancelado e enfileirado para ERP");
       setCancelModal(null);
       setCancelMotivo("");
       qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+      qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Estorno mutation
+  // Estorno mutation — enqueues ERP estorno
   const estornoMutation = useMutation({
-    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/estornar", ...body }),
+    mutationFn: async (body: any) => {
+      const result = await callApi("contas-pagar-api", { path: "/estornar", ...body });
+      await enqueueErpSync({ contaPagarId: body.id, operacao: "estorno", action: "export_estorno" });
+      return result;
+    },
     onSuccess: () => {
-      toast.success("Estorno registrado");
+      toast.success("Estorno registrado e enfileirado para ERP");
       setEstornoModal(null);
       qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+      qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   // ERP export
   const erpExportMutation = useMutation({
-    mutationFn: (id: string) => supabase.functions.invoke("erp-export-payment", {
-      body: { action: "export", payment_queue_id: id, channel: "rest_api", export_type: "payment" },
-    }),
-    onSuccess: () => toast.success("Enviado à fila de exportação ERP"),
+    mutationFn: async (id: string) => {
+      await enqueueErpSync({ contaPagarId: id, operacao: "provisao" });
+    },
+    onSuccess: () => {
+      toast.success("Enviado à fila de exportação ERP");
+      qc.invalidateQueries({ queryKey: ["erp-sync-status-map"] });
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -194,7 +224,6 @@ export default function PainelCentralAP() {
     enabled: !!pagamentosSheet,
   });
 
-  const list = titulos?.conta_pagar_cadastro || [];
   const totalPaginas = titulos?.total_de_paginas || 1;
 
   const kpis = [
@@ -205,344 +234,388 @@ export default function PainelCentralAP() {
   ];
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1B2A4A]">Painel Central — Contas a Pagar</h1>
-          <p className="text-sm text-muted-foreground">Visão consolidada com status ERP integrado</p>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <Button size="sm" onClick={() => navigate("/dashboard/financeiro/contas-a-pagar/novo")}>
-            + Novo Título
+    <DashboardLayout>
+      <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
+          <div>
+            <h1 className="text-2xl font-semibold text-[#1B2A4A]">Painel Central — Contas a Pagar</h1>
+            <p className="text-sm text-muted-foreground">Visão consolidada com status ERP integrado</p>
+          </div>
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" onClick={() => navigate("/dashboard/financeiro/contas-a-pagar/novo")}>
+              + Novo Título
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="pt-6">
-              {resumoLoading ? <Skeleton className="h-8 w-24" /> : (
-                <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="space-y-1">
-          <Label className="text-xs">Status</Label>
-          <Select value={filtroStatus || "all"} onValueChange={(v) => setFiltroStatus(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="vencido">Vencido</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-              <SelectItem value="pago_parcial">Parcial</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Vencimento de</Label>
-          <Input type="date" className="h-9 w-[150px]" value={filtroDataDe} onChange={(e) => setFiltroDataDe(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Vencimento até</Label>
-          <Input type="date" className="h-9 w-[150px]" value={filtroDataAte} onChange={(e) => setFiltroDataAte(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Fornecedor</Label>
-          <Input className="h-9 w-[180px]" placeholder="Buscar..." value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Por página</Label>
-          <Select value={String(porPagina)} onValueChange={(v) => { setPorPagina(Number(v)); setPagina(1); }}>
-            <SelectTrigger className="w-[80px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Table */}
-      {titulosLoading ? (
-        <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-      ) : (
-        <>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[#F9FAFB]">
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>N° Título</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Valor Original</TableHead>
-                  <TableHead>Valor Pago</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Status ERP</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      Nenhum título encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  list.map((item: any, idx: number) => {
-                    const st = STATUS_BADGES[item.status] || STATUS_BADGES.pendente;
-                    const erp = ERP_BADGES[item.erp_status || "sem_exportacao"];
-                    return (
-                      <TableRow key={item.id || idx} className={idx % 2 === 0 ? "" : "bg-[#F9FAFB]"}>
-                        <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
-                        <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
-                        <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
-                        <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
-                        <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
-                        <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
-                        <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
-                        <TableCell><Badge className={`${erp.cls} text-xs`}>{erp.label}</Badge></TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/dashboard/financeiro/contas-a-pagar/${item.id}`)}>
-                                <Eye className="mr-2 h-3.5 w-3.5" /> Ver Detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setPaymentModal(item)}>
-                                <CreditCard className="mr-2 h-3.5 w-3.5" /> Registrar Pagamento
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setCancelModal(item)}>
-                                <XCircle className="mr-2 h-3.5 w-3.5" /> Cancelar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setEstornoModal(item)}>
-                                <RotateCcw className="mr-2 h-3.5 w-3.5" /> Estornar Pagamento
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setParcelasSheet(item)}>
-                                <FileText className="mr-2 h-3.5 w-3.5" /> Ver Parcelas
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setPagamentosSheet(item)}>
-                                <History className="mr-2 h-3.5 w-3.5" /> Histórico Pagamentos
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => erpExportMutation.mutate(item.id)}>
-                                <Upload className="mr-2 h-3.5 w-3.5" /> Enviar ao ERP
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {kpis.map((kpi) => (
+            <Card key={kpi.label}>
+              <CardContent className="pt-6">
+                {resumoLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
                 )}
-              </TableBody>
-            </Table>
-          </div>
+                <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Página {pagina} de {totalPaginas} ({titulos?.total_de_registros || 0} registros)</span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
-              <Button size="sm" variant="outline" disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
-            </div>
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="space-y-1">
+            <Label className="text-xs">Status</Label>
+            <Select value={filtroStatus || "all"} onValueChange={(v) => { setFiltroStatus(v === "all" ? "" : v); setPagina(1); }}>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="vencido">Vencido</SelectItem>
+                <SelectItem value="pago">Pago</SelectItem>
+                <SelectItem value="pago_parcial">Parcial</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </>
-      )}
-
-      {/* Payment Modal */}
-      <Dialog open={!!paymentModal} onOpenChange={(o) => !o && setPaymentModal(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-[#1B2A4A]">Registrar Pagamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Valor Pago (R$)</Label>
-              <Input type="number" step="0.01" value={payValor} onChange={(e) => setPayValor(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Data do Pagamento</Label>
-              <Input type="date" value={payData} onChange={(e) => setPayData(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Método</Label>
-              <Select value={payMetodo} onValueChange={setPayMetodo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["PIX", "TED", "Boleto", "Dinheiro", "Cartão"].map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Categoria</Label>
+            <Select value={filtroCategoria || "all"} onValueChange={(v) => { setFiltroCategoria(v === "all" ? "" : v); setPagina(1); }}>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {categoriasList.map((c: any) => (
+                  <SelectItem key={c.codigo || c.id} value={c.codigo || c.id}>
+                    {c.codigo} — {c.descricao || c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentModal(null)}>Cancelar</Button>
-            <Button
-              disabled={payMutation.isPending || !payValor || !payData}
-              onClick={() => payMutation.mutate({
-                id: paymentModal.id,
-                valor_pago: Number(payValor),
-                data_pagamento: payData,
-                metodo_pagamento: payMetodo,
-                portador_id: payPortador || undefined,
-              })}
-            >
-              {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar Pagamento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cancel Modal */}
-      <Dialog open={!!cancelModal} onOpenChange={(o) => !o && setCancelModal(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-[#1B2A4A]">Cancelar Título</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Motivo (mínimo 10 caracteres)</Label>
-            <Input value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)} placeholder="Informe o motivo do cancelamento..." />
+          <div className="space-y-1">
+            <Label className="text-xs">Departamento</Label>
+            <Select value={filtroDepartamento || "all"} onValueChange={(v) => { setFiltroDepartamento(v === "all" ? "" : v); setPagina(1); }}>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {departamentosList.map((d: any) => (
+                  <SelectItem key={d.codigo || d.id} value={String(d.codigo || d.id)}>
+                    {d.descricao || d.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelModal(null)}>Voltar</Button>
-            <Button
-              variant="destructive"
-              disabled={cancelMutation.isPending || cancelMotivo.length < 10}
-              onClick={() => cancelMutation.mutate({ ids: [cancelModal.id], motivo: cancelMotivo })}
-            >
-              {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar Cancelamento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Estorno Modal */}
-      <Dialog open={!!estornoModal} onOpenChange={(o) => !o && setEstornoModal(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-[#1B2A4A]">Estornar Pagamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Valor do Estorno (R$)</Label>
-              <Input type="number" step="0.01" value={estornoValor} onChange={(e) => setEstornoValor(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Motivo (obrigatório)</Label>
-              <Input value={estornoMotivo} onChange={(e) => setEstornoMotivo(e.target.value)} placeholder="Motivo do estorno..." />
-            </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Vencimento de</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroDataDe} onChange={(e) => { setFiltroDataDe(e.target.value); setPagina(1); }} />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEstornoModal(null)}>Voltar</Button>
-            <Button
-              variant="destructive"
-              disabled={estornoMutation.isPending || !estornoMotivo || !estornoValor}
-              onClick={() => estornoMutation.mutate({ id: estornoModal.id, motivo: estornoMotivo, valor_estorno: Number(estornoValor) })}
-            >
-              {estornoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirmar Estorno
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-1">
+            <Label className="text-xs">Vencimento até</Label>
+            <Input type="date" className="h-9 w-[150px]" value={filtroDataAte} onChange={(e) => { setFiltroDataAte(e.target.value); setPagina(1); }} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Fornecedor</Label>
+            <Input className="h-9 w-[180px]" placeholder="Buscar..." value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Por página</Label>
+            <Select value={String(porPagina)} onValueChange={(v) => { setPorPagina(Number(v)); setPagina(1); }}>
+              <SelectTrigger className="w-[80px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-      {/* Parcelas Sheet */}
-      <Sheet open={!!parcelasSheet} onOpenChange={(o) => !o && setParcelasSheet(null)}>
-        <SheetContent className="w-[500px]">
-          <SheetHeader>
-            <SheetTitle className="text-[#1B2A4A]">Parcelas</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4">
-            {parcelasLoading ? (
-              <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-            ) : (
+        {/* Table */}
+        {titulosLoading ? (
+          <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : (
+          <>
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow><TableHead>N°</TableHead><TableHead>Vencimento</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead></TableRow>
+                  <TableRow className="bg-[#F9FAFB]">
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>N° Título</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Valor Original</TableHead>
+                    <TableHead>Valor Pago</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Status ERP</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(parcelas?.data || []).map((p: any, i: number) => (
-                    <TableRow key={p.id || i}>
-                      <TableCell>{p.numero_parcela || i + 1}</TableCell>
-                      <TableCell>{fmtDate(p.data_vencimento)}</TableCell>
-                      <TableCell>{formatBRL(p.valor)}</TableCell>
-                      <TableCell>{p.status || "—"}</TableCell>
+                  {list.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        Nenhum título encontrado.
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    list.map((item: any, idx: number) => {
+                      const st = STATUS_BADGES[item.status] || STATUS_BADGES.pendente;
+                      const erpSt = erpSyncMap?.[item.id] || "sem_exportacao";
+                      const erp = ERP_BADGES[erpSt] || ERP_BADGES.sem_exportacao;
+                      return (
+                        <TableRow key={item.id || idx} className={idx % 2 === 0 ? "" : "bg-[#F9FAFB]"}>
+                          <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
+                          <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
+                          <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
+                          <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
+                          <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
+                          <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
+                          <TableCell><Badge className={`${erp.cls} text-xs`}>{erp.label}</Badge></TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => navigate(`/dashboard/financeiro/contas-a-pagar/${item.id}`)}>
+                                  <Eye className="mr-2 h-3.5 w-3.5" /> Ver Detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setPaymentModal(item); setPayValor(""); setPayData(""); setPayMetodo("PIX"); setPayPortador(""); }}>
+                                  <CreditCard className="mr-2 h-3.5 w-3.5" /> Registrar Pagamento
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setCancelModal(item); setCancelMotivo(""); }}>
+                                  <XCircle className="mr-2 h-3.5 w-3.5" /> Cancelar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setEstornoModal(item); setEstornoMotivo(""); setEstornoValor(""); }}>
+                                  <RotateCcw className="mr-2 h-3.5 w-3.5" /> Estornar Pagamento
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setParcelasSheet(item)}>
+                                  <FileText className="mr-2 h-3.5 w-3.5" /> Ver Parcelas
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setPagamentosSheet(item)}>
+                                  <History className="mr-2 h-3.5 w-3.5" /> Histórico Pagamentos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => erpExportMutation.mutate(item.id)}>
+                                  <Upload className="mr-2 h-3.5 w-3.5" /> Enviar ao ERP
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            </div>
 
-      {/* Pagamentos Sheet */}
-      <Sheet open={!!pagamentosSheet} onOpenChange={(o) => !o && setPagamentosSheet(null)}>
-        <SheetContent className="w-[500px]">
-          <SheetHeader>
-            <SheetTitle className="text-[#1B2A4A]">Histórico de Pagamentos</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4">
-            {pagamentosLoading ? (
-              <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(pagamentos?.data || []).map((p: any, i: number) => (
-                    <TableRow key={p.id || i}>
-                      <TableCell>{fmtDate(p.data_pagamento)}</TableCell>
-                      <TableCell>{formatBRL(p.valor)}</TableCell>
-                      <TableCell>{p.metodo_pagamento || "—"}</TableCell>
-                      <TableCell>{p.status || "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            {/* Pagination */}
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Página {pagina} de {totalPaginas} ({titulos?.total_de_registros || 0} registros)</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
+                <Button size="sm" variant="outline" disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
+              </div>
+            </div>
+          </>
+        )}
 
-      {/* Post-payment ERP prompt */}
-      <PostPaymentErpPrompt
-        open={!!erpPrompt}
-        onOpenChange={(o) => !o && setErpPrompt(null)}
-        tituloId={erpPrompt || ""}
-        onConfirm={async () => {
-          await callExportApi("/export-batch", "POST", {
-            ids: [erpPrompt],
-            channel: "rest_api",
-            export_type: "payment",
-          });
-        }}
-        onSkip={() => setErpPrompt(null)}
-      />
-    </div>
+        {/* Payment Modal */}
+        <Dialog open={!!paymentModal} onOpenChange={(o) => !o && setPaymentModal(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Registrar Pagamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Valor Pago (R$)</Label>
+                <Input type="number" step="0.01" value={payValor} onChange={(e) => setPayValor(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Pagamento</Label>
+                <Input type="date" value={payData} onChange={(e) => setPayData(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Método</Label>
+                <Select value={payMetodo} onValueChange={setPayMetodo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["PIX", "TED", "Boleto", "Dinheiro", "Cartão"].map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Portador (Conta Corrente)</Label>
+                <Select value={payPortador} onValueChange={setPayPortador}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar conta" /></SelectTrigger>
+                  <SelectContent>
+                    {contasCCList.map((c: any) => (
+                      <SelectItem key={c.nCodCC || c.id} value={String(c.nCodCC || c.id)}>
+                        {c.descricao || c.cDescricao || `Conta ${c.nCodCC}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPaymentModal(null)}>Cancelar</Button>
+              <Button
+                disabled={payMutation.isPending || !payValor || !payData}
+                onClick={() => payMutation.mutate({
+                  id: paymentModal.id,
+                  valor_pago: Number(payValor),
+                  data_pagamento: payData,
+                  metodo_pagamento: payMetodo,
+                  portador_id: payPortador || undefined,
+                })}
+              >
+                {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Pagamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Modal */}
+        <Dialog open={!!cancelModal} onOpenChange={(o) => !o && setCancelModal(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Cancelar Título</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label>Motivo (mínimo 10 caracteres)</Label>
+              <Input value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)} placeholder="Informe o motivo do cancelamento..." />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelModal(null)}>Voltar</Button>
+              <Button
+                variant="destructive"
+                disabled={cancelMutation.isPending || cancelMotivo.length < 10}
+                onClick={() => cancelMutation.mutate({ ids: [cancelModal.id], motivo: cancelMotivo })}
+              >
+                {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Cancelamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Estorno Modal */}
+        <Dialog open={!!estornoModal} onOpenChange={(o) => !o && setEstornoModal(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Estornar Pagamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Valor do Estorno (R$)</Label>
+                <Input type="number" step="0.01" value={estornoValor} onChange={(e) => setEstornoValor(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Motivo (obrigatório)</Label>
+                <Input value={estornoMotivo} onChange={(e) => setEstornoMotivo(e.target.value)} placeholder="Motivo do estorno..." />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEstornoModal(null)}>Voltar</Button>
+              <Button
+                variant="destructive"
+                disabled={estornoMutation.isPending || !estornoMotivo || !estornoValor}
+                onClick={() => estornoMutation.mutate({ id: estornoModal.id, motivo: estornoMotivo, valor_estorno: Number(estornoValor) })}
+              >
+                {estornoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Estorno
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Parcelas Sheet */}
+        <Sheet open={!!parcelasSheet} onOpenChange={(o) => !o && setParcelasSheet(null)}>
+          <SheetContent className="w-[500px]">
+            <SheetHeader>
+              <SheetTitle className="text-[#1B2A4A]">Parcelas</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              {parcelasLoading ? (
+                <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>N°</TableHead><TableHead>Vencimento</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(parcelas?.data || []).map((p: any, i: number) => (
+                      <TableRow key={p.id || i}>
+                        <TableCell>{p.numero_parcela || i + 1}</TableCell>
+                        <TableCell>{fmtDate(p.data_vencimento)}</TableCell>
+                        <TableCell>{formatBRL(p.valor)}</TableCell>
+                        <TableCell>{p.status || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Pagamentos Sheet */}
+        <Sheet open={!!pagamentosSheet} onOpenChange={(o) => !o && setPagamentosSheet(null)}>
+          <SheetContent className="w-[500px]">
+            <SheetHeader>
+              <SheetTitle className="text-[#1B2A4A]">Histórico de Pagamentos</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              {pagamentosLoading ? (
+                <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(pagamentos?.data || []).map((p: any, i: number) => (
+                      <TableRow key={p.id || i}>
+                        <TableCell>{fmtDate(p.data_pagamento)}</TableCell>
+                        <TableCell>{formatBRL(p.valor)}</TableCell>
+                        <TableCell>{p.metodo_pagamento || "—"}</TableCell>
+                        <TableCell>{p.status || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Post-payment ERP prompt */}
+        <PostPaymentErpPrompt
+          open={!!erpPrompt}
+          onOpenChange={(o) => !o && setErpPrompt(null)}
+          tituloId={erpPrompt || ""}
+          onConfirm={async () => {
+            await callExportApi("/export-batch", "POST", {
+              ids: [erpPrompt],
+              channel: "rest_api",
+              export_type: "payment",
+            });
+          }}
+          onSkip={() => setErpPrompt(null)}
+        />
+      </div>
+    </DashboardLayout>
   );
 }
