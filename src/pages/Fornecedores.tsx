@@ -231,16 +231,52 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
 export default function Fornecedores() {
   const queryClient = useQueryClient();
   const { empresasDoUsuario, empresaIds, empresaSelecionada, loading: empresaLoading } = useEmpresaFilter();
+
+  // Restore persisted state from sessionStorage
+  const STORAGE_KEY = "fornecedores_form_state";
+  const getPersistedState = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return JSON.parse(raw);
+      }
+    } catch { /* ignore */ }
+    return null;
+  };
+  const persisted = useState(() => getPersistedState())[0];
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<FornecedorForm>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(persisted?.dialogOpen ?? false);
+  const [form, setForm] = useState<FornecedorForm>(persisted?.form ?? emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(persisted?.editingId ?? null);
   const [upsertConfirm, setUpsertConfirm] = useState<{ existingId: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-  const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">("basico");
+  const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">(persisted?.dialogTab ?? "basico");
   const [syncingErp, setSyncingErp] = useState(false);
+
+  // Persist form state before navigating away
+  const persistFormState = useCallback(() => {
+    if (dialogOpen) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ dialogOpen, form, editingId, dialogTab }));
+    }
+  }, [dialogOpen, form, editingId, dialogTab]);
+
+  // Save state on visibility change (tab switch) and beforeunload
+  useState(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") persistFormState();
+    };
+    const handleBeforeUnload = () => persistFormState();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  });
 
   // Filter empresas to only those in user context
   const visibleEmpresas = empresasDoUsuario;
