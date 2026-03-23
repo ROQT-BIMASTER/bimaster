@@ -191,19 +191,12 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     },
   });
 
-  // ERP filter on client side
-  const filtered = useMemo(() => {
-    let items = contas || [];
-    if (erpFilter === "sincronizado") items = items.filter((c: any) => c.importado_api === true);
-    if (erpFilter === "pendente") items = items.filter((c: any) => !c.importado_api);
-    return items;
-  }, [contas, erpFilter]);
+  // ERP filter is now server-side
+  const filtered = contas || [];
 
-  // ----- Pagination (server-side, ERP filter remains client-side) -----
-  const totalPages = erpFilter === "all"
-    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
-    : Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = erpFilter === "all" ? filtered : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // ----- Pagination (fully server-side) -----
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const paginated = filtered;
 
   // ----- Mutations -----
   const saveMutation = useMutation({
