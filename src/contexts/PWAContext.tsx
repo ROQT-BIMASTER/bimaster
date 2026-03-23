@@ -18,6 +18,7 @@ interface PWAContextType extends PWAState {
   promptInstall: () => Promise<boolean>;
   dismissUpdateNotice: () => void;
   forceUpdate: () => Promise<void>;
+  checkForUpdate: () => Promise<void>;
 }
 
 const PWAContext = createContext<PWAContextType | null>(null);
