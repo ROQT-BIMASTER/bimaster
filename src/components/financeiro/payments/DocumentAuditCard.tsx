@@ -4,8 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ShieldCheck, ShieldAlert, Sparkles, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { ChaveAcessoInput } from "@/components/financeiro/ChaveAcessoInput";
-import { ShieldCheck, ShieldAlert, Sparkles, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { ChaveAcessoInput } from "@/components/financeiro/ChaveAcessoInput";
 import { useDocumentAudit, type DocumentAuditResult } from "@/hooks/useDocumentAudit";
 import type { PaymentQueueItem } from "@/hooks/useFinancialPaymentQueue";
 
