@@ -92,19 +92,37 @@ Deno.serve(async (req) => {
     }
   }
 
-  const apiKey = req.headers.get("x-api-key");
-  const expectedKey = Deno.env.get("EXPORT_API_KEY");
-
   let authenticated = false;
-  if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
-    authenticated = true;
+
+  // 1. Try JWT auth (for frontend/portal users)
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseKey;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: authError } = await userClient.auth.getUser(token);
+    if (!authError && userData?.user) {
+      authenticated = true;
+    }
   }
 
-  // Fallback: check erp_api_keys table
-  if (!authenticated && apiKey) {
-    const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
-    const empresa = await validateErpApiKey(apiKey);
-    if (empresa) authenticated = true;
+  // 2. Try x-api-key auth (for ERP/server-to-server)
+  if (!authenticated) {
+    const apiKey = req.headers.get("x-api-key");
+    const expectedKey = Deno.env.get("EXPORT_API_KEY");
+
+    if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
+      authenticated = true;
+    }
+
+    // Fallback: check erp_api_keys table
+    if (!authenticated && apiKey) {
+      const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
+      const empresa = await validateErpApiKey(apiKey);
+      if (empresa) authenticated = true;
+    }
   }
 
   if (!authenticated) {
