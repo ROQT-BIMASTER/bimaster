@@ -1,0 +1,548 @@
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { toast } from "sonner";
+import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, Paperclip, MoreHorizontal, Loader2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
+import { ErpStatusSection } from "@/components/financeiro/ap/ErpStatusSection";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function callApi(fn: string, body: any) {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function callExportApi(path: string, method = "GET", body?: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/contas-pagar-export-api${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!res.ok) throw new Error(`Erro ${res.status}`);
+  return res.json();
+}
+
+function formatBRL(v: number | null | undefined) {
+  if (v == null) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function fmtDate(d: string | null | undefined) {
+  if (!d) return "—";
+  try { return format(new Date(d), "dd/MM/yyyy"); } catch { return d; }
+}
+
+const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
+  pendente: { label: "Pendente", cls: "bg-blue-100 text-blue-800" },
+  vencido: { label: "Vencido", cls: "bg-red-100 text-red-800" },
+  pago: { label: "Pago", cls: "bg-green-100 text-green-800" },
+  pago_parcial: { label: "Parcial", cls: "bg-orange-100 text-orange-800" },
+  cancelado: { label: "Cancelado", cls: "bg-gray-100 text-gray-700" },
+};
+
+const ERP_BADGES: Record<string, { label: string; cls: string }> = {
+  sem_exportacao: { label: "Sem Export.", cls: "bg-gray-100 text-gray-600" },
+  na_fila: { label: "Na Fila", cls: "bg-yellow-100 text-yellow-800" },
+  exportado: { label: "Exportado", cls: "bg-blue-100 text-blue-800" },
+  confirmado_erp: { label: "Confirmado", cls: "bg-green-100 text-green-800" },
+  erro_erp: { label: "Erro ERP", cls: "bg-red-100 text-red-800" },
+};
+
+export default function PainelCentralAP() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  // Filters
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(20);
+  const [filtroStatus, setFiltroStatus] = useState("");
+  const [filtroFornecedor, setFiltroFornecedor] = useState("");
+  const [filtroDataDe, setFiltroDataDe] = useState("");
+  const [filtroDataAte, setFiltroDataAte] = useState("");
+
+  // Modals
+  const [paymentModal, setPaymentModal] = useState<any>(null);
+  const [cancelModal, setCancelModal] = useState<any>(null);
+  const [estornoModal, setEstornoModal] = useState<any>(null);
+  const [parcelasSheet, setParcelasSheet] = useState<any>(null);
+  const [pagamentosSheet, setPagamentosSheet] = useState<any>(null);
+  const [erpPrompt, setErpPrompt] = useState<string | null>(null);
+
+  // Payment form
+  const [payValor, setPayValor] = useState("");
+  const [payData, setPayData] = useState("");
+  const [payMetodo, setPayMetodo] = useState("PIX");
+  const [payPortador, setPayPortador] = useState("");
+
+  // Cancel form
+  const [cancelMotivo, setCancelMotivo] = useState("");
+
+  // Estorno form
+  const [estornoMotivo, setEstornoMotivo] = useState("");
+  const [estornoValor, setEstornoValor] = useState("");
+
+  // KPIs
+  const { data: resumo, isLoading: resumoLoading } = useQuery({
+    queryKey: ["ap-resumo"],
+    queryFn: () => callApi("resumo-financeiro-api", { path: "/resumo", dDia: new Date().toISOString().split("T")[0], lApenasResumo: false }),
+    staleTime: 60_000,
+  });
+
+  const { data: erpStatus } = useQuery({
+    queryKey: ["erp-export-status-kpi"],
+    queryFn: () => callExportApi("/status"),
+    staleTime: 60_000,
+  });
+
+  // Main table
+  const { data: titulos, isLoading: titulosLoading } = useQuery({
+    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedor, filtroDataDe, filtroDataAte],
+    queryFn: () => callApi("contas-pagar-api", {
+      path: "/listar",
+      pagina,
+      registros_por_pagina: porPagina,
+      ...(filtroStatus ? { filtrar_por_status: filtroStatus } : {}),
+      ...(filtroDataDe ? { filtrar_por_data_de: filtroDataDe } : {}),
+      ...(filtroDataAte ? { filtrar_por_data_ate: filtroDataAte } : {}),
+      ...(filtroFornecedor ? { filtrar_cliente: filtroFornecedor } : {}),
+    }),
+    staleTime: 30_000,
+  });
+
+  // Contas correntes for payment modal
+  const { data: contasCC } = useQuery({
+    queryKey: ["contas-correntes-resumo"],
+    queryFn: () => callApi("contas-correntes-api", { path: "/resumo" }),
+    staleTime: 120_000,
+  });
+
+  // Payment mutation
+  const payMutation = useMutation({
+    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/registrar-pagamento", ...body }),
+    onSuccess: (data) => {
+      toast.success("Pagamento registrado com sucesso!");
+      setPaymentModal(null);
+      setErpPrompt(data?.id || paymentModal?.id);
+      qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+      qc.invalidateQueries({ queryKey: ["ap-resumo"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Cancel mutation
+  const cancelMutation = useMutation({
+    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/cancelar", ...body }),
+    onSuccess: () => {
+      toast.success("Título cancelado");
+      setCancelModal(null);
+      setCancelMotivo("");
+      qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Estorno mutation
+  const estornoMutation = useMutation({
+    mutationFn: (body: any) => callApi("contas-pagar-api", { path: "/estornar", ...body }),
+    onSuccess: () => {
+      toast.success("Estorno registrado");
+      setEstornoModal(null);
+      qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // ERP export
+  const erpExportMutation = useMutation({
+    mutationFn: (id: string) => supabase.functions.invoke("erp-export-payment", {
+      body: { action: "export", payment_queue_id: id, channel: "rest_api", export_type: "payment" },
+    }),
+    onSuccess: () => toast.success("Enviado à fila de exportação ERP"),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Parcelas
+  const { data: parcelas, isLoading: parcelasLoading } = useQuery({
+    queryKey: ["ap-parcelas", parcelasSheet?.id],
+    queryFn: () => callApi("contas-pagar-api", { path: "/parcelas", conta_pagar_id: parcelasSheet.id }),
+    enabled: !!parcelasSheet,
+  });
+
+  // Pagamentos
+  const { data: pagamentos, isLoading: pagamentosLoading } = useQuery({
+    queryKey: ["ap-pagamentos", pagamentosSheet?.id],
+    queryFn: () => callApi("contas-pagar-api", { path: "/pagamentos", conta_pagar_id: pagamentosSheet.id }),
+    enabled: !!pagamentosSheet,
+  });
+
+  const list = titulos?.conta_pagar_cadastro || [];
+  const totalPaginas = titulos?.total_de_paginas || 1;
+
+  const kpis = [
+    { label: "Total em Aberto", value: formatBRL(resumo?.contaPagar?.vTotal), color: "text-[#2563EB]" },
+    { label: "Vencidos", value: formatBRL(resumo?.contaPagar?.vVencido), color: "text-[#DC2626]" },
+    { label: "Pago no Mês", value: formatBRL(resumo?.contaPagar?.vPago), color: "text-[#16A34A]" },
+    { label: "Aguardando ERP", value: erpStatus?.pending_total ?? "—", color: "text-[#EA580C]" },
+  ];
+
+  return (
+    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1B2A4A]">Painel Central — Contas a Pagar</h1>
+          <p className="text-sm text-muted-foreground">Visão consolidada com status ERP integrado</p>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <Button size="sm" onClick={() => navigate("/dashboard/financeiro/contas-a-pagar/novo")}>
+            + Novo Título
+          </Button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-6">
+              {resumoLoading ? <Skeleton className="h-8 w-24" /> : (
+                <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="space-y-1">
+          <Label className="text-xs">Status</Label>
+          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="vencido">Vencido</SelectItem>
+              <SelectItem value="pago">Pago</SelectItem>
+              <SelectItem value="pago_parcial">Parcial</SelectItem>
+              <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Vencimento de</Label>
+          <Input type="date" className="h-9 w-[150px]" value={filtroDataDe} onChange={(e) => setFiltroDataDe(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Vencimento até</Label>
+          <Input type="date" className="h-9 w-[150px]" value={filtroDataAte} onChange={(e) => setFiltroDataAte(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Fornecedor</Label>
+          <Input className="h-9 w-[180px]" placeholder="Buscar..." value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Por página</Label>
+          <Select value={String(porPagina)} onValueChange={(v) => { setPorPagina(Number(v)); setPagina(1); }}>
+            <SelectTrigger className="w-[80px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Table */}
+      {titulosLoading ? (
+        <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+      ) : (
+        <>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-[#F9FAFB]">
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>N° Título</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Valor Original</TableHead>
+                  <TableHead>Valor Pago</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Status ERP</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      Nenhum título encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  list.map((item: any, idx: number) => {
+                    const st = STATUS_BADGES[item.status] || STATUS_BADGES.pendente;
+                    const erp = ERP_BADGES[item.erp_status || "sem_exportacao"];
+                    return (
+                      <TableRow key={item.id || idx} className={idx % 2 === 0 ? "" : "bg-[#F9FAFB]"}>
+                        <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
+                        <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
+                        <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
+                        <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
+                        <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
+                        <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
+                        <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
+                        <TableCell><Badge className={`${erp.cls} text-xs`}>{erp.label}</Badge></TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/dashboard/financeiro/contas-a-pagar/${item.id}`)}>
+                                <Eye className="mr-2 h-3.5 w-3.5" /> Ver Detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setPaymentModal(item)}>
+                                <CreditCard className="mr-2 h-3.5 w-3.5" /> Registrar Pagamento
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setCancelModal(item)}>
+                                <XCircle className="mr-2 h-3.5 w-3.5" /> Cancelar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEstornoModal(item)}>
+                                <RotateCcw className="mr-2 h-3.5 w-3.5" /> Estornar Pagamento
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setParcelasSheet(item)}>
+                                <FileText className="mr-2 h-3.5 w-3.5" /> Ver Parcelas
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setPagamentosSheet(item)}>
+                                <History className="mr-2 h-3.5 w-3.5" /> Histórico Pagamentos
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => erpExportMutation.mutate(item.id)}>
+                                <Upload className="mr-2 h-3.5 w-3.5" /> Enviar ao ERP
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Página {pagina} de {totalPaginas} ({titulos?.total_de_registros || 0} registros)</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
+              <Button size="sm" variant="outline" disabled={pagina >= totalPaginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Payment Modal */}
+      <Dialog open={!!paymentModal} onOpenChange={(o) => !o && setPaymentModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#1B2A4A]">Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Valor Pago (R$)</Label>
+              <Input type="number" step="0.01" value={payValor} onChange={(e) => setPayValor(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data do Pagamento</Label>
+              <Input type="date" value={payData} onChange={(e) => setPayData(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Método</Label>
+              <Select value={payMetodo} onValueChange={setPayMetodo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["PIX", "TED", "Boleto", "Dinheiro", "Cartão"].map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentModal(null)}>Cancelar</Button>
+            <Button
+              disabled={payMutation.isPending || !payValor || !payData}
+              onClick={() => payMutation.mutate({
+                id: paymentModal.id,
+                valor_pago: Number(payValor),
+                data_pagamento: payData,
+                metodo_pagamento: payMetodo,
+                portador_id: payPortador || undefined,
+              })}
+            >
+              {payMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Modal */}
+      <Dialog open={!!cancelModal} onOpenChange={(o) => !o && setCancelModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#1B2A4A]">Cancelar Título</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Motivo (mínimo 10 caracteres)</Label>
+            <Input value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)} placeholder="Informe o motivo do cancelamento..." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelModal(null)}>Voltar</Button>
+            <Button
+              variant="destructive"
+              disabled={cancelMutation.isPending || cancelMotivo.length < 10}
+              onClick={() => cancelMutation.mutate({ ids: [cancelModal.id], motivo: cancelMotivo })}
+            >
+              {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Estorno Modal */}
+      <Dialog open={!!estornoModal} onOpenChange={(o) => !o && setEstornoModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#1B2A4A]">Estornar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Valor do Estorno (R$)</Label>
+              <Input type="number" step="0.01" value={estornoValor} onChange={(e) => setEstornoValor(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo (obrigatório)</Label>
+              <Input value={estornoMotivo} onChange={(e) => setEstornoMotivo(e.target.value)} placeholder="Motivo do estorno..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEstornoModal(null)}>Voltar</Button>
+            <Button
+              variant="destructive"
+              disabled={estornoMutation.isPending || !estornoMotivo || !estornoValor}
+              onClick={() => estornoMutation.mutate({ id: estornoModal.id, motivo: estornoMotivo, valor_estorno: Number(estornoValor) })}
+            >
+              {estornoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Estorno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Parcelas Sheet */}
+      <Sheet open={!!parcelasSheet} onOpenChange={(o) => !o && setParcelasSheet(null)}>
+        <SheetContent className="w-[500px]">
+          <SheetHeader>
+            <SheetTitle className="text-[#1B2A4A]">Parcelas</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {parcelasLoading ? (
+              <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>N°</TableHead><TableHead>Vencimento</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(parcelas?.data || []).map((p: any, i: number) => (
+                    <TableRow key={p.id || i}>
+                      <TableCell>{p.numero_parcela || i + 1}</TableCell>
+                      <TableCell>{fmtDate(p.data_vencimento)}</TableCell>
+                      <TableCell>{formatBRL(p.valor)}</TableCell>
+                      <TableCell>{p.status || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Pagamentos Sheet */}
+      <Sheet open={!!pagamentosSheet} onOpenChange={(o) => !o && setPagamentosSheet(null)}>
+        <SheetContent className="w-[500px]">
+          <SheetHeader>
+            <SheetTitle className="text-[#1B2A4A]">Histórico de Pagamentos</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {pagamentosLoading ? (
+              <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(pagamentos?.data || []).map((p: any, i: number) => (
+                    <TableRow key={p.id || i}>
+                      <TableCell>{fmtDate(p.data_pagamento)}</TableCell>
+                      <TableCell>{formatBRL(p.valor)}</TableCell>
+                      <TableCell>{p.metodo_pagamento || "—"}</TableCell>
+                      <TableCell>{p.status || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Post-payment ERP prompt */}
+      <PostPaymentErpPrompt
+        open={!!erpPrompt}
+        onOpenChange={(o) => !o && setErpPrompt(null)}
+        tituloId={erpPrompt || ""}
+        onConfirm={async () => {
+          await callExportApi("/export-batch", "POST", {
+            ids: [erpPrompt],
+            channel: "rest_api",
+            export_type: "payment",
+          });
+        }}
+        onSkip={() => setErpPrompt(null)}
+      />
+    </div>
+  );
+}
