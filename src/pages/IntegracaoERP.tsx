@@ -9,11 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play } from "lucide-react";
+import { Key, Plus, Copy, AlertTriangle, RefreshCw, Shield, ExternalLink, Play, Settings } from "lucide-react";
 import { format, addDays } from "date-fns";
 import ApiDocumentation from "@/components/erp/ApiDocumentation";
 import ApiTester from "@/components/erp/ApiTester";
+import ErpPortalSettings from "@/components/erp/ErpPortalSettings";
+import { useErpAccessProfiles, useAssignProfileToKey } from "@/hooks/useErpAccessProfiles";
 import { ptBR } from "date-fns/locale";
 
 interface ErpApiKey {
@@ -26,6 +30,7 @@ interface ErpApiKey {
   request_count: number;
   active: boolean;
   created_at: string;
+  access_profile_id: string | null;
 }
 
 function generateKey(): string {
