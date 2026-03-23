@@ -27,6 +27,7 @@ const PWAContext = createContext<PWAContextType | null>(null);
 let swRegistered = false;
 let deferredPromptRef: any = null;
 let updateSWRef: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let swRegistrationRef: ServiceWorkerRegistration | null = null;
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PWAState>({
