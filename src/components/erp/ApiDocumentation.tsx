@@ -914,6 +914,15 @@ export default function ApiDocumentation() {
                   <Shield className="h-5 w-5" />
                   <span>Autenticação</span>
                 </button>
+                <button
+                  onClick={() => scrollToModule("changelog")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "changelog" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <History className="h-5 w-5" />
+                  <span>Changelog</span>
+                </button>
               </div>
             </div>
           </div>
