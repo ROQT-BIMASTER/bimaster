@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, CreditCard, FileText, Calendar, Building2, DollarSign, CloudUpload, CheckCircle2, Clock } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, CreditCard, FileText, Calendar, Building2, DollarSign, CloudUpload, CheckCircle2, Clock, ChevronDown, Receipt, Landmark, FileBarChart } from "lucide-react";
 import { ErpSyncStatusInline as ErpSyncStatus } from "@/components/financeiro/ap/ErpSyncStatusInline";
 import { format } from "date-fns";
 import { toast } from "sonner";
