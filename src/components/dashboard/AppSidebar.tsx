@@ -1322,7 +1322,19 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {hasModulePermission("integracao_erp") && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to="/configuracoes/admin/relatorio-ap-erp"
+                        className={({ isActive }) => cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
+                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+                        )}
+                      >
+                        <Scale className="h-4 w-4" />
+                        <span>Rel. AP x ERP</span>
+                      </NavLink>
+                    </SidebarMenuButton>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink 
