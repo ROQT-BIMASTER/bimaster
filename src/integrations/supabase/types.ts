@@ -742,6 +742,64 @@ export type Database = {
           },
         ]
       }
+      ap_data_source_config: {
+        Row: {
+          auto_sync_interval_minutes: number
+          erp_api_enabled: boolean
+          id: string
+          n8n_enabled: boolean
+          notes: string | null
+          source_type: string
+          transition_date: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_sync_interval_minutes?: number
+          erp_api_enabled?: boolean
+          id?: string
+          n8n_enabled?: boolean
+          notes?: string | null
+          source_type?: string
+          transition_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_sync_interval_minutes?: number
+          erp_api_enabled?: boolean
+          id?: string
+          n8n_enabled?: boolean
+          notes?: string | null
+          source_type?: string
+          transition_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ap_data_source_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ap_data_source_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ap_data_source_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       api_access_log: {
         Row: {
           created_at: string | null
