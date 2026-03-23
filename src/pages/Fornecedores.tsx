@@ -22,6 +22,7 @@ import {
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { Link } from "react-router-dom";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Fornecedor {
   id: string;
