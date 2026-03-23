@@ -1,54 +1,85 @@
 
 
-# Para nota 10/10 — Gaps restantes
+# Módulo de Configurações do Portal ERP — Controle de Acesso a Endpoints
 
-## Nota Atual: 9/10
+## Objetivo
 
-O portal já tem: Getting Started, fluxo de integração, convenção POST, paginação, catálogo de webhooks, auth, rate limits, error codes, flow diagrams, request/response examples, Excel export, chat de suporte.
+Criar uma aba/seção "Configurações" dentro do Portal ERP que permita ao administrador controlar, de forma centralizada, quais módulos e APIs ficam visíveis para cada perfil de acesso (por API Key / empresa). Isso substitui a abordagem de senha fixa por um sistema persistente e escalável no banco de dados.
 
-## O que falta
+## Arquitetura
 
-### 1. Curl copiável por endpoint (impacto alto)
-O dev do ERP quer copiar um curl e testar no terminal. Hoje precisa montar manualmente. Adicionar botão "Copiar curl" em cada endpoint expandido, gerando automaticamente o comando com headers, body e URL.
+```text
+┌─────────────────────────────────┐
+│  erp_portal_access_profiles     │  ← Perfis de acesso (ex: "Equipe Financeira", "ERP Completo")
+│  id, nome, descricao, created_by│
+├─────────────────────────────────┤
+│  erp_portal_access_modules      │  ← Módulos/APIs liberados por perfil
+│  id, profile_id, module_id,     │
+│  api_id (nullable), visivel     │
+├─────────────────────────────────┤
+│  erp_api_keys.access_profile_id │  ← Vincular perfil à API Key existente
+└─────────────────────────────────┘
+```
 
-### 2. Guia de verificação HMAC para webhooks (impacto alto)
-O ERP vai receber webhooks do BiMaster e precisa saber como verificar a assinatura `x-hub-signature-256`. Falta um snippet mostrando como validar HMAC-SHA256 em Node.js/Python.
+## O que será feito
 
-### 3. Informação de ambiente (impacto médio)
-Falta indicar claramente que a URL base é produção e se existe sandbox. Adicionar badge "Produção" ao lado da base URL e nota sobre ambiente de testes.
+### 1. Banco de Dados (2 tabelas + 1 coluna)
 
-### 4. Guia de retry/backoff (impacto médio)
-Quando o ERP recebe 429 ou 5xx, precisa saber a estratégia de retry. Documentar: backoff exponencial, header `Retry-After`, máx 3 tentativas.
+**Tabela `erp_portal_access_profiles`**: Perfis de acesso nomeados (ex: "Financeiro", "Completo").
 
-### 5. Changelog / Release Notes (impacto baixo)
-Seção com histórico de mudanças na API para que o ERP saiba quando novos endpoints foram adicionados.
+**Tabela `erp_portal_access_modules`**: Relação N:N entre perfil e módulo/API. Cada registro indica se um módulo (`module_id` = "financas", "geral", etc.) ou uma API específica (`api_id` = "contas-pagar", "fornecedores-query") está visível naquele perfil.
 
-## Plano de Ação
+**Coluna `erp_api_keys.access_profile_id`**: FK opcional para vincular cada chave de API a um perfil de acesso. Chaves sem perfil = acesso total (backwards compatible).
 
-### Arquivo: `src/components/erp/ApiDocumentation.tsx`
+RLS: apenas admins podem ler/escrever nestas tabelas.
 
-1. **Curl generator** — No componente `ApiSectionBlock`, ao expandir um endpoint, adicionar botão "Copiar curl" que monta `curl -X METHOD -H "x-api-key: SUA_CHAVE" -H "Content-Type: application/json" -d 'BODY' URL`
+### 2. Interface de Configuração (nova aba no Portal ERP)
 
-2. **Seção HMAC no Getting Started** — Adicionar card com snippet de verificação de assinatura webhook em Node.js e Python (3-5 linhas cada)
+Adicionar uma aba **"Configurações"** (ícone Settings) ao lado do header do Portal, visível apenas para admins. Conteúdo:
 
-3. **Badge de ambiente** — Adicionar `Badge` "Produção" ao lado da base URL e nota "Para testes, use o ApiTester acima"
+- **Lista de Perfis**: Cards com nome, descrição, quantidade de módulos liberados
+- **Criar/Editar Perfil**: Dialog com nome + checkboxes hierárquicos:
+  - Nível 1: Módulo (ex: ✅ Finanças, ❌ Geral, ✅ Cadastros Auxiliares)
+  - Nível 2: APIs individuais dentro do módulo (toggle granular)
+  - "Selecionar Todos" / "Desmarcar Todos"
+- **Vincular Perfil a API Key**: Na tabela de chaves existente, adicionar coluna "Perfil de Acesso" com select dropdown
 
-4. **Nota de retry** — Adicionar card no Getting Started sobre estratégia de retry (backoff exponencial, Retry-After header)
+### 3. Filtragem Dinâmica na Documentação
 
-5. **Sidebar: link "Changelog"** — Seção simples com 3-4 entradas (datas das versões recentes)
+O `ApiDocumentation` receberá um prop opcional `accessProfileId`. Quando presente:
+- Consulta `erp_portal_access_modules` para obter módulos/APIs liberados
+- Filtra `API_MODULES` antes de renderizar sidebar e conteúdo
+- Módulos bloqueados ficam completamente ocultos (não apenas esmaecidos)
 
-### Arquivo: `src/components/erp/ApiTester.tsx`
-Sem alterações.
+Para visualização admin (sem perfil vinculado): tudo visível, como hoje.
+
+### 4. Perfis Pré-configurados
+
+Seed inicial com 2 perfis:
+- **"Financeiro"**: Finanças + Cadastros Auxiliares + Complementar + Fornecedores (do módulo Geral)
+- **"Acesso Completo"**: Todos os módulos liberados
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/erp/ApiDocumentation.tsx` | Curl generator, HMAC guide, ambiente, retry, changelog |
+| **Migração SQL** | Criar 2 tabelas + coluna FK + RLS + seed |
+| `src/components/erp/ErpPortalSettings.tsx` | **Novo** — Interface de gestão de perfis |
+| `src/components/erp/AccessProfileForm.tsx` | **Novo** — Form com checkboxes de módulos/APIs |
+| `src/components/erp/ApiDocumentation.tsx` | Receber prop `accessProfileId`, filtrar módulos |
+| `src/pages/IntegracaoERP.tsx` | Adicionar aba/botão "Configurações", vincular perfil à API Key |
+| `src/hooks/useErpAccessProfiles.ts` | **Novo** — CRUD de perfis via react-query |
 
-## Resultado Esperado
-- Dev copia curl → testa em 10 segundos
-- Sabe verificar webhooks com HMAC
-- Entende retry strategy sem perguntar
-- Nota: **10/10**
+## Fluxo do Admin
+
+1. Abre Portal ERP → clica em "Configurações" (engrenagem)
+2. Cria perfil "Equipe Financeira ERP" → marca Finanças, Cadastros, Complementar
+3. Volta para Chaves de API → vincula perfil à chave da empresa X
+4. Dev da empresa X abre portal → vê apenas módulos liberados
+
+## Detalhes Técnicos
+
+- Os IDs de módulos (`geral`, `financas`, `cadastros`, etc.) e APIs (`contas-pagar`, `fornecedores-query`, etc.) já existem como constantes no `API_MODULES` do `ApiDocumentation.tsx`
+- A filtragem é feita no frontend após carregar as permissões do banco — sem alterar a estrutura estática dos endpoints
+- Perfis são globais (não por empresa), mas cada API Key pode ter um perfil diferente, permitindo cenários como: empresa A vê tudo, empresa B vê só financeiro
 
