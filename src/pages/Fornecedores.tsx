@@ -432,7 +432,7 @@ export default function Fornecedores() {
       cidade: form.cidade.trim() || null,
       estado: form.estado.trim() || null,
       cep: form.cep.trim() || null,
-      empresa_id: form.empresa_id ? parseInt(form.empresa_id) : null,
+      empresa_id: form.empresa_id && form.empresa_id !== "todas" ? parseInt(form.empresa_id) : null,
       codigo_externo: form.codigo_externo.trim() || null,
       fonte_erp: form.fonte_erp.trim() || null,
       status: form.status,
@@ -455,6 +455,29 @@ export default function Fornecedores() {
     if (!form.empresa_id) return toast.error("Empresa é obrigatória");
 
     const cnpjDigits = form.cnpj.replace(/\D/g, "");
+
+    // "Todas" — insert one record per empresa
+    if (form.empresa_id === "todas" && !editingId) {
+      const base = buildPayload();
+      const payloads = visibleEmpresas.map(e => ({ ...base, empresa_id: e.id }));
+      try {
+        for (const p of payloads) {
+          const { data: existing } = await supabase.from("fornecedores").select("id").eq("cnpj", cnpjDigits).eq("empresa_id", p.empresa_id).maybeSingle();
+          if (existing) {
+            await supabase.from("fornecedores").update(p).eq("id", existing.id);
+          } else {
+            await supabase.from("fornecedores").insert(p);
+          }
+        }
+        toast.success(`Fornecedor cadastrado em ${payloads.length} empresas!`);
+        queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+        setDialogOpen(false);
+        setForm(emptyForm);
+      } catch (err: any) {
+        toast.error("Erro ao salvar: " + err.message);
+      }
+      return;
+    }
 
     if (!editingId) {
       const { data: existing } = await supabase.from("fornecedores").select("id").eq("cnpj", cnpjDigits).maybeSingle();
@@ -754,6 +777,9 @@ export default function Fornecedores() {
                 <Select value={form.empresa_id} onValueChange={(v) => setForm({ ...form, empresa_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
                   <SelectContent>
+                    {!editingId && visibleEmpresas.length > 1 && (
+                      <SelectItem value="todas">📋 Cadastrar em Todas as Empresas</SelectItem>
+                    )}
                     {visibleEmpresas.map((e) => (
                       <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
                     ))}
