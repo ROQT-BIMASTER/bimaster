@@ -171,7 +171,7 @@ export function FinancialSubmissionForm({
 
   const handleFornecedorCriado = (novo: { id: string; nome: string }) => {
     supabase
-      .from("fabrica_fornecedores")
+      .from("fornecedores")
       .select("id, razao_social, cnpj")
       .eq("id", novo.id)
       .single()
