@@ -24,7 +24,8 @@ export default function ApiStatusBadge({ basePath, className }: ApiStatusBadgePr
         });
         if (!cancelled) {
           setLatency(Math.round(performance.now() - start));
-          setStatus(res.ok ? "online" : "offline");
+          // 401/403/405 mean the API is online but requires auth or different method
+          setStatus(res.ok || res.status === 401 || res.status === 403 || res.status === 405 ? "online" : "offline");
         }
       } catch {
         if (!cancelled) {
