@@ -33,34 +33,23 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Dados básicos
   const [nome, setNome] = useState("");
   const [cnpj, setCnpj] = useState("");
   
-  // Dados bancários
   const [banco, setBanco] = useState("");
   const [agencia, setAgencia] = useState("");
   const [conta, setConta] = useState("");
   const [tipoConta, setTipoConta] = useState("corrente");
   const [favorecido, setFavorecido] = useState("");
   
-  // PIX
   const [pixTipo, setPixTipo] = useState("");
   const [pixChave, setPixChave] = useState("");
   
-  // Boleto
   const [linhaDigitavel, setLinhaDigitavel] = useState("");
 
   const resetForm = () => {
-    setNome("");
-    setCnpj("");
-    setBanco("");
-    setAgencia("");
-    setConta("");
-    setTipoConta("corrente");
-    setFavorecido("");
-    setPixTipo("");
-    setPixChave("");
+    setNome(""); setCnpj(""); setBanco(""); setAgencia(""); setConta("");
+    setTipoConta("corrente"); setFavorecido(""); setPixTipo(""); setPixChave("");
     setLinhaDigitavel("");
   };
 
@@ -70,7 +59,6 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
       return;
     }
 
-    // Validação PIX: se preencheu um, deve preencher o outro
     if (pixChave.trim() && !pixTipo) {
       toast.error("Selecione o tipo da chave PIX");
       return;
@@ -82,37 +70,69 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
 
     setSaving(true);
     try {
+      const cnpjClean = cnpj.replace(/\D/g, "").trim();
+
+      // Check if CNPJ already exists in fornecedores
+      if (cnpjClean.length >= 11) {
+        const { data: existing } = await supabase
+          .from("fornecedores")
+          .select("id, nome, cnpj")
+          .eq("cnpj", cnpjClean)
+          .maybeSingle();
+        
+        if (existing) {
+          // Update existing with banking data if provided
+          const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
+          if (banco.trim()) updateFields.banco = banco.trim();
+          if (agencia.trim()) updateFields.agencia = agencia.trim();
+          if (conta.trim()) updateFields.conta_bancaria = conta.trim();
+          if (tipoConta) updateFields.tipo_conta = tipoConta;
+          if (favorecido.trim()) updateFields.favorecido = favorecido.trim();
+          if (pixTipo) updateFields.tipo_pix = pixTipo;
+          if (pixChave.trim()) updateFields.chave_pix = pixChave.trim();
+          if (linhaDigitavel.trim()) updateFields.linha_digitavel = linhaDigitavel.trim();
+
+          if (Object.keys(updateFields).length > 1) {
+            await supabase.from("fornecedores").update(updateFields).eq("id", existing.id);
+          }
+
+          toast.success("Fornecedor já existente — dados bancários atualizados!");
+          onFornecedorCriado({ id: existing.id, nome: existing.nome, cnpj: existing.cnpj || undefined });
+          resetForm();
+          setOpen(false);
+          return;
+        }
+      }
+
       const { data, error } = await supabase
-        .from("fabrica_fornecedores")
+        .from("fornecedores")
         .insert({
+          nome: nome.trim(),
+          cnpj: cnpjClean || "00000000000000",
           razao_social: nome.trim(),
           nome_fantasia: nome.trim(),
-          cnpj: cnpj.trim() || null,
-          ativo: true,
-          // Dados bancários
+          status: "ativo",
           banco: banco.trim() || null,
           agencia: agencia.trim() || null,
-          conta: conta.trim() || null,
+          conta_bancaria: conta.trim() || null,
           tipo_conta: tipoConta || null,
           favorecido: favorecido.trim() || null,
-          // PIX
-          pix_tipo: pixTipo || null,
-          pix_chave: pixChave.trim() || null,
-          // Boleto
+          tipo_pix: pixTipo || null,
+          chave_pix: pixChave.trim() || null,
           linha_digitavel: linhaDigitavel.trim() || null,
         })
-        .select("id, razao_social, cnpj, pix_tipo, pix_chave")
+        .select("id, nome, cnpj, tipo_pix, chave_pix")
         .single();
 
       if (error) throw error;
 
       const msgs = ["Fornecedor cadastrado!"];
-      if (data.pix_chave) msgs.push(`PIX ${data.pix_tipo}: ${data.pix_chave}`);
+      if (data.chave_pix) msgs.push(`PIX ${data.tipo_pix}: ${data.chave_pix}`);
       toast.success(msgs.join(" • "));
 
       onFornecedorCriado({ 
         id: data.id, 
-        nome: data.razao_social,
+        nome: data.nome,
         cnpj: data.cnpj || undefined
       });
       resetForm();
@@ -128,13 +148,7 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          title="Cadastrar novo fornecedor"
-        >
+        <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Cadastrar novo fornecedor">
           <Plus className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
@@ -152,25 +166,12 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
             <TabsContent value="basico" className="space-y-3 mt-3">
               <div>
                 <Label htmlFor="quick-nome">Nome / Razão Social *</Label>
-                <Input
-                  id="quick-nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Nome do fornecedor"
-                  className="mt-1"
-                />
+                <Input id="quick-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do fornecedor" className="mt-1" />
               </div>
-
               <div>
                 <Label htmlFor="quick-cnpj">CNPJ/CPF</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    id="quick-cnpj"
-                    value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
-                    placeholder="00.000.000/0000-00"
-                    className="flex-1"
-                  />
+                  <Input id="quick-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" className="flex-1" />
                   <CnpjSearchButton
                     cnpj={cnpj}
                     onDataFound={(data: CnpjData) => {
@@ -187,44 +188,22 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
             <TabsContent value="banco" className="space-y-3 mt-3">
               <div>
                 <Label htmlFor="quick-banco">Banco</Label>
-                <Input
-                  id="quick-banco"
-                  value={banco}
-                  onChange={(e) => setBanco(e.target.value)}
-                  placeholder="Ex: Bradesco, Itaú, Nubank"
-                  className="mt-1"
-                />
+                <Input id="quick-banco" value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="Ex: Bradesco, Itaú, Nubank" className="mt-1" />
               </div>
-
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label htmlFor="quick-agencia">Agência</Label>
-                  <Input
-                    id="quick-agencia"
-                    value={agencia}
-                    onChange={(e) => setAgencia(e.target.value)}
-                    placeholder="0000"
-                    className="mt-1"
-                  />
+                  <Input id="quick-agencia" value={agencia} onChange={(e) => setAgencia(e.target.value)} placeholder="0000" className="mt-1" />
                 </div>
                 <div>
                   <Label htmlFor="quick-conta">Conta</Label>
-                  <Input
-                    id="quick-conta"
-                    value={conta}
-                    onChange={(e) => setConta(e.target.value)}
-                    placeholder="00000-0"
-                    className="mt-1"
-                  />
+                  <Input id="quick-conta" value={conta} onChange={(e) => setConta(e.target.value)} placeholder="00000-0" className="mt-1" />
                 </div>
               </div>
-
               <div>
                 <Label htmlFor="quick-tipo-conta">Tipo de Conta</Label>
                 <Select value={tipoConta} onValueChange={setTipoConta}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="corrente">Conta Corrente</SelectItem>
                     <SelectItem value="poupanca">Conta Poupança</SelectItem>
@@ -232,16 +211,9 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label htmlFor="quick-favorecido">Favorecido</Label>
-                <Input
-                  id="quick-favorecido"
-                  value={favorecido}
-                  onChange={(e) => setFavorecido(e.target.value)}
-                  placeholder="Nome do titular da conta"
-                  className="mt-1"
-                />
+                <Input id="quick-favorecido" value={favorecido} onChange={(e) => setFavorecido(e.target.value)} placeholder="Nome do titular da conta" className="mt-1" />
               </div>
             </TabsContent>
             
@@ -249,9 +221,7 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
               <div>
                 <Label htmlFor="quick-pix-tipo">Tipo de Chave PIX</Label>
                 <Select value={pixTipo} onValueChange={setPixTipo}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cpf">CPF</SelectItem>
                     <SelectItem value="cnpj">CNPJ</SelectItem>
@@ -261,54 +231,22 @@ export function FornecedorQuickAdd({ onFornecedorCriado }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label htmlFor="quick-pix-chave">Chave PIX</Label>
-                <Input
-                  id="quick-pix-chave"
-                  value={pixChave}
-                  onChange={(e) => setPixChave(e.target.value)}
-                  placeholder="Digite a chave PIX"
-                  className="mt-1"
-                />
+                <Input id="quick-pix-chave" value={pixChave} onChange={(e) => setPixChave(e.target.value)} placeholder="Digite a chave PIX" className="mt-1" />
               </div>
-
               <div className="pt-2 border-t">
                 <Label htmlFor="quick-linha-digitavel">Linha Digitável (Boleto)</Label>
-                <Input
-                  id="quick-linha-digitavel"
-                  value={linhaDigitavel}
-                  onChange={(e) => setLinhaDigitavel(e.target.value)}
-                  placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000"
-                  className="mt-1 text-xs"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Se o pagamento for por boleto, cole a linha digitável aqui
-                </p>
+                <Input id="quick-linha-digitavel" value={linhaDigitavel} onChange={(e) => setLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" className="mt-1 text-xs" />
+                <p className="text-xs text-muted-foreground mt-1">Se o pagamento for por boleto, cole a linha digitável aqui</p>
               </div>
             </TabsContent>
           </Tabs>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSalvar}
-              disabled={saving || !nome.trim()}
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Salvar"
-              )}
+            <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button type="button" size="sm" onClick={handleSalvar} disabled={saving || !nome.trim()}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
             </Button>
           </div>
         </div>
