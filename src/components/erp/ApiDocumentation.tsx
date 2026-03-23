@@ -9,7 +9,8 @@ import {
   BookOpen, ChevronDown, ChevronRight, Copy, Check,
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
   FileText, Webhook, BarChart3, Shield, Database,
-  FileSpreadsheet, Building2, Layers, DollarSign, Package
+  FileSpreadsheet, Building2, Layers, DollarSign, Package,
+  Rocket, AlertTriangle, Info, Zap
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
