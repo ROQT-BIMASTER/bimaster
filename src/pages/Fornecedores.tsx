@@ -199,10 +199,7 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
                   <QrCode className="h-3 w-3" />
                   <Badge variant="outline" className="text-[9px]">{f.tipo_pix?.toUpperCase()}</Badge>
                   {f.chave_pix}
-                </p>
-              )}
-              {f.linha_digitavel && (
-                <p className="font-mono text-[10px] break-all text-muted-foreground">{f.linha_digitavel}</p>
+               </p>
               )}
             </div>
           ) : (
