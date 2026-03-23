@@ -544,7 +544,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             {/* Empresa */}
             <div className="space-y-1.5">
               <Label>Empresa *</Label>
-              <Select value={form.empresa_id.toString()} onValueChange={v => {
+              <Select disabled={isReadOnly} value={form.empresa_id.toString()} onValueChange={v => {
                 const emp = empresas?.find(e => e.id.toString() === v);
                 setForm(prev => ({ ...prev, empresa_id: Number(v), empresa_nome: emp?.nome || "" }));
               }}>
