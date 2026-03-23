@@ -1,54 +1,46 @@
 
 
-# Estado Atual vs 100 — O que falta
+# Segurança de Tokens e Exclusão de Chaves Antigas
 
-## Já implementado (v1.7.0) — Nota estimada: 97/100
+## Problemas Identificados
 
-Todos os 8 itens de alto impacto do plano anterior foram implementados:
-- Glossários CR + Fornecedores, paginação iterativa, mapa de erros, Postman Collection, webhook payload, versionamento, rotação de chave, quotas consolidadas.
+1. **Sem botão de excluir** — A tabela `erp_api_keys` só tem toggle ativar/desativar, sem opção de deletar chaves expiradas ou inativas
+2. **`token_plain` armazenado em texto claro** — A tabela `team_form_tokens` guarda o token original na coluna `token_plain`, violando boas práticas (deveria guardar apenas o hash)
+3. **Sem limpeza automática** — Chaves expiradas e tokens vencidos permanecem indefinidamente no banco
+4. **Sem confirmação de exclusão** — Precisa de AlertDialog para evitar exclusões acidentais
 
-## 3 pontos restantes (pendentes na tabela de gaps)
+## Implementação
 
-| # | Gap | Impacto | Complexidade |
-|---|---|---|---|
-| 1 | **Status Page global no sidebar** — resumo consolidado (X online, Y offline, latencia media) em vez de badges individuais | +1.5 pt | Media — novo componente no sidebar que agrega dados dos ApiStatusBadge existentes |
-| 2 | **Toggle EN/PT na documentacao** — internacionalização básica do portal para devs que não falam português | +1 pt | Alta — exige extrair ~200 strings para um dicionário i18n |
-| 3 | **Suprimir erros de console** — os status checks ainda geram ruído no console do navegador (401/405 logados pelo platform reporter) | +0.5 pt | Baixa — usar `mode: "no-cors"` ou mover para edge function proxy |
+### 1. Botão Excluir na tabela de API Keys
 
-## Recomendação de implementação
+**Arquivo: `src/pages/IntegracaoERP.tsx`**
+- Adicionar coluna "Ações" com botão de exclusão (ícone Trash2)
+- AlertDialog de confirmação antes de deletar
+- Função `handleDelete` que remove a chave do banco
+- Permitir exclusão apenas de chaves **inativas ou expiradas** (segurança)
 
-### Fase 1 — Status Page Global (+1.5 pt)
+### 2. Limpeza de `token_plain` dos team_form_tokens
 
-**Novo arquivo: `src/components/erp/ApiGlobalStatus.tsx`**
-- Componente que recebe a lista de basePaths de todas as APIs
-- Faz fetch paralelo de `/status` em cada uma (reutilizando lógica do ApiStatusBadge)
-- Exibe card resumo: "12/14 online — Latência média: 145ms"
-- Integrar no sidebar do ApiDocumentation como primeiro item
+**Migração SQL:**
+- Limpar todos os `token_plain` existentes (SET token_plain = NULL)
+- O hook `useTeamFormTokens.ts` já retorna o token ao gerar — ele é exibido uma vez e depois não precisa estar no banco
 
-**Arquivo: `src/components/erp/ApiDocumentation.tsx`**
-- Adicionar ApiGlobalStatus no topo do sidebar, acima dos módulos
+### 3. Exclusão em massa de chaves expiradas
 
-### Fase 2 — Supressão de console noise (+0.5 pt)
+**Arquivo: `src/pages/IntegracaoERP.tsx`**
+- Botão "Limpar Expiradas" no header da tabela
+- Remove todas as chaves onde `expires_at < now()` e `active = false`
+- AlertDialog com contagem de quantas serão removidas
 
-**Arquivo: `src/components/erp/ApiStatusBadge.tsx`**
-- Criar edge function proxy `api-status-check` que faz os health checks server-side
-- Ou: usar `supabase.functions.invoke("api-health-check")` que já existe, adaptando para retornar status por API individual
-- Isso elimina os fetch diretos do browser que geram 401/405 no console
+### 4. Audit log de exclusões
 
-### Fase 3 — Toggle EN/PT (+1 pt) — Opcional
+**Migração SQL:**
+- Registrar exclusões de API keys na tabela de auditoria existente via trigger
 
-**Novo arquivo: `src/components/erp/i18n.ts`**
-- Dicionário simples `{ pt: {...}, en: {...} }` com ~200 strings
-- Context provider para idioma selecionado
-- Toggle no header do portal
-
-**Recomendação**: Fase 3 tem alto custo e baixo retorno dado o público-alvo (100% BR). Implementar apenas Fases 1 e 2 já eleva para ~99/100.
-
-## Arquivos afetados
+## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/erp/ApiGlobalStatus.tsx` | **Novo** — Status consolidado |
-| `src/components/erp/ApiDocumentation.tsx` | Integrar ApiGlobalStatus no sidebar |
-| `src/components/erp/ApiStatusBadge.tsx` | Mover checks para server-side (proxy) |
+| `src/pages/IntegracaoERP.tsx` | Botão excluir individual + limpeza em massa |
+| Migração SQL | Limpar token_plain, trigger de auditoria |
 
