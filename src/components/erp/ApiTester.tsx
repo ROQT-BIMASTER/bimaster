@@ -395,6 +395,17 @@ const BODY_TEMPLATES: Record<string, string> = {
   "/tipos-entrega-api/consultar": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
   "/tipos-entrega-api/excluir": JSON.stringify({ nCodEntrega: 0, cCodIntEntrega: "" }, null, 2),
   "/tipos-entrega-api/listar": JSON.stringify({ nPagina: 1, nRegistrosPorPagina: 50, nCodTransp: 0 }, null, 2),
+  // Fornecedores Sync
+  "/erp-fornecedores-sync/consultar": JSON.stringify({ cnpj: "12.345.678/0001-90" }, null, 2),
+  "/erp-fornecedores-sync/cadastrar": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Novo Fornecedor Ltda", nome_fantasia: "Novo", email: "contato@novo.com" }, null, 2),
+  "/erp-fornecedores-sync/sync-bidirecional": JSON.stringify({ empresa_id: 8, modo: "full" }, null, 2),
+  "/erp-fornecedores-sync/cadastrar-todas": JSON.stringify({ cnpj: "12.345.678/0001-90", razao_social: "Fornecedor Multi Ltda" }, null, 2),
+  // Portadores Sync
+  "/erp-portadores-api/sync": JSON.stringify({ portadores: [{ codigo_erp: "PORT001", nome: "Banco Itaú", banco_codigo: "341", banco_nome: "Itaú Unibanco", agencia: "1234", conta: "56789-0", tipo: "corrente" }] }, null, 2),
+  // Webhook Subscriptions
+  "/webhook-subscriptions-api/incluir": JSON.stringify({ url: "https://erp.com/webhook", eventos: ["conta_pagar.criado", "conta_pagar.pago"], secret: "meu-segredo-hmac", headers_customizados: { "X-ERP-Token": "abc123" } }, null, 2),
+  "/webhook-subscriptions-api/alterar": JSON.stringify({ id: "uuid-da-assinatura", url: "https://erp.com/webhook-v2", eventos: ["conta_pagar.criado", "conta_pagar.pago", "conta_pagar.cancelado"] }, null, 2),
+  "/webhook-subscriptions-api/testar": JSON.stringify({ id: "uuid-da-assinatura" }, null, 2),
 };
 
 export default function ApiTester() {
