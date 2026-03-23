@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Activity, Circle, RefreshCw, Wifi, WifiOff } from "lucide-react";
-
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApiGlobalStatusProps {
   basePaths: string[];
@@ -19,23 +18,16 @@ export default function ApiGlobalStatus({ basePaths }: ApiGlobalStatusProps) {
 
   const checkAll = useCallback(async () => {
     setLoading(true);
-    const checks = basePaths.map(async (path): Promise<StatusResult> => {
-      const start = performance.now();
-      try {
-        const res = await fetch(`${BASE_URL}${path}/status`, {
-          method: "GET",
-          signal: AbortSignal.timeout(5000),
-        });
-        await res.text().catch(() => {});
-        const latency = Math.round(performance.now() - start);
-        const online = res.ok || res.status === 401 || res.status === 403 || res.status === 405;
-        return { path, status: online ? "online" : "offline", latency };
-      } catch {
-        return { path, status: "offline", latency: 0 };
-      }
-    });
-    const all = await Promise.all(checks);
-    setResults(all);
+    try {
+      const { data, error } = await supabase.functions.invoke("api-health-check", {
+        body: { paths: basePaths },
+      });
+      if (error) throw error;
+      setResults(data?.results || []);
+    } catch {
+      // Fallback: mark all as unknown
+      setResults(basePaths.map(path => ({ path, status: "offline" as const, latency: 0 })));
+    }
     setLoading(false);
   }, [basePaths]);
 
