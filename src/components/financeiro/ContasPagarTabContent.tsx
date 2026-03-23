@@ -113,8 +113,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
   const [cancelJust, setCancelJust] = useState("");
 
   // ----- Queries -----
-  const { data: contasResult, isLoading } = useQuery({
-    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, dateFrom?.toISOString(), dateTo?.toISOString(), page],
+  const { data: contasResult, isLoading, refetch: refetchContas } = useQuery({
+    queryKey: ["cp-tab-contas", filterEmpresas.join(","), filterAno, filterMes, filterDepartamento, filterPortadores.join(","), statusFilter, search, erpFilter, dateFrom?.toISOString(), dateTo?.toISOString(), page],
     queryFn: async () => {
       let q: any = supabase.from("contas_pagar").select("*", { count: "exact" }).order("data_vencimento", { ascending: false });
       if (filterEmpresas.length) q = q.in("empresa_id", filterEmpresas);
@@ -128,6 +128,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (filterDepartamento !== "all") q = q.eq("departamento_id", filterDepartamento);
       if (filterPortadores.length) q = q.in("portador_id", filterPortadores);
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (erpFilter === "sincronizado") q = q.eq("importado_api", true);
+      if (erpFilter === "pendente") q = q.eq("importado_api", false);
       if (search) {
         q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%`);
       }
@@ -142,6 +144,8 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
       if (error) throw error;
       return { data: data || [], totalCount: count ?? 0 };
     },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Auto-refresh every 30s for N8N sync
   });
 
   const contas = contasResult?.data;
