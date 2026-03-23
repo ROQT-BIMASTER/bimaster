@@ -596,7 +596,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Juros</Label>
-                <Input type="number" min={0} step="0.01" value={form.valor_juros} onChange={e => setForm(p => ({ ...p, valor_juros: Number(e.target.value) }))} />
+                <Input disabled={isReadOnly} type="number" min={0} step="0.01" value={form.valor_juros} onChange={e => setForm(p => ({ ...p, valor_juros: Number(e.target.value) }))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Ajustes</Label>
