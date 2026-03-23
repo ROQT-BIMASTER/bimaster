@@ -90,7 +90,6 @@ interface FornecedorForm {
   favorecido: string;
   tipo_pix: string;
   chave_pix: string;
-  linha_digitavel: string;
   inscricao_estadual: string;
   inscricao_municipal: string;
 }
