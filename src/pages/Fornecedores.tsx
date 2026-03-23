@@ -17,10 +17,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Users, Plus, Search, Pencil, ToggleLeft, ToggleRight, Loader2,
   ChevronDown, ChevronRight, Building2, MapPin, Phone, Mail,
-  QrCode, CreditCard, FileText, Globe, Briefcase, Info,
+  QrCode, CreditCard, FileText, Globe, Briefcase, Info, RefreshCw,
 } from "lucide-react";
 import { CnpjSearchButton, CnpjData } from "@/components/shared/CnpjSearchButton";
 import { Link } from "react-router-dom";
+import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 
 interface Fornecedor {
   id: string;
@@ -43,7 +44,6 @@ interface Fornecedor {
   fonte_erp: string | null;
   status: string;
   created_at: string;
-  // Receita Federal fields
   situacao_cadastral: string | null;
   matriz_filial: string | null;
   porte: string | null;
@@ -53,7 +53,6 @@ interface Fornecedor {
   inscricao_estadual: string | null;
   inscricao_municipal: string | null;
   optante_simples_nacional: string | null;
-  // Banking
   banco: string | null;
   agencia: string | null;
   conta_bancaria: string | null;
@@ -62,7 +61,6 @@ interface Fornecedor {
   tipo_pix: string | null;
   chave_pix: string | null;
   linha_digitavel: string | null;
-  // ERP
   erp_code: string | null;
   erp_synced_at: string | null;
 }
@@ -85,7 +83,6 @@ interface FornecedorForm {
   codigo_externo: string;
   fonte_erp: string;
   status: string;
-  // Banking
   banco: string;
   agencia: string;
   conta_bancaria: string;
@@ -94,7 +91,6 @@ interface FornecedorForm {
   tipo_pix: string;
   chave_pix: string;
   linha_digitavel: string;
-  // Tax
   inscricao_estadual: string;
   inscricao_municipal: string;
 }
@@ -156,7 +152,6 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
 
   return (
     <div className="px-6 py-4 bg-muted/30 border-t space-y-4">
-      {/* Badges row */}
       <div className="flex flex-wrap gap-2">
         <SituacaoBadge situacao={f.situacao_cadastral} />
         <InfoBadge label={f.matriz_filial || ""} show={!!f.matriz_filial} />
@@ -167,7 +162,6 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Address */}
         <div className="space-y-1">
           <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
             <MapPin className="h-3 w-3" /> Endereço
@@ -191,7 +185,6 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
           </div>
         </div>
 
-        {/* Banking */}
         <div className="space-y-1">
           <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
             <CreditCard className="h-3 w-3" /> Dados Bancários
@@ -218,7 +211,6 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
           )}
         </div>
 
-        {/* Tax/Fiscal */}
         <div className="space-y-1">
           <p className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
             <FileText className="h-3 w-3" /> Dados Fiscais
@@ -243,6 +235,7 @@ function FornecedorDetailPanel({ f }: { f: Fornecedor }) {
 
 export default function Fornecedores() {
   const queryClient = useQueryClient();
+  const { empresasDoUsuario, empresaIds, empresaSelecionada, loading: empresaLoading } = useEmpresaFilter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [empresaFilter, setEmpresaFilter] = useState("todas");
@@ -252,25 +245,28 @@ export default function Fornecedores() {
   const [upsertConfirm, setUpsertConfirm] = useState<{ existingId: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [dialogTab, setDialogTab] = useState<"basico" | "endereco" | "banco">("basico");
+  const [syncingErp, setSyncingErp] = useState(false);
+
+  // Filter empresas to only those in user context
+  const visibleEmpresas = empresasDoUsuario;
 
   const { data: fornecedores = [], isLoading } = useQuery({
-    queryKey: ["fornecedores", search, statusFilter, empresaFilter],
+    queryKey: ["fornecedores", search, statusFilter, empresaFilter, empresaIds],
     queryFn: async () => {
       let query = supabase.from("fornecedores").select("*").order("nome");
       if (search) query = query.or(`nome.ilike.%${search}%,cnpj.ilike.%${search}%,razao_social.ilike.%${search}%`);
       if (statusFilter !== "todos") query = query.eq("status", statusFilter);
-      if (empresaFilter !== "todas") query = query.eq("empresa_id", parseInt(empresaFilter));
+      
+      if (empresaFilter !== "todas") {
+        query = query.eq("empresa_id", parseInt(empresaFilter));
+      } else if (empresaIds.length > 0) {
+        // Filter by user's empresas — include null empresa_id (shared suppliers)
+        query = query.or(`empresa_id.in.(${empresaIds.join(",")}),empresa_id.is.null`);
+      }
+      
       const { data, error } = await query;
       if (error) throw error;
       return data as Fornecedor[];
-    },
-  });
-
-  const { data: empresas = [] } = useQuery({
-    queryKey: ["empresas-select"],
-    queryFn: async () => {
-      const { data } = await supabase.from("empresas").select("id, nome").order("nome");
-      return data || [];
     },
   });
 
@@ -279,20 +275,80 @@ export default function Fornecedores() {
       if (id) {
         const { error } = await supabase.from("fornecedores").update(data as any).eq("id", id);
         if (error) throw error;
+        return id;
       } else {
-        const { error } = await supabase.from("fornecedores").insert(data as any);
+        const { data: inserted, error } = await supabase.from("fornecedores").insert(data as any).select("id").single();
         if (error) throw error;
+        return inserted.id;
       }
     },
-    onSuccess: () => {
+    onSuccess: async (fornecedorId: string) => {
       queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+      toast.success(editingId ? "Fornecedor atualizado!" : "Fornecedor cadastrado!");
+
+      // ERP sync for new suppliers
+      if (!editingId && fornecedorId) {
+        await syncWithErp(fornecedorId);
+      }
+
       setDialogOpen(false);
       setForm(emptyForm);
       setEditingId(null);
-      toast.success(editingId ? "Fornecedor atualizado!" : "Fornecedor cadastrado!");
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const syncWithErp = async (fornecedorId: string) => {
+    setSyncingErp(true);
+    try {
+      const cnpjDigits = form.cnpj.replace(/\D/g, "");
+      
+      // Step 1: Check if supplier exists in ERP
+      const { data: checkData, error: checkErr } = await supabase.functions.invoke("erp-fornecedores-sync", {
+        body: { cnpj: cnpjDigits, path: "/check" },
+      });
+
+      if (checkErr) {
+        console.error("ERP check error:", checkErr);
+        toast.warning("Fornecedor salvo localmente. Verificação ERP falhou.");
+        return;
+      }
+
+      if (checkData?.found_in_erp && checkData?.erp_code) {
+        toast.info(`Fornecedor já existe no ERP — Código: ${checkData.erp_code}`);
+        // Update local record with ERP code
+        await supabase.from("fornecedores").update({
+          erp_code: String(checkData.erp_code),
+          erp_synced_at: new Date().toISOString(),
+        }).eq("id", fornecedorId);
+        queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+        return;
+      }
+
+      // Step 2: Register in ERP
+      const { data: syncData, error: syncErr } = await supabase.functions.invoke("erp-fornecedores-sync", {
+        body: { cnpj: cnpjDigits, fornecedor_id: fornecedorId, path: "/sync" },
+      });
+
+      if (syncErr) {
+        console.error("ERP sync error:", syncErr);
+        toast.warning("Fornecedor salvo localmente. Sincronização ERP pendente.");
+        return;
+      }
+
+      if (syncData?.synced && syncData?.erp_code) {
+        toast.success(`Fornecedor sincronizado com ERP — Código: ${syncData.erp_code}`);
+        queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+      } else {
+        toast.warning(syncData?.message || "Sincronização ERP pendente.");
+      }
+    } catch (err) {
+      console.error("ERP sync error:", err);
+      toast.warning("Fornecedor salvo. Sincronização ERP será tentada depois.");
+    } finally {
+      setSyncingErp(false);
+    }
+  };
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
@@ -306,7 +362,13 @@ export default function Fornecedores() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const handleOpenNew = () => { setForm(emptyForm); setEditingId(null); setDialogTab("basico"); setDialogOpen(true); };
+  const handleOpenNew = () => {
+    const defaultEmpresaId = empresasDoUsuario.length === 1 ? String(empresasDoUsuario[0].id) : "";
+    setForm({ ...emptyForm, empresa_id: defaultEmpresaId });
+    setEditingId(null);
+    setDialogTab("basico");
+    setDialogOpen(true);
+  };
 
   const handleEdit = (f: Fornecedor) => {
     setForm({
@@ -344,7 +406,6 @@ export default function Fornecedores() {
       telefone: data.telefone || prev.telefone,
       email: data.email || prev.email,
     }));
-    // Also update the fornecedor record if editing
     if (editingId) {
       const updateFields: Record<string, any> = {};
       if (data.situacao) updateFields.situacao_cadastral = data.situacao;
@@ -398,6 +459,7 @@ export default function Fornecedores() {
   const handleSave = async () => {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
     if (!validateCNPJ(form.cnpj)) return toast.error("CNPJ inválido");
+    if (!form.empresa_id) return toast.error("Empresa é obrigatória");
 
     const cnpjDigits = form.cnpj.replace(/\D/g, "");
 
@@ -418,6 +480,26 @@ export default function Fornecedores() {
     setUpsertConfirm(null);
   };
 
+  const handleManualErpSync = async (f: Fornecedor) => {
+    setSyncingErp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("erp-fornecedores-sync", {
+        body: { cnpj: f.cnpj, fornecedor_id: f.id, path: "/sync" },
+      });
+      if (error) throw error;
+      if (data?.synced && data?.erp_code) {
+        toast.success(`Sincronizado com ERP — Código: ${data.erp_code}`);
+      } else {
+        toast.warning(data?.message || "Sincronização pendente.");
+      }
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+    } catch (err: any) {
+      toast.error("Falha ao sincronizar com ERP");
+    } finally {
+      setSyncingErp(false);
+    }
+  };
+
   const statusBadge = (status: string) => {
     const map: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
       ativo: { variant: "default", label: "Ativo" },
@@ -430,7 +512,7 @@ export default function Fornecedores() {
 
   const empresaNome = (empresaId: number | null) => {
     if (!empresaId) return "—";
-    const e = empresas.find((emp: any) => emp.id === empresaId);
+    const e = visibleEmpresas.find((emp) => emp.id === empresaId);
     return e ? e.nome : `#${empresaId}`;
   };
 
@@ -483,7 +565,7 @@ export default function Fornecedores() {
               <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas Empresas</SelectItem>
-                {empresas.map((e: any) => (
+                {visibleEmpresas.map((e) => (
                   <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -568,6 +650,16 @@ export default function Fornecedores() {
                                   size="icon"
                                   variant="ghost"
                                 />
+                                {!f.erp_code && (
+                                  <Button
+                                    variant="ghost" size="icon"
+                                    onClick={() => handleManualErpSync(f)}
+                                    disabled={syncingErp}
+                                    title="Sincronizar com ERP"
+                                  >
+                                    <RefreshCw className={`h-4 w-4 ${syncingErp ? "animate-spin" : ""}`} />
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(f)} title="Editar">
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -665,11 +757,11 @@ export default function Fornecedores() {
                 </div>
               </div>
               <div className="grid gap-1.5">
-                <Label>Empresa</Label>
+                <Label>Empresa *</Label>
                 <Select value={form.empresa_id} onValueChange={(v) => setForm({ ...form, empresa_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
                   <SelectContent>
-                    {empresas.map((e: any) => (
+                    {visibleEmpresas.map((e) => (
                       <SelectItem key={e.id} value={e.id.toString()}>{e.nome}</SelectItem>
                     ))}
                   </SelectContent>
@@ -804,9 +896,9 @@ export default function Fornecedores() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saveMutation.isPending}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar
+            <Button onClick={handleSave} disabled={saveMutation.isPending || syncingErp}>
+              {(saveMutation.isPending || syncingErp) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {syncingErp ? "Sincronizando ERP..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
