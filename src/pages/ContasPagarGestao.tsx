@@ -726,6 +726,43 @@ export default function ContasPagarGestao() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* === Campos Adicionais === */}
+              <div className="col-span-1 md:col-span-2">
+                <Separator className="my-2" />
+                <p className="text-xs font-semibold text-muted-foreground mb-3">Classificação & NF-e</p>
+              </div>
+              <div>
+                <Label>Departamento</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.departamento_nome} onChange={e => setForm(f => ({ ...f, departamento_nome: e.target.value }))} placeholder="Ex: Financeiro" />
+              </div>
+              <div>
+                <Label>Plano de Contas (Código)</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.plano_contas_codigo} onChange={e => setForm(f => ({ ...f, plano_contas_codigo: e.target.value }))} placeholder="Ex: 2.04.01" />
+              </div>
+              <div>
+                <Label>Plano de Contas (Nome)</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.plano_contas_nome} onChange={e => setForm(f => ({ ...f, plano_contas_nome: e.target.value }))} placeholder="Ex: Serviços Terceiros" />
+              </div>
+              <div>
+                <Label>Chave NF-e</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.chave_nfe} onChange={e => setForm(f => ({ ...f, chave_nfe: e.target.value }))} placeholder="44 dígitos" />
+              </div>
+              <div>
+                <Label>Nº Documento Fiscal</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.numero_documento_fiscal} onChange={e => setForm(f => ({ ...f, numero_documento_fiscal: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Código Projeto</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} value={form.codigo_projeto} onChange={e => setForm(f => ({ ...f, codigo_projeto: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data Previsão</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="date" value={form.data_previsao} onChange={e => setForm(f => ({ ...f, data_previsao: e.target.value }))} />
+              </div>
+              <div>
+                <Label>ID Conta Corrente</Label>
+                <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" value={form.id_conta_corrente} onChange={e => setForm(f => ({ ...f, id_conta_corrente: e.target.value }))} />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setModalOpen(false); resetForm(); }}>
