@@ -432,7 +432,7 @@ export default function Fornecedores() {
       cidade: form.cidade.trim() || null,
       estado: form.estado.trim() || null,
       cep: form.cep.trim() || null,
-      empresa_id: form.empresa_id ? parseInt(form.empresa_id) : null,
+      empresa_id: form.empresa_id && form.empresa_id !== "todas" ? parseInt(form.empresa_id) : null,
       codigo_externo: form.codigo_externo.trim() || null,
       fonte_erp: form.fonte_erp.trim() || null,
       status: form.status,
