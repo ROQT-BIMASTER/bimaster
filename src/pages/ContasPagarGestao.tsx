@@ -230,20 +230,10 @@ export default function ContasPagarGestao() {
   // ===== FILTERS =====
   const filtered = useMemo(() => {
     return contas.filter(c => {
-      if (search) {
-        const s = search.toLowerCase();
-        const match = [c.fornecedor_nome, c.numero_documento, c.tipo_documento, c.categoria_nome]
-          .some(f => f?.toLowerCase().includes(s));
-        if (!match) return false;
-      }
-      if (statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (empresaFilter !== "all" && String(c.empresa_id) !== empresaFilter) return false;
       if (fornecedorFilter !== "all" && (c.fornecedor_codigo || c.fornecedor_nome) !== fornecedorFilter) return false;
-      if (dateFrom && c.data_vencimento && c.data_vencimento < format(dateFrom, "yyyy-MM-dd")) return false;
-      if (dateTo && c.data_vencimento && c.data_vencimento > format(dateTo, "yyyy-MM-dd")) return false;
       return true;
     });
-  }, [contas, search, statusFilter, empresaFilter, fornecedorFilter, dateFrom, dateTo]);
+  }, [contas, fornecedorFilter]);
 
   // ===== SUMMARY CARDS =====
   const summary = useMemo(() => {
