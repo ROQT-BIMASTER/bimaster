@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -14,12 +15,15 @@ import { ArrowLeft, Check, X, Link2, Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { callApi, formatBRL, fmtDate } from "@/lib/utils/api-helpers";
 
+const METODOS_PAGAMENTO = ["PIX", "TED", "Boleto", "Dinheiro", "Cartão", "Débito Automático"];
+
 export default function ConciliacaoManualAP() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [vincularModal, setVincularModal] = useState<any>(null);
   const [buscaTitulo, setBuscaTitulo] = useState("");
   const [tituloSelecionado, setTituloSelecionado] = useState<any>(null);
+  const [metodoPagamento, setMetodoPagamento] = useState("PIX");
 
   // Fetch medium-confidence matches
   const { data: matches, isLoading } = useQuery({
@@ -51,15 +55,26 @@ export default function ConciliacaoManualAP() {
     staleTime: 30_000,
   });
 
+  // Infer payment method from transaction description
+  function inferMetodo(match: any): string {
+    const desc = (match.descricao_transacao || "").toLowerCase();
+    if (desc.includes("pix")) return "PIX";
+    if (desc.includes("ted") || desc.includes("transferência") || desc.includes("transferencia")) return "TED";
+    if (desc.includes("boleto")) return "Boleto";
+    if (desc.includes("débito") || desc.includes("debito")) return "Débito Automático";
+    if (desc.includes("cartão") || desc.includes("cartao")) return "Cartão";
+    return "PIX";
+  }
+
   // Confirm match
   const confirmMutation = useMutation({
-    mutationFn: async (match: any) => {
+    mutationFn: async ({ match, metodo }: { match: any; metodo: string }) => {
       await callApi("contas-pagar-api", {
         path: "/registrar-pagamento",
         id: match.conta_pagar_id,
         valor_pago: match.valor_transacao,
         data_pagamento: match.data_transacao,
-        metodo_pagamento: "PIX",
+        metodo_pagamento: metodo,
       });
       await callApi("contas-pagar-api", {
         path: "/update",
@@ -95,13 +110,13 @@ export default function ConciliacaoManualAP() {
 
   // Manual link mutation
   const vincularMutation = useMutation({
-    mutationFn: async ({ match, titulo }: { match: any; titulo: any }) => {
+    mutationFn: async ({ match, titulo, metodo }: { match: any; titulo: any; metodo: string }) => {
       await callApi("contas-pagar-api", {
         path: "/registrar-pagamento",
         id: titulo.id,
         valor_pago: match.valor_transacao,
         data_pagamento: match.data_transacao,
-        metodo_pagamento: "PIX",
+        metodo_pagamento: metodo,
       });
       await callApi("contas-pagar-api", {
         path: "/update",
@@ -148,89 +163,96 @@ export default function ConciliacaoManualAP() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {matches.map((match: any) => (
-              <div key={match.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Left — Bank Transaction */}
-                <Card className="border-l-4 border-l-[#2563EB]">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-[#1B2A4A]">Transação Bancária</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Data</span>
-                      <span>{fmtDate(match.data_transacao)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Descrição</span>
-                      <span className="text-right max-w-[200px] truncate">{match.descricao_transacao || "—"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Valor</span>
-                      <span className="font-semibold">{formatBRL(match.valor_transacao)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Banco</span>
-                      <span>{match.banco || "—"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Confiança</span>
-                      <Badge className="bg-yellow-100 text-yellow-800 text-xs">Média</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+            {matches.map((match: any) => {
+              const inferredMetodo = inferMetodo(match);
+              return (
+                <div key={match.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left — Bank Transaction */}
+                  <Card className="border-l-4 border-l-[#2563EB]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-[#1B2A4A]">Transação Bancária</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Data</span>
+                        <span>{fmtDate(match.data_transacao)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Descrição</span>
+                        <span className="text-right max-w-[200px] truncate">{match.descricao_transacao || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor</span>
+                        <span className="font-semibold">{formatBRL(match.valor_transacao)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Banco</span>
+                        <span>{match.banco || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Confiança</span>
+                        <Badge className="bg-yellow-100 text-yellow-800 text-xs">Média</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Right — AP Title */}
-                <Card className="border-l-4 border-l-[#16A34A]">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-[#1B2A4A]">Título AP Sugerido</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Fornecedor</span>
-                      <span>{match.fornecedor_nome || "—"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Vencimento</span>
-                      <span>{fmtDate(match.data_vencimento)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Valor</span>
-                      <span className="font-semibold">{formatBRL(match.valor_titulo)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status</span>
-                      <Badge className="bg-blue-100 text-blue-800 text-xs">{match.status_titulo || "Pendente"}</Badge>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => confirmMutation.mutate(match)}
-                        disabled={confirmMutation.isPending}
-                      >
-                        {confirmMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1 h-3.5 w-3.5" />}
-                        Confirmar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => rejectMutation.mutate(match.id)}
-                        disabled={rejectMutation.isPending}
-                      >
-                        <X className="mr-1 h-3.5 w-3.5" /> Rejeitar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => { setVincularModal(match); setBuscaTitulo(""); setTituloSelecionado(null); }}
-                      >
-                        <Link2 className="mr-1 h-3.5 w-3.5" /> Vincular outro
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+                  {/* Right — AP Title */}
+                  <Card className="border-l-4 border-l-[#16A34A]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-[#1B2A4A]">Título AP Sugerido</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fornecedor</span>
+                        <span>{match.fornecedor_nome || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Vencimento</span>
+                        <span>{fmtDate(match.data_vencimento)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor</span>
+                        <span className="font-semibold">{formatBRL(match.valor_titulo)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <Badge className="bg-blue-100 text-blue-800 text-xs">{match.status_titulo || "Pendente"}</Badge>
+                      </div>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-muted-foreground">Método</span>
+                        <Badge variant="outline" className="text-xs">{inferredMetodo}</Badge>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => confirmMutation.mutate({ match, metodo: inferredMetodo })}
+                          disabled={confirmMutation.isPending}
+                        >
+                          {confirmMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1 h-3.5 w-3.5" />}
+                          Confirmar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => rejectMutation.mutate(match.id)}
+                          disabled={rejectMutation.isPending}
+                        >
+                          <X className="mr-1 h-3.5 w-3.5" /> Rejeitar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => { setVincularModal(match); setBuscaTitulo(""); setTituloSelecionado(null); setMetodoPagamento(inferredMetodo); }}
+                        >
+                          <Link2 className="mr-1 h-3.5 w-3.5" /> Vincular outro
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -250,6 +272,17 @@ export default function ConciliacaoManualAP() {
                   <span className="text-muted-foreground">Valor:</span>
                   <span className="font-semibold">{formatBRL(vincularModal?.valor_transacao)}</span>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Método de Pagamento</Label>
+                <Select value={metodoPagamento} onValueChange={setMetodoPagamento}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {METODOS_PAGAMENTO.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Buscar título por fornecedor</Label>
@@ -292,7 +325,7 @@ export default function ConciliacaoManualAP() {
               <Button variant="outline" onClick={() => setVincularModal(null)}>Cancelar</Button>
               <Button
                 disabled={!tituloSelecionado || vincularMutation.isPending}
-                onClick={() => vincularMutation.mutate({ match: vincularModal, titulo: tituloSelecionado })}
+                onClick={() => vincularMutation.mutate({ match: vincularModal, titulo: tituloSelecionado, metodo: metodoPagamento })}
               >
                 {vincularMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Link2 className="mr-2 h-4 w-4" /> Vincular

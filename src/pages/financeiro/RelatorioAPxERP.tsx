@@ -14,7 +14,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useState } from "react";
-import { callExportApi, fmtDateTime } from "@/lib/utils/api-helpers";
+import { callExportApi, fmtDateTime, formatBRL } from "@/lib/utils/api-helpers";
 
 const ENDPOINTS = [
   { fn: "contas-pagar-api", method: "GET", path: "/listar", auth: "JWT/Key", desc: "Listagem paginada" },
@@ -77,6 +77,7 @@ export default function RelatorioAPxERP() {
   });
 
   const resumo = reconc?.resumo || {};
+  const summaryData = summary || {};
 
   return (
     <DashboardLayout>
@@ -97,7 +98,7 @@ export default function RelatorioAPxERP() {
           </Button>
         </div>
 
-        {/* KPIs */}
+        {/* Reconciliation KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
@@ -133,6 +134,39 @@ export default function RelatorioAPxERP() {
           </Card>
         </div>
 
+        {/* Export Summary KPIs */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg text-[#1B2A4A]">Resumo de Exportação</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {summaryLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="rounded-md border p-3">
+                  <div className="text-lg font-bold text-[#EA580C]">{summaryData.total_exported ?? "—"}</div>
+                  <p className="text-xs text-muted-foreground">Total Exportados</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-lg font-bold text-[#16A34A]">{formatBRL(summaryData.total_value_exported)}</div>
+                  <p className="text-xs text-muted-foreground">Valor Exportado</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-lg font-bold text-[#2563EB]">{summaryData.total_pending ?? "—"}</div>
+                  <p className="text-xs text-muted-foreground">Pendentes</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-lg font-bold text-[#DC2626]">{summaryData.total_errors ?? "—"}</div>
+                  <p className="text-xs text-muted-foreground">Erros</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* SVG Lifecycle Flowchart */}
         <Card>
           <CardHeader>
@@ -155,7 +189,6 @@ export default function RelatorioAPxERP() {
                 </marker>
               </defs>
 
-              {/* Main flow nodes */}
               {[
                 { x: 10, label: "Cadastro", sub: "CadastroTituloAP", color: "#16A34A" },
                 { x: 160, label: "Aprovação", sub: "Fila Financeiro", color: "#EA580C" },
@@ -174,21 +207,17 @@ export default function RelatorioAPxERP() {
                 </g>
               ))}
 
-              {/* Rejection branch */}
               <path d="M 225 70 L 225 105 L 75 105 L 75 70" fill="none" stroke="#DC2626" strokeWidth={1.2} strokeDasharray="4,3" markerEnd="url(#arrowR)" />
               <text x={150} y={100} textAnchor="middle" fill="#DC2626" fontSize={9}>Rejeição</text>
 
-              {/* Cancellation branch */}
               <path d="M 375 70 L 375 130 L 525 130 L 525 70" fill="none" stroke="#6B7280" strokeWidth={1.2} strokeDasharray="4,3" />
               <text x={450} y={125} textAnchor="middle" fill="#6B7280" fontSize={9}>Cancelamento</text>
               <rect x={470} y={115} width={110} height={25} rx={6} fill="#6B7280" opacity={0.1} stroke="#6B7280" strokeWidth={1} />
               <text x={525} y={132} textAnchor="middle" fill="#6B7280" fontSize={9}>Cancel. ERP</text>
 
-              {/* Conciliação */}
               <path d="M 675 70 L 675 130 L 825 130 L 825 70" fill="none" stroke="#16A34A" strokeWidth={1.2} strokeDasharray="4,3" />
               <text x={750} y={125} textAnchor="middle" fill="#16A34A" fontSize={9}>Conciliação Bancária</text>
 
-              {/* Legend */}
               <rect x={10} y={145} width={12} height={12} rx={3} fill="#16A34A" opacity={0.3} />
               <text x={28} y={155} fontSize={10} fill="#6B7280">Interno (BiMaster)</text>
               <rect x={170} y={145} width={12} height={12} rx={3} fill="#EA580C" opacity={0.3} />

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -13,11 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, CreditCard, XCircle, RotateCcw, FileText, History, Upload, MoreHorizontal, Loader2, Paperclip } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { PostPaymentErpPrompt } from "@/components/financeiro/ap/PostPaymentErpPrompt";
-import { callApi, callExportApi, formatBRL, fmtDate, enqueueErpSync } from "@/lib/utils/api-helpers";
+import { callApi, callExportApi, formatBRL, fmtDate, fmtDateTime, dateToApi, enqueueErpSync } from "@/lib/utils/api-helpers";
+import { debounce } from "@/lib/utils/debounce";
 
 const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   pendente: { label: "Pendente", cls: "bg-blue-100 text-blue-800" },
@@ -35,6 +36,12 @@ const ERP_BADGES: Record<string, { label: string; cls: string }> = {
   erro: { label: "Erro ERP", cls: "bg-red-100 text-red-800" },
 };
 
+const ORIGEM_BADGES: Record<string, string> = {
+  pluggy: "Pluggy",
+  erp_webhook: "ERP",
+  manual: "Manual",
+};
+
 export default function PainelCentralAP() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -44,10 +51,17 @@ export default function PainelCentralAP() {
   const [porPagina, setPorPagina] = useState(20);
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroFornecedor, setFiltroFornecedor] = useState("");
+  const [filtroFornecedorDebounced, setFiltroFornecedorDebounced] = useState("");
   const [filtroDataDe, setFiltroDataDe] = useState("");
   const [filtroDataAte, setFiltroDataAte] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [filtroDepartamento, setFiltroDepartamento] = useState("");
+
+  // Debounced fornecedor search
+  const debouncedSetFornecedor = useMemo(
+    () => debounce((v: string) => { setFiltroFornecedorDebounced(v); setPagina(1); }, 400),
+    []
+  );
 
   // Modals
   const [paymentModal, setPaymentModal] = useState<any>(null);
@@ -55,6 +69,7 @@ export default function PainelCentralAP() {
   const [estornoModal, setEstornoModal] = useState<any>(null);
   const [parcelasSheet, setParcelasSheet] = useState<any>(null);
   const [pagamentosSheet, setPagamentosSheet] = useState<any>(null);
+  const [anexosSheet, setAnexosSheet] = useState<any>(null);
   const [erpPrompt, setErpPrompt] = useState<string | null>(null);
 
   // Payment form
@@ -70,6 +85,10 @@ export default function PainelCentralAP() {
   const [estornoMotivo, setEstornoMotivo] = useState("");
   const [estornoValor, setEstornoValor] = useState("");
 
+  // Anexo upload
+  const [anexoFile, setAnexoFile] = useState<File | null>(null);
+  const [anexoTipo, setAnexoTipo] = useState("CP");
+
   // KPIs
   const { data: resumo, isLoading: resumoLoading } = useQuery({
     queryKey: ["ap-resumo"],
@@ -83,17 +102,17 @@ export default function PainelCentralAP() {
     staleTime: 60_000,
   });
 
-  // Main table
+  // Main table — apply dateToApi to date filters
   const { data: titulos, isLoading: titulosLoading } = useQuery({
-    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedor, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento],
+    queryKey: ["ap-titulos", pagina, porPagina, filtroStatus, filtroFornecedorDebounced, filtroDataDe, filtroDataAte, filtroCategoria, filtroDepartamento],
     queryFn: () => callApi("contas-pagar-api", {
       path: "/listar",
       pagina,
       registros_por_pagina: porPagina,
       ...(filtroStatus ? { filtrar_por_status: filtroStatus } : {}),
-      ...(filtroDataDe ? { filtrar_por_data_de: filtroDataDe } : {}),
-      ...(filtroDataAte ? { filtrar_por_data_ate: filtroDataAte } : {}),
-      ...(filtroFornecedor ? { filtrar_cliente: filtroFornecedor } : {}),
+      ...(filtroDataDe ? { filtrar_por_data_de: dateToApi(filtroDataDe) } : {}),
+      ...(filtroDataAte ? { filtrar_por_data_ate: dateToApi(filtroDataAte) } : {}),
+      ...(filtroFornecedorDebounced ? { filtrar_cliente: filtroFornecedorDebounced } : {}),
       ...(filtroCategoria ? { filtrar_categoria: filtroCategoria } : {}),
       ...(filtroDepartamento ? { filtrar_departamento: filtroDepartamento } : {}),
     }),
@@ -166,7 +185,6 @@ export default function PainelCentralAP() {
   const cancelMutation = useMutation({
     mutationFn: async (body: any) => {
       const result = await callApi("contas-pagar-api", { path: "/cancelar", ...body });
-      // Enqueue cancellation to ERP
       for (const id of (body.ids || [])) {
         await enqueueErpSync({ contaPagarId: id, operacao: "cancelamento", action: "export_cancelamento" });
       }
@@ -210,6 +228,17 @@ export default function PainelCentralAP() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Cancel payment mutation
+  const cancelPaymentMutation = useMutation({
+    mutationFn: (codigoBaixa: string) => callApi("contas-pagar-api", { path: "/cancelar-pagamento", codigo_baixa: codigoBaixa }),
+    onSuccess: () => {
+      toast.success("Pagamento cancelado com sucesso");
+      qc.invalidateQueries({ queryKey: ["ap-pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["ap-titulos"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   // Parcelas
   const { data: parcelas, isLoading: parcelasLoading } = useQuery({
     queryKey: ["ap-parcelas", parcelasSheet?.id],
@@ -224,11 +253,51 @@ export default function PainelCentralAP() {
     enabled: !!pagamentosSheet,
   });
 
+  // Anexos
+  const { data: anexos, isLoading: anexosLoading } = useQuery({
+    queryKey: ["ap-anexos", anexosSheet?.id],
+    queryFn: () => callApi("contas-pagar-api", { path: "/anexos", conta_pagar_id: anexosSheet.id }),
+    enabled: !!anexosSheet,
+  });
+
+  // Upload anexo mutation
+  const uploadAnexoMutation = useMutation({
+    mutationFn: async () => {
+      if (!anexoFile || !anexosSheet) return;
+      const formData = new FormData();
+      formData.append("file", anexoFile);
+      const { data: { session } } = await supabase.auth.getSession();
+      // Upload to storage first, then register
+      const filePath = `anexos/${anexosSheet.id}/${Date.now()}_${anexoFile.name}`;
+      const { error: upErr } = await supabase.storage.from("comprovantes").upload(filePath, anexoFile);
+      if (upErr) throw upErr;
+      return callApi("contas-pagar-api", {
+        path: "/anexos",
+        conta_pagar_id: anexosSheet.id,
+        tipo_anexo: anexoTipo,
+        arquivo_path: filePath,
+        nome_arquivo: anexoFile.name,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Comprovante anexado com sucesso");
+      setAnexoFile(null);
+      qc.invalidateQueries({ queryKey: ["ap-anexos"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao anexar"),
+  });
+
   const totalPaginas = titulos?.total_de_paginas || 1;
+
+  // KPI "Vencidos" as count, not monetary value
+  const vencidosCount = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return list.filter((t: any) => t.status === "pendente" && t.data_vencimento && t.data_vencimento < today).length;
+  }, [list]);
 
   const kpis = [
     { label: "Total em Aberto", value: formatBRL(resumo?.contaPagar?.vTotal), color: "text-[#2563EB]" },
-    { label: "Vencidos", value: formatBRL(resumo?.contaPagar?.vVencido), color: "text-[#DC2626]" },
+    { label: "Vencidos", value: String(vencidosCount), color: "text-[#DC2626]" },
     { label: "Pago no Mês", value: formatBRL(resumo?.contaPagar?.vPago), color: "text-[#16A34A]" },
     { label: "Aguardando ERP", value: erpStatus?.pending_total ?? "—", color: "text-[#EA580C]" },
   ];
@@ -320,7 +389,12 @@ export default function PainelCentralAP() {
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Fornecedor</Label>
-            <Input className="h-9 w-[180px]" placeholder="Buscar..." value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} />
+            <Input
+              className="h-9 w-[180px]"
+              placeholder="Buscar..."
+              value={filtroFornecedor}
+              onChange={(e) => { setFiltroFornecedor(e.target.value); debouncedSetFornecedor(e.target.value); }}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Por página</Label>
@@ -347,10 +421,12 @@ export default function PainelCentralAP() {
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>N° Título</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Departamento</TableHead>
                     <TableHead>Vencimento</TableHead>
                     <TableHead>Valor Original</TableHead>
                     <TableHead>Valor Pago</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Origem Baixa</TableHead>
                     <TableHead>Status ERP</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -358,7 +434,7 @@ export default function PainelCentralAP() {
                 <TableBody>
                   {list.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         Nenhum título encontrado.
                       </TableCell>
                     </TableRow>
@@ -372,10 +448,12 @@ export default function PainelCentralAP() {
                           <TableCell className="font-medium text-sm">{item.fornecedor_nome || "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{item.codigo_lancamento_integracao || "—"}</TableCell>
                           <TableCell className="text-xs">{item.codigo_categoria || "—"}</TableCell>
+                          <TableCell className="text-xs">{item.departamento_nome || "—"}</TableCell>
                           <TableCell className="text-xs">{fmtDate(item.data_vencimento)}</TableCell>
                           <TableCell className="text-sm">{formatBRL(item.valor_documento || item.valor_original)}</TableCell>
                           <TableCell className="text-sm">{formatBRL(item.valor_pago)}</TableCell>
                           <TableCell><Badge className={`${st.cls} text-xs`}>{st.label}</Badge></TableCell>
+                          <TableCell className="text-xs">{ORIGEM_BADGES[item.baixa_origem] || "—"}</TableCell>
                           <TableCell><Badge className={`${erp.cls} text-xs`}>{erp.label}</Badge></TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -402,6 +480,9 @@ export default function PainelCentralAP() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setPagamentosSheet(item)}>
                                   <History className="mr-2 h-3.5 w-3.5" /> Histórico Pagamentos
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setAnexosSheet(item); setAnexoFile(null); }}>
+                                  <Paperclip className="mr-2 h-3.5 w-3.5" /> Anexar Comprovante
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => erpExportMutation.mutate(item.id)}>
                                   <Upload className="mr-2 h-3.5 w-3.5" /> Enviar ao ERP
@@ -571,9 +652,9 @@ export default function PainelCentralAP() {
           </SheetContent>
         </Sheet>
 
-        {/* Pagamentos Sheet */}
+        {/* Pagamentos Sheet — with Cancel Payment button */}
         <Sheet open={!!pagamentosSheet} onOpenChange={(o) => !o && setPagamentosSheet(null)}>
-          <SheetContent className="w-[500px]">
+          <SheetContent className="w-[550px]">
             <SheetHeader>
               <SheetTitle className="text-[#1B2A4A]">Histórico de Pagamentos</SheetTitle>
             </SheetHeader>
@@ -583,7 +664,7 @@ export default function PainelCentralAP() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead></TableRow>
+                    <TableRow><TableHead>Data</TableHead><TableHead>Valor</TableHead><TableHead>Método</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow>
                   </TableHeader>
                   <TableBody>
                     {(pagamentos?.data || []).map((p: any, i: number) => (
@@ -592,6 +673,80 @@ export default function PainelCentralAP() {
                         <TableCell>{formatBRL(p.valor)}</TableCell>
                         <TableCell>{p.metodo_pagamento || "—"}</TableCell>
                         <TableCell>{p.status || "—"}</TableCell>
+                        <TableCell>
+                          {p.status !== "cancelado" && p.id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs text-destructive"
+                              disabled={cancelPaymentMutation.isPending}
+                              onClick={() => cancelPaymentMutation.mutate(p.id)}
+                            >
+                              {cancelPaymentMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3 mr-1" />}
+                              Cancelar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Anexos Sheet — upload comprovante */}
+        <Sheet open={!!anexosSheet} onOpenChange={(o) => !o && setAnexosSheet(null)}>
+          <SheetContent className="w-[500px]">
+            <SheetHeader>
+              <SheetTitle className="text-[#1B2A4A]">Comprovantes / Anexos</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 space-y-4">
+              {/* Upload section */}
+              <div className="rounded-md border p-3 space-y-3">
+                <Label className="text-sm font-medium">Enviar novo comprovante</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={anexoTipo} onValueChange={setAnexoTipo}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CP">Comprovante Pagamento</SelectItem>
+                      <SelectItem value="NF">Nota Fiscal</SelectItem>
+                      <SelectItem value="CT">Contrato</SelectItem>
+                      <SelectItem value="OT">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.xml"
+                  onChange={(e) => setAnexoFile(e.target.files?.[0] || null)}
+                />
+                <Button
+                  size="sm"
+                  disabled={!anexoFile || uploadAnexoMutation.isPending}
+                  onClick={() => uploadAnexoMutation.mutate()}
+                >
+                  {uploadAnexoMutation.isPending && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                  <Upload className="mr-1 h-3.5 w-3.5" /> Enviar
+                </Button>
+              </div>
+
+              {/* Existing attachments */}
+              {anexosLoading ? (
+                <div className="space-y-2">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Tipo</TableHead><TableHead>Arquivo</TableHead><TableHead>Data</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(anexos?.data || []).map((a: any, i: number) => (
+                      <TableRow key={a.id || i}>
+                        <TableCell className="text-xs">{a.tipo_anexo || a.tipo || "—"}</TableCell>
+                        <TableCell className="text-xs">{a.nome_arquivo || "—"}</TableCell>
+                        <TableCell className="text-xs">{fmtDateTime(a.created_at)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

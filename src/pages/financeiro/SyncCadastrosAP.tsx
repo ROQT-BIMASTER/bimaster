@@ -4,23 +4,17 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, RefreshCw, AlertTriangle, Loader2, Clock } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, Loader2, Clock, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { callApi, fmtDateTime } from "@/lib/utils/api-helpers";
-
-function AlertRow({ show, message }: { show: boolean; message: string }) {
-  if (!show) return null;
-  return (
-    <div className="flex items-center gap-2 text-xs text-[#DC2626] py-1">
-      <AlertTriangle className="h-3.5 w-3.5" />
-      {message}
-    </div>
-  );
-}
 
 export default function SyncCadastrosAP() {
   const navigate = useNavigate();
@@ -29,6 +23,25 @@ export default function SyncCadastrosAP() {
   const [lastSyncForn, setLastSyncForn] = useState<string | null>(null);
   const [lastSyncCat, setLastSyncCat] = useState<string | null>(null);
   const [lastSyncCC, setLastSyncCC] = useState<string | null>(null);
+
+  // Modals
+  const [novaCondicaoModal, setNovaCondicaoModal] = useState(false);
+  const [novaCategoriaModal, setNovaCategoriaModal] = useState(false);
+  const [novoGrupoModal, setNovoGrupoModal] = useState(false);
+
+  // Nova condição form
+  const [condicaoDescricao, setCondicaoDescricao] = useState("");
+
+  // Nova categoria form
+  const [catDescricao, setCatDescricao] = useState("");
+  const [catTipo, setCatTipo] = useState("D");
+  const [catNatureza, setCatNatureza] = useState("");
+  const [catCodigoDre, setCatCodigoDre] = useState("");
+
+  // Novo grupo form
+  const [grupoDescricao, setGrupoDescricao] = useState("");
+  const [grupoTipo, setGrupoTipo] = useState("D");
+  const [grupoNatureza, setGrupoNatureza] = useState("");
 
   // Fornecedores
   const { data: fornecedores, isLoading: fornLoading } = useQuery({
@@ -58,7 +71,7 @@ export default function SyncCadastrosAP() {
     staleTime: 60_000,
   });
 
-  // Sync mutations - fetch from ERP then refresh
+  // Sync mutations
   const syncFornMutation = useMutation({
     mutationFn: () => callApi("clientes-api", { path: "/sync", lote: true }),
     onSuccess: () => {
@@ -71,7 +84,6 @@ export default function SyncCadastrosAP() {
 
   const syncCCMutation = useMutation({
     mutationFn: async () => {
-      // First fetch current data from ERP, then upsert
       const erpData = await callApi("contas-correntes-api", { path: "/listar-erp" });
       const contas = erpData?.data || erpData?.contas || [];
       if (contas.length === 0) {
@@ -90,7 +102,6 @@ export default function SyncCadastrosAP() {
 
   const syncCatMutation = useMutation({
     mutationFn: async () => {
-      // Fetch categories from ERP and sync
       const erpData = await callApi("categorias-api", { path: "/sync" });
       return erpData;
     },
@@ -100,6 +111,53 @@ export default function SyncCadastrosAP() {
       qc.invalidateQueries({ queryKey: ["sync-categorias"] });
     },
     onError: (e: any) => toast.error(e.message || "Erro ao sincronizar categorias"),
+  });
+
+  // Nova condição mutation
+  const novaCondicaoMutation = useMutation({
+    mutationFn: () => callApi("parcelas-api", { path: "/incluir", cParcela: condicaoDescricao }),
+    onSuccess: (data) => {
+      toast.success(`Condição incluída: ${data?.cCodParcela || data?.cDesParcela || "OK"}`);
+      setNovaCondicaoModal(false);
+      setCondicaoDescricao("");
+      qc.invalidateQueries({ queryKey: ["sync-parcelas"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao incluir condição"),
+  });
+
+  // Nova categoria mutation
+  const novaCategoriaMutation = useMutation({
+    mutationFn: () => callApi("categorias-api", {
+      path: "/incluir",
+      descricao: catDescricao,
+      tipo_categoria: catTipo,
+      natureza: catNatureza,
+      codigo_dre: catCodigoDre,
+    }),
+    onSuccess: () => {
+      toast.success("Categoria incluída com sucesso!");
+      setNovaCategoriaModal(false);
+      setCatDescricao(""); setCatNatureza(""); setCatCodigoDre("");
+      qc.invalidateQueries({ queryKey: ["sync-categorias"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao incluir categoria"),
+  });
+
+  // Novo grupo mutation
+  const novoGrupoMutation = useMutation({
+    mutationFn: () => callApi("categorias-api", {
+      path: "/incluir-grupo",
+      descricao: grupoDescricao,
+      tipo_grupo: grupoTipo,
+      natureza: grupoNatureza,
+    }),
+    onSuccess: () => {
+      toast.success("Grupo incluído com sucesso!");
+      setNovoGrupoModal(false);
+      setGrupoDescricao(""); setGrupoNatureza("");
+      qc.invalidateQueries({ queryKey: ["sync-categorias"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao incluir grupo"),
   });
 
   function renderSkeleton() {
@@ -199,10 +257,18 @@ export default function SyncCadastrosAP() {
                 <span className="text-sm text-muted-foreground">{catList.length} registros</span>
                 <LastSyncIndicator timestamp={lastSyncCat} />
               </div>
-              <Button size="sm" onClick={() => syncCatMutation.mutate()} disabled={syncCatMutation.isPending}>
-                {syncCatMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
-                Sincronizar do ERP
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setNovaCategoriaModal(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Incluir Categoria
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setNovoGrupoModal(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Incluir Grupo
+                </Button>
+                <Button size="sm" onClick={() => syncCatMutation.mutate()} disabled={syncCatMutation.isPending}>
+                  {syncCatMutation.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
+                  Sincronizar do ERP
+                </Button>
+              </div>
             </div>
             {catLoading ? renderSkeleton() : (
               <div className="rounded-md border">
@@ -286,6 +352,9 @@ export default function SyncCadastrosAP() {
           <TabsContent value="parcelas" className="mt-4 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">{parcList.length} registros</span>
+              <Button size="sm" variant="outline" onClick={() => setNovaCondicaoModal(true)}>
+                <Plus className="mr-1 h-3.5 w-3.5" /> Nova Condição
+              </Button>
             </div>
             {parcLoading ? renderSkeleton() : (
               <div className="rounded-md border">
@@ -313,6 +382,117 @@ export default function SyncCadastrosAP() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Nova Condição Modal */}
+        <Dialog open={novaCondicaoModal} onOpenChange={setNovaCondicaoModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Nova Condição de Pagamento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Descrição da condição *</Label>
+                <Input
+                  value={condicaoDescricao}
+                  onChange={(e) => setCondicaoDescricao(e.target.value)}
+                  placeholder="Ex: 30/60/90"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNovaCondicaoModal(false)}>Cancelar</Button>
+              <Button
+                disabled={novaCondicaoMutation.isPending || !condicaoDescricao.trim()}
+                onClick={() => novaCondicaoMutation.mutate()}
+              >
+                {novaCondicaoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Incluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Nova Categoria Modal */}
+        <Dialog open={novaCategoriaModal} onOpenChange={setNovaCategoriaModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Incluir Categoria</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Descrição *</Label>
+                <Input value={catDescricao} onChange={(e) => setCatDescricao(e.target.value)} placeholder="Ex: Serviços Terceiros" />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select value={catTipo} onValueChange={setCatTipo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="D">Despesa</SelectItem>
+                    <SelectItem value="R">Receita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Natureza</Label>
+                <Input value={catNatureza} onChange={(e) => setCatNatureza(e.target.value)} placeholder="Descrição da natureza" />
+              </div>
+              <div className="space-y-2">
+                <Label>Código DRE</Label>
+                <Input value={catCodigoDre} onChange={(e) => setCatCodigoDre(e.target.value)} placeholder="Ex: 3.01.01" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNovaCategoriaModal(false)}>Cancelar</Button>
+              <Button
+                disabled={novaCategoriaMutation.isPending || !catDescricao.trim()}
+                onClick={() => novaCategoriaMutation.mutate()}
+              >
+                {novaCategoriaMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Incluir Categoria
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Novo Grupo Modal */}
+        <Dialog open={novoGrupoModal} onOpenChange={setNovoGrupoModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-[#1B2A4A]">Incluir Grupo de Categoria</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Descrição *</Label>
+                <Input value={grupoDescricao} onChange={(e) => setGrupoDescricao(e.target.value)} placeholder="Ex: Despesas Operacionais" />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select value={grupoTipo} onValueChange={setGrupoTipo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="D">Despesa</SelectItem>
+                    <SelectItem value="R">Receita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Natureza</Label>
+                <Input value={grupoNatureza} onChange={(e) => setGrupoNatureza(e.target.value)} placeholder="Observação do grupo" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNovoGrupoModal(false)}>Cancelar</Button>
+              <Button
+                disabled={novoGrupoMutation.isPending || !grupoDescricao.trim()}
+                onClick={() => novoGrupoMutation.mutate()}
+              >
+                {novoGrupoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Incluir Grupo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
