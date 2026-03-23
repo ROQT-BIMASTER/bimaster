@@ -100,7 +100,7 @@ const contasPagarCrud: Endpoint[] = [
     method: "POST", path: "/cancelar", description: "Cancelamento com motivo obrigatório (suporta batch)",
     flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Parse IDs", "Cancelar Titulos", "Webhook Event", "Response 200"],
     body: `{ "ids": ["uuid-1", "uuid-2"], "motivo": "Duplicidade de lançamento" }`,
-    response: `{ "cancelados": 2, "message": "2 título(s) cancelado(s)" }`,
+    response: `{ "success": true, "cancelados": 2, "ids": ["uuid-1", "uuid-2"], "message": "2 título(s) cancelado(s)" }`,
   },
   {
     method: "POST", path: "/registrar-pagamento", description: "Registrar pagamento/baixa via API",
