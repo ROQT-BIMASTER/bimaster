@@ -268,6 +268,12 @@ const ConsultaProcessos = lazyWithRetry(() => import("./pages/ConsultaProcessos"
 const ConfigEtapasProcesso = lazyWithRetry(() => import("./pages/ConfigEtapasProcesso"));
 const ConfigDocWorkflows = lazyWithRetry(() => import("./pages/ConfigDocWorkflows"));
 const ContasPagarGestao = lazyWithRetry(() => import("./pages/ContasPagarGestao"));
+const FilaExportacaoERP = lazyWithRetry(() => import("./pages/financeiro/FilaExportacaoERP"));
+const PainelCentralAP = lazyWithRetry(() => import("./pages/financeiro/PainelCentralAP"));
+const CadastroTituloAP = lazyWithRetry(() => import("./pages/financeiro/CadastroTituloAP"));
+const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadastrosAP"));
+const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
+const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
 
 // Loading component
 const PageLoader = () => (
