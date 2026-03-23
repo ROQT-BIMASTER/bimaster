@@ -82,47 +82,13 @@ export function DocumentAuditCard({ item, onChaveAcessoChange }: DocumentAuditCa
         {auditResult && <AuditResultDisplay result={auditResult} />}
 
         {/* Chave de Acesso NF-e */}
-        <div className="space-y-1.5 pt-1 border-t border-border/50">
-          <div className="flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-            <Label className="text-xs text-muted-foreground">Chave de Acesso NF-e</Label>
-          </div>
-          <Input
-            value={formatChaveAcesso(chaveAcesso)}
-            onChange={(e) => handleChaveChange(e.target.value)}
-            placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
-            className="font-mono text-xs h-8"
-            maxLength={55}
+        <div className="pt-1 border-t border-border/50">
+          <ChaveAcessoInput
+            value={(item as any).chave_acesso_nfe || ""}
+            onChange={(v) => onChaveAcessoChange?.(v)}
+            aiSuggestion={auditResult?.extracted_chave_acesso}
           />
-          {chaveAcesso && chaveAcesso.length < 44 && (
-            <p className="text-[10px] text-muted-foreground">{chaveAcesso.length}/44 dígitos</p>
-          )}
-          {chaveAcesso && chaveAcesso.length === 44 && (
-            <p className="text-[10px] text-emerald-600 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Chave completa
-            </p>
-          )}
         </div>
-
-        {/* AI Suggestion for chave de acesso */}
-        {hasSuggestion && (
-          <div className="flex items-start gap-2 p-2 bg-primary/5 rounded-md border border-primary/20">
-            <Lightbulb className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-            <div className="flex-1 text-xs">
-              <p className="text-primary font-medium">Sugestão IA: Chave de Acesso detectada</p>
-              <p className="text-muted-foreground font-mono break-all">{formatChaveAcesso(suggestedChave)}</p>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={handleApplySuggestion}
-              className="h-6 px-2 text-xs"
-            >
-              Aplicar
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
