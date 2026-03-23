@@ -401,19 +401,19 @@ export default function ContasAPagar() {
           query = query.eq('data_pagamento', filterDiaPagamento);
         }
         
-        // Ano/Mês
-        if (filterAno === 'all') {
-          const hoje = new Date();
-          const anoAtual = hoje.getFullYear();
-          query = query.gte('data_vencimento', `${anoAtual - 3}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
-        } else {
-          query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
-        }
-        
-        if (filterMes !== 'all' && filterAno !== 'all') {
-          const mes = filterMes.padStart(2, '0');
-          const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
-          query = query.gte('data_vencimento', `${filterAno}-${mes}-01`).lte('data_vencimento', `${filterAno}-${mes}-${lastDay}`);
+        // Ano/Mês - Só aplicar se NÃO houver filtro de dia específico
+        if (!filterDiaVencimento && !filterDiaPagamento) {
+          if (filterMes !== 'all' && filterAno !== 'all') {
+            const mes = filterMes.padStart(2, '0');
+            const lastDay = new Date(parseInt(filterAno), parseInt(filterMes), 0).getDate();
+            query = query.gte('data_vencimento', `${filterAno}-${mes}-01`).lte('data_vencimento', `${filterAno}-${mes}-${lastDay}`);
+          } else if (filterAno !== 'all') {
+            query = query.gte('data_vencimento', `${filterAno}-01-01`).lte('data_vencimento', `${filterAno}-12-31`);
+          } else {
+            const hoje = new Date();
+            const anoAtual = hoje.getFullYear();
+            query = query.gte('data_vencimento', `${anoAtual - 3}-01-01`).lte('data_vencimento', `${anoAtual + 1}-12-31`);
+          }
         }
         
         query = query.range(from, from + PAGE_SIZE - 1);
