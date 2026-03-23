@@ -138,19 +138,14 @@ const PRESET_ENDPOINTS = [
   { label: "Orçamento — Incluir Lote", method: "POST" as HttpMethod, path: "/orcamentos-caixa-api/incluir-lote" },
   { label: "Orçamento — Status", method: "GET" as HttpMethod, path: "/orcamentos-caixa-api/status" },
   // Pesquisar Lançamentos (Unificado)
-  { label: "Pesquisar — Contas a Receber", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
-  { label: "Pesquisar — Contas a Pagar", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
+  { label: "Pesquisar — Lançamentos", method: "POST" as HttpMethod, path: "/pesquisar-lancamentos-api/pesquisar" },
   { label: "Pesquisar — Status", method: "GET" as HttpMethod, path: "/pesquisar-lancamentos-api/status" },
   // Movimentos Financeiros (ListarMovimentos)
-  { label: "Movimentos — Listar Todos", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
-  { label: "Movimentos — Listar CP", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
-  { label: "Movimentos — Listar CR", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
-  { label: "Movimentos — Listar CC", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
+  { label: "Movimentos — Listar", method: "POST" as HttpMethod, path: "/movimentos-financeiros-api/listar" },
   { label: "Movimentos — Status", method: "GET" as HttpMethod, path: "/movimentos-financeiros-api/status" },
   // Resumo Financeiro (Dashboard)
   { label: "Resumo — ObterResumoFinancas", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/resumo" },
-  { label: "Resumo — Em Aberto CP", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/em-aberto" },
-  { label: "Resumo — Em Aberto CR", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/em-aberto" },
+  { label: "Resumo — Em Aberto", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/em-aberto" },
   { label: "Resumo — Lista Finanças", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/lista-financas" },
   { label: "Resumo — Detalhes Lançamento", method: "POST" as HttpMethod, path: "/resumo-financeiro-api/detalhes" },
   { label: "Resumo — Status", method: "GET" as HttpMethod, path: "/resumo-financeiro-api/status" },
@@ -163,16 +158,14 @@ const PRESET_ENDPOINTS = [
   { label: "Tipo Doc — Pesquisar", method: "POST" as HttpMethod, path: "/tipos-documento-api/pesquisar" },
   { label: "Tipo Doc — Status", method: "GET" as HttpMethod, path: "/tipos-documento-api/status" },
   // DRE Cadastro (ListarCadastroDRE)
-  { label: "DRE — Listar Ativas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
-  { label: "DRE — Listar Todas", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
+  { label: "DRE — Listar", method: "POST" as HttpMethod, path: "/dre-cadastro-api/listar" },
   { label: "DRE — Status", method: "GET" as HttpMethod, path: "/dre-cadastro-api/status" },
   // Finalidades de Transferência (ConsultarFinalTransf + ListarFinalTransf)
   { label: "Final. Transf. — Consultar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/consultar?codigo=01" },
   { label: "Final. Transf. — Listar", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/listar?pagina=1&registros_por_pagina=50" },
   { label: "Final. Transf. — Status", method: "GET" as HttpMethod, path: "/finalidades-transferencia-api/status" },
   // Origens de Lançamento (ListarOrigem)
-  { label: "Origens — Listar Todas", method: "POST" as HttpMethod, path: "/origens-api/listar" },
-  { label: "Origens — Listar por Código", method: "POST" as HttpMethod, path: "/origens-api/listar" },
+  { label: "Origens — Listar", method: "POST" as HttpMethod, path: "/origens-api/listar" },
   { label: "Origens — Status", method: "GET" as HttpMethod, path: "/origens-api/status" },
   // Bandeiras de Cartão (ListarBandeiras)
   { label: "Bandeiras — Listar", method: "GET" as HttpMethod, path: "/bandeiras-api/listar?nPagina=1&nRegPorPagina=50" },

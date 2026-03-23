@@ -483,14 +483,11 @@ const API_MODULES: ApiModule[] = [
     icon: <Building2 className="h-5 w-5" />,
     color: "from-blue-600 to-blue-500",
     apis: [
-      { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
-      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
+      { id: "clientes", name: "Clientes", description: "CRUD completo de clientes/fornecedores. ⚠️ Este é o cadastro geral de pessoas (clientes e fornecedores). Para consultas específicas de fornecedores do Contas a Pagar, use a API de Fornecedores.", basePath: "/clientes-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD Principal", endpoints: clientesCrud }, { title: "Características", endpoints: clientesCaractCrud }, { title: "Tags", endpoints: clientesTagsCrud }] },
+      { id: "fornecedores-query", name: "Fornecedores (Consulta)", description: "Consulta de fornecedores ativos por CNPJ. ⚠️ Subset do cadastro de Clientes: retorna apenas fornecedores vinculados ao Contas a Pagar.", basePath: "/erp-fornecedores-query", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta", endpoints: fornecedoresQueryCrud }] },
       { id: "fornecedores-sync", name: "Fornecedores (Sync)", description: "Sincronização bidirecional de fornecedores com ERP", basePath: "/erp-fornecedores-sync", icon: <RefreshCw className="h-4 w-4 text-blue-500" />, sections: [{ title: "Sync Bidirecional", endpoints: fornecedoresSyncCrud }] },
       { id: "empresas", name: "Empresas", description: "Consultar e listar empresas", basePath: "/empresas-api", icon: <Building2 className="h-4 w-4 text-blue-500" />, sections: [{ title: "Consulta & Listagem", endpoints: empresasCrud }] },
-      { id: "departamentos", name: "Departamentos", description: "CRUD completo de departamentos", basePath: "/departamentos-api", icon: <Layers className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: departamentosCrud }] },
-      { id: "categorias", name: "Categorias", description: "Categorias e grupos totalizadores", basePath: "/categorias-api", icon: <Database className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: categoriasCrud }] },
       { id: "projetos", name: "Projetos", description: "CRUD completo de projetos", basePath: "/projetos-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: projetosCrud }] },
-      { id: "parcelas", name: "Parcelas", description: "Condições de parcelamento", basePath: "/parcelas-api", icon: <FileText className="h-4 w-4 text-blue-500" />, sections: [{ title: "CRUD", endpoints: parcelasCrud }] },
     ],
   },
   {
