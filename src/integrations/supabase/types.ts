@@ -6301,6 +6301,7 @@ export type Database = {
       }
       erp_api_keys: {
         Row: {
+          access_profile_id: string | null
           active: boolean
           created_at: string
           created_by: string | null
@@ -6314,6 +6315,7 @@ export type Database = {
           request_count: number
         }
         Insert: {
+          access_profile_id?: string | null
           active?: boolean
           created_at?: string
           created_by?: string | null
@@ -6327,6 +6329,7 @@ export type Database = {
           request_count?: number
         }
         Update: {
+          access_profile_id?: string | null
           active?: boolean
           created_at?: string
           created_by?: string | null
@@ -6339,7 +6342,15 @@ export type Database = {
           nome_responsavel?: string
           request_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "erp_api_keys_access_profile_id_fkey"
+            columns: ["access_profile_id"]
+            isOneToOne: false
+            referencedRelation: "erp_portal_access_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       erp_config: {
         Row: {
@@ -6477,6 +6488,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      erp_portal_access_modules: {
+        Row: {
+          api_id: string | null
+          created_at: string
+          id: string
+          module_id: string
+          profile_id: string
+          visivel: boolean
+        }
+        Insert: {
+          api_id?: string | null
+          created_at?: string
+          id?: string
+          module_id: string
+          profile_id: string
+          visivel?: boolean
+        }
+        Update: {
+          api_id?: string | null
+          created_at?: string
+          id?: string
+          module_id?: string
+          profile_id?: string
+          visivel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_portal_access_modules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "erp_portal_access_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      erp_portal_access_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       erp_sync_log: {
         Row: {
