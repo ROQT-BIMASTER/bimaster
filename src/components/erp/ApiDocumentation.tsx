@@ -10,7 +10,7 @@ import {
   ArrowDownToLine, ArrowUpFromLine, RefreshCw, Search,
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
-  Rocket, AlertTriangle, Info, Zap
+  Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
@@ -584,8 +584,27 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 
 function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: string }) {
   const [open, setOpen] = useState(false);
+  const [curlCopied, setCurlCopied] = useState(false);
   const fullUrl = `${BASE_URL}${basePath}${endpoint.path}`;
   const hasDetails = endpoint.params || endpoint.body || endpoint.response || endpoint.flow;
+
+  const generateCurl = () => {
+    const parts = [`curl -X ${endpoint.method}`];
+    parts.push(`  -H "x-api-key: SUA_CHAVE"`);
+    if (endpoint.body) {
+      parts.push(`  -H "Content-Type: application/json"`);
+      const compactBody = endpoint.body.replace(/\s+/g, " ").trim();
+      parts.push(`  -d '${compactBody}'`);
+    }
+    parts.push(`  "${fullUrl}"`);
+    return parts.join(" \\\n");
+  };
+
+  const handleCopyCurl = () => {
+    navigator.clipboard.writeText(generateCurl());
+    setCurlCopied(true);
+    setTimeout(() => setCurlCopied(false), 2000);
+  };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -603,6 +622,13 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
       {hasDetails && (
         <CollapsibleContent>
           <div className="ml-10 mr-3 mb-3 space-y-3 border-l-2 border-muted pl-4">
+            {/* Curl copy button */}
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleCopyCurl}>
+                {curlCopied ? <Check className="h-3 w-3 text-emerald-500" /> : <Terminal className="h-3 w-3" />}
+                {curlCopied ? "Copiado!" : "Copiar curl"}
+              </Button>
+            </div>
             {/* Flow diagram */}
             {endpoint.flow && endpoint.flow.length > 0 && (
               <div className="space-y-1">
@@ -623,7 +649,7 @@ function EndpointCard({ endpoint, basePath }: { endpoint: Endpoint; basePath: st
             )}
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">URL completa</span>
-              <CodeBlock code={`curl -H "x-api-key: SUA_CHAVE" \\\n  "${fullUrl}"`} />
+              <CodeBlock code={generateCurl()} />
             </div>
             {endpoint.params && (
               <div>
@@ -888,6 +914,15 @@ export default function ApiDocumentation() {
                   <Shield className="h-5 w-5" />
                   <span>Autenticação</span>
                 </button>
+                <button
+                  onClick={() => scrollToModule("changelog")}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    activeModule === "changelog" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <History className="h-5 w-5" />
+                  <span>Changelog</span>
+                </button>
               </div>
             </div>
           </div>
@@ -984,6 +1019,66 @@ export default function ApiDocumentation() {
                     </div>
                   </div>
 
+                  {/* Retry / Backoff Guide */}
+                  <div className="border border-orange-500/30 bg-orange-500/5 rounded-lg p-3 flex gap-3">
+                    <RotateCcw className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-orange-700">Estratégia de Retry</h4>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Quando receber <code className="bg-muted px-1 rounded">429</code> ou <code className="bg-muted px-1 rounded">5xx</code>, aplique backoff exponencial:
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <div><span className="font-medium">1ª tentativa:</span> aguardar <code className="bg-muted px-1 rounded">Retry-After</code> header (ou 1s)</div>
+                        <div><span className="font-medium">2ª tentativa:</span> aguardar 2s</div>
+                        <div><span className="font-medium">3ª tentativa:</span> aguardar 4s</div>
+                        <div className="text-muted-foreground mt-1">Máximo de 3 tentativas. Após isso, registrar erro e notificar.</div>
+                      </div>
+                      <CodeBlock code={`// Exemplo Node.js
+async function fetchWithRetry(url, opts, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const res = await fetch(url, opts);
+    if (res.ok) return res;
+    if (res.status === 429 || res.status >= 500) {
+      const wait = parseInt(res.headers.get("Retry-After") || String(Math.pow(2, i)));
+      await new Promise(r => setTimeout(r, wait * 1000));
+    } else throw new Error(\`HTTP \${res.status}\`);
+  }
+  throw new Error("Max retries exceeded");
+}`} />
+                    </div>
+                  </div>
+
+                  {/* HMAC Webhook Verification Guide */}
+                  <div className="border border-purple-500/30 bg-purple-500/5 rounded-lg p-3 flex gap-3">
+                    <Shield className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-purple-700">Verificação HMAC de Webhooks</h4>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Ao receber webhooks do BiMaster, verifique a assinatura <code className="bg-muted px-1 rounded">x-hub-signature-256</code> para garantir autenticidade:
+                      </p>
+                      <CodeBlock code={`// Node.js
+const crypto = require("crypto");
+function verifySignature(payload, signature, secret) {
+  const expected = "sha256=" + crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(signature), Buffer.from(expected)
+  );
+}`} label="Node.js" />
+                      <div className="mt-2">
+                        <CodeBlock code={`# Python
+import hmac, hashlib
+def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), payload, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)`} label="Python" />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Webhook Events Catalog */}
                   <div>
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
@@ -1072,9 +1167,15 @@ export default function ApiDocumentation() {
                         {isExpanded && (
                           <div className="px-4 pb-4 border-t bg-muted/10">
                             <div className="mt-3 space-y-1">
-                              <code className="text-[11px] font-mono text-muted-foreground block mb-3">
-                                Base: {BASE_URL}{api.basePath}
-                              </code>
+                              <div className="flex items-center gap-2 mb-3">
+                                <code className="text-[11px] font-mono text-muted-foreground">
+                                  Base: {BASE_URL}{api.basePath}
+                                </code>
+                                <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[9px]">
+                                  <Globe className="h-2.5 w-2.5 mr-1" />
+                                  Produção
+                                </Badge>
+                              </div>
                               {api.sections.map((section, si) => (
                                 <ApiSectionBlock
                                   key={si}
@@ -1152,6 +1253,46 @@ export default function ApiDocumentation() {
                 </div>
               </div>
             </div>
+
+            {/* Changelog */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["changelog"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-slate-600 to-slate-500 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <History className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Changelog</h3>
+                      <p className="text-sm text-white/80">Histórico de mudanças na API</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-3">
+                  {[
+                    { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
+                    { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },
+                    { version: "v1.2.0", date: "2026-03-15", changes: ["Adicionadas 6 APIs: Fornecedores, Plano de Contas, Portadores, Webhook Subscriptions, Webhook Dispatcher", "Separação de 'Tabelas de Referência (Opcional)'", "Remoção de duplicidade webhook-push"] },
+                    { version: "v1.1.0", date: "2026-03-01", changes: ["Chat de suporte em cada endpoint", "Exportação Excel multi-sheet", "Fluxogramas visuais em todos os endpoints"] },
+                    { version: "v1.0.0", date: "2026-02-15", changes: ["Lançamento inicial com 30+ APIs", "Módulos: Geral, Cadastros Auxiliares, Finanças, Complementar", "API Tester integrado"] },
+                  ].map(entry => (
+                    <div key={entry.version} className="border rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="font-mono text-[11px]">{entry.version}</Badge>
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {entry.changes.map((c, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                            <span className="text-primary mt-0.5">•</span>
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* No results */}
             {filteredModules.length === 0 && (
