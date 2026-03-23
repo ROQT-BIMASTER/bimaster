@@ -567,7 +567,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
               </div>
               <div className="space-y-1.5">
                 <Label>Nº Documento</Label>
-                <Input value={form.numero_documento} onChange={e => setForm(p => ({ ...p, numero_documento: e.target.value }))} />
+                <Input disabled={isReadOnly} value={form.numero_documento} onChange={e => setForm(p => ({ ...p, numero_documento: e.target.value }))} />
               </div>
             </div>
 
