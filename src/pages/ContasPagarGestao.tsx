@@ -405,6 +405,10 @@ export default function ContasPagarGestao() {
       data_competencia: c.data_competencia || "", numero_parcelas: String(c.total_parcelas || 1),
       empresa_id: String(c.empresa_id || ""), categoria_nome: c.categoria_nome || "",
       portador: c.portador || "", status: c.status || "pendente",
+      departamento_nome: (c as any).departamento_nome || "", plano_contas_codigo: (c as any).plano_contas_codigo || "",
+      plano_contas_nome: (c as any).plano_contas_nome || "", chave_nfe: (c as any).chave_nfe || "",
+      numero_documento_fiscal: (c as any).numero_documento_fiscal || "", codigo_projeto: (c as any).codigo_projeto || "",
+      data_previsao: (c as any).data_previsao || "", id_conta_corrente: String((c as any).id_conta_corrente || ""),
     });
     setEditingId(c.id);
     setModalOpen(true);

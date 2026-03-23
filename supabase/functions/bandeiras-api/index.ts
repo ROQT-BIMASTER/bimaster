@@ -9,6 +9,7 @@ function mapBandeira(row: Record<string, unknown>): Record<string, unknown> {
   return {
     cCodigo: row.codigo || "",
     cDescricao: row.descricao || "",
+    cTipo: row.tipo || "",
   };
 }
 
