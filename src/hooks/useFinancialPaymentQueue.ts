@@ -476,29 +476,24 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (fetchError) throw fetchError;
 
-      // Item 4: Resolve empresa_id from user profile if missing
+      // Item 4: Resolve empresa_id — use first empresa if missing
       let empresaId = item.empresa_id;
       let empresaNome = item.empresa_nome;
       if (!empresaId) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('empresa_id')
-          .eq('id', userData.user?.id ?? '')
+        const { data: empresaDefault } = await supabase
+          .from('empresas')
+          .select('id, nome')
+          .order('id', { ascending: true })
+          .limit(1)
           .single();
         
-        if (profile?.empresa_id) {
-          empresaId = profile.empresa_id;
-          // Fetch empresa name
-          const { data: empresa } = await supabase
-            .from('empresas')
-            .select('nome')
-            .eq('id', profile.empresa_id)
-            .single();
-          empresaNome = empresa?.nome || empresaNome;
+        if (empresaDefault) {
+          empresaId = empresaDefault.id;
+          empresaNome = empresaDefault.nome;
         }
         
         if (!empresaId) {
-          throw new Error('Empresa não identificada. Verifique o cadastro do usuário.');
+          throw new Error('Empresa não identificada. Cadastre ao menos uma empresa.');
         }
       }
 
