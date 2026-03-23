@@ -554,7 +554,7 @@ const API_MODULES: ApiModule[] = [
     apis: [
       { id: "anexos", name: "Anexos", description: "Gestão de documentos anexos", basePath: "/anexos-api", icon: <FileText className="h-4 w-4 text-purple-500" />, sections: [{ title: "CRUD de Anexos", endpoints: anexosCrud }] },
       { id: "webhook-inbound", name: "Webhook Inbound", description: "Callbacks do ERP para o BiMaster", basePath: "/erp-webhook-inbound", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Inbound", endpoints: webhookInbound }] },
-      { id: "webhook-subscriptions", name: "Webhook Subscriptions", description: "CRUD de assinaturas para webhooks outbound", basePath: "/webhook-subscriptions-api", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Gestão de Assinaturas", endpoints: webhookSubscriptionsCrud }] },
+      { id: "webhook-subscriptions", name: "Webhook Subscriptions", description: "CRUD de assinaturas para webhooks outbound", basePath: "/webhook-subscriptions-api", icon: <Webhook className="h-4 w-4 text-purple-500" />, sections: [{ title: "Gestão de Assinaturas", endpoints: webhookSubscriptionsCrud }, { title: "Catálogo de Eventos", endpoints: [], description: "Eventos disponíveis para assinatura — use GET /eventos para lista atualizada" }] },
       { id: "webhook-dispatcher", name: "Webhook Dispatcher", description: "Processamento e monitoramento da fila de webhooks", basePath: "/webhook-dispatcher", icon: <RefreshCw className="h-4 w-4 text-purple-500" />, sections: [{ title: "Processamento & Monitoramento", endpoints: webhookDispatcherCrud }] },
     ],
   },
