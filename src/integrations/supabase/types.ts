@@ -3850,6 +3850,41 @@ export type Database = {
           },
         ]
       }
+      config_fornecedor_visibilidade: {
+        Row: {
+          created_at: string | null
+          empresa_id: number
+          id: string
+          modulo: string
+          updated_at: string | null
+          visibilidade: string
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id: number
+          id?: string
+          modulo?: string
+          updated_at?: string | null
+          visibilidade?: string
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: number
+          id?: string
+          modulo?: string
+          updated_at?: string | null
+          visibilidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_fornecedor_visibilidade_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config_operacoes: {
         Row: {
           created_at: string | null
