@@ -897,6 +897,7 @@ export default function ContasAReceber() {
                           <div className="flex items-center">Status <SortIcon column="status" /></div>
                         </TableHead>
                         <TableHead>Portador</TableHead>
+                        <TableHead className="w-[60px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
