@@ -1254,6 +1254,46 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
               </div>
             </div>
 
+            {/* Changelog */}
+            {!searchQuery && (
+              <div ref={el => { moduleRefs.current["changelog"] = el; }}>
+                <div className="rounded-xl bg-gradient-to-r from-slate-600 to-slate-500 p-4 mb-4">
+                  <div className="flex items-center gap-3 text-white">
+                    <History className="h-5 w-5" />
+                    <div>
+                      <h3 className="font-semibold text-base">Changelog</h3>
+                      <p className="text-sm text-white/80">Histórico de mudanças na API</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-xl p-5 space-y-3">
+                  {[
+                    { version: "v1.4.0", date: "2026-03-23", changes: ["Adicionado guia HMAC para verificação de webhooks", "Botão 'Copiar curl' em todos os endpoints", "Guia de retry/backoff e badges de ambiente"] },
+                    { version: "v1.3.0", date: "2026-03-20", changes: ["Seção 'Início Rápido' com ordem de integração", "Catálogo de eventos webhook documentado", "Notas sobre convenção POST e padrões de paginação"] },
+                    { version: "v1.2.0", date: "2026-03-15", changes: ["Adicionadas 6 APIs: Fornecedores, Plano de Contas, Portadores, Webhook Subscriptions, Webhook Dispatcher", "Separação de 'Tabelas de Referência (Opcional)'", "Remoção de duplicidade webhook-push"] },
+                    { version: "v1.1.0", date: "2026-03-01", changes: ["Chat de suporte em cada endpoint", "Exportação Excel multi-sheet", "Fluxogramas visuais em todos os endpoints"] },
+                    { version: "v1.0.0", date: "2026-02-15", changes: ["Lançamento inicial com 30+ APIs", "Módulos: Geral, Cadastros Auxiliares, Finanças, Complementar", "API Tester integrado"] },
+                  ].map(entry => (
+                    <div key={entry.version} className="border rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="font-mono text-[11px]">{entry.version}</Badge>
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {entry.changes.map((c, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                            <span className="text-primary mt-0.5">•</span>
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* No results */}
             {filteredModules.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
