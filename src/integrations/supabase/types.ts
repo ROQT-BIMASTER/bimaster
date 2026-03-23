@@ -12771,6 +12771,7 @@ export type Database = {
           amount: number
           attachment_url: string | null
           attachments: Json | null
+          chave_acesso_nfe: string | null
           code: string
           contas_pagar_id: string | null
           created_at: string
@@ -12813,6 +12814,7 @@ export type Database = {
           amount: number
           attachment_url?: string | null
           attachments?: Json | null
+          chave_acesso_nfe?: string | null
           code: string
           contas_pagar_id?: string | null
           created_at?: string
@@ -12855,6 +12857,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           attachments?: Json | null
+          chave_acesso_nfe?: string | null
           code?: string
           contas_pagar_id?: string | null
           created_at?: string

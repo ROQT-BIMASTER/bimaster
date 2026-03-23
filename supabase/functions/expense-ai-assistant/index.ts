@@ -705,14 +705,28 @@ async function handleAuditDocument(params: {
     }
   }
 
+  // Merge AI divergences with code-based divergences (prefer AI when both exist)
+  const aiDivs = extracted.ai_divergences || [];
+  const aiFields = new Set(aiDivs.map((d: any) => d.field));
+  const mergedDivergences = [
+    ...aiDivs.map((d: any) => ({
+      field: d.field,
+      expected: d.expected,
+      found: d.found,
+      severity: d.severity as "low" | "medium" | "high",
+    })),
+    ...divergences.filter(d => !aiFields.has(d.field)),
+  ];
+
   return {
-    matches: divergences.length === 0,
-    divergences,
+    matches: mergedDivergences.length === 0,
+    divergences: mergedDivergences,
     confidence: extracted.confidence || 0,
     extracted_cnpj: extracted.extracted_cnpj,
     extracted_name: extracted.extracted_name,
     extracted_amount: extracted.extracted_amount,
     extracted_document_number: extracted.extracted_document_number,
+    extracted_chave_acesso: extracted.extracted_chave_acesso || null,
   };
 }
 
