@@ -116,17 +116,15 @@ function validateCNPJ(cnpj: string): boolean {
   const digits = cnpj.replace(/\D/g, "");
   if (digits.length !== 14) return false;
   if (/^(\d)\1+$/.test(digits)) return false;
-  const calc = (base: number) => {
+  const weights1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+  const weights2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+  const calcDigit = (w: number[]) => {
     let sum = 0;
-    let weight = base;
-    for (let i = 0; i < base - 1; i++) {
-      sum += parseInt(digits[i]) * weight--;
-      if (weight < 2) weight = 9;
-    }
+    for (let i = 0; i < w.length; i++) sum += parseInt(digits[i]) * w[i];
     const rest = sum % 11;
     return rest < 2 ? 0 : 11 - rest;
   };
-  return calc(13) === parseInt(digits[12]) && calc(14) === parseInt(digits[13]);
+  return calcDigit(weights1) === parseInt(digits[12]) && calcDigit(weights2) === parseInt(digits[13]);
 }
 
 function SituacaoBadge({ situacao }: { situacao: string | null }) {
