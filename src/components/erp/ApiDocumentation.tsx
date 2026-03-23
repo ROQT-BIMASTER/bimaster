@@ -88,7 +88,7 @@ const contasPagarCrud: Endpoint[] = [
       { name: "limit", type: "number", required: false, description: "Máx registros (default: 100, máx: 500)" },
       { name: "offset", type: "number", required: false, description: "Paginação" },
     ],
-    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "total": 250, "offset": 0, "limit": 100 }`,
+    response: `{ "data": [{ "id": "uuid", "fornecedor_nome": "...", "valor_original": 1500, "status": "pendente" }], "pagination": { "total": 250, "offset": 0, "limit": 100 }, "meta": { "filters_applied": { "status": "pendente" } } }`,
   },
   {
     method: "PUT", path: "/update", description: "Atualização individual de título",
