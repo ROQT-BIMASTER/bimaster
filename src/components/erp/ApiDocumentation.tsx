@@ -1007,6 +1007,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
           {/* Sidebar nav */}
           <div className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-4 space-y-1">
+              <ApiGlobalStatus basePaths={accessFilteredModules.flatMap(m => m.apis.map(a => a.basePath))} />
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 mb-2">Módulos</p>
               {accessFilteredModules.map(mod => (
                 <button
