@@ -1286,7 +1286,26 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Estrutura de Erros</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Todas as APIs retornam erros com estrutura padronizada:
+                  </p>
+                  <CodeBlock code={`// Erro de validação (400)
+{ "error": "campo_obrigatorio", "message": "O campo codigo_lancamento_integracao é obrigatório", "field": "codigo_lancamento_integracao" }
+
+// Erro de autenticação (401)
+{ "error": "unauthorized", "message": "API key inválida ou ausente" }
+
+// Rate limit (429)
+{ "error": "rate_limit", "message": "Limite de 60 req/min excedido", "retry_after": 60 }
+
+// Erro interno (500)
+{ "error": "internal_error", "message": "Erro ao processar requisição", "request_id": "uuid" }`} label="Exemplos de resposta de erro" />
+                </div>
               </div>
+            </div>
             </div>
 
             {/* Changelog */}
