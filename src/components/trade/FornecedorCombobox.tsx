@@ -100,8 +100,8 @@ export function FornecedorCombobox({ value, onChange, enabled = true }: Forneced
       setSkipBank(false);
       try {
         const { data, error } = await supabase
-          .from("fabrica_fornecedores")
-          .select("banco, agencia, conta, tipo_conta, pix_chave, pix_tipo, favorecido")
+          .from("fornecedores")
+          .select("banco, agencia, conta_bancaria, tipo_conta, chave_pix, tipo_pix, favorecido")
           .eq("id", value)
           .single();
         if (error) throw error;
