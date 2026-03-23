@@ -286,6 +286,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   const { data: userDepartments = [] } = useUserDepartments();
   const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
+  const { needRefresh } = usePWA();
   
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [openFinSubgroups, setOpenFinSubgroups] = useState<Set<string>>(new Set());
