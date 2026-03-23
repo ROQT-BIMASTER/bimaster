@@ -181,7 +181,7 @@ export function SupplierDetailsCard({
       if (localSupplier) {
         // Update existing supplier
         const { error } = await supabase
-          .from("fabrica_fornecedores")
+          .from("fornecedores")
           .update({ ...updatePayload, updated_at: new Date().toISOString() })
           .eq("id", localSupplier.id);
 
