@@ -310,6 +310,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
   function openEdit(c: any) {
     setEditingId(c.id);
+    setEditingStatus(c.status || null);
     setForm({
       fornecedor_nome: c.fornecedor_nome || "",
       fornecedor_codigo: c.fornecedor_codigo || "",
