@@ -144,18 +144,33 @@ export default function ContasPagarGestao() {
   });
 
   // ===== QUERIES =====
-  const { data: contas = [], isLoading } = useQuery({
-    queryKey: ["contas-pagar-gestao"],
+  const { data: contasResult, isLoading } = useQuery({
+    queryKey: ["contas-pagar-gestao", page, statusFilter, empresaFilter, fornecedorFilter, dateFrom?.toISOString(), dateTo?.toISOString(), search],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("contas_pagar")
-        .select("*")
-        .order("data_vencimento", { ascending: false })
-        .limit(500);
+        .select("*", { count: "exact" })
+        .order("data_vencimento", { ascending: false });
+
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (empresaFilter !== "all") q = q.eq("empresa_id", parseInt(empresaFilter));
+      if (search) q = q.or(`fornecedor_nome.ilike.%${search}%,numero_documento.ilike.%${search}%,categoria_nome.ilike.%${search}%`);
+      if (dateFrom) q = q.gte("data_vencimento", format(dateFrom, "yyyy-MM-dd"));
+      if (dateTo) q = q.lte("data_vencimento", format(dateTo, "yyyy-MM-dd"));
+
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      q = q.range(from, to);
+
+      const { data, error, count } = await q;
       if (error) throw error;
-      return (data || []) as ContaPagar[];
+      return { data: (data || []) as ContaPagar[], totalCount: count ?? 0 };
     },
   });
+
+  const contas = contasResult?.data ?? [];
+  const totalCount = contasResult?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas-list"],
