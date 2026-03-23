@@ -591,17 +591,28 @@ async function handleAuditDocument(params: {
     },
   ];
 
-  const contentParts: any[] = [
-    {
-      type: "text",
-      text: `Analise este documento fiscal e extraia os seguintes dados com precisão:
-- CNPJ ou CPF do emitente/fornecedor
-- Nome ou Razão Social do emitente/fornecedor
-- Valor total do documento
-- Número do documento fiscal
+  const contextLines = [
+    `Analise este documento fiscal e confronte com os dados do lançamento no sistema.`,
+    ``,
+    `DADOS DO LANÇAMENTO (esperados):`,
+    expectedData.cnpj ? `- CNPJ/CPF do fornecedor: ${expectedData.cnpj}` : `- CNPJ/CPF do fornecedor: NÃO INFORMADO`,
+    expectedData.supplier_name ? `- Nome do fornecedor: ${expectedData.supplier_name}` : `- Nome do fornecedor: NÃO INFORMADO`,
+    expectedData.amount ? `- Valor: R$ ${expectedData.amount.toFixed(2)}` : `- Valor: NÃO INFORMADO`,
+    expectedData.document_number ? `- Nº do documento: ${expectedData.document_number}` : `- Nº do documento: NÃO INFORMADO`,
+    params.documentType ? `- Tipo de documento: ${params.documentType}` : ``,
+    ``,
+    `INSTRUÇÕES:`,
+    `1. Extraia os dados visíveis do documento (CNPJ, nome, valor, número do documento, chave de acesso NF-e se presente).`,
+    `2. Compare cada campo extraído com os dados esperados do lançamento acima.`,
+    `3. Se houver divergências, liste-as em "ai_divergences" com severidade:`,
+    `   - high: CNPJ diferente ou valor com diferença >10%`,
+    `   - medium: nome do fornecedor diferente ou valor com diferença entre 2% e 10%`,
+    `   - low: número do documento diferente`,
+    `4. Se encontrar a chave de acesso da NF-e (44 dígitos numéricos), extraia em "extracted_chave_acesso".`,
+  ].filter(Boolean).join("\n");
 
-Estes dados serão usados para confrontar com o lançamento no sistema.`,
-    },
+  const contentParts: any[] = [
+    { type: "text", text: contextLines },
   ];
 
   if (mimeType === "application/pdf") {
