@@ -3,9 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
 import { exportPaymentToErp } from "@/hooks/useErpExport";
+import { toast as sonnerToast } from "sonner";
 
 export type PaymentQueueStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled';
 export type SourceType = 'trade_entry' | 'trade_investment' | 'trade_campaign' | 'event_expense' | 'department_expense';
+
+// Item 11: Typed rejection fields
+export type RejectionFieldKey = 
+  | 'supplier_name' 
+  | 'supplier_document' 
+  | 'document_type' 
+  | 'document_number' 
+  | 'amount' 
+  | 'due_date' 
+  | 'portador' 
+  | 'description' 
+  | 'attachment';
 
 export interface PaymentAttachment {
   name: string;
@@ -81,85 +94,82 @@ interface UpdatePaymentStatusInput {
   payment_method?: string;
   payment_details?: Record<string, string>;
   rejection_category?: string;
-  rejection_fields?: string[];
+  rejection_fields?: RejectionFieldKey[];
 }
 
 interface PaymentQueueFilters {
   status?: PaymentQueueStatus | 'all';
-  source_type?: string; // Can be SourceType, 'all', or 'dept:DepartmentName'
-  empresa_id?: number | 'all'; // Filter by empresa
+  source_type?: string;
+  empresa_id?: number | 'all';
   search?: string;
   startDate?: Date;
   endDate?: Date;
 }
 
-// Helper to sync financial status back to the original source expense
+// Item 7: syncStatusToSource now throws on error instead of swallowing
 async function syncStatusToSource(item: { source_type: string; source_id: string; financial_status: string }) {
   const now = new Date().toISOString();
-  try {
-    if (item.source_type === 'event_expense') {
-      const statusMap: Record<string, string> = {
-        accepted: 'approved',
-        paid: 'paid',
-        rejected: 'rejected',
-        cancelled: 'cancelled',
-        pending: 'pending',
-      };
-      const newStatus = statusMap[item.financial_status];
-      if (!newStatus) return;
 
-      const updateData: Record<string, unknown> = { status: newStatus };
-      if (item.financial_status === 'paid') {
-        updateData.paid_at = now;
-      }
+  if (item.source_type === 'event_expense') {
+    const statusMap: Record<string, string> = {
+      accepted: 'approved',
+      paid: 'paid',
+      rejected: 'rejected',
+      cancelled: 'cancelled',
+      pending: 'pending',
+    };
+    const newStatus = statusMap[item.financial_status];
+    if (!newStatus) return;
 
-      await supabase
-        .from('corporate_event_expenses')
-        .update(updateData)
-        .eq('id', item.source_id);
-    } else if (item.source_type === 'department_expense') {
-      const statusMap: Record<string, string> = {
-        accepted: 'approved',
-        paid: 'paid',
-        rejected: 'rejected',
-        cancelled: 'cancelled',
-        pending: 'pending',
-      };
-      const newStatus = statusMap[item.financial_status];
-      if (!newStatus) return;
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (item.financial_status === 'paid') updateData.paid_at = now;
 
-      const updateData: Record<string, unknown> = { status: newStatus };
-      if (item.financial_status === 'paid') {
-        updateData.paid_at = now;
-      }
+    const { error } = await supabase
+      .from('corporate_event_expenses')
+      .update(updateData)
+      .eq('id', item.source_id);
 
-      await supabase
-        .from('department_expenses')
-        .update(updateData)
-        .eq('id', item.source_id);
-    } else if (item.source_type === 'trade_entry') {
-      const statusMap: Record<string, string> = {
-        accepted: 'pending_financial',
-        paid: 'paid',
-        rejected: 'rejected',
-        cancelled: 'cancelled',
-        pending: 'pending',
-      };
-      const newStatus = statusMap[item.financial_status];
-      if (!newStatus) return;
+    if (error) throw new Error(`Sync event_expense failed: ${error.message}`);
+  } else if (item.source_type === 'department_expense') {
+    const statusMap: Record<string, string> = {
+      accepted: 'approved',
+      paid: 'paid',
+      rejected: 'rejected',
+      cancelled: 'cancelled',
+      pending: 'pending',
+    };
+    const newStatus = statusMap[item.financial_status];
+    if (!newStatus) return;
 
-      const updateData: Record<string, unknown> = { status: newStatus };
-      if (item.financial_status === 'paid') {
-        updateData.paid_at = now;
-      }
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (item.financial_status === 'paid') updateData.paid_at = now;
 
-      await supabase
-        .from('trade_financial_entries')
-        .update(updateData)
-        .eq('id', item.source_id);
-    }
-  } catch (err) {
-    console.error('Error syncing status to source:', err);
+    const { error } = await supabase
+      .from('department_expenses')
+      .update(updateData)
+      .eq('id', item.source_id);
+
+    if (error) throw new Error(`Sync department_expense failed: ${error.message}`);
+  } else if (item.source_type === 'trade_entry') {
+    const statusMap: Record<string, string> = {
+      accepted: 'pending_financial',
+      paid: 'paid',
+      rejected: 'rejected',
+      cancelled: 'cancelled',
+      pending: 'pending',
+    };
+    const newStatus = statusMap[item.financial_status];
+    if (!newStatus) return;
+
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (item.financial_status === 'paid') updateData.paid_at = now;
+
+    const { error } = await supabase
+      .from('trade_financial_entries')
+      .update(updateData)
+      .eq('id', item.source_id);
+
+    if (error) throw new Error(`Sync trade_entry failed: ${error.message}`);
   }
 }
 
@@ -269,9 +279,9 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
     },
   });
 
-  // Fetch KPIs
+  // Item 5: KPIs now respect all active filters
   const { data: kpis } = useQuery({
-    queryKey: ['financial-payment-queue-kpis', filters?.startDate, filters?.endDate],
+    queryKey: ['financial-payment-queue-kpis', filters?.startDate, filters?.endDate, filters?.source_type, filters?.empresa_id],
     queryFn: async () => {
       const data = await fetchAllRows<{ financial_status: string; amount: number }>(
         'financial_payment_queue',
@@ -283,6 +293,20 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
           }
           if (filters?.endDate) {
             q = q.lte('created_at', filters.endDate.toISOString());
+          }
+          // Propagate source_type filter
+          if (filters?.source_type && filters.source_type !== 'all') {
+            if (filters.source_type.startsWith('dept:')) {
+              const deptName = filters.source_type.replace('dept:', '');
+              q = q.eq('source_type', 'department_expense');
+              q = q.eq('department_name', deptName);
+            } else {
+              q = q.eq('source_type', filters.source_type);
+            }
+          }
+          // Propagate empresa_id filter
+          if (filters?.empresa_id && filters.empresa_id !== 'all') {
+            q = q.eq('empresa_id', filters.empresa_id);
           }
           return q;
         }
@@ -299,6 +323,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         acceptedCount: accepted.length,
         acceptedAmount: accepted.reduce((sum, i) => sum + Number(i.amount), 0),
         rejectedCount: rejected.length,
+        rejectedAmount: rejected.reduce((sum, i) => sum + Number(i.amount), 0), // Item 12/14
         paidCount: paid.length,
         paidAmount: paid.reduce((sum, i) => sum + Number(i.amount), 0),
         totalAmount: data.reduce((sum, i) => sum + Number(i.amount), 0),
@@ -356,7 +381,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (financial_status === 'rejected') {
         updateData.rejection_category = rejection_category || null;
-        updateData.rejection_fields = rejection_fields || [];
+        updateData.rejection_fields = (rejection_fields as RejectionFieldKey[]) || [];
       }
 
       if (financial_status === 'paid') {
@@ -374,12 +399,19 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (error) throw error;
 
-      // Sync status back to the original source expense
-      await syncStatusToSource({
-        source_type: data.source_type,
-        source_id: data.source_id,
-        financial_status: data.financial_status,
-      });
+      // Item 7: sync with error handling
+      try {
+        await syncStatusToSource({
+          source_type: data.source_type,
+          source_id: data.source_id,
+          financial_status: data.financial_status,
+        });
+      } catch (syncErr: any) {
+        console.error('syncStatusToSource error:', syncErr);
+        sonnerToast.warning("Status atualizado na fila, mas a sincronização com a origem falhou. Verifique manualmente.", {
+          duration: 8000,
+        });
+      }
 
       return data;
     },
@@ -444,8 +476,28 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (fetchError) throw fetchError;
 
-      // Create contas_pagar entry using correct column names
-      // Generate a unique erp_id since it's required (NOT NULL)
+      // Item 4: Resolve empresa_id — use first empresa if missing
+      let empresaId = item.empresa_id;
+      let empresaNome = item.empresa_nome;
+      if (!empresaId) {
+        const { data: empresaDefault } = await supabase
+          .from('empresas')
+          .select('id, nome')
+          .order('id', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (empresaDefault) {
+          empresaId = empresaDefault.id;
+          empresaNome = empresaDefault.nome;
+        }
+        
+        if (!empresaId) {
+          throw new Error('Empresa não identificada. Cadastre ao menos uma empresa.');
+        }
+      }
+
+      // Create contas_pagar entry
       const erpId = `FPQ-${item.code}-${Date.now()}`;
       
       const contaPagarData = {
@@ -461,8 +513,8 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
         portador: item.portador,
         categoria_nome: `${item.source_type} - ${item.source_code || item.code}`,
         status: 'pendente',
-        empresa_id: item.empresa_id || 1, // Fallback para empresa padrão
-        empresa_nome: item.empresa_nome || 'Matriz',
+        empresa_id: empresaId,
+        empresa_nome: empresaNome || 'Matriz',
       };
 
       const { data: contaPagar, error: contaError } = await supabase
@@ -489,12 +541,19 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
 
       if (error) throw error;
 
-      // Sync status back to the original source expense
-      await syncStatusToSource({
-        source_type: item.source_type,
-        source_id: item.source_id,
-        financial_status: 'accepted',
-      });
+      // Sync status with error handling
+      try {
+        await syncStatusToSource({
+          source_type: item.source_type,
+          source_id: item.source_id,
+          financial_status: 'accepted',
+        });
+      } catch (syncErr: any) {
+        console.error('syncStatusToSource error on accept:', syncErr);
+        sonnerToast.warning("Conta criada, mas a sincronização com a origem falhou. Verifique manualmente.", {
+          duration: 8000,
+        });
+      }
 
       return data;
     },
@@ -522,7 +581,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       console.error('Error accepting payment:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível aceitar o pagamento",
+        description: error instanceof Error ? error.message : "Não foi possível aceitar o pagamento",
         variant: "destructive",
       });
     },
@@ -536,6 +595,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       acceptedCount: 0,
       acceptedAmount: 0,
       rejectedCount: 0,
+      rejectedAmount: 0,
       paidCount: 0,
       paidAmount: 0,
       totalAmount: 0,
