@@ -1306,7 +1306,6 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                 </div>
               </div>
             </div>
-            </div>
 
             {/* Changelog */}
             {!searchQuery && (
