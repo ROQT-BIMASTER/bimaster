@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import EndpointSupportChat from "./EndpointSupportChat";
 import ApiStatusBadge from "./ApiStatusBadge";
+import ApiGlobalStatus from "./ApiGlobalStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1006,6 +1007,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
           {/* Sidebar nav */}
           <div className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-4 space-y-1">
+              <ApiGlobalStatus basePaths={accessFilteredModules.flatMap(m => m.apis.map(a => a.basePath))} />
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 mb-2">Módulos</p>
               {accessFilteredModules.map(mod => (
                 <button
