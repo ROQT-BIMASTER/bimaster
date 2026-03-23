@@ -224,8 +224,22 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     await forceCleanReload();
   }, []);
 
+  const checkForUpdate = useCallback(async () => {
+    console.log('[PWA] Verificação manual de atualização...');
+    if (swRegistrationRef) {
+      try {
+        await swRegistrationRef.update();
+        console.log('[PWA] Verificação de SW concluída');
+      } catch (error) {
+        console.error('[PWA] Erro ao verificar SW:', error);
+      }
+    } else {
+      console.log('[PWA] Nenhum SW registrado, forçando reload...');
+    }
+  }, []);
+
   return (
-    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate }}>
+    <PWAContext.Provider value={{ ...state, updateServiceWorker, promptInstall, dismissUpdateNotice, forceUpdate, checkForUpdate }}>
       {children}
     </PWAContext.Provider>
   );
