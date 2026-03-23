@@ -43,6 +43,7 @@ Header `x-api-key` obrigatório (exceto `/status`).
 |---|---|---|
 | `cCodigo` | `codigo` | Código da bandeira |
 | `cDescricao` | `descricao` | Descrição da bandeira |
+| `cTipo` | `tipo` | Tipo: credito, debito, ambos |
 
 ## Erros
 
