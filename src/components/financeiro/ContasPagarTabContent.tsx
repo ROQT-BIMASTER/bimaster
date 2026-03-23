@@ -558,7 +558,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo Documento</Label>
-                <Select value={form.tipo_documento} onValueChange={v => setForm(p => ({ ...p, tipo_documento: v }))}>
+                <Select disabled={isReadOnly} value={form.tipo_documento} onValueChange={v => setForm(p => ({ ...p, tipo_documento: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["NF", "NFS", "Boleto", "Recibo", "Contrato", "Fatura", "Outros"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
