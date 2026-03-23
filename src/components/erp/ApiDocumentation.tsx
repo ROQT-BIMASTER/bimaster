@@ -1730,6 +1730,132 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 // Erro interno (500)
 { "error": "internal_error", "message": "Erro ao processar requisição", "request_id": "uuid" }`} label="Exemplos de resposta de erro" />
                 </div>
+
+                {/* Endpoint-specific Errors */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Erros Específicos por Endpoint</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Além dos códigos HTTP genéricos, cada endpoint pode retornar erros específicos no campo <code className="bg-muted px-1 rounded">error</code>:
+                  </p>
+                  <div className="space-y-3">
+                    {[
+                      {
+                        api: "CP /incluir",
+                        errors: [
+                          { code: "fornecedor_nao_encontrado", desc: "O codigo_cliente_fornecedor não existe no cadastro" },
+                          { code: "categoria_invalida", desc: "O codigo_categoria não existe ou está inativo" },
+                          { code: "data_invalida", desc: "Formato de data incorreto (esperado DD/MM/AAAA)" },
+                          { code: "duplicidade", desc: "Já existe título com este codigo_lancamento_integracao" },
+                          { code: "conta_corrente_invalida", desc: "O id_conta_corrente não existe" },
+                        ],
+                      },
+                      {
+                        api: "CP /upsert",
+                        errors: [
+                          { code: "empresa_id_obrigatorio", desc: "Campo empresa_id é obrigatório para resolver conflito" },
+                          { code: "conflito_integracao", desc: "codigo_lancamento_integracao duplicado em outra empresa" },
+                        ],
+                      },
+                      {
+                        api: "CR /incluir",
+                        errors: [
+                          { code: "cliente_nao_encontrado", desc: "O codigo_cliente_fornecedor não existe no cadastro" },
+                          { code: "categoria_invalida", desc: "O codigo_categoria não existe ou está inativo" },
+                          { code: "data_invalida", desc: "Formato de data incorreto (esperado DD/MM/AAAA)" },
+                        ],
+                      },
+                      {
+                        api: "Fornecedores /incluir",
+                        errors: [
+                          { code: "cnpj_invalido", desc: "CPF/CNPJ com formato ou dígitos verificadores inválidos" },
+                          { code: "duplicidade_cnpj", desc: "Já existe fornecedor com este CPF/CNPJ" },
+                          { code: "empresa_nao_encontrada", desc: "Um dos empresa_ids fornecidos não existe" },
+                        ],
+                      },
+                    ].map(group => (
+                      <Collapsible key={group.api}>
+                        <CollapsibleTrigger asChild>
+                          <div className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded-lg cursor-pointer">
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                            <code className="text-xs font-mono font-medium">{group.api}</code>
+                            <Badge variant="secondary" className="text-[10px]">{group.errors.length} erros</Badge>
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="ml-5 border rounded-lg overflow-hidden text-xs">
+                            {group.errors.map(e => (
+                              <div key={e.code} className="grid grid-cols-[200px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                                <code className="font-mono text-[11px] text-red-600">{e.code}</code>
+                                <span className="text-muted-foreground">{e.desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Key Rotation Guide */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Rotação de API Key (sem downtime)</h4>
+                  <div className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      {[
+                        { step: "1", text: "Gerar nova chave no Portal" },
+                        { step: "2", text: "Atualizar chave no seu sistema" },
+                        { step: "3", text: "Testar com GET /status" },
+                        { step: "4", text: "Desativar chave antiga" },
+                      ].map((s, i) => (
+                        <span key={s.step} className="flex items-center gap-1">
+                          <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">{s.step}</span>
+                          <span className="text-xs">{s.text}</span>
+                          {i < 3 && <span className="text-muted-foreground ml-1">→</span>}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      ⏳ A chave antiga permanece válida por 24h após rotação (<code className="bg-muted px-1 rounded">api_key_anterior_expira_em</code>), permitindo transição gradual.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Consolidated Quotas */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Limites & Quotas</h4>
+                  <div className="border rounded-lg overflow-hidden text-xs">
+                    <div className="grid grid-cols-[200px_120px_1fr] gap-2 px-3 py-2 bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground font-medium border-b">
+                      <span>Recurso</span><span>Limite</span><span>Detalhes</span>
+                    </div>
+                    {[
+                      { resource: "Rate limit global", limit: "60 req/min", detail: "Por IP ou API key. Header Retry-After em 429." },
+                      { resource: "Upsert em lote", limit: "500 registros", detail: "Por chamada. Use múltiplas chamadas para volumes maiores." },
+                      { resource: "Sync legado", limit: "5.000 registros", detail: "Por request de sincronização." },
+                      { resource: "Payload máximo", limit: "200 KB", detail: "Body JSON. Para anexos, use base64 com md5." },
+                      { resource: "Timeout de requisição", limit: "30 segundos", detail: "Após 30s a requisição é abortada." },
+                      { resource: "Webhook delivery", limit: "3 tentativas", detail: "Backoff: 1s → 2s → 4s. Após: dead letter." },
+                    ].map(q => (
+                      <div key={q.resource} className="grid grid-cols-[200px_120px_1fr] gap-2 px-3 py-1.5 border-b last:border-b-0 hover:bg-muted/30">
+                        <span className="font-medium">{q.resource}</span>
+                        <code className="font-mono text-[11px] text-primary">{q.limit}</code>
+                        <span className="text-muted-foreground">{q.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Versioning Policy */}
+                <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3 flex gap-3">
+                  <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-blue-700">Política de Versionamento</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Todas as APIs estão em <strong>v1</strong> (estável). Mudanças <em>breaking</em> serão comunicadas com <strong>30 dias de antecedência</strong> via webhook e e-mail,
+                      e disponibilizadas em <code className="bg-muted px-1 rounded">/v2</code>. A versão anterior permanecerá ativa por 90 dias após o lançamento da nova versão.
+                      Campos novos podem ser adicionados a qualquer momento (aditivos, não-breaking) — seu parser deve ignorar campos desconhecidos.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
