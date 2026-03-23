@@ -622,7 +622,7 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
 
             <div className="space-y-1.5">
               <Label>Conta Bancária</Label>
-              <Select value={form.conta} onValueChange={v => setForm(p => ({ ...p, conta: v }))}>
+              <Select disabled={isReadOnly} value={form.conta} onValueChange={v => setForm(p => ({ ...p, conta: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                 <SelectContent>
                   {contasBancarias?.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.banco} - Ag {cb.agencia} / {cb.conta}</SelectItem>)}
