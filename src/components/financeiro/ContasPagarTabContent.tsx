@@ -195,9 +195,11 @@ export function ContasPagarTabContent({ filterEmpresas, filterAno, filterMes, fi
     return items;
   }, [contas, erpFilter]);
 
-  // ----- Pagination -----
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // ----- Pagination (server-side, ERP filter remains client-side) -----
+  const totalPages = erpFilter === "all"
+    ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+    : Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = erpFilter === "all" ? filtered : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // ----- Mutations -----
   const saveMutation = useMutation({
