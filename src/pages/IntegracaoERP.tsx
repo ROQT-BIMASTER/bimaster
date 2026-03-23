@@ -424,6 +424,31 @@ export default function IntegracaoERP() {
                             <TableCell className="text-right">
                               <Switch checked={k.active} onCheckedChange={() => handleToggle(k.id, k.active)} />
                             </TableCell>
+                            <TableCell>
+                              {(!k.active || expired) && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir chave de API</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja excluir a chave <strong>{k.key_preview}</strong> da empresa <strong>{k.empresa_id}</strong>? Esta ação é irreversível.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteKey(k.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })
