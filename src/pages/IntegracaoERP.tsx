@@ -54,6 +54,9 @@ export default function IntegracaoERP() {
   const { data: profiles } = useErpAccessProfiles();
   const assignProfile = useAssignProfileToKey();
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
+  const { data: currentUserProfileId } = useCurrentUserProfile();
+  const { data: userProfileModules } = useAccessProfileForKey(isAdmin ? null : currentUserProfileId);
   const [keys, setKeys] = useState<ErpApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
