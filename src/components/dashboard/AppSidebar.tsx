@@ -711,7 +711,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  const isMobile = useIsMobile();
 
   // ============ MODULE RENDERERS — Popover (desktop) / Drawer (mobile) ============
   const renderModuleContent = (moduleCode: string) => {
