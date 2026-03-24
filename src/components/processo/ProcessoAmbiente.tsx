@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useProductProcess, type ProcessEvent } from "@/hooks/useProductProcess";
 import { useDespachosPorProcesso, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
 import { useProcessoAmbiente } from "@/hooks/useProcessoAmbiente";
+import { useModuloCapabilities } from "@/hooks/useModulosDespacho";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
