@@ -1,34 +1,44 @@
 
 
-# Corrigir Tabela de Eventos Webhook na Documentação
+# Revisão Portal de Integração v1.9.0 — Correções Rápidas
 
-## Problema
+## Escopo (sem APIs de estoque/vendas/cobrança)
 
-A tabela de eventos webhook em `ApiDocumentation.tsx` (linha 1518-1528) lista apenas **11 eventos**, mas o backend (`webhook-subscriptions-api`) suporta **19 eventos**. Faltam:
+Apenas correções de completude na documentação e tester existentes.
 
-| Evento faltante | Módulo |
+### 1. ApiTester — Presets e Body Templates faltantes
+
+**Arquivo: `src/components/erp/ApiTester.tsx`**
+
+- Adicionar preset `POST /contas-receber-api/desconciliar`
+- Adicionar 4 body templates:
+  - `/contas-receber-api/cancelar-recebimento` → `{ "codigo_baixa": 0 }`
+  - `/contas-receber-api/conciliar` → `{ "codigo_baixa": 0 }`
+  - `/contas-receber-api/desconciliar` → `{ "codigo_baixa": 0 }`
+  - `/contas-receber-api/cancelar` → `{ "chave_lancamento": 0 }`
+
+### 2. ApiDocumentation — Filtros CR `/listar`
+
+**Arquivo: `src/components/erp/ApiDocumentation.tsx`**
+
+Expandir params do endpoint CR `/listar` com 9 filtros faltantes:
+`filtrar_conta_corrente`, `filtrar_cliente`, `filtrar_por_projeto`, `filtrar_por_vendedor`, `filtrar_por_cpf_cnpj`, `apenas_importado_api`, `ordenar_por`, `ordem_descrescente`, `filtrar_por_data_de/ate`
+
+### 3. ApiDocumentation — Erros específicos
+
+Adicionar 3 grupos de erros:
+- Boletos `/gerar`
+- Contas Correntes `/incluir`
+- Lançamentos CC `/incluir`
+
+### 4. Changelog v1.9.0
+
+Entrada no changelog registrando as correções.
+
+## Arquivos Afetados
+
+| Arquivo | Ação |
 |---|---|
-| `cliente.excluido` | Clientes |
-| `conta_receber.alterado` | Contas a Receber (listado mas sem evento excluido) |
-| `fornecedor.excluido` | Fornecedores |
-| `departamento.criado` | Departamentos |
-| `departamento.alterado` | Departamentos |
-| `categoria.criado` | Categorias |
-| `categoria.alterado` | Categorias |
-| `projeto.criado` | Projetos |
-| `projeto.alterado` | Projetos |
-| `conta_corrente.criado` | Contas Correntes |
-| `conta_corrente.alterado` | Contas Correntes |
-| `lancamento_cc.criado` | Lançamentos CC |
-| `tarefa.criado` | Tarefas |
-| `tarefa.alterado` | Tarefas |
-| `tarefa.concluido` | Tarefas |
-
-## Correção
-
-**Arquivo: `src/components/erp/ApiDocumentation.tsx`** (linhas 1518-1528)
-
-Expandir o array de eventos para incluir todos os 19 eventos suportados pelo backend, mantendo o mesmo formato `{ event, desc, mod }`.
-
-Apenas uma adição de linhas ao array existente — nenhuma remoção ou alteração de funcionalidade.
+| `src/components/erp/ApiTester.tsx` | 1 preset + 4 body templates |
+| `src/components/erp/ApiDocumentation.tsx` | Filtros CR, erros, changelog |
 
