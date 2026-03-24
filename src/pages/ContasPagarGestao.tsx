@@ -402,7 +402,7 @@ export default function ContasPagarGestao() {
     setEditingId(null);
   }, []);
 
-  const openEdit = useCallback((c: ContaPagar) => {
+  const doOpenEdit = useCallback((c: ContaPagar) => {
     setForm({
       tipo_documento: c.tipo_documento || "", numero_documento: c.numero_documento || "",
       fornecedor_nome: c.fornecedor_nome || "", fornecedor_codigo: c.fornecedor_codigo || "",
@@ -417,8 +417,20 @@ export default function ContasPagarGestao() {
       data_previsao: (c as any).data_previsao || "", id_conta_corrente: String((c as any).id_conta_corrente || ""),
     });
     setEditingId(c.id);
+    setEditJustificativa("");
+    setPasswordVerified(false);
     setModalOpen(true);
   }, []);
+
+  const openEdit = useCallback((c: ContaPagar) => {
+    const isLocked = c.status === "pago" || c.status === "cancelado";
+    if (isLocked) {
+      setPendingEditConta(c);
+      setPasswordDialogOpen(true);
+    } else {
+      doOpenEdit(c);
+    }
+  }, [doOpenEdit]);
 
   const openDetail = useCallback((c: ContaPagar) => {
     setSelectedConta(c);
