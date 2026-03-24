@@ -46,7 +46,7 @@ export function useSidebarMenuItems() {
 
   const updateItem = useMutation({
     mutationFn: async (item: Partial<SidebarMenuItem> & { id: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("sidebar_menu_items")
         .update({ ...item, updated_at: new Date().toISOString() })
         .eq("id", item.id);
