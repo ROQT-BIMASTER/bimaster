@@ -276,6 +276,7 @@ export function useProductProcess(produtoTipo: string, produtoRefId: string | un
   return {
     process,
     processLoading,
+    createProcess,
     events,
     eventsLoading,
     stepHistory,
