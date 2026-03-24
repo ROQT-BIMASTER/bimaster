@@ -78,11 +78,11 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
     queryFn: async () => {
       if (!teamMemberIds.length) return [];
       const { data, error } = await supabase
-        .from("team_member_details")
+        .from("team_member_details_safe" as any)
         .select("*")
         .in("user_id", teamMemberIds);
       if (error) throw error;
-      return (data || []) as TeamMemberDetail[];
+      return (data || []) as unknown as TeamMemberDetail[];
     },
     enabled: teamMemberIds.length > 0,
   });
