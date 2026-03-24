@@ -1,7 +1,7 @@
 import { 
   Home, Users, Building2, LogOut, Settings, Upload, Shield, 
   LayoutGrid, CheckSquare, MapPin, MessageSquare, Activity, Clock,
-  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw
+  Store, Calendar, Camera, Tag, TrendingUp, Brain, ChevronDown, ChevronRight, ChevronUp, Image, ClipboardCheck, DollarSign, FileText, Download, Phone, Trophy, BarChart3, Sparkles, Package, Factory, Receipt, Layers, Cog, UserCircle, AlertCircle, AlertTriangle, Pause, Wrench, List, Bot, Wallet, Grid3X3, Briefcase, Rocket, PartyPopper, CreditCard, Pickaxe, Compass, Ticket, FolderKanban, Inbox, Mic, Globe, ShoppingCart, Send, Landmark, Palette, FlaskConical, Scale, Network, Key, Megaphone, BarChart2, UserCheck, Target, RefreshCw, X
 } from "lucide-react";
 import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
@@ -360,12 +360,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return `${selectedModules.size} ${t("nav.n_modules")}`;
   }, [selectedModules, moduleFilterOptions]);
 
-  // Toggle module open/close
-  const toggleModuleOpen = useCallback((code: string) => {
+  // Set module open/close (explicit boolean or toggle)
+  const setModuleOpen = useCallback((code: string, open?: boolean) => {
     setOpenModules(prev => {
       const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
+      const shouldOpen = open ?? !next.has(code);
+      if (shouldOpen) next.add(code);
+      else next.delete(code);
       return next;
     });
   }, []);
@@ -736,13 +737,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       if (isMobile) {
         return (
-          <Drawer open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+          <Drawer open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
             <DrawerTrigger asChild>
               <button className="w-full text-left">{headerEl}</button>
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader className="pb-2">
-                <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+                <div className="flex items-center justify-between">
+                  <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+                  <button onClick={() => setModuleOpen(moduleCode, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </DrawerHeader>
               <ScrollArea className="max-h-[60vh] px-4 pb-6">
                 {menuContent}
@@ -753,7 +759,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       }
 
       return (
-        <Popover open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+        <Popover open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
           <PopoverTrigger asChild>
             <button className="w-full text-left">{headerEl}</button>
           </PopoverTrigger>
@@ -763,8 +769,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             sideOffset={8}
             className="w-64 p-2 max-h-[70vh] overflow-y-auto"
           >
-            <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+            <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
+              <button onClick={() => setModuleOpen(moduleCode, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
             {menuContent}
           </PopoverContent>
@@ -1039,13 +1048,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
               if (isMobile) {
                 return (
-                  <Drawer key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
+                   <Drawer key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
                     <DrawerTrigger asChild>
                       <button className="w-full text-left">{deptHeader}</button>
                     </DrawerTrigger>
                     <DrawerContent>
                       <DrawerHeader className="pb-2">
-                        <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
+                        <div className="flex items-center justify-between">
+                          <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
+                          <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </DrawerHeader>
                       <div className="px-4 pb-6">{deptItems}</div>
                     </DrawerContent>
@@ -1054,13 +1068,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
               }
 
               return (
-                <Popover key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
+                <Popover key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
                   <PopoverTrigger asChild>
                     <button className="w-full text-left">{deptHeader}</button>
                   </PopoverTrigger>
                   <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2">
-                    <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                    <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{dept.nome}</span>
+                      <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                     {deptItems}
                   </PopoverContent>
@@ -1224,13 +1241,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
             if (isMobile) {
               return (
-                <Drawer open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+                <Drawer open={isIntOpen} onOpenChange={(open) => setModuleOpen("inteligencia", open)}>
                   <DrawerTrigger asChild>
                     <button className="w-full text-left">{intHeader}</button>
                   </DrawerTrigger>
                   <DrawerContent>
                     <DrawerHeader className="pb-2">
-                      <DrawerTitle className="text-sm font-semibold">Central de Inteligência</DrawerTitle>
+                      <div className="flex items-center justify-between">
+                        <DrawerTitle className="text-sm font-semibold">Central de Inteligência</DrawerTitle>
+                        <button onClick={() => setModuleOpen("inteligencia", false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </DrawerHeader>
                     <div className="px-4 pb-6">{intItems}</div>
                   </DrawerContent>
@@ -1239,13 +1261,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             }
 
             return (
-              <Popover open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+              <Popover open={isIntOpen} onOpenChange={(open) => setModuleOpen("inteligencia", open)}>
                 <PopoverTrigger asChild>
                   <button className="w-full text-left">{intHeader}</button>
                 </PopoverTrigger>
                 <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2 max-h-[70vh] overflow-y-auto">
-                  <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                  <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Central de Inteligência</span>
+                    <button onClick={() => setModuleOpen("inteligencia", false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                   {intItems}
                 </PopoverContent>
