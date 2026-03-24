@@ -803,58 +803,62 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "composicao":
         return (
-          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={FlaskConical} title="Composição" isOpen={isModuleOpen} colorKey="fabrica" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                <MenuItemLink to="/dashboard/composicao" icon={Home} title="Checklist Composição" colorKey="fabrica" end />
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/dashboard/composicao" className={({ isActive }) => cn(
+                "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+                isActive ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <FlaskConical className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
+                <span className="flex-1 font-medium text-sm">Composição</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
 
       case "amostras":
         return (
-          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Package} title="Amostras" isOpen={isModuleOpen} colorKey="fabrica" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                <MenuItemLink to="/dashboard/amostras" icon={Home} title="Recebimento de Amostras" colorKey="fabrica" end />
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/dashboard/amostras" className={({ isActive }) => cn(
+                "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+                isActive ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <Package className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
+                <span className="flex-1 font-medium text-sm">Amostras</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
 
       case "analise_embalagem":
         return (
-          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Layers} title="Embalagem" isOpen={isModuleOpen} colorKey="fabrica" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                <MenuItemLink to="/dashboard/analise-embalagem" icon={Home} title="Análise de Embalagem" colorKey="fabrica" end />
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/dashboard/analise-embalagem" className={({ isActive }) => cn(
+                "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+                isActive ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <Layers className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
+                <span className="flex-1 font-medium text-sm">Embalagem</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
 
       case "etiqueta_bula":
         return (
-          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Tag} title="Etiqueta / Bula" isOpen={isModuleOpen} colorKey="fabrica" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                <MenuItemLink to="/dashboard/etiqueta-bula" icon={Home} title="Checklist Etiqueta/Bula" colorKey="fabrica" end />
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/dashboard/etiqueta-bula" className={({ isActive }) => cn(
+                "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+                isActive ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <Tag className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
+                <span className="flex-1 font-medium text-sm">Etiqueta / Bula</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
 
       case "aprovacao_artes":
