@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CheckCircle2, XCircle, Eye, FileText, Send, MessageSquareWarning, Reply,
-  Clock, User, ArrowRight, FileUp, AlertTriangle, Loader2
+  Clock, User, ArrowRight, FileUp, AlertTriangle, Loader2, MessageCircle
 } from "lucide-react";
+import { ProcessoChat } from "./ProcessoChat";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
