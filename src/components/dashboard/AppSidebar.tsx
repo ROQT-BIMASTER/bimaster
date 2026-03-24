@@ -987,12 +987,28 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "departamentos":
         return userDepartments.length > 0 ? (
           <>
-            {userDepartments.map((dept) => (
-              <ModulePopover key={dept.id} icon={Building2} title={dept.nome} colorKey="departamentos">
-                <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
-                <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
-              </ModulePopover>
-            ))}
+            {userDepartments.map((dept) => {
+              const deptKey = `dept_${dept.id}`;
+              const isDeptOpen = openModules.has(deptKey);
+              return (
+                <Popover key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
+                  <PopoverTrigger asChild>
+                    <button className="w-full text-left">
+                      <ModuleHeader icon={Building2} title={dept.nome} isOpen={isDeptOpen} colorKey="departamentos" subItemCount={2} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2">
+                    <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{dept.nome}</span>
+                    </div>
+                    <SidebarMenu className="space-y-0.5">
+                      <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
+                      <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
+                    </SidebarMenu>
+                  </PopoverContent>
+                </Popover>
+              );
+            })}
           </>
         ) : null;
 
