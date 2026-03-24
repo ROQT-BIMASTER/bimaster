@@ -26,13 +26,13 @@ export function useSidebarMenuItems() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("sidebar_menu_items")
         .select("*")
         .order("module_code")
         .order("ordem");
       if (error) throw error;
-      return data as SidebarMenuItem[];
+      return (data || []) as SidebarMenuItem[];
     },
     staleTime: 5 * 60 * 1000,
   });
