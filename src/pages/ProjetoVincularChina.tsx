@@ -546,7 +546,7 @@ export default function ProjetoVincularChina() {
               <div className="flex items-center justify-center py-10">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : displayedSubmissoes.length === 0 ? (
+            ) : sortedDisplayedSubmissoes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
             ) : (
               <div className="p-3 grid grid-cols-1 gap-3">
