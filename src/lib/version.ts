@@ -1,5 +1,5 @@
 // Versão do app - incrementar a cada deploy significativo
-export const APP_VERSION = '2.10.0';
+export const APP_VERSION = '2.11.0';
 
 // Chave para armazenar versão no localStorage
 const VERSION_KEY = 'app_version';
