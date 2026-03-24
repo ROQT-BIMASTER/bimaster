@@ -113,6 +113,8 @@ export default function ProjetoVincularChina() {
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [focusSubmissao, setFocusSubmissao] = useState<any>(null);
   const [vinculosOpen, setVinculosOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [decisionProcessId, setDecisionProcessId] = useState<string | null>(null);
   // Sidebar active category
   const [activeSidebarCat, setActiveSidebarCat] = useState<"todas" | "vinculadas" | "nao_vinculadas">("todas");
 
