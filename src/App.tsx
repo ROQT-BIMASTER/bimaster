@@ -585,18 +585,18 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar/sync-cadastros" element={<ScreenRoute screenCode="financeiro_contas_pagar"><SyncCadastrosAP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/conciliacao" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ConciliacaoManualAP /></ScreenRoute>} />
             <Route path="/configuracoes/admin/relatorio-ap-erp" element={<ScreenRoute screenCode="admin"><RelatorioAPxERP /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber" element={<ModuleRoute moduleCode="financeiro"><ContasAReceber /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ModuleRoute moduleCode="financeiro"><ContasReceberAuditoria /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ModuleRoute moduleCode="financeiro"><ContasReceberSyncPage /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/cobranca" element={<ModuleRoute moduleCode="financeiro"><CobrancaInadimplentes /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ModuleRoute moduleCode="financeiro"><FluxoDeCaixa /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/plano-contas" element={<ModuleRoute moduleCode="financeiro"><PlanoContas /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/saldos-bancarios" element={<ModuleRoute moduleCode="financeiro"><SaldosBancarios /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/classificar-banco" element={<ModuleRoute moduleCode="financeiro"><ClassificarTodoBanco /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/central-pagamentos" element={<ModuleRoute moduleCode="financeiro"><FinancialPaymentCentral /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/consolidado" element={<ModuleRoute moduleCode="financeiro"><FinanceiroConsolidadoDashboard /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ModuleRoute moduleCode="financeiro"><ConciliacaoBancaria /></ModuleRoute>} />
-            <Route path="/dashboard/financeiro/investimentos" element={<ModuleRoute moduleCode="financeiro"><InvestimentosCorporativos /></ModuleRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasAReceber /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasReceberAuditoria /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-receber/sync" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasReceberSyncPage /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/cobranca" element={<ScreenRoute screenCode="financeiro_cobrancas"><CobrancaInadimplentes /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/fluxo-de-caixa" element={<ScreenRoute screenCode="financeiro_fluxo_caixa"><FluxoDeCaixa /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/plano-contas" element={<ScreenRoute screenCode="financeiro_plano_contas"><PlanoContas /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/saldos-bancarios" element={<ScreenRoute screenCode="financeiro_saldos_bancarios"><SaldosBancarios /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/classificar-banco" element={<ScreenRoute screenCode="financeiro_classificar"><ClassificarTodoBanco /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/central-pagamentos" element={<ScreenRoute screenCode="financeiro_pagamentos"><FinancialPaymentCentral /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/consolidado" element={<ScreenRoute screenCode="financeiro_consolidado"><FinanceiroConsolidadoDashboard /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/conciliacao-bancaria" element={<ScreenRoute screenCode="financeiro_conciliacao"><ConciliacaoBancaria /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/investimentos" element={<ScreenRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenRoute>} />
             
             {/* Marketing Mission Control */}
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleRoute>} />
