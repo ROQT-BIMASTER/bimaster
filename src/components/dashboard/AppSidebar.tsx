@@ -732,7 +732,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
             <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Store} title={t("module.trade")} isOpen={isModuleOpen} colorKey="trade" />
+              <ModuleHeader icon={Store} title={t("module.trade")} isOpen={isModuleOpen} colorKey="trade" subItemCount={getSubItemCount("trade")} />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <ScrollArea className="max-h-64">
