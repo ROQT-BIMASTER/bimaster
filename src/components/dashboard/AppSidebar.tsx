@@ -1002,7 +1002,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
             <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Package} title="Estoque" isOpen={isModuleOpen} colorKey="financeiro" />
+              <ModuleHeader icon={Package} title="Estoque" isOpen={isModuleOpen} colorKey="financeiro" subItemCount={getSubItemCount("estoque")} />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
