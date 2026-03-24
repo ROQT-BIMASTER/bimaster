@@ -1261,13 +1261,16 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             }
 
             return (
-              <Popover open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+              <Popover open={isIntOpen} onOpenChange={(open) => setModuleOpen("inteligencia", open)}>
                 <PopoverTrigger asChild>
                   <button className="w-full text-left">{intHeader}</button>
                 </PopoverTrigger>
                 <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2 max-h-[70vh] overflow-y-auto">
-                  <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                  <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-border">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Central de Inteligência</span>
+                    <button onClick={() => setModuleOpen("inteligencia", false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                   {intItems}
                 </PopoverContent>
