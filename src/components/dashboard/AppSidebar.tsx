@@ -192,7 +192,7 @@ const fabricaGroups = [
 interface ModuleHeaderProps {
   icon: React.ElementType;
   title: string;
-  isOpen: boolean;
+  isOpen?: boolean;
   colorKey?: keyof typeof moduleColors;
   subItemCount?: number;
 }
@@ -200,11 +200,18 @@ interface ModuleHeaderProps {
 const ModuleHeader = ({ icon: Icon, title, isOpen, subItemCount }: ModuleHeaderProps) => {
   return (
     <div className={cn(
-      "flex items-center gap-3 w-full px-3 py-2 rounded-md transition-all duration-150",
-      "hover:bg-[var(--sidebar-hover-raw)]"
+      "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer",
+      "hover:bg-[var(--sidebar-hover-raw)]",
+      isOpen && "bg-[hsl(var(--primary)/0.08)]"
     )}>
-      <Icon className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-      <span className="font-medium text-sm flex-1 text-[var(--sidebar-text-hover-raw)]">
+      <Icon className={cn(
+        "h-5 w-5 shrink-0 transition-colors",
+        isOpen ? "text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-muted-raw)]"
+      )} />
+      <span className={cn(
+        "font-semibold text-[14px] flex-1 leading-tight",
+        isOpen ? "text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)]"
+      )}>
         {title}
       </span>
       {subItemCount != null && subItemCount > 0 && (
@@ -212,9 +219,9 @@ const ModuleHeader = ({ icon: Icon, title, isOpen, subItemCount }: ModuleHeaderP
           {subItemCount}
         </span>
       )}
-      <ChevronDown className={cn(
+      <ChevronRight className={cn(
         "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
-        !isOpen && "ltr:-rotate-90 rtl:rotate-90"
+        isOpen && "rotate-90"
       )} />
     </div>
   );
