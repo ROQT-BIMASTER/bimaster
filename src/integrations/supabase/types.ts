@@ -18557,6 +18557,51 @@ export type Database = {
         }
         Relationships: []
       }
+      process_chat_messages: {
+        Row: {
+          conteudo: string
+          created_at: string
+          documento_ids: string[] | null
+          documento_oficializado_id: string | null
+          fase_processo: string | null
+          id: string
+          metadata: Json | null
+          modulo_origem: string | null
+          process_id: string
+          tipo: string
+          user_id: string
+          user_nome: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          documento_ids?: string[] | null
+          documento_oficializado_id?: string | null
+          fase_processo?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo_origem?: string | null
+          process_id: string
+          tipo?: string
+          user_id: string
+          user_nome: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          documento_ids?: string[] | null
+          documento_oficializado_id?: string | null
+          fase_processo?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo_origem?: string | null
+          process_id?: string
+          tipo?: string
+          user_id?: string
+          user_nome?: string
+        }
+        Relationships: []
+      }
       process_decisions: {
         Row: {
           attachments: Json | null
