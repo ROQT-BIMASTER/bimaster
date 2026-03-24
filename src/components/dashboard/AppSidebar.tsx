@@ -45,6 +45,8 @@ import { Separator } from "@/components/ui/separator";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePWA } from "@/hooks/usePWA";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 // Module color configuration
 const moduleColors = {
