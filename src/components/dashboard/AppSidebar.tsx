@@ -16,6 +16,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -47,6 +54,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { usePWA } from "@/hooks/usePWA";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Module color configuration
 const moduleColors = {
