@@ -1158,194 +1158,53 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       
       {/* Footer */}
       <SidebarFooter style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderTop: '1px solid var(--sidebar-border-raw)' }}>
-        <Collapsible open={footerOpen} onOpenChange={setFooterOpen}>
-          {userName && (
-            <CollapsibleTrigger asChild>
-              <button className="w-full px-4 py-2 hover:bg-[var(--sidebar-item-hover-raw)] transition-colors duration-150 cursor-pointer" style={{ borderBottom: '1px solid var(--sidebar-border-raw)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
-                    <span className="text-xs font-bold text-white">
-                      {userName.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
-                    <p className="text-xs text-[var(--sidebar-text-raw)]">{t("nav.connected")}</p>
-                  </div>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <ThemeSelectorPopover />
-                  </div>
-                  <ChevronUp className={cn(
-                    "h-4 w-4 text-[var(--sidebar-text-raw)] transition-transform duration-200",
-                    !footerOpen && "rotate-180"
-                  )} />
-                </div>
-              </button>
-            </CollapsibleTrigger>
-          )}
-          
-          <CollapsibleContent>
-            <SidebarMenu className="px-2 py-2">
+        {/* User info — always visible */}
+        {userName && (
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary-raw)' }}>
+              <span className="text-xs font-bold text-white">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate text-[var(--sidebar-text-active-raw)]">{userName}</p>
+              <p className="text-xs text-[var(--sidebar-text-muted-raw)]">{t("nav.connected")}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <ThemeSelectorPopover />
               {hasModulePermission("configuracoes") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/dashboard/configuracoes"
-                      className={({ isActive }) => cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                        isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                      )}
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>{t("nav.settings")}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavLink to="/dashboard/configuracoes" className="p-1.5 rounded-md text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)] transition-colors">
+                  <Settings className="h-4 w-4" />
+                </NavLink>
               )}
-              {isAdmin && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/configuracoes/lgpd"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Shield className="h-4 w-4" />
-                        <span>LGPD</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/configuracoes/menu"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                        <span>Config. Menu</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/relatorio-seguranca"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Shield className="h-4 w-4" />
-                        <span>Rel. Segurança</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/relatorio-apis"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Network className="h-4 w-4" />
-                        <span>Rel. APIs</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/relatorio-desenvolvimento"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span>Rel. Desenvolvimento</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/relatorio-ap-module"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <DollarSign className="h-4 w-4" />
-                        <span>Rel. AP Module</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/configuracoes/admin/relatorio-ap-erp"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Scale className="h-4 w-4" />
-                        <span>Rel. AP x ERP</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {hasModulePermission("integracao_erp") && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/integracao-erp"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <Key className="h-4 w-4" />
-                        <span>Portal ERP</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  )}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to="/dashboard/configuracoes/acesso"
-                        className={({ isActive }) => cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150",
-                          isActive ? "bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-                        )}
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        <span>Config. Acesso</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Admin links */}
+        {isAdmin && (
+          <div className="px-2 pb-2">
+            <SidebarMenu className="space-y-0.5">
+              <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
+              <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
+              <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
+              <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
+              <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
+              <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
+              <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
+              {hasModulePermission("integracao_erp") && (
+                <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
               )}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-150"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>{t("nav.logout")}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
             </SidebarMenu>
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+        )}
         
         <div className="px-4 py-2 flex gap-3" style={{ borderTop: '1px solid var(--sidebar-border-raw)' }}>
           <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--sidebar-text-muted-raw)] hover:text-[var(--sidebar-text-raw)] flex items-center gap-1">
