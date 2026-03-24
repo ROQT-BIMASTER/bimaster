@@ -16,7 +16,18 @@ import {
   ICON_MAP,
   type ModuloDespacho,
 } from "@/hooks/useModulosDespacho";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
+const CAPABILITY_LABELS = [
+  { key: "pode_ciencia", label: "Ciência" },
+  { key: "pode_aprovar", label: "Aprovar" },
+  { key: "pode_rejeitar", label: "Rejeitar" },
+  { key: "pode_juntada", label: "Juntada" },
+  { key: "pode_submeter", label: "Submeter" },
+  { key: "pode_contestar", label: "Contestar" },
+  { key: "pode_replicar", label: "Replicar" },
+] as const;
 
 export function ModulosDespachoManager() {
   const { data: modulos = [], isLoading } = useAllModulosDespacho();
