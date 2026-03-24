@@ -1,40 +1,62 @@
 
 
-# Restringir Telas AP Administrativas a Admins
+# Fix: Submenu Flickering and Controlled Close
 
-## Problema
+## Root Cause
 
-As 4 telas novas (Painel AP Central, Fila Exportação ERP, Sync Cadastros AP, Conciliação Manual AP) usam o mesmo `screenCode: "financeiro_contas_pagar"` que a tela comum de Contas a Pagar. Qualquer usuário com permissão ao módulo financeiro vê essas telas no menu e pode acessá-las.
+The `Popover` and `Drawer` components call `onOpenChange(boolean)` with the desired open state, but the handler ignores the boolean and blindly toggles:
 
-## Solução
+```typescript
+onOpenChange={() => toggleModuleOpen(moduleCode)}  // ignores the actual value
+```
 
-Criar screen codes dedicados para essas telas e protegê-las como admin-only em dois pontos:
+This causes state desync — the Popover fires `onOpenChange(false)` to close, but `toggleModuleOpen` may re-open it, creating the flicker loop.
 
-### 1. Sidebar — Adicionar flag `requireAdmin` nos 4 itens
+## Fix (single file: `AppSidebar.tsx`)
 
-**Arquivo: `src/components/dashboard/AppSidebar.tsx`**
+### 1. Replace toggle with explicit set
 
-Nos itens do grupo "Contas a Pagar", adicionar `requireAdmin: true` para:
-- Painel AP Central
-- Fila Exportação ERP
-- Sync Cadastros AP
-- Conciliação Manual AP
+Change `toggleModuleOpen` to accept an optional boolean:
 
-Na lógica de filtragem de sub-itens, ocultar itens com `requireAdmin: true` quando o role do usuário não for `admin`.
+```typescript
+const setModuleOpen = useCallback((code: string, open?: boolean) => {
+  setOpenModules(prev => {
+    const next = new Set(prev);
+    const shouldOpen = open ?? !next.has(code);
+    if (shouldOpen) next.add(code);
+    else next.delete(code);
+    return next;
+  });
+}, []);
+```
 
-### 2. Rotas — Proteger com ScreenRoute admin
+### 2. Update all Popover/Drawer `onOpenChange` handlers
 
-**Arquivo: `src/App.tsx`**
+From: `onOpenChange={() => toggleModuleOpen(code)}`
+To: `onOpenChange={(open) => setModuleOpen(code, open)}`
 
-Alterar o `screenCode` das 4 rotas de `"financeiro_contas_pagar"` para `"admin"` (ou envolver com verificação de role admin), garantindo que mesmo acessando a URL direta, não-admins sejam bloqueados.
+Keep the trigger button click as toggle: `onClick={() => setModuleOpen(code)}`
 
-### 3. Cadastrar telas no banco (migration)
+This ensures:
+- Clicking trigger toggles open/close
+- Clicking outside calls `onOpenChange(false)` → closes cleanly, no flicker
+- Pressing Escape closes cleanly
 
-Inserir as 4 telas na tabela `telas_sistema` com flag admin-only para consistência com o sistema de permissões.
+### 3. Add close button (X) to PopoverContent header
 
-## O que NÃO muda
+Add an `X` icon button in the submenu header bar for explicit close:
 
-- Tela "Contas a Pagar" comum continua acessível a quem tem permissão `financeiro_contas_pagar`
-- Lógica de permissões de módulo e outras telas financeiras
-- Funcionalidade das 4 telas em si
+```tsx
+<button onClick={() => setModuleOpen(moduleCode, false)}>
+  <X className="h-3.5 w-3.5" />
+</button>
+```
+
+### 4. Apply to all 3 submenu instances
+
+- `ModuleSubmenu` component (modules)
+- Department submenus (Tarefas)
+- Central de Inteligência submenu
+
+All use the same pattern — same fix in each spot (~6 `onOpenChange` callbacks total).
 
