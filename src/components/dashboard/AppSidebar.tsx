@@ -16,6 +16,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -47,6 +54,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { usePWA } from "@/hooks/usePWA";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Module color configuration
 const moduleColors = {
@@ -702,56 +710,84 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  // ============ MODULE RENDERERS — Popover flyout ============
+  const isMobile = useIsMobile();
+
+  // ============ MODULE RENDERERS — Popover (desktop) / Drawer (mobile) ============
   const renderModuleContent = (moduleCode: string) => {
     const isModuleOpen = openModules.has(moduleCode);
 
-    // Helper: wraps module header + popover sub-items
-    const ModulePopover = ({ icon, title, colorKey, children, count }: {
+    // Responsive wrapper: Popover on desktop, Drawer on mobile
+    const ModuleSubmenu = ({ icon, title, colorKey, children, count }: {
       icon: React.ElementType;
       title: string;
       colorKey?: keyof typeof moduleColors;
       children: React.ReactNode;
       count?: number;
-    }) => (
-      <Popover open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-        <PopoverTrigger asChild>
-          <button className="w-full text-left">
-            <ModuleHeader icon={icon} title={title} isOpen={isModuleOpen} colorKey={colorKey} subItemCount={count ?? getSubItemCount(moduleCode)} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          side="right"
-          align="start"
-          sideOffset={8}
-          className="w-64 p-2 max-h-[70vh] overflow-y-auto"
-        >
-          <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
-          </div>
-          <SidebarMenu className="space-y-0.5">
-            {children}
-          </SidebarMenu>
-        </PopoverContent>
-      </Popover>
-    );
+    }) => {
+      const headerEl = (
+        <ModuleHeader icon={icon} title={title} isOpen={isModuleOpen} colorKey={colorKey} subItemCount={count ?? getSubItemCount(moduleCode)} />
+      );
+
+      const menuContent = (
+        <SidebarMenu className="space-y-0.5">
+          {children}
+        </SidebarMenu>
+      );
+
+      if (isMobile) {
+        return (
+          <Drawer open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <DrawerTrigger asChild>
+              <button className="w-full text-left">{headerEl}</button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader className="pb-2">
+                <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+              </DrawerHeader>
+              <ScrollArea className="max-h-[60vh] px-4 pb-6">
+                {menuContent}
+              </ScrollArea>
+            </DrawerContent>
+          </Drawer>
+        );
+      }
+
+      return (
+        <Popover open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+          <PopoverTrigger asChild>
+            <button className="w-full text-left">{headerEl}</button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-64 p-2 max-h-[70vh] overflow-y-auto"
+          >
+            <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
+            </div>
+            {menuContent}
+          </PopoverContent>
+        </Popover>
+      );
+    };
 
     switch (moduleCode) {
       case "prospects":
         return (
-          <ModulePopover icon={Users} title={t("module.prospects")} colorKey="prospects">
+          <ModuleSubmenu icon={Users} title={t("module.prospects")} colorKey="prospects">
             {hasPermission("PROSPECTS_DASHBOARD") && (
               <MenuItemLink to="/dashboard/prospects" icon={Home} title={t("prospects.overview")} colorKey="prospects" end />
             )}
             {prospectsSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="prospects" />
             ))}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "comercial":
         return (
-          <ModulePopover icon={Briefcase} title={t("module.comercial")} colorKey="comercial">
+          <ModuleSubmenu icon={Briefcase} title={t("module.comercial")} colorKey="comercial">
             {hasPermission("comercial_dashboard") && (
               <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
             )}
@@ -771,12 +807,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             <MenuItemLink to="/dashboard/comercial/mapa" icon={MapPin} title="Mapa Comercial" colorKey="comercial" />
             <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
             <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "precos":
         return (
-          <ModulePopover icon={DollarSign} title={t("module.precos")} colorKey="precos">
+          <ModuleSubmenu icon={DollarSign} title={t("module.precos")} colorKey="precos">
             {precosSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink 
                 key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="precos" end={item.end}
@@ -785,48 +821,48 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 ) : undefined}
               />
             ))}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "trade":
         return (
-          <ModulePopover icon={Store} title={t("module.trade")} colorKey="trade">
+          <ModuleSubmenu icon={Store} title={t("module.trade")} colorKey="trade">
             {hasPermission("TRADE_DASHBOARD") && (
               <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
             )}
             {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
             ))}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "marketing":
         return (
-          <ModulePopover icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
+          <ModuleSubmenu icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
             {hasPermission("MARKETING_DASHBOARD") && (
               <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
             )}
             {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
             ))}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "eventos":
         return (
-          <ModulePopover icon={PartyPopper} title={t("module.eventos")} colorKey="eventos">
+          <ModuleSubmenu icon={PartyPopper} title={t("module.eventos")} colorKey="eventos">
             {hasPermission("eventos_dashboard") && (
               <MenuItemLink to="/dashboard/eventos" icon={Home} title={t("eventos.events")} colorKey="eventos" end />
             )}
             {hasPermission("eventos_analytics") && (
               <MenuItemLink to="/dashboard/eventos/dashboard" icon={BarChart3} title={t("eventos.dashboard")} colorKey="eventos" />
             )}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "fabrica":
         return (
-          <ModulePopover icon={Factory} title={t("module.fabrica")} colorKey="fabrica">
+          <ModuleSubmenu icon={Factory} title={t("module.fabrica")} colorKey="fabrica">
             {hasPermission("fabrica_dashboard") && (
               <MenuItemLink to="/dashboard/fabrica" icon={Home} title={t("fabrica.dashboard")} colorKey="fabrica" end />
             )}
@@ -844,17 +880,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 </div>
               );
             })}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "china":
         return (
-          <ModulePopover icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
+          <ModuleSubmenu icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
             <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
             <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
             <MenuItemLink to="/dashboard/fabrica-china/ordens" icon={ShoppingCart} title="Ordens de Compra 采购订单" colorKey="china" />
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "composicao":
@@ -919,22 +955,22 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "aprovacao_artes":
         return (
-          <ModulePopover icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
+          <ModuleSubmenu icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
             <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
             <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "financeiro":
         return (
-          <ModulePopover icon={DollarSign} title={t("module.financeiro")} colorKey="financeiro">
+          <ModuleSubmenu icon={DollarSign} title={t("module.financeiro")} colorKey="financeiro">
             {/* Top-level items */}
             {financeiroTopItems.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" end={item.end} />
             ))}
 
-            {/* Subgroups with collapsible inside popover */}
+            {/* Subgroups with collapsible inside submenu */}
             {finSubgroups.map(sg => {
               const visibleItems = sg.items.filter(i => hasPermission(i.screenCode));
               if (visibleItems.length === 0) return null;
@@ -981,7 +1017,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {finBottomItems.filter(i => hasPermission(i.screenCode)).map(item => (
               <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" />
             ))}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "departamentos":
@@ -990,21 +1026,43 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {userDepartments.map((dept) => {
               const deptKey = `dept_${dept.id}`;
               const isDeptOpen = openModules.has(deptKey);
+              
+              const deptHeader = (
+                <ModuleHeader icon={Building2} title={dept.nome} isOpen={isDeptOpen} colorKey="departamentos" subItemCount={2} />
+              );
+              const deptItems = (
+                <SidebarMenu className="space-y-0.5">
+                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
+                  <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
+                </SidebarMenu>
+              );
+
+              if (isMobile) {
+                return (
+                  <Drawer key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
+                    <DrawerTrigger asChild>
+                      <button className="w-full text-left">{deptHeader}</button>
+                    </DrawerTrigger>
+                    <DrawerContent>
+                      <DrawerHeader className="pb-2">
+                        <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
+                      </DrawerHeader>
+                      <div className="px-4 pb-6">{deptItems}</div>
+                    </DrawerContent>
+                  </Drawer>
+                );
+              }
+
               return (
                 <Popover key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
                   <PopoverTrigger asChild>
-                    <button className="w-full text-left">
-                      <ModuleHeader icon={Building2} title={dept.nome} isOpen={isDeptOpen} colorKey="departamentos" subItemCount={2} />
-                    </button>
+                    <button className="w-full text-left">{deptHeader}</button>
                   </PopoverTrigger>
                   <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2">
                     <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{dept.nome}</span>
                     </div>
-                    <SidebarMenu className="space-y-0.5">
-                      <MenuItemLink to={`/dashboard/departamentos/${dept.id}`} icon={FileText} title={t("dept.expenses")} colorKey="departamentos" end />
-                      <MenuItemLink to={`/dashboard/departamentos/${dept.id}/dashboard`} icon={BarChart3} title={t("dept.dashboard")} colorKey="departamentos" />
-                    </SidebarMenu>
+                    {deptItems}
                   </PopoverContent>
                 </Popover>
               );
@@ -1014,19 +1072,19 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "estoque":
         return (
-          <ModulePopover icon={Package} title="Estoque" colorKey="financeiro">
+          <ModuleSubmenu icon={Package} title="Estoque" colorKey="financeiro">
             <MenuItemLink to="/dashboard/estoque" icon={Home} title="Painel" end />
             <MenuItemLink to="/dashboard/estoque/distribuidoras" icon={Building2} title="Distribuidoras" />
             <MenuItemLink to="/dashboard/estoque/produtos-master" icon={Package} title="Produtos Master" />
             <MenuItemLink to="/dashboard/estoque/saldos" icon={Layers} title="Saldos" />
             <MenuItemLink to="/dashboard/estoque/consolidado" icon={BarChart3} title="Consolidado" />
             <MenuItemLink to="/dashboard/estoque/vinculacoes" icon={Send} title="Vinculações" />
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "projetos":
         return (
-          <ModulePopover icon={FolderKanban} title="Projetos" colorKey="comercial">
+          <ModuleSubmenu icon={FolderKanban} title="Projetos" colorKey="comercial">
             <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (
@@ -1038,7 +1096,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {isAdminOrSupervisor && (
               <MenuItemLink to="/dashboard/projetos/minha-equipe" icon={Users} title="Minha Equipe" />
             )}
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       case "reunioes":
@@ -1058,11 +1116,11 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "processos":
         return (
-          <ModulePopover icon={Scale} title="Processos" colorKey="comercial">
+          <ModuleSubmenu icon={Scale} title="Processos" colorKey="comercial">
             <MenuItemLink to="/dashboard/processos/consulta" icon={Scale} title="Consulta de Processos" end />
             <MenuItemLink to="/dashboard/processos/etapas" icon={Settings} title="Configurar Etapas" end />
             <MenuItemLink to="/dashboard/processos/workflows" icon={Layers} title="Workflows Documentais" end />
-          </ModulePopover>
+          </ModuleSubmenu>
         );
 
       default:
@@ -1146,16 +1204,12 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         {/* Central de Inteligência — protegido por módulo */}
         {hasModulePermission("central_inteligencia") && moduleMatchesSearch("inteligencia") && (
         <SidebarGroup className="py-1 px-2">
-          <Popover open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
-            <PopoverTrigger asChild>
-              <button className="w-full text-left">
-                <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={openModules.has("inteligencia")} subItemCount={isAdmin ? 8 : 7} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2 max-h-[70vh] overflow-y-auto">
-              <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Central de Inteligência</span>
-              </div>
+          {(() => {
+            const isIntOpen = openModules.has("inteligencia");
+            const intHeader = (
+              <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={isIntOpen} subItemCount={isAdmin ? 8 : 7} />
+            );
+            const intItems = (
               <SidebarMenu className="space-y-0.5">
                 <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
                 <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
@@ -1166,8 +1220,38 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" />
                 {isAdmin && <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas" />}
               </SidebarMenu>
-            </PopoverContent>
-          </Popover>
+            );
+
+            if (isMobile) {
+              return (
+                <Drawer open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+                  <DrawerTrigger asChild>
+                    <button className="w-full text-left">{intHeader}</button>
+                  </DrawerTrigger>
+                  <DrawerContent>
+                    <DrawerHeader className="pb-2">
+                      <DrawerTitle className="text-sm font-semibold">Central de Inteligência</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="px-4 pb-6">{intItems}</div>
+                  </DrawerContent>
+                </Drawer>
+              );
+            }
+
+            return (
+              <Popover open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+                <PopoverTrigger asChild>
+                  <button className="w-full text-left">{intHeader}</button>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2 max-h-[70vh] overflow-y-auto">
+                  <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Central de Inteligência</span>
+                  </div>
+                  {intItems}
+                </PopoverContent>
+              </Popover>
+            );
+          })()}
         </SidebarGroup>
         )}
 
