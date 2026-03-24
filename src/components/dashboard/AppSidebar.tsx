@@ -1235,7 +1235,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
         {/* Categories — always visible, no accordion */}
         {categories.map(cat => {
-          const visibleModules = cat.modules.filter(m => showModule(m));
+          const visibleModules = cat.modules.filter(m => showModule(m) && moduleMatchesSearch(m));
           if (visibleModules.length === 0) return null;
 
           return (
