@@ -293,6 +293,18 @@ export default function ContasPagarGestao() {
       if (editingId) {
         const { error } = await supabase.from("contas_pagar").update(payload).eq("id", editingId);
         if (error) throw error;
+        
+        // Log justificativa if editing locked record
+        if (editJustificativa.trim()) {
+          await supabase.from("contas_pagar_historico" as any).insert({
+            conta_id: editingId,
+            campo_alterado: "_justificativa",
+            valor_anterior: null,
+            valor_novo: editJustificativa.trim(),
+            tipo_alteracao: "JUSTIFICATIVA",
+            usuario_id: (await supabase.auth.getUser()).data.user?.id,
+          });
+        }
       } else {
         payload.erp_id = `MAN-${Date.now()}`;
         payload.empresa_id = payload.empresa_id || 1;
