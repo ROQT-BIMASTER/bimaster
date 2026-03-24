@@ -24164,6 +24164,63 @@ export type Database = {
           },
         ]
       }
+      sidebar_menu_items: {
+        Row: {
+          ativo: boolean
+          created_at: string | null
+          icon: string | null
+          icon_override: string | null
+          id: string
+          item_code: string
+          label: string
+          label_override: string | null
+          module_code: string
+          ordem: number
+          parent_group: string | null
+          require_admin: boolean
+          require_admin_or_supervisor: boolean
+          route: string | null
+          screen_code: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string | null
+          icon?: string | null
+          icon_override?: string | null
+          id?: string
+          item_code: string
+          label: string
+          label_override?: string | null
+          module_code: string
+          ordem?: number
+          parent_group?: string | null
+          require_admin?: boolean
+          require_admin_or_supervisor?: boolean
+          route?: string | null
+          screen_code?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string | null
+          icon?: string | null
+          icon_override?: string | null
+          id?: string
+          item_code?: string
+          label?: string
+          label_override?: string | null
+          module_code?: string
+          ordem?: number
+          parent_group?: string | null
+          require_admin?: boolean
+          require_admin_or_supervisor?: boolean
+          route?: string | null
+          screen_code?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       simulacao_cenarios_preco: {
         Row: {
           created_at: string | null
