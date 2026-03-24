@@ -823,7 +823,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
             <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Globe} title="Fábrica China 中国工厂" isOpen={isModuleOpen} colorKey="china" />
+              <ModuleHeader icon={Globe} title="Fábrica China 中国工厂" isOpen={isModuleOpen} colorKey="china" subItemCount={getSubItemCount("china")} />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
