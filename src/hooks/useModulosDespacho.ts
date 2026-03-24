@@ -184,7 +184,7 @@ export function useManageModulosDespacho() {
   });
 
   const updateModulo = useMutation({
-    mutationFn: async (input: { id: string; label?: string; icon_name?: string; color?: string; ativo?: boolean; ordem?: number }) => {
+    mutationFn: async (input: { id: string; label?: string; icon_name?: string; color?: string; ativo?: boolean; ordem?: number; ambiente_habilitado?: boolean; pode_ciencia?: boolean; pode_aprovar?: boolean; pode_rejeitar?: boolean; pode_juntada?: boolean; pode_submeter?: boolean; pode_contestar?: boolean; pode_replicar?: boolean }) => {
       const { id, ...update } = input;
       const { error } = await (supabase
         .from("process_modulos_despacho" as any)
