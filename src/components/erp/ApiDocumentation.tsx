@@ -1524,8 +1524,22 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                         { event: "conta_receber.recebido", desc: "Recebimento registrado", mod: "Contas a Receber" },
                         { event: "cliente.criado", desc: "Novo cliente cadastrado", mod: "Clientes" },
                         { event: "cliente.alterado", desc: "Dados do cliente atualizados", mod: "Clientes" },
+                        { event: "cliente.excluido", desc: "Cliente removido", mod: "Clientes" },
                         { event: "fornecedor.criado", desc: "Novo fornecedor cadastrado", mod: "Fornecedores" },
                         { event: "fornecedor.alterado", desc: "Dados do fornecedor atualizados", mod: "Fornecedores" },
+                        { event: "fornecedor.excluido", desc: "Fornecedor removido", mod: "Fornecedores" },
+                        { event: "departamento.criado", desc: "Novo departamento criado", mod: "Departamentos" },
+                        { event: "departamento.alterado", desc: "Departamento atualizado", mod: "Departamentos" },
+                        { event: "categoria.criado", desc: "Nova categoria criada", mod: "Categorias" },
+                        { event: "categoria.alterado", desc: "Categoria atualizada", mod: "Categorias" },
+                        { event: "projeto.criado", desc: "Novo projeto criado", mod: "Projetos" },
+                        { event: "projeto.alterado", desc: "Projeto atualizado", mod: "Projetos" },
+                        { event: "conta_corrente.criado", desc: "Nova conta corrente criada", mod: "Contas Correntes" },
+                        { event: "conta_corrente.alterado", desc: "Conta corrente atualizada", mod: "Contas Correntes" },
+                        { event: "lancamento_cc.criado", desc: "Novo lançamento em conta corrente", mod: "Lançamentos CC" },
+                        { event: "tarefa.criado", desc: "Nova tarefa criada", mod: "Tarefas" },
+                        { event: "tarefa.alterado", desc: "Tarefa atualizada", mod: "Tarefas" },
+                        { event: "tarefa.concluido", desc: "Tarefa marcada como concluída", mod: "Tarefas" },
                       ].map(ev => (
                         <div key={ev.event} className="grid grid-cols-[180px_1fr_180px] gap-2 px-3 py-2 border-b last:border-b-0 text-xs hover:bg-muted/30">
                           <code className="font-mono text-[11px] text-primary">{ev.event}</code>
