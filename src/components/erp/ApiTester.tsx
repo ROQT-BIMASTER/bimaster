@@ -608,11 +608,30 @@ export default function ApiTester() {
   return (
     <Card className="border-border" id="api-tester-section">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Terminal className="h-5 w-5 text-primary" />
-          API Tester
-          <Badge variant="outline" className="ml-2 text-xs font-normal">Postman-like</Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Terminal className="h-5 w-5 text-primary" />
+            API Tester
+            <Badge variant="outline" className="ml-2 text-xs font-normal">Postman-like</Badge>
+            {sandboxMode && (
+              <Badge className="ml-2 bg-orange-500/15 text-orange-600 border-orange-500/30 border text-xs font-semibold animate-pulse">
+                <FlaskConical className="h-3 w-3 mr-1" />
+                SANDBOX
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Produção</span>
+            <Switch
+              checked={sandboxMode}
+              onCheckedChange={(checked) => {
+                setSandboxMode(checked);
+                toast.info(checked ? "Modo Sandbox ativado — chamadas não afetam dados reais" : "Modo Produção ativado");
+              }}
+            />
+            <span className={`text-xs font-medium ${sandboxMode ? "text-orange-600" : "text-muted-foreground"}`}>Sandbox</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Preset endpoints */}
