@@ -244,14 +244,14 @@ const MenuItemLink = ({ to, icon: Icon, title, badge, end }: MenuItemLinkProps) 
           to={to}
           end={end}
           className={({ isActive }) => cn(
-            "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+            "relative flex items-center gap-2.5 px-3 py-1.5 rounded-md transition-all duration-150 text-[12px]",
             isActive
-              ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]"
-              : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              ? "font-medium bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           )}
         >
-          <Icon className="h-4 w-4" />
-          <span className="flex-1">{title}</span>
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1 truncate">{title}</span>
           {badge}
         </NavLink>
       </SidebarMenuButton>
