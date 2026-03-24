@@ -1,62 +1,47 @@
 
 
-# Fix: Submenu Flickering and Controlled Close
+# Fix: Submenu Abrindo Automaticamente e Piscando
 
-## Root Cause
+## Causa Raiz
 
-The `Popover` and `Drawer` components call `onOpenChange(boolean)` with the desired open state, but the handler ignores the boolean and blindly toggles:
-
-```typescript
-onOpenChange={() => toggleModuleOpen(moduleCode)}  // ignores the actual value
-```
-
-This causes state desync — the Popover fires `onOpenChange(false)` to close, but `toggleModuleOpen` may re-open it, creating the flicker loop.
-
-## Fix (single file: `AppSidebar.tsx`)
-
-### 1. Replace toggle with explicit set
-
-Change `toggleModuleOpen` to accept an optional boolean:
+O `useEffect` nas linhas 412-424 do `AppSidebar.tsx` executa em toda mudança de rota e **adiciona automaticamente** o modulo correspondente ao `openModules`. Como agora os submenus sao Popovers/Drawers (nao mais accordions), isso faz o submenu abrir sozinho ao carregar a pagina, causando o efeito de "piscar".
 
 ```typescript
-const setModuleOpen = useCallback((code: string, open?: boolean) => {
-  setOpenModules(prev => {
-    const next = new Set(prev);
-    const shouldOpen = open ?? !next.has(code);
-    if (shouldOpen) next.add(code);
-    else next.delete(code);
-    return next;
-  });
-}, []);
+// PROBLEMA — roda em toda navegacao e abre o popover automaticamente
+useEffect(() => {
+  const path = location.pathname;
+  for (const [moduleCode, routes] of Object.entries(moduleRouteMap)) {
+    if (routes.some(r => path.startsWith(r))) {
+      setOpenModules(prev => { ... next.add(moduleCode); return next; });
+      break;
+    }
+  }
+}, [location.pathname, ...]);
 ```
 
-### 2. Update all Popover/Drawer `onOpenChange` handlers
+Esse padrao fazia sentido quando os submenus eram Collapsibles/accordions. Com Popovers, abrir automaticamente e indesejado.
 
-From: `onOpenChange={() => toggleModuleOpen(code)}`
-To: `onOpenChange={(open) => setModuleOpen(code, open)}`
+## Solucao
 
-Keep the trigger button click as toggle: `onClick={() => setModuleOpen(code)}`
+**Arquivo unico: `src/components/dashboard/AppSidebar.tsx`**
 
-This ensures:
-- Clicking trigger toggles open/close
-- Clicking outside calls `onOpenChange(false)` → closes cleanly, no flicker
-- Pressing Escape closes cleanly
+### 1. Remover auto-expand de modulos por rota (linhas 412-424)
 
-### 3. Add close button (X) to PopoverContent header
+Eliminar o bloco que adiciona modulos ao `openModules` baseado em `location.pathname`. Submenus so devem abrir por clique do usuario.
 
-Add an `X` icon button in the submenu header bar for explicit close:
+### 2. Manter auto-expand por busca (linhas 519-533)
 
-```tsx
-<button onClick={() => setModuleOpen(moduleCode, false)}>
-  <X className="h-3.5 w-3.5" />
-</button>
-```
+O comportamento de abrir submenus ao digitar na busca permanece, conforme preferencia confirmada.
 
-### 4. Apply to all 3 submenu instances
+### 3. Manter auto-expand de finSubgroups (linhas 426-442)
 
-- `ModuleSubmenu` component (modules)
-- Department submenus (Tarefas)
-- Central de Inteligência submenu
+Os Collapsibles internos do Financeiro (verbas, campanhas, etc.) continuam expandindo por rota, pois sao accordions dentro do popover, nao popovers em si.
 
-All use the same pattern — same fix in each spot (~6 `onOpenChange` callbacks total).
+## O que NAO muda
+
+- Logica de `setModuleOpen` (explicit boolean)
+- Botao X de fechar
+- Popover desktop / Drawer mobile
+- Busca com auto-abertura
+- Permissoes e filtros
 
