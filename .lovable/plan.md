@@ -1,65 +1,89 @@
 
 
-# Auditoria de Segurança — Preparação para 100%
+# Redesign do Menu Lateral — Estilo Portal de Integração
 
-## Resultado: 3 Falhas Críticas Encontradas
+## Problema
 
-### Verificação HTTP/HTTPS: APROVADO
-Todas as chamadas `fetch()` em edge functions usam **HTTPS**. A única ocorrência de `http://` é uma referência XML namespace no `tailwind.config.ts` (inofensiva). Nenhuma API chama endpoints HTTP em texto claro.
+O menu lateral atual usa headers de módulo com caixas coloridas (7x7px), múltiplos níveis de nesting com indentação pesada, e accordion de categorias que gera confusão. Os usuários reclamam da complexidade visual.
 
----
+## Referência: Sidebar do Portal de Integração
 
-## Falha 1: ~40 Edge Functions sem `verify_jwt` no config.toml (CRÍTICO)
+O padrão do portal (imagem-823) é limpo e minimalista:
+- Lista flat com ícone + texto + badge de contagem
+- Separadores simples entre seções
+- Sem caixas coloridas nos headers
+- Item ativo com highlight sutil (`bg-primary/10`)
+- Tipografia uniforme, sem uppercase tracking pesado
 
-O `config.toml` lista ~65 funções, mas existem **~140 funções** no diretório. Funções ausentes incluem APIs críticas:
+## Plano de Redesign
 
-| Funções faltantes (amostra) | Risco |
-|---|---|
-| `api-sandbox` | Alto — sandbox sem config explícito |
-| `boletos-api`, `contas-correntes-api`, `lancamentos-cc-api` | Alto — APIs financeiras |
-| `clientes-api`, `webhook-subscriptions-api`, `projetos-api` | Alto — dados sensíveis |
-| `categorias-api`, `bancos-api`, `cidades-api`, `paises-api`, `origens-api` | Médio — dados de referência |
-| `anexos-api`, `parcelas-api`, `movimentos-financeiros-api` | Alto — dados financeiros |
-| `trade-marketing-api`, `estoque-api`, `vendas-union-api` | Médio |
-| + ~20 outras funções | Variado |
+**Arquivo: `src/components/dashboard/AppSidebar.tsx`** (refactor visual, sem alterar lógica)
 
-**Correção**: Adicionar TODAS as funções faltantes ao `config.toml` com o `verify_jwt` correto (false para APIs que fazem auth própria via x-api-key, true para as que dependem de JWT).
+### 1. Novo `ModuleHeader` — Estilo Portal
 
-### Falha 2: `analyze-brand-website` sem proteção SSRF (MÉDIO)
+Substituir o header com caixa colorida por um estilo flat:
 
-A função faz `fetch(website_url)` com URL fornecida pelo usuário mas **não usa `validateExternalUrl()`**. Um atacante pode forçar o servidor a acessar IPs internos.
+```text
+ANTES:  [██] Prospects    ▾    (caixa 7x7 colorida, font-medium)
+DEPOIS:  👤 Prospects  (14)  ▾  (ícone direto, badge count, flat)
+```
 
-**Correção**: Adicionar import de `validateExternalUrl` e chamar antes do fetch.
+- Ícone direto sem background box (h-5 w-5, cor `text-muted-foreground`)
+- Badge com contagem de sub-itens visíveis (estilo `bg-muted rounded-full text-[10px]`)
+- Hover com `bg-muted/50`, sem cores de módulo no header
+- Chevron sutil à direita
 
-### Falha 3: SSRF Guard permite protocolo `http:` (BAIXO)
+### 2. Novo `CategoryHeader` — Mais leve
 
-O `ssrf-guard.ts` linha 57 permite `http:` além de `https:`. Para auditoria, devemos forçar apenas HTTPS.
+Substituir o uppercase bold tracking por um estilo com separador:
 
-**Correção**: Remover `http:` da whitelist de protocolos permitidos.
+```text
+ANTES:  ⓘ COMERCIAL & VENDAS  ▸  (bold 10px uppercase tracking-[0.09em])
+DEPOIS:  ── Comercial & Vendas ──  (separator style, text-xs text-muted-foreground)
+```
 
----
+- Linha separadora com texto central (estilo divider label)
+- Sem ícone no header da categoria
+- Sem chevron — categorias sempre abertas (remover accordion de categorias)
 
-## Plano de Implementação
+### 3. `MenuItemLink` — Refinamento
 
-### 1. config.toml — Registrar todas as funções faltantes
+Manter o estilo atual mas ajustar:
+- Remover `border-l-2` do item ativo → usar `bg-primary/10 text-primary font-medium` (estilo portal)
+- Padding uniforme `px-3 py-2` em vez de `py-1.5`
+- Ícone `h-4 w-4` (era `h-3.5 w-3.5`)
 
-Adicionar ~40 entradas com `verify_jwt` correto baseado na lógica interna de cada função:
-- `verify_jwt = false` para funções que validam auth internamente (APIs ERP com x-api-key, webhooks)
-- `verify_jwt = true` para funções que dependem do JWT do Supabase
+### 4. Remover accordion de categorias
 
-### 2. analyze-brand-website — SSRF Guard
+As categorias do DB (`sidebar_categories`) continuam agrupando módulos, mas sem collapsible — todos os grupos ficam visíveis. Apenas os **módulos** dentro de cada grupo mantêm collapsible.
 
-Adicionar `validateExternalUrl(website_url)` antes do `fetch`.
+Isso resolve a reclamação principal: "clico na categoria, abre, clico no módulo, abre de novo" — agora é um clique só.
 
-### 3. ssrf-guard.ts — Forçar HTTPS only
+### 5. Module Filter — Manter
 
-Alterar condição para permitir apenas `https:`.
+O dropdown "Todos os Módulos" permanece no topo pois é funcional e já segue design limpo.
 
-## Arquivos Afetados
+### 6. Footer — Simplificar
+
+Remover collapsible do footer. Mostrar:
+- Avatar + nome (sempre visível)
+- Ícones inline: tema, settings, logout
+- Links de privacidade/termos abaixo
+
+## O que NÃO muda
+
+- Toda a lógica de permissões (`hasPermission`, `showModule`, `hasModulePermission`)
+- Dados de categorias do banco (`useSidebarConfig`)
+- Sub-menus e rotas (prospects, financeiro, etc.)
+- Auto-expand por rota ativa
+- Module filter dropdown
+- Financeiro subgroups (verbas, campanhas, contas, análises)
+- Fábrica groups (entrada, produção, qualidade, etc.)
+- Central de Inteligência (protegida por módulo)
+
+## Arquivo Afetado
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/config.toml` | Adicionar ~40 funções faltantes |
-| `supabase/functions/analyze-brand-website/index.ts` | Adicionar SSRF guard |
-| `supabase/functions/_shared/ssrf-guard.ts` | Forçar HTTPS only |
+| `src/components/dashboard/AppSidebar.tsx` | Refactor visual dos componentes ModuleHeader, CategoryHeader, MenuItemLink. Remover accordion de categorias. Simplificar footer. |
 
