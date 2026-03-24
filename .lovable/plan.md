@@ -1,37 +1,40 @@
 
 
-# Mobile: Submenu em Drawer em vez de Popover
+# Restringir Telas AP Administrativas a Admins
 
 ## Problema
 
-O `PopoverContent side="right"` funciona bem em desktop mas em mobile:
-- O popover fica cortado ou sobrepõe a sidebar
-- Toque em área pequena é difícil
-- Não há espaço lateral suficiente para o flyout
+As 4 telas novas (Painel AP Central, Fila Exportação ERP, Sync Cadastros AP, Conciliação Manual AP) usam o mesmo `screenCode: "financeiro_contas_pagar"` que a tela comum de Contas a Pagar. Qualquer usuário com permissão ao módulo financeiro vê essas telas no menu e pode acessá-las.
 
 ## Solução
 
-Usar abordagem condicional: **Popover no desktop, Drawer (bottom sheet) no mobile**.
+Criar screen codes dedicados para essas telas e protegê-las como admin-only em dois pontos:
 
-### Implementação
+### 1. Sidebar — Adicionar flag `requireAdmin` nos 4 itens
 
 **Arquivo: `src/components/dashboard/AppSidebar.tsx`**
 
-1. Importar `useIsMobile` de `@/hooks/use-mobile`
-2. Importar `Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle` de `@/components/ui/drawer`
-3. Criar componente wrapper `ModuleSubmenu` que renderiza:
-   - **Desktop** (`!isMobile`): `Popover` + `PopoverContent side="right"` (comportamento atual)
-   - **Mobile** (`isMobile`): `Drawer` + `DrawerContent` com lista de sub-itens em bottom sheet full-width
+Nos itens do grupo "Contas a Pagar", adicionar `requireAdmin: true` para:
+- Painel AP Central
+- Fila Exportação ERP
+- Sync Cadastros AP
+- Conciliação Manual AP
 
-```text
-DESKTOP:  [Módulo] → popover lateral flutuante
-MOBILE:   [Módulo] → drawer sobe de baixo com sub-itens
-```
+Na lógica de filtragem de sub-itens, ocultar itens com `requireAdmin: true` quando o role do usuário não for `admin`.
 
-4. Aplicar em todos os ~10 pontos onde `PopoverContent side="right"` é usado (módulos dinâmicos, departamentos, Central de Inteligência)
+### 2. Rotas — Proteger com ScreenRoute admin
 
-### O que NÃO muda
-- Lógica de permissões, rotas, filtro de módulos
-- Visual dos sub-itens (mesmos ícones, textos, badges)
-- Comportamento desktop permanece idêntico
+**Arquivo: `src/App.tsx`**
+
+Alterar o `screenCode` das 4 rotas de `"financeiro_contas_pagar"` para `"admin"` (ou envolver com verificação de role admin), garantindo que mesmo acessando a URL direta, não-admins sejam bloqueados.
+
+### 3. Cadastrar telas no banco (migration)
+
+Inserir as 4 telas na tabela `telas_sistema` com flag admin-only para consistência com o sistema de permissões.
+
+## O que NÃO muda
+
+- Tela "Contas a Pagar" comum continua acessível a quem tem permissão `financeiro_contas_pagar`
+- Lógica de permissões de módulo e outras telas financeiras
+- Funcionalidade das 4 telas em si
 
