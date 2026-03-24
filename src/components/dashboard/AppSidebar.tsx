@@ -1150,29 +1150,21 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
         <Separator className="mx-4 w-auto" />
 
-        {/* Categories with accordion */}
+        {/* Categories — always visible, no accordion */}
         {categories.map(cat => {
           const visibleModules = cat.modules.filter(m => showModule(m));
           if (visibleModules.length === 0) return null;
 
-          const isCatOpen = openCategory === cat.key;
-
           return (
-            <SidebarGroup key={cat.key} className="py-1 px-2">
-              <Collapsible open={isCatOpen} onOpenChange={() => toggleCategory(cat.key)}>
-                <CollapsibleTrigger className="w-full">
-                  <CategoryHeader icon={cat.icon} title={cat.label} isOpen={isCatOpen} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="space-y-1 mt-1 ps-1">
-                    {visibleModules.map(moduleCode => (
-                      <div key={moduleCode}>
-                        {renderModuleContent(moduleCode)}
-                      </div>
-                    ))}
+            <SidebarGroup key={cat.key} className="py-0 px-2">
+              <CategoryDivider title={cat.label} />
+              <div className="space-y-0.5 mt-1">
+                {visibleModules.map(moduleCode => (
+                  <div key={moduleCode}>
+                    {renderModuleContent(moduleCode)}
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                ))}
+              </div>
             </SidebarGroup>
           );
         })}
