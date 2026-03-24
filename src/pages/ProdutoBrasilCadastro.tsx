@@ -154,7 +154,7 @@ export default function ProdutoBrasilCadastro() {
         )}
 
         <TabsContent value="pasta" className="mt-4">
-          <PastaDigitalPanel produtoBrasilId={produto.id} />
+          <PastaOficialProcessos produtoBrasilId={produto.id} />
         </TabsContent>
 
         <TabsContent value="imagens" className="mt-4">
