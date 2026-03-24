@@ -617,7 +617,7 @@ export default function ContasPagarGestao() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(c)} title="Ver detalhe">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title="Editar" disabled={c.status === "pago" || c.status === "cancelado"}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title={c.status === "pago" || c.status === "cancelado" ? "Editar (requer senha)" : "Editar"}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {c.status !== "cancelado" && c.status !== "pago" && (
