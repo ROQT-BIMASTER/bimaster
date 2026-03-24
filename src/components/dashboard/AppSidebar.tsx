@@ -279,7 +279,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [openFinSubgroups, setOpenFinSubgroups] = useState<Set<string>>(new Set());
-  const [_footerOpen, _setFooterOpen] = useState(false); // kept for state order
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [tabelasPendentes, setTabelasPendentes] = useState(0);
   const [userName, setUserName] = useState<string>("");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(() => {
