@@ -578,12 +578,12 @@ function AppContent() {
             <Route path="/dashboard/financeiro/contas-a-pagar/sync" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarSyncPage /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/:id" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContaPagarDetalhe /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/auditoria" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ContasPagarAuditoria /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/ap-central" element={<ScreenRoute screenCode="financeiro_contas_pagar"><PainelCentralAP /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/ap-central" element={<ScreenRoute screenCode="admin"><PainelCentralAP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/novo" element={<ScreenRoute screenCode="financeiro_contas_pagar"><CadastroTituloAP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-pagar/:id/editar" element={<ScreenRoute screenCode="financeiro_contas_pagar"><CadastroTituloAP /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/exportacao-erp" element={<ScreenRoute screenCode="financeiro_contas_pagar"><FilaExportacaoERP /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/sync-cadastros" element={<ScreenRoute screenCode="financeiro_contas_pagar"><SyncCadastrosAP /></ScreenRoute>} />
-            <Route path="/dashboard/financeiro/contas-a-pagar/conciliacao" element={<ScreenRoute screenCode="financeiro_contas_pagar"><ConciliacaoManualAP /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/exportacao-erp" element={<ScreenRoute screenCode="admin"><FilaExportacaoERP /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/sync-cadastros" element={<ScreenRoute screenCode="admin"><SyncCadastrosAP /></ScreenRoute>} />
+            <Route path="/dashboard/financeiro/contas-a-pagar/conciliacao" element={<ScreenRoute screenCode="admin"><ConciliacaoManualAP /></ScreenRoute>} />
             <Route path="/configuracoes/admin/relatorio-ap-erp" element={<ScreenRoute screenCode="admin"><RelatorioAPxERP /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasAReceber /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/contas-a-receber/auditoria" element={<ScreenRoute screenCode="financeiro_contas_receber"><ContasReceberAuditoria /></ScreenRoute>} />
