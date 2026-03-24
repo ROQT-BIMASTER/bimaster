@@ -1203,22 +1203,44 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           </div>
         )}
 
-        {/* Admin links */}
+        {/* Admin links — collapsible with arrow */}
         {isAdmin && (
           <div className="px-2 pb-2">
-            <SidebarMenu className="space-y-0.5">
-              <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
-              <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
-              <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
-              <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
-              <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
-              <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
-              <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
-              {hasModulePermission("integracao_erp") && (
-                <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
-              )}
-              <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
-            </SidebarMenu>
+            <Collapsible open={adminOpen} onOpenChange={setAdminOpen}>
+              <CollapsibleTrigger className="w-full">
+                <div className={cn(
+                  "flex items-center gap-2 w-full px-3 py-2 rounded-md transition-all duration-150 text-[12px]",
+                  "hover:bg-[var(--sidebar-hover-raw)]"
+                )}>
+                  <Settings className="h-4 w-4 text-[var(--sidebar-text-muted-raw)]" />
+                  <span className="font-medium text-[var(--sidebar-text-muted-raw)] flex-1 text-left">
+                    Administração
+                  </span>
+                  <span className="bg-muted text-muted-foreground text-[10px] font-medium px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    {hasModulePermission("integracao_erp") ? 9 : 8}
+                  </span>
+                  <ChevronUp className={cn(
+                    "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
+                    !adminOpen && "rotate-180"
+                  )} />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+                  <MenuItemLink to="/dashboard/configuracoes/lgpd" icon={Shield} title="LGPD" />
+                  <MenuItemLink to="/dashboard/configuracoes/menu" icon={LayoutGrid} title="Config. Menu" />
+                  <MenuItemLink to="/dashboard/relatorio-seguranca" icon={Shield} title="Rel. Segurança" />
+                  <MenuItemLink to="/dashboard/relatorio-apis" icon={Network} title="Rel. APIs" />
+                  <MenuItemLink to="/dashboard/relatorio-desenvolvimento" icon={Package} title="Rel. Desenvolvimento" />
+                  <MenuItemLink to="/dashboard/relatorio-ap-module" icon={DollarSign} title="Rel. AP Module" />
+                  <MenuItemLink to="/configuracoes/admin/relatorio-ap-erp" icon={Scale} title="Rel. AP x ERP" />
+                  {hasModulePermission("integracao_erp") && (
+                    <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
+                  )}
+                  <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
+                </SidebarMenu>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
         
