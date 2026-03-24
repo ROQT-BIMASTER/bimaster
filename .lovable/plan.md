@@ -1,35 +1,34 @@
 
 
-# Ambiente Sandbox — Implementado (v1.8.0)
+# Corrigir Tabela de Eventos Webhook na Documentação
 
-## Resultado
+## Problema
 
-Toggle **Produção / Sandbox** adicionado ao API Tester, permitindo testar chamadas contra um ambiente simulado sem afetar dados reais.
+A tabela de eventos webhook em `ApiDocumentation.tsx` (linha 1518-1528) lista apenas **11 eventos**, mas o backend (`webhook-subscriptions-api`) suporta **19 eventos**. Faltam:
 
-## Componentes Implementados
+| Evento faltante | Módulo |
+|---|---|
+| `cliente.excluido` | Clientes |
+| `conta_receber.alterado` | Contas a Receber (listado mas sem evento excluido) |
+| `fornecedor.excluido` | Fornecedores |
+| `departamento.criado` | Departamentos |
+| `departamento.alterado` | Departamentos |
+| `categoria.criado` | Categorias |
+| `categoria.alterado` | Categorias |
+| `projeto.criado` | Projetos |
+| `projeto.alterado` | Projetos |
+| `conta_corrente.criado` | Contas Correntes |
+| `conta_corrente.alterado` | Contas Correntes |
+| `lancamento_cc.criado` | Lançamentos CC |
+| `tarefa.criado` | Tarefas |
+| `tarefa.alterado` | Tarefas |
+| `tarefa.concluido` | Tarefas |
 
-| Componente | Arquivo | Status |
-|---|---|---|
-| Edge Function `api-sandbox` | `supabase/functions/api-sandbox/index.ts` | ✅ |
-| Tabela `sandbox_requests` + RLS | Migração SQL | ✅ |
-| Toggle Sandbox no ApiTester | `src/components/erp/ApiTester.tsx` | ✅ |
-| Banner informativo na Documentação | `src/components/erp/ApiDocumentation.tsx` | ✅ |
-| Changelog v1.8.0 | `src/components/erp/ApiDocumentation.tsx` | ✅ |
+## Correção
 
-## Como Funciona
+**Arquivo: `src/components/erp/ApiDocumentation.tsx`** (linhas 1518-1528)
 
-1. **Modo Produção** (padrão): Comportamento inalterado — fetch direto às APIs reais
-2. **Modo Sandbox**: Chamadas roteadas via `supabase.functions.invoke("api-sandbox")` que:
-   - Valida JWT do usuário logado
-   - Simula respostas realistas baseadas no tipo de operação (CRUD, sync, pagamento)
-   - NÃO grava dados no banco de produção
-   - Registra toda chamada na tabela `sandbox_requests` para auditoria
-   - Marca respostas com `sandbox: true, dry_run: true`
+Expandir o array de eventos para incluir todos os 19 eventos suportados pelo backend, mantendo o mesmo formato `{ event, desc, mod }`.
 
-## Indicadores Visuais
+Apenas uma adição de linhas ao array existente — nenhuma remoção ou alteração de funcionalidade.
 
-- Badge laranja "SANDBOX" animado no header do ApiTester
-- Botão "Dry Run" (laranja) em vez de "Enviar"
-- Borda laranja na área de resposta
-- Histórico prefixado com `[SANDBOX]`
-- Banner informativo na documentação com ícone FlaskConical
