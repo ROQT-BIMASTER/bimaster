@@ -1013,6 +1013,22 @@ export default function ContasPagarGestao() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ===== PASSWORD DIALOG for locked records ===== */}
+        <AdminPasswordDialog
+          open={passwordDialogOpen}
+          onOpenChange={(open) => {
+            setPasswordDialogOpen(open);
+            if (!open) setPendingEditConta(null);
+          }}
+          onSuccess={() => {
+            if (pendingEditConta) {
+              setPasswordVerified(true);
+              doOpenEdit(pendingEditConta);
+              setPendingEditConta(null);
+            }
+          }}
+        />
       </div>
     </DashboardLayout>
   );
