@@ -300,6 +300,15 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
           </ScrollArea>
         </TabsContent>
 
+        {/* Chat */}
+        <TabsContent value="chat" className="p-0">
+          <ProcessoChat
+            processId={process.id}
+            moduloOrigem={moduloOrigem}
+            compact={compact}
+          />
+        </TabsContent>
+
         {/* Timeline */}
         <TabsContent value="timeline" className="p-0">
           <ScrollArea className={compact ? "h-[200px]" : "h-[280px]"}>
