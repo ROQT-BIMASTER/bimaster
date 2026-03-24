@@ -515,6 +515,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   }, [searchQuery, moduleSearchTitles]);
 
+  if (loading) {
     return (
       <Sidebar side={side}>
         <SidebarContent>
