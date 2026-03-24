@@ -1048,13 +1048,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
               if (isMobile) {
                 return (
-                  <Drawer key={dept.id} open={isDeptOpen} onOpenChange={() => toggleModuleOpen(deptKey)}>
+                   <Drawer key={dept.id} open={isDeptOpen} onOpenChange={(open) => setModuleOpen(deptKey, open)}>
                     <DrawerTrigger asChild>
                       <button className="w-full text-left">{deptHeader}</button>
                     </DrawerTrigger>
                     <DrawerContent>
                       <DrawerHeader className="pb-2">
-                        <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
+                        <div className="flex items-center justify-between">
+                          <DrawerTitle className="text-sm font-semibold">{dept.nome}</DrawerTitle>
+                          <button onClick={() => setModuleOpen(deptKey, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </DrawerHeader>
                       <div className="px-4 pb-6">{deptItems}</div>
                     </DrawerContent>
