@@ -237,28 +237,31 @@ export default function ContasAReceber() {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      // Query para totais (sem paginação)
-      let totaisQuery = supabase
-        .from('contas_receber' as any)
-        .select('valor_original, valor_aberto, valor_recebido');
-
-      if (searchCliente) {
-        totaisQuery = totaisQuery.ilike('cliente_nome', `%${searchCliente}%`);
-      }
-      if (filterStatus !== 'all') {
-        totaisQuery = totaisQuery.eq('status', filterStatus.toLowerCase());
-      }
-      totaisQuery = buildBaseFilters(totaisQuery);
-
-      const { data: totaisData, error: totaisError } = await totaisQuery;
+      // Query para totais via RPC (sem limite de linhas)
+      const { data: totaisRpc, error: totaisError } = await supabase.rpc(
+        'get_contas_receber_totais_filtrados' as any,
+        {
+          p_empresas: filterEmpresas.length > 0 ? filterEmpresas : null,
+          p_status: filterStatus !== 'all' ? filterStatus.toLowerCase() : null,
+          p_cliente: searchCliente || null,
+          p_conta: filterConta !== 'all' ? filterConta : null,
+          p_portador: filterPortador !== 'all' ? filterPortador : null,
+          p_anos: filterAnos.length > 0 ? filterAnos : null,
+          p_meses: filterMeses.length > 0 ? filterMeses : null,
+          p_dia_vencimento: filterDiaVencimento || null,
+          p_dia_recebimento: filterDiaRecebimento || null,
+          p_dia_emissao: filterDiaEmissao || null,
+        }
+      );
       
       let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
-      if (!totaisError && totaisData) {
-        totais = (totaisData as any[]).reduce((acc, item) => ({
-          valorOriginal: acc.valorOriginal + (item.valor_original || 0),
-          valorAberto: acc.valorAberto + (item.valor_aberto || 0),
-          valorRecebido: acc.valorRecebido + (item.valor_recebido || 0),
-        }), { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 });
+      if (!totaisError && totaisRpc) {
+        const t = totaisRpc as any;
+        totais = {
+          valorOriginal: t.valor_original || 0,
+          valorAberto: t.valor_aberto || 0,
+          valorRecebido: t.valor_recebido || 0,
+        };
       }
 
       return { data: data as unknown as ContaReceber[], count: count || 0, totais };
