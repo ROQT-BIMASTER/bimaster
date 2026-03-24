@@ -1,73 +1,105 @@
 
 
-# Diagnóstico e Correção: Contas a Receber — Valores Não Exibidos
+# Analise Arquitetural e Sugestoes de Melhoria
 
-## Causa Raiz
+## O que ja existe (bem construido)
 
-O módulo de Contas a Receber tem **334.987 registros** no banco. Foram identificados dois problemas críticos:
+O sistema ja implementa uma base solida com varios dos conceitos mencionados:
 
-### Problema 1: Dashboard carrega todos os registros via client-side (LENTO/TIMEOUT)
+| Conceito | Status | Implementacao |
+|----------|--------|---------------|
+| Produto = Processo | ✅ Implementado | `product_process` + `process_events` + `process_step_history` |
+| Timeline de auditoria | ✅ Implementado | `vw_process_timeline` + events unificados |
+| SLA por etapa | ✅ Implementado | `tempo_permanencia_minutos` no step history |
+| Despacho estruturado | ✅ Implementado | `useDespachoDocumentos` com modulos dinamicos, transicoes, parecer |
+| Modulos de despacho dinamicos | ✅ Implementado | `process_modulos_despacho` (PM configura) |
+| Controle UI granular (RBAC+ABAC) | ✅ Implementado | `ui_permissions` por role + departamento |
+| Revisao bidirecional China↔Brasil | ✅ Implementado | `china_doc_revisoes` com contestacao |
+| Cofre documental | ✅ Implementado | `china_cofre_produto` + versionamento |
+| Retorno formal para China | ✅ Implementado | `devolvido_china` + `devolvido_china_data` no despacho |
+| Consulta de Processos (e-SAJ) | ✅ Implementado | `ConsultaProcessos.tsx` |
+| Pasta Digital (TJSP) | ✅ Implementado | `PastaDigitalFromChecklist` |
 
-O componente `DashboardContasReceberAggregated.tsx` usa `fetchAllRows()` para buscar **todos** os registros em lotes de 1.000 e processar no navegador. Com 334k registros, isso gera **335 requisições sequenciais** ao banco, resultando em timeout ou travamento do navegador.
+## Gaps reais identificados — 5 melhorias concretas
 
-**Ironia**: Existem **9 RPCs prontas** no banco (`get_contas_receber_dashboard_kpis`, `get_contas_receber_evolucao_mensal`, `get_contas_receber_top_clientes`, `get_contas_receber_aging`, `get_contas_receber_status_dist`, `get_contas_receber_pmr_detalhes`) que fazem toda a agregação no PostgreSQL em milissegundos — mas **nenhuma é usada pelo dashboard**.
+### 1. Tabela `process_decisions` — Decisao Internacional Formal
 
-### Problema 2: Totais da tabela truncados em 1.000 linhas
+**O que falta**: Hoje a decisao do Brasil volta para China via update de status no documento (`devolvido_china`). Nao existe um registro formal de "decisao internacional" como entidade propria com versionamento.
 
-Na `ContasAReceber.tsx`, a query de totais (linhas 241-262) busca `valor_original, valor_aberto, valor_recebido` **sem paginação**, batendo no limite padrão de 1.000 linhas do PostgREST. Os totais exibidos representam apenas ~0.3% dos dados reais.
+**Proposta**: Criar tabela `process_decisions` que registra cada decisao formal (aprovado/rejeitado/ajuste) como entidade independente, com `version` e `parent_decision_id` para rastrear o loop de ida e volta.
 
-## Solução
+```text
+process_decisions
+├── id, process_id, submissao_id
+├── origin (brasil|china), destination (china|brasil)
+├── decision_type (approved|rejected|needs_revision)
+├── message (motivo obrigatorio)
+├── items_affected (jsonb - lista de itens pendentes)
+├── attachments (jsonb)
+├── prazo_retorno (timestamp)
+├── version (int, auto-increment por processo)
+├── decided_by, decided_at
+└── parent_decision_id (FK self-ref para rastrear o loop)
+```
 
-### 1. Dashboard: Substituir `fetchAllRows` por RPCs existentes
+**Impacto**: A China ganha uma "Inbox de Decisoes do Brasil" com historico versionado, nao apenas um badge de status.
 
-**Arquivo: `src/components/financeiro/DashboardContasReceberAggregated.tsx`**
+### 2. Permissoes por Etapa+Campo no Processo
 
-Substituir a query única que busca 334k registros por **6 queries paralelas** usando as RPCs já criadas:
+**O que falta**: `ui_permissions` controla visibilidade por tela/role/departamento. Mas nao controla o que China vs Brasil pode fazer **por campo, por etapa do processo**. Hoje isso e implicito no codigo.
 
-| Dado | RPC | Retorno |
-|------|-----|---------|
-| KPIs (totais, vencidos, PMR) | `get_contas_receber_dashboard_kpis` | JSON com ~20 métricas |
-| Evolução mensal | `get_contas_receber_evolucao_mensal` | ~12 linhas (meses) |
-| Top clientes devedores | `get_contas_receber_top_clientes` | ~10 linhas |
-| Aging (faixas de atraso) | `get_contas_receber_aging` | 5 linhas (buckets) |
-| Distribuição por status | `get_contas_receber_status_dist` | ~4 linhas |
-| PMR detalhes (modal) | `get_contas_receber_pmr_detalhes` | Sob demanda |
+**Proposta**: Estender `ui_permissions` OU criar `process_field_permissions`:
 
-Todas as RPCs já aceitam os mesmos parâmetros de filtro (`p_empresas`, `p_ano`, `p_mes`, `p_conta`, `p_portador`) e são `SECURITY DEFINER`, executando no servidor sem limitação de linhas.
+```text
+process_field_permissions
+├── id, process_step (etapa)
+├── module (ex: "fotos_produto", "formula")
+├── field (ex: "upload_image", "edit_formula")
+├── origin_role (china|brasil)
+├── can_view, can_edit, can_approve
+```
 
-- Remover import e uso de `fetchAllRows`
-- Substituir a query monolítica por `Promise.all` de 5 RPCs
-- Manter PMR detalhes como query separada (só executa ao abrir modal)
-- Adaptar os `useMemo` para consumir dados já agregados das RPCs
+**Impacto**: Quando um processo volta para ajuste, o sistema automaticamente bloqueia campos ja aprovados e libera apenas os rejeitados — sem logica hardcoded.
 
-### 2. Tabela: Criar RPC para totais filtrados
+### 3. Inbox de Retornos Estruturado na China
 
-**Migration SQL:**
+**O que falta**: A China ve status nos documentos, mas nao tem uma tela consolidada de "O que o Brasil decidiu e o que precisa ser corrigido".
 
-Criar função `get_contas_receber_totais_filtrados` que recebe os mesmos filtros da tabela e retorna `SUM(valor_original)`, `SUM(valor_aberto)`, `SUM(valor_recebido)` — agregação no PostgreSQL, sem limite de linhas.
+**Proposta**: Criar componente `ChinaInboxDecisoes` que consome `process_decisions` e exibe:
+- Decisao (aprovado/rejeitado/ajuste)
+- Itens afetados com checklist
+- Prazo de retorno
+- Acao de "Reenviar" que cria nova versao
 
-**Arquivo: `src/pages/ContasAReceber.tsx`**
+**Arquivo**: `src/components/china/ChinaInboxDecisoes.tsx`
 
-Substituir a query de totais (linhas 241-262) por chamada à nova RPC.
+### 4. Checklist de Retorno Inteligente
 
-### 3. Calendário — já funciona corretamente
+**O que falta**: Quando Brasil rejeita parcialmente, a China precisa reenviar tudo. Nao ha mecanismo de "reabrir apenas itens rejeitados".
 
-O `CalendarioRecebimentosAggregated.tsx` já usa a RPC `get_contas_receber_calendario` — nenhuma alteração necessária.
+**Proposta**: Ao criar uma `process_decision` com `needs_revision`, o sistema:
+1. Marca documentos afetados como `aguardando_correcao`
+2. Bloqueia edicao de documentos ja aprovados (via `process_field_permissions`)
+3. Gera checklist automatico de pendencias na China
 
-## Impacto Esperado
+### 5. Padronizacao de Hooks e Queries
 
-| Métrica | Antes | Depois |
-|---------|-------|--------|
-| Dashboard: requisições | ~335 sequenciais | 5 paralelas |
-| Dashboard: tempo | 30s+ / timeout | < 1s |
-| Totais tabela: precisão | ~0.3% dos dados | 100% |
-| Totais tabela: requisições | 1 (truncada) | 1 RPC |
+**Observacoes tecnicas**:
+- Varios hooks usam `as any` cast extensivamente (ex: `china_doc_revisoes`, `product_process`). Isso indica que as tabelas nao estao sendo geradas nos types. Seria ideal rodar uma regeneracao de types para eliminar esses casts.
+- O hook `useProductProcess` faz auto-create no `queryFn` (side-effect em query). Melhor separar em mutation explicita.
+- `fetchAllRows` pattern (usado no Contas a Receber antigo) pode existir em outros modulos — auditar e substituir por RPCs.
 
-## O que NÃO muda
+## Prioridades Sugeridas
 
-- Lógica de filtros, paginação e ordenação da tabela
-- RLS policies (RPCs são `SECURITY DEFINER` com filtros de empresa)
-- Calendário (já usa RPC)
-- Drawer de detalhes
-- Exportação Excel
+| Prioridade | Item | Esforco |
+|------------|------|---------|
+| 1 | `process_decisions` (tabela + migration) | Medio |
+| 2 | Inbox de Decisoes na China (frontend) | Medio |
+| 3 | Checklist de retorno inteligente | Baixo |
+| 4 | `process_field_permissions` | Alto |
+| 5 | Padronizacao de types/hooks | Baixo |
+
+## Resumo
+
+O sistema ja implementa ~80% do modelo conceitual descrito. As 5 melhorias acima fecham os gaps restantes, transformando o fluxo de "status updates" em um protocolo formal de tramitacao internacional com versionamento, permissoes granulares por etapa e inbox bidirecional.
 
