@@ -696,7 +696,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       }
       case "financeiro": {
         let c = financeiroTopItems.filter(i => hasPermission(i.screenCode)).length;
-        finSubgroups.forEach(sg => { c += sg.items.filter(i => hasPermission(i.screenCode)).length; });
+        finSubgroups.forEach(sg => { c += sg.items.filter(i => hasPermission(i.screenCode) && (!('requireAdmin' in i) || !i.requireAdmin || isAdmin)).length; });
         c += finBottomItems.filter(i => hasPermission(i.screenCode)).length;
         return c;
       }
