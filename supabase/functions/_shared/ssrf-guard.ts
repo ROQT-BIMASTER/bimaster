@@ -54,8 +54,8 @@ export function validateExternalUrl(url: string): void {
   }
 
   // Only allow http and https
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new SSRFError(`Protocolo não permitido: ${parsed.protocol}`);
+  if (parsed.protocol !== "https:") {
+    throw new SSRFError(`Protocolo não permitido: ${parsed.protocol}. Apenas HTTPS é aceito.`);
   }
 
   // Block non-https in production for safety

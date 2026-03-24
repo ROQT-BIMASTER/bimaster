@@ -203,3 +203,101 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.empresas-api]
     verify_jwt = false
+  [functions.anexos-api]
+    verify_jwt = false
+  [functions.api-sandbox]
+    verify_jwt = false
+  [functions.audit-produto-tarefa]
+    verify_jwt = false
+  [functions.auditoria-contas-pagar]
+    verify_jwt = false
+  [functions.bancos-api]
+    verify_jwt = false
+  [functions.bandeiras-api]
+    verify_jwt = false
+  [functions.boletos-api]
+    verify_jwt = false
+  [functions.categorias-api]
+    verify_jwt = false
+  [functions.cidades-api]
+    verify_jwt = false
+  [functions.classificar-categoria-dre]
+    verify_jwt = false
+  [functions.clientes-api]
+    verify_jwt = false
+  [functions.cnae-api]
+    verify_jwt = false
+  [functions.contas-correntes-api]
+    verify_jwt = false
+  [functions.contas-pagar-ai-chat]
+    verify_jwt = false
+  [functions.dre-cadastro-api]
+    verify_jwt = false
+  [functions.elevenlabs-music]
+    verify_jwt = false
+  [functions.elevenlabs-sfx]
+    verify_jwt = false
+  [functions.erp-fornecedores-sync]
+    verify_jwt = false
+  [functions.estoque-api]
+    verify_jwt = false
+  [functions.estoque-n8n-sync]
+    verify_jwt = false
+  [functions.extrair-insumos-imagem]
+    verify_jwt = false
+  [functions.finalidades-transferencia-api]
+    verify_jwt = false
+  [functions.fiscal-iva-api]
+    verify_jwt = false
+  [functions.generate-banner-image]
+    verify_jwt = false
+  [functions.gerar-despacho-oficial]
+    verify_jwt = false
+  [functions.ibge-sync]
+    verify_jwt = false
+  [functions.lancamentos-cc-api]
+    verify_jwt = false
+  [functions.movimentos-financeiros-api]
+    verify_jwt = false
+  [functions.optimize-banner-image]
+    verify_jwt = false
+  [functions.optimize-display-banner]
+    verify_jwt = false
+  [functions.orcamentos-caixa-api]
+    verify_jwt = false
+  [functions.origens-api]
+    verify_jwt = false
+  [functions.paises-api]
+    verify_jwt = false
+  [functions.parcelas-api]
+    verify_jwt = false
+  [functions.pesquisar-lancamentos-api]
+    verify_jwt = false
+  [functions.projeto-monitor-atrasos]
+    verify_jwt = false
+  [functions.projetos-api]
+    verify_jwt = false
+  [functions.resumo-financeiro-api]
+    verify_jwt = false
+  [functions.seed-demo-data]
+    verify_jwt = false
+  [functions.send-department-expense-notification]
+    verify_jwt = false
+  [functions.sync-dimensao-vendedores]
+    verify_jwt = false
+  [functions.tipos-anexo-api]
+    verify_jwt = false
+  [functions.tipos-atividade-api]
+    verify_jwt = false
+  [functions.tipos-documento-api]
+    verify_jwt = false
+  [functions.tipos-entrega-api]
+    verify_jwt = false
+  [functions.trade-marketing-api]
+    verify_jwt = false
+  [functions.vendas-union-api]
+    verify_jwt = false
+  [functions.webhook-dispatcher]
+    verify_jwt = false
+  [functions.webhook-subscriptions-api]
+    verify_jwt = false
