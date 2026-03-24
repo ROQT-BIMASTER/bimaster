@@ -1120,7 +1120,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         <SidebarGroup className="py-1 px-2">
           <Collapsible open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
             <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={openModules.has("inteligencia")} subItemCount={8} />
+              <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={openModules.has("inteligencia")} subItemCount={isAdmin ? 8 : 7} />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenu className="space-y-0.5 ps-2 mt-1">
