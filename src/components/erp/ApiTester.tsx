@@ -493,52 +493,90 @@ export default function ApiTester() {
     const start = performance.now();
 
     try {
-      const finalUrl = buildUrl();
-      const headerObj: Record<string, string> = {};
-      headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
-        // Skip empty values to avoid triggering unnecessary CORS preflight
-        if (!h.value.trim()) return;
-        // Skip Content-Type for GET/DELETE (no body)
-        if (h.key.toLowerCase() === "content-type" && (method === "GET" || method === "DELETE")) return;
-        headerObj[h.key] = h.value;
-      });
+      if (sandboxMode) {
+        // SANDBOX MODE: route through api-sandbox edge function
+        const finalUrl = buildUrl();
+        const relativePath = finalUrl.replace(BASE_URL, "");
+        let parsedBody: unknown = null;
+        if (method !== "GET" && method !== "DELETE" && body.trim()) {
+          try { parsedBody = JSON.parse(body); } catch { parsedBody = body; }
+        }
 
-      const options: RequestInit = {
-        method,
-        headers: headerObj,
-      };
+        const { data: sbData, error: sbError } = await supabase.functions.invoke("api-sandbox", {
+          body: { path: relativePath, method, body: parsedBody },
+        });
 
-      if (method !== "GET" && method !== "DELETE" && body.trim()) {
-        options.body = body;
-      }
+        const duration = Math.round(performance.now() - start);
 
-      const res = await fetch(finalUrl, options);
-      const duration = Math.round(performance.now() - start);
+        if (sbError) {
+          setResponse({
+            status: 500,
+            statusText: "Sandbox Error",
+            data: { error: sbError.message, sandbox: true },
+            duration,
+            headers: {},
+          });
+        } else {
+          setResponse({
+            status: 200,
+            statusText: "OK (Sandbox)",
+            data: sbData,
+            duration,
+            headers: { "x-environment": "sandbox" },
+          });
+        }
 
-      let data: unknown;
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        data = await res.json();
+        setHistory(prev => [
+          { id: crypto.randomUUID(), method, url: `[SANDBOX] ${relativePath}`, status: sbError ? 500 : 200, duration, timestamp: new Date() },
+          ...prev.slice(0, 9),
+        ]);
       } else {
-        data = await res.text();
+        // PRODUCTION MODE: original fetch logic (unchanged)
+        const finalUrl = buildUrl();
+        const headerObj: Record<string, string> = {};
+        headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
+          if (!h.value.trim()) return;
+          if (h.key.toLowerCase() === "content-type" && (method === "GET" || method === "DELETE")) return;
+          headerObj[h.key] = h.value;
+        });
+
+        const options: RequestInit = {
+          method,
+          headers: headerObj,
+        };
+
+        if (method !== "GET" && method !== "DELETE" && body.trim()) {
+          options.body = body;
+        }
+
+        const res = await fetch(finalUrl, options);
+        const duration = Math.round(performance.now() - start);
+
+        let data: unknown;
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        const resHeaders: Record<string, string> = {};
+        res.headers.forEach((v, k) => { resHeaders[k] = v; });
+
+        const apiRes: ApiResponse = {
+          status: res.status,
+          statusText: res.statusText,
+          data,
+          duration,
+          headers: resHeaders,
+        };
+        setResponse(apiRes);
+
+        setHistory(prev => [
+          { id: crypto.randomUUID(), method, url: finalUrl, status: res.status, duration, timestamp: new Date() },
+          ...prev.slice(0, 9),
+        ]);
       }
-
-      const resHeaders: Record<string, string> = {};
-      res.headers.forEach((v, k) => { resHeaders[k] = v; });
-
-      const apiRes: ApiResponse = {
-        status: res.status,
-        statusText: res.statusText,
-        data,
-        duration,
-        headers: resHeaders,
-      };
-      setResponse(apiRes);
-
-      setHistory(prev => [
-        { id: crypto.randomUUID(), method, url: finalUrl, status: res.status, duration, timestamp: new Date() },
-        ...prev.slice(0, 9),
-      ]);
     } catch (err: unknown) {
       const duration = Math.round(performance.now() - start);
       const msg = err instanceof Error ? err.message : "Erro de conexão";
