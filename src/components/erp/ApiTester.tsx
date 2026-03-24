@@ -677,9 +677,9 @@ export default function ApiTester() {
             placeholder={`${BASE_URL}/...`}
             className="font-mono text-sm flex-1"
           />
-          <Button onClick={handleSend} disabled={loading} className="gap-2 shrink-0 min-w-[100px]">
-            <Send className="h-4 w-4" />
-            {loading ? "Enviando..." : "Enviar"}
+          <Button onClick={handleSend} disabled={loading} className={`gap-2 shrink-0 min-w-[100px] ${sandboxMode ? "bg-orange-500 hover:bg-orange-600" : ""}`}>
+            {sandboxMode ? <FlaskConical className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            {loading ? "Enviando..." : sandboxMode ? "Dry Run" : "Enviar"}
           </Button>
         </div>
 
