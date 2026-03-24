@@ -77,6 +77,8 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
     );
   }
 
+  if (!capabilities.ambiente_habilitado) return null;
+
   if (!process) {
     return (
       <div className="border border-dashed rounded-lg p-4 text-center text-sm text-muted-foreground">
