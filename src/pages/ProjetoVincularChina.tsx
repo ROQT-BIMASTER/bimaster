@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft, Scale, Maximize2 } from "lucide-react";
+import { Search, Link2, Unlink, ChevronRight, ChevronDown, Package, FolderKanban, CheckCircle2, Loader2, ShieldCheck, Eye, Grid3X3, FileText, Palette, Filter, BarChart3, ArrowLeft, ArrowUpRight, ArrowDownLeft, Scale, Maximize2, Gavel } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,8 @@ import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestr
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { PastaDigitalFromChecklist } from "@/components/china/PastaDigitalFromChecklist";
 import { useDocumentosDaSubmissao as useDocsSub } from "@/hooks/useChinaDocumentoVinculos";
+import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
+import { ProcessDecisionDialog } from "@/components/processo/ProcessDecisionDialog";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
@@ -111,6 +113,8 @@ export default function ProjetoVincularChina() {
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [focusSubmissao, setFocusSubmissao] = useState<any>(null);
   const [vinculosOpen, setVinculosOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [decisionProcessId, setDecisionProcessId] = useState<string | null>(null);
   // Sidebar active category
   const [activeSidebarCat, setActiveSidebarCat] = useState<"todas" | "vinculadas" | "nao_vinculadas">("todas");
 
@@ -168,7 +172,35 @@ export default function ProjetoVincularChina() {
     return filteredSubmissoes;
   }, [filteredSubmissoes, activeSidebarCat, submissaoVinculadas]);
 
-  // Doc vinculos indexed by "docId-tarefaId"
+  // KPIs
+  const kpiData = useMemo(() => ({
+    total: filteredSubmissoes.length,
+    enviados: filteredSubmissoes.filter((s: any) => s.status === "enviado").length,
+    emRevisao: filteredSubmissoes.filter((s: any) => s.status === "em_revisao").length,
+    aprovados: filteredSubmissoes.filter((s: any) => s.status === "aprovado").length,
+    rejeitados: filteredSubmissoes.filter((s: any) => s.status === "rejeitado").length,
+    vinculados: vinculadasCount,
+  }), [filteredSubmissoes, vinculadasCount]);
+
+  // Urgency sort: em_revisao first, then enviado, then rest
+  const sortedDisplayedSubmissoes = useMemo(() => {
+    const urgencyOrder: Record<string, number> = {
+      em_revisao: 0,
+      enviado: 1,
+      rejeitado: 2,
+      rascunho: 3,
+      aprovado: 4,
+      arte_enviada: 5,
+    };
+    return [...displayedSubmissoes].sort((a: any, b: any) => {
+      const ua = urgencyOrder[a.status] ?? 99;
+      const ub = urgencyOrder[b.status] ?? 99;
+      if (ua !== ub) return ua - ub;
+      // Secondary: newest first
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  }, [displayedSubmissoes]);
+
   const docVinculoMap = useMemo(() => {
     const map = new Map<string, string>();
     docVinculos.forEach((v) => map.set(`${v.documento_id}-${v.tarefa_id}`, v.id));
@@ -403,6 +435,9 @@ export default function ProjetoVincularChina() {
         </div>
       </div>
 
+      {/* KPIs */}
+      <VincularChinaKpis data={kpiData} />
+
       {/* Counter chips */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge className="text-[10px] bg-success/10 text-success border-success/20 border">
@@ -511,11 +546,11 @@ export default function ProjetoVincularChina() {
               <div className="flex items-center justify-center py-10">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : displayedSubmissoes.length === 0 ? (
+            ) : sortedDisplayedSubmissoes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
             ) : (
               <div className="p-3 grid grid-cols-1 gap-3">
-                {displayedSubmissoes.map((sub: any) => {
+                {sortedDisplayedSubmissoes.map((sub: any) => {
                   const isSelected = selectedSubmissaoId === sub.id;
                   const isExpanded = expandedSubmissaoId === sub.id;
                   const isLinked = submissaoVinculadas.has(sub.id);
@@ -858,11 +893,28 @@ export default function ProjetoVincularChina() {
 
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
       {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
-        <ProcessOrchestrationPanel
-          submissaoId={selectedSubmissaoId}
-          submissaoNome={selectedSubmissao?.produto_nome}
-          submissaoCodigo={selectedSubmissao?.produto_codigo}
-        />
+        <>
+          <ProcessOrchestrationPanel
+            submissaoId={selectedSubmissaoId}
+            submissaoNome={selectedSubmissao?.produto_nome}
+            submissaoCodigo={selectedSubmissao?.produto_codigo}
+          />
+          {/* Decision Button */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                setDecisionProcessId(selectedSubmissaoId);
+                setDecisionOpen(true);
+              }}
+            >
+              <Gavel className="h-4 w-4" />
+              Decisão Formal do Brasil
+            </Button>
+          </div>
+        </>
       )}
 
       {/* Despachos Panel — appears for any selected submission */}
@@ -932,6 +984,17 @@ export default function ProjetoVincularChina() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Process Decision Dialog */}
+      {decisionProcessId && (
+        <ProcessDecisionDialog
+          open={decisionOpen}
+          onOpenChange={setDecisionOpen}
+          processId={decisionProcessId}
+          submissaoId={decisionProcessId}
+          documentos={documentos.map((d: any) => ({ id: d.id, nome_arquivo: d.nome_arquivo, tipo_documento: d.tipo_documento }))}
+        />
+      )}
     </div>
   );
 }
