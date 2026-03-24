@@ -297,14 +297,23 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
 
                           <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
                             {desp.despachado_para_nome && (
-                              <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1 bg-secondary/80 rounded px-1.5 py-0.5">
                                 <User className="h-3 w-3" />
-                                Despachado para: <span className="text-foreground font-medium">{desp.despachado_para_nome}</span>
+                                Despachado para: <span className="text-foreground font-semibold">{desp.despachado_para_nome}</span>
                               </span>
                             )}
-                            {desp.prazo_ciencia_horas && (
-                              <span>Prazo: {desp.prazo_ciencia_horas}h</span>
-                            )}
+                            {desp.prazo_ciencia_horas && (() => {
+                              const criado = new Date(desp.created_at);
+                              const limite = new Date(criado.getTime() + desp.prazo_ciencia_horas * 3600000);
+                              const vencido = new Date() > limite && desp.status === "pendente";
+                              return (
+                                <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5", vencido ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning-foreground")}>
+                                  <Clock className="h-3 w-3" />
+                                  Prazo: {desp.prazo_ciencia_horas}h — Até {format(limite, "dd/MM/yyyy HH:mm")}
+                                  {vencido && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                                </span>
+                              );
+                            })()}
                             {desp.ciencia_por_nome && (
                               <span className="inline-flex items-center gap-1">
                                 <Eye className="h-3 w-3" />

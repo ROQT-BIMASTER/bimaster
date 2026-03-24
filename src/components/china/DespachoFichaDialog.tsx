@@ -141,8 +141,19 @@ export function DespachoFichaDialog({ submissaoId, produtoNome, open, onOpenChan
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <User className="h-3 w-3" />
                         <span>Por: {d.despachado_por_nome}</span>
-                        {d.usuario_destino_nome && <span>→ {d.usuario_destino_nome}</span>}
                       </div>
+                      {d.usuario_destino_nome && (
+                        <div className="flex items-center gap-1">
+                          <Send className="h-3 w-3 text-primary" />
+                          <span className="text-foreground font-medium">Para: {d.usuario_destino_nome}</span>
+                        </div>
+                      )}
+                      {d.prazo_ciencia_horas && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>Prazo para ciência: {d.prazo_ciencia_horas}h — Até {format(new Date(new Date(d.created_at).getTime() + d.prazo_ciencia_horas * 3600000), "dd/MM HH:mm")}</span>
+                        </div>
+                      )}
                       {d.observacao && <p className="text-foreground">{d.observacao}</p>}
                     </div>
                   );
