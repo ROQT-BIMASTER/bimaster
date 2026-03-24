@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CheckCircle2, XCircle, Eye, FileText, Send, MessageSquareWarning, Reply,
-  Clock, User, ArrowRight, FileUp, AlertTriangle, Loader2
+  Clock, User, ArrowRight, FileUp, AlertTriangle, Loader2, MessageCircle
 } from "lucide-react";
+import { ProcessoChat } from "./ProcessoChat";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -199,6 +200,9 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="chat" className="text-xs h-7">
+            <MessageCircle className="h-3 w-3 mr-1" /> Chat
+          </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs h-7">Timeline</TabsTrigger>
         </TabsList>
 
@@ -294,6 +298,15 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
               </div>
             )}
           </ScrollArea>
+        </TabsContent>
+
+        {/* Chat */}
+        <TabsContent value="chat" className="p-0">
+          <ProcessoChat
+            processId={process.id}
+            moduloOrigem={moduloOrigem}
+            compact={compact}
+          />
         </TabsContent>
 
         {/* Timeline */}
