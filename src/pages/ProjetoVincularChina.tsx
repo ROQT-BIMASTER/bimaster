@@ -42,6 +42,8 @@ import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestr
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
 import { PastaDigitalFromChecklist } from "@/components/china/PastaDigitalFromChecklist";
 import { useDocumentosDaSubmissao as useDocsSub } from "@/hooks/useChinaDocumentoVinculos";
+import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
+import { ProcessDecisionDialog } from "@/components/processo/ProcessDecisionDialog";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
