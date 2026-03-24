@@ -129,6 +129,10 @@ export default function ContasPagarGestao() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [pendingEditConta, setPendingEditConta] = useState<ContaPagar | null>(null);
+  const [editJustificativa, setEditJustificativa] = useState("");
+  const [passwordVerified, setPasswordVerified] = useState(false);
   const PAGE_SIZE = 50;
 
   // Form state
