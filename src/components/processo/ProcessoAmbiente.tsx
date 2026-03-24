@@ -56,6 +56,7 @@ const EVENTO_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, moduloLabel, compact }: ProcessoAmbienteProps) {
+  const capabilities = useModuloCapabilities(moduloOrigem);
   const { process, processLoading, events } = useProductProcess(produtoTipo, produtoRefId);
   const { data: despachos = [] } = useDespachosPorProcesso(process?.id || null);
   const acoes = useProcessoAmbiente(process?.id || null);
