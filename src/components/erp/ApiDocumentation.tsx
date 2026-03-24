@@ -1858,6 +1858,32 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                           { code: "empresa_nao_encontrada", desc: "Um dos empresa_ids fornecidos não existe" },
                         ],
                       },
+                      {
+                        api: "Boletos /gerar",
+                        errors: [
+                          { code: "titulo_nao_encontrado", desc: "O nCodTitulo ou cCodIntTitulo não existe no Contas a Receber" },
+                          { code: "boleto_ja_gerado", desc: "Já existe boleto ativo para este título" },
+                          { code: "titulo_liquidado", desc: "Título já está liquidado, não é possível gerar boleto" },
+                          { code: "conta_corrente_sem_boleto", desc: "A conta corrente do título não está habilitada para boletos" },
+                        ],
+                      },
+                      {
+                        api: "Contas Correntes /incluir",
+                        errors: [
+                          { code: "codigo_duplicado", desc: "Já existe conta corrente com este cCodCCInt" },
+                          { code: "banco_invalido", desc: "O codigo_banco informado não existe na tabela de bancos" },
+                          { code: "tipo_invalido", desc: "O tipo_conta_corrente deve ser CC, CP, CX, CI, CM ou PI" },
+                        ],
+                      },
+                      {
+                        api: "Lançamentos CC /incluir",
+                        errors: [
+                          { code: "conta_corrente_invalida", desc: "O nCodCC não existe ou está inativo" },
+                          { code: "categoria_invalida", desc: "O cCodCateg não existe no plano de contas" },
+                          { code: "data_invalida", desc: "Formato de data incorreto (esperado DD/MM/AAAA)" },
+                          { code: "duplicidade", desc: "Já existe lançamento com este cCodIntLanc" },
+                        ],
+                      },
                     ].map(group => (
                       <Collapsible key={group.api}>
                         <CollapsibleTrigger asChild>
