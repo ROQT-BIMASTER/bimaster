@@ -435,6 +435,9 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
         </div>
       )}
 
+      {/* Inbox de Decisões do Brasil */}
+      <ChinaInboxDecisoes submissaoId={submissao.id} processId={processoId} />
+
       {/* Vincular Dialog */}
       <ChinaDocVincularDialog
         open={!!vincularDoc}
