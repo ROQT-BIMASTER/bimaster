@@ -1,77 +1,95 @@
 
 
-# Auditoria de Segurança: Bloqueio de Telas e Módulos
+# Ambiente Sandbox — Adicional ao Portal de Integração
 
-## Resultado Geral: Sistema SÓLIDO — 96/100
+## Resumo
 
-A arquitetura de segurança é robusta e bem implementada. A proteção opera em 3 camadas:
+Adicionar um toggle **Produção / Sandbox** no ApiTester que, quando ativado, roteia chamadas para uma edge function `api-sandbox` que simula respostas realistas sem gravar dados no banco. Nenhuma funcionalidade existente será removida ou alterada.
 
-1. **Camada de Rota** — `ProtectedRoute` (autenticação), `ModuleRoute` (módulo), `ScreenRoute` (tela)
-2. **Camada de Sidebar** — `showModule()` e `hasModulePermission()` ocultam itens não autorizados
-3. **Camada de Banco** — RLS + RPC `get_all_user_permissions` + session invalidation via Realtime
+## Arquitetura
 
-## Pontos Fortes Confirmados
+```text
+ApiTester.tsx
+  ├─ [Produção] → fetch(BASE_URL + path)      ← como funciona hoje (inalterado)
+  └─ [Sandbox]  → fetch(BASE_URL + /api-sandbox) body: { path, method, payload }
+                    └─ Edge Function api-sandbox
+                         ├─ Valida schema (mesma lógica)
+                         ├─ NÃO grava no banco
+                         ├─ Retorna resposta simulada realista
+                         └─ Loga na tabela sandbox_requests
+```
 
-| Controle | Status |
-|---|---|
-| Todas as ~100 rotas `/dashboard/*` protegidas por guards | OK |
-| Admin bypass centralizado no `PermissionsContext` (server-side via RPC) | OK |
-| Impersonação restrita a admins com persistência segura (userId verificado) | OK |
-| Session invalidation em tempo real ao trocar role | OK |
-| Cache de permissões com verificação de userId no localStorage | OK |
-| Safety timeout evita tela branca infinita | OK |
-| Usuários inativos/bloqueados redirecionados | OK |
-| Clientes isolados no portal | OK |
-| Configurações admin-only via tabs condicionais | OK |
+## Implementação
 
-## 4 Lacunas Identificadas
+### 1. Edge Function `api-sandbox` (novo)
 
-### 1. Configurações acessível a TODOS os autenticados (Risco: Baixo)
-**Linha 406**: `/dashboard/configuracoes` usa apenas `ProtectedRoute`, sem guard de módulo.
-- A página internamente filtra tabs por role (admin/supervisor), mas qualquer vendedor/promotor pode acessar a rota e ver seu perfil.
-- **Veredicto**: Intencional — a tela mostra "Meu Perfil" para todos e tabs admin ficam ocultas. **Sem ação necessária.**
+**Arquivo: `supabase/functions/api-sandbox/index.ts`**
 
-### 2. Rota `/integração` não existe no App.tsx (Risco: Nulo)
-O usuário está em `/integração` (com acento), mas essa rota não está definida. Cairá no catch-all `*` → ErrorPage. **Sem vulnerabilidade.**
+- Recebe `{ path, method, headers, body }` via POST
+- Valida auth (JWT do usuário logado — sem x-api-key necessário)
+- Mapeia o `path` para respostas simuladas (mock data) baseadas nos mesmos schemas das APIs reais
+- Marca toda resposta com `"sandbox": true, "dry_run": true`
+- Registra a chamada na tabela `sandbox_requests`
+- Endpoints de status (`/status`) retornam health check real (passthrough)
+- Para endpoints de escrita (`incluir`, `upsert`, `alterar`, `excluir`), retorna sucesso simulado com dados fictícios
+- Para endpoints de leitura (`listar`, `consultar`), retorna dados de exemplo pré-definidos
 
-### 3. Contas a Receber sem ScreenRoute granular (Risco: Baixo)
-**Linhas 588-591**: As rotas de CR usam `ModuleRoute moduleCode="financeiro"` em vez de `ScreenRoute screenCode="financeiro_contas_receber"`, diferente de CP que usa `ScreenRoute`. Isso significa que qualquer usuário com acesso ao módulo financeiro pode acessar CR, mesmo sem permissão específica de tela.
-- **Impacto**: Supervisores financeiros que deveriam ver apenas CP também veem CR.
+### 2. Migração SQL — Tabela `sandbox_requests`
 
-### 4. Cobrança/Fluxo de Caixa/Plano Contas sem ScreenRoute (Risco: Baixo)
-**Linhas 591-598**: Rotas como `fluxo-de-caixa`, `plano-contas`, `saldos-bancarios`, `central-pagamentos`, `investimentos`, `conciliacao-bancaria` usam apenas `ModuleRoute moduleCode="financeiro"` sem granularidade de tela. Qualquer usuário do módulo financeiro acessa tudo.
+```sql
+CREATE TABLE sandbox_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint text NOT NULL,
+  method text NOT NULL,
+  request_body jsonb,
+  response_body jsonb,
+  response_status int DEFAULT 200,
+  duration_ms int,
+  created_at timestamptz DEFAULT now()
+);
 
-## Plano de Correção
+ALTER TABLE sandbox_requests ENABLE ROW LEVEL SECURITY;
 
-### Ação Única: Adicionar ScreenRoute nas rotas financeiras que faltam
+-- Usuário vê apenas seus requests
+CREATE POLICY "Users see own sandbox requests"
+  ON sandbox_requests FOR ALL
+  TO authenticated
+  USING (user_id = auth.uid());
+```
 
-**Arquivo: `src/App.tsx`**
+### 3. Toggle no ApiTester
 
-Substituir `ModuleRoute moduleCode="financeiro"` por `ScreenRoute screenCode="..."` nas rotas:
+**Arquivo: `src/components/erp/ApiTester.tsx`** (adição, sem remover nada)
 
-| Rota | screenCode sugerido |
-|---|---|
-| `/dashboard/financeiro/contas-a-receber` | `financeiro_contas_receber` |
-| `/dashboard/financeiro/contas-a-receber/auditoria` | `financeiro_contas_receber` |
-| `/dashboard/financeiro/contas-a-receber/sync` | `financeiro_contas_receber` |
-| `/dashboard/financeiro/cobranca` | `financeiro_cobranca` |
-| `/dashboard/financeiro/fluxo-de-caixa` | `financeiro_fluxo_caixa` |
-| `/dashboard/financeiro/plano-contas` | `financeiro_plano_contas` |
-| `/dashboard/financeiro/saldos-bancarios` | `financeiro_saldos_bancarios` |
-| `/dashboard/financeiro/central-pagamentos` | `financeiro_pagamentos` |
-| `/dashboard/financeiro/consolidado` | `financeiro_consolidado` |
-| `/dashboard/financeiro/conciliacao-bancaria` | `financeiro_conciliacao` |
-| `/dashboard/financeiro/investimentos` | `financeiro_investimentos` |
-| `/dashboard/financeiro/classificar-banco` | `financeiro_classificar_banco` |
+- Novo state `sandboxMode` (boolean, default false)
+- Switch toggle no header do tester com label "Sandbox" e badge laranja
+- Quando `sandboxMode = true`:
+  - Em vez de `fetch(finalUrl, options)`, faz `supabase.functions.invoke("api-sandbox", { body: { path, method, headers, body } })`
+  - Badge "SANDBOX" aparece ao lado do botão Send
+  - Respostas exibidas com borda laranja e indicador visual "Dry Run"
+- Quando `sandboxMode = false`: comportamento 100% inalterado (fetch direto)
 
-**Pré-requisito**: Verificar se esses screenCodes já existem na tabela `telas_sistema`. Se não, criar uma migração para inseri-los antes de aplicar os guards (senão ninguém acessa).
+### 4. Indicador visual na Documentação
 
-**Abordagem segura**: Primeiro verificar quais telas já existem no banco via query, depois criar migração para as faltantes, e só então alterar as rotas.
+**Arquivo: `src/components/erp/ApiDocumentation.tsx`** (adição mínima)
+
+- Nota informativa no topo: "Use o modo Sandbox no API Tester para testar sem afetar dados reais"
+- Nenhuma alteração nos exemplos de código ou cURL existentes
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/App.tsx` | Trocar ModuleRoute por ScreenRoute em ~12 rotas financeiras |
-| Migração SQL | Inserir screenCodes faltantes em `telas_sistema` |
+| `supabase/functions/api-sandbox/index.ts` | **Novo** — Proxy sandbox com respostas simuladas |
+| `src/components/erp/ApiTester.tsx` | **Adição** — Toggle sandbox + lógica condicional de envio |
+| `src/components/erp/ApiDocumentation.tsx` | **Adição mínima** — Nota informativa sobre sandbox |
+| Migração SQL | **Nova** — Tabela `sandbox_requests` com RLS |
+
+## O que NÃO muda
+
+- Todo o fluxo de produção do ApiTester permanece idêntico
+- ApiDocumentation, exemplos, cURL generator, Postman export — tudo inalterado
+- ApiStatusBadge, ApiGlobalStatus — inalterados
+- Nenhum endpoint de produção é modificado
 
