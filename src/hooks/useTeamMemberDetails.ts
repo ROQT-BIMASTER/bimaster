@@ -82,7 +82,7 @@ export function useTeamMemberDetails(teamMemberIds: string[]) {
         .select("*")
         .in("user_id", teamMemberIds);
       if (error) throw error;
-      return (data || []) as TeamMemberDetail[];
+      return (data || []) as unknown as TeamMemberDetail[];
     },
     enabled: teamMemberIds.length > 0,
   });
