@@ -200,6 +200,9 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="chat" className="text-xs h-7">
+            <MessageCircle className="h-3 w-3 mr-1" /> Chat
+          </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs h-7">Timeline</TabsTrigger>
         </TabsList>
 
