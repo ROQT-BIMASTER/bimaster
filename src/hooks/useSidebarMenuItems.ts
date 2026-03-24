@@ -58,7 +58,7 @@ export function useSidebarMenuItems() {
   const reorderItems = useMutation({
     mutationFn: async (orderedIds: string[]) => {
       const updates = orderedIds.map((id, idx) =>
-        supabase.from("sidebar_menu_items").update({ ordem: idx + 1 }).eq("id", id)
+        (supabase as any).from("sidebar_menu_items").update({ ordem: idx + 1 }).eq("id", id)
       );
       await Promise.all(updates);
     },
