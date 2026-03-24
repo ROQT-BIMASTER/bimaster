@@ -1146,12 +1146,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         {/* Central de Inteligência — protegido por módulo */}
         {hasModulePermission("central_inteligencia") && moduleMatchesSearch("inteligencia") && (
         <SidebarGroup className="py-1 px-2">
-          <Collapsible open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={openModules.has("inteligencia")} subItemCount={isAdmin ? 8 : 7} />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
+          <Popover open={openModules.has("inteligencia")} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+            <PopoverTrigger asChild>
+              <button className="w-full text-left">
+                <ModuleHeader icon={BarChart3} title="Central de Inteligência" isOpen={openModules.has("inteligencia")} subItemCount={isAdmin ? 8 : 7} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="right" align="start" sideOffset={8} className="w-64 p-2 max-h-[70vh] overflow-y-auto">
+              <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Central de Inteligência</span>
+              </div>
+              <SidebarMenu className="space-y-0.5">
                 <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart2} title="Painel Executivo" />
                 <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Perf. Vendas" />
                 <MenuItemLink to="/dashboard/clientes" icon={UserCheck} title="Clientes" />
@@ -1161,8 +1166,8 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 <MenuItemLink to="/dashboard/consolidado" icon={Layers} title="Consolidado" />
                 {isAdmin && <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas" />}
               </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+            </PopoverContent>
+          </Popover>
         </SidebarGroup>
         )}
 
