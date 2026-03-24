@@ -30263,6 +30263,82 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_details_safe: {
+        Row: {
+          cpf: string | null
+          created_at: string | null
+          created_by: string | null
+          data_nascimento: string | null
+          email_pessoal: string | null
+          equipe_comercial: string | null
+          id: string | null
+          nome_completo: string | null
+          observacoes: string | null
+          rg: string | null
+          supervisor_nome: string | null
+          tamanho_camiseta: string | null
+          updated_at: string | null
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cpf?: never
+          created_at?: string | null
+          created_by?: string | null
+          data_nascimento?: never
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          rg?: never
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cpf?: never
+          created_at?: string | null
+          created_by?: string | null
+          data_nascimento?: never
+          email_pessoal?: string | null
+          equipe_comercial?: string | null
+          id?: string | null
+          nome_completo?: string | null
+          observacoes?: string | null
+          rg?: never
+          supervisor_nome?: string | null
+          tamanho_camiseta?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "team_performance_view"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       team_performance_view: {
         Row: {
           audits_this_month: number | null
