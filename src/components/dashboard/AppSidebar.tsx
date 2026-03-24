@@ -1046,7 +1046,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
 
   return (
-    <Sidebar side={side} className={cn("border-none", isRTL ? "border-l" : "border-r")} style={{ borderRight: '1px solid var(--sidebar-border-raw)' }}>
+    <Sidebar side={side} collapsible="icon" className={cn("border-none", isRTL ? "border-l" : "border-r")} style={{ borderRight: '1px solid var(--sidebar-border-raw)' }}>
       {/* Header with logo */}
       <div className="p-4" style={{ backgroundColor: 'var(--sidebar-bg-raw)', borderBottom: '1px solid var(--sidebar-border-raw)' }}>
         <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="w-28 mx-auto" />
