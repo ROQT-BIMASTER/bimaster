@@ -972,7 +972,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
             {/* Subgroups with collapsible inside submenu */}
             {finSubgroups.map(sg => {
-              const visibleItems = sg.items.filter(i => hasPermission(i.screenCode));
+              const visibleItems = sg.items.filter(i => hasPermission(i.screenCode) && (!('requireAdmin' in i) || !i.requireAdmin || isAdmin));
               if (visibleItems.length === 0) return null;
               const isSgOpen = openFinSubgroups.has(sg.key);
               return (
