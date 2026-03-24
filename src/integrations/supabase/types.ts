@@ -18557,6 +18557,68 @@ export type Database = {
         }
         Relationships: []
       }
+      process_decisions: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          decision_type: string
+          destination: string
+          id: string
+          items_affected: Json | null
+          message: string
+          origin: string
+          parent_decision_id: string | null
+          prazo_retorno: string | null
+          process_id: string
+          submissao_id: string | null
+          version: number
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_type: string
+          destination: string
+          id?: string
+          items_affected?: Json | null
+          message: string
+          origin: string
+          parent_decision_id?: string | null
+          prazo_retorno?: string | null
+          process_id: string
+          submissao_id?: string | null
+          version?: number
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_type?: string
+          destination?: string
+          id?: string
+          items_affected?: Json | null
+          message?: string
+          origin?: string
+          parent_decision_id?: string | null
+          prazo_retorno?: string | null
+          process_id?: string
+          submissao_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_decisions_parent_decision_id_fkey"
+            columns: ["parent_decision_id"]
+            isOneToOne: false
+            referencedRelation: "process_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_despacho_documento: {
         Row: {
           categoria_checklist: string | null
@@ -19008,6 +19070,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      process_field_permissions: {
+        Row: {
+          can_approve: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          field: string
+          id: string
+          module: string
+          origin_role: string
+          process_step: string
+          updated_at: string
+        }
+        Insert: {
+          can_approve?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          field: string
+          id?: string
+          module: string
+          origin_role: string
+          process_step: string
+          updated_at?: string
+        }
+        Update: {
+          can_approve?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          field?: string
+          id?: string
+          module?: string
+          origin_role?: string
+          process_step?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       process_juntadas: {
         Row: {
