@@ -1093,7 +1093,7 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
-                  {/* 4 Steps */}
+                <div className="border rounded-xl p-5 space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {[
                       { step: "1", title: "Obter API Key", desc: "Gere sua chave no portal acima (Gerenciar Chaves API)", icon: <Shield className="h-4 w-4" /> },
