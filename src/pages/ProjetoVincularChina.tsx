@@ -893,11 +893,28 @@ export default function ProjetoVincularChina() {
 
       {/* Process Orchestration Panel — appears when a linked submission is selected */}
       {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
-        <ProcessOrchestrationPanel
-          submissaoId={selectedSubmissaoId}
-          submissaoNome={selectedSubmissao?.produto_nome}
-          submissaoCodigo={selectedSubmissao?.produto_codigo}
-        />
+        <>
+          <ProcessOrchestrationPanel
+            submissaoId={selectedSubmissaoId}
+            submissaoNome={selectedSubmissao?.produto_nome}
+            submissaoCodigo={selectedSubmissao?.produto_codigo}
+          />
+          {/* Decision Button */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                setDecisionProcessId(selectedSubmissaoId);
+                setDecisionOpen(true);
+              }}
+            >
+              <Gavel className="h-4 w-4" />
+              Decisão Formal do Brasil
+            </Button>
+          </div>
+        </>
       )}
 
       {/* Despachos Panel — appears for any selected submission */}
