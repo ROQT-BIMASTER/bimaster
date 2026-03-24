@@ -172,7 +172,35 @@ export default function ProjetoVincularChina() {
     return filteredSubmissoes;
   }, [filteredSubmissoes, activeSidebarCat, submissaoVinculadas]);
 
-  // Doc vinculos indexed by "docId-tarefaId"
+  // KPIs
+  const kpiData = useMemo(() => ({
+    total: filteredSubmissoes.length,
+    enviados: filteredSubmissoes.filter((s: any) => s.status === "enviado").length,
+    emRevisao: filteredSubmissoes.filter((s: any) => s.status === "em_revisao").length,
+    aprovados: filteredSubmissoes.filter((s: any) => s.status === "aprovado").length,
+    rejeitados: filteredSubmissoes.filter((s: any) => s.status === "rejeitado").length,
+    vinculados: vinculadasCount,
+  }), [filteredSubmissoes, vinculadasCount]);
+
+  // Urgency sort: em_revisao first, then enviado, then rest
+  const sortedDisplayedSubmissoes = useMemo(() => {
+    const urgencyOrder: Record<string, number> = {
+      em_revisao: 0,
+      enviado: 1,
+      rejeitado: 2,
+      rascunho: 3,
+      aprovado: 4,
+      arte_enviada: 5,
+    };
+    return [...displayedSubmissoes].sort((a: any, b: any) => {
+      const ua = urgencyOrder[a.status] ?? 99;
+      const ub = urgencyOrder[b.status] ?? 99;
+      if (ua !== ub) return ua - ub;
+      // Secondary: newest first
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  }, [displayedSubmissoes]);
+
   const docVinculoMap = useMemo(() => {
     const map = new Map<string, string>();
     docVinculos.forEach((v) => map.set(`${v.documento_id}-${v.tarefa_id}`, v.id));
