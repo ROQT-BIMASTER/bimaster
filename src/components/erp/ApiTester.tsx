@@ -417,6 +417,7 @@ export default function ApiTester() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [sandboxMode, setSandboxMode] = useState(false);
   const testerRef = useState<HTMLDivElement | null>(null);
 
   // Listen for pre-fill events from ApiDocumentation
