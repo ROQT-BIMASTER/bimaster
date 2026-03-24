@@ -31220,6 +31220,21 @@ export type Database = {
         }
         Returns: Json
       }
+      get_contas_receber_totais_filtrados: {
+        Args: {
+          p_anos?: number[]
+          p_cliente?: string
+          p_conta?: string
+          p_dia_emissao?: string
+          p_dia_recebimento?: string
+          p_dia_vencimento?: string
+          p_empresas?: number[]
+          p_meses?: number[]
+          p_portador?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       get_conversion_funnel: {
         Args: never
         Returns: {
