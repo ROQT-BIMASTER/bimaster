@@ -21,9 +21,11 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Receipt, Plus, Search, Pencil, Eye, Ban, Loader2, DollarSign,
-  AlertTriangle, CheckCircle, FileText, CalendarIcon, CreditCard, Wallet, Users
+  AlertTriangle, CheckCircle, FileText, CalendarIcon, CreditCard, Wallet, Users, History, Shield
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
+import { CPHistoricoTimeline } from "@/components/financeiro/CPHistoricoTimeline";
 
 // Types
 interface ContaPagar {
@@ -127,6 +129,10 @@ export default function ContasPagarGestao() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [pendingEditConta, setPendingEditConta] = useState<ContaPagar | null>(null);
+  const [editJustificativa, setEditJustificativa] = useState("");
+  const [passwordVerified, setPasswordVerified] = useState(false);
   const PAGE_SIZE = 50;
 
   // Form state
@@ -287,6 +293,18 @@ export default function ContasPagarGestao() {
       if (editingId) {
         const { error } = await supabase.from("contas_pagar").update(payload).eq("id", editingId);
         if (error) throw error;
+        
+        // Log justificativa if editing locked record
+        if (editJustificativa.trim()) {
+          await supabase.from("contas_pagar_historico" as any).insert({
+            conta_id: editingId,
+            campo_alterado: "_justificativa",
+            valor_anterior: null,
+            valor_novo: editJustificativa.trim(),
+            tipo_alteracao: "JUSTIFICATIVA",
+            usuario_id: (await supabase.auth.getUser()).data.user?.id,
+          });
+        }
       } else {
         payload.erp_id = `MAN-${Date.now()}`;
         payload.empresa_id = payload.empresa_id || 1;
@@ -396,7 +414,7 @@ export default function ContasPagarGestao() {
     setEditingId(null);
   }, []);
 
-  const openEdit = useCallback((c: ContaPagar) => {
+  const doOpenEdit = useCallback((c: ContaPagar) => {
     setForm({
       tipo_documento: c.tipo_documento || "", numero_documento: c.numero_documento || "",
       fornecedor_nome: c.fornecedor_nome || "", fornecedor_codigo: c.fornecedor_codigo || "",
@@ -411,8 +429,20 @@ export default function ContasPagarGestao() {
       data_previsao: (c as any).data_previsao || "", id_conta_corrente: String((c as any).id_conta_corrente || ""),
     });
     setEditingId(c.id);
+    setEditJustificativa("");
+    setPasswordVerified(false);
     setModalOpen(true);
   }, []);
+
+  const openEdit = useCallback((c: ContaPagar) => {
+    const isLocked = c.status === "pago" || c.status === "cancelado";
+    if (isLocked) {
+      setPendingEditConta(c);
+      setPasswordDialogOpen(true);
+    } else {
+      doOpenEdit(c);
+    }
+  }, [doOpenEdit]);
 
   const openDetail = useCallback((c: ContaPagar) => {
     setSelectedConta(c);
@@ -599,7 +629,7 @@ export default function ContasPagarGestao() {
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(c)} title="Ver detalhe">
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title="Editar" disabled={c.status === "pago" || c.status === "cancelado"}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)} title={c.status === "pago" || c.status === "cancelado" ? "Editar (requer senha)" : "Editar"}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {c.status !== "cancelado" && c.status !== "pago" && (
@@ -650,12 +680,12 @@ export default function ContasPagarGestao() {
               <DialogTitle>{editingId ? "Editar Título" : "Nova Conta a Pagar"}</DialogTitle>
               <DialogDescription>Preencha os dados do título</DialogDescription>
             </DialogHeader>
-            {/* Warning for locked status */}
+            {/* Warning for locked status — unlocked via password */}
             {editingId && (form.status === "pago" || form.status === "cancelado") && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
-                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <Shield className="h-4 w-4 text-amber-600 shrink-0" />
                 <p className="text-sm text-amber-700 dark:text-amber-400">
-                  Este título está com status <strong>{form.status === "pago" ? "Pago" : "Cancelado"}</strong> e não pode ser alterado.
+                  Título com status <strong>{form.status === "pago" ? "Pago" : "Cancelado"}</strong> — edição autorizada via senha. Justificativa obrigatória.
                 </p>
               </div>
             )}
@@ -764,16 +794,32 @@ export default function ContasPagarGestao() {
                 <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" value={form.id_conta_corrente} onChange={e => setForm(f => ({ ...f, id_conta_corrente: e.target.value }))} />
               </div>
             </div>
+            {/* Justificativa obrigatória para títulos pagos/cancelados */}
+            {editingId && (form.status === "pago" || form.status === "cancelado") && (
+              <div className="px-1">
+                <Label>Justificativa da alteração *</Label>
+                <Input
+                  value={editJustificativa}
+                  onChange={e => setEditJustificativa(e.target.value)}
+                  placeholder="Descreva o motivo da alteração..."
+                  className="mt-1"
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => { setModalOpen(false); resetForm(); }}>
-                {editingId && (form.status === "pago" || form.status === "cancelado") ? "Fechar" : "Cancelar"}
+                Cancelar
               </Button>
-              {!(editingId && (form.status === "pago" || form.status === "cancelado")) && (
-                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento}>
-                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  {editingId ? "Salvar" : "Criar"}
-                </Button>
-              )}
+              <Button 
+                onClick={() => saveMutation.mutate()} 
+                disabled={
+                  saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento ||
+                  (editingId != null && (form.status === "pago" || form.status === "cancelado") && !editJustificativa.trim())
+                }
+              >
+                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editingId ? "Salvar Alterações" : "Criar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -857,6 +903,16 @@ export default function ContasPagarGestao() {
                         </TableBody>
                       </Table>
                     )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Histórico de Alterações */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <History className="h-4 w-4" /> Histórico de Alterações
+                    </h3>
+                    <CPHistoricoTimeline contaId={selectedConta.id} />
                   </div>
 
                   <Separator />
@@ -969,6 +1025,22 @@ export default function ContasPagarGestao() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ===== PASSWORD DIALOG for locked records ===== */}
+        <AdminPasswordDialog
+          open={passwordDialogOpen}
+          onOpenChange={(open) => {
+            setPasswordDialogOpen(open);
+            if (!open) setPendingEditConta(null);
+          }}
+          onSuccess={() => {
+            if (pendingEditConta) {
+              setPasswordVerified(true);
+              doOpenEdit(pendingEditConta);
+              setPendingEditConta(null);
+            }
+          }}
+        />
       </div>
     </DashboardLayout>
   );
