@@ -550,7 +550,7 @@ export default function ProjetoVincularChina() {
               <p className="text-sm text-muted-foreground text-center py-10">Nenhuma submissão encontrada</p>
             ) : (
               <div className="p-3 grid grid-cols-1 gap-3">
-                {displayedSubmissoes.map((sub: any) => {
+                {sortedDisplayedSubmissoes.map((sub: any) => {
                   const isSelected = selectedSubmissaoId === sub.id;
                   const isExpanded = expandedSubmissaoId === sub.id;
                   const isLinked = submissaoVinculadas.has(sub.id);
