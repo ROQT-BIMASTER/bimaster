@@ -737,13 +737,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       if (isMobile) {
         return (
-          <Drawer open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+          <Drawer open={isModuleOpen} onOpenChange={(open) => setModuleOpen(moduleCode, open)}>
             <DrawerTrigger asChild>
               <button className="w-full text-left">{headerEl}</button>
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader className="pb-2">
-                <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+                <div className="flex items-center justify-between">
+                  <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+                  <button onClick={() => setModuleOpen(moduleCode, false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </DrawerHeader>
               <ScrollArea className="max-h-[60vh] px-4 pb-6">
                 {menuContent}
