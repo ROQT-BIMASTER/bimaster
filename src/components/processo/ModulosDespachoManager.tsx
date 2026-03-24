@@ -111,6 +111,35 @@ export function ModulosDespachoManager() {
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
+            {/* Capabilities row */}
+            {m.ativo && (
+              <div className="flex items-center gap-1 px-3 pb-2 -mt-1 flex-wrap">
+                <div className="flex items-center gap-1.5 mr-2">
+                  <Checkbox
+                    id={`amb-${m.id}`}
+                    checked={m.ambiente_habilitado}
+                    onCheckedChange={(v) => updateModulo.mutate({ id: m.id, ambiente_habilitado: !!v })}
+                    className="h-3.5 w-3.5"
+                  />
+                  <label htmlFor={`amb-${m.id}`} className="text-[10px] font-semibold text-primary cursor-pointer">
+                    Ambiente
+                  </label>
+                </div>
+                {m.ambiente_habilitado && CAPABILITY_LABELS.map(cap => (
+                  <div key={cap.key} className="flex items-center gap-1">
+                    <Checkbox
+                      id={`${cap.key}-${m.id}`}
+                      checked={(m as any)[cap.key] as boolean}
+                      onCheckedChange={(v) => updateModulo.mutate({ id: m.id, [cap.key]: !!v })}
+                      className="h-3 w-3"
+                    />
+                    <label htmlFor={`${cap.key}-${m.id}`} className="text-[9px] text-muted-foreground cursor-pointer">
+                      {cap.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           );
         })}
       </CardContent>

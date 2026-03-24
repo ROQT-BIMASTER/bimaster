@@ -207,6 +207,9 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {(Object.keys(ACTION_CONFIG) as ActionType[]).map(action => {
               if (!action) return null;
+              // Filter by capabilities
+              const capKey = `pode_${action}` as keyof typeof capabilities;
+              if (capKey in capabilities && !capabilities[capKey]) return null;
               const cfg = ACTION_CONFIG[action];
               return (
                 <Button
