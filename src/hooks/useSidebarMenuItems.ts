@@ -67,7 +67,7 @@ export function useSidebarMenuItems() {
 
   const toggleItemActive = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("sidebar_menu_items")
         .update({ ativo, updated_at: new Date().toISOString() })
         .eq("id", id);
