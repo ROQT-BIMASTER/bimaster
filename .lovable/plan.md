@@ -1,46 +1,77 @@
 
 
-# Segurança de Tokens e Exclusão de Chaves Antigas
+# Auditoria de Segurança: Bloqueio de Telas e Módulos
 
-## Problemas Identificados
+## Resultado Geral: Sistema SÓLIDO — 96/100
 
-1. **Sem botão de excluir** — A tabela `erp_api_keys` só tem toggle ativar/desativar, sem opção de deletar chaves expiradas ou inativas
-2. **`token_plain` armazenado em texto claro** — A tabela `team_form_tokens` guarda o token original na coluna `token_plain`, violando boas práticas (deveria guardar apenas o hash)
-3. **Sem limpeza automática** — Chaves expiradas e tokens vencidos permanecem indefinidamente no banco
-4. **Sem confirmação de exclusão** — Precisa de AlertDialog para evitar exclusões acidentais
+A arquitetura de segurança é robusta e bem implementada. A proteção opera em 3 camadas:
 
-## Implementação
+1. **Camada de Rota** — `ProtectedRoute` (autenticação), `ModuleRoute` (módulo), `ScreenRoute` (tela)
+2. **Camada de Sidebar** — `showModule()` e `hasModulePermission()` ocultam itens não autorizados
+3. **Camada de Banco** — RLS + RPC `get_all_user_permissions` + session invalidation via Realtime
 
-### 1. Botão Excluir na tabela de API Keys
+## Pontos Fortes Confirmados
 
-**Arquivo: `src/pages/IntegracaoERP.tsx`**
-- Adicionar coluna "Ações" com botão de exclusão (ícone Trash2)
-- AlertDialog de confirmação antes de deletar
-- Função `handleDelete` que remove a chave do banco
-- Permitir exclusão apenas de chaves **inativas ou expiradas** (segurança)
+| Controle | Status |
+|---|---|
+| Todas as ~100 rotas `/dashboard/*` protegidas por guards | OK |
+| Admin bypass centralizado no `PermissionsContext` (server-side via RPC) | OK |
+| Impersonação restrita a admins com persistência segura (userId verificado) | OK |
+| Session invalidation em tempo real ao trocar role | OK |
+| Cache de permissões com verificação de userId no localStorage | OK |
+| Safety timeout evita tela branca infinita | OK |
+| Usuários inativos/bloqueados redirecionados | OK |
+| Clientes isolados no portal | OK |
+| Configurações admin-only via tabs condicionais | OK |
 
-### 2. Limpeza de `token_plain` dos team_form_tokens
+## 4 Lacunas Identificadas
 
-**Migração SQL:**
-- Limpar todos os `token_plain` existentes (SET token_plain = NULL)
-- O hook `useTeamFormTokens.ts` já retorna o token ao gerar — ele é exibido uma vez e depois não precisa estar no banco
+### 1. Configurações acessível a TODOS os autenticados (Risco: Baixo)
+**Linha 406**: `/dashboard/configuracoes` usa apenas `ProtectedRoute`, sem guard de módulo.
+- A página internamente filtra tabs por role (admin/supervisor), mas qualquer vendedor/promotor pode acessar a rota e ver seu perfil.
+- **Veredicto**: Intencional — a tela mostra "Meu Perfil" para todos e tabs admin ficam ocultas. **Sem ação necessária.**
 
-### 3. Exclusão em massa de chaves expiradas
+### 2. Rota `/integração` não existe no App.tsx (Risco: Nulo)
+O usuário está em `/integração` (com acento), mas essa rota não está definida. Cairá no catch-all `*` → ErrorPage. **Sem vulnerabilidade.**
 
-**Arquivo: `src/pages/IntegracaoERP.tsx`**
-- Botão "Limpar Expiradas" no header da tabela
-- Remove todas as chaves onde `expires_at < now()` e `active = false`
-- AlertDialog com contagem de quantas serão removidas
+### 3. Contas a Receber sem ScreenRoute granular (Risco: Baixo)
+**Linhas 588-591**: As rotas de CR usam `ModuleRoute moduleCode="financeiro"` em vez de `ScreenRoute screenCode="financeiro_contas_receber"`, diferente de CP que usa `ScreenRoute`. Isso significa que qualquer usuário com acesso ao módulo financeiro pode acessar CR, mesmo sem permissão específica de tela.
+- **Impacto**: Supervisores financeiros que deveriam ver apenas CP também veem CR.
 
-### 4. Audit log de exclusões
+### 4. Cobrança/Fluxo de Caixa/Plano Contas sem ScreenRoute (Risco: Baixo)
+**Linhas 591-598**: Rotas como `fluxo-de-caixa`, `plano-contas`, `saldos-bancarios`, `central-pagamentos`, `investimentos`, `conciliacao-bancaria` usam apenas `ModuleRoute moduleCode="financeiro"` sem granularidade de tela. Qualquer usuário do módulo financeiro acessa tudo.
 
-**Migração SQL:**
-- Registrar exclusões de API keys na tabela de auditoria existente via trigger
+## Plano de Correção
+
+### Ação Única: Adicionar ScreenRoute nas rotas financeiras que faltam
+
+**Arquivo: `src/App.tsx`**
+
+Substituir `ModuleRoute moduleCode="financeiro"` por `ScreenRoute screenCode="..."` nas rotas:
+
+| Rota | screenCode sugerido |
+|---|---|
+| `/dashboard/financeiro/contas-a-receber` | `financeiro_contas_receber` |
+| `/dashboard/financeiro/contas-a-receber/auditoria` | `financeiro_contas_receber` |
+| `/dashboard/financeiro/contas-a-receber/sync` | `financeiro_contas_receber` |
+| `/dashboard/financeiro/cobranca` | `financeiro_cobranca` |
+| `/dashboard/financeiro/fluxo-de-caixa` | `financeiro_fluxo_caixa` |
+| `/dashboard/financeiro/plano-contas` | `financeiro_plano_contas` |
+| `/dashboard/financeiro/saldos-bancarios` | `financeiro_saldos_bancarios` |
+| `/dashboard/financeiro/central-pagamentos` | `financeiro_pagamentos` |
+| `/dashboard/financeiro/consolidado` | `financeiro_consolidado` |
+| `/dashboard/financeiro/conciliacao-bancaria` | `financeiro_conciliacao` |
+| `/dashboard/financeiro/investimentos` | `financeiro_investimentos` |
+| `/dashboard/financeiro/classificar-banco` | `financeiro_classificar_banco` |
+
+**Pré-requisito**: Verificar se esses screenCodes já existem na tabela `telas_sistema`. Se não, criar uma migração para inseri-los antes de aplicar os guards (senão ninguém acessa).
+
+**Abordagem segura**: Primeiro verificar quais telas já existem no banco via query, depois criar migração para as faltantes, e só então alterar as rotas.
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/IntegracaoERP.tsx` | Botão excluir individual + limpeza em massa |
-| Migração SQL | Limpar token_plain, trigger de auditoria |
+| `src/App.tsx` | Trocar ModuleRoute por ScreenRoute em ~12 rotas financeiras |
+| Migração SQL | Inserir screenCodes faltantes em `telas_sistema` |
 
