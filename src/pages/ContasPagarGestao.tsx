@@ -895,6 +895,16 @@ export default function ContasPagarGestao() {
 
                   <Separator />
 
+                  {/* Histórico de Alterações */}
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <History className="h-4 w-4" /> Histórico de Alterações
+                    </h3>
+                    <CPHistoricoTimeline contaId={selectedConta.id} />
+                  </div>
+
+                  <Separator />
+
                   {/* Pagamentos */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
