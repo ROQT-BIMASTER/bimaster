@@ -614,6 +614,41 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     { title: t("precos.access_control"), url: "/dashboard/precos/acesso", icon: Shield, screenCode: "precos_acesso" },
   ];
 
+  // Search query normalization
+  const sq = searchQuery.toLowerCase().trim();
+
+  // Helper to count visible sub-items for a module
+  const getSubItemCount = (moduleCode: string): number => {
+    const filterItems = (items: { screenCode?: string; requireAdminOrSupervisor?: boolean; title: string }[]) =>
+      items.filter(i => (!i.screenCode || hasPermission(i.screenCode)) && (!('requireAdminOrSupervisor' in i) || !i.requireAdminOrSupervisor || isAdminOrSupervisor));
+    
+    switch (moduleCode) {
+      case "prospects": return filterItems(prospectsSubMenus).length + (hasPermission("PROSPECTS_DASHBOARD") ? 1 : 0);
+      case "trade": return filterItems(tradeSubMenus).length + (hasPermission("TRADE_DASHBOARD") ? 1 : 0);
+      case "marketing": return filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0);
+      case "precos": return filterItems(precosSubMenus).length;
+      case "fabrica": {
+        let c = hasPermission("fabrica_dashboard") ? 1 : 0;
+        fabricaGroups.forEach(g => { c += g.items.filter(i => isAdmin || hasPermission(i.screenCode)).length; });
+        return c;
+      }
+      case "financeiro": {
+        let c = financeiroTopItems.filter(i => hasPermission(i.screenCode)).length;
+        finSubgroups.forEach(sg => { c += sg.items.filter(i => hasPermission(i.screenCode)).length; });
+        c += finBottomItems.filter(i => hasPermission(i.screenCode)).length;
+        return c;
+      }
+      case "comercial": return 15; // large module
+      case "china": return 4;
+      case "estoque": return 6;
+      case "projetos": return 3 + (isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130') ? 2 : 0) + (isAdminOrSupervisor ? 1 : 0);
+      case "processos": return 3;
+      case "eventos": return (hasPermission("eventos_dashboard") ? 1 : 0) + (hasPermission("eventos_analytics") ? 1 : 0);
+      case "aprovacao_artes": return 3;
+      default: return 0;
+    }
+  };
+
   // ============ MODULE RENDERERS ============
   const renderModuleContent = (moduleCode: string) => {
     const isModuleOpen = openModules.has(moduleCode);
