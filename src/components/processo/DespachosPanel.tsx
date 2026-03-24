@@ -238,14 +238,31 @@ export function DespachosPanel({ submissaoId, documentos }: DespachosPanelProps)
                         <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="flex-1 min-w-0 truncate">{getDocName(desp.documento_id)}</span>
                         {desp.despachado_para_nome && (
-                          <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground shrink-0">
+                          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 shrink-0 gap-1 font-medium">
                             <User className="h-2.5 w-2.5" />
                             {desp.despachado_para_nome}
-                          </span>
+                          </Badge>
                         )}
                         {desp.modulo_destino && (
                           <Badge variant="outline" className="text-[8px] h-3.5 px-1 shrink-0">{desp.modulo_destino}</Badge>
                         )}
+                        {desp.prazo_ciencia_horas && desp.status === "pendente" && (() => {
+                          const criado = new Date(desp.created_at);
+                          const limite = new Date(criado.getTime() + desp.prazo_ciencia_horas * 3600000);
+                          const agora = new Date();
+                          const restante = limite.getTime() - agora.getTime();
+                          const vencido = restante <= 0;
+                          const urgente = !vencido && restante < 6 * 3600000;
+                          return (
+                            <Badge
+                              variant={vencido ? "destructive" : urgente ? "warning" : "outline"}
+                              className="text-[8px] h-3.5 px-1 shrink-0 gap-0.5"
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              {vencido ? "Vencido" : `Até ${format(limite, "dd/MM HH:mm")}`}
+                            </Badge>
+                          );
+                        })()}
                         {(desp as any).vinculo_projeto_id && (
                           <span className="inline-flex items-center shrink-0" title="Vinculado ao projeto">
                             <FolderOpen className="h-3 w-3 text-primary" />
