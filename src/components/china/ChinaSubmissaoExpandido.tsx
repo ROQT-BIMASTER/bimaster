@@ -9,6 +9,7 @@ import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
 import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
 import { ChinaDocVincularDialog } from "./ChinaDocVincularDialog";
 import { DespachoDocumentoDialog } from "@/components/processo/DespachoDocumentoDialog";
+import { ChinaInboxDecisoes } from "./ChinaInboxDecisoes";
 
 interface ChinaSubmissaoExpandidoProps {
   submissao: any;
