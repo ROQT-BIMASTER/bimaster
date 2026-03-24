@@ -398,8 +398,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
           next.add(moduleCode);
           return next;
         });
-        const cat = moduleToCategoryMap[moduleCode];
-        if (cat) setOpenCategory(cat);
+        // Categories are always open now — no need to expand
         break;
       }
     }
