@@ -1,89 +1,61 @@
 
 
-# Redesign do Menu Lateral — Estilo Portal de Integração
+# Melhoria Profissional do Menu Lateral
 
-## Problema
+## Problema Identificado pelo Usuário
+A seção de admin no footer (LGPD, Config. Menu, Rel. Segurança, etc.) não tem seta para recolher/expandir — ocupa espaço fixo.
 
-O menu lateral atual usa headers de módulo com caixas coloridas (7x7px), múltiplos níveis de nesting com indentação pesada, e accordion de categorias que gera confusão. Os usuários reclamam da complexidade visual.
+## Análise Completa — 6 Melhorias Profissionais
 
-## Referência: Sidebar do Portal de Integração
+### 1. Footer Admin — Collapsible com seta (pedido do usuário)
 
-O padrão do portal (imagem-823) é limpo e minimalista:
-- Lista flat com ícone + texto + badge de contagem
-- Separadores simples entre seções
-- Sem caixas coloridas nos headers
-- Item ativo com highlight sutil (`bg-primary/10`)
-- Tipografia uniforme, sem uppercase tracking pesado
-
-## Plano de Redesign
-
-**Arquivo: `src/components/dashboard/AppSidebar.tsx`** (refactor visual, sem alterar lógica)
-
-### 1. Novo `ModuleHeader` — Estilo Portal
-
-Substituir o header com caixa colorida por um estilo flat:
+A seção admin (linhas 1186-1201) é renderizada diretamente sem toggle. Adicionar um `Collapsible` com seta `ChevronUp/ChevronDown` e label "Administração" para expandir/recolher os 9 links admin.
 
 ```text
-ANTES:  [██] Prospects    ▾    (caixa 7x7 colorida, font-medium)
-DEPOIS:  👤 Prospects  (14)  ▾  (ícone direto, badge count, flat)
+ANTES:  LGPD / Config. Menu / Rel. Segurança... (sempre visível, sem controle)
+DEPOIS: ▾ Administração (9)    ← clica para recolher
+          LGPD
+          Config. Menu
+          ...
 ```
 
-- Ícone direto sem background box (h-5 w-5, cor `text-muted-foreground`)
-- Badge com contagem de sub-itens visíveis (estilo `bg-muted rounded-full text-[10px]`)
-- Hover com `bg-muted/50`, sem cores de módulo no header
-- Chevron sutil à direita
+### 2. Módulos com 1 sub-item — Link direto, sem collapsible
 
-### 2. Novo `CategoryHeader` — Mais leve
-
-Substituir o uppercase bold tracking por um estilo com separador:
+Atualmente Composição, Amostras, Embalagem, Etiqueta/Bula e Reuniões usam `Collapsible` para mostrar **um único link**. Isso é clique desnecessário. Converter para `MenuItemLink` direto.
 
 ```text
-ANTES:  ⓘ COMERCIAL & VENDAS  ▸  (bold 10px uppercase tracking-[0.09em])
-DEPOIS:  ── Comercial & Vendas ──  (separator style, text-xs text-muted-foreground)
+ANTES:  ▾ Composição         (clica → abre → Checklist Composição)
+DEPOIS: 🧪 Composição        (clica → navega direto)
 ```
 
-- Linha separadora com texto central (estilo divider label)
-- Sem ícone no header da categoria
-- Sem chevron — categorias sempre abertas (remover accordion de categorias)
+Módulos afetados: `composicao`, `amostras`, `analise_embalagem`, `etiqueta_bula`, `reunioes`.
 
-### 3. `MenuItemLink` — Refinamento
+### 3. Sub-item count dinâmico no ModuleHeader
 
-Manter o estilo atual mas ajustar:
-- Remover `border-l-2` do item ativo → usar `bg-primary/10 text-primary font-medium` (estilo portal)
-- Padding uniforme `px-3 py-2` em vez de `py-1.5`
-- Ícone `h-4 w-4` (era `h-3.5 w-3.5`)
+Atualmente o `subItemCount` só é passado manualmente em "Central de Inteligência" (hardcoded `8`). Calcular automaticamente baseado nos itens filtrados por permissão para cada módulo.
 
-### 4. Remover accordion de categorias
+### 4. Busca rápida no topo do menu
 
-As categorias do DB (`sidebar_categories`) continuam agrupando módulos, mas sem collapsible — todos os grupos ficam visíveis. Apenas os **módulos** dentro de cada grupo mantêm collapsible.
+Adicionar um campo de busca (`Search` icon + input) acima do filtro de módulos que filtra itens em tempo real por título. Padrão profissional em sidebars corporativas com muitos itens.
 
-Isso resolve a reclamação principal: "clico na categoria, abre, clico no módulo, abre de novo" — agora é um clique só.
+### 5. Mini-mode (collapse para ícones)
 
-### 5. Module Filter — Manter
+Adicionar `collapsible="icon"` ao `<Sidebar>` para que o `SidebarTrigger` no header recolha a sidebar para uma faixa estreita com apenas ícones. Atualmente o sidebar não tem mini-mode definido.
 
-O dropdown "Todos os Módulos" permanece no topo pois é funcional e já segue design limpo.
+### 6. Scroll indicator visual
 
-### 6. Footer — Simplificar
+Módulos longos (Trade, Financeiro, Comercial) usam `ScrollArea` com `max-h` fixo mas sem indicador visual de que há mais itens. Adicionar um gradient fade sutil no bottom quando há overflow.
 
-Remover collapsible do footer. Mostrar:
-- Avatar + nome (sempre visível)
-- Ícones inline: tema, settings, logout
-- Links de privacidade/termos abaixo
-
-## O que NÃO muda
-
-- Toda a lógica de permissões (`hasPermission`, `showModule`, `hasModulePermission`)
-- Dados de categorias do banco (`useSidebarConfig`)
-- Sub-menus e rotas (prospects, financeiro, etc.)
-- Auto-expand por rota ativa
-- Module filter dropdown
-- Financeiro subgroups (verbas, campanhas, contas, análises)
-- Fábrica groups (entrada, produção, qualidade, etc.)
-- Central de Inteligência (protegida por módulo)
-
-## Arquivo Afetado
+## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/dashboard/AppSidebar.tsx` | Refactor visual dos componentes ModuleHeader, CategoryHeader, MenuItemLink. Remover accordion de categorias. Simplificar footer. |
+| `src/components/dashboard/AppSidebar.tsx` | Todas as 6 melhorias |
+
+## O que NÃO muda
+
+- Lógica de permissões, rotas, categorias do DB
+- Module filter dropdown
+- Financeiro subgroups
+- Auto-expand por rota ativa
 
