@@ -1,44 +1,65 @@
 
 
-# Revisão Portal de Integração v1.9.0 — Correções Rápidas
+# Auditoria de Segurança — Preparação para 100%
 
-## Escopo (sem APIs de estoque/vendas/cobrança)
+## Resultado: 3 Falhas Críticas Encontradas
 
-Apenas correções de completude na documentação e tester existentes.
+### Verificação HTTP/HTTPS: APROVADO
+Todas as chamadas `fetch()` em edge functions usam **HTTPS**. A única ocorrência de `http://` é uma referência XML namespace no `tailwind.config.ts` (inofensiva). Nenhuma API chama endpoints HTTP em texto claro.
 
-### 1. ApiTester — Presets e Body Templates faltantes
+---
 
-**Arquivo: `src/components/erp/ApiTester.tsx`**
+## Falha 1: ~40 Edge Functions sem `verify_jwt` no config.toml (CRÍTICO)
 
-- Adicionar preset `POST /contas-receber-api/desconciliar`
-- Adicionar 4 body templates:
-  - `/contas-receber-api/cancelar-recebimento` → `{ "codigo_baixa": 0 }`
-  - `/contas-receber-api/conciliar` → `{ "codigo_baixa": 0 }`
-  - `/contas-receber-api/desconciliar` → `{ "codigo_baixa": 0 }`
-  - `/contas-receber-api/cancelar` → `{ "chave_lancamento": 0 }`
+O `config.toml` lista ~65 funções, mas existem **~140 funções** no diretório. Funções ausentes incluem APIs críticas:
 
-### 2. ApiDocumentation — Filtros CR `/listar`
+| Funções faltantes (amostra) | Risco |
+|---|---|
+| `api-sandbox` | Alto — sandbox sem config explícito |
+| `boletos-api`, `contas-correntes-api`, `lancamentos-cc-api` | Alto — APIs financeiras |
+| `clientes-api`, `webhook-subscriptions-api`, `projetos-api` | Alto — dados sensíveis |
+| `categorias-api`, `bancos-api`, `cidades-api`, `paises-api`, `origens-api` | Médio — dados de referência |
+| `anexos-api`, `parcelas-api`, `movimentos-financeiros-api` | Alto — dados financeiros |
+| `trade-marketing-api`, `estoque-api`, `vendas-union-api` | Médio |
+| + ~20 outras funções | Variado |
 
-**Arquivo: `src/components/erp/ApiDocumentation.tsx`**
+**Correção**: Adicionar TODAS as funções faltantes ao `config.toml` com o `verify_jwt` correto (false para APIs que fazem auth própria via x-api-key, true para as que dependem de JWT).
 
-Expandir params do endpoint CR `/listar` com 9 filtros faltantes:
-`filtrar_conta_corrente`, `filtrar_cliente`, `filtrar_por_projeto`, `filtrar_por_vendedor`, `filtrar_por_cpf_cnpj`, `apenas_importado_api`, `ordenar_por`, `ordem_descrescente`, `filtrar_por_data_de/ate`
+### Falha 2: `analyze-brand-website` sem proteção SSRF (MÉDIO)
 
-### 3. ApiDocumentation — Erros específicos
+A função faz `fetch(website_url)` com URL fornecida pelo usuário mas **não usa `validateExternalUrl()`**. Um atacante pode forçar o servidor a acessar IPs internos.
 
-Adicionar 3 grupos de erros:
-- Boletos `/gerar`
-- Contas Correntes `/incluir`
-- Lançamentos CC `/incluir`
+**Correção**: Adicionar import de `validateExternalUrl` e chamar antes do fetch.
 
-### 4. Changelog v1.9.0
+### Falha 3: SSRF Guard permite protocolo `http:` (BAIXO)
 
-Entrada no changelog registrando as correções.
+O `ssrf-guard.ts` linha 57 permite `http:` além de `https:`. Para auditoria, devemos forçar apenas HTTPS.
+
+**Correção**: Remover `http:` da whitelist de protocolos permitidos.
+
+---
+
+## Plano de Implementação
+
+### 1. config.toml — Registrar todas as funções faltantes
+
+Adicionar ~40 entradas com `verify_jwt` correto baseado na lógica interna de cada função:
+- `verify_jwt = false` para funções que validam auth internamente (APIs ERP com x-api-key, webhooks)
+- `verify_jwt = true` para funções que dependem do JWT do Supabase
+
+### 2. analyze-brand-website — SSRF Guard
+
+Adicionar `validateExternalUrl(website_url)` antes do `fetch`.
+
+### 3. ssrf-guard.ts — Forçar HTTPS only
+
+Alterar condição para permitir apenas `https:`.
 
 ## Arquivos Afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/erp/ApiTester.tsx` | 1 preset + 4 body templates |
-| `src/components/erp/ApiDocumentation.tsx` | Filtros CR, erros, changelog |
+| `supabase/config.toml` | Adicionar ~40 funções faltantes |
+| `supabase/functions/analyze-brand-website/index.ts` | Adicionar SSRF guard |
+| `supabase/functions/_shared/ssrf-guard.ts` | Forçar HTTPS only |
 
