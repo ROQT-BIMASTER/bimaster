@@ -710,252 +710,67 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  // ============ MODULE RENDERERS — Popover flyout ============
+  const isMobile = useIsMobile();
+
+  // ============ MODULE RENDERERS — Popover (desktop) / Drawer (mobile) ============
   const renderModuleContent = (moduleCode: string) => {
     const isModuleOpen = openModules.has(moduleCode);
 
-    // Helper: wraps module header + popover sub-items
-    const ModulePopover = ({ icon, title, colorKey, children, count }: {
+    // Responsive wrapper: Popover on desktop, Drawer on mobile
+    const ModuleSubmenu = ({ icon, title, colorKey, children, count }: {
       icon: React.ElementType;
       title: string;
       colorKey?: keyof typeof moduleColors;
       children: React.ReactNode;
       count?: number;
-    }) => (
-      <Popover open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-        <PopoverTrigger asChild>
-          <button className="w-full text-left">
-            <ModuleHeader icon={icon} title={title} isOpen={isModuleOpen} colorKey={colorKey} subItemCount={count ?? getSubItemCount(moduleCode)} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          side="right"
-          align="start"
-          sideOffset={8}
-          className="w-64 p-2 max-h-[70vh] overflow-y-auto"
-        >
-          <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
-          </div>
-          <SidebarMenu className="space-y-0.5">
-            {children}
-          </SidebarMenu>
-        </PopoverContent>
-      </Popover>
-    );
+    }) => {
+      const headerEl = (
+        <ModuleHeader icon={icon} title={title} isOpen={isModuleOpen} colorKey={colorKey} subItemCount={count ?? getSubItemCount(moduleCode)} />
+      );
 
-    switch (moduleCode) {
-      case "prospects":
+      const menuContent = (
+        <SidebarMenu className="space-y-0.5">
+          {children}
+        </SidebarMenu>
+      );
+
+      if (isMobile) {
         return (
-          <ModulePopover icon={Users} title={t("module.prospects")} colorKey="prospects">
-            {hasPermission("PROSPECTS_DASHBOARD") && (
-              <MenuItemLink to="/dashboard/prospects" icon={Home} title={t("prospects.overview")} colorKey="prospects" end />
-            )}
-            {prospectsSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="prospects" />
-            ))}
-          </ModulePopover>
+          <Drawer open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+            <DrawerTrigger asChild>
+              <button className="w-full text-left">{headerEl}</button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader className="pb-2">
+                <DrawerTitle className="text-sm font-semibold">{title}</DrawerTitle>
+              </DrawerHeader>
+              <ScrollArea className="max-h-[60vh] px-4 pb-6">
+                {menuContent}
+              </ScrollArea>
+            </DrawerContent>
+          </Drawer>
         );
+      }
 
-      case "comercial":
-        return (
-          <ModulePopover icon={Briefcase} title={t("module.comercial")} colorKey="comercial">
-            {hasPermission("comercial_dashboard") && (
-              <MenuItemLink to="/dashboard/comercial" icon={Home} title={t("comercial.dashboard")} colorKey="comercial" end />
-            )}
-            {hasPermission("comercial_lancamentos") && (
-              <MenuItemLink to="/dashboard/comercial/lancamentos" icon={Rocket} title={t("comercial.launches")} colorKey="comercial" />
-            )}
-            <MenuItemLink to="/dashboard/painel-executivo" icon={BarChart3} title="Painel Executivo" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/performance-vendas" icon={TrendingUp} title="Performance Vendas" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/clientes" icon={Users} title="Análise Clientes" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/produtos" icon={Package} title="Análise Produtos" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/geografico" icon={MapPin} title="Análise Geográfico" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/metas" icon={Target} title="Metas e Projeções" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/ibge" icon={MapPin} title={t("comercial.ibge")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mineracao" icon={Pickaxe} title={t("comercial.mining")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/inteligencia" icon={Brain} title="Inteligência de Mercado" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/reativacao" icon={AlertTriangle} title={t("comercial.reactivation")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/mapa" icon={MapPin} title="Mapa Comercial" colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/municipios-inteligencia" icon={Building2} title={t("comercial.municipalities")} colorKey="comercial" />
-            <MenuItemLink to="/dashboard/comercial/whitespace" icon={Compass} title={t("comercial.whitespace")} colorKey="comercial" />
-          </ModulePopover>
-        );
-
-      case "precos":
-        return (
-          <ModulePopover icon={DollarSign} title={t("module.precos")} colorKey="precos">
-            {precosSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink 
-                key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="precos" end={item.end}
-                badge={item.title === "Aprovação" && tabelasPendentes > 0 ? (
-                  <Badge className="ml-auto bg-warning text-warning-foreground text-xs h-5 min-w-5 flex items-center justify-center">{tabelasPendentes}</Badge>
-                ) : undefined}
-              />
-            ))}
-          </ModulePopover>
-        );
-
-      case "trade":
-        return (
-          <ModulePopover icon={Store} title={t("module.trade")} colorKey="trade">
-            {hasPermission("TRADE_DASHBOARD") && (
-              <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
-            )}
-            {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
-            ))}
-          </ModulePopover>
-        );
-
-      case "marketing":
-        return (
-          <ModulePopover icon={BarChart3} title={t("module.marketing")} colorKey="marketing">
-            {hasPermission("MARKETING_DASHBOARD") && (
-              <MenuItemLink to="/dashboard/marketing" icon={Home} title={t("marketing.overview")} colorKey="marketing" end />
-            )}
-            {marketingSubMenus.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="marketing" />
-            ))}
-          </ModulePopover>
-        );
-
-      case "eventos":
-        return (
-          <ModulePopover icon={PartyPopper} title={t("module.eventos")} colorKey="eventos">
-            {hasPermission("eventos_dashboard") && (
-              <MenuItemLink to="/dashboard/eventos" icon={Home} title={t("eventos.events")} colorKey="eventos" end />
-            )}
-            {hasPermission("eventos_analytics") && (
-              <MenuItemLink to="/dashboard/eventos/dashboard" icon={BarChart3} title={t("eventos.dashboard")} colorKey="eventos" />
-            )}
-          </ModulePopover>
-        );
-
-      case "fabrica":
-        return (
-          <ModulePopover icon={Factory} title={t("module.fabrica")} colorKey="fabrica">
-            {hasPermission("fabrica_dashboard") && (
-              <MenuItemLink to="/dashboard/fabrica" icon={Home} title={t("fabrica.dashboard")} colorKey="fabrica" end />
-            )}
-            {fabricaGroups.map(group => {
-              const filteredItems = group.items.filter(item => isAdmin || hasPermission(item.screenCode));
-              if (filteredItems.length === 0) return null;
-              return (
-                <div key={group.label} className="mt-2 first:mt-0">
-                  <span className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                    {group.label}
-                  </span>
-                  {filteredItems.map(item => (
-                    <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="fabrica" />
-                  ))}
-                </div>
-              );
-            })}
-          </ModulePopover>
-        );
-
-      case "china":
-        return (
-          <ModulePopover icon={Globe} title="Fábrica China 中国工厂" colorKey="china">
-            <MenuItemLink to="/dashboard/fabrica-china" icon={Home} title="Painel 面板" colorKey="china" end />
-            <MenuItemLink to="/dashboard/fabrica-china/nova" icon={Upload} title="Nova Submissão 新提交" colorKey="china" />
-            <MenuItemLink to="/dashboard/fabrica-china/recebimentos" icon={Package} title="Submissões 提交" colorKey="china" />
-            <MenuItemLink to="/dashboard/fabrica-china/ordens" icon={ShoppingCart} title="Ordens de Compra 采购订单" colorKey="china" />
-          </ModulePopover>
-        );
-
-      case "composicao":
-        return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/composicao" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <FlaskConical className="h-5 w-5" />
-                <span className="flex-1 font-semibold text-[14px]">Composição</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
-
-      case "amostras":
-        return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/amostras" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Package className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Amostras</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
-
-      case "analise_embalagem":
-        return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/analise-embalagem" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Layers className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Embalagem</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
-
-      case "etiqueta_bula":
-        return (
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <NavLink to="/dashboard/etiqueta-bula" className={({ isActive }) => cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
-              )}>
-                <Tag className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
-                <span className="flex-1 font-semibold text-[14px]">Etiqueta / Bula</span>
-              </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
-
-      case "aprovacao_artes":
-        return (
-          <ModulePopover icon={Palette} title="Aprovação de Artes" colorKey="fabrica">
-            <MenuItemLink to="/dashboard/fluxo-artes" icon={Palette} title="Motor de Artes" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes" icon={ClipboardCheck} title="Fluxos Legado" colorKey="fabrica" end />
-            <MenuItemLink to="/dashboard/aprovacao-artes/configuracao" icon={Cog} title="Configuração" colorKey="fabrica" end />
-          </ModulePopover>
-        );
-
-      case "financeiro":
-        return (
-          <ModulePopover icon={DollarSign} title={t("module.financeiro")} colorKey="financeiro">
-            {/* Top-level items */}
-            {financeiroTopItems.filter(i => hasPermission(i.screenCode)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="financeiro" end={item.end} />
-            ))}
-
-            {/* Subgroups with collapsible inside popover */}
-            {finSubgroups.map(sg => {
-              const visibleItems = sg.items.filter(i => hasPermission(i.screenCode));
-              if (visibleItems.length === 0) return null;
-              const isSgOpen = openFinSubgroups.has(sg.key);
-              return (
-                <div key={sg.key} className="mt-1.5">
-                  <Collapsible open={isSgOpen} onOpenChange={() => {
-                    setOpenFinSubgroups(prev => {
-                      const next = new Set(prev);
-                      if (next.has(sg.key)) next.delete(sg.key);
-                      else next.add(sg.key);
-                      return next;
-                    });
+      return (
+        <Popover open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
+          <PopoverTrigger asChild>
+            <button className="w-full text-left">{headerEl}</button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-64 p-2 max-h-[70vh] overflow-y-auto"
+          >
+            <div className="flex items-center gap-2 px-2 pb-2 mb-1 border-b border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
+            </div>
+            {menuContent}
+          </PopoverContent>
+        </Popover>
+      );
+    };
                   }}>
                     <CollapsibleTrigger className="w-full">
                       <div className={cn(
