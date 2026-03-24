@@ -1079,7 +1079,20 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
-                <div className="border rounded-xl p-5 space-y-6">
+                {/* Sandbox Info Banner */}
+                <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <FlaskConical className="h-5 w-5 text-orange-600 shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-orange-700">Ambiente Sandbox Disponível</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Use o toggle <strong>Sandbox</strong> no API Tester abaixo para testar chamadas sem afetar dados reais. 
+                        Todas as respostas são simuladas e registradas para auditoria.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                   {/* 4 Steps */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {[
