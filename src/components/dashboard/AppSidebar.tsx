@@ -1241,13 +1241,18 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
             if (isMobile) {
               return (
-                <Drawer open={isIntOpen} onOpenChange={() => toggleModuleOpen("inteligencia")}>
+                <Drawer open={isIntOpen} onOpenChange={(open) => setModuleOpen("inteligencia", open)}>
                   <DrawerTrigger asChild>
                     <button className="w-full text-left">{intHeader}</button>
                   </DrawerTrigger>
                   <DrawerContent>
                     <DrawerHeader className="pb-2">
-                      <DrawerTitle className="text-sm font-semibold">Central de Inteligência</DrawerTitle>
+                      <div className="flex items-center justify-between">
+                        <DrawerTitle className="text-sm font-semibold">Central de Inteligência</DrawerTitle>
+                        <button onClick={() => setModuleOpen("inteligencia", false)} className="rounded-sm p-1 opacity-70 hover:opacity-100 transition-opacity">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </DrawerHeader>
                     <div className="px-4 pb-6">{intItems}</div>
                   </DrawerContent>
