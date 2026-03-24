@@ -865,7 +865,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
                 isActive ? "font-semibold bg-[hsl(var(--primary)/0.08)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
               )}>
-                <FlaskConical className={({ isActive }: any) => cn("h-5 w-5", isActive ? "text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-muted-raw)]")} as any />
+                <FlaskConical className="h-5 w-5" />
                 <span className="flex-1 font-semibold text-[14px]">Composição</span>
               </NavLink>
             </SidebarMenuButton>
