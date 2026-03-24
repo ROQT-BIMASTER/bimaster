@@ -63,13 +63,12 @@ export interface ProcessStepHistory {
 export function useProductProcess(produtoTipo: string, produtoRefId: string | undefined) {
   const queryClient = useQueryClient();
 
-  // Buscar ou criar processo
+  // Buscar processo existente (sem side-effects)
   const { data: process, isLoading: processLoading } = useQuery({
     queryKey: ["product-process", produtoTipo, produtoRefId],
     queryFn: async () => {
       if (!produtoRefId) return null;
 
-      // Try to find existing
       const { data, error } = await (supabase
         .from("product_process" as any)
         .select("*")
@@ -78,10 +77,15 @@ export function useProductProcess(produtoTipo: string, produtoRefId: string | un
         .maybeSingle() as any);
 
       if (error) throw error;
+      return (data as ProductProcess) || null;
+    },
+    enabled: !!produtoRefId,
+  });
 
-      if (data) return data as ProductProcess;
-
-      // Auto-create if not exists
+  // Mutation explícita para criar processo quando necessário
+  const createProcess = useMutation({
+    mutationFn: async () => {
+      if (!produtoRefId) throw new Error("produtoRefId obrigatório");
       const { data: { user } } = await supabase.auth.getUser();
       const { data: created, error: createErr } = await (supabase
         .from("product_process" as any)
@@ -102,12 +106,14 @@ export function useProductProcess(produtoTipo: string, produtoRefId: string | un
           .eq("produto_tipo", produtoTipo)
           .eq("produto_ref_id", produtoRefId)
           .maybeSingle() as any);
-        return retry as ProductProcess;
+        if (retry) return retry as ProductProcess;
+        throw createErr;
       }
-
       return created as ProductProcess;
     },
-    enabled: !!produtoRefId,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-process", produtoTipo, produtoRefId] });
+    },
   });
 
   // Eventos do processo (timeline nativa)
