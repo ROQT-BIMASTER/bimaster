@@ -120,6 +120,7 @@ const PRESET_ENDPOINTS = [
   { label: "CR Integração — Lançar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/lancar-recebimento" },
   { label: "CR Integração — Cancelar Recebimento", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar-recebimento" },
   { label: "CR Integração — Conciliar", method: "POST" as HttpMethod, path: "/contas-receber-api/conciliar" },
+  { label: "CR Integração — Desconciliar", method: "POST" as HttpMethod, path: "/contas-receber-api/desconciliar" },
   { label: "CR Integração — Cancelar", method: "POST" as HttpMethod, path: "/contas-receber-api/cancelar" },
   // Boletos (Cobrança Bancária)
   { label: "Boleto — Gerar", method: "POST" as HttpMethod, path: "/boletos-api/gerar" },

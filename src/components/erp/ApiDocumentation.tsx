@@ -277,7 +277,7 @@ const contasReceberIntegracao: Endpoint[] = [
   { method: "POST", path: "/conciliar", description: "Conciliar recebimento (ConciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Marcar Conciliado", "Response 200"], body: `{ "codigo_baixa": 0 }` },
   { method: "POST", path: "/desconciliar", description: "Desconciliar recebimento (DesconciliarRecebimento)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Baixa", "Reverter Conciliacao", "Response 200"], body: `{ "codigo_baixa": 0 }` },
   { method: "POST", path: "/cancelar", description: "Cancelar título (CancelarContaReceber)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Rate Limit", "Find Titulo", "Cancelar", "Webhook Event", "Response 200"], body: `{ "chave_lancamento": 0 }` },
-  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
+  { method: "GET", path: "/listar", description: "Listagem paginada (ListarContasReceber)", tag: "novo", flow: FLOW.listar, params: [{ name: "pagina", type: "integer", required: false, description: "Página (default: 1)" }, { name: "registros_por_pagina", type: "integer", required: false, description: "Registros por página (máx 500)" }, { name: "apenas_importado_api", type: "string", required: false, description: "Filtrar importados pela API (S/N)" }, { name: "filtrar_por_status", type: "string", required: false, description: "Filtrar por status (vírgula para múltiplos)" }, { name: "filtrar_por_data_de", type: "date", required: false, description: "Vencimento a partir de (DD/MM/AAAA)" }, { name: "filtrar_por_data_ate", type: "date", required: false, description: "Vencimento até (DD/MM/AAAA)" }, { name: "filtrar_conta_corrente", type: "integer", required: false, description: "Código da conta corrente" }, { name: "filtrar_cliente", type: "integer", required: false, description: "Código do cliente" }, { name: "filtrar_por_projeto", type: "integer", required: false, description: "Código do projeto" }, { name: "filtrar_por_vendedor", type: "integer", required: false, description: "Código do vendedor" }, { name: "filtrar_por_cpf_cnpj", type: "string", required: false, description: "Filtrar por CPF/CNPJ do cliente" }, { name: "ordenar_por", type: "string", required: false, description: "Campo de ordenação (default: data_vencimento)" }, { name: "ordem_descrescente", type: "string", required: false, description: "S para ordenação decrescente" }], response: `{ "pagina": 1, "total_de_paginas": 5, "registros": 20, "total_de_registros": 100, "conta_receber_cadastro": [...] }` },
 ];
 
 const boletosCrud: Endpoint[] = [
@@ -1858,6 +1858,32 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
                           { code: "empresa_nao_encontrada", desc: "Um dos empresa_ids fornecidos não existe" },
                         ],
                       },
+                      {
+                        api: "Boletos /gerar",
+                        errors: [
+                          { code: "titulo_nao_encontrado", desc: "O nCodTitulo ou cCodIntTitulo não existe no Contas a Receber" },
+                          { code: "boleto_ja_gerado", desc: "Já existe boleto ativo para este título" },
+                          { code: "titulo_liquidado", desc: "Título já está liquidado, não é possível gerar boleto" },
+                          { code: "conta_corrente_sem_boleto", desc: "A conta corrente do título não está habilitada para boletos" },
+                        ],
+                      },
+                      {
+                        api: "Contas Correntes /incluir",
+                        errors: [
+                          { code: "codigo_duplicado", desc: "Já existe conta corrente com este cCodCCInt" },
+                          { code: "banco_invalido", desc: "O codigo_banco informado não existe na tabela de bancos" },
+                          { code: "tipo_invalido", desc: "O tipo_conta_corrente deve ser CC, CP, CX, CI, CM ou PI" },
+                        ],
+                      },
+                      {
+                        api: "Lançamentos CC /incluir",
+                        errors: [
+                          { code: "conta_corrente_invalida", desc: "O nCodCC não existe ou está inativo" },
+                          { code: "categoria_invalida", desc: "O cCodCateg não existe no plano de contas" },
+                          { code: "data_invalida", desc: "Formato de data incorreto (esperado DD/MM/AAAA)" },
+                          { code: "duplicidade", desc: "Já existe lançamento com este cCodIntLanc" },
+                        ],
+                      },
                     ].map(group => (
                       <Collapsible key={group.api}>
                         <CollapsibleTrigger asChild>
@@ -1960,6 +1986,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v1.9.0", date: "2026-03-24", changes: ["Adicionados 9 filtros faltantes no CR /listar (conta corrente, cliente, projeto, vendedor, CPF/CNPJ, ordenação)", "Preset desconciliar adicionado ao API Tester", "Mapa de erros expandido: Boletos /gerar, Contas Correntes /incluir, Lançamentos CC /incluir", "25 eventos webhook completos na documentação"] },
                     { version: "v1.8.0", date: "2026-03-24", changes: ["Ambiente Sandbox separado de produção (toggle no API Tester)", "Chamadas sandbox simulam respostas realistas sem gravar dados", "Histórico de chamadas sandbox registrado com auditoria", "Badge visual SANDBOX e botão Dry Run diferenciado"] },
                     { version: "v1.7.0", date: "2026-03-23", changes: ["Glossário de campos para CR /incluir e Fornecedores /incluir", "Exemplos de iteração completa de paginação (JS + Python)", "Mapa de erros específicos por endpoint (CP, CR, Fornecedores)", "Botão 'Exportar Postman Collection' (JSON v2.1 importável)", "Exemplo de payload completo de webhook", "Política de versionamento documentada", "Guia de rotação de API Key sem downtime", "Tabela consolidada de limites e quotas"] },
                     { version: "v1.6.0", date: "2026-03-23", changes: ["Exemplos Hello World em 4 linguagens (cURL, JavaScript, Python, PHP)", "Glossário de campos detalhado para CP /incluir", "Seção FAQ/Troubleshooting com 8 perguntas comuns", "Botão 'Testar' em cada endpoint (preenche ApiTester automaticamente)", "Badges de paginação (Huggs/Legado/REST) em cada API", "Badges de status live (online/offline) em cada API", "BASE_URL dinâmica via variável de ambiente"] },
