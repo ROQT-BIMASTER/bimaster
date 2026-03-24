@@ -351,11 +351,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     });
   }, []);
 
-  // Accordion for categories - only one open at a time
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
-  const toggleCategory = useCallback((cat: string) => {
-    setOpenCategory(prev => prev === cat ? null : cat);
-  }, []);
+  // Category accordion removed — categories are always visible now
 
   // Route-based module/category mapping for auto-expand
   const moduleRouteMap: Record<string, string[]> = useMemo(() => ({
