@@ -140,6 +140,7 @@ export function ModulosDespachoManager() {
                 </div>
               )}
             </React.Fragment>
+          );
         })}
       </CardContent>
 
