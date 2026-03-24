@@ -279,6 +279,7 @@ const CategoryDivider = ({ title }: { title: string }) => (
 );
 
 export function AppSidebar({ side }: { side?: "left" | "right" }) {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -710,7 +711,6 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     }
   };
 
-  const isMobile = useIsMobile();
 
   // ============ MODULE RENDERERS — Popover (desktop) / Drawer (mobile) ============
   const renderModuleContent = (moduleCode: string) => {
