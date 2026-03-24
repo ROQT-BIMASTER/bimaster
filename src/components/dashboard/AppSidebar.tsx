@@ -1008,16 +1008,17 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
 
       case "reunioes":
         return (
-          <Collapsible open={isModuleOpen} onOpenChange={() => toggleModuleOpen(moduleCode)}>
-            <CollapsibleTrigger className="w-full">
-              <ModuleHeader icon={Mic} title="Reuniões" isOpen={isModuleOpen} colorKey="comercial" />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenu className="space-y-0.5 ps-2 mt-1">
-                <MenuItemLink to="/dashboard/reunioes" icon={Mic} title="Reuniões" end />
-              </SidebarMenu>
-            </CollapsibleContent>
-          </Collapsible>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/dashboard/reunioes" className={({ isActive }) => cn(
+                "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
+                isActive ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]" : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
+              )}>
+                <Mic className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
+                <span className="flex-1 font-medium text-sm">Reuniões</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         );
 
       case "processos":
