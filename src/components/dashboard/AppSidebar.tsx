@@ -408,20 +408,9 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return map;
   }, [dbCategories]);
 
-  // Auto-expand based on current route
+  // Auto-expand financeiro subgroups (internal collapsibles, not popovers) based on route
   useEffect(() => {
     const path = location.pathname;
-    for (const [moduleCode, routes] of Object.entries(moduleRouteMap)) {
-      if (routes.some(r => path.startsWith(r))) {
-        setOpenModules(prev => {
-          const next = new Set(prev);
-          next.add(moduleCode);
-          return next;
-        });
-        // Categories are always open now — no need to expand
-        break;
-      }
-    }
     // Auto-expand financeiro subgroups based on route
     if (path.startsWith("/dashboard/financeiro") || path.startsWith("/dashboard/trade/financeiro")) {
       const finSubgroupRoutes: Record<string, string[]> = {
