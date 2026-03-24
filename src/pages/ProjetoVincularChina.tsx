@@ -435,6 +435,9 @@ export default function ProjetoVincularChina() {
         </div>
       </div>
 
+      {/* KPIs */}
+      <VincularChinaKpis data={kpiData} />
+
       {/* Counter chips */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge className="text-[10px] bg-success/10 text-success border-success/20 border">
