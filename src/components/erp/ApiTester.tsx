@@ -749,7 +749,7 @@ export default function ApiTester() {
 
         {/* Response */}
         {response && (
-          <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
+          <div className={`rounded-lg border overflow-hidden ${sandboxMode ? "border-orange-500/50 bg-orange-500/5" : "border-border bg-muted/30"}`}>
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/50">
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className={getStatusColor(response.status)}>
