@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useProductProcess, type ProcessEvent } from "@/hooks/useProductProcess";
 import { useDespachosPorProcesso, type DespachoDocumento } from "@/hooks/useDespachoDocumentos";
 import { useProcessoAmbiente } from "@/hooks/useProcessoAmbiente";
+import { useModuloCapabilities } from "@/hooks/useModulosDespacho";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +56,7 @@ const EVENTO_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, moduloLabel, compact }: ProcessoAmbienteProps) {
+  const capabilities = useModuloCapabilities(moduloOrigem);
   const { process, processLoading, events } = useProductProcess(produtoTipo, produtoRefId);
   const { data: despachos = [] } = useDespachosPorProcesso(process?.id || null);
   const acoes = useProcessoAmbiente(process?.id || null);
@@ -74,6 +76,8 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
       </div>
     );
   }
+
+  if (!capabilities.ambiente_habilitado) return null;
 
   if (!process) {
     return (
@@ -203,6 +207,9 @@ export function ProcessoAmbiente({ produtoTipo, produtoRefId, moduloOrigem, modu
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {(Object.keys(ACTION_CONFIG) as ActionType[]).map(action => {
               if (!action) return null;
+              // Filter by capabilities
+              const capKey = `pode_${action}` as keyof typeof capabilities;
+              if (capKey in capabilities && !capabilities[capKey]) return null;
               const cfg = ACTION_CONFIG[action];
               return (
                 <Button

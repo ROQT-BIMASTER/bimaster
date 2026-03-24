@@ -19187,6 +19187,7 @@ export type Database = {
       }
       process_modulos_despacho: {
         Row: {
+          ambiente_habilitado: boolean
           ativo: boolean
           color: string
           created_at: string
@@ -19196,9 +19197,17 @@ export type Database = {
           key: string
           label: string
           ordem: number
+          pode_aprovar: boolean
+          pode_ciencia: boolean
+          pode_contestar: boolean
+          pode_juntada: boolean
+          pode_rejeitar: boolean
+          pode_replicar: boolean
+          pode_submeter: boolean
           updated_at: string
         }
         Insert: {
+          ambiente_habilitado?: boolean
           ativo?: boolean
           color?: string
           created_at?: string
@@ -19208,9 +19217,17 @@ export type Database = {
           key: string
           label: string
           ordem?: number
+          pode_aprovar?: boolean
+          pode_ciencia?: boolean
+          pode_contestar?: boolean
+          pode_juntada?: boolean
+          pode_rejeitar?: boolean
+          pode_replicar?: boolean
+          pode_submeter?: boolean
           updated_at?: string
         }
         Update: {
+          ambiente_habilitado?: boolean
           ativo?: boolean
           color?: string
           created_at?: string
@@ -19220,6 +19237,13 @@ export type Database = {
           key?: string
           label?: string
           ordem?: number
+          pode_aprovar?: boolean
+          pode_ciencia?: boolean
+          pode_contestar?: boolean
+          pode_juntada?: boolean
+          pode_rejeitar?: boolean
+          pode_replicar?: boolean
+          pode_submeter?: boolean
           updated_at?: string
         }
         Relationships: []

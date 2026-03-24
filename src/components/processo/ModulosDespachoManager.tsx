@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus, Trash2, Power, PowerOff, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,18 @@ import {
   ICON_MAP,
   type ModuloDespacho,
 } from "@/hooks/useModulosDespacho";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
+const CAPABILITY_LABELS = [
+  { key: "pode_ciencia", label: "Ciência" },
+  { key: "pode_aprovar", label: "Aprovar" },
+  { key: "pode_rejeitar", label: "Rejeitar" },
+  { key: "pode_juntada", label: "Juntada" },
+  { key: "pode_submeter", label: "Submeter" },
+  { key: "pode_contestar", label: "Contestar" },
+  { key: "pode_replicar", label: "Replicar" },
+] as const;
 
 export function ModulosDespachoManager() {
   const { data: modulos = [], isLoading } = useAllModulosDespacho();
@@ -66,40 +77,69 @@ export function ModulosDespachoManager() {
         {modulos.map((m) => {
           const IconComp = ICON_MAP[m.icon_name] || ICON_MAP["file-text"];
           return (
-            <div
-              key={m.id}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md border text-sm transition-colors",
-                m.ativo ? "bg-background" : "bg-muted/50 opacity-60"
-              )}
-            >
-              <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <IconComp className={`h-4 w-4 ${m.color} shrink-0`} />
-              <span className="flex-1 min-w-0">
-                <span className="font-medium text-xs">{m.label}</span>
-                <span className="text-[10px] text-muted-foreground ml-2 font-mono">{m.key}</span>
-              </span>
-              <Badge variant={m.ativo ? "success" : "secondary"} className="text-[9px] h-4 px-1.5">
-                {m.ativo ? "Ativo" : "Inativo"}
-              </Badge>
-              <Switch
-                checked={m.ativo}
-                onCheckedChange={() => handleToggle(m)}
-                className="scale-75"
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm(`Remover módulo "${m.label}"?`)) {
-                    deleteModulo.mutate(m.id);
-                  }
-                }}
+            <React.Fragment key={m.id}>
+              <div
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md border text-sm transition-colors",
+                  m.ativo ? "bg-background" : "bg-muted/50 opacity-60"
+                )}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+                <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <IconComp className={`h-4 w-4 ${m.color} shrink-0`} />
+                <span className="flex-1 min-w-0">
+                  <span className="font-medium text-xs">{m.label}</span>
+                  <span className="text-[10px] text-muted-foreground ml-2 font-mono">{m.key}</span>
+                </span>
+                <Badge variant={m.ativo ? "success" : "secondary"} className="text-[9px] h-4 px-1.5">
+                  {m.ativo ? "Ativo" : "Inativo"}
+                </Badge>
+                <Switch
+                  checked={m.ativo}
+                  onCheckedChange={() => handleToggle(m)}
+                  className="scale-75"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (confirm(`Remover módulo "${m.label}"?`)) {
+                      deleteModulo.mutate(m.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              {m.ativo && (
+                <div className="flex items-center gap-1 px-3 pb-2 -mt-1 flex-wrap">
+                  <div className="flex items-center gap-1.5 mr-2">
+                    <Checkbox
+                      id={`amb-${m.id}`}
+                      checked={m.ambiente_habilitado}
+                      onCheckedChange={(v) => updateModulo.mutate({ id: m.id, ambiente_habilitado: !!v })}
+                      className="h-3.5 w-3.5"
+                    />
+                    <label htmlFor={`amb-${m.id}`} className="text-[10px] font-semibold text-primary cursor-pointer">
+                      Ambiente
+                    </label>
+                  </div>
+                  {m.ambiente_habilitado && CAPABILITY_LABELS.map(cap => (
+                    <div key={cap.key} className="flex items-center gap-1">
+                      <Checkbox
+                        id={`${cap.key}-${m.id}`}
+                        checked={(m as any)[cap.key] as boolean}
+                        onCheckedChange={(v) => updateModulo.mutate({ id: m.id, [cap.key]: !!v })}
+                        className="h-3 w-3"
+                      />
+                      <label htmlFor={`${cap.key}-${m.id}`} className="text-[9px] text-muted-foreground cursor-pointer">
+                        {cap.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
       </CardContent>

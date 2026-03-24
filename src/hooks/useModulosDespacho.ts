@@ -66,6 +66,54 @@ export interface ModuloDespacho {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  ambiente_habilitado: boolean;
+  pode_ciencia: boolean;
+  pode_aprovar: boolean;
+  pode_rejeitar: boolean;
+  pode_juntada: boolean;
+  pode_submeter: boolean;
+  pode_contestar: boolean;
+  pode_replicar: boolean;
+}
+
+export interface ModuloCapabilities {
+  ambiente_habilitado: boolean;
+  pode_ciencia: boolean;
+  pode_aprovar: boolean;
+  pode_rejeitar: boolean;
+  pode_juntada: boolean;
+  pode_submeter: boolean;
+  pode_contestar: boolean;
+  pode_replicar: boolean;
+}
+
+const DEFAULT_CAPABILITIES: ModuloCapabilities = {
+  ambiente_habilitado: true,
+  pode_ciencia: true,
+  pode_aprovar: true,
+  pode_rejeitar: true,
+  pode_juntada: true,
+  pode_submeter: true,
+  pode_contestar: true,
+  pode_replicar: true,
+};
+
+/** Returns capabilities for a specific module key */
+export function useModuloCapabilities(moduleKey: string | undefined): ModuloCapabilities {
+  const { data: modulos = [] } = useModulosDespacho();
+  if (!moduleKey) return DEFAULT_CAPABILITIES;
+  const found = modulos.find(m => m.key === moduleKey);
+  if (!found) return DEFAULT_CAPABILITIES;
+  return {
+    ambiente_habilitado: found.ambiente_habilitado,
+    pode_ciencia: found.pode_ciencia,
+    pode_aprovar: found.pode_aprovar,
+    pode_rejeitar: found.pode_rejeitar,
+    pode_juntada: found.pode_juntada,
+    pode_submeter: found.pode_submeter,
+    pode_contestar: found.pode_contestar,
+    pode_replicar: found.pode_replicar,
+  };
 }
 
 export interface ModuloDespachoResolved {
@@ -136,7 +184,7 @@ export function useManageModulosDespacho() {
   });
 
   const updateModulo = useMutation({
-    mutationFn: async (input: { id: string; label?: string; icon_name?: string; color?: string; ativo?: boolean; ordem?: number }) => {
+    mutationFn: async (input: { id: string; label?: string; icon_name?: string; color?: string; ativo?: boolean; ordem?: number; ambiente_habilitado?: boolean; pode_ciencia?: boolean; pode_aprovar?: boolean; pode_rejeitar?: boolean; pode_juntada?: boolean; pode_submeter?: boolean; pode_contestar?: boolean; pode_replicar?: boolean }) => {
       const { id, ...update } = input;
       const { error } = await (supabase
         .from("process_modulos_despacho" as any)
