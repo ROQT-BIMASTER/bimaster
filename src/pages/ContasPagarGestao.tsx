@@ -668,12 +668,12 @@ export default function ContasPagarGestao() {
               <DialogTitle>{editingId ? "Editar Título" : "Nova Conta a Pagar"}</DialogTitle>
               <DialogDescription>Preencha os dados do título</DialogDescription>
             </DialogHeader>
-            {/* Warning for locked status */}
+            {/* Warning for locked status — unlocked via password */}
             {editingId && (form.status === "pago" || form.status === "cancelado") && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
-                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <Shield className="h-4 w-4 text-amber-600 shrink-0" />
                 <p className="text-sm text-amber-700 dark:text-amber-400">
-                  Este título está com status <strong>{form.status === "pago" ? "Pago" : "Cancelado"}</strong> e não pode ser alterado.
+                  Título com status <strong>{form.status === "pago" ? "Pago" : "Cancelado"}</strong> — edição autorizada via senha. Justificativa obrigatória.
                 </p>
               </div>
             )}
