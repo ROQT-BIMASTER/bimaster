@@ -23,7 +23,7 @@ import { HistoricoAtividades } from "@/components/produto-brasil/HistoricoAtivid
 import { FichaCustoImportado } from "@/components/produto-brasil/FichaCustoImportado";
 import { AprovacaoSubmissaoChina } from "@/components/produto-brasil/AprovacaoSubmissaoChina";
 import { DocumentosBrasilAssinatura } from "@/components/produto-brasil/DocumentosBrasilAssinatura";
-import { PastaDigitalPanel } from "@/components/produto-brasil/PastaDigitalPanel";
+import { PastaOficialProcessos } from "@/components/produto-brasil/PastaOficialProcessos";
 
 export default function ProdutoBrasilCadastro() {
   const { id } = useParams<{ id: string }>();
