@@ -360,12 +360,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     return `${selectedModules.size} ${t("nav.n_modules")}`;
   }, [selectedModules, moduleFilterOptions]);
 
-  // Toggle module open/close
-  const toggleModuleOpen = useCallback((code: string) => {
+  // Set module open/close (explicit boolean or toggle)
+  const setModuleOpen = useCallback((code: string, open?: boolean) => {
     setOpenModules(prev => {
       const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
+      const shouldOpen = open ?? !next.has(code);
+      if (shouldOpen) next.add(code);
+      else next.delete(code);
       return next;
     });
   }, []);
