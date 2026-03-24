@@ -984,6 +984,17 @@ export default function ProjetoVincularChina() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Process Decision Dialog */}
+      {decisionProcessId && (
+        <ProcessDecisionDialog
+          open={decisionOpen}
+          onOpenChange={setDecisionOpen}
+          processId={decisionProcessId}
+          submissaoId={decisionProcessId}
+          documentos={documentos.map((d: any) => ({ id: d.id, nome_arquivo: d.nome_arquivo, tipo_documento: d.tipo_documento }))}
+        />
+      )}
     </div>
   );
 }
