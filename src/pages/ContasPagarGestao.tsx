@@ -782,16 +782,32 @@ export default function ContasPagarGestao() {
                 <Input disabled={editingId != null && (form.status === "pago" || form.status === "cancelado")} type="number" value={form.id_conta_corrente} onChange={e => setForm(f => ({ ...f, id_conta_corrente: e.target.value }))} />
               </div>
             </div>
+            {/* Justificativa obrigatória para títulos pagos/cancelados */}
+            {editingId && (form.status === "pago" || form.status === "cancelado") && (
+              <div className="px-1">
+                <Label>Justificativa da alteração *</Label>
+                <Input
+                  value={editJustificativa}
+                  onChange={e => setEditJustificativa(e.target.value)}
+                  placeholder="Descreva o motivo da alteração..."
+                  className="mt-1"
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => { setModalOpen(false); resetForm(); }}>
-                {editingId && (form.status === "pago" || form.status === "cancelado") ? "Fechar" : "Cancelar"}
+                Cancelar
               </Button>
-              {!(editingId && (form.status === "pago" || form.status === "cancelado")) && (
-                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento}>
-                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  {editingId ? "Salvar" : "Criar"}
-                </Button>
-              )}
+              <Button 
+                onClick={() => saveMutation.mutate()} 
+                disabled={
+                  saveMutation.isPending || !form.fornecedor_nome || !form.valor_original || !form.data_vencimento ||
+                  (editingId != null && (form.status === "pago" || form.status === "cancelado") && !editJustificativa.trim())
+                }
+              >
+                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editingId ? "Salvar Alterações" : "Criar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
