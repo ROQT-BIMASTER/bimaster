@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Terminal, Send, Clock, Trash2, ChevronDown, Copy, Plus, X, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
@@ -415,6 +417,7 @@ export default function ApiTester() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [sandboxMode, setSandboxMode] = useState(false);
   const testerRef = useState<HTMLDivElement | null>(null);
 
   // Listen for pre-fill events from ApiDocumentation
@@ -490,52 +493,90 @@ export default function ApiTester() {
     const start = performance.now();
 
     try {
-      const finalUrl = buildUrl();
-      const headerObj: Record<string, string> = {};
-      headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
-        // Skip empty values to avoid triggering unnecessary CORS preflight
-        if (!h.value.trim()) return;
-        // Skip Content-Type for GET/DELETE (no body)
-        if (h.key.toLowerCase() === "content-type" && (method === "GET" || method === "DELETE")) return;
-        headerObj[h.key] = h.value;
-      });
+      if (sandboxMode) {
+        // SANDBOX MODE: route through api-sandbox edge function
+        const finalUrl = buildUrl();
+        const relativePath = finalUrl.replace(BASE_URL, "");
+        let parsedBody: unknown = null;
+        if (method !== "GET" && method !== "DELETE" && body.trim()) {
+          try { parsedBody = JSON.parse(body); } catch { parsedBody = body; }
+        }
 
-      const options: RequestInit = {
-        method,
-        headers: headerObj,
-      };
+        const { data: sbData, error: sbError } = await supabase.functions.invoke("api-sandbox", {
+          body: { path: relativePath, method, body: parsedBody },
+        });
 
-      if (method !== "GET" && method !== "DELETE" && body.trim()) {
-        options.body = body;
-      }
+        const duration = Math.round(performance.now() - start);
 
-      const res = await fetch(finalUrl, options);
-      const duration = Math.round(performance.now() - start);
+        if (sbError) {
+          setResponse({
+            status: 500,
+            statusText: "Sandbox Error",
+            data: { error: sbError.message, sandbox: true },
+            duration,
+            headers: {},
+          });
+        } else {
+          setResponse({
+            status: 200,
+            statusText: "OK (Sandbox)",
+            data: sbData,
+            duration,
+            headers: { "x-environment": "sandbox" },
+          });
+        }
 
-      let data: unknown;
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        data = await res.json();
+        setHistory(prev => [
+          { id: crypto.randomUUID(), method, url: `[SANDBOX] ${relativePath}`, status: sbError ? 500 : 200, duration, timestamp: new Date() },
+          ...prev.slice(0, 9),
+        ]);
       } else {
-        data = await res.text();
+        // PRODUCTION MODE: original fetch logic (unchanged)
+        const finalUrl = buildUrl();
+        const headerObj: Record<string, string> = {};
+        headers.filter(h => h.enabled && h.key.trim()).forEach(h => {
+          if (!h.value.trim()) return;
+          if (h.key.toLowerCase() === "content-type" && (method === "GET" || method === "DELETE")) return;
+          headerObj[h.key] = h.value;
+        });
+
+        const options: RequestInit = {
+          method,
+          headers: headerObj,
+        };
+
+        if (method !== "GET" && method !== "DELETE" && body.trim()) {
+          options.body = body;
+        }
+
+        const res = await fetch(finalUrl, options);
+        const duration = Math.round(performance.now() - start);
+
+        let data: unknown;
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          data = await res.text();
+        }
+
+        const resHeaders: Record<string, string> = {};
+        res.headers.forEach((v, k) => { resHeaders[k] = v; });
+
+        const apiRes: ApiResponse = {
+          status: res.status,
+          statusText: res.statusText,
+          data,
+          duration,
+          headers: resHeaders,
+        };
+        setResponse(apiRes);
+
+        setHistory(prev => [
+          { id: crypto.randomUUID(), method, url: finalUrl, status: res.status, duration, timestamp: new Date() },
+          ...prev.slice(0, 9),
+        ]);
       }
-
-      const resHeaders: Record<string, string> = {};
-      res.headers.forEach((v, k) => { resHeaders[k] = v; });
-
-      const apiRes: ApiResponse = {
-        status: res.status,
-        statusText: res.statusText,
-        data,
-        duration,
-        headers: resHeaders,
-      };
-      setResponse(apiRes);
-
-      setHistory(prev => [
-        { id: crypto.randomUUID(), method, url: finalUrl, status: res.status, duration, timestamp: new Date() },
-        ...prev.slice(0, 9),
-      ]);
     } catch (err: unknown) {
       const duration = Math.round(performance.now() - start);
       const msg = err instanceof Error ? err.message : "Erro de conexão";
@@ -567,11 +608,30 @@ export default function ApiTester() {
   return (
     <Card className="border-border" id="api-tester-section">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Terminal className="h-5 w-5 text-primary" />
-          API Tester
-          <Badge variant="outline" className="ml-2 text-xs font-normal">Postman-like</Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Terminal className="h-5 w-5 text-primary" />
+            API Tester
+            <Badge variant="outline" className="ml-2 text-xs font-normal">Postman-like</Badge>
+            {sandboxMode && (
+              <Badge className="ml-2 bg-orange-500/15 text-orange-600 border-orange-500/30 border text-xs font-semibold animate-pulse">
+                <FlaskConical className="h-3 w-3 mr-1" />
+                SANDBOX
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Produção</span>
+            <Switch
+              checked={sandboxMode}
+              onCheckedChange={(checked) => {
+                setSandboxMode(checked);
+                toast.info(checked ? "Modo Sandbox ativado — chamadas não afetam dados reais" : "Modo Produção ativado");
+              }}
+            />
+            <span className={`text-xs font-medium ${sandboxMode ? "text-orange-600" : "text-muted-foreground"}`}>Sandbox</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Preset endpoints */}
@@ -617,9 +677,9 @@ export default function ApiTester() {
             placeholder={`${BASE_URL}/...`}
             className="font-mono text-sm flex-1"
           />
-          <Button onClick={handleSend} disabled={loading} className="gap-2 shrink-0 min-w-[100px]">
-            <Send className="h-4 w-4" />
-            {loading ? "Enviando..." : "Enviar"}
+          <Button onClick={handleSend} disabled={loading} className={`gap-2 shrink-0 min-w-[100px] ${sandboxMode ? "bg-orange-500 hover:bg-orange-600" : ""}`}>
+            {sandboxMode ? <FlaskConical className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            {loading ? "Enviando..." : sandboxMode ? "Dry Run" : "Enviar"}
           </Button>
         </div>
 
@@ -689,7 +749,7 @@ export default function ApiTester() {
 
         {/* Response */}
         {response && (
-          <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
+          <div className={`rounded-lg border overflow-hidden ${sandboxMode ? "border-orange-500/50 bg-orange-500/5" : "border-border bg-muted/30"}`}>
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/50">
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className={getStatusColor(response.status)}>

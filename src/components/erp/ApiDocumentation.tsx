@@ -14,7 +14,7 @@ import {
   FileText, Webhook, BarChart3, Shield, Database,
   FileSpreadsheet, Building2, Layers, DollarSign, Package,
   Rocket, AlertTriangle, Info, Zap, Terminal, History, RotateCcw, Globe,
-  HelpCircle, PlayCircle, MessageCircle
+  HelpCircle, PlayCircle, MessageCircle, FlaskConical
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { exportToExcel } from "@/lib/excel-utils";
@@ -1079,8 +1079,21 @@ export default function ApiDocumentation({ accessProfileModules }: ApiDocumentat
                   </div>
                 </div>
 
+                {/* Sandbox Info Banner */}
+                <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <FlaskConical className="h-5 w-5 text-orange-600 shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-orange-700">Ambiente Sandbox Disponível</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Use o toggle <strong>Sandbox</strong> no API Tester abaixo para testar chamadas sem afetar dados reais. 
+                        Todas as respostas são simuladas e registradas para auditoria.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="border rounded-xl p-5 space-y-6">
-                  {/* 4 Steps */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {[
                       { step: "1", title: "Obter API Key", desc: "Gere sua chave no portal acima (Gerenciar Chaves API)", icon: <Shield className="h-4 w-4" /> },
@@ -1933,6 +1946,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
                 <div className="border rounded-xl p-5 space-y-3">
                   {[
+                    { version: "v1.8.0", date: "2026-03-24", changes: ["Ambiente Sandbox separado de produção (toggle no API Tester)", "Chamadas sandbox simulam respostas realistas sem gravar dados", "Histórico de chamadas sandbox registrado com auditoria", "Badge visual SANDBOX e botão Dry Run diferenciado"] },
                     { version: "v1.7.0", date: "2026-03-23", changes: ["Glossário de campos para CR /incluir e Fornecedores /incluir", "Exemplos de iteração completa de paginação (JS + Python)", "Mapa de erros específicos por endpoint (CP, CR, Fornecedores)", "Botão 'Exportar Postman Collection' (JSON v2.1 importável)", "Exemplo de payload completo de webhook", "Política de versionamento documentada", "Guia de rotação de API Key sem downtime", "Tabela consolidada de limites e quotas"] },
                     { version: "v1.6.0", date: "2026-03-23", changes: ["Exemplos Hello World em 4 linguagens (cURL, JavaScript, Python, PHP)", "Glossário de campos detalhado para CP /incluir", "Seção FAQ/Troubleshooting com 8 perguntas comuns", "Botão 'Testar' em cada endpoint (preenche ApiTester automaticamente)", "Badges de paginação (Huggs/Legado/REST) em cada API", "Badges de status live (online/offline) em cada API", "BASE_URL dinâmica via variável de ambiente"] },
                     { version: "v1.5.0", date: "2026-03-23", changes: ["Corrigido body do /registrar-pagamento (id → conta_pagar_id)", "Corrigida resposta do /query com pagination e meta", "Corrigida resposta do /cancelar com success e ids", "Documentado empresa_id como obrigatório no /upsert CP", "Adicionados 7 filtros faltantes no /listar CP (emissão, conta corrente, CPF/CNPJ, vendedor, observações)", "Fornecedores migrados de 'Geral' para 'Cadastros Auxiliares'", "Seção de erros estruturados na documentação de autenticação"] },

@@ -23465,6 +23465,42 @@ export type Database = {
           },
         ]
       }
+      sandbox_requests: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          endpoint: string
+          id: string
+          method: string
+          request_body: Json | null
+          response_body: Json | null
+          response_status: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          endpoint: string
+          id?: string
+          method: string
+          request_body?: Json | null
+          response_body?: Json | null
+          response_status?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          endpoint?: string
+          id?: string
+          method?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          response_status?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       scheduled_reports: {
         Row: {
           active: boolean | null
