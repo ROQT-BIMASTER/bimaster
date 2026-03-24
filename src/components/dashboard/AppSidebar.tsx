@@ -475,8 +475,46 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     })),
     [dbCategories]
   );
+  // Module title map for search (must be before early return)
+  const moduleSearchTitles: Record<string, string[]> = useMemo(() => ({
+    prospects: [t("module.prospects"), "prospects", "dashboard", "kanban", "atividades", "tarefas", "demandas", "ia analytics", "qa agent", "agente huggs"],
+    comercial: [t("module.comercial"), "comercial", "painel executivo", "performance", "clientes", "produtos", "geográfico", "metas", "ibge", "mineração", "inteligência", "reativação", "mapa", "whitespace"],
+    precos: [t("module.precos"), "preços", "matriz", "tabelas", "aprovação", "simulador", "portal"],
+    trade: [t("module.trade"), "trade", "banners", "incentivos", "displays", "materiais", "aprovações", "pdvs", "visitas", "sellout", "shelf", "redes", "marcas", "fotos", "auditorias", "ranking", "performance", "whatsapp"],
+    marketing: [t("module.marketing"), "marketing", "social", "whatsapp", "elevenlabs", "mission control"],
+    eventos: [t("module.eventos"), "eventos"],
+    fabrica: [t("module.fabrica"), "fábrica", "recebimento", "matérias-primas", "fórmulas", "planejamento", "ordens", "apontamentos", "qualidade", "paradas", "máquinas", "operadores", "fiscal", "impostos", "produtos acabados"],
+    china: ["fábrica china", "china", "submissão", "ordens de compra"],
+    composicao: ["composição", "checklist"],
+    amostras: ["amostras", "recebimento"],
+    analise_embalagem: ["embalagem", "análise"],
+    etiqueta_bula: ["etiqueta", "bula"],
+    aprovacao_artes: ["aprovação de artes", "motor de artes", "fluxos"],
+    financeiro: [t("module.financeiro"), "financeiro", "verbas", "extrato", "aprovações", "campanhas", "lançamentos", "contas a pagar", "contas a receber", "conciliação", "cobrança", "plano de contas", "fluxo de caixa", "dre", "classificação", "saldos", "investimentos", "fornecedores", "empresas", "centros de custo"],
+    departamentos: [t("module.departamentos"), "departamentos"],
+    estoque: ["estoque", "distribuidoras", "produtos master", "saldos", "consolidado", "vinculações"],
+    projetos: ["projetos", "inbox", "vincular china"],
+    reunioes: ["reuniões"],
+    processos: ["processos", "workflows", "etapas"],
+  }), [t]);
 
-  if (loading) {
+  // Auto-open modules matching search (must be before early return)
+  useEffect(() => {
+    const s = searchQuery.toLowerCase().trim();
+    if (!s) return;
+    const matchingModules = Object.keys(moduleSearchTitles).filter(code => {
+      const titles = moduleSearchTitles[code] || [code];
+      return titles.some(t => t.toLowerCase().includes(s));
+    });
+    if (matchingModules.length > 0) {
+      setOpenModules(prev => {
+        const next = new Set(prev);
+        matchingModules.forEach(m => next.add(m));
+        return next;
+      });
+    }
+  }, [searchQuery, moduleSearchTitles]);
+
     return (
       <Sidebar side={side}>
         <SidebarContent>
