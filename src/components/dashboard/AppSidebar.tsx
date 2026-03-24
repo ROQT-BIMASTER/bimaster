@@ -191,28 +191,27 @@ interface ModuleHeaderProps {
   icon: React.ElementType;
   title: string;
   isOpen: boolean;
-  colorKey: keyof typeof moduleColors;
+  colorKey?: keyof typeof moduleColors;
+  subItemCount?: number;
 }
 
-const ModuleHeader = ({ icon: Icon, title, isOpen, colorKey }: ModuleHeaderProps) => {
-  const colors = moduleColors[colorKey];
-  
+const ModuleHeader = ({ icon: Icon, title, isOpen, subItemCount }: ModuleHeaderProps) => {
   return (
     <div className={cn(
-      "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all duration-150",
+      "flex items-center gap-3 w-full px-3 py-2 rounded-md transition-all duration-150",
       "hover:bg-[var(--sidebar-hover-raw)]"
     )}>
-      <div className={cn(
-        "flex items-center justify-center w-7 h-7 rounded-md",
-        colors.bg
-      )}>
-      <Icon className="h-3.5 w-3.5 text-white" />
-      </div>
+      <Icon className="h-5 w-5 text-[var(--sidebar-text-muted-raw)]" />
       <span className="font-medium text-sm flex-1 text-[var(--sidebar-text-hover-raw)]">
         {title}
       </span>
+      {subItemCount != null && subItemCount > 0 && (
+        <span className="bg-muted text-muted-foreground text-[10px] font-medium px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+          {subItemCount}
+        </span>
+      )}
       <ChevronDown className={cn(
-        "h-3.5 w-3.5 text-[var(--sidebar-text-raw)] transition-transform duration-200",
+        "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
         !isOpen && "ltr:-rotate-90 rtl:rotate-90"
       )} />
     </div>
@@ -228,7 +227,7 @@ interface MenuItemLinkProps {
   end?: boolean;
 }
 
-const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemLinkProps) => {
+const MenuItemLink = ({ to, icon: Icon, title, badge, end }: MenuItemLinkProps) => {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
@@ -236,13 +235,13 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
           to={to}
           end={end}
           className={({ isActive }) => cn(
-            "relative flex items-center gap-3 px-3 py-1.5 rounded-md transition-all duration-150 text-[13px]",
+            "relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 text-[13px]",
             isActive
-              ? "font-medium bg-[var(--sidebar-active-bg-raw)] text-[var(--sidebar-text-active-raw)] ltr:border-l-2 rtl:border-r-2 border-[var(--color-primary-raw)]"
+              ? "font-medium bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))]"
               : "text-[var(--sidebar-text-raw)] hover:text-[var(--sidebar-text-hover-raw)] hover:bg-[var(--sidebar-hover-raw)]"
           )}
         >
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className="h-4 w-4" />
           <span className="flex-1">{title}</span>
           {badge}
         </NavLink>
@@ -251,27 +250,14 @@ const MenuItemLink = ({ to, icon: Icon, title, colorKey, badge, end }: MenuItemL
   );
 };
 
-// Category header - more subtle than module headers
-interface CategoryHeaderProps {
-  icon: React.ElementType;
-  title: string;
-  isOpen: boolean;
-}
-
-const CategoryHeader = ({ icon: Icon, title, isOpen }: CategoryHeaderProps) => (
-  <div className={cn(
-    "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg transition-all duration-150",
-    "hover:bg-[var(--sidebar-hover-raw)]",
-    isOpen ? "bg-[var(--sidebar-hover-raw)]" : ""
-  )}>
-    <Icon className="h-4 w-4 text-[var(--sidebar-text-raw)]" />
-    <span className="font-bold text-[10px] uppercase tracking-[0.09em] text-[var(--sidebar-text-muted-raw)] flex-1">
+// Category divider label — always visible, no accordion
+const CategoryDivider = ({ title }: { title: string }) => (
+  <div className="flex items-center gap-2 px-3 pt-4 pb-1">
+    <div className="flex-1 h-px bg-[var(--sidebar-border-raw)]" />
+    <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--sidebar-text-muted-raw)] whitespace-nowrap">
       {title}
     </span>
-    <ChevronRight className={cn(
-      "h-3.5 w-3.5 text-[var(--sidebar-text-muted-raw)] transition-transform duration-200",
-      isOpen && "rotate-90"
-    )} />
+    <div className="flex-1 h-px bg-[var(--sidebar-border-raw)]" />
   </div>
 );
 
