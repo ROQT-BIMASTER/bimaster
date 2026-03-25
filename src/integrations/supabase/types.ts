@@ -18561,6 +18561,7 @@ export type Database = {
         Row: {
           conteudo: string
           created_at: string
+          destinatarios_ids: string[]
           documento_ids: string[] | null
           documento_oficializado_id: string | null
           fase_processo: string | null
@@ -18571,10 +18572,12 @@ export type Database = {
           tipo: string
           user_id: string
           user_nome: string
+          visibilidade: string
         }
         Insert: {
           conteudo: string
           created_at?: string
+          destinatarios_ids?: string[]
           documento_ids?: string[] | null
           documento_oficializado_id?: string | null
           fase_processo?: string | null
@@ -18585,10 +18588,12 @@ export type Database = {
           tipo?: string
           user_id: string
           user_nome: string
+          visibilidade?: string
         }
         Update: {
           conteudo?: string
           created_at?: string
+          destinatarios_ids?: string[]
           documento_ids?: string[] | null
           documento_oficializado_id?: string | null
           fase_processo?: string | null
@@ -18599,6 +18604,7 @@ export type Database = {
           tipo?: string
           user_id?: string
           user_nome?: string
+          visibilidade?: string
         }
         Relationships: []
       }
