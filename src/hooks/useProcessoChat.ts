@@ -18,6 +18,8 @@ export interface ProcessChatMessage {
   documento_oficializado_id: string | null;
   fase_processo: string | null;
   metadata: Record<string, any>;
+  visibilidade: string;
+  destinatarios_ids: string[];
   created_at: string;
 }
 
