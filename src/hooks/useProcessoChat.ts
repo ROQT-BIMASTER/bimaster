@@ -18,6 +18,8 @@ export interface ProcessChatMessage {
   documento_oficializado_id: string | null;
   fase_processo: string | null;
   metadata: Record<string, any>;
+  visibilidade: string;
+  destinatarios_ids: string[];
   created_at: string;
 }
 
@@ -74,6 +76,8 @@ export function useProcessoChat(processId: string | null) {
       tipo?: string;
       fase_processo?: string;
       metadata?: Record<string, any>;
+      visibilidade?: string;
+      destinatarios_ids?: string[];
     }) => {
       if (!processId || !user?.id) throw new Error("Sem processo ou usuário");
       const nome = await getUserNome();
@@ -89,6 +93,8 @@ export function useProcessoChat(processId: string | null) {
           documento_ids: input.documento_ids || [],
           fase_processo: input.fase_processo || null,
           metadata: input.metadata || {},
+          visibilidade: input.visibilidade || "publica",
+          destinatarios_ids: input.destinatarios_ids || [],
         }) as any);
       if (error) throw error;
     },
