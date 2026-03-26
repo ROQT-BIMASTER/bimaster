@@ -1,64 +1,63 @@
 
 
-# Chat do Processo — Mensagens Publicas e Privadas
+# Correcao: Contas a Receber — Valores e Controle de Acesso por Empresa
 
-## Resumo
+## Diagnostico
 
-Adicionar ao chat do processo a capacidade de enviar mensagens publicas (visiveis a todos os participantes) ou privadas (visiveis apenas ao remetente e destinatarios selecionados). Mensagens privadas mantêm todas as funcionalidades existentes: vincular documentos, oficializar, mencionar modulos.
+### Problema 1: Controle de Acesso por Empresa (CRITICO)
 
-## Alteracoes no banco de dados
+As 6 RPCs de Contas a Receber sao `SECURITY DEFINER` (bypassam RLS) e confiam no parametro `p_empresas` enviado pelo frontend. Se o frontend enviar `null` ou IDs de empresas nao autorizadas, a RPC retorna dados de TODAS as empresas.
 
-Adicionar duas colunas na tabela `process_chat_messages`:
+RPCs afetadas:
+- `get_contas_receber_dashboard_kpis`
+- `get_contas_receber_evolucao_mensal`
+- `get_contas_receber_filter_options`
+- `get_contas_receber_status_dist`
+- `get_contas_receber_pmr_detalhes`
+- `get_contas_receber_totais_filtrados`
 
-| Coluna | Tipo | Default | Descricao |
-|--------|------|---------|-----------|
-| `visibilidade` | text | 'publica' | 'publica' ou 'privada' |
-| `destinatarios_ids` | uuid[] | '{}' | Lista de user_ids que podem ver a mensagem privada |
+A funcao `get_empresa_ids_do_usuario()` ja existe mas NAO e usada nas RPCs. Cada RPC faz apenas `AND (p_empresas IS NULL OR empresa_id = ANY(p_empresas))` — confiando cegamente no cliente.
 
-Atualizar a RLS policy de SELECT para filtrar: mensagens publicas sao visiveis a todos os autenticados, mensagens privadas sao visiveis apenas se `auth.uid() = user_id` (remetente) OU `auth.uid() = ANY(destinatarios_ids)`.
+### Problema 2: Valores nao carregando
 
-```text
-Policy SELECT:
-  visibilidade = 'publica'
-  OR user_id = auth.uid()
-  OR auth.uid() = ANY(destinatarios_ids)
+O `get_contas_receber_filter_options` nao filtra por empresa do usuario. Isso faz o dropdown de empresas mostrar TODAS as empresas do sistema, incluindo as que o usuario nao tem acesso. Quando o usuario seleciona uma empresa nao autorizada, a query direta (que USA RLS) retorna zero registros, criando a impressao de que os valores nao carregam.
+
+## Solucao
+
+### Migration SQL — Reescrever as 6 RPCs com validacao server-side
+
+Em cada RPC, adicionar no inicio:
+
+```sql
+-- Forcar intersecao entre p_empresas e empresas autorizadas
+v_empresas_permitidas := get_empresa_ids_do_usuario();
+IF p_empresas IS NOT NULL THEN
+  v_empresas := ARRAY(SELECT unnest(p_empresas) INTERSECT SELECT unnest(v_empresas_permitidas));
+ELSE
+  v_empresas := v_empresas_permitidas;
+END IF;
 ```
 
-## Alteracoes na UI (`ProcessoChat.tsx`)
+E substituir `AND (p_empresas IS NULL OR empresa_id = ANY(p_empresas))` por `AND empresa_id = ANY(v_empresas)`.
 
-1. **Toggle de visibilidade na barra de input**: Botao/switch "Publica" / "Privada" ao lado do campo de mensagem. Quando "Privada" esta ativo, aparece um seletor de destinatarios (lista de usuarios do sistema).
+### RPCs a alterar
 
-2. **Seletor de destinatarios**: Dropdown multi-select com os perfis do sistema. So aparece quando modo privado esta ativo.
+| RPC | Mudanca |
+|-----|---------|
+| `get_contas_receber_dashboard_kpis` | Adicionar `v_empresas` com intersecao |
+| `get_contas_receber_evolucao_mensal` | Idem |
+| `get_contas_receber_filter_options` | Idem — corrige dropdown mostrando empresas nao autorizadas |
+| `get_contas_receber_status_dist` | Idem |
+| `get_contas_receber_pmr_detalhes` | Idem |
+| `get_contas_receber_totais_filtrados` | Idem |
 
-3. **Indicador visual nas mensagens**: Mensagens privadas exibem um icone de cadeado e badge "Privada" para diferenciar visualmente das publicas.
+### Sem alteracoes no frontend
 
-4. **Filtro no header do chat**: Tabs ou toggle para alternar entre "Todas", "Publicas", "Privadas" — filtro client-side sobre as mensagens ja retornadas (a RLS garante que so vem mensagens autorizadas).
+O frontend ja passa `filterEmpresas` corretamente via `useEmpresaFilter`. O problema e exclusivamente no backend que nao valida esses IDs. Apos a correcao, mesmo que o frontend envie IDs nao autorizados, o servidor restringe automaticamente.
 
-## Alteracoes no Hook (`useProcessoChat.ts`)
+## Arquivos
 
-- Interface `ProcessChatMessage`: adicionar `visibilidade` e `destinatarios_ids`
-- `sendMessage`: aceitar `visibilidade` e `destinatarios_ids` no input, inserir na tabela
-- `oficializarDocumento`: mensagens de oficializacao de conversa privada podem ser marcadas como privadas tambem
-
-## Fluxo do usuario
-
-```text
-1. Usuario abre chat do processo
-2. Clica no toggle "Privada" → aparece seletor de destinatarios
-3. Seleciona "Maria — Regulatorio" como destinataria
-4. Digita: "Maria, precisamos revisar esse laudo antes de oficializar"
-5. Vincula documento "Laudo INCI" a mensagem
-6. Envia → mensagem aparece com icone de cadeado para ambos
-7. Outros usuarios do processo NAO veem essa mensagem
-8. Maria responde na conversa privada, decide oficializar o documento
-9. Clica "Oficializar" → documento e vinculado ao processo (evento publico na timeline)
-```
-
-## Arquivos afetados
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| Migration SQL | ALTER TABLE add `visibilidade`, `destinatarios_ids` + update RLS |
-| `src/hooks/useProcessoChat.ts` | Tipo + mutation com novos campos |
-| `src/components/processo/ProcessoChat.tsx` | Toggle privada, seletor destinatarios, visual cadeado, filtro |
+| Arquivo | Acao |
+|---------|------|
+| Migration SQL | ALTER 6 RPCs para validar empresa server-side |
 
