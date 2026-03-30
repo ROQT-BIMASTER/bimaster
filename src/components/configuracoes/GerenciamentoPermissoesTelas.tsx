@@ -78,6 +78,30 @@ export const GerenciamentoPermissoesTelas = () => {
     setScreens(data || []);
   };
 
+  const fetchModuloTelas = async () => {
+    const { data, error } = await supabase
+      .from("modulo_telas")
+      .select("modulo_codigo, tela_id, modulos_sistema(nome)")
+      .order("modulo_codigo");
+
+    if (error) {
+      console.error("Error fetching modulo_telas:", error);
+      return;
+    }
+
+    setModuloTelas(
+      (data || []).map((mt: any) => ({
+        modulo_codigo: mt.modulo_codigo,
+        modulo_nome: mt.modulos_sistema?.nome || mt.modulo_codigo,
+        tela_id: mt.tela_id,
+      }))
+    );
+    // Open all groups by default
+    const codes = new Set((data || []).map((mt: any) => mt.modulo_codigo as string));
+    codes.add("sem_modulo");
+    setOpenGroups(codes);
+  };
+
   const fetchUsuarios = async () => {
     setLoading(true);
     try {
