@@ -76,7 +76,7 @@ export default function InstalarApp() {
           <p className="text-muted-foreground mt-2">
             {isInstalled 
               ? 'Gerencie a versão e atualizações do seu aplicativo'
-              : 'Instale o Sistema de Gestão Huggs no seu dispositivo para acesso rápido e modo offline'
+              : 'Instale o Sistema de Gestão Huugs no seu dispositivo para acesso rápido e modo offline'
             }
           </p>
         </div>
