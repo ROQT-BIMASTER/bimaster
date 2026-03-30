@@ -70,7 +70,6 @@ export function CadastroClienteCnpjDialog({
   const [loading, setLoading] = useState(false);
   const [receitaData, setReceitaData] = useState<ReceitaData | null>(null);
   const [createdStoreId, setCreatedStoreId] = useState<string | null>(null);
-  const [createdStoreId, setCreatedStoreId] = useState<string | null>(null);
   const [createdStoreName, setCreatedStoreName] = useState("");
 
   // Editable form fields (step review)
