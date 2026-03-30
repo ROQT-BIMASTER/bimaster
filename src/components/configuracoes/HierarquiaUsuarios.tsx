@@ -593,6 +593,15 @@ export function HierarquiaUsuarios() {
               </Button>
             </div>
           </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Admins (sem hierarquia) */}
