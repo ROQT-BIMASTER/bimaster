@@ -216,28 +216,48 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
         {formDescription && <CardDescription>{formDescription}</CardDescription>}
       </CardHeader>
       <CardContent>
-        {/* Attached Banners */}
+        {/* Attached Banners — inline preview, no external navigation */}
         {attachedBanners.length > 0 && (
           <div className="mb-6">
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {attachedBanners.map((b: any) => (
-                <a
+                <button
                   key={b.id}
-                  href={b.link_destino || "#"}
-                  target={b.link_destino ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="shrink-0"
+                  type="button"
+                  onClick={() => setPreviewBanner(b)}
+                  className="shrink-0 cursor-pointer rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary/30 transition-all"
                 >
                   <img
                     src={b.imagem_url}
                     alt={b.titulo}
-                    className="h-24 rounded-lg object-cover border"
+                    className="h-24 object-cover"
                   />
-                </a>
+                </button>
               ))}
             </div>
           </div>
         )}
+
+        {/* Banner Preview Dialog — self-contained, no links to system */}
+        <Dialog open={!!previewBanner} onOpenChange={(open) => !open && setPreviewBanner(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{previewBanner?.titulo || "Banner"}</DialogTitle>
+            </DialogHeader>
+            {previewBanner && (
+              <div className="space-y-3">
+                <img
+                  src={previewBanner.imagem_url}
+                  alt={previewBanner.titulo}
+                  className="w-full rounded-lg object-contain max-h-80"
+                />
+                {previewBanner.descricao && (
+                  <p className="text-sm text-muted-foreground">{previewBanner.descricao}</p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Attached Materials — Interactive Request Cards */}
         {attachedMaterials.length > 0 && (
