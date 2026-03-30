@@ -247,26 +247,154 @@ export default function ChecklistEtiquetaBula() {
 // ── New Dialog ──
 function NewEtiquetaDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const create = useCreateEtiqueta();
-  const [form, setForm] = useState({ sku: "", produto_nome: "", linha_marca: "", double_sticker: false });
+  const [mode, setMode] = useState<"vinculado" | "manual">("vinculado");
+  const [form, setForm] = useState({ sku: "", produto_nome: "", linha_marca: "", double_sticker: false, submissao_id: "" });
+  const [searchVinc, setSearchVinc] = useState("");
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
+
+  // Fetch linked submissao IDs
+  const { data: vinculos = [] } = useQuery({
+    queryKey: ["china-vinculos-for-etiqueta"],
+    enabled: open && mode === "vinculado",
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id") as any);
+      if (error) throw error;
+      const ids = [...new Set((data || []).map((v: any) => v.submissao_id as string))];
+      if (!ids.length) return [];
+      const { data: subs, error: e2 } = await supabase
+        .from("china_produto_submissoes")
+        .select("id, produto_codigo, produto_nome, status, formula_codigo")
+        .in("id", ids)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (e2) throw e2;
+      return subs || [];
+    },
+  });
+
+  // Fetch docs for selected submissao
+  const { data: docs = [] } = useQuery({
+    queryKey: ["china-docs-etiqueta", selectedSubId],
+    enabled: !!selectedSubId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_documentos")
+        .select("id, tipo_documento, label_pt, status_revisao")
+        .eq("submissao_id", selectedSubId!)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const filteredVinculos = vinculos.filter((s: any) =>
+    !searchVinc.trim() ||
+    s.produto_codigo?.toLowerCase().includes(searchVinc.toLowerCase()) ||
+    s.produto_nome?.toLowerCase().includes(searchVinc.toLowerCase())
+  );
+
+  const handleSelectSubmissao = (sub: any) => {
+    setSelectedSubId(sub.id);
+    setForm(p => ({
+      ...p,
+      submissao_id: sub.id,
+      sku: sub.produto_codigo || "",
+      produto_nome: sub.produto_nome || "",
+      linha_marca: sub.formula_codigo || "",
+    }));
+  };
 
   const handleSubmit = () => {
     if (!form.sku || !form.produto_nome) { toast.error("SKU e produto são obrigatórios"); return; }
-    create.mutate(form, { onSuccess: () => { onClose(); setForm({ sku: "", produto_nome: "", linha_marca: "", double_sticker: false }); } });
+    create.mutate(
+      { ...form, submissao_id: form.submissao_id || undefined },
+      { onSuccess: () => { onClose(); setForm({ sku: "", produto_nome: "", linha_marca: "", double_sticker: false, submissao_id: "" }); setSelectedSubId(null); setMode("vinculado"); } }
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Novo Checklist Etiqueta / Bula</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div><Label>SKU *</Label><Input value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="HB-L6526" /></div>
-          <div><Label>Produto *</Label><Input value={form.produto_nome} onChange={e => setForm(p => ({ ...p, produto_nome: e.target.value }))} placeholder="Lip Oil - Fresh Lips" /></div>
-          <div><Label>Linha / Marca</Label><Input value={form.linha_marca} onChange={e => setForm(p => ({ ...p, linha_marca: e.target.value }))} placeholder="Ruby Rose" /></div>
-          <div className="flex items-center gap-2">
-            <Checkbox checked={form.double_sticker} onCheckedChange={v => setForm(p => ({ ...p, double_sticker: !!v }))} />
-            <Label>Double Sticker</Label>
-          </div>
-        </div>
+
+        <Tabs value={mode} onValueChange={v => setMode(v as any)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="vinculado" className="flex-1 gap-2"><Link2 className="h-4 w-4" />Importar do Vincular China</TabsTrigger>
+            <TabsTrigger value="manual" className="flex-1 gap-2"><FileText className="h-4 w-4" />Preenchimento Manual</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="vinculado" className="space-y-4 mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar submissão vinculada..." value={searchVinc} onChange={e => setSearchVinc(e.target.value)} className="pl-9" />
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-2">
+              {filteredVinculos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma submissão vinculada encontrada</p>
+              ) : filteredVinculos.map((sub: any) => (
+                <div
+                  key={sub.id}
+                  onClick={() => handleSelectSubmissao(sub)}
+                  className={cn(
+                    "p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50",
+                    selectedSubId === sub.id ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{sub.produto_codigo}</p>
+                      <p className="text-xs text-muted-foreground truncate">{sub.produto_nome}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px]">{sub.status}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Doc preview */}
+            {selectedSubId && docs.length > 0 && (
+              <div className="border rounded-lg p-3 bg-muted/30">
+                <p className="text-xs font-medium text-muted-foreground mb-2">📎 Documentos vinculados ({docs.length})</p>
+                <div className="space-y-1">
+                  {docs.map((d: any) => (
+                    <div key={d.id} className="flex items-center gap-2 text-xs">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span>{d.label_pt || d.tipo_documento}</span>
+                      <Badge variant="outline" className="text-[9px] ml-auto">{d.status_revisao || "pendente"}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Auto-filled fields preview */}
+            {selectedSubId && (
+              <div className="grid grid-cols-3 gap-3 p-3 bg-muted/30 rounded-lg">
+                <div><Label className="text-xs text-muted-foreground">SKU</Label><p className="font-mono text-sm">{form.sku || "—"}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Produto</Label><p className="text-sm">{form.produto_nome || "—"}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Linha</Label><p className="text-sm">{form.linha_marca || "—"}</p></div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Checkbox checked={form.double_sticker} onCheckedChange={v => setForm(p => ({ ...p, double_sticker: !!v }))} />
+              <Label>Double Sticker</Label>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="manual" className="space-y-4 mt-4">
+            <div><Label>SKU *</Label><Input value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="HB-L6526" /></div>
+            <div><Label>Produto *</Label><Input value={form.produto_nome} onChange={e => setForm(p => ({ ...p, produto_nome: e.target.value }))} placeholder="Lip Oil - Fresh Lips" /></div>
+            <div><Label>Linha / Marca</Label><Input value={form.linha_marca} onChange={e => setForm(p => ({ ...p, linha_marca: e.target.value }))} placeholder="Ruby Rose" /></div>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={form.double_sticker} onCheckedChange={v => setForm(p => ({ ...p, double_sticker: !!v }))} />
+              <Label>Double Sticker</Label>
+            </div>
+          </TabsContent>
+        </Tabs>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={create.isPending}>{create.isPending ? "Criando..." : "Criar Checklist"}</Button>
