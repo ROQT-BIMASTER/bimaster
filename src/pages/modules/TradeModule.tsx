@@ -30,9 +30,12 @@ import { ClipboardList } from "lucide-react";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
-  const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
+  const { isAdmin, isAdminOrSupervisor } = useUserRole();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   
+  const effectiveUserId = isImpersonating ? impersonatedUser?.id : null;
+  const shouldFilter = !isAdmin || isImpersonating;
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
