@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
