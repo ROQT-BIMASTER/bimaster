@@ -41,12 +41,25 @@ import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngr
 // Fetch submissões for listing
 function useSubmissoes() {
   return useQuery({
-    queryKey: ["submissoes_composicao"],
+    queryKey: ["submissoes_composicao_vinculadas"],
     queryFn: async () => {
+      // 1. Buscar submissão IDs vinculadas via "Vincular China"
+      const { data: vinculos, error: vErr } = await (supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id") as any);
+
+      if (vErr) throw vErr;
+
+      const ids = [...new Set((vinculos || []).map((v: any) => v.submissao_id).filter(Boolean))];
+
+      if (ids.length === 0) return [];
+
+      // 2. Buscar apenas submissões vinculadas
       const { data, error } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, created_at")
         .is("deleted_at", null)
+        .in("id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
