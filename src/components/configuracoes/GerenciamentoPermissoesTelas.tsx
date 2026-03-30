@@ -65,7 +65,7 @@ export const GerenciamentoPermissoesTelas = () => {
 
   useEffect(() => {
     if (selectedUsuario) {
-      fetchUserPermissions(selectedUsuario);
+      fetchUserPermissionsAndPrepopulate(selectedUsuario);
     }
   }, [selectedUsuario]);
 
