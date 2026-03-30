@@ -422,56 +422,8 @@ export function CadastroClienteCnpjDialog({
           </div>
         )}
 
-        {/* STEP: Duplicate Found */}
-        {step === "duplicate" && existingStore && (
-          <div className="space-y-4">
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-semibold text-sm">Cliente já cadastrado</p>
-                    <p className="text-xs text-muted-foreground">
-                      Este CNPJ já está registrado no sistema. Deseja vincular este cliente a você?
-                    </p>
-                  </div>
-                </div>
 
-                <div className="rounded-lg border bg-card p-3 space-y-1.5">
-                  <p className="font-bold text-sm">{existingStore.name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    CNPJ: {existingStore.cnpj}
-                  </p>
-                  {(existingStore.city || existingStore.state) && (
-                    <p className="text-xs text-muted-foreground">
-                      {[existingStore.city, existingStore.state].filter(Boolean).join(" - ")}
-                    </p>
-                  )}
-                  <Badge
-                    variant={existingStore.status === "active" ? "secondary" : "destructive"}
-                    className="text-[10px]"
-                  >
-                    {existingStore.status === "active" ? "Ativo" : existingStore.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
 
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep("cnpj")} className="flex-1">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <Button onClick={handleVincular} disabled={loading} className="flex-1">
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
-                )}
-                Vincular a você
-              </Button>
-            </div>
-          </div>
         )}
 
         {/* STEP: Review & Edit */}
