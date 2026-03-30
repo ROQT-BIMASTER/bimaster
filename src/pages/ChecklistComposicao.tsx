@@ -220,6 +220,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const [cores, setCores] = useState<string[]>(["1#"]);
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
+  const [showAIExtract, setShowAIExtract] = useState(false);
 
   // Sync from DB
   useEffect(() => {
