@@ -344,6 +344,14 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
                   }}
                 />
               )}
+
+              {field.field_type === "address" && (
+                <CepAddressField
+                  value={values[field.id] || null}
+                  onChange={(v) => updateValue(field.id, v)}
+                  required={field.required}
+                />
+              )}
             </div>
           ))}
 
