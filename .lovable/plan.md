@@ -1,45 +1,46 @@
 
 
-# Dashboard Público de Respostas do Formulário
+# Carregar e Confirmar Documentos do Checklist no Processo
 
 ## Resumo
 
-Criar uma versão pública (sem autenticação) do dashboard de respostas, acessível via link compartilhável. Usuários externos que preencheram o formulário poderão ver KPIs e gráficos de distribuição, mas **sem** acesso à análise IA nem aos dados individuais das respostas (protegendo privacidade).
-
-## Abordagem
-
-Criar uma nova página leve `DynamicFormDashboardPublic.tsx` que reutiliza a lógica de carregamento e visualização do dashboard existente, mas:
-- Sem `DashboardLayout` / `ProtectedRoute` — layout standalone limpo
-- Sem botão de análise IA (requer auth)
-- Sem tabela de respostas individuais (protege dados sensíveis)
-- Apenas: KPIs (total respostas, respostas hoje) + gráficos de distribuição por campo
-- Acessível via rota pública `/formulario-dashboard?id=FORM_ID`
+Na aba "Processo" do Recebimento de Amostra, quando há documentos vinculados, o usuário poderá:
+1. **Visualizar/baixar** o arquivo do documento diretamente (botão de download/preview)
+2. **Confirmar recebimento** de cada documento para análise (botão "Confirmar Recebimento" que registra quem confirmou e quando)
 
 ## Alterações
 
-### 1. `src/pages/DynamicFormDashboardPublic.tsx` — Novo
+### 1. Migration — tabela de confirmação de recebimento
 
-- Página standalone com header simples (nome do formulário + logo)
-- Carrega form + fields + responses via Supabase (as tabelas já possuem RLS que permite leitura)
-- Exibe KPIs: total respostas, respostas hoje
-- Exibe gráficos de distribuição (BarChart/PieChart) para campos select/radio/rating
-- Sem tabela de respostas, sem análise IA, sem navegação interna
+Criar tabela `processo_documento_recebimentos` para registrar a confirmação:
+- `id`, `documento_id` (FK china_produto_documentos), `submissao_id`, `confirmado_por` (user id), `confirmado_em` (timestamptz), `observacao` (text nullable)
+- RLS: authenticated users podem INSERT e SELECT
 
-### 2. `src/App.tsx` — Adicionar rota
+### 2. `ProcessoDocumentosSelector.tsx` — adicionar ações por documento
 
-- Rota pública: `/formulario-dashboard` → `DynamicFormDashboardPublic`
+- Adicionar botão **"📥 Ver Documento"** que abre o `arquivo_url` ou gera signed URL do `arquivo_path`
+- Adicionar botão **"✅ Confirmar Recebimento"** que insere registro na tabela de confirmações
+- Mostrar badge "Recebido ✓" com data/hora quando já confirmado
+- Carregar confirmações existentes via query na montagem
 
-### 3. `src/components/forms/DynamicFormRenderer.tsx` — Link pós-envio
+### 3. Fluxo
 
-- Após submissão bem-sucedida, exibir link/botão "📊 Ver estatísticas" que abre `/formulario-dashboard?id=FORM_ID` em nova aba
+```text
+Documento listado → [Ver Documento] abre arquivo
+                   → [Confirmar Recebimento] → insert na tabela → badge "Recebido em DD/MM HH:MM"
+```
 
-### 4. RLS — Verificar acesso público
+## Arquivos
 
-- Confirmar que `dynamic_forms`, `dynamic_form_fields` e `dynamic_form_responses` permitem SELECT para anon (formulários ativos). Se não, criar policy para forms com status `active`.
+| Arquivo | Ação |
+|---------|------|
+| Migration SQL | Nova tabela `processo_documento_recebimentos` + RLS |
+| `src/components/shared/ProcessoDocumentosSelector.tsx` | Botões de download e confirmação, query de recebimentos |
 
-## Segurança
+## Detalhes técnicos
 
-- Nenhum dado individual é exposto — apenas agregações (contagens, distribuições)
-- Análise IA não disponível no modo público
-- Dados de metadata/user_id nunca expostos
+- Signed URL via `getSignedUrl()` do `storage-helper.ts` para documentos em buckets privados
+- Fallback para `arquivo_url` se `arquivo_path` não existir
+- Query de confirmações carregada junto com docs no `loadDocs`
+- Confirmação é idempotente (unique constraint em `documento_id + confirmado_por`)
 
