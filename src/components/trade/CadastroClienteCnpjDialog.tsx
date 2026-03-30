@@ -58,6 +58,7 @@ interface ExistingStore {
   city?: string;
   state?: string;
   status?: string;
+  isLinkedToCurrentUser?: boolean;
 }
 
 type Step = "cnpj" | "duplicate" | "review" | "success";
