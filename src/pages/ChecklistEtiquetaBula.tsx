@@ -57,14 +57,30 @@ export default function ChecklistEtiquetaBula() {
 
   const { data: etiquetas = [], isLoading } = useAllEtiquetas();
 
+  // Fetch all vinculos to filter etiquetas
+  const { data: vinculosAll = [] } = useQuery({
+    queryKey: ["china-tarefa-vinculos-all-ids"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id") as any);
+      if (error) throw error;
+      return (data || []).map((v: any) => v.submissao_id as string);
+    },
+  });
+
+  const vinculadosSet = useMemo(() => new Set(vinculosAll), [vinculosAll]);
+
   const filtered = useMemo(() =>
     filterByDateRange(
-      etiquetas.filter(e =>
-        e.sku.toLowerCase().includes(search.toLowerCase()) ||
-        e.produto_nome.toLowerCase().includes(search.toLowerCase())
-      ),
+      etiquetas
+        .filter(e => !e.submissao_id || vinculadosSet.has(e.submissao_id))
+        .filter(e =>
+          e.sku.toLowerCase().includes(search.toLowerCase()) ||
+          e.produto_nome.toLowerCase().includes(search.toLowerCase())
+        ),
       "created_at", dateFrom, dateTo
-    ), [etiquetas, search, dateFrom, dateTo]);
+    ), [etiquetas, search, dateFrom, dateTo, vinculadosSet]);
 
   const kpis = useMemo(() => ({
     total: etiquetas.length,
