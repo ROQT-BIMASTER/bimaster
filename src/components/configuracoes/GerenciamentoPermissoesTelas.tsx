@@ -34,13 +34,21 @@ interface Usuario {
   role?: string;
 }
 
+interface ModuloTela {
+  modulo_codigo: string;
+  modulo_nome: string;
+  tela_id: string;
+}
+
 export const GerenciamentoPermissoesTelas = () => {
   const [screens, setScreens] = useState<Screen[]>([]);
+  const [moduloTelas, setModuloTelas] = useState<ModuloTela[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [selectedUsuario, setSelectedUsuario] = useState<string>("");
   const [userPermissions, setUserPermissions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
