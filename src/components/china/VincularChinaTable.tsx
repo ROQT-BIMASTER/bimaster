@@ -165,7 +165,12 @@ export function VincularChinaTable({
   const paginatedData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Reset page when filters change
-  const prevFilteredLen = useMemo(() => filtered.length, [filtered]);
+  const filteredLen = filtered.length;
+  const prevFilteredLenRef = useMemo(() => ({ current: filteredLen }), []);
+  if (filteredLen !== prevFilteredLenRef.current) {
+    prevFilteredLenRef.current = filteredLen;
+    if (currentPage !== 1) setCurrentPage(1);
+  }
 
   return (
     <div className="space-y-3">
