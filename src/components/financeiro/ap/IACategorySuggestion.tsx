@@ -21,7 +21,7 @@ export function IACategorySuggestion({
     <div className="flex items-center gap-2 mt-1 text-sm">
       <Badge
         variant="outline"
-        className="border-[#2563EB]/30 bg-[#2563EB]/5 text-primary text-xs"
+        className="border-primary/30 bg-primary/5 text-primary text-xs"
       >
         Sugerido por IA — {sugestao} ({pct}%)
       </Badge>
