@@ -1,47 +1,47 @@
 
 
-# Devolução Final do Brasil — Upload de Documentos e Seleção para Decisão
+# Seguranca de Upload — Validacao e Protecao contra Arquivos Maliciosos
 
-## Contexto
+## Problema
 
-O `ProcessDecisionDialog` atualmente permite apenas selecionar tipo de decisão, escrever justificativa e (em caso de ajuste) marcar documentos existentes. Falta:
-1. **Upload de arquivos** como evidência/parecer anexo à decisão
-2. **Seleção de documentos** visível para TODOS os tipos de decisão (não apenas "needs_revision")
+Atualmente, o upload de arquivos no `ProcessDecisionDialog` (e em outros pontos do sistema) aceita qualquer arquivo sem validacao. Um usuario poderia enviar arquivos executaveis (.exe, .bat, .sh), scripts (.js, .html com scripts embutidos), ou arquivos com extensao falsificada contendo malware.
 
-O hook `useProcessDecisions` já suporta o campo `attachments: Array<{ url: string; nome: string }>`, mas o dialog nunca envia anexos.
+## Estrategia de Protecao (3 camadas)
 
-## Plano
+### Camada 1 — Validacao no Frontend (todos os uploads)
 
-### 1. Adicionar upload de arquivos ao dialog
+Criar um utilitario centralizado `src/lib/utils/file-security.ts` que sera usado em TODOS os pontos de upload do sistema:
 
-- Adicionar zona de upload (input file múltiplo) abaixo da justificativa
-- Ao selecionar arquivos, fazer upload para Supabase Storage bucket `process-attachments`
-- Exibir lista de arquivos selecionados com nome, tamanho e botão remover
-- Passar os URLs resultantes no campo `attachments` ao criar a decisão
+- **Whitelist de extensoes permitidas**: pdf, png, jpg, jpeg, webp, gif, doc, docx, xls, xlsx, csv, xml, zip, txt
+- **Whitelist de MIME types**: validar `file.type` contra tipos esperados
+- **Limite de tamanho**: maximo 20MB por arquivo
+- **Deteccao de extensao dupla**: rejeitar arquivos como `documento.pdf.exe`
+- **Validacao de magic bytes**: ler os primeiros bytes do arquivo para confirmar que o conteudo corresponde a extensao declarada (ex: PDF comeca com `%PDF`, PNG com `\x89PNG`)
 
-### 2. Seleção de documentos para TODAS as decisões
+### Camada 2 — Aplicar no ProcessDecisionDialog
 
-- Mover o checklist de documentos para fora do bloco condicional `needs_revision`
-- Mostrar para todos os tipos (aprovação parcial, rejeição com itens específicos, ajuste)
-- Label contextual: "Documentos relacionados" (genérico) em vez de "Itens que precisam de correção"
-- Manter o campo `motivo` por item apenas quando `needs_revision`
+Integrar `validateFileForUpload()` no `handleFileUpload` antes de fazer o upload ao Storage. Exibir toast de erro especifico quando um arquivo for rejeitado.
 
-### 3. Criar bucket Storage (se não existir)
+### Camada 3 — Aplicar no storage-helper centralizado
 
-- Migration para criar bucket `process-attachments` com políticas de acesso autenticado
-
-### 4. UX aprimorada
-
-- Seção de anexos com ícone Paperclip e drag indicator
-- Preview de nome do arquivo com badge de tamanho
-- Loading state durante upload antes de permitir submissão
-- DialogDescription para resolver o warning de acessibilidade nos logs
+Adicionar validacao em `uploadFile()` e `uploadAndGetSignedUrl()` no `storage-helper.ts`, para que QUALQUER upload futuro passe pela validacao automaticamente.
 
 ## Arquivos Afetados
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `src/components/processo/ProcessDecisionDialog.tsx` | Upload de arquivos, seleção de docs para todos os tipos, DialogDescription |
-| `src/hooks/useProcessDecisions.ts` | Sem mudança (já suporta attachments) |
-| Migration SQL | Criar bucket `process-attachments` com RLS |
+| `src/lib/utils/file-security.ts` | NOVO — utilitario de validacao de arquivos |
+| `src/components/processo/ProcessDecisionDialog.tsx` | Integrar validacao antes do upload |
+| `src/lib/utils/storage-helper.ts` | Adicionar validacao nas funcoes de upload |
+
+## Detalhes Tecnicos
+
+**Magic bytes validados:**
+- PDF: `25 50 44 46` (%PDF)
+- PNG: `89 50 4E 47`
+- JPEG: `FF D8 FF`
+- ZIP/DOCX/XLSX: `50 4B 03 04`
+- XML: `3C 3F 78 6D` (<?xm)
+
+**Extensoes bloqueadas explicitamente:** exe, bat, cmd, sh, ps1, vbs, js, html, htm, msi, dll, scr, com, pif, reg, hta, wsf
 
