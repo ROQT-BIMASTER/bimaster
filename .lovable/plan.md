@@ -1,47 +1,27 @@
 
 
-# Seguranca de Upload — Validacao e Protecao contra Arquivos Maliciosos
+# Filtrar Documentos do Processo por Vinculos da Tela Vincular China
 
 ## Problema
 
-Atualmente, o upload de arquivos no `ProcessDecisionDialog` (e em outros pontos do sistema) aceita qualquer arquivo sem validacao. Um usuario poderia enviar arquivos executaveis (.exe, .bat, .sh), scripts (.js, .html com scripts embutidos), ou arquivos com extensao falsificada contendo malware.
+Atualmente, a aba "Documento do Processo" no dialog de Extração com IA busca TODOS os documentos da submissão (`china_produto_documentos` WHERE `submissao_id`). O correto é mostrar apenas os documentos que foram despachados/vinculados ao módulo Composição via a tela "Vincular China", usando a tabela `china_documento_tarefa_vinculos`.
 
-## Estrategia de Protecao (3 camadas)
+## Solução
 
-### Camada 1 — Validacao no Frontend (todos os uploads)
+Alterar `loadProcessoDocs` no `ExtrairIngredientesIADialog.tsx` para:
 
-Criar um utilitario centralizado `src/lib/utils/file-security.ts` que sera usado em TODOS os pontos de upload do sistema:
+1. Buscar os vínculos em `china_documento_tarefa_vinculos` filtrando pelos documentos da submissão atual
+2. Usar os `documento_id` encontrados para filtrar `china_produto_documentos`
+3. Mostrar apenas documentos que possuem vínculo (foram despachados para este módulo)
 
-- **Whitelist de extensoes permitidas**: pdf, png, jpg, jpeg, webp, gif, doc, docx, xls, xlsx, csv, xml, zip, txt
-- **Whitelist de MIME types**: validar `file.type` contra tipos esperados
-- **Limite de tamanho**: maximo 20MB por arquivo
-- **Deteccao de extensao dupla**: rejeitar arquivos como `documento.pdf.exe`
-- **Validacao de magic bytes**: ler os primeiros bytes do arquivo para confirmar que o conteudo corresponde a extensao declarada (ex: PDF comeca com `%PDF`, PNG com `\x89PNG`)
+A lógica será:
+- Buscar vínculos: `china_documento_tarefa_vinculos` WHERE `documento_id` IN (documentos da submissão)
+- Filtrar documentos que aparecem nos vínculos
+- Exibir mensagem contextual quando não há documentos vinculados, orientando o usuário a usar a tela Vincular China
 
-### Camada 2 — Aplicar no ProcessDecisionDialog
+## Arquivo Afetado
 
-Integrar `validateFileForUpload()` no `handleFileUpload` antes de fazer o upload ao Storage. Exibir toast de erro especifico quando um arquivo for rejeitado.
-
-### Camada 3 — Aplicar no storage-helper centralizado
-
-Adicionar validacao em `uploadFile()` e `uploadAndGetSignedUrl()` no `storage-helper.ts`, para que QUALQUER upload futuro passe pela validacao automaticamente.
-
-## Arquivos Afetados
-
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/lib/utils/file-security.ts` | NOVO — utilitario de validacao de arquivos |
-| `src/components/processo/ProcessDecisionDialog.tsx` | Integrar validacao antes do upload |
-| `src/lib/utils/storage-helper.ts` | Adicionar validacao nas funcoes de upload |
-
-## Detalhes Tecnicos
-
-**Magic bytes validados:**
-- PDF: `25 50 44 46` (%PDF)
-- PNG: `89 50 4E 47`
-- JPEG: `FF D8 FF`
-- ZIP/DOCX/XLSX: `50 4B 03 04`
-- XML: `3C 3F 78 6D` (<?xm)
-
-**Extensoes bloqueadas explicitamente:** exe, bat, cmd, sh, ps1, vbs, js, html, htm, msi, dll, scr, com, pif, reg, hta, wsf
+| `src/components/composicao/ExtrairIngredientesIADialog.tsx` | Alterar `loadProcessoDocs` para filtrar por `china_documento_tarefa_vinculos`; mensagem vazia contextual |
 
