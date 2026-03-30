@@ -61,7 +61,7 @@ interface ExistingStore {
   isLinkedToCurrentUser?: boolean;
 }
 
-type Step = "cnpj" | "duplicate" | "review" | "success";
+type Step = "cnpj" | "review" | "success";
 
 export function CadastroClienteCnpjDialog({
   open,
