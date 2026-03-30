@@ -1,54 +1,68 @@
 
 
-# Vincular China no Motor de Artes
+# Filtrar Projetos: Apenas Criados ou Membros
 
-## Resumo
+## Problema
 
-O diálogo "Novo Checklist de Arte" no Motor de Artes atualmente é 100% manual. Adicionar o seletor de submissões vinculadas (mesmo padrão já implementado em Análise de Embalagem e Etiqueta/Bula) para importar dados do Vincular China.
+A política RLS da tabela `projetos` usa `USING(true)` para SELECT, permitindo que todos os usuários autenticados vejam todos os projetos. O correto é que cada usuário veja apenas projetos que criou ou nos quais é membro.
 
-## Alterações
+## Solução
 
-### 1. Migration — adicionar `submissao_id` na tabela `produto_fluxo_artes`
+### 1. Migration — Atualizar política RLS de SELECT
 
-A tabela não possui coluna `submissao_id`. Adicionar como nullable UUID com FK para `china_produto_submissoes`.
+Substituir a política permissiva por uma que verifica se o usuário é criador ou membro:
 
 ```sql
-ALTER TABLE public.produto_fluxo_artes
-  ADD COLUMN submissao_id uuid REFERENCES public.china_produto_submissoes(id);
+DROP POLICY "Authenticated users can view projetos" ON public.projetos;
+
+CREATE POLICY "Users view own or member projetos" ON public.projetos
+  FOR SELECT TO authenticated
+  USING (
+    criador_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.projeto_membros pm
+      WHERE pm.projeto_id = id AND pm.user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.user_roles ur
+      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
+    )
+  );
 ```
 
-### 2. `useFluxoArtesMotor.ts` — atualizar tipo e mutation
+Também restringir o UPDATE para apenas criador/membro:
 
-- Adicionar `submissao_id` ao tipo `FluxoArte`
-- Aceitar `submissao_id` opcional no `useCreateFluxoArte` e incluí-lo no insert
+```sql
+DROP POLICY "Authenticated users can update projetos" ON public.projetos;
 
-### 3. `FluxoArtesMotor.tsx` — refatorar diálogo de criação
+CREATE POLICY "Members can update projetos" ON public.projetos
+  FOR UPDATE TO authenticated
+  USING (
+    criador_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.projeto_membros pm
+      WHERE pm.projeto_id = id AND pm.user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.user_roles ur
+      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
+    )
+  );
+```
 
-- Adicionar tabs "Importar do Vincular China" / "Preenchimento Manual" (mesmo padrão dos outros módulos)
-- No modo vinculado: buscar submissões via `china_submissao_tarefa_vinculos` → `china_produto_submissoes`
-- Ao selecionar: auto-preencher `produto_id`, `sku`, `produto_nome`, `linha_marca` e `submissao_id`
-- Preview de documentos vinculados à submissão selecionada
-- Manter seletor de tipo de checklist em ambos os modos
+### 2. Nenhuma alteração no código frontend
 
-### 4. Filtro na listagem
+O hook `useProjetos` já faz `select("*")` — com a RLS corrigida, o banco retornará automaticamente apenas os projetos visíveis ao usuário.
 
-- Filtrar fluxos para exibir apenas aqueles cujo `submissao_id` está vinculado (ou sem submissao_id)
+## Arquivo
 
-## Arquivos
-
-| Arquivo | Ação |
+| Recurso | Ação |
 |---------|------|
-| Migration SQL | ADD COLUMN `submissao_id` em `produto_fluxo_artes` |
-| `src/hooks/useFluxoArtesMotor.ts` | Tipo + mutation com `submissao_id` |
-| `src/pages/FluxoArtesMotor.tsx` | Diálogo com seletor vinculado + filtro listagem |
+| Migration SQL | DROP + CREATE policies em `projetos` |
 
-## Fluxo
+## Resultado
 
-```text
-[Novo Checklist] → Dialog abre
-  → Tab "Importar do Vincular China": cards de submissões vinculadas
-  → Selecionar → auto-preenche campos + preview docs
-  → Selecionar tipo de checklist
-  → [Criar] → fluxo criado com submissao_id
-```
+- Usuário vê apenas projetos que criou (`criador_id`) ou onde é membro (`projeto_membros`)
+- Admins continuam vendo todos
+- Zero alteração no frontend
 
