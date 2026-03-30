@@ -209,6 +209,7 @@ export function ExtrairIngredientesIADialog({
     setPreviewDoc(doc);
     setPreviewFileName(doc.nome_arquivo || doc.tipo_documento);
     setTermsAccepted(false);
+    setSelectedDocWorkflow(doc.despacho || null);
     setLoadingPreview(true);
     setStep("preview");
 
