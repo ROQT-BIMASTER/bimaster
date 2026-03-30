@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
@@ -409,39 +411,219 @@ function SolicitacoesList({ solicitacoes, loading, onChinaUpload, onAvaliar }: a
 function NewAnaliseDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const create = useCreateAnalise();
   const [form, setForm] = useState({ submissao_id: "", sku: "", produto_nome: "", linha_marca: "" });
+  const [modo, setModo] = useState<"vinculado" | "manual">("vinculado");
+  const [searchVinculo, setSearchVinculo] = useState("");
+  const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
+  const [docsPreview, setDocsPreview] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  // Fetch linked submissions
+  const { data: vinculos = [], isLoading: loadingVinculos } = useQuery({
+    queryKey: ["vinculos-para-analise"],
+    enabled: open && modo === "vinculado",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id, projeto_id, tarefa_id") as any;
+      if (error) throw error;
+      const submissaoIds = [...new Set((data || []).map((v: any) => v.submissao_id))] as string[];
+      if (!submissaoIds.length) return [];
+      const { data: subs, error: err2 } = await supabase
+        .from("china_produto_submissoes")
+        .select("id, produto_codigo, produto_nome, status, formula_codigo")
+        .in("id", submissaoIds)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (err2) throw err2;
+      return subs || [];
+    },
+  });
+
+  const filteredVinculos = useMemo(() => {
+    if (!searchVinculo.trim()) return vinculos;
+    const s = searchVinculo.toLowerCase();
+    return vinculos.filter((v: any) =>
+      v.produto_codigo?.toLowerCase().includes(s) || v.produto_nome?.toLowerCase().includes(s)
+    );
+  }, [vinculos, searchVinculo]);
+
+  // Load docs when a submission is selected
+  const loadDocsForSubmissao = async (submissaoId: string) => {
+    setLoadingDocs(true);
+    try {
+      const { data } = await supabase
+        .from("china_produto_documentos")
+        .select("id, tipo_key, label_pt, label_cn, arquivo_url, arquivo_path, status")
+        .eq("submissao_id", submissaoId)
+        .order("created_at", { ascending: false });
+      setDocsPreview(data || []);
+    } catch { setDocsPreview([]); }
+    setLoadingDocs(false);
+  };
+
+  const handleSelectSubmissao = (sub: any) => {
+    setSelectedSubmissaoId(sub.id);
+    setForm({
+      submissao_id: sub.id,
+      sku: sub.produto_codigo || "",
+      produto_nome: sub.produto_nome || "",
+      linha_marca: sub.formula_codigo || "",
+    });
+    loadDocsForSubmissao(sub.id);
+  };
 
   const handleSubmit = () => {
     if (!form.sku || !form.produto_nome) { toast.error("SKU e nome do produto são obrigatórios"); return; }
-    create.mutate(form, { onSuccess: () => { onClose(); setForm({ submissao_id: "", sku: "", produto_nome: "", linha_marca: "" }); } });
+    create.mutate(form, {
+      onSuccess: () => {
+        onClose();
+        setForm({ submissao_id: "", sku: "", produto_nome: "", linha_marca: "" });
+        setSelectedSubmissaoId(null);
+        setDocsPreview([]);
+        setModo("vinculado");
+      },
+    });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setSelectedSubmissaoId(null); setDocsPreview([]); } }}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Análise de Embalagem</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>SKU *</Label>
-            <Input value={form.sku} onChange={(e) => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="HB-L6526" />
-          </div>
-          <div>
-            <Label>Produto *</Label>
-            <Input value={form.produto_nome} onChange={(e) => setForm(p => ({ ...p, produto_nome: e.target.value }))} placeholder="Lip Oil - Fresh Lips" />
-          </div>
-          <div>
-            <Label>Linha / Marca</Label>
-            <Input value={form.linha_marca} onChange={(e) => setForm(p => ({ ...p, linha_marca: e.target.value }))} placeholder="Ruby Rose" />
-          </div>
-          <div>
-            <Label>Submissão ID (opcional)</Label>
-            <Input value={form.submissao_id} onChange={(e) => setForm(p => ({ ...p, submissao_id: e.target.value }))} placeholder="UUID da submissão China" />
-          </div>
+
+        {/* Mode toggle */}
+        <div className="flex gap-2 mb-2">
+          <Button
+            variant={modo === "vinculado" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setModo("vinculado"); setSelectedSubmissaoId(null); setDocsPreview([]); }}
+            className="gap-1.5"
+          >
+            <Package className="h-3.5 w-3.5" /> Importar do Vincular China
+          </Button>
+          <Button
+            variant={modo === "manual" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setModo("manual"); setSelectedSubmissaoId(null); setDocsPreview([]); setForm({ submissao_id: "", sku: "", produto_nome: "", linha_marca: "" }); }}
+            className="gap-1.5"
+          >
+            <FileText className="h-3.5 w-3.5" /> Preenchimento Manual
+          </Button>
         </div>
+
+        <Separator />
+
+        {modo === "vinculado" ? (
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar submissão vinculada..."
+                value={searchVinculo}
+                onChange={(e) => setSearchVinculo(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Submission cards */}
+            {loadingVinculos ? (
+              <div className="flex justify-center p-6"><Clock className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : filteredVinculos.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nenhuma submissão vinculada encontrada. Use a tela "Vincular China" primeiro.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-1">
+                {filteredVinculos.map((sub: any) => (
+                  <div
+                    key={sub.id}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50",
+                      selectedSubmissaoId === sub.id && "border-primary bg-primary/5 ring-1 ring-primary/30"
+                    )}
+                    onClick={() => handleSelectSubmissao(sub)}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Package className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Código: {sub.produto_codigo} {sub.formula_codigo ? `· ${sub.formula_codigo}` : ""}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{sub.status}</Badge>
+                    {selectedSubmissaoId === sub.id && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Auto-filled fields preview */}
+            {selectedSubmissaoId && (
+              <Card className="bg-muted/30">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dados Auto-Preenchidos</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-muted-foreground text-xs">SKU:</span> <span className="font-medium">{form.sku}</span></div>
+                    <div><span className="text-muted-foreground text-xs">Produto:</span> <span className="font-medium">{form.produto_nome}</span></div>
+                    <div><span className="text-muted-foreground text-xs">Linha:</span> <span className="font-medium">{form.linha_marca || "—"}</span></div>
+                    <div><span className="text-muted-foreground text-xs">Submissão:</span> <span className="font-mono text-[11px]">{form.submissao_id.slice(0, 8)}...</span></div>
+                  </div>
+
+                  {/* Doc preview */}
+                  {loadingDocs ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="h-3 w-3 animate-spin" /> Carregando documentos...</div>
+                  ) : docsPreview.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">📄 {docsPreview.length} documento(s) vinculado(s)</p>
+                      <div className="space-y-1">
+                        {docsPreview.slice(0, 5).map((d: any) => (
+                          <div key={d.id} className="flex items-center gap-2 text-xs p-1.5 rounded bg-background">
+                            <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="truncate">{d.label_pt || d.tipo_key}</span>
+                            <Badge variant="outline" className="text-[9px] ml-auto shrink-0">{d.status || "pendente"}</Badge>
+                          </div>
+                        ))}
+                        {docsPreview.length > 5 && (
+                          <p className="text-[11px] text-muted-foreground">+{docsPreview.length - 5} mais...</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhum documento vinculado a esta submissão.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          /* Manual mode - original fields */
+          <div className="space-y-4">
+            <div>
+              <Label>SKU *</Label>
+              <Input value={form.sku} onChange={(e) => setForm(p => ({ ...p, sku: e.target.value }))} placeholder="HB-L6526" />
+            </div>
+            <div>
+              <Label>Produto *</Label>
+              <Input value={form.produto_nome} onChange={(e) => setForm(p => ({ ...p, produto_nome: e.target.value }))} placeholder="Lip Oil - Fresh Lips" />
+            </div>
+            <div>
+              <Label>Linha / Marca</Label>
+              <Input value={form.linha_marca} onChange={(e) => setForm(p => ({ ...p, linha_marca: e.target.value }))} placeholder="Ruby Rose" />
+            </div>
+            <div>
+              <Label>Submissão ID (opcional)</Label>
+              <Input value={form.submissao_id} onChange={(e) => setForm(p => ({ ...p, submissao_id: e.target.value }))} placeholder="UUID da submissão China" />
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={create.isPending}>
+          <Button onClick={handleSubmit} disabled={create.isPending || (modo === "vinculado" && !selectedSubmissaoId)}>
             {create.isPending ? "Criando..." : "Criar Análise"}
           </Button>
         </DialogFooter>
