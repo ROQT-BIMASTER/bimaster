@@ -52,6 +52,12 @@ const STATUS_OPTIONS = [
   { value: "rejeitado", label: "Rejeitado" },
 ];
 
+const VINCULO_OPTIONS = [
+  { value: "todos", label: "Todos" },
+  { value: "vinculados", label: "Vinculados" },
+  { value: "nao_vinculados", label: "Não Vinculados" },
+];
+
 function getStatusBadge(status: string) {
   const config: Record<string, { label: string; variant: "secondary" | "default" | "warning" | "success" | "destructive" | "outline" }> = {
     rascunho: { label: "Rascunho", variant: "secondary" },
