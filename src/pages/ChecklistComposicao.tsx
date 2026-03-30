@@ -37,26 +37,38 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
 import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
+import { TarefasVinculadasPanel } from "@/components/composicao/TarefasVinculadasPanel";
 
-// Fetch submissões for listing
+// Fetch submissões for listing (only those linked via Vincular China)
 function useSubmissoes() {
   return useQuery({
     queryKey: ["submissoes_composicao_vinculadas"],
     queryFn: async () => {
-      // 1. Buscar submissão IDs vinculadas via "Vincular China"
+      // 1. Buscar vínculos com info de projeto/seção/tarefa
       const { data: vinculos, error: vErr } = await (supabase
         .from("china_submissao_tarefa_vinculos" as any)
-        .select("submissao_id") as any);
+        .select("submissao_id, tarefa_id, projeto_id, secao_id") as any);
 
       if (vErr) throw vErr;
 
       const idSet = new Set<string>();
-      (vinculos || []).forEach((v: any) => { if (v.submissao_id) idSet.add(v.submissao_id); });
+      const vinculoMap: Record<string, { tarefa_id: string; projeto_id: string; secao_id: string | null }[]> = {};
+      (vinculos || []).forEach((v: any) => {
+        if (v.submissao_id) {
+          idSet.add(v.submissao_id);
+          if (!vinculoMap[v.submissao_id]) vinculoMap[v.submissao_id] = [];
+          vinculoMap[v.submissao_id].push({
+            tarefa_id: v.tarefa_id,
+            projeto_id: v.projeto_id,
+            secao_id: v.secao_id,
+          });
+        }
+      });
       const ids = Array.from(idSet);
 
       if (ids.length === 0) return [];
 
-      // 2. Buscar apenas submissões vinculadas
+      // 2. Buscar submissões vinculadas
       const { data, error } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, created_at")
@@ -64,7 +76,35 @@ function useSubmissoes() {
         .in("id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+
+      // 3. Buscar nomes de projetos e tarefas
+      const allProjetoIds = [...new Set((vinculos as any[]).map((v: any) => v.projeto_id).filter(Boolean))];
+      const allTarefaIds = [...new Set((vinculos as any[]).map((v: any) => v.tarefa_id).filter(Boolean))];
+
+      const [projRes, tarRes] = await Promise.all([
+        allProjetoIds.length > 0
+          ? supabase.from("projetos").select("id, nome").in("id", allProjetoIds)
+          : Promise.resolve({ data: [] }),
+        allTarefaIds.length > 0
+          ? supabase.from("projeto_tarefas").select("id, titulo, status").in("id", allTarefaIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const projMap = Object.fromEntries(((projRes as any).data || []).map((p: any) => [p.id, p.nome]));
+      const tarMap = Object.fromEntries(((tarRes as any).data || []).map((t: any) => [t.id, { titulo: t.titulo, status: t.status }]));
+
+      return (data || []).map((sub: any) => {
+        const vincs = vinculoMap[sub.id] || [];
+        return {
+          ...sub,
+          vinculos: vincs.map((v: any) => ({
+            ...v,
+            projeto_nome: projMap[v.projeto_id] || null,
+            tarefa_titulo: tarMap[v.tarefa_id]?.titulo || null,
+            tarefa_status: tarMap[v.tarefa_id]?.status || null,
+          })),
+        };
+      });
     },
   });
 }
@@ -162,6 +202,7 @@ export default function ChecklistComposicao() {
         <div className="md:hidden space-y-2">
           {filtered.map(sub => {
             const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
+            const firstVinc = sub.vinculos?.[0];
             return (
               <Card key={sub.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all" onClick={() => setSelectedSubmissao(sub.id)}>
                 <CardContent className="p-3">
@@ -169,6 +210,12 @@ export default function ChecklistComposicao() {
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{sub.produto_codigo}</p>
+                      {firstVinc?.projeto_nome && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          📁 {firstVinc.projeto_nome}
+                          {firstVinc.tarefa_titulo ? ` › ${firstVinc.tarefa_titulo}` : ""}
+                        </p>
+                      )}
                     </div>
                     <Badge variant={badge.variant} className="text-[10px] shrink-0">{badge.label}</Badge>
                   </div>
@@ -180,8 +227,9 @@ export default function ChecklistComposicao() {
 
         {/* Desktop Table */}
         <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
-          <div className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <div className="grid grid-cols-[1fr_180px_140px_120px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
             <span>Produto</span>
+            <span>Projeto / Tarefa</span>
             <span>Status</span>
             <span>SKU</span>
             <span>Criado em</span>
@@ -189,10 +237,11 @@ export default function ChecklistComposicao() {
           {filtered.map(sub => {
             const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
             const initial = (sub.produto_nome || "P")[0].toUpperCase();
+            const firstVinc = sub.vinculos?.[0];
             return (
               <div
                 key={sub.id}
-                className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                className="grid grid-cols-[1fr_180px_140px_120px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
                 onClick={() => setSelectedSubmissao(sub.id)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -200,6 +249,18 @@ export default function ChecklistComposicao() {
                     <span className="text-primary font-bold text-xs">{initial}</span>
                   </div>
                   <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                </div>
+                <div className="min-w-0">
+                  {firstVinc?.projeto_nome ? (
+                    <div>
+                      <p className="text-xs font-medium truncate">{firstVinc.projeto_nome}</p>
+                      {firstVinc.tarefa_titulo && (
+                        <p className="text-[10px] text-muted-foreground truncate">{firstVinc.tarefa_titulo}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">—</span>
+                  )}
                 </div>
                 <Badge variant={badge.variant} className="w-fit text-[10px]">{badge.label}</Badge>
                 <span className="text-xs font-mono text-muted-foreground">{sub.produto_codigo}</span>
@@ -346,6 +407,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="composicao">Composição</TabsTrigger>
+          <TabsTrigger value="tarefas">Tarefas Vinculadas</TabsTrigger>
           <TabsTrigger value="regulatorio">Análise Regulatória</TabsTrigger>
           <TabsTrigger value="peticionamento">Peticionamento</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
@@ -413,6 +475,10 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
               });
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="tarefas" className="mt-4">
+          <TarefasVinculadasPanel submissaoId={submissaoId} />
         </TabsContent>
 
         <TabsContent value="regulatorio" className="mt-4">
