@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye } from "lucide-react";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import {
   Popover,
