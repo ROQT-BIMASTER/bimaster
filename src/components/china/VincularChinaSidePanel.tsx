@@ -188,7 +188,7 @@ export function VincularChinaSidePanel({
               variant="outline"
               size="sm"
               className="w-full gap-1.5"
-              onClick={() => navigate(`/dashboard/fabrica-china/ficha/${submissao.id}`)}
+              onClick={() => navigate(`/dashboard/fabrica-china/produto/${submissao.id}`)}
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Abrir Ficha Completa
