@@ -38,6 +38,7 @@ import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
 import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
 import { TarefasVinculadasPanel } from "@/components/composicao/TarefasVinculadasPanel";
+import { DocumentosPendentesPanel } from "@/components/composicao/DocumentosPendentesPanel";
 
 // Fetch submissões for listing (only those linked via Vincular China)
 function useSubmissoes() {
