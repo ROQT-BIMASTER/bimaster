@@ -328,32 +328,101 @@ export const GerenciamentoPermissoesTelas = () => {
             )}
 
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold">Telas Disponíveis</h4>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {screens.map((screen) => (
-                  <div
-                    key={screen.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={isUserAdmin || userPermissions.has(screen.id)}
-                        onCheckedChange={() => !isUserAdmin && handleTogglePermission(screen.id)}
-                        disabled={isUserAdmin}
-                      />
-                      <div>
-                        <div className="font-medium">{screen.nome}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {screen.descricao}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Rota: {screen.rota}
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant="outline">{screen.codigo}</Badge>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Telas Disponíveis</h4>
+                <Badge variant="secondary">{userPermissions.size} / {screens.length} ativas</Badge>
+              </div>
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {(() => {
+                  // Group screens by module
+                  const telaModuloMap = new Map<string, string>();
+                  moduloTelas.forEach(mt => telaModuloMap.set(mt.tela_id, mt.modulo_codigo));
+
+                  const groups = new Map<string, { nome: string; screens: Screen[] }>();
+                  screens.forEach(screen => {
+                    const modCode = telaModuloMap.get(screen.id) || "sem_modulo";
+                    const modNome = moduloTelas.find(mt => mt.modulo_codigo === modCode)?.modulo_nome || "Sem Módulo";
+                    if (!groups.has(modCode)) {
+                      groups.set(modCode, { nome: modNome, screens: [] });
+                    }
+                    groups.get(modCode)!.screens.push(screen);
+                  });
+
+                  return Array.from(groups.entries()).map(([code, group]) => {
+                    const activeCount = group.screens.filter(s => isUserAdmin || userPermissions.has(s.id)).length;
+                    const isOpen = openGroups.has(code);
+
+                    const handleToggleGroup = (checked: boolean) => {
+                      const newPerms = new Set(userPermissions);
+                      group.screens.forEach(s => {
+                        if (checked) newPerms.add(s.id);
+                        else newPerms.delete(s.id);
+                      });
+                      setUserPermissions(newPerms);
+                    };
+
+                    return (
+                      <Collapsible
+                        key={code}
+                        open={isOpen}
+                        onOpenChange={(open) => {
+                          const next = new Set(openGroups);
+                          if (open) next.add(code);
+                          else next.delete(code);
+                          setOpenGroups(next);
+                        }}
+                      >
+                        <CollapsibleTrigger className="flex w-full items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-2">
+                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <span className="font-medium text-sm">{group.nome}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {activeCount}/{group.screens.length}
+                            </Badge>
+                          </div>
+                          {!isUserAdmin && (
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="text-xs text-primary hover:underline"
+                                onClick={() => handleToggleGroup(true)}
+                              >
+                                Todas
+                              </button>
+                              <span className="text-muted-foreground">|</span>
+                              <button
+                                className="text-xs text-destructive hover:underline"
+                                onClick={() => handleToggleGroup(false)}
+                              >
+                                Nenhuma
+                              </button>
+                            </div>
+                          )}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                          {group.screens.map((screen) => (
+                            <div
+                              key={screen.id}
+                              className="flex items-center justify-between p-2.5 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Checkbox
+                                  checked={isUserAdmin || userPermissions.has(screen.id)}
+                                  onCheckedChange={() => !isUserAdmin && handleTogglePermission(screen.id)}
+                                  disabled={isUserAdmin}
+                                />
+                                <div>
+                                  <div className="font-medium text-sm">{screen.nome}</div>
+                                  <div className="text-xs text-muted-foreground">{screen.descricao}</div>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-xs">{screen.codigo}</Badge>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
