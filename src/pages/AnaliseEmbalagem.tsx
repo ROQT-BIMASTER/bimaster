@@ -474,6 +474,7 @@ function ApprovalDialog({ open, onClose, analise }: { open: boolean; onClose: ()
   });
 
   const [uploading, setUploading] = useState(false);
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
 
   const handleSaveSpecs = () => {
     updateAnalise.mutate({ id: analise.id, ...specs } as any);
