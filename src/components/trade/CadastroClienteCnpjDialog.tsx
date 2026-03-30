@@ -9,17 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Search,
   Loader2,
   Building2,
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
   ArrowLeft,
-  Link2,
   UserPlus,
   FileText,
 } from "lucide-react";
@@ -51,16 +48,8 @@ interface ReceitaData {
   matrizFilial?: string;
 }
 
-interface ExistingStore {
-  id: string;
-  name: string;
-  cnpj: string;
-  city?: string;
-  state?: string;
-  status?: string;
-}
 
-type Step = "cnpj" | "duplicate" | "review" | "success";
+type Step = "cnpj" | "review" | "success";
 
 export function CadastroClienteCnpjDialog({
   open,
@@ -71,7 +60,6 @@ export function CadastroClienteCnpjDialog({
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
   const [receitaData, setReceitaData] = useState<ReceitaData | null>(null);
-  const [existingStore, setExistingStore] = useState<ExistingStore | null>(null);
   const [createdStoreId, setCreatedStoreId] = useState<string | null>(null);
   const [createdStoreName, setCreatedStoreName] = useState("");
 
@@ -92,7 +80,7 @@ export function CadastroClienteCnpjDialog({
     setCnpj("");
     setLoading(false);
     setReceitaData(null);
-    setExistingStore(null);
+    setCreatedStoreId(null);
     setCreatedStoreId(null);
     setCreatedStoreName("");
     setFormData({ name: "", nomeFantasia: "", address: "", city: "", state: "", phone: "", email: "", cnae: "" });
@@ -121,6 +109,9 @@ export function CadastroClienteCnpjDialog({
     setLoading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
       // Check duplicate first
       const { data: existing } = await supabase
         .from("stores")
@@ -139,8 +130,29 @@ export function CadastroClienteCnpjDialog({
       setReceitaData(data);
 
       if (existing && existing.length > 0) {
-        setExistingStore(existing[0] as ExistingStore);
-        setStep("duplicate");
+        const store = existing[0];
+        
+        // Check if already linked to current user
+        const { data: linkData } = await supabase
+          .from("store_sellers")
+          .select("id")
+          .eq("store_id", store.id)
+          .eq("vendedor_id", user.id)
+          .limit(1);
+
+        const isLinked = linkData && linkData.length > 0;
+
+        if (isLinked) {
+          // Already linked to current user — just block
+          toast.info("Este CNPJ já está cadastrado e vinculado ao seu perfil.");
+          setLoading(false);
+          return;
+        }
+
+        // Belongs to another vendor — block entirely
+        toast.error("Este CNPJ já está cadastrado e vinculado a outro vendedor. Não é possível prosseguir.");
+        setLoading(false);
+        return;
       } else {
         // Pre-fill form
         setFormData({
@@ -162,61 +174,7 @@ export function CadastroClienteCnpjDialog({
     }
   };
 
-  // Step 2 (duplicate): Vincular ao existente
-  const handleVincular = async () => {
-    if (!existingStore) return;
-    setLoading(true);
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      // Check if already linked
-      const { data: existingLink } = await supabase
-        .from("store_sellers")
-        .select("id")
-        .eq("store_id", existingStore.id)
-        .eq("vendedor_id", user.id)
-        .limit(1);
-
-      if (existingLink && existingLink.length > 0) {
-        toast.info("Você já está vinculado a este cliente");
-        onSuccess?.(existingStore.id, existingStore.name);
-        handleClose(false);
-        return;
-      }
-
-      const { error } = await supabase.from("store_sellers").insert({
-        store_id: existingStore.id,
-        vendedor_id: user.id,
-        is_principal: false,
-        created_by: user.id,
-      });
-
-      if (error) throw error;
-
-      // Audit log
-      await supabase.from("audit_logs").insert([{
-        action: "vinculacao_cliente_existente",
-        entity_type: "store",
-        entity_id: existingStore.id,
-        user_id: user.id,
-        metadata: {
-          cnpj: cleanCnpj,
-          store_name: existingStore.name,
-          origem: "cadastro_cnpj_dialog",
-        } as any,
-      }]);
-
-      toast.success(`Vinculado ao cliente: ${existingStore.name}`);
-      onSuccess?.(existingStore.id, existingStore.name);
-      handleClose(false);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao vincular cliente");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Step 3 (review): Cadastrar novo
   const handleCadastrar = async () => {
@@ -327,7 +285,6 @@ export function CadastroClienteCnpjDialog({
           </DialogTitle>
           <DialogDescription>
             {step === "cnpj" && "Informe o CNPJ para consulta automática na Receita Federal"}
-            {step === "duplicate" && "Cliente já cadastrado no sistema"}
             {step === "review" && "Revise e ajuste os dados antes de confirmar"}
             {step === "success" && "Cliente cadastrado com sucesso"}
           </DialogDescription>
@@ -340,9 +297,9 @@ export function CadastroClienteCnpjDialog({
               <div
                 className={cn(
                   "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                  step === s || (step === "duplicate" && s === "review")
+                  step === s
                     ? "bg-primary text-primary-foreground"
-                    : ["success"].includes(step) || (step === "review" && i === 0)
+                    : (step === "review" && i === 0) || (step === "success" && i < 2)
                     ? "bg-primary/20 text-primary"
                     : "bg-muted text-muted-foreground"
                 )}
@@ -398,57 +355,7 @@ export function CadastroClienteCnpjDialog({
           </div>
         )}
 
-        {/* STEP: Duplicate Found */}
-        {step === "duplicate" && existingStore && (
-          <div className="space-y-4">
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-semibold text-sm">Cliente já cadastrado</p>
-                    <p className="text-xs text-muted-foreground">
-                      Este CNPJ já está registrado no sistema. Deseja vincular este cliente a você?
-                    </p>
-                  </div>
-                </div>
 
-                <div className="rounded-lg border bg-card p-3 space-y-1.5">
-                  <p className="font-bold text-sm">{existingStore.name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    CNPJ: {existingStore.cnpj}
-                  </p>
-                  {(existingStore.city || existingStore.state) && (
-                    <p className="text-xs text-muted-foreground">
-                      {[existingStore.city, existingStore.state].filter(Boolean).join(" - ")}
-                    </p>
-                  )}
-                  <Badge
-                    variant={existingStore.status === "active" ? "secondary" : "destructive"}
-                    className="text-[10px]"
-                  >
-                    {existingStore.status === "active" ? "Ativo" : existingStore.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep("cnpj")} className="flex-1">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <Button onClick={handleVincular} disabled={loading} className="flex-1">
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
-                )}
-                Vincular a você
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* STEP: Review & Edit */}
         {step === "review" && (
