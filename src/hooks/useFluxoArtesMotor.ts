@@ -252,6 +252,7 @@ export function useCreateFluxoArte() {
       produto_nome: string;
       linha_marca?: string;
       tipo_checklist: ChecklistTipo;
+      submissao_id?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
