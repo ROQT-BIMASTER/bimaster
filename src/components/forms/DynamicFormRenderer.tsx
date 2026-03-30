@@ -99,7 +99,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
 
       if (bannerIds.length) {
-        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, link_destino").in("id", bannerIds);
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, descricao").in("id", bannerIds);
         setAttachedBanners(b || []);
       }
       if (materialIds.length) {
