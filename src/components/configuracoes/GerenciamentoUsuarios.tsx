@@ -375,11 +375,7 @@ export const GerenciamentoUsuarios = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    const userToDelete = usuarios.find(u => u.id === userId);
-    if (!confirm(`Tem certeza que deseja remover permanentemente o usuário "${userToDelete?.nome || ''}" (${userToDelete?.email || ''})? Esta ação não pode ser desfeita.`)) return;
-    
     try {
-      // Remover de auth.users via edge function (que também deleta em cascata profiles, roles, etc.)
       const { data, error: fnError } = await supabase.functions.invoke("delete-admin-user", {
         body: { user_id: userId },
       });
@@ -389,9 +385,10 @@ export const GerenciamentoUsuarios = () => {
 
       toast({
         title: "Usuário removido",
-        description: `${userToDelete?.nome || 'O usuário'} foi removido completamente do sistema`,
+        description: `${deleteTarget?.nome || 'O usuário'} foi removido completamente do sistema`,
       });
       
+      setDeleteTarget(null);
       fetchUsuarios();
     } catch (error: any) {
       console.error("Erro ao remover usuário:", error);
