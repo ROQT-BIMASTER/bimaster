@@ -73,7 +73,7 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
   };
 
   const getTipoUsuarioVariant = () => {
-    switch (profile?.tipo_usuario) {
+    switch (effectiveRole) {
       case 'admin': return 'default';
       case 'gerente': case 'supervisor': return 'secondary';
       default: return 'outline';
