@@ -80,6 +80,7 @@ export function ExtrairIngredientesIADialog({
       setPreviewUrl(null);
       setPreviewFileName("");
       setTermsAccepted(false);
+      setSelectedDocWorkflow(null);
     }
   }, [open]);
 
