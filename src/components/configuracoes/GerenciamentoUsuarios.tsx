@@ -465,6 +465,12 @@ export const GerenciamentoUsuarios = () => {
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE);
+  const paginatedUsuarios = filteredUsuarios.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+
   return (
     <div className="space-y-4">
       <Card>
