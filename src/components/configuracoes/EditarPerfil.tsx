@@ -233,7 +233,7 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
           <Label htmlFor="departamento">Departamento</Label>
           <Input
             id="departamento"
-            value={formData.departamento || ""}
+            value={departamentoNome}
             disabled
             className="bg-muted"
           />

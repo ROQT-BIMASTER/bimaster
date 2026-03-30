@@ -1,49 +1,51 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, UserCog, User, CheckCircle, Lock, Activity, Loader2, Key, BarChart3, HardDrive, Eye } from "lucide-react";
+import { Shield, UserCog, User, CheckCircle, Lock, Loader2, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Direct imports
-import { MunicipioAtribuicao } from "@/components/admin/MunicipioAtribuicao";
+// Eager imports — lightweight / always needed
 import { EditarPerfil } from "@/components/configuracoes/EditarPerfil";
-import { GerenciamentoUsuarios } from "@/components/configuracoes/GerenciamentoUsuarios";
-import { ConfiguracoesNotificacoes } from "@/components/configuracoes/ConfiguracoesNotificacoes";
-import { PermissoesDeAcesso } from "@/components/configuracoes/PermissoesDeAcesso";
-import { GerenciamentoPermissoesTelas } from "@/components/configuracoes/GerenciamentoPermissoesTelas";
-import { GerenciamentoPermissoesModulos } from "@/components/configuracoes/GerenciamentoPermissoesModulos";
-import { GerenciadorOrdemModulos } from "@/components/configuracoes/GerenciadorOrdemModulos";
-import { VinculacaoUsuarioProspects } from "@/components/configuracoes/VinculacaoUsuarioProspects";
-import { GerenciamentoIntegracoes } from "@/components/configuracoes/GerenciamentoIntegracoes";
-import { DocumentacaoAPI } from "@/components/configuracoes/DocumentacaoAPI";
-import { AtribuirVendedorSupervisor } from "@/components/configuracoes/AtribuirVendedorSupervisor";
-import { HierarquiaUsuarios } from "@/components/configuracoes/HierarquiaUsuarios";
-import { GerenciamentoPontuacao } from "@/components/configuracoes/GerenciamentoPontuacao";
-import { GerenciamentoPremiacoes } from "@/components/configuracoes/GerenciamentoPremiacoes";
-import { VincularWhatsApp } from "@/components/configuracoes/VincularWhatsApp";
-import { PersonalizarCores } from "@/components/configuracoes/PersonalizarCores";
-import { ThemeSelector } from "@/components/theme/ThemeSelector";
 import { AdminPasswordDialog } from "@/components/configuracoes/AdminPasswordDialog";
 import { MFASettings } from "@/components/configuracoes/MFASettings";
-import { GerenciamentoCNPJ } from "@/components/configuracoes/GerenciamentoCNPJ";
-import { GerenciamentoEmpresas } from "@/components/configuracoes/GerenciamentoEmpresas";
-import { GerenciamentoDepartamentos } from "@/components/configuracoes/GerenciamentoDepartamentos";
-import { GerenciamentoPermissoesDepartamentos } from "@/components/configuracoes/GerenciamentoPermissoesDepartamentos";
-import { AtribuirDepartamentoUsuario } from "@/components/configuracoes/AtribuirDepartamentoUsuario";
-import { ConfiguracoesCobrancaAutomatica } from "@/components/configuracoes/ConfiguracoesCobrancaAutomatica";
-import { DocumentacaoIntegracaoERP } from "@/components/configuracoes/DocumentacaoIntegracaoERP";
-import ConfigurarCategoriasDRE from "@/components/configuracoes/ConfigurarCategoriasDRE";
-import { MonitoramentoAcessos } from "@/components/configuracoes/MonitoramentoAcessos";
-import { GerenciamentoAPIKeys } from "@/components/configuracoes/GerenciamentoAPIKeys";
-import { MonitoramentoAPIs } from "@/components/configuracoes/MonitoramentoAPIs";
-import { CofreProdutoConfig } from "@/components/configuracoes/CofreProdutoConfig";
-import StorageManagementPanel from "@/components/admin/StorageManagementPanel";
-import DeptVisibilityControlPanel from "@/components/admin/DeptVisibilityControlPanel";
-import GestaoPermissoesUnificada from "@/components/admin/GestaoPermissoesUnificada";
+
+// Lazy imports — heavy components loaded on demand
+const GerenciamentoUsuarios = lazy(() => import("@/components/configuracoes/GerenciamentoUsuarios").then(m => ({ default: m.GerenciamentoUsuarios })));
+const HierarquiaUsuarios = lazy(() => import("@/components/configuracoes/HierarquiaUsuarios").then(m => ({ default: m.HierarquiaUsuarios })));
+const AtribuirVendedorSupervisor = lazy(() => import("@/components/configuracoes/AtribuirVendedorSupervisor").then(m => ({ default: m.AtribuirVendedorSupervisor })));
+const ConfiguracoesNotificacoes = lazy(() => import("@/components/configuracoes/ConfiguracoesNotificacoes").then(m => ({ default: m.ConfiguracoesNotificacoes })));
+const VincularWhatsApp = lazy(() => import("@/components/configuracoes/VincularWhatsApp").then(m => ({ default: m.VincularWhatsApp })));
+const ThemeSelector = lazy(() => import("@/components/theme/ThemeSelector").then(m => ({ default: m.ThemeSelector })));
+const PersonalizarCores = lazy(() => import("@/components/configuracoes/PersonalizarCores").then(m => ({ default: m.PersonalizarCores })));
+const PermissoesDeAcesso = lazy(() => import("@/components/configuracoes/PermissoesDeAcesso").then(m => ({ default: m.PermissoesDeAcesso })));
+const GerenciamentoPermissoesTelas = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesTelas").then(m => ({ default: m.GerenciamentoPermissoesTelas })));
+const GerenciamentoPermissoesModulos = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesModulos").then(m => ({ default: m.GerenciamentoPermissoesModulos })));
+const GerenciadorOrdemModulos = lazy(() => import("@/components/configuracoes/GerenciadorOrdemModulos").then(m => ({ default: m.GerenciadorOrdemModulos })));
+const VinculacaoUsuarioProspects = lazy(() => import("@/components/configuracoes/VinculacaoUsuarioProspects").then(m => ({ default: m.VinculacaoUsuarioProspects })));
+const GerenciamentoIntegracoes = lazy(() => import("@/components/configuracoes/GerenciamentoIntegracoes").then(m => ({ default: m.GerenciamentoIntegracoes })));
+const DocumentacaoAPI = lazy(() => import("@/components/configuracoes/DocumentacaoAPI").then(m => ({ default: m.DocumentacaoAPI })));
+const GerenciamentoCNPJ = lazy(() => import("@/components/configuracoes/GerenciamentoCNPJ").then(m => ({ default: m.GerenciamentoCNPJ })));
+const GerenciamentoEmpresas = lazy(() => import("@/components/configuracoes/GerenciamentoEmpresas").then(m => ({ default: m.GerenciamentoEmpresas })));
+const GerenciamentoDepartamentos = lazy(() => import("@/components/configuracoes/GerenciamentoDepartamentos").then(m => ({ default: m.GerenciamentoDepartamentos })));
+const GerenciamentoPermissoesDepartamentos = lazy(() => import("@/components/configuracoes/GerenciamentoPermissoesDepartamentos").then(m => ({ default: m.GerenciamentoPermissoesDepartamentos })));
+const AtribuirDepartamentoUsuario = lazy(() => import("@/components/configuracoes/AtribuirDepartamentoUsuario").then(m => ({ default: m.AtribuirDepartamentoUsuario })));
+const GerenciamentoPontuacao = lazy(() => import("@/components/configuracoes/GerenciamentoPontuacao").then(m => ({ default: m.GerenciamentoPontuacao })));
+const GerenciamentoPremiacoes = lazy(() => import("@/components/configuracoes/GerenciamentoPremiacoes").then(m => ({ default: m.GerenciamentoPremiacoes })));
+const ConfigurarCategoriasDRE = lazy(() => import("@/components/configuracoes/ConfigurarCategoriasDRE"));
+const ConfiguracoesCobrancaAutomatica = lazy(() => import("@/components/configuracoes/ConfiguracoesCobrancaAutomatica").then(m => ({ default: m.ConfiguracoesCobrancaAutomatica })));
+const CofreProdutoConfig = lazy(() => import("@/components/configuracoes/CofreProdutoConfig").then(m => ({ default: m.CofreProdutoConfig })));
+const DocumentacaoIntegracaoERP = lazy(() => import("@/components/configuracoes/DocumentacaoIntegracaoERP").then(m => ({ default: m.DocumentacaoIntegracaoERP })));
+const MonitoramentoAcessos = lazy(() => import("@/components/configuracoes/MonitoramentoAcessos").then(m => ({ default: m.MonitoramentoAcessos })));
+const MunicipioAtribuicao = lazy(() => import("@/components/admin/MunicipioAtribuicao").then(m => ({ default: m.MunicipioAtribuicao })));
+const GerenciamentoAPIKeys = lazy(() => import("@/components/configuracoes/GerenciamentoAPIKeys").then(m => ({ default: m.GerenciamentoAPIKeys })));
+const MonitoramentoAPIs = lazy(() => import("@/components/configuracoes/MonitoramentoAPIs").then(m => ({ default: m.MonitoramentoAPIs })));
+const StorageManagementPanel = lazy(() => import("@/components/admin/StorageManagementPanel"));
+const DeptVisibilityControlPanel = lazy(() => import("@/components/admin/DeptVisibilityControlPanel"));
+const GestaoPermissoesUnificada = lazy(() => import("@/components/admin/GestaoPermissoesUnificada"));
 
 interface Profile {
   id: string;
@@ -55,10 +57,30 @@ interface Profile {
   departamento?: string;
 }
 
+interface NavSection {
+  label: string;
+  items: NavItem[];
+  adminOnly?: boolean;
+  requiresUnlock?: boolean;
+}
+
+interface NavItem {
+  key: string;
+  label: string;
+  adminOnly?: boolean;
+}
+
+const LazyFallback = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
 function Configuracoes() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState("perfil");
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [outrasOpcoesUnlocked, setOutrasOpcoesUnlocked] = useState(false);
   const { toast } = useToast();
@@ -103,36 +125,14 @@ function Configuracoes() {
   const handleResetPassword = async () => {
     try {
       if (!profile?.email) return;
-
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-
       if (error) throw error;
-
-      toast({
-        title: "Email enviado",
-        description: "Verifique seu email para redefinir sua senha",
-      });
+      toast({ title: "Email enviado", description: "Verifique seu email para redefinir sua senha" });
     } catch (error) {
       console.error("Erro ao enviar email:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível enviar o email de redefinição",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleOutrasOpcoesClick = () => {
-    if (userRole === "admin") {
-      setShowPasswordDialog(true);
-    } else {
-      toast({
-        title: "Acesso negado",
-        description: "Apenas administradores podem acessar esta seção",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível enviar o email de redefinição", variant: "destructive" });
     }
   };
 
@@ -156,6 +156,7 @@ function Configuracoes() {
   const getTipoUsuarioLabel = () => {
     switch (userRole) {
       case 'admin': return 'Administrador';
+      case 'gerente': return 'Gerente';
       case 'supervisor': return 'Supervisor';
       case 'vendedor': return 'Vendedor';
       default: return 'Usuário';
@@ -165,7 +166,7 @@ function Configuracoes() {
   const getTipoUsuarioIcon = () => {
     switch (userRole) {
       case 'admin': return <Shield className="w-4 h-4" />;
-      case 'supervisor': return <UserCog className="w-4 h-4" />;
+      case 'supervisor': case 'gerente': return <UserCog className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
     }
   };
@@ -173,34 +174,176 @@ function Configuracoes() {
   const getTipoUsuarioVariant = (): "default" | "secondary" | "outline" => {
     switch (userRole) {
       case 'admin': return 'default';
-      case 'supervisor': return 'secondary';
+      case 'supervisor': case 'gerente': return 'secondary';
       default: return 'outline';
     }
   };
 
-  const getPermissoes = () => {
-    if (isAdmin) {
-      return [
-        'Gerenciar todos os usuários',
-        'Atribuir municípios aos vendedores',
-        'Visualizar todas as atividades',
-        'Gerenciar prospects de todos os vendedores',
-        'Acesso total ao sistema'
-      ];
-    } else if (isSupervisor) {
-      return [
-        'Visualizar atividades da equipe',
-        'Gerenciar prospects da equipe',
-        'Visualizar relatórios de vendas',
-        'Acompanhar métricas de desempenho'
-      ];
+  const navSections: NavSection[] = [
+    {
+      label: "Perfil",
+      items: [
+        { key: "perfil", label: "Meu Perfil" },
+        { key: "notificacoes", label: "Notificações" },
+        { key: "personalizacao", label: "Personalização" },
+      ],
+    },
+    {
+      label: "Usuários",
+      adminOnly: true,
+      items: [
+        { key: "usuarios", label: "Gerenciar Usuários" },
+        { key: "hierarquia", label: "Hierarquia" },
+        { key: "vendedores", label: "Vendedores / Supervisores" },
+        { key: "municipios", label: "Atribuir Municípios" },
+      ],
+    },
+    {
+      label: "Permissões",
+      adminOnly: true,
+      items: [
+        { key: "permissoes-role", label: "Permissões por Role" },
+        { key: "permissoes-modulos", label: "Permissões de Módulos" },
+        { key: "permissoes-telas", label: "Permissões de Telas" },
+        { key: "ordem-modulos", label: "Ordem dos Módulos" },
+        { key: "prospects-vinculos", label: "Vínculos Prospects" },
+      ],
+    },
+    {
+      label: "Empresa",
+      adminOnly: true,
+      items: [
+        { key: "cnpj", label: "Gerenciar CNPJs" },
+        { key: "empresas", label: "Empresas / Filiais" },
+        { key: "departamentos", label: "Departamentos" },
+        { key: "categorias-dre", label: "Categorias DRE" },
+      ],
+    },
+    {
+      label: "Gamificação",
+      adminOnly: true,
+      items: [
+        { key: "pontuacao", label: "Pontuação" },
+        { key: "premiacoes", label: "Premiações" },
+      ],
+    },
+    {
+      label: "Financeiro",
+      adminOnly: true,
+      items: [
+        { key: "cobranca", label: "Cobrança Automática" },
+        { key: "cofre-produto", label: "Cofre do Produto" },
+        { key: "integracao-erp", label: "Integração ERP" },
+      ],
+    },
+    {
+      label: "Avançado",
+      adminOnly: true,
+      requiresUnlock: true,
+      items: [
+        { key: "acessos", label: "Monitoramento Acessos" },
+        { key: "api-keys", label: "API Keys" },
+        { key: "integracoes", label: "Integrações" },
+        { key: "api-docs", label: "Documentação API" },
+        { key: "api-monitoring", label: "Monitoramento APIs" },
+        { key: "storage", label: "Storage" },
+        { key: "visibilidade", label: "Visibilidade Dept." },
+        { key: "permissoes-ui", label: "Permissões UI" },
+      ],
+    },
+  ];
+
+  const visibleSections = navSections.filter(section => {
+    if (section.adminOnly && !isAdmin) return false;
+    if (section.requiresUnlock && !outrasOpcoesUnlocked) return false;
+    return true;
+  });
+
+  const handleNavClick = (key: string, section: NavSection) => {
+    if (section.requiresUnlock && !outrasOpcoesUnlocked) {
+      setShowPasswordDialog(true);
+      return;
     }
-    return [
-      'Gerenciar seus próprios prospects',
-      'Registrar suas atividades',
-      'Visualizar seus relatórios',
-      'Atualizar seu perfil'
-    ];
+    setActiveSection(key);
+  };
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case "perfil":
+        return (
+          <div className="space-y-4">
+            <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Segurança</CardTitle>
+                <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleResetPassword}>Redefinir Senha</Button>
+              </CardContent>
+            </Card>
+            <MFASettings />
+          </div>
+        );
+      case "notificacoes":
+        return <Suspense fallback={<LazyFallback />}><ConfiguracoesNotificacoes /><VincularWhatsApp /></Suspense>;
+      case "personalizacao":
+        return <Suspense fallback={<LazyFallback />}><ThemeSelector /><PersonalizarCores /></Suspense>;
+      case "usuarios":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoUsuarios /></Suspense>;
+      case "hierarquia":
+        return <Suspense fallback={<LazyFallback />}><HierarquiaUsuarios /></Suspense>;
+      case "vendedores":
+        return <Suspense fallback={<LazyFallback />}><AtribuirVendedorSupervisor /></Suspense>;
+      case "municipios":
+        return <Suspense fallback={<LazyFallback />}><MunicipioAtribuicao /></Suspense>;
+      case "permissoes-role":
+        return <Suspense fallback={<LazyFallback />}><PermissoesDeAcesso /></Suspense>;
+      case "permissoes-modulos":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoPermissoesModulos /></Suspense>;
+      case "permissoes-telas":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoPermissoesTelas /></Suspense>;
+      case "ordem-modulos":
+        return <Suspense fallback={<LazyFallback />}><GerenciadorOrdemModulos /></Suspense>;
+      case "prospects-vinculos":
+        return <Suspense fallback={<LazyFallback />}><VinculacaoUsuarioProspects /></Suspense>;
+      case "cnpj":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoCNPJ /></Suspense>;
+      case "empresas":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoEmpresas /></Suspense>;
+      case "departamentos":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoDepartamentos /><GerenciamentoPermissoesDepartamentos /><AtribuirDepartamentoUsuario /></Suspense>;
+      case "categorias-dre":
+        return <Suspense fallback={<LazyFallback />}><ConfigurarCategoriasDRE /></Suspense>;
+      case "pontuacao":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoPontuacao /></Suspense>;
+      case "premiacoes":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoPremiacoes /></Suspense>;
+      case "cobranca":
+        return <Suspense fallback={<LazyFallback />}><ConfiguracoesCobrancaAutomatica /></Suspense>;
+      case "cofre-produto":
+        return <Suspense fallback={<LazyFallback />}><CofreProdutoConfig /></Suspense>;
+      case "integracao-erp":
+        return <Suspense fallback={<LazyFallback />}><DocumentacaoIntegracaoERP /></Suspense>;
+      case "acessos":
+        return <Suspense fallback={<LazyFallback />}><MonitoramentoAcessos /></Suspense>;
+      case "api-keys":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoAPIKeys /></Suspense>;
+      case "integracoes":
+        return <Suspense fallback={<LazyFallback />}><GerenciamentoIntegracoes /></Suspense>;
+      case "api-docs":
+        return <Suspense fallback={<LazyFallback />}><DocumentacaoAPI /></Suspense>;
+      case "api-monitoring":
+        return <Suspense fallback={<LazyFallback />}><MonitoramentoAPIs /></Suspense>;
+      case "storage":
+        return <Suspense fallback={<LazyFallback />}><StorageManagementPanel /></Suspense>;
+      case "visibilidade":
+        return <Suspense fallback={<LazyFallback />}><DeptVisibilityControlPanel /></Suspense>;
+      case "permissoes-ui":
+        return <Suspense fallback={<LazyFallback />}><GestaoPermissoesUnificada /></Suspense>;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -219,342 +362,55 @@ function Configuracoes() {
           </Badge>
         </div>
 
-        <Card className="border-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Informações da Conta
-            </CardTitle>
-            <CardDescription>Detalhes sobre seu perfil e permissões no sistema</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Tipo de Usuário</p>
-                <p className="text-lg font-semibold">{getTipoUsuarioLabel()}</p>
+        <div className="flex gap-6">
+          {/* Sidebar Navigation */}
+          <nav className="w-64 shrink-0 space-y-1">
+            {visibleSections.map((section) => (
+              <div key={section.label} className="mb-4">
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {section.label}
+                  </h3>
+                  {section.requiresUnlock && (
+                    <Lock className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => handleNavClick(item.key, section)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                        activeSection === item.key
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <span>{item.label}</span>
+                      {activeSection === item.key && <ChevronRight className="h-4 w-4" />}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <Badge variant={profile?.status === 'ativo' ? 'default' : 'secondary'}>
-                  {profile?.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="pt-4 border-t">
-              <p className="text-sm font-medium mb-3">Permissões do seu perfil:</p>
-              <div className="space-y-2">
-                {getPermissoes().map((permissao, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 mt-0.5 text-primary" />
-                    <span className="text-sm text-muted-foreground">{permissao}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
 
-        {isAdmin || isSupervisor ? (
-          <Tabs defaultValue="perfil" className="space-y-4">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
-              {isAdmin && <TabsTrigger value="usuarios">Gerenciar Usuários</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="hierarquia">Hierarquia</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="vendedores">Vendedores/Supervisores</TabsTrigger>}
-              <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-              <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
-              {isAdmin && <TabsTrigger value="permissoes">Permissões</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="cnpj">Gerenciar CNPJs</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="empresas">Empresas / Filiais</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="premiacoes">Premiações</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="departamentos">Departamentos</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="categorias-dre">Categorias DRE</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="cobranca">Cobrança Auto</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="cofre-produto">Cofre do Produto</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="integracao-erp">Integrações ERP</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="acessos">Acessos</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="municipios">Atribuir Municípios</TabsTrigger>}
-              {isAdmin && (
-                outrasOpcoesUnlocked ? (
-                  <TabsTrigger 
-                    value="outras-opcoes" 
-                    className="flex items-center gap-2"
-                  >
-                    <Lock className="h-4 w-4" />
-                    Outras opções
-                    <CheckCircle className="h-3 w-3 text-green-500" />
-                  </TabsTrigger>
-                ) : (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    onClick={handleOutrasOpcoesClick}
-                  >
-                    <Lock className="h-4 w-4" />
-                    Outras opções
-                  </button>
-                )
-              )}
-            </TabsList>
-
-            <TabsContent value="perfil" className="space-y-4">
-              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
-              <Card>
-                <CardHeader>
-                  <CardTitle>Segurança</CardTitle>
-                  <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={handleResetPassword}>Redefinir Senha</Button>
-                </CardContent>
-              </Card>
-              <MFASettings />
-            </TabsContent>
-
-            {isAdmin && (
-              <TabsContent value="usuarios">
-                <GerenciamentoUsuarios />
-              </TabsContent>
+            {isAdmin && !outrasOpcoesUnlocked && (
+              <button
+                onClick={() => setShowPasswordDialog(true)}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Lock className="h-4 w-4" />
+                Desbloquear Avançado
+              </button>
             )}
+          </nav>
 
-            {isAdmin && (
-              <TabsContent value="hierarquia">
-                <HierarquiaUsuarios />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="vendedores">
-                <AtribuirVendedorSupervisor />
-              </TabsContent>
-            )}
-
-            <TabsContent value="notificacoes" className="space-y-4">
-              <ConfiguracoesNotificacoes />
-              <VincularWhatsApp />
-            </TabsContent>
-
-            <TabsContent value="personalizacao">
-              <ThemeSelector />
-              <PersonalizarCores />
-            </TabsContent>
-
-            {isAdmin && (
-              <TabsContent value="permissoes" className="space-y-6">
-                <Card className="border-dashed border-primary/30 bg-primary/5">
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">Permissões por Módulo</p>
-                        <p className="text-xs text-muted-foreground">Gerencie permissões de cada módulo individualmente</p>
-                      </div>
-                    </div>
-                    <Button asChild variant="outline" size="sm">
-                      <a href="/dashboard/configuracoes/permissoes-modulo">Abrir</a>
-                    </Button>
-                  </CardContent>
-                </Card>
-                <PermissoesDeAcesso />
-                <GerenciadorOrdemModulos />
-                <GerenciamentoPermissoesModulos />
-                <GerenciamentoPermissoesTelas />
-                <VinculacaoUsuarioProspects />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="cnpj">
-                <GerenciamentoCNPJ />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="empresas">
-                <GerenciamentoEmpresas />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="pontuacao">
-                <GerenciamentoPontuacao />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="premiacoes">
-                <GerenciamentoPremiacoes />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="departamentos" className="space-y-6">
-                <GerenciamentoDepartamentos />
-                <GerenciamentoPermissoesDepartamentos />
-                <AtribuirDepartamentoUsuario />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="categorias-dre">
-                <ConfigurarCategoriasDRE />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="cobranca">
-                <ConfiguracoesCobrancaAutomatica />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="cofre-produto">
-                <CofreProdutoConfig />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="integracao-erp">
-                <DocumentacaoIntegracaoERP />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="acessos">
-                <MonitoramentoAcessos />
-              </TabsContent>
-            )}
-
-            {isAdmin && (
-              <TabsContent value="municipios">
-                <MunicipioAtribuicao />
-              </TabsContent>
-            )}
-
-            {isAdmin && outrasOpcoesUnlocked && (
-              <>
-                <TabsContent value="outras-opcoes" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        Configurações Avançadas
-                      </CardTitle>
-                      <CardDescription>
-                        Área restrita para configurações avançadas do sistema
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-
-                  <Tabs defaultValue="api-keys" className="space-y-4">
-                    <TabsList>
-                      <TabsTrigger value="api-keys" className="flex items-center gap-2">
-                        <Key className="h-4 w-4" />
-                        API Keys
-                      </TabsTrigger>
-                      <TabsTrigger value="sub-integracoes">Integrações</TabsTrigger>
-                      <TabsTrigger value="sub-api-docs">Documentação API</TabsTrigger>
-                      <TabsTrigger value="sub-api-health">Saúde das APIs</TabsTrigger>
-                      <TabsTrigger value="sub-monitoring" className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Monitoramento
-                      </TabsTrigger>
-                      <TabsTrigger value="sub-storage" className="flex items-center gap-2">
-                        <HardDrive className="h-4 w-4" />
-                        Storage
-                      </TabsTrigger>
-                      <TabsTrigger value="sub-visibility" className="flex items-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        Visibilidade
-                      </TabsTrigger>
-                      <TabsTrigger value="sub-ui-permissions" className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Permissões UI
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="api-keys">
-                      <GerenciamentoAPIKeys />
-                    </TabsContent>
-
-                    <TabsContent value="sub-integracoes">
-                      <GerenciamentoIntegracoes />
-                    </TabsContent>
-
-                    <TabsContent value="sub-api-docs">
-                      <DocumentacaoAPI />
-                    </TabsContent>
-
-                    <TabsContent value="sub-api-health">
-                      <div>
-                        <p className="text-muted-foreground mb-4">
-                          Acesse a página de verificação de APIs para ver o status completo do sistema.
-                        </p>
-                        <Button
-                          onClick={() => window.location.href = '/dashboard/configuracoes/api-health'}
-                          className="flex items-center gap-2"
-                        >
-                          <Activity className="h-4 w-4" />
-                          Abrir Verificação de APIs
-                        </Button>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="sub-monitoring">
-                      <MonitoramentoAPIs />
-                    </TabsContent>
-
-                    <TabsContent value="sub-visibility">
-                      <DeptVisibilityControlPanel />
-                    </TabsContent>
-
-                    <TabsContent value="sub-storage">
-                      <StorageManagementPanel />
-                    </TabsContent>
-
-                    <TabsContent value="sub-ui-permissions">
-                      <GestaoPermissoesUnificada />
-                    </TabsContent>
-                  </Tabs>
-                </TabsContent>
-              </>
-            )}
-          </Tabs>
-        ) : (
-          <Tabs defaultValue="perfil" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
-              <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-              <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="perfil" className="space-y-4">
-              <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
-              <Card>
-                <CardHeader>
-                  <CardTitle>Segurança</CardTitle>
-                  <CardDescription>Gerencie sua senha e segurança da conta</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={handleResetPassword}>Redefinir Senha</Button>
-                </CardContent>
-              </Card>
-              <MFASettings />
-            </TabsContent>
-
-            <TabsContent value="notificacoes" className="space-y-4">
-              <ConfiguracoesNotificacoes />
-              <VincularWhatsApp />
-            </TabsContent>
-
-            <TabsContent value="personalizacao">
-              <ThemeSelector />
-              <PersonalizarCores />
-            </TabsContent>
-          </Tabs>
-        )}
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {renderContent()}
+          </div>
+        </div>
       </div>
 
       <AdminPasswordDialog
