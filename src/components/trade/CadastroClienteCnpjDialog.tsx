@@ -196,7 +196,7 @@ export function CadastroClienteCnpjDialog({
       if (error) throw error;
 
       // Audit log
-      await supabase.from("audit_logs").insert({
+      await supabase.from("audit_logs").insert([{
         action: "vinculacao_cliente_existente",
         entity_type: "store",
         entity_id: existingStore.id,
@@ -205,8 +205,8 @@ export function CadastroClienteCnpjDialog({
           cnpj: cleanCnpj,
           store_name: existingStore.name,
           origem: "cadastro_cnpj_dialog",
-        },
-      });
+        } as any,
+      }]);
 
       toast.success(`Vinculado ao cliente: ${existingStore.name}`);
       onSuccess?.(existingStore.id, existingStore.name);
