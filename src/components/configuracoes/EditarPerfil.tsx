@@ -22,6 +22,7 @@ interface Profile {
 
 interface EditarPerfilProps {
   profile: Profile;
+  userRole?: string | null;
   onUpdate: (updatedProfile: Profile) => void;
 }
 
