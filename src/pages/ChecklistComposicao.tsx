@@ -227,8 +227,9 @@ export default function ChecklistComposicao() {
 
         {/* Desktop Table */}
         <div className="hidden md:block border rounded-xl overflow-hidden bg-card">
-          <div className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <div className="grid grid-cols-[1fr_180px_140px_120px_120px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
             <span>Produto</span>
+            <span>Projeto / Tarefa</span>
             <span>Status</span>
             <span>SKU</span>
             <span>Criado em</span>
@@ -236,10 +237,11 @@ export default function ChecklistComposicao() {
           {filtered.map(sub => {
             const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
             const initial = (sub.produto_nome || "P")[0].toUpperCase();
+            const firstVinc = sub.vinculos?.[0];
             return (
               <div
                 key={sub.id}
-                className="grid grid-cols-[1fr_140px_120px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
+                className="grid grid-cols-[1fr_180px_140px_120px_120px] gap-4 px-5 py-3 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
                 onClick={() => setSelectedSubmissao(sub.id)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -247,6 +249,18 @@ export default function ChecklistComposicao() {
                     <span className="text-primary font-bold text-xs">{initial}</span>
                   </div>
                   <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
+                </div>
+                <div className="min-w-0">
+                  {firstVinc?.projeto_nome ? (
+                    <div>
+                      <p className="text-xs font-medium truncate">{firstVinc.projeto_nome}</p>
+                      {firstVinc.tarefa_titulo && (
+                        <p className="text-[10px] text-muted-foreground truncate">{firstVinc.tarefa_titulo}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">—</span>
+                  )}
                 </div>
                 <Badge variant={badge.variant} className="w-fit text-[10px]">{badge.label}</Badge>
                 <span className="text-xs font-mono text-muted-foreground">{sub.produto_codigo}</span>
