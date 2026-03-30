@@ -448,10 +448,10 @@ export function HierarquiaUsuarios() {
   const calcularEstatisticas = () => {
     const stats = {
       admins: usuarios.filter(u => u.role === 'admin').length,
+      gerentes: usuarios.filter(u => u.role === 'gerente').length,
       supervisores: usuarios.filter(u => u.role === 'supervisor').length,
       vendedores: usuarios.filter(u => u.role === 'vendedor').length,
       promotores: usuarios.filter(u => u.role === 'promotor').length,
-      gerentes: usuarios.filter(u => u.role === 'gerente').length,
       semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length,
     };
     return stats;
