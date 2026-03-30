@@ -837,9 +837,15 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {hasPermission("trade_marketing") && (
               <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
             )}
-            {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
-            ))}
+            {tradeSubMenus.filter(i => i.isSeparator || (hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor))).map((item, idx) => 
+              item.isSeparator ? (
+                <div key={`sep-${idx}`} className="pt-3 pb-1 px-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.separatorLabel}</p>
+                </div>
+              ) : (
+                <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
+              )
+            )}
           </ModuleSubmenu>
         );
 
