@@ -512,15 +512,15 @@ function AppContent() {
             <Route path="/dashboard/fabrica-china/submissao/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_submissoes"><ChinaSubmissaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/fabrica-china/produto/:id" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_fichas"><ChinaFichaProduto /></ScreenProtectedRoute></ModuleRoute>} />
 
-            {/* Painel Executivo — protegido por módulo central_inteligencia */}
-            <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><PainelExecutivo /></ModuleRoute>} />
-            <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="central_inteligencia"><PerformanceVendas /></ModuleRoute>} />
-            <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseClientes /></ModuleRoute>} />
-            <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="central_inteligencia"><DetalhamentoVendas /></ModuleRoute>} />
-            <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseGeografico /></ModuleRoute>} />
-            <Route path="/dashboard/produtos" element={<ModuleRoute moduleCode="central_inteligencia"><AnaliseProdutos /></ModuleRoute>} />
-            <Route path="/dashboard/metas" element={<ModuleRoute moduleCode="central_inteligencia"><MetasProjecoes /></ModuleRoute>} />
-            <Route path="/dashboard/consolidado" element={<ModuleRoute moduleCode="central_inteligencia"><Consolidado /></ModuleRoute>} />
+            {/* Painel Executivo — protegido por módulo + tela central_inteligencia */}
+            <Route path="/dashboard/painel-executivo" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_executivo"><PainelExecutivo /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/performance-vendas" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_performance"><PerformanceVendas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/clientes" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><AnaliseClientes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/detalhamento" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_clientes"><DetalhamentoVendas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/geografico" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_geografico"><AnaliseGeografico /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/produtos" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_produtos"><AnaliseProdutos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/metas" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_metas"><MetasProjecoes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/consolidado" element={<ModuleRoute moduleCode="central_inteligencia"><ScreenProtectedRoute screenCode="ci_consolidado"><Consolidado /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
