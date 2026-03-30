@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   Sparkles, Upload, FileText, Loader2, AlertTriangle, CheckCircle2, X,
-  Eye, ShieldCheck, FileSearch,
+  Eye, ShieldCheck, FileSearch, GitBranch, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,7 @@ export function ExtrairIngredientesIADialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processoDocs, setProcessoDocs] = useState<any[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [selectedDocWorkflow, setSelectedDocWorkflow] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Preview state
@@ -79,6 +80,7 @@ export function ExtrairIngredientesIADialog({
       setPreviewUrl(null);
       setPreviewFileName("");
       setTermsAccepted(false);
+      setSelectedDocWorkflow(null);
     }
   }, [open]);
 
@@ -118,13 +120,56 @@ export function ExtrairIngredientesIADialog({
         .in("id", docIds)
         .order("created_at", { ascending: false });
 
-      // Attach checklist info
-      const docsWithChecklist = (data || []).map((doc: any) => ({
+      // 3. Buscar despachos para esses documentos (regras de aprovação)
+      const { data: despachos } = await (supabase
+        .from("process_despacho_documento" as any)
+        .select("id, documento_id, workflow_config_id, modulo_destino, status, etapa_atual")
+        .in("documento_id", docIds) as any);
+
+      // 4. Buscar workflow configs e etapas se houver despachos
+      let workflowMap: Record<string, any> = {};
+      if (despachos && despachos.length > 0) {
+        const configIds = [...new Set((despachos as any[]).map((d: any) => d.workflow_config_id).filter(Boolean))];
+        if (configIds.length > 0) {
+          const [configRes, etapasRes] = await Promise.all([
+            (supabase.from("process_doc_workflow_config" as any).select("id, nome, tipo_documento").in("id", configIds) as any),
+            (supabase.from("process_doc_workflow_etapas" as any).select("*").in("config_id", configIds).order("ordem") as any),
+          ]);
+
+          const configs = (configRes.data || []) as any[];
+          const etapas = (etapasRes.data || []) as any[];
+
+          configs.forEach((cfg: any) => {
+            workflowMap[cfg.id] = {
+              nome: cfg.nome,
+              tipo_documento: cfg.tipo_documento,
+              etapas: etapas.filter((e: any) => e.config_id === cfg.id),
+            };
+          });
+        }
+      }
+
+      // Build despacho map by documento_id
+      const despachoMap: Record<string, any> = {};
+      (despachos as any[] || []).forEach((d: any) => {
+        despachoMap[d.documento_id] = {
+          id: d.id,
+          workflow_config_id: d.workflow_config_id,
+          modulo_destino: d.modulo_destino,
+          status: d.status,
+          etapa_atual: d.etapa_atual,
+          workflow: d.workflow_config_id ? workflowMap[d.workflow_config_id] || null : null,
+        };
+      });
+
+      // Attach checklist + despacho/workflow info
+      const docsWithMeta = (data || []).map((doc: any) => ({
         ...doc,
         checklists: docChecklistMap[doc.id] || [],
+        despacho: despachoMap[doc.id] || null,
       }));
 
-      setProcessoDocs(docsWithChecklist);
+      setProcessoDocs(docsWithMeta);
     } catch {
       toast.error("Erro ao carregar documentos do processo");
     } finally {
@@ -156,6 +201,7 @@ export function ExtrairIngredientesIADialog({
     const url = URL.createObjectURL(selectedFile);
     setPreviewUrl(url);
     setTermsAccepted(false);
+    setSelectedDocWorkflow(null);
     setStep("preview");
   };
 
@@ -164,6 +210,7 @@ export function ExtrairIngredientesIADialog({
     setPreviewDoc(doc);
     setPreviewFileName(doc.nome_arquivo || doc.tipo_documento);
     setTermsAccepted(false);
+    setSelectedDocWorkflow(doc.despacho || null);
     setLoadingPreview(true);
     setStep("preview");
 
@@ -195,8 +242,19 @@ export function ExtrairIngredientesIADialog({
         submissao_id: submissaoId,
         documento_nome: docName,
         documento_id: docId || null,
+        documento_original_id: docId || null,
         termos_aceitos: true,
         aceite_timestamp: new Date().toISOString(),
+        workflow_config_id: selectedDocWorkflow?.workflow_config_id || null,
+        workflow_nome: selectedDocWorkflow?.workflow?.nome || null,
+        despacho_documento_id: selectedDocWorkflow?.id || null,
+        etapa_atual: selectedDocWorkflow?.etapa_atual ?? null,
+        etapas_aprovacao: selectedDocWorkflow?.workflow?.etapas?.map((e: any) => ({
+          nome: e.nome,
+          tipo_acao: e.tipo_acao,
+          ordem: e.ordem,
+          aprovadores_nomes: e.aprovadores_nomes,
+        })) || null,
       },
     });
   };
@@ -288,7 +346,7 @@ export function ExtrairIngredientesIADialog({
       return;
     }
 
-    // Audit log for confirmation
+    // Audit log for confirmation with workflow metadata
     await auditSensitiveAction({
       action: "extracao_ia_confirmada",
       category: "ACCESS",
@@ -299,6 +357,15 @@ export function ExtrairIngredientesIADialog({
         ingredientes_total: extractedItems.length,
         ingredientes_selecionados: selected.length,
         documento_nome: previewFileName,
+        documento_original_id: previewDoc?.id || null,
+        workflow_config_id: selectedDocWorkflow?.workflow_config_id || null,
+        workflow_nome: selectedDocWorkflow?.workflow?.nome || null,
+        despacho_documento_id: selectedDocWorkflow?.id || null,
+        etapas_aprovacao: selectedDocWorkflow?.workflow?.etapas?.map((e: any) => ({
+          nome: e.nome,
+          tipo_acao: e.tipo_acao,
+          ordem: e.ordem,
+        })) || null,
       },
     });
 
@@ -316,7 +383,7 @@ export function ExtrairIngredientesIADialog({
         funcao: item.funcao,
         percentual_por_cor: percs,
         status_anvisa: "pendente",
-      };
+      } as Partial<Composicao>;
     });
 
     onIngredientesExtraidos(newItems);
@@ -506,6 +573,55 @@ export function ExtrairIngredientesIADialog({
                 <Badge variant="outline" className="text-[10px]">{(selectedFile.size / 1024).toFixed(0)} KB</Badge>
               )}
             </div>
+
+            {/* Approval workflow rules (only for process docs with despacho) */}
+            {selectedDocWorkflow?.workflow && (
+              <div className="border border-primary/30 bg-primary/5 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <GitBranch className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">Fluxo de Aprovação Vinculado</p>
+                      <Badge variant="default" className="text-[10px] h-5">
+                        {selectedDocWorkflow.workflow.nome}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Este documento segue o fluxo de aprovação configurado na etapa Vincular China. As regras são imutáveis.
+                    </p>
+                    {selectedDocWorkflow.workflow.etapas?.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        {selectedDocWorkflow.workflow.etapas.map((etapa: any, idx: number) => (
+                          <div
+                            key={etapa.id || idx}
+                            className={`flex items-center gap-2 text-xs rounded px-2.5 py-1.5 ${
+                              selectedDocWorkflow.etapa_atual === etapa.ordem
+                                ? "bg-primary/10 border border-primary/30 font-medium"
+                                : "bg-muted/50"
+                            }`}
+                          >
+                            <span className="text-muted-foreground w-5 text-center">{etapa.ordem + 1}.</span>
+                            <span className="flex-1">{etapa.nome}</span>
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                              {etapa.tipo_acao}
+                            </Badge>
+                            {etapa.aprovadores_nomes?.length > 0 && (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                {etapa.aprovadores_nomes.join(", ")}
+                              </span>
+                            )}
+                            {selectedDocWorkflow.etapa_atual === etapa.ordem && (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Etapa atual</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Terms of responsibility */}
             <div className="border border-warning/40 bg-warning/5 rounded-lg p-4 space-y-3">
