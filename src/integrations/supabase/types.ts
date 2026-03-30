@@ -21532,6 +21532,7 @@ export type Database = {
           nome: string
           status: string
           supervisor_id: string | null
+          telefone: string | null
           theme_key: string | null
           updated_at: string | null
         }
@@ -21546,6 +21547,7 @@ export type Database = {
           nome: string
           status?: string
           supervisor_id?: string | null
+          telefone?: string | null
           theme_key?: string | null
           updated_at?: string | null
         }
@@ -21560,6 +21562,7 @@ export type Database = {
           nome?: string
           status?: string
           supervisor_id?: string | null
+          telefone?: string | null
           theme_key?: string | null
           updated_at?: string | null
         }
