@@ -266,7 +266,7 @@ function NewEtiquetaDialog({ open, onClose }: { open: boolean; onClose: () => vo
       const { data: subs, error: e2 } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, formula_codigo")
-        .in("id", ids)
+        .in("id", ids as string[])
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (e2) throw e2;
