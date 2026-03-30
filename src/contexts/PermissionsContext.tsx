@@ -351,10 +351,11 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     role,
     isAdmin,
     loading,
+    permissionsReady,
     hasModulePermission,
     hasScreenPermission,
     refreshPermissions,
-  }), [modules, screens, role, isAdmin, loading, hasModulePermission, hasScreenPermission, refreshPermissions]);
+  }), [modules, screens, role, isAdmin, loading, permissionsReady, hasModulePermission, hasScreenPermission, refreshPermissions]);
 
   return (
     <PermissionsContext.Provider value={value}>
