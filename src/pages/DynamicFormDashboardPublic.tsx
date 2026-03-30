@@ -27,19 +27,16 @@ const COLORS = [
   "#14b8a6",
 ];
 
-interface FormField {
+interface FieldInfo {
   id: string;
   label: string;
   field_type: string;
-  options: any;
-  required: boolean | null;
   order_index: number;
 }
 
-interface AggResponse {
-  id: string;
-  created_at: string | null;
-  answers: Record<string, any>;
+interface DistItem {
+  label: string;
+  count: number;
 }
 
 export default function DynamicFormDashboardPublic() {
@@ -49,8 +46,10 @@ export default function DynamicFormDashboardPublic() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
-  const [fields, setFields] = useState<FormField[]>([]);
-  const [responses, setResponses] = useState<AggResponse[]>([]);
+  const [totalResponses, setTotalResponses] = useState(0);
+  const [responsesToday, setResponsesToday] = useState(0);
+  const [fields, setFields] = useState<FieldInfo[]>([]);
+  const [distributions, setDistributions] = useState<Record<string, DistItem[]>>({});
 
   useEffect(() => {
     if (formId) loadData();
@@ -64,46 +63,43 @@ export default function DynamicFormDashboardPublic() {
     setLoading(true);
     setError(null);
     try {
-      const [formRes, fieldsRes, responsesRes] = await Promise.all([
-        supabase.from("dynamic_forms").select("name").eq("id", formId!).eq("status", "active").single(),
-        supabase.from("dynamic_form_fields").select("*").eq("form_id", formId!).order("order_index"),
-        supabase.from("dynamic_form_responses").select("id, created_at").eq("form_id", formId!),
-      ]);
+      // Get form name (public access to dynamic_forms is allowed)
+      const { data: formData, error: formErr } = await supabase
+        .from("dynamic_forms")
+        .select("name")
+        .eq("id", formId!)
+        .eq("status", "active")
+        .single();
 
-      if (formRes.error || !formRes.data) {
+      if (formErr || !formData) {
         setError("Formulário não encontrado ou não está ativo.");
         setLoading(false);
         return;
       }
 
-      setFormName(formRes.data.name);
-      setFields(fieldsRes.data || []);
+      setFormName(formData.name);
 
-      const responseIds = (responsesRes.data || []).map((r: any) => r.id);
-      let answersMap: Record<string, Record<string, any>> = {};
+      // Use RPC for aggregated stats only — no PII exposed
+      const { data: stats, error: statsErr } = await supabase
+        .rpc("get_form_public_stats", { p_form_id: formId! });
 
-      if (responseIds.length > 0) {
-        // Fetch in batches of 500 to avoid query limits
-        for (let i = 0; i < responseIds.length; i += 500) {
-          const batch = responseIds.slice(i, i + 500);
-          const { data: answers } = await supabase
-            .from("dynamic_form_answers")
-            .select("response_id, field_id, value")
-            .in("response_id", batch);
-
-          (answers || []).forEach((a: any) => {
-            if (!answersMap[a.response_id]) answersMap[a.response_id] = {};
-            answersMap[a.response_id][a.field_id] = a.value;
-          });
-        }
+      if (statsErr || !stats) {
+        setError("Erro ao carregar estatísticas.");
+        setLoading(false);
+        return;
       }
 
-      setResponses(
-        (responsesRes.data || []).map((r: any) => ({
-          ...r,
-          answers: answersMap[r.id] || {},
-        }))
-      );
+      const s = stats as any;
+      if (s.error) {
+        setError(s.error);
+        setLoading(false);
+        return;
+      }
+
+      setTotalResponses(s.total_responses || 0);
+      setResponsesToday(s.responses_today || 0);
+      setFields(s.fields || []);
+      setDistributions(s.field_distributions || {});
     } catch (err) {
       console.error(err);
       setError("Erro ao carregar dados.");
@@ -112,42 +108,13 @@ export default function DynamicFormDashboardPublic() {
     }
   }
 
-  const totalResponses = responses.length;
-  const today = new Date().toISOString().slice(0, 10);
-  const responsesToday = responses.filter(
-    (r) => r.created_at?.slice(0, 10) === today
-  ).length;
-
-  const requiredFields = fields.filter((f) => f.required);
-  const completionRate = useMemo(() => {
-    if (responses.length === 0 || requiredFields.length === 0) return 100;
-    let filled = 0;
-    let total = 0;
-    responses.forEach((r) => {
-      requiredFields.forEach((f) => {
-        total++;
-        const val = r.answers[f.id];
-        if (val !== null && val !== undefined && val !== "") filled++;
-      });
-    });
-    return total > 0 ? Math.round((filled / total) * 100) : 100;
-  }, [responses, requiredFields]);
-
   const categoricalFields = fields.filter((f) =>
     ["select", "radio", "rating", "checkbox"].includes(f.field_type)
   );
 
   function getDistribution(fieldId: string) {
-    const counts: Record<string, number> = {};
-    responses.forEach((r) => {
-      const val = r.answers[fieldId];
-      if (val === null || val === undefined) return;
-      const strVal = typeof val === "object" ? JSON.stringify(val) : String(val);
-      counts[strVal] = (counts[strVal] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    const items = distributions[fieldId] || [];
+    return items.map((d) => ({ name: d.label, value: d.count }));
   }
 
   if (error) {
@@ -198,10 +165,10 @@ export default function DynamicFormDashboardPublic() {
                 variant="success"
               />
               <KpiCard
-                title="Preenchimento Obrigatórios"
-                value={`${completionRate}%`}
+                title="Campos Analisados"
+                value={categoricalFields.length}
                 icon={CheckCircle2}
-                variant={completionRate >= 80 ? "success" : "warning"}
+                variant="info"
               />
             </div>
 
@@ -272,7 +239,6 @@ export default function DynamicFormDashboardPublic() {
               </div>
             )}
 
-            {/* Info about no charts */}
             {categoricalFields.length === 0 && totalResponses > 0 && (
               <Card>
                 <CardContent className="p-8 text-center">
