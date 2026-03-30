@@ -459,8 +459,19 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
                 }}
                 amostraId={amostra.id}
                 refetchFotos={refetchFotos}
+                isCustom={!CHECKLIST_ITEMS.find(ci => ci.key === item.key)}
+                onRemove={!isReadOnly ? () => setChecklist(prev => prev.filter((_, i) => i !== idx)) : undefined}
               />
             ))}
+
+            {/* Add custom item */}
+            {!isReadOnly && (
+              <AddCustomChecklistItem onAdd={(label) => {
+                const key = `custom_${Date.now()}`;
+                setChecklist(prev => [...prev, { key, label, resultado: null, observacao: "" }]);
+              }} />
+            )}
+
             {!isReadOnly && (
               <Button size="sm" onClick={handleSaveChecklist} disabled={!evidenciasOk || updateAmostra.isPending}>
                 Salvar Checklist
@@ -744,10 +755,11 @@ function EvidenciasPanel({ amostraId, fotos, refetch, readOnly }: { amostraId: s
 
 // ── Checklist Row ──
 
-function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos }: {
+function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos, isCustom, onRemove }: {
   item: ChecklistItem; disabled: boolean;
   onUpdate: (updates: Partial<ChecklistItem>) => void;
   amostraId: string; refetchFotos: () => void;
+  isCustom?: boolean; onRemove?: () => void;
 }) {
   const fotoRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -771,10 +783,16 @@ function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos }: {
   return (
     <div className="p-3 rounded-lg border bg-card space-y-2">
       <div className="flex items-center gap-3">
-        <div className="flex-1">
+        <div className="flex-1 flex items-center gap-2">
           <p className="text-sm font-medium">{item.label}</p>
+          {isCustom && <Badge variant="outline" className="text-[9px]">Personalizado</Badge>}
         </div>
         <div className="flex gap-1">
+          {isCustom && onRemove && (
+            <Button size="sm" variant="ghost" className="text-[10px] h-7 px-1.5 text-destructive hover:text-destructive" onClick={onRemove}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
           <Button
             size="sm"
             variant={item.resultado === "conforme" ? "default" : "outline"}
@@ -815,6 +833,47 @@ function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos }: {
           <input ref={fotoRef} type="file" accept="image/*" className="hidden" onChange={handleUploadEvidence} />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Add Custom Checklist Item ──
+
+function AddCustomChecklistItem({ onAdd }: { onAdd: (label: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+
+  const handleAdd = () => {
+    if (!label.trim()) return;
+    onAdd(label.trim());
+    setLabel("");
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" className="w-full border-dashed text-muted-foreground" onClick={() => setOpen(true)}>
+        + Adicionar item personalizado
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30">
+      <Input
+        className="text-sm h-8 flex-1"
+        placeholder="Ex: Peso do produto confere?"
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && handleAdd()}
+        autoFocus
+      />
+      <Button size="sm" className="h-8" onClick={handleAdd} disabled={!label.trim()}>
+        Adicionar
+      </Button>
+      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setOpen(false); setLabel(""); }}>
+        Cancelar
+      </Button>
     </div>
   );
 }
