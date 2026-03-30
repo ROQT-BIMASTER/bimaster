@@ -1,186 +1,104 @@
 
 
-# Plano OMS — Sistema de Gestao de Pedidos (Apartado da Fabrica)
+# Auditoria de Permissoes de Telas — Falhas e Melhorias
 
-## Entendimento do Contexto
+## Diagnostico
 
-O modulo "Fabrica" atual pertence a uma empresa separada do grupo, usada apenas para desenvolvimento de produtos e precificacao. O OMS proposto e um sistema **independente**, focado na operacao comercial da empresa principal, com alto volume (~2.000 pedidos/dia) e integracao bidirecional com:
+Analisei todas as ~130 rotas do sistema e identifiquei falhas de consistencia no controle de acesso.
 
-- **Mercus** — Forca de vendas (entrada de pedidos)
-- **Spark WMS** — Logistica, separacao, faturamento (emissao NF-e)
-- **BiMaster** — Acompanhamento de estoque, credito, contas a receber
+### Falha 1: Rotas sem controle de modulo/tela (4 rotas)
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         FLUXO COMPLETO OMS                              │
-│                                                                         │
-│  MERCUS (Forca Vendas)                                                  │
-│    │  API inbound: pedido.criado                                        │
-│    ▼                                                                    │
-│  ┌──────────────┐    ┌──────────────────┐    ┌───────────────────┐      │
-│  │  ENTRADA DE  │───▸│  LIBERACAO DE    │───▸│  ENVIO AO WMS    │      │
-│  │  PEDIDOS     │    │  CREDITO         │    │  (Spark)          │      │
-│  │              │    │                  │    │                   │      │
-│  │ - Validacao  │    │ - Limite disp.   │    │ - Webhook out:    │      │
-│  │ - Duplicidade│    │ - Score/Bloqueio │    │   pedido.aprovado │      │
-│  │ - Preco/Tab  │    │ - Fila manual    │    │                   │      │
-│  └──────────────┘    └──────────────────┘    └─────────┬─────────┘      │
-│                                                        │                │
-│                                              Spark WMS processa:        │
-│                                              Separacao → NF-e → Expedicao│
-│                                                        │                │
-│                                              API inbound de retorno:    │
-│                                                        │                │
-│                                                        ▼                │
-│  ┌──────────────────────────────────────────────────────────────┐       │
-│  │                    RETORNO DO WMS                             │       │
-│  │                                                              │       │
-│  │  pedido.separado → atualiza status                           │       │
-│  │  pedido.faturado → gera titulo em Contas a Receber           │       │
-│  │                    (via fn_criar_titulo_receber existente)    │       │
-│  │  pedido.expedido → atualiza tracking                         │       │
-│  │  pedido.entregue → fecha ciclo                               │       │
-│  │                                                              │       │
-│  │  Movimentacao de estoque:                                    │       │
-│  │  - Recebimento MP via XML (reutiliza parser NF-e existente)  │       │
-│  │  - Saidas por faturamento WMS                                │       │
-│  │  - Saldos em tempo real                                      │       │
-│  └──────────────────────────────────────────────────────────────┘       │
-│                                                                         │
-│  IVA Dual: reutiliza fabrica_tax_rates_iva + triggers existentes        │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+Estas rotas usam apenas `ProtectedRoute` — qualquer usuario autenticado acessa:
 
-## Fases de Implementacao
+| Rota | Risco |
+|------|-------|
+| `/dashboard/tarefas` | Baixo (funcionalidade generica) |
+| `/dashboard/chat` | Baixo |
+| `/dashboard/configuracoes` | **ALTO** — pagina de configuracoes acessivel a todos |
+| `/dashboard/instalar-app` | Baixo |
 
-### FASE 1 — Core OMS (Tabelas + Telas de Gestao)
+**`/dashboard/configuracoes` e critico**: contem links para gestao de menu, permissoes, LGPD. Embora sub-rotas como `/configuracoes/menu` tenham `screenCode="admin"`, a pagina index pode expor informacao.
 
-**Objetivo**: Infraestrutura de pedidos com capacidade para 2K/dia
+### Falha 2: Modulos sem granularidade de tela (7 modulos, ~45 rotas)
 
-**Tabelas novas** (prefixo `oms_`):
-- `oms_pedidos` — cabecalho (numero, cliente, vendedor, empresa, tabela_preco, condicao_pagamento, status, valor_total, canal_origem)
-- `oms_pedido_itens` — itens (produto, quantidade, preco, desconto)
-- `oms_pedido_status_log` — timeline de transicoes com timestamp e usuario
-- `oms_condicoes_pagamento` — cadastro de condicoes (a vista, 30/60, etc.)
+Estes modulos protegem apenas no nivel de modulo — quem tem acesso ao modulo ve TODAS as sub-telas:
 
-**Indices para performance** (2K pedidos/dia = ~60K/mes):
-- Index composto em `(status, created_at)` para filas
-- Index em `(cliente_codigo, created_at)` para historico
-- Index em `(empresa_id, status)` para multi-tenant
-- Particao por mes em `oms_pedido_status_log` (volume alto de logs)
+| Modulo | Rotas sem ScreenRoute | Impacto |
+|--------|----------------------|---------|
+| **OMS** | 3 rotas | Medio — nao separa painel de condicoes de pagamento |
+| **China** | 8 rotas | Alto — submissao, recebimentos, ordens sem separacao |
+| **Estoque** | 5 rotas | Medio — distribuidoras, saldos, vinculacoes juntos |
+| **Projetos** | 8 rotas | Alto — inbox, aprovacoes, vincular-china sem separacao |
+| **Central Inteligencia** | 7 rotas | Medio — dashboards executivos sem granularidade |
+| **Eventos** | 4 rotas | Baixo |
+| **Departamentos** | 5 rotas | Baixo |
 
-**Status do pedido**:
-`recebido` → `credito_pendente` → `credito_aprovado` → `enviado_wms` → `separando` → `faturado` → `expedido` → `entregue` (ou `rejeitado`/`cancelado`)
+**Contraste**: Fabrica e Financeiro ja tem screen-level guards corretos em todas as sub-rotas.
 
-**Telas**:
-- `OmsPainelPedidos` — Painel gerencial com KPIs, filtros por status/vendedor/empresa, paginacao server-side
-- `OmsPedidoDetalhe` — Detalhe do pedido com timeline de status, itens, dados fiscais
-- `OmsCondicoesPagamento` — Cadastro de condicoes
+### Falha 3: Telas registradas no banco vs rotas no codigo
 
-### FASE 2 — Integracao Mercus (Inbound API)
+O `module-screens-map.ts` define os screenCodes por modulo, mas varios modulos novos (OMS, processos) podem nao ter todas as telas registradas nas tabelas `telas_sistema` e `usuario_permissoes_telas`.
 
-**Objetivo**: Receber pedidos da forca de vendas Mercus via API
+### Falha 4: Inconsistencia no hook useUIPermissions
 
-**Edge Function `oms-inbound-api`**:
-- Endpoint POST para recepcao de pedidos
-- Autenticacao via API Key (mesmo padrao Huggs)
-- Validacao: duplicidade (idempotency key), cliente existe, produtos existem, tabela de preco valida
-- Mapeamento de campos Mercus → `oms_pedidos` + `oms_pedido_itens`
-- Rate limit adequado para volume (2K/dia ≈ 1.4/min, com picos)
+O hook `useUIPermissions` faz queries independentes para buscar `role` e `departamento_id` a cada tela, ignorando o cache centralizado do `PermissionsContext`. Em escala, isso gera queries redundantes.
 
-**Tela**:
-- `OmsMonitorIntegracao` — Monitor de recepcao com status, erros, reenvio
+### Falha 5: Escalabilidade do cache de permissoes
 
-### FASE 3 — Liberacao de Credito
+O `PermissionsContext` usa cache de 30s em memoria + 5min em localStorage. Com 2K pedidos/dia no OMS e muitos usuarios simultaneos, o cache curto gera re-fetches excessivos. O `permissions-optimizer.ts` duplica logica com cache proprio de 10min — dois sistemas de cache concorrentes.
 
-**Objetivo**: Aprovacao automatica/manual baseada no perfil de credito existente
+## Plano de Correcao
 
-**Reutiliza**: `clientes_perfil_credito` (limite, utilizado, disponivel, score, bloqueio)
+### Fase 1 — Corrigir rotas desprotegidas
 
-**Logica**:
-- Automatica: `limite_disponivel >= valor_pedido` AND `bloqueio = false` → aprova direto
-- Manual: Fila para analista quando limite insuficiente, inadimplencia ou score baixo
-- Atualizacao do `limite_utilizado` ao aprovar
+- `/dashboard/configuracoes`: trocar `ProtectedRoute` por `ScreenRoute screenCode="admin"`
+- Manter `ProtectedRoute` para tarefas/chat/instalar-app (funcionalidades genericas)
 
-**Telas**:
-- `OmsLiberacaoCredito` — Fila de pendentes com perfil do cliente e historico
+### Fase 2 — Adicionar screen guards nos 7 modulos
 
-### FASE 4 — Integracao Spark WMS (Bidirecional)
+Registrar telas no banco e adicionar `ScreenRoute` nas rotas:
 
-**Objetivo**: Enviar pedidos aprovados e receber retornos de status/faturamento
+**OMS:**
+- `oms_painel` — Painel de Pedidos
+- `oms_detalhe` — Detalhe do Pedido  
+- `oms_condicoes` — Condicoes de Pagamento
 
-**Outbound (BiMaster → Spark)**:
-- Reutiliza arquitetura de webhooks existente (`webhook_event_queue` + `webhook-dispatcher`)
-- Eventos: `pedido.credito_aprovado`, `pedido.cancelado`
+**China:**
+- `china_submissoes`, `china_recebimentos`, `china_ordens`, `china_produtos`
 
-**Inbound (Spark → BiMaster)**:
-- Edge Function `oms-wms-inbound`
-- Eventos: `pedido.separado`, `pedido.faturado`, `pedido.expedido`, `pedido.entregue`
-- **Evento critico `pedido.faturado`**: extrai dados fiscais (NF-e) e gera titulo automatico em Contas a Receber via `fn_criar_titulo_receber` existente
-- Movimentacao de estoque: registra saidas em `estoque_movimentacoes`
+**Estoque:**
+- `estoque_distribuidoras`, `estoque_saldos`, `estoque_consolidado`, `estoque_vinculacoes`, `estoque_produtos`
 
-### FASE 5 — Estoque OMS (Apartado da Fabrica)
+**Projetos:**
+- `projetos_inbox`, `projetos_aprovacoes`, `projetos_equipe`, `projetos_vincular_china`, `projetos_produtos_brasil`
 
-**Objetivo**: Gestao de estoque independente com recebimento via XML
+**Central Inteligencia:**
+- `ci_executivo`, `ci_performance`, `ci_clientes`, `ci_geografico`, `ci_produtos`, `ci_metas`, `ci_consolidado`
 
-**Tabelas** (reutiliza estrutura existente de estoque):
-- Registros em `estoque_movimentacoes` com `origem = 'oms'` para separar da fabrica
-- Tipo "reserva" para pedidos aprovados, "saida_faturamento" para pedidos faturados
-- Recebimento de MP via XML reutiliza `nfe-xml-parser.ts` existente
+**Eventos:**
+- `eventos_lista`, `eventos_aprovacoes`, `eventos_dashboard`
 
-**Compliance fiscal**:
-- Reutiliza `fabrica_tax_rates_iva` para calculos de CBS/IBS
-- Triggers de calculo fiscal aplicam-se aos novos documentos
+**Departamentos:**
+- `dept_hub`, `dept_detalhe`, `dept_dashboard`, `dept_aprovacoes`
 
-### FASE 6 — Modulo de Permissoes
+### Fase 3 — Unificar cache de permissoes
 
-**Novo modulo** no sistema RBAC:
-- Codigo: `oms`
-- Telas: `oms_painel`, `oms_detalhe`, `oms_credito`, `oms_monitor`, `oms_estoque`, `oms_condicoes`
-- Registrar em `modulos` e `telas` via migration
+- Remover `permissions-optimizer.ts` (duplica logica do PermissionsContext)
+- Fazer `useUIPermissions` reutilizar `role` do PermissionsContext em vez de query separada
+- Aumentar CACHE_DURATION de 30s para 2min (reduz re-fetches em ~75%)
 
-## Arquivos por Fase
+### Fase 4 — Migration de telas no banco
 
-**Fase 1**:
+Inserir todas as novas telas em `telas_sistema` e vincular aos modulos em `modulo_telas` para que o sistema de permissoes as reconheca.
+
+## Arquivos afetados
+
 | Arquivo | Acao |
 |---------|------|
-| Migration SQL | CREATE 4 tabelas + indices + RLS + realtime |
-| `src/pages/OmsPainelPedidos.tsx` | Painel com grid paginado server-side |
-| `src/pages/OmsPedidoDetalhe.tsx` | Detalhe + timeline |
-| `src/pages/OmsCondicoesPagamento.tsx` | CRUD condicoes |
-| `src/hooks/useOmsPedidos.ts` | Queries com paginacao |
-| Rotas em App.tsx | `/dashboard/oms/*` |
-
-**Fase 2**:
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/oms-inbound-api/index.ts` | API recepcao Mercus |
-| `src/pages/OmsMonitorIntegracao.tsx` | Monitor |
-
-**Fase 3**:
-| Arquivo | Acao |
-|---------|------|
-| `src/pages/OmsLiberacaoCredito.tsx` | Fila de aprovacao |
-| `src/hooks/useOmsCredito.ts` | Logica de credito |
-
-**Fase 4**:
-| Arquivo | Acao |
-|---------|------|
-| `supabase/functions/oms-wms-inbound/index.ts` | Recepcao Spark |
-| Migration SQL | Novos event types no webhook system |
-
-**Fase 5**:
-| Arquivo | Acao |
-|---------|------|
-| Migration SQL | Novos tipos de movimentacao |
-| `src/pages/OmsEstoque.tsx` | Visao de estoque OMS |
-
-**Fase 6**:
-| Arquivo | Acao |
-|---------|------|
-| Migration SQL | INSERT em modulos + telas |
-
-## Recomendacao
-
-Comecar pela **Fase 1** (tabelas + painel de gestao) para validar a estrutura de dados com volume real. Fase 2 (Mercus) e a integracao mais critica para operacao — sem ela nao ha entrada de pedidos. Fases 3-5 adicionam automacao sobre a base funcional.
+| `src/App.tsx` | Trocar ProtectedRoute por ScreenRoute em configuracoes; adicionar ScreenRoute nos 7 modulos |
+| Migration SQL | INSERT ~30 telas novas em telas_sistema + modulo_telas |
+| `src/config/module-screens-map.ts` | Adicionar screenCodes dos 7 modulos |
+| `src/hooks/useUIPermissions.ts` | Reutilizar role do PermissionsContext |
+| `src/contexts/PermissionsContext.tsx` | Aumentar CACHE_DURATION para 120s |
+| `src/lib/utils/permissions-optimizer.ts` | Remover (codigo duplicado) |
 
