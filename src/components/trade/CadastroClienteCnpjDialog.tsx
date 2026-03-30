@@ -287,7 +287,7 @@ export function CadastroClienteCnpjDialog({
       });
 
       // Audit log
-      await supabase.from("audit_logs").insert({
+      await supabase.from("audit_logs").insert([{
         action: "cadastro_cliente_cnpj",
         entity_type: "store",
         entity_id: newStore.id,
@@ -297,8 +297,8 @@ export function CadastroClienteCnpjDialog({
           store_name: newStore.name,
           origem: "receita_federal",
           dados_receita: receitaData,
-        },
-      });
+        } as any,
+      }]);
 
       setCreatedStoreId(newStore.id);
       setCreatedStoreName(newStore.name);
