@@ -351,20 +351,20 @@ export const GerenciamentoPermissoesTelas = () => {
                             setOpenGroups(next);
                           }}
                         >
-                          <CollapsibleTrigger className="flex w-full items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-                            <div className="flex items-center gap-2">
+                          <div className="flex w-full items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                            <CollapsibleTrigger className="flex items-center gap-2 flex-1">
                               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               <span className="font-medium text-sm">{group.nome}</span>
                               <Badge variant="outline" className="text-xs">{activeCount}/{group.screens.length}</Badge>
-                            </div>
+                            </CollapsibleTrigger>
                             {!isUserAdmin && (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-2">
                                 <button className="text-xs text-primary hover:underline" onClick={() => handleToggleGroup(true)}>Todas</button>
                                 <span className="text-muted-foreground">|</span>
                                 <button className="text-xs text-destructive hover:underline" onClick={() => handleToggleGroup(false)}>Nenhuma</button>
                               </div>
                             )}
-                          </CollapsibleTrigger>
+                          </div>
                           <CollapsibleContent className="pl-4 space-y-1 mt-1">
                             {group.screens.map((screen) => {
                               const source = getScreenSource(screen.id);
