@@ -662,10 +662,10 @@ function AppContent() {
             <Route path="/portal/precos" element={<ClienteProtectedRoute><PortalPrecos /></ClienteProtectedRoute>} />
             <Route path="/portal/perfil" element={<ClienteProtectedRoute><PortalPerfil /></ClienteProtectedRoute>} />
 
-             {/* Consulta de Processos — protegido por módulo */}
-             <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ConsultaProcessos /></ModuleRoute>} />
-             <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ConfigEtapasProcesso /></ModuleRoute>} />
-             <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ConfigDocWorkflows /></ModuleRoute>} />
+             {/* Consulta de Processos — protegido por módulo + tela */}
+             <Route path="/dashboard/processos/consulta" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_consulta"><ConsultaProcessos /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/etapas" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_etapas"><ConfigEtapasProcesso /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/processos/workflows" element={<ModuleRoute moduleCode="processos"><ScreenProtectedRoute screenCode="processos_workflows"><ConfigDocWorkflows /></ScreenProtectedRoute></ModuleRoute>} />
 
 
             {/* Formulário público - sem autenticação */}
