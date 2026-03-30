@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -14,11 +14,14 @@ import {
 } from "@/components/ui/select";
 import {
   Sparkles, Upload, FileText, Loader2, AlertTriangle, CheckCircle2, X,
+  Eye, ShieldCheck, FileSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FUNCAO_OPTIONS, type Composicao } from "@/hooks/useComposicao";
 import { validateFileForUpload } from "@/lib/utils/file-security";
+import { auditSensitiveAction } from "@/lib/utils/sensitive-audit";
+import { getSignedUrl } from "@/lib/utils/storage-helper";
 
 interface ExtractedIngredient {
   nome_chines: string | null;
@@ -39,9 +42,12 @@ interface Props {
   onIngredientesExtraidos: (items: Partial<Composicao>[]) => void;
 }
 
+type Step = "select" | "preview" | "results";
+
 export function ExtrairIngredientesIADialog({
   open, onOpenChange, submissaoId, cores, currentVersion, onIngredientesExtraidos,
 }: Props) {
+  const [step, setStep] = useState<Step>("select");
   const [tab, setTab] = useState<"upload" | "processo">("upload");
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedItems, setExtractedItems] = useState<ExtractedIngredient[]>([]);
@@ -51,10 +57,34 @@ export function ExtrairIngredientesIADialog({
   const [loadingDocs, setLoadingDocs] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Preview state
+  const [previewSource, setPreviewSource] = useState<"upload" | "processo">("upload");
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  // Terms acceptance
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Reset on close
+  useEffect(() => {
+    if (!open) {
+      setStep("select");
+      setExtractedItems([]);
+      setObservacoes("");
+      setSelectedFile(null);
+      setProcessoDocs([]);
+      setPreviewDoc(null);
+      setPreviewUrl(null);
+      setPreviewFileName("");
+      setTermsAccepted(false);
+    }
+  }, [open]);
+
   const loadProcessoDocs = async () => {
     setLoadingDocs(true);
     try {
-      // 1. Buscar documento_ids vinculados via tela Vincular China
       const { data: vinculos } = await supabase
         .from("china_documento_tarefa_vinculos")
         .select("documento_id");
@@ -66,10 +96,9 @@ export function ExtrairIngredientesIADialog({
         return;
       }
 
-      // 2. Buscar apenas documentos da submissão que estão vinculados
       const { data } = await supabase
         .from("china_produto_documentos")
-        .select("id, tipo_documento, nome_arquivo, arquivo_url, status")
+        .select("id, tipo_documento, nome_arquivo, arquivo_url, arquivo_path, status")
         .eq("submissao_id", submissaoId)
         .in("id", docIdsVinculados)
         .order("created_at", { ascending: false });
@@ -95,47 +124,99 @@ export function ExtrairIngredientesIADialog({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const extractFromFile = async () => {
+  // -- Preview step --
+  const openPreviewForUpload = () => {
     if (!selectedFile) return;
-    setIsExtracting(true);
+    setPreviewSource("upload");
+    setPreviewDoc(null);
+    setPreviewFileName(selectedFile.name);
+
+    // Create object URL for preview
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    setTermsAccepted(false);
+    setStep("preview");
+  };
+
+  const openPreviewForDoc = async (doc: any) => {
+    setPreviewSource("processo");
+    setPreviewDoc(doc);
+    setPreviewFileName(doc.nome_arquivo || doc.tipo_documento);
+    setTermsAccepted(false);
+    setLoadingPreview(true);
+    setStep("preview");
+
     try {
-      // Convert file to base64 for image types, or read as text
-      let payload: any = {};
-
-      if (selectedFile.type.startsWith("image/")) {
-        const base64 = await fileToBase64(selectedFile);
-        payload.document_url = base64;
+      if (doc.arquivo_path) {
+        const { signedUrl } = await getSignedUrl("china-documentos", doc.arquivo_path);
+        setPreviewUrl(signedUrl || doc.arquivo_url || null);
       } else {
-        const text = await selectedFile.text();
-        payload.document_text = text;
+        setPreviewUrl(doc.arquivo_url || null);
       }
-
-      await callExtractionAPI(payload);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao extrair ingredientes");
+    } catch {
+      setPreviewUrl(doc.arquivo_url || null);
     } finally {
-      setIsExtracting(false);
+      setLoadingPreview(false);
     }
   };
 
-  const extractFromDoc = async (doc: any) => {
+  const isImageFile = (name: string) => /\.(png|jpg|jpeg|webp|gif|bmp|svg)$/i.test(name);
+  const isPdfFile = (name: string) => /\.pdf$/i.test(name);
+
+  // -- Audit logging --
+  const logExtractionAudit = async (action: string, docName: string, docId?: string) => {
+    await auditSensitiveAction({
+      action,
+      category: "ACCESS",
+      entityType: "composicao_extracao_ia",
+      entityId: docId || submissaoId,
+      metadata: {
+        submissao_id: submissaoId,
+        documento_nome: docName,
+        documento_id: docId || null,
+        termos_aceitos: true,
+        aceite_timestamp: new Date().toISOString(),
+      },
+    });
+  };
+
+  // -- Extraction --
+  const proceedExtraction = async () => {
+    if (!termsAccepted) {
+      toast.error("Aceite o termo de responsabilidade para prosseguir.");
+      return;
+    }
+
     setIsExtracting(true);
     try {
-      let payload: any = {};
+      if (previewSource === "upload" && selectedFile) {
+        await logExtractionAudit("extracao_ia_upload", selectedFile.name);
 
-      if (doc.arquivo_url) {
-        // If it's an image URL, pass as image
-        const isImage = /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(doc.arquivo_url);
-        if (isImage) {
-          payload.document_url = doc.arquivo_url;
+        let payload: any = {};
+        if (selectedFile.type.startsWith("image/")) {
+          const base64 = await fileToBase64(selectedFile);
+          payload.document_url = base64;
         } else {
-          // For PDFs and other docs, try to fetch text content
-          payload.document_text = `Documento: ${doc.nome_arquivo || doc.tipo_documento}\nURL: ${doc.arquivo_url}\n\nPor favor extraia os ingredientes deste documento.`;
-          payload.document_url = doc.arquivo_url;
+          const text = await selectedFile.text();
+          payload.document_text = text;
         }
-      }
+        await callExtractionAPI(payload);
+      } else if (previewSource === "processo" && previewDoc) {
+        await logExtractionAudit("extracao_ia_processo", previewFileName, previewDoc.id);
 
-      await callExtractionAPI(payload);
+        let payload: any = {};
+        const url = previewUrl || previewDoc.arquivo_url;
+        if (url) {
+          const isImage = /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(url);
+          if (isImage) {
+            payload.document_url = url;
+          } else {
+            payload.document_text = `Documento: ${previewFileName}\nURL: ${url}\n\nPor favor extraia os ingredientes deste documento.`;
+            payload.document_url = url;
+          }
+        }
+        await callExtractionAPI(payload);
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao extrair ingredientes");
     } finally {
@@ -163,6 +244,7 @@ export function ExtrairIngredientesIADialog({
 
     setExtractedItems(items);
     setObservacoes(data.observacoes || "");
+    setStep("results");
     toast.success(`${items.length} ingrediente(s) identificado(s) pela IA`);
   };
 
@@ -178,12 +260,26 @@ export function ExtrairIngredientesIADialog({
     ));
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const selected = extractedItems.filter(i => i.selected);
     if (selected.length === 0) {
       toast.error("Selecione pelo menos um ingrediente");
       return;
     }
+
+    // Audit log for confirmation
+    await auditSensitiveAction({
+      action: "extracao_ia_confirmada",
+      category: "ACCESS",
+      entityType: "composicao_extracao_ia",
+      entityId: submissaoId,
+      metadata: {
+        submissao_id: submissaoId,
+        ingredientes_total: extractedItems.length,
+        ingredientes_selecionados: selected.length,
+        documento_nome: previewFileName,
+      },
+    });
 
     const newItems: Partial<Composicao>[] = selected.map(item => {
       const percs: Record<string, number> = {};
@@ -204,14 +300,6 @@ export function ExtrairIngredientesIADialog({
 
     onIngredientesExtraidos(newItems);
     toast.success(`${selected.length} ingrediente(s) adicionado(s)`);
-    resetAndClose();
-  };
-
-  const resetAndClose = () => {
-    setExtractedItems([]);
-    setObservacoes("");
-    setSelectedFile(null);
-    setProcessoDocs([]);
     onOpenChange(false);
   };
 
@@ -219,20 +307,37 @@ export function ExtrairIngredientesIADialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Extrair Ingredientes com IA
           </DialogTitle>
           <DialogDescription>
-            Envie um documento ou selecione um existente do processo. A IA identificará e estruturará os ingredientes automaticamente.
+            {step === "select" && "Selecione um documento para análise. Você poderá validar o conteúdo antes da extração."}
+            {step === "preview" && "Valide o conteúdo do documento antes de prosseguir com a extração."}
+            {step === "results" && "Revise os ingredientes extraídos. Edite, selecione ou remova antes de confirmar."}
           </DialogDescription>
         </DialogHeader>
 
-        {extractedItems.length === 0 ? (
-          /* Step 1: Source selection */
-          <div className="space-y-4 flex-1">
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground border-b pb-3">
+          <span className={`flex items-center gap-1 ${step === "select" ? "text-primary font-semibold" : ""}`}>
+            <FileSearch className="h-3.5 w-3.5" /> 1. Selecionar
+          </span>
+          <span className="text-border">→</span>
+          <span className={`flex items-center gap-1 ${step === "preview" ? "text-primary font-semibold" : ""}`}>
+            <Eye className="h-3.5 w-3.5" /> 2. Analisar & Aceitar
+          </span>
+          <span className="text-border">→</span>
+          <span className={`flex items-center gap-1 ${step === "results" ? "text-primary font-semibold" : ""}`}>
+            <CheckCircle2 className="h-3.5 w-3.5" /> 3. Revisar
+          </span>
+        </div>
+
+        {/* ───── STEP 1: SELECT ───── */}
+        {step === "select" && (
+          <div className="space-y-4 flex-1 overflow-auto">
             <Tabs value={tab} onValueChange={(v) => {
               setTab(v as any);
               if (v === "processo" && processoDocs.length === 0) loadProcessoDocs();
@@ -277,9 +382,9 @@ export function ExtrairIngredientesIADialog({
                     <Button variant="ghost" size="icon" onClick={() => setSelectedFile(null)}>
                       <X className="h-4 w-4" />
                     </Button>
-                    <Button onClick={extractFromFile} disabled={isExtracting}>
-                      {isExtracting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                      Extrair com IA
+                    <Button onClick={openPreviewForUpload} className="gap-1.5">
+                      <Eye className="h-4 w-4" />
+                      Analisar Documento
                     </Button>
                   </div>
                 )}
@@ -310,11 +415,11 @@ export function ExtrairIngredientesIADialog({
                             <Badge variant="outline" className="text-[10px] shrink-0">{doc.status}</Badge>
                             <Button
                               size="sm"
-                              onClick={() => extractFromDoc(doc)}
-                              disabled={isExtracting}
+                              onClick={() => openPreviewForDoc(doc)}
+                              className="gap-1.5"
                             >
-                              {isExtracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-                              Extrair
+                              <Eye className="h-3.5 w-3.5" />
+                              Analisar
                             </Button>
                           </CardContent>
                         </Card>
@@ -325,8 +430,106 @@ export function ExtrairIngredientesIADialog({
               </TabsContent>
             </Tabs>
           </div>
-        ) : (
-          /* Step 2: Review extracted ingredients */
+        )}
+
+        {/* ───── STEP 2: PREVIEW + ACCEPT TERMS ───── */}
+        {step === "preview" && (
+          <div className="flex-1 overflow-hidden flex flex-col gap-4">
+            {/* Document preview area */}
+            <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/30">
+              {loadingPreview ? (
+                <div className="flex items-center justify-center h-full py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : !previewUrl ? (
+                <div className="flex flex-col items-center justify-center h-full py-20 gap-2">
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Prévia não disponível para este tipo de arquivo</p>
+                  <p className="text-xs text-muted-foreground">Você pode prosseguir com a extração mesmo sem pré-visualização.</p>
+                </div>
+              ) : isImageFile(previewFileName) ? (
+                <div className="flex items-center justify-center h-full p-4 overflow-auto">
+                  <img
+                    src={previewUrl}
+                    alt={previewFileName}
+                    className="max-w-full max-h-[45vh] object-contain rounded shadow-sm"
+                  />
+                </div>
+              ) : isPdfFile(previewFileName) ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full min-h-[45vh]"
+                  title={previewFileName}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-20 gap-2">
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm font-medium">{previewFileName}</p>
+                  <p className="text-xs text-muted-foreground">Prévia visual não disponível. A IA processará o conteúdo interno.</p>
+                </div>
+              )}
+            </div>
+
+            {/* File info */}
+            <div className="flex items-center gap-2 bg-accent/30 rounded-lg px-4 py-2">
+              <FileSearch className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-medium truncate flex-1">{previewFileName}</span>
+              {selectedFile && (
+                <Badge variant="outline" className="text-[10px]">{(selectedFile.size / 1024).toFixed(0)} KB</Badge>
+              )}
+            </div>
+
+            {/* Terms of responsibility */}
+            <div className="border border-warning/40 bg-warning/5 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold">Termo de Responsabilidade</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Ao prosseguir com a extração automática via IA, declaro que:
+                  </p>
+                  <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc pl-4">
+                    <li>O documento selecionado é legítimo e de fonte confiável.</li>
+                    <li>Estou ciente de que os dados extraídos devem ser revisados antes da confirmação final.</li>
+                    <li>Assumo responsabilidade pela veracidade das informações após a validação manual.</li>
+                    <li>Esta ação será registrada em log de auditoria para fins de rastreabilidade e governança.</li>
+                  </ul>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <Checkbox
+                  checked={termsAccepted}
+                  onCheckedChange={(v) => setTermsAccepted(!!v)}
+                />
+                <span className="text-sm font-medium">
+                  Li e aceito o termo de responsabilidade
+                </span>
+              </label>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-between">
+              <Button variant="outline" onClick={() => { setStep("select"); setTermsAccepted(false); }} className="gap-1.5">
+                ← Voltar
+              </Button>
+              <Button
+                onClick={proceedExtraction}
+                disabled={!termsAccepted || isExtracting}
+                className="gap-1.5"
+              >
+                {isExtracting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {isExtracting ? "Extraindo..." : "Extrair com IA"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ───── STEP 3: RESULTS ───── */}
+        {step === "results" && (
           <div className="flex-1 overflow-hidden flex flex-col space-y-3">
             {observacoes && (
               <div className="flex items-start gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
@@ -414,7 +617,7 @@ export function ExtrairIngredientesIADialog({
             </ScrollArea>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setExtractedItems([])} className="gap-1.5">
+              <Button variant="outline" onClick={() => { setStep("preview"); setExtractedItems([]); }} className="gap-1.5">
                 ← Voltar
               </Button>
             </div>
@@ -422,8 +625,8 @@ export function ExtrairIngredientesIADialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
-          {extractedItems.length > 0 && (
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {step === "results" && extractedItems.length > 0 && (
             <Button onClick={handleConfirm} disabled={selectedCount === 0} className="gap-1.5">
               <CheckCircle2 className="h-4 w-4" />
               Adicionar {selectedCount} Ingrediente(s)
