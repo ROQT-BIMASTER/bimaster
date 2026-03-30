@@ -4,7 +4,7 @@ import { LogOut, User, FileText, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoUnion from "@/assets/logo-union.png";
+import logoHuugs from "@/assets/logo-huugs.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const ClienteHeader = () => {
@@ -55,7 +55,7 @@ export const ClienteHeader = () => {
         <div className="flex items-center gap-6">
           <Link to="/portal/precos" className="flex items-center gap-4">
             <img 
-              src={logoUnion} 
+              src={logoHuugs} 
               alt="Logo" 
               className="h-10 w-auto"
             />

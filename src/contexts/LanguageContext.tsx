@@ -463,7 +463,7 @@ const translations: Record<Language, Record<string, string>> = {
     "portal.exit": "Sair",
 
     // Auth
-    "auth.system_title": "Sistema de Gestão Huggs",
+    "auth.system_title": "Sistema de Gestão Huugs",
     "auth.system_subtitle": "Gestão Integrada de Negócios",
   },
   en: {

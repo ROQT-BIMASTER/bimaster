@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, LogOut } from "lucide-react";
-import logoUnion from "@/assets/logo-union.png";
+import logoHuugs from "@/assets/logo-huugs.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AguardandoAprovacao = () => {
@@ -39,7 +39,7 @@ const AguardandoAprovacao = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <img src={logoUnion} alt="Union Logo" className="h-16 mx-auto" />
+          <img src={logoHuugs} alt="Huugs MakeUp" className="h-16 mx-auto" />
           <div className="space-y-2">
             <CardTitle className="text-2xl">Aguardando Aprovação</CardTitle>
             <CardDescription>

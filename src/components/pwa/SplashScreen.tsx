@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
-import logoUnion from '@/assets/logo-union.png';
+import logoHuugs from '@/assets/logo-huugs.jpg';
 
 interface SplashScreenProps {
   progress: number;
@@ -43,15 +43,15 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         <div className="mb-8 relative">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <img 
-            src={logoUnion} 
-            alt="BiMaster" 
+            src={logoHuugs} 
+            alt="Huugs MakeUp" 
             className="h-24 w-auto relative z-10 drop-shadow-lg"
           />
         </div>
         
         {/* Título */}
         <h1 className="text-2xl font-bold text-foreground mb-2">
-          Sistema de Gestão Huggs
+          Sistema de Gestão Huugs
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
           Gestão Integrada de Negócios
