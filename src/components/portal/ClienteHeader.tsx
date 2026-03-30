@@ -4,7 +4,7 @@ import { LogOut, User, FileText, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import logoUnion from "@/assets/logo-union.png";
+import logoHuugs from "@/assets/logo-huugs.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const ClienteHeader = () => {
