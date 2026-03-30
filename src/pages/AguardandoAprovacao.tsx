@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, LogOut } from "lucide-react";
-import logoUnion from "@/assets/logo-union.png";
+import logoHuugs from "@/assets/logo-huugs.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AguardandoAprovacao = () => {
