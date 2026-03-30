@@ -226,6 +226,12 @@ export default function TradeSupervisorDashboard() {
                   Formulário Personalizado
                 </Button>
               )}
+              {canAccessForms && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/trade/formularios/admin")}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Meus Formulários
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={refetchAll}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
