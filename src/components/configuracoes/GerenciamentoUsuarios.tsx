@@ -497,7 +497,21 @@ export const GerenciamentoUsuarios = () => {
                     {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="flex items-center gap-1">
+                      Email
+                      {editingUser && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Lock className="w-3 h-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>O email não pode ser alterado após a criação</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -505,6 +519,8 @@ export const GerenciamentoUsuarios = () => {
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })}
                       placeholder="email@empresa.com"
                       maxLength={255}
+                      disabled={!!editingUser}
+                      className={editingUser ? "bg-muted" : ""}
                     />
                     {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
