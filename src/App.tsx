@@ -439,19 +439,19 @@ function AppContent() {
             <Route path="/dashboard/trade/import-stores" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_import"><TradeImportStores /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/trade/calendar" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_calendar"><TradeCalendar /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/trade/ideal-photos" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_ideal_photos"><TradeIdealPhotos /></ScreenProtectedRoute></ModuleRoute>} />
-            <Route path="/dashboard/trade/financeiro" element={<ScreenRoute screenCode="trade_admin"><TradeFinanceiro /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/dashboard" element={<ScreenRoute screenCode="trade_admin"><TradeFinanceiroDashboard /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/campanhas" element={<ScreenRoute screenCode="trade_admin"><TradeCampaigns /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ScreenRoute screenCode="trade_admin"><TradeCampaignDetail /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ScreenRoute screenCode="trade_admin"><TradeLancamentosCampanhas /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/contas" element={<ScreenRoute screenCode="trade_admin"><TradeContasCorrentes /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ScreenRoute screenCode="trade_admin"><TradeExtratoBancario /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/verbas" element={<ScreenRoute screenCode="trade_admin"><TradeVerbasSemestrais /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/lancamentos" element={<ScreenRoute screenCode="trade_admin"><TradeLancamentos /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ScreenRoute screenCode="trade_admin"><TradeAprovacoes /></ScreenRoute>} />
-            <Route path="/dashboard/trade/financeiro/extrato" element={<ScreenRoute screenCode="trade_admin"><TradeExtratosPessoais /></ScreenRoute>} />
-            <Route path="/dashboard/trade/campanhas/aprovacoes" element={<ScreenRoute screenCode="trade_admin"><TradeAprovarCampanhas /></ScreenRoute>} />
-            <Route path="/dashboard/trade/aprovacoes" element={<ScreenRoute screenCode="trade_admin"><TradeApprovalHub /></ScreenRoute>} />
+            <Route path="/dashboard/trade/financeiro" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeFinanceiro /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/dashboard" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeFinanceiroDashboard /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/campanhas" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeCampaigns /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/campanhas/:id" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeCampaignDetail /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/lancamentos-campanhas" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeLancamentosCampanhas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/contas" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeContasCorrentes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/extrato/:accountId" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeExtratoBancario /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/verbas" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeVerbasSemestrais /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/lancamentos" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeLancamentos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/aprovacoes" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeAprovacoes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/financeiro/extrato" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeExtratosPessoais /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/campanhas/aprovacoes" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeAprovarCampanhas /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/trade/aprovacoes" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_admin"><TradeApprovalHub /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/trade/auditorias" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_auditorias"><TradeAuditorias /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/trade/sellout" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_sellout"><TradeSellOut /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/trade/shelf-measurements" element={<ModuleRoute moduleCode="trade"><ScreenProtectedRoute screenCode="trade_shelf"><TradeShelfMeasurements /></ScreenProtectedRoute></ModuleRoute>} />

@@ -100,8 +100,8 @@ export const TradeDashboardWidget = memo(() => {
       format: "number" as const,
     },
     {
-      title: t("trade_w.investments"),
-      value: stats?.totalInvestments || 0,
+      title: "Sell Out",
+      value: stats?.totalSellOut || 0,
       icon: DollarSign,
       description: t("trade_w.investments_desc"),
       format: "currency" as const,
