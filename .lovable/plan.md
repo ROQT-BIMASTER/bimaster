@@ -1,78 +1,52 @@
 
 
-# Dashboard de Respostas + Análise IA por Formulário
+# Importar Respostas da Planilha para o Formulário "envio Presskits"
 
 ## Resumo
 
-Criar uma página de dashboard para cada formulário dinâmico que exibe:
-1. KPIs automáticos (total respostas, por dia, campos mais preenchidos)
-2. Tabela de respostas com visualização inline
-3. Gráficos de distribuição por campo (select, rating, etc.)
-4. Botão "Análise IA" que envia os dados para Lovable AI e gera um relatório generativo em Markdown
+A planilha tem 78 respostas com 10 colunas (Timestamp, E-mail, Razão Social, Qtd Lojas, Nome Completo, Telefone, Endereço, Cidade/Estado, CEP, Representante). O formulário atual tem apenas 5 campos genéricos (Nome, Cargo, Departamento, E-mail, Telefone) que não correspondem à planilha.
 
-## Arquitetura
-
-```text
-DynamicFormAdmin (card) → clica "📊 Dashboard" →
-  /dashboard/trade/formularios/dashboard?id=FORM_ID →
-    DynamicFormDashboard.tsx
-      ├─ KPIs (total respostas, média/dia, taxa preenchimento)
-      ├─ Gráficos (Recharts: barras para selects, pie para ratings)
-      ├─ Tabela de respostas (expansível por linha)
-      └─ Botão "Gerar Análise IA"
-            → Edge function analyze-form-responses
-            → Lovable AI (gemini-3-flash-preview)
-            → Retorna relatório Markdown renderizado em dialog
-```
+Precisamos: (1) atualizar os campos do formulário para refletir as colunas da planilha, (2) inserir as 78 respostas como `dynamic_form_responses` + `dynamic_form_answers`.
 
 ## Alterações
 
-### 1. Nova página `src/pages/DynamicFormDashboard.tsx`
+### 1. Migration — Atualizar campos do formulário + inserir dados
 
-- Recebe `?id=FORM_ID` da URL
-- Carrega: formulário (nome, campos), respostas + answers (join)
-- **KPIs**: Total respostas, respostas hoje, taxa de campos obrigatórios preenchidos
-- **Gráficos**: Para cada campo tipo `select`/`radio`/`rating`, gera BarChart/PieChart com contagem de valores. Para campos numéricos, histograma simples
-- **Tabela**: Lista respostas com data, expandir para ver todos os campos/valores
-- **Análise IA**: Botão que chama edge function, exibe resultado em Dialog com ReactMarkdown
+Uma única migration SQL que:
 
-### 2. Nova edge function `supabase/functions/analyze-form-responses/index.ts`
+**a) Remove os 5 campos atuais** do formulário `d5db9e59-ac9b-45e5-8ad1-d878a06be621` e **cria 10 novos campos** mapeados às colunas da planilha:
 
-- Recebe `{ formId }` no body
-- Busca formulário + campos + todas as respostas/answers do banco
-- Monta um resumo textual dos dados (distribuições, totais, padrões)
-- Envia para Lovable AI Gateway com system prompt analítico
-- Retorna o relatório gerado como texto (sem streaming, via invoke)
-- System prompt: "Você é um analista de dados. Analise as respostas deste formulário e gere um relatório com: resumo executivo, principais insights, distribuição por campo, padrões identificados, recomendações."
+| # | Label | Tipo | Obrigatório |
+|---|-------|------|-------------|
+| 0 | E-mail Corporativo | text | sim |
+| 1 | Razão Social (Nome da Loja/Cliente) | text | sim |
+| 2 | Quantas Lojas no TOTAL? | text | não |
+| 3 | Nome Completo (responsável Marketing) | text | sim |
+| 4 | Telefone com DDD | text | sim |
+| 5 | Endereço | text | sim |
+| 6 | Cidade, Estado | text | sim |
+| 7 | CEP | text | não |
+| 8 | Nome do Representante | text | não |
 
-### 3. Atualizar `src/pages/DynamicFormAdmin.tsx`
+(Timestamp vira o `created_at` da response, não precisa de campo próprio)
 
-- Adicionar botão "Dashboard" em cada FormCard que navega para a nova página
+**b) Insere 78 `dynamic_form_responses`** (uma por linha da planilha) com `created_at` do timestamp original e `metadata: {"fonte": "importacao_planilha"}`.
 
-### 4. Atualizar `src/App.tsx`
+**c) Insere os `dynamic_form_answers`** correspondentes (78 × 9 campos = ~702 registros), cada um referenciando o `field_id` correto e `response_id` correto.
 
-- Adicionar rota `/dashboard/trade/formularios/dashboard`
+### 2. Atualizar status do formulário
 
-## Dados enviados à IA
+Mudar o status de `draft` para `active` para que o dashboard funcione.
 
-```text
-Formulário: "Pesquisa PDV"
-Campos: [Nome da Loja (text), Tipo (select: Mercado/Farmácia/Conveniência), Nota (rating 1-5)]
-Total respostas: 47
+### Nenhuma alteração de código
 
-Distribuição "Tipo": Mercado: 22, Farmácia: 15, Conveniência: 10
-Distribuição "Nota": 1★: 2, 2★: 5, 3★: 12, 4★: 18, 5★: 10
-Média "Nota": 3.6
+Tudo é feito via migration SQL — os dados ficam disponíveis automaticamente no dashboard já criado.
 
-Respostas recentes (últimas 10): [...]
-```
+## Detalhes técnicos
 
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/DynamicFormDashboard.tsx` | Novo — dashboard completo |
-| `supabase/functions/analyze-form-responses/index.ts` | Nova — análise IA |
-| `src/pages/DynamicFormAdmin.tsx` | Botão dashboard no card |
-| `src/App.tsx` | Nova rota |
+- A migration usará `gen_random_uuid()` para IDs
+- Os valores serão inseridos como JSONB strings (ex: `'"nayiriasloja@gmail.com"'::jsonb`)
+- O timestamp da planilha será convertido para `timestamptz`
+- Campos antigos serão deletados com `DELETE FROM dynamic_form_fields WHERE form_id = '...'`
+- Respostas antigas (se houver) também serão limpas
 
