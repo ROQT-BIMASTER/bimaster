@@ -1,46 +1,44 @@
 
 
-# Carregar e Confirmar Documentos do Checklist no Processo
+# Iniciar Análise de Embalagem a partir de Submissões Vinculadas
 
 ## Resumo
 
-Na aba "Processo" do Recebimento de Amostra, quando há documentos vinculados, o usuário poderá:
-1. **Visualizar/baixar** o arquivo do documento diretamente (botão de download/preview)
-2. **Confirmar recebimento** de cada documento para análise (botão "Confirmar Recebimento" que registra quem confirmou e quando)
+O diálogo "Nova Análise" atualmente pede preenchimento manual de SKU, produto e submissão ID. O objetivo é permitir que o usuário selecione diretamente uma submissão já vinculada na tela "Vincular China", auto-preenchendo os campos e associando os documentos do processo.
 
 ## Alterações
 
-### 1. Migration — tabela de confirmação de recebimento
+### 1. `NewAnaliseDialog` — Seletor de submissões vinculadas
 
-Criar tabela `processo_documento_recebimentos` para registrar a confirmação:
-- `id`, `documento_id` (FK china_produto_documentos), `submissao_id`, `confirmado_por` (user id), `confirmado_em` (timestamptz), `observacao` (text nullable)
-- RLS: authenticated users podem INSERT e SELECT
+- Adicionar uma aba/seção **"Importar do Vincular China"** no topo do diálogo
+- Buscar submissões vinculadas via `china_submissao_tarefa_vinculos` → `china_produto_submissoes` (mesmo padrão usado no Recebimento de Amostra)
+- Listar como cards clicáveis com código, nome e status
+- Ao selecionar, auto-preencher `submissao_id`, `sku` (produto_codigo), `produto_nome`
+- Manter opção de preenchimento manual como fallback
 
-### 2. `ProcessoDocumentosSelector.tsx` — adicionar ações por documento
+### 2. `NewAnaliseDialog` — Preview de documentos vinculados
 
-- Adicionar botão **"📥 Ver Documento"** que abre o `arquivo_url` ou gera signed URL do `arquivo_path`
-- Adicionar botão **"✅ Confirmar Recebimento"** que insere registro na tabela de confirmações
-- Mostrar badge "Recebido ✓" com data/hora quando já confirmado
-- Carregar confirmações existentes via query na montagem
+- Após selecionar submissão, carregar documentos via `china_produto_documentos` filtrados por `submissao_id`
+- Exibir lista resumida dos docs disponíveis (tipo + nome) como informação
+- Esses documentos ficarão acessíveis na aba "Processo" após criar a análise
 
-### 3. Fluxo
+### 3. Filtro na listagem principal
 
-```text
-Documento listado → [Ver Documento] abre arquivo
-                   → [Confirmar Recebimento] → insert na tabela → badge "Recebido em DD/MM HH:MM"
-```
+- Assim como no Recebimento de Amostra, filtrar a listagem para mostrar apenas análises cujo `submissao_id` esteja na tabela de vínculos (ou mostrar todas, com badge indicando vínculo)
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| Migration SQL | Nova tabela `processo_documento_recebimentos` + RLS |
-| `src/components/shared/ProcessoDocumentosSelector.tsx` | Botões de download e confirmação, query de recebimentos |
+| `src/pages/AnaliseEmbalagem.tsx` | Refatorar `NewAnaliseDialog` com seletor de submissões vinculadas |
 
-## Detalhes técnicos
+## Fluxo
 
-- Signed URL via `getSignedUrl()` do `storage-helper.ts` para documentos em buckets privados
-- Fallback para `arquivo_url` se `arquivo_path` não existir
-- Query de confirmações carregada junto com docs no `loadDocs`
-- Confirmação é idempotente (unique constraint em `documento_id + confirmado_por`)
+```text
+[+ Nova Análise] → Dialog abre
+  → Lista submissões vinculadas (cards)
+  → Usuário clica em uma → campos preenchidos automaticamente
+  → Docs do processo exibidos como preview
+  → [Criar Análise] → análise criada com submissao_id correto
+```
 
