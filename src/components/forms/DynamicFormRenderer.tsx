@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, ImageIcon, Package } from "lucide-react";
 import { CepAddressField } from "@/components/forms/CepAddressField";
+import { MaterialRequestCard } from "@/components/forms/MaterialRequestCard";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
