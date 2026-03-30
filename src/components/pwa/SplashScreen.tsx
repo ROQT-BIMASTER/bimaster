@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Progress } from '@/components/ui/progress';
-import logoUnion from '@/assets/logo-union.png';
+import logoHuugs from '@/assets/logo-huugs.jpg';
 
 interface SplashScreenProps {
   progress: number;
