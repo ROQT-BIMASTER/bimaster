@@ -6185,6 +6185,174 @@ export type Database = {
         }
         Relationships: []
       }
+      dynamic_form_answers: {
+        Row: {
+          field_id: string
+          id: string
+          response_id: string
+          value: Json
+        }
+        Insert: {
+          field_id: string
+          id?: string
+          response_id: string
+          value: Json
+        }
+        Update: {
+          field_id?: string
+          id?: string
+          response_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_form_answers_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_form_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dynamic_form_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_form_fields: {
+        Row: {
+          created_at: string | null
+          field_type: string
+          form_id: string
+          id: string
+          label: string
+          options: Json | null
+          order_index: number
+          placeholder: string | null
+          required: boolean | null
+          validation: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          field_type: string
+          form_id: string
+          id?: string
+          label: string
+          options?: Json | null
+          order_index?: number
+          placeholder?: string | null
+          required?: boolean | null
+          validation?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          field_type?: string
+          form_id?: string
+          id?: string
+          label?: string
+          options?: Json | null
+          order_index?: number
+          placeholder?: string | null
+          required?: boolean | null
+          validation?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_form_responses: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          form_id: string
+          id: string
+          metadata: Json | null
+          token_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          form_id: string
+          id?: string
+          metadata?: Json | null
+          token_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          metadata?: Json | null
+          token_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_form_responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_forms: {
+        Row: {
+          category: string | null
+          company_id: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          settings: Json | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_id?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_forms_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativa: boolean | null
