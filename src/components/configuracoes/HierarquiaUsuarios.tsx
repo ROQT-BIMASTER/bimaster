@@ -506,7 +506,7 @@ export function HierarquiaUsuarios() {
           <Alert>
             <AlertDescription>
               <strong>Como funciona:</strong> Vincule usuários criando uma estrutura em pirâmide. 
-              Admins ficam no topo, seguidos por supervisores, vendedores e promotores. 
+              Admins ficam no topo, seguidos por gerentes, supervisores, vendedores e promotores. 
               O sistema impede a criação de hierarquias circulares.
             </AlertDescription>
           </Alert>
