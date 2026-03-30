@@ -37,26 +37,38 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
 import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
+import { TarefasVinculadasPanel } from "@/components/composicao/TarefasVinculadasPanel";
 
-// Fetch submissões for listing
+// Fetch submissões for listing (only those linked via Vincular China)
 function useSubmissoes() {
   return useQuery({
     queryKey: ["submissoes_composicao_vinculadas"],
     queryFn: async () => {
-      // 1. Buscar submissão IDs vinculadas via "Vincular China"
+      // 1. Buscar vínculos com info de projeto/seção/tarefa
       const { data: vinculos, error: vErr } = await (supabase
         .from("china_submissao_tarefa_vinculos" as any)
-        .select("submissao_id") as any);
+        .select("submissao_id, tarefa_id, projeto_id, secao_id") as any);
 
       if (vErr) throw vErr;
 
       const idSet = new Set<string>();
-      (vinculos || []).forEach((v: any) => { if (v.submissao_id) idSet.add(v.submissao_id); });
+      const vinculoMap: Record<string, { tarefa_id: string; projeto_id: string; secao_id: string | null }[]> = {};
+      (vinculos || []).forEach((v: any) => {
+        if (v.submissao_id) {
+          idSet.add(v.submissao_id);
+          if (!vinculoMap[v.submissao_id]) vinculoMap[v.submissao_id] = [];
+          vinculoMap[v.submissao_id].push({
+            tarefa_id: v.tarefa_id,
+            projeto_id: v.projeto_id,
+            secao_id: v.secao_id,
+          });
+        }
+      });
       const ids = Array.from(idSet);
 
       if (ids.length === 0) return [];
 
-      // 2. Buscar apenas submissões vinculadas
+      // 2. Buscar submissões vinculadas
       const { data, error } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, created_at")
@@ -64,7 +76,35 @@ function useSubmissoes() {
         .in("id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+
+      // 3. Buscar nomes de projetos e tarefas
+      const allProjetoIds = [...new Set((vinculos as any[]).map((v: any) => v.projeto_id).filter(Boolean))];
+      const allTarefaIds = [...new Set((vinculos as any[]).map((v: any) => v.tarefa_id).filter(Boolean))];
+
+      const [projRes, tarRes] = await Promise.all([
+        allProjetoIds.length > 0
+          ? supabase.from("projetos").select("id, nome").in("id", allProjetoIds)
+          : Promise.resolve({ data: [] }),
+        allTarefaIds.length > 0
+          ? supabase.from("projeto_tarefas").select("id, titulo, status").in("id", allTarefaIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const projMap = Object.fromEntries(((projRes as any).data || []).map((p: any) => [p.id, p.nome]));
+      const tarMap = Object.fromEntries(((tarRes as any).data || []).map((t: any) => [t.id, { titulo: t.titulo, status: t.status }]));
+
+      return (data || []).map((sub: any) => {
+        const vincs = vinculoMap[sub.id] || [];
+        return {
+          ...sub,
+          vinculos: vincs.map((v: any) => ({
+            ...v,
+            projeto_nome: projMap[v.projeto_id] || null,
+            tarefa_titulo: tarMap[v.tarefa_id]?.titulo || null,
+            tarefa_status: tarMap[v.tarefa_id]?.status || null,
+          })),
+        };
+      });
     },
   });
 }
