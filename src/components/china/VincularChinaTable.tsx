@@ -391,6 +391,32 @@ export function VincularChinaTable({
           </Table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            Página {currentPage} de {totalPages} ({filtered.length} registros)
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+              Anterior
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const page = currentPage <= 3 ? i + 1 : currentPage + i - 2;
+              if (page < 1 || page > totalPages) return null;
+              return (
+                <Button key={page} variant={page === currentPage ? "default" : "outline"} size="sm" className="h-7 w-7 p-0 text-xs" onClick={() => setCurrentPage(page)}>
+                  {page}
+                </Button>
+              );
+            })}
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+              Próximo
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
