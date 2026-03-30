@@ -382,20 +382,77 @@ export default function DynamicFormBuilder() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-end">
+                  </div>
+
+                  {/* AI Suggestion Panel */}
+                  <div className="border border-dashed border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <Sparkles className="h-4 w-4" />
+                      Sugestão IA — Descreva ou envie uma imagem
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1">
+                        <Input
+                          value={aiCustomPrompt}
+                          onChange={(e) => setAiCustomPrompt(e.target.value)}
+                          placeholder="Ex: Formulário de pesquisa de preço com foto da gôndola e preço concorrente..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Image upload */}
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAiImageUpload}
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
+                            <ImagePlus className="h-4 w-4" />
+                            {aiImagePreview ? "Trocar imagem" : "Enviar imagem de referência"}
+                          </div>
+                        </label>
+
+                        {aiImagePreview && (
+                          <div className="relative">
+                            <img
+                              src={aiImagePreview}
+                              alt="Referência"
+                              className="h-12 w-12 rounded-md object-cover border"
+                            />
+                            <button
+                              type="button"
+                              onClick={clearAiImage}
+                              className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       <Button
-                        variant="outline"
+                        variant="default"
                         onClick={handleSuggestAI}
                         disabled={suggestingAI}
+                        className="ml-auto"
                       >
                         {suggestingAI ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                           <Sparkles className="h-4 w-4 mr-2" />
                         )}
-                        Sugerir campos com IA
+                        Gerar campos com IA
                       </Button>
                     </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      Descreva o formulário desejado ou envie uma imagem de um formulário existente para a IA extrair os campos automaticamente.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
