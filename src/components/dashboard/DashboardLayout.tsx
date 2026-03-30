@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import logoUnion from "@/assets/logo-union.png";
+import logoHuugs from "@/assets/logo-huugs.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { offlineManager } from "@/lib/utils/offline-manager";
 import { useSyncOfflineData } from "@/hooks/useSyncOfflineData";
