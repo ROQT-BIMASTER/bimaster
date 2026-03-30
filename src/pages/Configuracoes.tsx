@@ -1,4 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +78,7 @@ const LazyFallback = () => (
 );
 
 function Configuracoes() {
+  const { role: permRole } = usePermissions();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,14 +104,7 @@ function Configuracoes() {
 
       if (error) throw error;
       setProfile(data);
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      setUserRole(roleData?.role || null);
+      setUserRole(permRole || null);
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
       toast({

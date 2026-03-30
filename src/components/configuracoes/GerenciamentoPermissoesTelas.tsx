@@ -65,7 +65,7 @@ export const GerenciamentoPermissoesTelas = () => {
 
   useEffect(() => {
     if (selectedUsuario) {
-      fetchUserPermissions(selectedUsuario);
+      fetchUserPermissionsAndPrepopulate(selectedUsuario);
     }
   }, [selectedUsuario]);
 
@@ -132,10 +132,26 @@ export const GerenciamentoPermissoesTelas = () => {
     }
   };
 
-  const fetchUserPermissions = async (userId: string) => {
+  const fetchUserPermissionsAndPrepopulate = async (userId: string) => {
     try {
       const { data } = await supabase.from("usuario_permissoes_telas").select("tela_id").eq("usuario_id", userId);
-      setUserPermissions(new Set(data?.map(p => p.tela_id) || []));
+      const individualPerms = data?.map(p => p.tela_id) || [];
+      
+      if (individualPerms.length > 0) {
+        // User has custom overrides — use them
+        setUserPermissions(new Set(individualPerms));
+      } else {
+        // Pre-populate with effective permissions from role+dept so toggling doesn't lose access
+        const user = usuarios.find(u => u.id === userId);
+        const effectivePerms = new Set<string>();
+        if (user?.role) {
+          roleScreenPerms.filter(r => r.role === user.role).forEach(r => effectivePerms.add(r.tela_id));
+        }
+        if (user?.departamento_id) {
+          deptScreenPerms.filter(d => d.departamento_id === user.departamento_id).forEach(d => effectivePerms.add(d.tela_id));
+        }
+        setUserPermissions(effectivePerms);
+      }
     } catch (error) {
       console.error("Error fetching user permissions:", error);
     }
@@ -335,20 +351,20 @@ export const GerenciamentoPermissoesTelas = () => {
                             setOpenGroups(next);
                           }}
                         >
-                          <CollapsibleTrigger className="flex w-full items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-                            <div className="flex items-center gap-2">
+                          <div className="flex w-full items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                            <CollapsibleTrigger className="flex items-center gap-2 flex-1">
                               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               <span className="font-medium text-sm">{group.nome}</span>
                               <Badge variant="outline" className="text-xs">{activeCount}/{group.screens.length}</Badge>
-                            </div>
+                            </CollapsibleTrigger>
                             {!isUserAdmin && (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-2">
                                 <button className="text-xs text-primary hover:underline" onClick={() => handleToggleGroup(true)}>Todas</button>
                                 <span className="text-muted-foreground">|</span>
                                 <button className="text-xs text-destructive hover:underline" onClick={() => handleToggleGroup(false)}>Nenhuma</button>
                               </div>
                             )}
-                          </CollapsibleTrigger>
+                          </div>
                           <CollapsibleContent className="pl-4 space-y-1 mt-1">
                             {group.screens.map((screen) => {
                               const source = getScreenSource(screen.id);
@@ -365,16 +381,16 @@ export const GerenciamentoPermissoesTelas = () => {
                                         {screen.nome}
                                         {source === "role" && (
                                           <Tooltip>
-                                            <TooltipTrigger>
-                                              <Badge variant="default" className="text-[10px] px-1.5 py-0">Role</Badge>
+                                            <TooltipTrigger asChild>
+                                              <span><Badge variant="default" className="text-[10px] px-1.5 py-0">Role</Badge></span>
                                             </TooltipTrigger>
                                             <TooltipContent>Herdado da função "{selectedUser?.role}"</TooltipContent>
                                           </Tooltip>
                                         )}
                                         {source === "departamento" && (
                                           <Tooltip>
-                                            <TooltipTrigger>
-                                              <Badge className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 border-blue-200">Dept</Badge>
+                                            <TooltipTrigger asChild>
+                                              <span><Badge className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 border-blue-200">Dept</Badge></span>
                                             </TooltipTrigger>
                                             <TooltipContent>Herdado do departamento</TooltipContent>
                                           </Tooltip>

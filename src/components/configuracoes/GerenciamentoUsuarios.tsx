@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,9 @@ export const GerenciamentoUsuarios = () => {
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   const [novoUsuario, setNovoUsuario] = useState<{
     nome: string;
@@ -371,11 +375,7 @@ export const GerenciamentoUsuarios = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    const userToDelete = usuarios.find(u => u.id === userId);
-    if (!confirm(`Tem certeza que deseja remover permanentemente o usuário "${userToDelete?.nome || ''}" (${userToDelete?.email || ''})? Esta ação não pode ser desfeita.`)) return;
-    
     try {
-      // Remover de auth.users via edge function (que também deleta em cascata profiles, roles, etc.)
       const { data, error: fnError } = await supabase.functions.invoke("delete-admin-user", {
         body: { user_id: userId },
       });
@@ -385,9 +385,10 @@ export const GerenciamentoUsuarios = () => {
 
       toast({
         title: "Usuário removido",
-        description: `${userToDelete?.nome || 'O usuário'} foi removido completamente do sistema`,
+        description: `${deleteTarget?.nome || 'O usuário'} foi removido completamente do sistema`,
       });
       
+      setDeleteTarget(null);
       fetchUsuarios();
     } catch (error: any) {
       console.error("Erro ao remover usuário:", error);
@@ -460,6 +461,12 @@ export const GerenciamentoUsuarios = () => {
     u.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredUsuarios.length / ITEMS_PER_PAGE);
+  const paginatedUsuarios = filteredUsuarios.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
   return (
     <div className="space-y-4">
@@ -684,7 +691,7 @@ export const GerenciamentoUsuarios = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsuarios.map((usuario) => (
+                  {paginatedUsuarios.map((usuario) => (
                     <TableRow key={usuario.id} className={!usuario.aprovado ? "bg-muted/50" : ""}>
                       <TableCell className="font-medium">{usuario.nome}</TableCell>
                       <TableCell>{usuario.email}</TableCell>
@@ -743,7 +750,7 @@ export const GerenciamentoUsuarios = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteUser(usuario.id)}
+                              onClick={() => setDeleteTarget(usuario)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -755,9 +762,49 @@ export const GerenciamentoUsuarios = () => {
                 </TableBody>
               </Table>
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <p className="text-sm text-muted-foreground">
+                  {filteredUsuarios.length} usuário(s) — Página {currentPage} de {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                    Próximo
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* AlertDialog for delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover usuário permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover <strong>{deleteTarget?.nome}</strong> ({deleteTarget?.email})?
+              Esta ação não pode ser desfeita e removerá todos os dados associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && handleDeleteUser(deleteTarget.id)}
+            >
+              Remover Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
