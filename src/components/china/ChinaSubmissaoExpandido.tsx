@@ -341,7 +341,7 @@ export function ChinaSubmissaoExpandido({ submissao, onPreviewDoc, processoId }:
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isVirtual) {
-                                navigate(`/dashboard/fabrica-china/ficha/${submissao.id}`);
+                                navigate(`/dashboard/fabrica-china/produto/${submissao.id}`);
                               } else {
                                 onPreviewDoc(doc);
                               }
