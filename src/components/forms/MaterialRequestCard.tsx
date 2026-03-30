@@ -11,13 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye } from "lucide-react";
+import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+interface CnpjApiData {
+  razao_social?: string;
+  nome_fantasia?: string;
+  logradouro?: string;
+  numero?: string;
+  municipio?: string;
+  uf?: string;
+  cep?: string;
+}
 
 interface MaterialRequestCardProps {
   material: {
@@ -32,25 +42,63 @@ interface MaterialRequestCardProps {
   isPublic?: boolean;
 }
 
+function formatCnpj(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
 export function MaterialRequestCard({ material, formId, isPublic = false }: MaterialRequestCardProps) {
   const [state, setState] = useState<"idle" | "selecting" | "submitting" | "submitted">("idle");
   const [selectedStore, setSelectedStore] = useState<{ id: string; name: string } | null>(null);
-  const [manualStoreName, setManualStoreName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [protocol, setProtocol] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
+  // CNPJ lookup states (public mode)
+  const [cnpjInput, setCnpjInput] = useState("");
+  const [cnpjData, setCnpjData] = useState<CnpjApiData | null>(null);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+
   const { stores, loading: storesLoading } = useFilteredStores({ activeOnly: true });
 
   const maxQty = material.max_por_solicitacao || 999;
+  const cnpjClean = cnpjInput.replace(/\D/g, "");
 
   const filteredStores = stores.filter(
     (s) =>
       s.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
       (s.cnpj && s.cnpj.includes(storeSearch))
   );
+
+  async function handleCnpjSearch() {
+    if (cnpjClean.length !== 14) return;
+    setCnpjLoading(true);
+    setCnpjData(null);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjClean}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error("CNPJ não encontrado na Receita Federal");
+        } else {
+          toast.error("Erro ao consultar CNPJ. Tente novamente.");
+        }
+        return;
+      }
+      const data: CnpjApiData = await res.json();
+      setCnpjData(data);
+      toast.success("Dados carregados da Receita Federal!");
+    } catch {
+      toast.error("Erro ao consultar CNPJ. Verifique sua conexão.");
+    } finally {
+      setCnpjLoading(false);
+    }
+  }
 
   function generateProtocol() {
     const now = new Date();
@@ -66,8 +114,8 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
       toast.error("Selecione uma loja");
       return;
     }
-    if (isPublic && !manualStoreName.trim()) {
-      toast.error("Informe o nome da loja ou local de destino");
+    if (isPublic && !cnpjData) {
+      toast.error("Busque o CNPJ antes de confirmar");
       return;
     }
 
@@ -77,16 +125,42 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
 
       const proto = generateProtocol();
 
+      // Try to find matching internal store by CNPJ
+      let lojaId: string | null = null;
+      let lojaNome = "";
+
+      if (isPublic && cnpjData) {
+        lojaNome = cnpjData.razao_social || cnpjData.nome_fantasia || cnpjClean;
+        const { data: matchedStore } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("cnpj", cnpjClean)
+          .maybeSingle();
+        if (matchedStore) {
+          lojaId = matchedStore.id;
+          lojaNome = matchedStore.name;
+        }
+      } else if (selectedStore) {
+        lojaId = selectedStore.id;
+        lojaNome = selectedStore.name;
+      }
+
+      const endereco = cnpjData
+        ? [cnpjData.logradouro, cnpjData.numero, cnpjData.municipio, cnpjData.uf].filter(Boolean).join(", ")
+        : "";
+
       const { error } = await supabase
         .from("trade_material_solicitacoes" as any)
         .insert({
           material_id: material.id,
           user_id: user?.id || null,
-          loja_id: isPublic ? null : selectedStore!.id,
-          loja_nome: isPublic ? manualStoreName.trim() : selectedStore!.name,
+          loja_id: lojaId,
+          loja_nome: lojaNome,
           quantidade: quantity,
           status: "pendente",
-          observacoes: `Solicitação via formulário dinâmico (${formId})`,
+          observacoes: isPublic
+            ? `CNPJ: ${cnpjClean} | ${endereco} | Via formulário (${formId})`
+            : `Solicitação via formulário dinâmico (${formId})`,
         } as any);
 
       if (error) throw error;
