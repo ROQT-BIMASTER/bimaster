@@ -12,10 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy, ChevronsUpDown, Check, Building2, Search, X } from "lucide-react";
+import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy, ChevronsUpDown, Check, Building2, Search, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TradeMaterial, useCreateSolicitacao } from "@/hooks/useTradeMateriais";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
+import { CadastroClienteCnpjDialog } from "./CadastroClienteCnpjDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
   const [protocol, setProtocol] = useState<string | null>(null);
   const [storeSearchOpen, setStoreSearchOpen] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
+  const [showCadastro, setShowCadastro] = useState(false);
 
   const maxQty = material?.max_por_solicitacao || 999;
   const selectedStore = stores.find((s) => s.id === lojaId);
@@ -218,6 +220,21 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
                         ))
                       )}
                     </div>
+                    {/* Cadastrar via CNPJ button */}
+                    <div className="border-t p-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-primary hover:text-primary"
+                        onClick={() => {
+                          setStoreSearchOpen(false);
+                          setShowCadastro(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Cadastrar novo cliente via CNPJ
+                      </Button>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -321,6 +338,15 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
           </div>
         )}
       </SheetContent>
+
+      <CadastroClienteCnpjDialog
+        open={showCadastro}
+        onOpenChange={setShowCadastro}
+        onSuccess={(storeId, storeName) => {
+          setLojaId(storeId);
+          toast.success(`Cliente "${storeName}" selecionado`);
+        }}
+      />
     </Sheet>
   );
 }
