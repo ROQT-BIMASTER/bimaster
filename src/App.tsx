@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ClienteProtectedRoute } from "@/components/auth/ClienteProtectedRoute";
 import { ModuleProtectedRoute } from "@/components/auth/ModuleProtectedRoute";
 import { ScreenProtectedRoute } from "@/components/auth/ScreenProtectedRoute";
+import { ModuleScreenRoute } from "@/components/auth/ModuleScreenRoute";
 import { DashboardRedirect } from "@/components/auth/DashboardRedirect";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
