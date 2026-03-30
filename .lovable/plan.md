@@ -1,115 +1,98 @@
 
 
-# Auditoria de Permissoes — Falhas Remanescentes e Melhorias
+# Auditoria de Configuracoes de Perfil de Usuarios — Falhas e Melhorias
 
-## Problemas Encontrados
+## Falhas Encontradas
 
-### 1. Rotas com APENAS ModuleRoute (sem screen guard) — ~50 rotas vulneraveis
+### 1. Bug no GerenciamentoPermissoesTelas — variavel `selectedUser` usada antes da declaracao
 
-Estes modulos permitem que qualquer usuario com acesso ao modulo veja TODAS as sub-telas:
+Linha 212: `selectedUser?.nome` e usado dentro de `handleSave()` (linha 171), mas `selectedUser` e declarado na linha 234. Em JavaScript isso funciona por hoisting de `const` (retorna `undefined` antes da atribuicao), mas na pratica o audit log registra "Usuario" em vez do nome real. **Bug funcional silencioso.**
 
-| Modulo | Rotas sem ScreenRoute | Risco |
-|--------|----------------------|-------|
-| **Marketing** | 4 rotas (index, social, whatsapp, elevenlabs) | Medio |
-| **Prospects** | 6 rotas (lista, kanban, atividades, mapa, municipios) | Medio |
-| **Trade** | ~20 rotas (materiais, equipe, stores, visits, photos, competitors, promotions, insights, whatsapp, import, calendar, ideal-photos, auditorias, sellout, shelf, brands, performance, rewards, solicitacoes) | **ALTO** — dados sensiveis de trade misturados |
-| **Comercial** | 6 rotas (index, ibge, mineracao, inteligencia, reativacao, mapa, whitespace, importar-clientes) | Alto |
-| **Precos** | 2 rotas (index, portal-cliente) | Medio |
-| **Aprovacao Artes** | 3 rotas (index, detalhe, config) | Baixo |
-| **Composicao/Amostras/Embalagem/Etiqueta** | 4 rotas | Baixo |
-| **Processos** | 3 rotas (consulta, etapas, workflows) | Medio |
-| **Reunioes** | 2 rotas | Baixo |
-| **Fabrica** | 1 rota (manual) | Baixo |
+### 2. Pagina Configuracoes monolitica — 570 linhas, 20+ abas
 
-**Total: ~50 rotas** que qualquer usuario do modulo acessa sem restricao de tela.
+A pagina `Configuracoes.tsx` importa 35 componentes e renderiza 20 abas em um unico componente. Problemas:
+- **Performance**: todos os componentes sao importados eagerly, mesmo que o usuario so acesse 1-2 abas
+- **UX**: a TabsList com 20 triggers transborda e e dificil de navegar
+- **Manutencao**: qualquer erro em um import quebra toda a pagina
 
-### 2. Financeiro — sub-rotas sem screen guard
+### 3. GerenciamentoUsuarios — dialog compartilhado para criar e editar com estado misturado
 
-Dentro do modulo financeiro, 4 rotas usam apenas `ModuleRoute`:
-- `/dashboard/financeiro` (index)
-- `/dashboard/financeiro/visao-departamentos`
-- `/dashboard/financeiro/dre-analitico`
-- `/dashboard/financeiro/trade`
+O mesmo `Dialog` e usado para criar e editar. Ao clicar "Novo Usuario" sem fechar uma edicao anterior, o `editingUser` pode permanecer setado, causando edicao em vez de criacao. O `onClick={() => setEditingUser(null)}` no `DialogTrigger` tenta resolver, mas o timing do evento pode falhar.
 
-### 3. Inconsistencia no ScreenRoute vs ModuleRoute+ScreenProtectedRoute
+### 4. GerenciamentoUsuarios — validacao de senha inconsistente
 
-Ha dois padroes diferentes no codigo:
-- `ScreenRoute` (wrapper que inclui ProtectedRoute + ScreenProtectedRoute)
-- `ModuleRoute` + `ScreenProtectedRoute` (aninhado manualmente)
+Na criacao, `userSchema` exige senha obrigatoria com regex. Na edicao (`handleSaveEdit`), a validacao e manual (linhas 318-329) e nao usa o schema — verifica apenas `length >= 8` mas ignora a regex de maiusculas/minusculas/numeros. Um admin pode definir uma senha fraca na edicao.
 
-Rotas como `/dashboard/financeiro/contas-a-receber` usam `ScreenRoute` SEM `ModuleRoute`, significando que qualquer usuario com a tela `financeiro_contas_receber` acessa mesmo sem o modulo `financeiro`. Isso e uma falha de defesa em profundidade.
+### 5. GerenciamentoUsuarios — delete de perfil nao deleta auth.user
 
-### 4. Rota `/dashboard/ranking` — usa modulo "trade" mas e funcionalidade generica
+`handleDeleteUser` (linha 360) deleta apenas o registro em `profiles`, mas nao remove o usuario de `auth.users`. O usuario "fantasma" continua existindo na autenticacao e pode fazer login sem perfil, causando erros.
 
-### 5. Impersonacao — admin que impersona nao-admin pode ficar bloqueado
+### 6. PermissoesDeAcesso — falta role "gerente"
 
-Se um admin impersona um usuario sem permissao ao modulo atual, o `ScreenProtectedRoute` mostra "Acesso Negado" corretamente. Mas nao ha botao visivel para sair da impersonacao nessa tela de bloqueio, potencialmente travando o admin.
+A grid de permissoes por role so mostra Supervisor/Vendedor/Promotor. O role "gerente" existe no sistema (usado em HierarquiaUsuarios e GerenciamentoUsuarios) mas nao tem coluna para configuracao de permissoes de tela.
 
-### 6. Race condition no safety timeout
+### 7. GerenciamentoPermissoesModulos — falta role "gerente"
 
-O `PermissionsContext` tem timeout de 5s. Se a rede demorar mais, o usuario ve a tela sem permissoes (tudo bloqueado), e so apos o fetch completar as permissoes aparecem — mas a rota ja renderizou `AccessDenied`.
+Mesmo problema: so lista `["supervisor", "vendedor", "promotor"]` na aba "Por Funcao". Gerentes ficam sem permissoes de modulo configuradas por role.
+
+### 8. EditarPerfil — campo departamento e texto livre mas deveria ser vinculado
+
+O campo `departamento` no `EditarPerfil` mostra o valor de `profiles.departamento` (string livre), mas o sistema real usa `departamento_id` (UUID referenciando `departamentos`). Sao dois campos desconectados — o usuario ve um dado desatualizado.
+
+### 9. Tabs com muitas abas — sem scroll horizontal visivel
+
+A TabsList com 20 triggers usa `flex-wrap`, criando multiplas linhas que empurram o conteudo para baixo. Em viewports menores, as abas ficam comprimidas e ilegíveis.
+
+### 10. GerenciamentoPermissoesTelas — sem agrupamento por modulo
+
+A lista de telas e linear sem separacao por modulo, dificultando encontrar telas especificas quando ha 50+ registradas.
 
 ## Plano de Correcao
 
-### Fase 1 — Adicionar screen guards nas ~50 rotas desprotegidas
+### Fase 1 — Correcoes de bugs criticos
 
-Registrar screen codes novos no banco e adicionar `ScreenProtectedRoute` em todas as rotas que hoje usam apenas `ModuleRoute`.
+**1. Fix `selectedUser` em GerenciamentoPermissoesTelas:**
+- Mover a declaracao `const selectedUser = usuarios.find(...)` para ANTES de `handleSave`
+- Ou capturar o nome dentro do callback
 
-**Trade (20 rotas):** `trade_materiais`, `trade_equipe`, `trade_stores`, `trade_visits`, `trade_photos`, `trade_competitors`, `trade_promotions`, `trade_insights`, `trade_whatsapp`, `trade_import`, `trade_calendar`, `trade_ideal_photos`, `trade_auditorias`, `trade_sellout`, `trade_shelf`, `trade_brands`, `trade_performance`, `trade_rewards`, `trade_solicitacoes`
+**2. Fix validacao de senha na edicao em GerenciamentoUsuarios:**
+- Criar schema parcial para edicao que usa a mesma regex do `userSchema` mas com senha opcional
+- Aplicar `userSchema.shape.senha.parse()` quando senha preenchida
 
-**Comercial (7 rotas):** `comercial_index`, `comercial_ibge`, `comercial_mineracao`, `comercial_inteligencia`, `comercial_reativacao`, `comercial_mapa`, `comercial_whitespace`
+**3. Fix delete de usuario:**
+- Chamar edge function `create-admin-users` (ou criar `delete-admin-user`) para remover de `auth.users` junto com `profiles`
+- Adicionar dialog de confirmacao mais claro com nome do usuario
 
-**Marketing (3 rotas):** `marketing_social`, `marketing_whatsapp`, `marketing_elevenlabs`
+### Fase 2 — Adicionar role "gerente"
 
-**Prospects (5 rotas):** `prospects_lista`, `prospects_kanban`, `prospects_atividades`, `prospects_mapa`, `prospects_municipios`
+- Em `PermissoesDeAcesso`: adicionar coluna "Gerente" na grid
+- Em `GerenciamentoPermissoesModulos`: adicionar "gerente" ao array de roles
+- Garantir que gerentes existentes tenham permissoes configuradas
 
-**Processos (3 rotas):** `processos_consulta`, `processos_etapas`, `processos_workflows`
+### Fase 3 — UX da pagina Configuracoes
 
-**Precos (1 rota):** `precos_portal_cliente`
+**Reorganizar abas em categorias** com sub-navegacao:
+- Substituir 20 abas por sidebar vertical com grupos: "Perfil", "Usuarios", "Permissoes", "Empresa", "Avancado"
+- Usar lazy loading (`React.lazy`) para componentes pesados
 
-**Financeiro (3 rotas):** `financeiro_visao_dept`, `financeiro_dre`, `financeiro_trade`
+**Fix campo departamento em EditarPerfil:**
+- Mostrar o nome do departamento vinculado via `departamento_id` em vez do campo texto livre
+- Manter como somente leitura (definido pelo admin)
 
-**Reunioes (2 rotas):** `reunioes_lista`, `reunioes_detalhe`
+### Fase 4 — GerenciamentoPermissoesTelas com agrupamento
 
-### Fase 2 — Padronizar guard pattern
-
-Criar helper `ModuleScreenRoute` que combina ambos os guards em um unico componente, eliminando a inconsistencia entre `ScreenRoute` (sem modulo) e `ModuleRoute+ScreenProtectedRoute`:
-
-```tsx
-const ModuleScreenRoute = ({ moduleCode, screenCode, children }) => (
-  <ProtectedRoute>
-    <ModuleProtectedRoute moduleCode={moduleCode}>
-      <ScreenProtectedRoute screenCode={screenCode}>
-        {children}
-      </ScreenProtectedRoute>
-    </ModuleProtectedRoute>
-  </ProtectedRoute>
-);
-```
-
-Migrar todas as rotas do financeiro que usam `ScreenRoute` para usar `ModuleScreenRoute`.
-
-### Fase 3 — Corrigir UX de impersonacao bloqueada
-
-Adicionar botao "Sair da Impersonacao" no componente `AccessDenied` quando `isImpersonating === true`.
-
-### Fase 4 — Corrigir race condition do safety timeout
-
-Quando o timeout dispara e permissoes estao vazias, mostrar tela de "Carregando permissoes..." em vez de renderizar rotas com `AccessDenied`. Adicionar estado `permissionsReady` que so fica `true` apos o primeiro fetch real completar (distinguindo "sem permissoes" de "ainda nao carregou").
-
-### Fase 5 — Migration de telas no banco
-
-INSERT ~45 novos screen codes em `telas_sistema` + vincular em `modulo_telas`. Conceder permissoes aos usuarios ativos que ja tem o modulo.
+- Agrupar telas por `modulo_codigo` com secoes colapsaveis
+- Adicionar contador de permissoes ativas por modulo
+- Botoes "Marcar todas do modulo" / "Desmarcar todas"
 
 ## Arquivos afetados
 
 | Arquivo | Acao |
 |---------|------|
-| `src/App.tsx` | Adicionar ScreenProtectedRoute em ~50 rotas; criar helper `ModuleScreenRoute` |
-| Migration SQL | INSERT ~45 telas em telas_sistema + modulo_telas + permissoes |
-| `src/config/module-screens-map.ts` | Registrar novos screen codes |
-| `src/components/common/AccessDenied.tsx` | Botao "Sair da Impersonacao" |
-| `src/contexts/PermissionsContext.tsx` | Adicionar estado `permissionsReady` |
-| `src/components/auth/ScreenProtectedRoute.tsx` | Checar `permissionsReady` antes de negar |
-| `src/components/auth/ModuleProtectedRoute.tsx` | Idem |
+| `src/components/configuracoes/GerenciamentoPermissoesTelas.tsx` | Fix hoisting bug + agrupamento por modulo |
+| `src/components/configuracoes/GerenciamentoUsuarios.tsx` | Fix validacao senha + delete auth.user |
+| `src/components/configuracoes/PermissoesDeAcesso.tsx` | Adicionar coluna "Gerente" |
+| `src/components/configuracoes/GerenciamentoPermissoesModulos.tsx` | Adicionar role "gerente" |
+| `src/components/configuracoes/EditarPerfil.tsx` | Fix campo departamento |
+| `src/pages/Configuracoes.tsx` | Reorganizar layout com sidebar vertical + lazy loading |
 
