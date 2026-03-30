@@ -31,6 +31,7 @@ import {
 import { FormFieldCard, type FormField } from "@/components/forms/FormFieldCard";
 import { FieldConfigPanel } from "@/components/forms/FieldConfigPanel";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import { FormAttachmentsPanel } from "@/components/forms/FormAttachmentsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare } from "lucide-react";
