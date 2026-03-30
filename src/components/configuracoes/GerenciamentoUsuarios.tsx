@@ -282,6 +282,7 @@ export const GerenciamentoUsuarios = () => {
   };
 
   const handleEditUser = (user: Usuario) => {
+    setErrors({});
     setEditingUser(user);
     setNovoUsuario({
       nome: user.nome,
