@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, ImageIcon, Package } from "lucide-react";
+import { CepAddressField } from "@/components/forms/CepAddressField";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
