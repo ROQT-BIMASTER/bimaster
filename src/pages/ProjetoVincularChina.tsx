@@ -423,9 +423,49 @@ export default function ProjetoVincularChina() {
       <VincularChinaKpis data={kpiData} />
 
       {/* Split panel: Table + Side Panel */}
-      <div className="flex gap-4" style={{ minHeight: "calc(100vh - 320px)" }}>
-        {/* Table */}
-        <div className={cn("transition-all duration-200", selectedSubmissaoId ? "w-[60%]" : "w-full")}>
+      <div style={{ minHeight: "calc(100vh - 320px)" }}>
+        {selectedSubmissaoId && selectedRow ? (
+          <ResizablePanelGroup direction="horizontal" className="rounded-lg">
+            <ResizablePanel defaultSize={58} minSize={40} maxSize={75}>
+              <VincularChinaTable
+                data={tableData}
+                loading={loadingSub}
+                projetos={projetos}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
+                onRowClick={handleRowClick}
+                onFocusClick={handleFocusClick}
+                onDespacharClick={(ids) => setBulkOpen(true)}
+                filterProjeto={filterProjeto}
+                onFilterProjetoChange={setFilterProjeto}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={42} minSize={25} maxSize={55}>
+              <div className="h-full rounded-lg border overflow-hidden">
+                <VincularChinaSidePanel
+                  submissao={selectedRow}
+                  isLinkedToProject={submissaoVinculadas.has(selectedSubmissaoId)}
+                  selectedProjetoId={selectedProjetoId}
+                  onClose={() => setSelectedSubmissaoId(null)}
+                  onPreviewDoc={setPreviewDoc}
+                  onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
+                  secoes={secoes}
+                  tarefas={tarefas}
+                  vinculos={vinculos}
+                  docVinculos={docVinculos}
+                  checkedTarefas={checkedTarefas}
+                  onToggleTarefa={handleToggleTarefa}
+                  onVincular={handleVincular}
+                  onToggleDocVinculo={handleToggleDocVinculo}
+                  vinculosPending={createVinculo.isPending || vinculando}
+                  auditResult={auditResult}
+                  auditLoading={auditLoading}
+                />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
           <VincularChinaTable
             data={tableData}
             loading={loadingSub}
@@ -438,31 +478,6 @@ export default function ProjetoVincularChina() {
             filterProjeto={filterProjeto}
             onFilterProjetoChange={setFilterProjeto}
           />
-        </div>
-
-        {/* Side Panel */}
-        {selectedSubmissaoId && selectedRow && (
-          <div className="w-[40%] rounded-lg border overflow-hidden">
-            <VincularChinaSidePanel
-              submissao={selectedRow}
-              isLinkedToProject={submissaoVinculadas.has(selectedSubmissaoId)}
-              selectedProjetoId={selectedProjetoId}
-              onClose={() => setSelectedSubmissaoId(null)}
-              onPreviewDoc={setPreviewDoc}
-              onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
-              secoes={secoes}
-              tarefas={tarefas}
-              vinculos={vinculos}
-              docVinculos={docVinculos}
-              checkedTarefas={checkedTarefas}
-              onToggleTarefa={handleToggleTarefa}
-              onVincular={handleVincular}
-              onToggleDocVinculo={handleToggleDocVinculo}
-              vinculosPending={createVinculo.isPending}
-              auditResult={auditResult}
-              auditLoading={auditLoading}
-            />
-          </div>
         )}
       </div>
 
