@@ -220,6 +220,21 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
                         ))
                       )}
                     </div>
+                    {/* Cadastrar via CNPJ button */}
+                    <div className="border-t p-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-primary hover:text-primary"
+                        onClick={() => {
+                          setStoreSearchOpen(false);
+                          setShowCadastro(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Cadastrar novo cliente via CNPJ
+                      </Button>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
