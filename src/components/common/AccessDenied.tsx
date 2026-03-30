@@ -38,7 +38,7 @@ export const AccessDenied = ({
               Sistema de Gestão
             </h1>
             <h2 className="text-[18vw] font-black leading-none tracking-tighter text-primary">
-              Huggs
+              Huugs
             </h2>
           </div>
         </div>

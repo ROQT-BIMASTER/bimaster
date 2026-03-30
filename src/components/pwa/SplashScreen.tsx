@@ -51,7 +51,7 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         
         {/* Título */}
         <h1 className="text-2xl font-bold text-foreground mb-2">
-          Sistema de Gestão Huggs
+          Sistema de Gestão Huugs
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
           Gestão Integrada de Negócios

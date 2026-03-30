@@ -104,7 +104,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <LanguageSelector />
               <ImpersonationSelector />
               <NotificationBell />
-              <img src={logoUnion} alt="Logo Union - Sistema de Gestão Huggs" className="h-10" />
+              <img src={logoHuugs} alt="Huugs MakeUp" className="h-10" />
             </div>
           </header>
           {connectionQuality === 'offline' && (
