@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
