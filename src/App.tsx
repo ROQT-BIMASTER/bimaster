@@ -471,11 +471,11 @@ function AppContent() {
             <Route path="/dashboard/eventos/dashboard" element={<ModuleRoute moduleCode="eventos"><ScreenProtectedRoute screenCode="eventos_dashboard"><CorporateEventsDashboard /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Departamentos */}
-            <Route path="/dashboard/departamentos" element={<ModuleRoute moduleCode="departamentos"><DepartmentHub /></ModuleRoute>} />
-            <Route path="/dashboard/departamentos/:id" element={<ModuleRoute moduleCode="departamentos"><DepartmentDetail /></ModuleRoute>} />
-            <Route path="/dashboard/departamentos/:id/dashboard" element={<ModuleRoute moduleCode="departamentos"><DepartmentDashboard /></ModuleRoute>} />
-            <Route path="/dashboard/departamentos/:id/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><DepartmentApprovalHub /></ModuleRoute>} />
-            <Route path="/dashboard/departamentos/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><DepartmentsApprovalHub /></ModuleRoute>} />
+            <Route path="/dashboard/departamentos" element={<ModuleRoute moduleCode="departamentos"><ScreenProtectedRoute screenCode="departamentos_hub"><DepartmentHub /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id" element={<ModuleRoute moduleCode="departamentos"><ScreenProtectedRoute screenCode="departamentos_detail"><DepartmentDetail /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id/dashboard" element={<ModuleRoute moduleCode="departamentos"><ScreenProtectedRoute screenCode="departamentos_dashboard"><DepartmentDashboard /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/:id/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><ScreenProtectedRoute screenCode="departamentos_aprovacoes"><DepartmentApprovalHub /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/departamentos/aprovacoes" element={<ModuleRoute moduleCode="departamentos"><ScreenProtectedRoute screenCode="departamentos_aprovacoes"><DepartmentsApprovalHub /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Fábrica */}
             <Route path="/dashboard/fabrica" element={<ModuleRoute moduleCode="fabrica"><FabricaModule /></ModuleRoute>} />
