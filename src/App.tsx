@@ -397,12 +397,12 @@ function AppContent() {
             
             {/* Módulo de Prospects */}
             <Route path="/dashboard/prospects" element={<ModuleRoute moduleCode="prospects"><ProspectsModule /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/lista" element={<ModuleRoute moduleCode="prospects"><Prospects /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/list" element={<ModuleRoute moduleCode="prospects"><Prospects /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/kanban" element={<ModuleRoute moduleCode="prospects"><Kanban /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/atividades" element={<ModuleRoute moduleCode="prospects"><Atividades /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/mapa" element={<ModuleRoute moduleCode="prospects"><Mapa /></ModuleRoute>} />
-            <Route path="/dashboard/prospects/municipios" element={<ModuleRoute moduleCode="prospects"><Municipios /></ModuleRoute>} />
+            <Route path="/dashboard/prospects/lista" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_lista"><Prospects /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/prospects/list" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_lista"><Prospects /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/prospects/kanban" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_kanban"><Kanban /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/prospects/atividades" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_atividades"><Atividades /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/prospects/mapa" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_mapa"><Mapa /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/prospects/municipios" element={<ModuleRoute moduleCode="prospects"><ScreenProtectedRoute screenCode="prospects_municipios"><Municipios /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/demandas" element={<ScreenRoute screenCode="admin"><InternalTicketsPage /></ScreenRoute>} />
             
             {/* Outras funcionalidades */}
