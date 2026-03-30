@@ -424,8 +424,6 @@ export function CadastroClienteCnpjDialog({
 
 
 
-        )}
-
         {/* STEP: Review & Edit */}
         {step === "review" && (
           <div className="space-y-4">
