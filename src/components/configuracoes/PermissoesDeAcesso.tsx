@@ -20,6 +20,7 @@ interface Tela {
   icone: string;
   ordem: number;
   permissoes: {
+    gerente: boolean;
     supervisor: boolean;
     vendedor: boolean;
     promotor: boolean;
