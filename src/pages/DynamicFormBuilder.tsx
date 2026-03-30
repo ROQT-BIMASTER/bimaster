@@ -63,6 +63,9 @@ export default function DynamicFormBuilder() {
   const [saving, setSaving] = useState(false);
   const [savedFormId, setSavedFormId] = useState<string | null>(editId);
   const [suggestingAI, setSuggestingAI] = useState(false);
+  const [aiImageBase64, setAiImageBase64] = useState<string | null>(null);
+  const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
+  const [aiCustomPrompt, setAiCustomPrompt] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
