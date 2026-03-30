@@ -121,7 +121,7 @@ export function PermissoesDeAcesso() {
     setLoading(true);
     try {
       // Para cada role, deletar e recriar as permissões
-      for (const role of ['supervisor', 'vendedor', 'promotor'] as const) {
+      for (const role of ['gerente', 'supervisor', 'vendedor', 'promotor'] as const) {
         // Deletar permissões existentes do role
         await supabase
           .from("role_permissoes_telas")
