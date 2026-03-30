@@ -31546,6 +31546,14 @@ export type Database = {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
       }
+      get_pendencias_por_submissao: {
+        Args: { p_ids: string[] }
+        Returns: {
+          pendentes: number
+          submissao_id: string
+          total: number
+        }[]
+      }
       get_portfolio_kpis:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }

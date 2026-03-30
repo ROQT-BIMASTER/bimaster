@@ -7,22 +7,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
-import { BilingualLabel } from "@/components/china/BilingualLabel";
 import { VincularChinaTable, type SubmissaoRow } from "@/components/china/VincularChinaTable";
-import { VincularChinaDrawer } from "@/components/china/VincularChinaDrawer";
+import { VincularChinaSidePanel } from "@/components/china/VincularChinaSidePanel";
+import { VincularChinaBulkActions } from "@/components/china/VincularChinaBulkActions";
 import { VincularChinaKpis } from "@/components/china/VincularChinaKpis";
 import { ChinaSubmissaoExpandido } from "@/components/china/ChinaSubmissaoExpandido";
-import { ProcessOrchestrationPanel } from "@/components/processo/ProcessOrchestrationPanel";
 import { DespachosPanel } from "@/components/processo/DespachosPanel";
-import { PastaDigitalFromChecklist } from "@/components/china/PastaDigitalFromChecklist";
 import { ProcessDecisionDialog } from "@/components/processo/ProcessDecisionDialog";
 import { useAuditChinaVinculo } from "@/hooks/useAuditChinaVinculo";
+import { useSubmissaoPendencias } from "@/hooks/useSubmissaoPendencias";
 import {
   useSubmissoesChina,
   useProjetosParaVinculo,
@@ -40,12 +38,12 @@ import {
   useDeleteDocVinculo,
 } from "@/hooks/useChinaDocumentoVinculos";
 import { useDespachosPorSubmissao } from "@/hooks/useDespachoDocumentos";
-import { CHINA_DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/lib/china-document-types";
+import { CHINA_DOCUMENT_TYPES } from "@/lib/china-document-types";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
-import { FileText, Eye, ChevronRight, Unlink } from "lucide-react";
+import { FileText, ChevronRight, Unlink } from "lucide-react";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
@@ -73,11 +71,6 @@ function getStatusLabel(status: string): string {
   }
 }
 
-function DespachosActiveSection({ submissaoId }: { submissaoId: string }) {
-  const { data: docs = [] } = useDocumentosDaSubmissao(submissaoId);
-  return <DespachosPanel submissaoId={submissaoId} documentos={docs} />;
-}
-
 export default function ProjetoVincularChina() {
   const navigate = useNavigate();
   const { isAdmin } = usePermissions();
@@ -86,10 +79,8 @@ export default function ProjetoVincularChina() {
 
   // States
   const [selectedSubmissaoId, setSelectedSubmissaoId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
   const [checkedTarefas, setCheckedTarefas] = useState<Set<string>>(new Set());
-  const [selectedTarefaForDocs, setSelectedTarefaForDocs] = useState<string | null>(null);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [focusSubmissao, setFocusSubmissao] = useState<any>(null);
@@ -98,6 +89,7 @@ export default function ProjetoVincularChina() {
   const [decisionProcessId, setDecisionProcessId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filterProjeto, setFilterProjeto] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
@@ -116,14 +108,17 @@ export default function ProjetoVincularChina() {
   const createDocVinculo = useCreateDocVinculo();
   const deleteDocVinculo = useDeleteDocVinculo();
 
-  // Pendencias: count per submission from despachos
+  // Real pendências from DB
+  const submissaoIds = useMemo(() => submissoes.map((s: any) => s.id), [submissoes]);
+  const { data: pendenciasMap } = useSubmissaoPendencias(submissaoIds);
+
   const submissaoVinculadas = useMemo(() => {
     const set = new Set<string>();
     allVinculos.forEach(v => set.add(v.submissao_id));
     return set;
   }, [allVinculos]);
 
-  // Build table rows with computed fields
+  // Build table rows with real pendências
   const tableData: SubmissaoRow[] = useMemo(() => {
     return submissoes
       .filter((s: any) => s.produto_codigo && s.produto_nome && s.produto_codigo !== "null")
@@ -131,48 +126,28 @@ export default function ProjetoVincularChina() {
         const isLinked = submissaoVinculadas.has(s.id);
         const linkedVinculo = allVinculos.find(v => v.submissao_id === s.id);
         const projeto = linkedVinculo ? projetos.find((p: any) => p.id === linkedVinculo.projeto_id) : null;
-
-        // Pendências: count checklist items not yet fulfilled (simplified based on status)
-        const TOTAL_CHECKLIST = 20; // standard checklist items
-        let pendencias = TOTAL_CHECKLIST;
-        if (s.status === "aprovado") pendencias = 0;
-        else if (s.status === "enviado") pendencias = Math.floor(TOTAL_CHECKLIST * 0.6);
-        else if (s.status === "em_revisao") pendencias = Math.floor(TOTAL_CHECKLIST * 0.3);
-        else if (s.status === "arte_enviada") pendencias = Math.floor(TOTAL_CHECKLIST * 0.15);
-        else if (s.status === "rejeitado") pendencias = Math.floor(TOTAL_CHECKLIST * 0.7);
+        const pend = pendenciasMap?.get(s.id);
 
         return {
           ...s,
           isLinked,
           projetoNome: projeto?.nome || undefined,
           projetoCor: projeto?.cor || undefined,
-          pendencias,
-          totalChecklist: TOTAL_CHECKLIST,
+          pendencias: pend?.pendentes ?? 0,
+          totalChecklist: pend?.total ?? 0,
         };
       });
-  }, [submissoes, submissaoVinculadas, allVinculos, projetos]);
+  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap]);
 
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
     [submissoes, selectedSubmissaoId]
   );
 
-  const drawerSubmissao = useMemo(
+  const selectedRow = useMemo(
     () => tableData.find(r => r.id === selectedSubmissaoId) || null,
     [tableData, selectedSubmissaoId]
   );
-
-  const vinculosByTarefa = useMemo(() => {
-    const map = new Map<string, string>();
-    vinculos.forEach(v => map.set(v.tarefa_id, v.id));
-    return map;
-  }, [vinculos]);
-
-  const docVinculoMap = useMemo(() => {
-    const map = new Map<string, string>();
-    docVinculos.forEach(v => map.set(`${v.documento_id}-${v.tarefa_id}`, v.id));
-    return map;
-  }, [docVinculos]);
 
   const secoes = secoesData?.secoes || [];
   const tarefas = secoesData?.tarefas || [];
@@ -192,8 +167,6 @@ export default function ProjetoVincularChina() {
   // Handlers
   const handleRowClick = (row: SubmissaoRow) => {
     setSelectedSubmissaoId(row.id);
-    setDrawerOpen(true);
-    setSelectedTarefaForDocs(null);
   };
 
   const handleFocusClick = (row: SubmissaoRow) => {
@@ -234,6 +207,9 @@ export default function ProjetoVincularChina() {
         },
       }).catch(() => null);
     }
+
+    const vinculosByTarefa = new Map<string, string>();
+    vinculos.forEach(v => vinculosByTarefa.set(v.tarefa_id, v.id));
 
     for (const tarefaId of checkedTarefas) {
       const tarefa = tarefas.find((t: any) => t.id === tarefaId);
@@ -350,6 +326,8 @@ export default function ProjetoVincularChina() {
 
   const handleToggleDocVinculo = async (docId: string, tarefaId: string) => {
     if (!selectedProjetoId) return;
+    const docVinculoMap = new Map<string, string>();
+    docVinculos.forEach(v => docVinculoMap.set(`${v.documento_id}-${v.tarefa_id}`, v.id));
     const key = `${docId}-${tarefaId}`;
     const existingId = docVinculoMap.get(key);
     if (existingId) {
@@ -392,9 +370,8 @@ export default function ProjetoVincularChina() {
           </div>
         </div>
 
-        {/* Projeto selector in header */}
         <div className="w-[250px]">
-          <Select value={selectedProjetoId || ""} onValueChange={v => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); setSelectedTarefaForDocs(null); }}>
+          <Select value={selectedProjetoId || ""} onValueChange={v => { setSelectedProjetoId(v); setCheckedTarefas(new Set()); }}>
             <SelectTrigger className="h-9">
               <SelectValue placeholder="Selecione um projeto..." />
             </SelectTrigger>
@@ -415,152 +392,51 @@ export default function ProjetoVincularChina() {
       {/* KPIs */}
       <VincularChinaKpis data={kpiData} />
 
-      {/* Main Table */}
-      <VincularChinaTable
-        data={tableData}
-        loading={loadingSub}
-        projetos={projetos}
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        onRowClick={handleRowClick}
-        onFocusClick={handleFocusClick}
-        filterProjeto={filterProjeto}
-        onFilterProjetoChange={setFilterProjeto}
-      />
+      {/* Split panel: Table + Side Panel */}
+      <div className="flex gap-4" style={{ minHeight: "calc(100vh - 320px)" }}>
+        {/* Table */}
+        <div className={cn("transition-all duration-200", selectedSubmissaoId ? "w-[60%]" : "w-full")}>
+          <VincularChinaTable
+            data={tableData}
+            loading={loadingSub}
+            projetos={projetos}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            onRowClick={handleRowClick}
+            onFocusClick={handleFocusClick}
+            onDespacharClick={(ids) => setBulkOpen(true)}
+            filterProjeto={filterProjeto}
+            onFilterProjetoChange={setFilterProjeto}
+          />
+        </div>
 
-      {/* Vincular Panel - shows when project selected and a submission is selected */}
-      {selectedSubmissaoId && selectedProjetoId && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-primary" />
-              Vincular a Tarefas do Projeto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {secoes.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma seção encontrada no projeto</p>
-            ) : (
-              secoes.map((secao: any) => {
-                const secaoTarefas = tarefas.filter((t: any) => t.secao_id === secao.id);
-                if (secaoTarefas.length === 0) return null;
-                return (
-                  <div key={secao.id}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{secao.nome}</p>
-                    <div className="space-y-1">
-                      {secaoTarefas.map((tarefa: any) => {
-                        const isLinked = vinculosByTarefa.has(tarefa.id);
-                        const isChecked = checkedTarefas.has(tarefa.id);
-                        const docCount = docVinculos.filter(dv => dv.tarefa_id === tarefa.id).length;
-                        const isDocTarget = selectedTarefaForDocs === tarefa.id;
-                        return (
-                          <div
-                            key={tarefa.id}
-                            className={cn(
-                              "flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors",
-                              isLinked && "bg-success/5",
-                              isDocTarget && "ring-1 ring-primary/30 bg-primary/5"
-                            )}
-                          >
-                            <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-                              {isLinked ? (
-                                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                              ) : (
-                                <Checkbox checked={isChecked} onCheckedChange={() => handleToggleTarefa(tarefa.id)} />
-                              )}
-                              <span className="text-sm text-foreground">{tarefa.titulo}</span>
-                              {tarefa.codigo && <span className="text-[10px] text-muted-foreground font-mono">{tarefa.codigo}</span>}
-                            </label>
-                            {docCount > 0 && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                <FileText className="h-3 w-3 mr-0.5" />{docCount}
-                              </Badge>
-                            )}
-                            {isLinked && (
-                              <>
-                                <Button
-                                  variant={isDocTarget ? "default" : "ghost"}
-                                  size="sm"
-                                  className="h-7 px-2 text-[10px]"
-                                  onClick={() => setSelectedTarefaForDocs(isDocTarget ? null : tarefa.id)}
-                                >
-                                  <FileText className="h-3 w-3 mr-1" />Docs
-                                </Button>
-                                <Badge variant="outline" className="text-[10px] text-success border-success/30">Vinculada</Badge>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+        {/* Side Panel */}
+        {selectedSubmissaoId && selectedRow && (
+          <div className="w-[40%] rounded-lg border overflow-hidden">
+            <VincularChinaSidePanel
+              submissao={selectedRow}
+              isLinkedToProject={submissaoVinculadas.has(selectedSubmissaoId)}
+              selectedProjetoId={selectedProjetoId}
+              onClose={() => setSelectedSubmissaoId(null)}
+              onPreviewDoc={setPreviewDoc}
+              onDecisionClick={(id) => { setDecisionProcessId(id); setDecisionOpen(true); }}
+              secoes={secoes}
+              tarefas={tarefas}
+              vinculos={vinculos}
+              docVinculos={docVinculos}
+              checkedTarefas={checkedTarefas}
+              onToggleTarefa={handleToggleTarefa}
+              onVincular={handleVincular}
+              onToggleDocVinculo={handleToggleDocVinculo}
+              vinculosPending={createVinculo.isPending}
+              auditResult={auditResult}
+              auditLoading={auditLoading}
+            />
+          </div>
+        )}
+      </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <AuditChinaVinculoBadge result={auditResult} loading={auditLoading} />
-              <Button
-                onClick={handleVincular}
-                disabled={checkedTarefas.size === 0 || createVinculo.isPending}
-                className="ml-auto"
-                size="sm"
-              >
-                {createVinculo.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Link2 className="h-4 w-4 mr-2" />}
-                Vincular {checkedTarefas.size > 0 ? `(${checkedTarefas.size})` : ""}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Documents panel for linked tarefa */}
-      {selectedSubmissaoId && selectedTarefaForDocs && documentos.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                Documentos — vincular à tarefa
-              </CardTitle>
-              <Badge variant="secondary" className="text-xs">{documentos.length} doc(s)</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {documentos.map((doc: any) => {
-                const key = `${doc.id}-${selectedTarefaForDocs}`;
-                const isDocLinked = docVinculoMap.has(key);
-                return (
-                  <div
-                    key={doc.id}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md border transition-colors",
-                      isDocLinked ? "bg-success/5 border-success/20" : "bg-card border-border"
-                    )}
-                  >
-                    <Checkbox
-                      checked={isDocLinked}
-                      onCheckedChange={() => handleToggleDocVinculo(doc.id, selectedTarefaForDocs)}
-                      disabled={createDocVinculo.isPending || deleteDocVinculo.isPending}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate">{doc.nome_arquivo || getDocTypeLabel(doc.tipo_documento)}</p>
-                      <p className="text-[10px] text-muted-foreground">{getDocTypeLabel(doc.tipo_documento)}</p>
-                    </div>
-                    <Badge variant={doc.status === "aprovado" ? "success" : "secondary"} className="text-[10px] shrink-0">{doc.status}</Badge>
-                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setPreviewDoc(doc)}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Existing vinculos */}
+      {/* Existing vinculos (collapsible) */}
       {allVinculos.length > 0 && (
         <Collapsible open={vinculosOpen} onOpenChange={setVinculosOpen}>
           <Card>
@@ -614,47 +490,13 @@ export default function ProjetoVincularChina() {
         </Collapsible>
       )}
 
-      {/* Pasta Digital */}
-      {selectedSubmissaoId && documentos.length > 0 && (
-        <PastaDigitalFromChecklist submissaoId={selectedSubmissaoId} />
-      )}
-
-      {/* Process Orchestration Panel */}
-      {selectedSubmissaoId && submissaoVinculadas.has(selectedSubmissaoId) && (
-        <>
-          <ProcessOrchestrationPanel
-            submissaoId={selectedSubmissaoId}
-            submissaoNome={selectedSubmissao?.produto_nome}
-            submissaoCodigo={selectedSubmissao?.produto_codigo}
-          />
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => {
-                setDecisionProcessId(selectedSubmissaoId);
-                setDecisionOpen(true);
-              }}
-            >
-              <Gavel className="h-4 w-4" />
-              Decisão Formal do Brasil
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Despachos Panel */}
-      {selectedSubmissaoId && (
-        <DespachosActiveSection submissaoId={selectedSubmissaoId} />
-      )}
-
-      {/* Drawer */}
-      <VincularChinaDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        submissao={drawerSubmissao}
-        onPreviewDoc={setPreviewDoc}
+      {/* Bulk Actions Dialog */}
+      <VincularChinaBulkActions
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        selectedIds={Array.from(selectedIds)}
+        submissoes={tableData}
+        onComplete={() => setSelectedIds(new Set())}
       />
 
       {/* Grade Dialog */}
@@ -669,7 +511,7 @@ export default function ProjetoVincularChina() {
         </DialogContent>
       </Dialog>
 
-      {/* Document Preview Dialog */}
+      {/* Document Preview */}
       <ChinaDocPreviewDialog
         open={!!previewDoc}
         onOpenChange={open => { if (!open) setPreviewDoc(null); }}
@@ -679,7 +521,7 @@ export default function ProjetoVincularChina() {
         tipoDocumento={getDocTypeLabel(previewDoc?.tipo_documento || "")}
       />
 
-      {/* Focus Mode Dialog */}
+      {/* Focus Mode */}
       <Dialog open={!!focusSubmissao} onOpenChange={open => { if (!open) setFocusSubmissao(null); }}>
         <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
@@ -712,7 +554,7 @@ export default function ProjetoVincularChina() {
               )}
               {focusSubmissao && (
                 <div className="mt-4">
-                  <DespachosActiveSection submissaoId={focusSubmissao.id} />
+                  <DespachosPanel submissaoId={focusSubmissao.id} documentos={documentos} />
                 </div>
               )}
             </div>
@@ -720,7 +562,7 @@ export default function ProjetoVincularChina() {
         </DialogContent>
       </Dialog>
 
-      {/* Process Decision Dialog */}
+      {/* Process Decision */}
       {decisionProcessId && (
         <ProcessDecisionDialog
           open={decisionOpen}

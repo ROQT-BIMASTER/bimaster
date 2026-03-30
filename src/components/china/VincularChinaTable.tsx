@@ -158,6 +158,15 @@ export function VincularChinaTable({
 
   const activeFilterCount = [statusFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
 
+  // Pagination
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Reset page when filters change
+  const prevFilteredLen = useMemo(() => filtered.length, [filtered]);
+
   return (
     <div className="space-y-3">
       {/* Toolbar */}
@@ -305,7 +314,7 @@ export function VincularChinaTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map(row => {
+                paginatedData.map(row => {
                   const isSelected = selectedIds.has(row.id);
                   const dateStr = row.updated_at || row.created_at;
                   return (
@@ -382,6 +391,32 @@ export function VincularChinaTable({
           </Table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            Página {currentPage} de {totalPages} ({filtered.length} registros)
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+              Anterior
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const page = currentPage <= 3 ? i + 1 : currentPage + i - 2;
+              if (page < 1 || page > totalPages) return null;
+              return (
+                <Button key={page} variant={page === currentPage ? "default" : "outline"} size="sm" className="h-7 w-7 p-0 text-xs" onClick={() => setCurrentPage(page)}>
+                  {page}
+                </Button>
+              );
+            })}
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+              Próximo
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
