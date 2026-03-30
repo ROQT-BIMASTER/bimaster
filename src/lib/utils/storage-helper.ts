@@ -64,6 +64,12 @@ export async function uploadFile(
   file: File
 ): Promise<{ path: string; error: Error | null }> {
   try {
+    // Validação de segurança
+    const validation = await validateFileForUpload(file);
+    if (!validation.valid) {
+      throw new Error(validation.error || "Arquivo rejeitado pela validação de segurança.");
+    }
+
     const { error } = await supabase.storage.from(bucket).upload(filePath, file, {
       upsert: false,
     });
