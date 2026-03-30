@@ -243,14 +243,53 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
         <div className="mt-4 space-y-3 pt-3 border-t">
           {/* Store selector */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Loja de destino</Label>
+            <Label className="text-xs">{isPublic ? "CNPJ da loja" : "Loja de destino"}</Label>
             {isPublic ? (
-              <Input
-                placeholder="Digite o nome da loja ou local de destino..."
-                value={manualStoreName}
-                onChange={(e) => setManualStoreName(e.target.value)}
-                className="h-9 text-sm"
-              />
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={cnpjInput}
+                    onChange={(e) => {
+                      setCnpjInput(formatCnpj(e.target.value));
+                      setCnpjData(null);
+                    }}
+                    className="h-9 text-sm"
+                    maxLength={18}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-9"
+                    onClick={handleCnpjSearch}
+                    disabled={cnpjClean.length !== 14 || cnpjLoading}
+                  >
+                    {cnpjLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span className="ml-1.5">Buscar</span>
+                  </Button>
+                </div>
+                {cnpjData && (
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm font-medium">{cnpjData.razao_social}</span>
+                    </div>
+                    {cnpjData.nome_fantasia && (
+                      <p className="text-xs text-muted-foreground pl-6">{cnpjData.nome_fantasia}</p>
+                    )}
+                    {(cnpjData.logradouro || cnpjData.municipio) && (
+                      <p className="text-xs text-muted-foreground pl-6">
+                        {[cnpjData.logradouro, cnpjData.numero, cnpjData.municipio, cnpjData.uf].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <Popover open={storePopoverOpen} onOpenChange={setStorePopoverOpen}>
                 <PopoverTrigger asChild>
