@@ -57,6 +57,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [permissionsReady, setPermissionsReady] = useState(false);
   const isMountedRef = useRef(true);
   const fetchInProgressRef = useRef(false);
 
