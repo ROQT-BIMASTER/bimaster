@@ -598,9 +598,7 @@ export default function ProjetoVincularChina() {
                 />
               )}
               {focusSubmissao && (
-                <div className="mt-4">
-                  <DespachosPanel submissaoId={focusSubmissao.id} documentos={documentos} />
-                </div>
+                <FocusModeDespachosWrapper submissaoId={focusSubmissao.id} onPreviewDoc={setPreviewDoc} />
               )}
             </div>
           </ScrollArea>
