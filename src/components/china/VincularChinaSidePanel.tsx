@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import {
   Package, FileText, Camera, AlertTriangle, CheckCircle2,
@@ -62,8 +63,16 @@ export function VincularChinaSidePanel({
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
+
+  // Show brief loading state when switching submissions
+  useEffect(() => {
+    setIsTransitioning(true);
+    const t = setTimeout(() => setIsTransitioning(false), 150);
+    return () => clearTimeout(t);
+  }, [submissao.id]);
 
   const statusMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -139,6 +148,15 @@ export function VincularChinaSidePanel({
         </TabsList>
 
         <ScrollArea className="flex-1">
+          {isTransitioning ? (
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : (
+          <>
           {/* Detalhes Tab */}
           <TabsContent value="detalhes" className="m-0 p-4 space-y-4">
             <div className="grid grid-cols-2 gap-2.5 text-xs">
@@ -284,6 +302,8 @@ export function VincularChinaSidePanel({
                 Decisão Formal do Brasil
               </Button>
             </TabsContent>
+          )}
+          </>
           )}
         </ScrollArea>
       </Tabs>

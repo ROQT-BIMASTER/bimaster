@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2,
+  ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
   AlertTriangle, Package, Filter, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,12 @@ const STATUS_OPTIONS = [
   { value: "aprovado", label: "Aprovado" },
   { value: "arte_enviada", label: "Docs Enviados" },
   { value: "rejeitado", label: "Rejeitado" },
+];
+
+const VINCULO_OPTIONS = [
+  { value: "todos", label: "Todos" },
+  { value: "vinculados", label: "Vinculados" },
+  { value: "nao_vinculados", label: "Não Vinculados" },
 ];
 
 function getStatusBadge(status: string) {
@@ -97,6 +103,7 @@ export function VincularChinaTable({
 }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [vinculoFilter, setVinculoFilter] = useState("todos");
   const [pendenciaFilter, setPendenciaFilter] = useState<"todos" | "com" | "sem">("todos");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -106,6 +113,8 @@ export function VincularChinaTable({
     let result = data.filter(r => {
       if (!r.produto_codigo || r.produto_codigo === "null") return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (vinculoFilter === "vinculados" && !r.isLinked) return false;
+      if (vinculoFilter === "nao_vinculados" && r.isLinked) return false;
       if (filterProjeto && filterProjeto !== "todos" && r.projetoNome !== projetos.find(p => p.id === filterProjeto)?.nome) return false;
       if (pendenciaFilter === "com" && (r.pendencias ?? 0) === 0) return false;
       if (pendenciaFilter === "sem" && (r.pendencias ?? 0) > 0) return false;
@@ -131,7 +140,7 @@ export function VincularChinaTable({
     });
 
     return result;
-  }, [data, search, statusFilter, filterProjeto, pendenciaFilter, sortKey, sortDir, projetos]);
+  }, [data, search, statusFilter, vinculoFilter, filterProjeto, pendenciaFilter, sortKey, sortDir, projetos]);
 
   const allSelected = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id));
 
@@ -156,7 +165,7 @@ export function VincularChinaTable({
     onSelectionChange(next);
   };
 
-  const activeFilterCount = [statusFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
+  const activeFilterCount = [statusFilter !== "todos", vinculoFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
 
   // Pagination
   const PAGE_SIZE = 50;
@@ -165,7 +174,12 @@ export function VincularChinaTable({
   const paginatedData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Reset page when filters change
-  const prevFilteredLen = useMemo(() => filtered.length, [filtered]);
+  const filteredLen = filtered.length;
+  const prevFilteredLenRef = useMemo(() => ({ current: filteredLen }), []);
+  if (filteredLen !== prevFilteredLenRef.current) {
+    prevFilteredLenRef.current = filteredLen;
+    if (currentPage !== 1) setCurrentPage(1);
+  }
 
   return (
     <div className="space-y-3">
@@ -241,6 +255,15 @@ export function VincularChinaTable({
             </SelectContent>
           </Select>
 
+          <Select value={vinculoFilter} onValueChange={setVinculoFilter}>
+            <SelectTrigger className="h-8 w-[150px] text-xs">
+              <SelectValue placeholder="Vínculo" />
+            </SelectTrigger>
+            <SelectContent>
+              {VINCULO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
           <Select value={pendenciaFilter} onValueChange={v => setPendenciaFilter(v as any)}>
             <SelectTrigger className="h-8 w-[150px] text-xs">
               <SelectValue placeholder="Pendências" />
@@ -255,6 +278,7 @@ export function VincularChinaTable({
           {activeFilterCount > 0 && (
             <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => {
               setStatusFilter("todos");
+              setVinculoFilter("todos");
               onFilterProjetoChange("");
               setPendenciaFilter("todos");
             }}>
@@ -336,7 +360,18 @@ export function VincularChinaTable({
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-medium truncate">{row.produto_nome}</span>
-                          {row.isLinked && <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />}
+                          {row.isLinked ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>Vinculado</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Link2Off className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
