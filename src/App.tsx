@@ -277,6 +277,11 @@ const SyncCadastrosAP = lazyWithRetry(() => import("./pages/financeiro/SyncCadas
 const ConciliacaoManualAP = lazyWithRetry(() => import("./pages/financeiro/ConciliacaoManualAP"));
 const RelatorioAPxERP = lazyWithRetry(() => import("./pages/financeiro/RelatorioAPxERP"));
 
+// OMS Module
+const OmsPainelPedidos = lazyWithRetry(() => import("./pages/OmsPainelPedidos"));
+const OmsPedidoDetalhe = lazyWithRetry(() => import("./pages/OmsPedidoDetalhe"));
+const OmsCondicoesPagamento = lazyWithRetry(() => import("./pages/OmsCondicoesPagamento"));
+
 // Loading component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -610,6 +615,11 @@ function AppContent() {
              <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ProdutosBrasilListagem /></ModuleRoute>} />
              <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ProdutoBrasilCadastro /></ModuleRoute>} />
              <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleRoute>} />
+
+            {/* Módulo OMS */}
+            <Route path="/dashboard/oms" element={<ModuleRoute moduleCode="oms"><OmsPainelPedidos /></ModuleRoute>} />
+            <Route path="/dashboard/oms/pedidos/:id" element={<ModuleRoute moduleCode="oms"><OmsPedidoDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/oms/condicoes-pagamento" element={<ModuleRoute moduleCode="oms"><OmsCondicoesPagamento /></ModuleRoute>} />
 
             {/* Módulo de Reuniões */}
             <Route path="/dashboard/reunioes" element={<ModuleRoute moduleCode="reunioes"><Reunioes /></ModuleRoute>} />

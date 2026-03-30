@@ -28,6 +28,7 @@ export const MODULE_ICON_MAP: Record<string, string> = {
   projetos: "FolderKanban",
   reunioes: "Calendar",
   configuracoes: "Settings",
+  oms: "PackageCheck",
 };
 
 /**
