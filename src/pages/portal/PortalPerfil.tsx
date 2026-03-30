@@ -52,10 +52,11 @@ export default function PortalPerfil() {
           .single();
 
         if (profileData) {
-          setProfile(profileData);
+          const tel = (telData as any)?.telefone || null;
+          setProfile({ ...profileData, telefone: tel });
           setFormData({
             nome: profileData.nome || "",
-            telefone: profileData.telefone || "",
+            telefone: tel || "",
           });
         }
 
