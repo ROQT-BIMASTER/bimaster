@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 /**
  * Comprime uma imagem mantendo qualidade aceitável para mobile
