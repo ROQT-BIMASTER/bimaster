@@ -1,68 +1,105 @@
 
 
-# Filtrar Projetos: Apenas Criados ou Membros
+# Revisão Completa de UI/UX — Plano Premium
 
-## Problema
+## Diagnóstico
 
-A política RLS da tabela `projetos` usa `USING(true)` para SELECT, permitindo que todos os usuários autenticados vejam todos os projetos. O correto é que cada usuário veja apenas projetos que criou ou nos quais é membro.
+Após auditoria detalhada do codebase, identifiquei os seguintes problemas de consistência e oportunidades de melhoria:
 
-## Solução
+| Problema | Impacto | Escala |
+|----------|---------|--------|
+| Cores hardcoded (Tailwind `text-blue-`, `bg-green-`, etc.) | Quebra do design system, impossibilita temas | ~1800 ocorrências em 91 arquivos |
+| Hex hardcoded em charts/SVGs (`#3b82f6`, etc.) | Inconsistência visual | ~400 ocorrências em 11 arquivos |
+| `PageHeader` usado em apenas 3 páginas (de ~150) | Headers inconsistentes | 147+ páginas sem padrão |
+| `KpiCard` padronizado usado em apenas 4 arquivos | KPIs com estilos diferentes por módulo | ~10 implementações locais diferentes |
+| Dashboard principal sem componentes padrão | Página mais vista é a menos polida | 1 página crítica |
+| Múltiplas variantes de KPI locais (MeetingExecutiveDashboard, ExecutiveKPIs, etc.) | Experiência fragmentada | ~14 arquivos |
 
-### 1. Migration — Atualizar política RLS de SELECT
+## Plano de Execução (5 Fases)
 
-Substituir a política permissiva por uma que verifica se o usuário é criador ou membro:
+### Fase 1 — Design Tokens e Componentes Base (Fundação)
 
-```sql
-DROP POLICY "Authenticated users can view projetos" ON public.projetos;
+**1.1. Paleta de cores semântica para charts**
+- Criar arquivo `src/lib/chart-colors.ts` com constantes que usam `hsl(var(--chart-N))` e fallbacks hex para libs que exigem hex
+- Substituir hex hardcoded nos ~11 arquivos de charts/SVGs
 
-CREATE POLICY "Users view own or member projetos" ON public.projetos
-  FOR SELECT TO authenticated
-  USING (
-    criador_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.projeto_membros pm
-      WHERE pm.projeto_id = id AND pm.user_id = auth.uid()
-    )
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
-    )
-  );
-```
+**1.2. Evolução do `KpiCard`**
+- Adicionar props: `trend` (percentual com seta up/down), `loading` (skeleton interno), `onClick`, `sparkline` (mini gráfico)
+- Adicionar variant `"accent"` para destaque principal
+- Manter retrocompatibilidade total
 
-Também restringir o UPDATE para apenas criador/membro:
+**1.3. Evolução do `PageHeader`**
+- Adicionar props: `icon` (ícone do módulo), `breadcrumbs` (array de {label, href}), `subtitle` (diferente de description)
+- Unificar `TradePageHeader` como alias de `PageHeader` com preset de backTo
 
-```sql
-DROP POLICY "Authenticated users can update projetos" ON public.projetos;
+### Fase 2 — Dashboard Principal (Impacto Visual Imediato)
 
-CREATE POLICY "Members can update projetos" ON public.projetos
-  FOR UPDATE TO authenticated
-  USING (
-    criador_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.projeto_membros pm
-      WHERE pm.projeto_id = id AND pm.user_id = auth.uid()
-    )
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
-    )
-  );
-```
+**2.1. Redesign do Dashboard**
+- Usar `PageHeader` com saudação contextual ("Bom dia, João")
+- Substituir módulos quick-access por cards com gradiente sutil, ícone grande, e contadores de pendências
+- KPIs principais usando `KpiCard` evoluído com trends
+- Chart de atividades com gradiente sob a linha (area chart)
+- Seção de atalhos rápidos com ícones modernos
 
-### 2. Nenhuma alteração no código frontend
+### Fase 3 — Padronização por Módulo (Consistência)
 
-O hook `useProjetos` já faz `select("*")` — com a RLS corrigida, o banco retornará automaticamente apenas os projetos visíveis ao usuário.
+**3.1. Migrar páginas para `PageHeader`**
+- Prioridade: módulos China, Fábrica, Financeiro, Trade (páginas mais usadas)
+- Substituir headers manuais `<h1>/<h2>` + botão voltar pelo componente padrão
+- ~30 páginas prioritárias na primeira iteração
 
-## Arquivo
+**3.2. Migrar KPIs para `KpiCard` padrão**
+- Substituir implementações locais em: `ExecutiveKPIs`, `MeetingExecutiveDashboard`, `FluxoCaixaKPIsAdvanced`, `MarketKPICards`, `MunicipiosKPICards`, `ReactivationKPICards`, `WhitespaceKPICards`
+- Usar variants semânticas (`success`, `warning`, `destructive`, `info`)
 
-| Recurso | Ação |
+**3.3. Substituir cores Tailwind hardcoded**
+- Batch 1 (~30 páginas críticas): trocar `text-blue-600` → `text-primary`, `text-green-600` → `text-success`, `text-red-600` → `text-destructive`, `text-amber-600` → `text-warning`
+- Batch 2 (restante): varrer os 91 arquivos restantes
+
+### Fase 4 — Micro-interações e Polish
+
+**4.1. Loading states consistentes**
+- Garantir que todas as páginas usem `Skeleton` nos mesmos padrões
+- Adicionar loading skeleton ao `KpiCard` (built-in)
+
+**4.2. Empty states**
+- Criar componente `EmptyState` reutilizável (ícone + título + descrição + CTA)
+- Aplicar nas listagens principais
+
+**4.3. Transições de página**
+- Adicionar `animate-fade-in-up` nos containers principais de cada página
+- Stagger nos cards de KPI (`animation-delay-100`, `200`, etc.)
+
+### Fase 5 — Header e Layout Global
+
+**5.1. Refinar header global**
+- Reduzir altura para 48px (de 52px)
+- Melhorar espaçamento dos elementos à direita
+- Adicionar breadcrumb contextual no header
+
+## Prioridade de Execução
+
+Dado o volume (~150 páginas), recomendo executar em blocos incrementais:
+
+1. **Fase 1** (tokens + componentes) — pré-requisito para tudo
+2. **Fase 2** (dashboard) — impacto visual imediato
+3. **Fase 3 batch 1** (~30 páginas mais usadas)
+4. **Fase 4** (polish)
+5. **Fase 3 batch 2 + Fase 5** (restante)
+
+## Arquivos Principais Afetados
+
+| Arquivo | Ação |
 |---------|------|
-| Migration SQL | DROP + CREATE policies em `projetos` |
+| `src/lib/chart-colors.ts` | Criar — paleta de cores para gráficos |
+| `src/components/ui/kpi-card.tsx` | Evoluir — trends, loading, sparkline |
+| `src/components/ui/page-header.tsx` | Evoluir — icon, breadcrumbs |
+| `src/components/ui/empty-state.tsx` | Criar — componente reutilizável |
+| `src/pages/Dashboard.tsx` | Redesign completo |
+| ~30 páginas prioritárias | Migrar para PageHeader + KpiCard + tokens |
+| ~91 arquivos com cores hardcoded | Substituir por tokens semânticos |
 
-## Resultado
+## Observação
 
-- Usuário vê apenas projetos que criou (`criador_id`) ou onde é membro (`projeto_membros`)
-- Admins continuam vendo todos
-- Zero alteração no frontend
+Cada fase será executada como um bloco independente. Posso começar pela Fase 1 + Fase 2 juntas para que o impacto visual seja percebido imediatamente.
 
