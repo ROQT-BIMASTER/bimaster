@@ -57,6 +57,10 @@ export const GerenciamentoUsuarios = () => {
   useEffect(() => {
     fetchUsuarios();
     fetchMunicipios();
+    // Get current user ID
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user?.id || null);
+    });
   }, []);
 
   useEffect(() => {
