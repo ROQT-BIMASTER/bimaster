@@ -158,6 +158,15 @@ export function VincularChinaTable({
 
   const activeFilterCount = [statusFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
 
+  // Pagination
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Reset page when filters change
+  const prevFilteredLen = useMemo(() => filtered.length, [filtered]);
+
   return (
     <div className="space-y-3">
       {/* Toolbar */}
