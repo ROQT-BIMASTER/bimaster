@@ -134,13 +134,40 @@ export function GerenciamentoPermissoesModulos() {
     try {
       const module = modules.find(m => m.id === moduleId);
       const user = users.find(u => u.id === userId);
+      const hasAnyCustom = userPermissions.some(up => up.userId === userId);
 
-      if (currentValue) {
+      if (!hasAnyCustom && !currentValue) {
+        // First toggle in inheritance mode: copy ALL effective permissions as base, then add this one
+        const effectiveModuleIds = modules
+          .filter(m => {
+            if (user?.role && hasRolePermission(user.role, m.id)) return true;
+            if (hasDeptPermission(user?.departamento_id, m.id)) return true;
+            return false;
+          })
+          .map(m => m.id);
+
+        // Add the newly toggled module
+        const allModuleIds = [...new Set([...effectiveModuleIds, moduleId])];
+        
+        // Insert all as individual overrides
+        const inserts = allModuleIds.map(mId => ({ usuario_id: userId, modulo_id: mId }));
+        await supabase.from("usuario_permissoes_modulos").delete().eq("usuario_id", userId);
+        if (inserts.length > 0) {
+          const { error } = await supabase.from("usuario_permissoes_modulos").insert(inserts);
+          if (error) throw error;
+        }
+        setUserPermissions(prev => [
+          ...prev.filter(up => up.userId !== userId),
+          ...allModuleIds.map(mId => ({ userId, moduleId: mId }))
+        ]);
+      } else if (currentValue) {
+        // Remove individual permission
         await supabase.from("usuario_permissoes_modulos").delete().eq("usuario_id", userId).eq("modulo_id", moduleId);
-        setUserPermissions((prev) => prev.filter((up) => !(up.userId === userId && up.moduleId === moduleId)));
+        setUserPermissions(prev => prev.filter(up => !(up.userId === userId && up.moduleId === moduleId)));
       } else {
+        // Add individual permission
         await supabase.from("usuario_permissoes_modulos").insert({ usuario_id: userId, modulo_id: moduleId });
-        setUserPermissions((prev) => [...prev, { userId, moduleId }]);
+        setUserPermissions(prev => [...prev, { userId, moduleId }]);
       }
 
       permissionsCache.invalidate(userId);
