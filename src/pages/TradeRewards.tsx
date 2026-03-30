@@ -46,6 +46,7 @@ export default function TradeRewards() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb moduleName="Trade Marketing" moduleHref="/dashboard/trade" currentPage="Premiações" />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

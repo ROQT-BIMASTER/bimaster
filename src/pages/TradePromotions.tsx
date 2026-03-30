@@ -13,6 +13,7 @@ import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovaPromocaoDialog } from "@/components/trade/NovaPromocaoDialog";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Promotion {
   id: string;

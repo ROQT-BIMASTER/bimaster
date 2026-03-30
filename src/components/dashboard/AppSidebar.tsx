@@ -826,7 +826,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       case "trade":
         return (
           <ModuleSubmenu icon={Store} title={t("module.trade")} colorKey="trade">
-            {hasPermission("TRADE_DASHBOARD") && (
+            {hasPermission("trade_marketing") && (
               <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
             )}
             {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (

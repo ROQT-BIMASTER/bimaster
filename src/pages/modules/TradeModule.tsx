@@ -201,7 +201,7 @@ const TradeModule = () => {
                   </div>
                   <div className="mt-2">
                     <p className="text-lg sm:text-xl font-bold text-[hsl(330,81%,60%)]">
-                      R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
+                      R$ {((stats?.totalSellOut || 0) / 1000).toFixed(0)}k
                     </p>
                     <h3 className="text-[11px] sm:text-xs font-medium mt-0.5">Sell Out</h3>
                   </div>
