@@ -109,7 +109,7 @@ export function useFichaDespachos(submissaoId: string | undefined) {
       ])];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome_completo")
+        .select("id, nome")
         .in("id", userIds);
       const profileMap = Object.fromEntries(
         (profiles || []).map((p: any) => [p.id, p.nome_completo])
