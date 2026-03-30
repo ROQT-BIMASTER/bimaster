@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download, Sparkles
 } from "lucide-react";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
 import { exportToExcel } from "@/utils/excelExport";
