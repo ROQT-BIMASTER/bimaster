@@ -145,8 +145,9 @@ export function PermissoesDeAcesso() {
         }
       }
 
-      // Invalidar todo o cache de permissões
+      // Invalidar todo o cache de permissões e notificar PermissionsContext
       permissionsCache.clear();
+      window.dispatchEvent(new Event('permissions-updated'));
 
       toast({
         title: "Sucesso",
@@ -203,6 +204,7 @@ export function PermissoesDeAcesso() {
 
         // Invalidar todo o cache após sincronização
         permissionsCache.clear();
+        window.dispatchEvent(new Event('permissions-updated'));
 
         toast({
           title: "Sincronização concluída",

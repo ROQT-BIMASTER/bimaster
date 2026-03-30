@@ -22,10 +22,11 @@ interface Profile {
 
 interface EditarPerfilProps {
   profile: Profile;
+  userRole?: string | null;
   onUpdate: (updatedProfile: Profile) => void;
 }
 
-export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
+export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(profile);
@@ -57,8 +58,10 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
     fetchDepartamento();
   }, [profile.id, profile.departamento]);
 
+  const effectiveRole = userRole || profile?.tipo_usuario;
+
   const getTipoUsuarioLabel = () => {
-    switch (profile?.tipo_usuario) {
+    switch (effectiveRole) {
       case 'admin': return 'Administrador';
       case 'gerente': return 'Gerente';
       case 'supervisor': return 'Supervisor';
@@ -70,7 +73,7 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
   };
 
   const getTipoUsuarioVariant = () => {
-    switch (profile?.tipo_usuario) {
+    switch (effectiveRole) {
       case 'admin': return 'default';
       case 'gerente': case 'supervisor': return 'secondary';
       default: return 'outline';
@@ -93,7 +96,6 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
           nome: formData.nome.trim(),
           telefone: formData.telefone?.trim() || null,
           cargo: formData.cargo?.trim() || null,
-          departamento: formData.departamento?.trim() || null,
         })
         .eq("id", profile.id);
 

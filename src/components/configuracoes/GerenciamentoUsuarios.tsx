@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,6 +32,7 @@ interface Municipio {
 export const GerenciamentoUsuarios = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,6 +57,10 @@ export const GerenciamentoUsuarios = () => {
   useEffect(() => {
     fetchUsuarios();
     fetchMunicipios();
+    // Get current user ID
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserId(session?.user?.id || null);
+    });
   }, []);
 
   useEffect(() => {
@@ -276,6 +282,7 @@ export const GerenciamentoUsuarios = () => {
   };
 
   const handleEditUser = (user: Usuario) => {
+    setErrors({});
     setEditingUser(user);
     setNovoUsuario({
       nome: user.nome,
@@ -465,7 +472,7 @@ export const GerenciamentoUsuarios = () => {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => setEditingUser(null)}>
+                <Button onClick={() => { setEditingUser(null); setErrors({}); }}>
                   <UserPlus className="w-4 h-4 mr-2" />
                   Novo Usuário
                 </Button>
@@ -490,7 +497,21 @@ export const GerenciamentoUsuarios = () => {
                     {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="flex items-center gap-1">
+                      Email
+                      {editingUser && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Lock className="w-3 h-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>O email não pode ser alterado após a criação</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -498,6 +519,8 @@ export const GerenciamentoUsuarios = () => {
                       onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })}
                       placeholder="email@empresa.com"
                       maxLength={255}
+                      disabled={!!editingUser}
+                      className={editingUser ? "bg-muted" : ""}
                     />
                     {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
@@ -506,6 +529,7 @@ export const GerenciamentoUsuarios = () => {
                     <Select
                       value={novoUsuario.tipo_usuario}
                       onValueChange={(value: any) => setNovoUsuario({ ...novoUsuario, tipo_usuario: value })}
+                      disabled={editingUser?.id === currentUserId}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -715,13 +739,15 @@ export const GerenciamentoUsuarios = () => {
                           >
                             {usuario.status === "ativo" ? "Desativar" : "Ativar"}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUser(usuario.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {usuario.id !== currentUserId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUser(usuario.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

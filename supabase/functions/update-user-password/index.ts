@@ -76,6 +76,15 @@ serve(async (req) => {
       );
     }
 
+    // Validate password complexity (same regex as client-side)
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!complexityRegex.test(password)) {
+      return new Response(
+        JSON.stringify({ error: "Password must contain uppercase, lowercase letters and numbers" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
       password: password
     });

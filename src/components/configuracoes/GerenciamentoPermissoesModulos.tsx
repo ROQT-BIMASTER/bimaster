@@ -135,8 +135,9 @@ export function GerenciamentoPermissoesModulos() {
         setRolePermissions((prev) => [...prev, { role, moduleId }]);
       }
 
-      // Invalidar cache de todos os usuários dessa role
+      // Invalidar cache de todos os usuários dessa role e notificar context
       permissionsCache.clear();
+      window.dispatchEvent(new Event('permissions-updated'));
 
       toast({
         title: "Sucesso",
@@ -180,8 +181,9 @@ export function GerenciamentoPermissoesModulos() {
         setUserPermissions((prev) => [...prev, { userId, moduleId }]);
       }
 
-      // Invalidar cache do usuário específico
+      // Invalidar cache do usuário específico e notificar context
       permissionsCache.invalidate(userId);
+      window.dispatchEvent(new Event('permissions-updated'));
 
       // Log de auditoria
       await logModulePermissionToggle(

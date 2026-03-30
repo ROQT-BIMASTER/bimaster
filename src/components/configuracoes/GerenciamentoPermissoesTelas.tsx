@@ -250,8 +250,9 @@ export const GerenciamentoPermissoesTelas = () => {
         if (error) throw error;
       }
 
-      // Invalidar cache do usuário
+      // Invalidar cache do usuário e notificar PermissionsContext
       permissionsCache.invalidate(selectedUsuario);
+      window.dispatchEvent(new Event('permissions-updated'));
 
       // Log de auditoria
       const newPermissionIds = Array.from(userPermissions);
