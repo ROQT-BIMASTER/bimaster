@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Shield, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { permissionsCache } from "@/lib/utils/permissions-cache";
-import { logPermissionSync } from "@/lib/utils/permission-audit";
 
 interface Tela {
   id: string;
@@ -53,7 +52,6 @@ export function PermissoesDeAcesso() {
   const [telas, setTelas] = useState<Tela[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,23 +61,14 @@ export function PermissoesDeAcesso() {
   const loadPermissions = async () => {
     setLoadingData(true);
     try {
-      // Buscar todas as telas
-      const { data: telasData, error: telasError } = await supabase
-        .from("telas_sistema")
-        .select("*")
-        .eq("ativo", true)
-        .order("ordem");
+      const [{ data: telasData, error: telasError }, { data: rolePermissoes, error: permissoesError }] = await Promise.all([
+        supabase.from("telas_sistema").select("*").eq("ativo", true).order("ordem"),
+        supabase.from("role_permissoes_telas").select("role, tela_id"),
+      ]);
 
       if (telasError) throw telasError;
-
-      // Buscar permissões por role
-      const { data: rolePermissoes, error: permissoesError } = await supabase
-        .from("role_permissoes_telas")
-        .select("role, tela_id");
-
       if (permissoesError) throw permissoesError;
 
-      // Mapear permissões para cada tela
       const telasComPermissoes: Tela[] = (telasData || []).map((tela) => ({
         id: tela.id,
         codigo: tela.codigo,
@@ -99,11 +88,7 @@ export function PermissoesDeAcesso() {
       setTelas(telasComPermissoes);
     } catch (error) {
       console.error("Erro ao carregar permissões:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as permissões",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível carregar as permissões", variant: "destructive" });
     } finally {
       setLoadingData(false);
     }
@@ -120,106 +105,29 @@ export function PermissoesDeAcesso() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Para cada role, deletar e recriar as permissões
       for (const role of ['gerente', 'supervisor', 'vendedor', 'promotor'] as const) {
-        // Deletar permissões existentes do role
-        await supabase
-          .from("role_permissoes_telas")
-          .delete()
-          .eq("role", role);
+        await supabase.from("role_permissoes_telas").delete().eq("role", role);
 
-        // Inserir novas permissões
         const permissoesParaInserir = telas
           .filter(tela => tela.permissoes[role])
-          .map(tela => ({
-            role,
-            tela_id: tela.id,
-          }));
+          .map(tela => ({ role, tela_id: tela.id }));
 
         if (permissoesParaInserir.length > 0) {
-          const { error } = await supabase
-            .from("role_permissoes_telas")
-            .insert(permissoesParaInserir);
-
+          const { error } = await supabase.from("role_permissoes_telas").insert(permissoesParaInserir);
           if (error) throw error;
         }
       }
 
-      // Invalidar todo o cache de permissões e notificar PermissionsContext
       permissionsCache.clear();
       window.dispatchEvent(new Event('permissions-updated'));
 
-      toast({
-        title: "Sucesso",
-        description: "Permissões por role salvas. Clique em 'Sincronizar' para aplicar aos usuários.",
-      });
-
+      toast({ title: "Sucesso", description: "Permissões por role salvas com sucesso." });
       await loadPermissions();
     } catch (error) {
       console.error("Erro ao salvar permissões:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar as permissões",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Não foi possível salvar as permissões", variant: "destructive" });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      // Sincronizar permissões de todos os usuários não-admin
-      const { data: usersData } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .neq("role", "admin");
-
-      // Buscar nomes dos usuários para auditoria
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nome")
-        .in("id", usersData?.map(u => u.user_id) || []);
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p.nome]) || []);
-
-      if (usersData && usersData.length > 0) {
-        let syncCount = 0;
-        for (const user of usersData) {
-          const { error } = await supabase.rpc("sincronizar_permissoes_usuario", {
-            p_user_id: user.user_id,
-          });
-          if (!error) {
-            syncCount++;
-            // Log de auditoria para cada usuário sincronizado
-            await logPermissionSync(
-              user.user_id,
-              profileMap.get(user.user_id) || 'Usuário',
-              'screen',
-              telas.filter(t => t.permissoes.vendedor || t.permissoes.supervisor || t.permissoes.promotor).map(t => t.nome)
-            );
-          }
-        }
-
-        // Invalidar todo o cache após sincronização
-        permissionsCache.clear();
-        window.dispatchEvent(new Event('permissions-updated'));
-
-        toast({
-          title: "Sincronização concluída",
-          description: `${syncCount} usuários sincronizados com sucesso`,
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao sincronizar:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível sincronizar as permissões",
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -228,7 +136,7 @@ export function PermissoesDeAcesso() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5" />
-          <CardTitle>Permissões de Acesso por Role</CardTitle>
+          <CardTitle>Permissões de Telas por Role</CardTitle>
         </div>
         <CardDescription>
           Defina quais telas cada tipo de usuário (role) pode acessar. Admins têm acesso total automaticamente.
@@ -236,9 +144,12 @@ export function PermissoesDeAcesso() {
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Como funciona:</strong> Configure aqui as permissões padrão por role (Supervisor/Vendedor/Promotor). Depois salve e clique em "Sincronizar" para aplicar aos usuários existentes.
+            <strong>Como funciona:</strong> Estas são as permissões <strong>base</strong> por função. 
+            Usuários sem permissões individuais herdam estas configurações automaticamente. 
+            Se um usuário tiver permissões individuais configuradas (na aba "Telas por Usuário"), 
+            elas <strong>substituem completamente</strong> estas permissões do role.
           </AlertDescription>
         </Alert>
 
@@ -257,23 +168,13 @@ export function PermissoesDeAcesso() {
                     <th className="text-center p-4 font-medium w-32">
                       <div className="flex flex-col items-center gap-1">
                         <span>Admin</span>
-                        <Badge variant="default" className="text-xs">
-                          Acesso Total
-                        </Badge>
+                        <Badge variant="default" className="text-xs">Acesso Total</Badge>
                       </div>
-                     </th>
-                    <th className="text-center p-4 font-medium w-28">
-                      Gerente
                     </th>
-                    <th className="text-center p-4 font-medium w-28">
-                      Supervisor
-                    </th>
-                    <th className="text-center p-4 font-medium w-28">
-                      Vendedor
-                    </th>
-                    <th className="text-center p-4 font-medium w-28">
-                      Promotor
-                    </th>
+                    <th className="text-center p-4 font-medium w-28">Gerente</th>
+                    <th className="text-center p-4 font-medium w-28">Supervisor</th>
+                    <th className="text-center p-4 font-medium w-28">Vendedor</th>
+                    <th className="text-center p-4 font-medium w-28">Promotor</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,32 +197,16 @@ export function PermissoesDeAcesso() {
                           </div>
                         </td>
                         <td className="text-center p-4">
-                          <Checkbox
-                            checked={tela.permissoes.gerente}
-                            onCheckedChange={() => handlePermissionChange(tela.id, 'gerente')}
-                            className="mx-auto"
-                          />
+                          <Checkbox checked={tela.permissoes.gerente} onCheckedChange={() => handlePermissionChange(tela.id, 'gerente')} className="mx-auto" />
                         </td>
                         <td className="text-center p-4">
-                          <Checkbox
-                            checked={tela.permissoes.supervisor}
-                            onCheckedChange={() => handlePermissionChange(tela.id, 'supervisor')}
-                            className="mx-auto"
-                          />
+                          <Checkbox checked={tela.permissoes.supervisor} onCheckedChange={() => handlePermissionChange(tela.id, 'supervisor')} className="mx-auto" />
                         </td>
                         <td className="text-center p-4">
-                          <Checkbox
-                            checked={tela.permissoes.vendedor}
-                            onCheckedChange={() => handlePermissionChange(tela.id, 'vendedor')}
-                            className="mx-auto"
-                          />
+                          <Checkbox checked={tela.permissoes.vendedor} onCheckedChange={() => handlePermissionChange(tela.id, 'vendedor')} className="mx-auto" />
                         </td>
                         <td className="text-center p-4">
-                          <Checkbox
-                            checked={tela.permissoes.promotor}
-                            onCheckedChange={() => handlePermissionChange(tela.id, 'promotor')}
-                            className="mx-auto"
-                          />
+                          <Checkbox checked={tela.permissoes.promotor} onCheckedChange={() => handlePermissionChange(tela.id, 'promotor')} className="mx-auto" />
                         </td>
                       </tr>
                     );
@@ -330,40 +215,10 @@ export function PermissoesDeAcesso() {
               </table>
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                onClick={handleSave}
-                disabled={loading || syncing}
-                className="flex-1"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Shield className="w-4 h-4 mr-2" />
-                )}
-                Salvar Permissões
-              </Button>
-              <Button
-                onClick={handleSync}
-                disabled={loading || syncing}
-                variant="secondary"
-                className="flex-1"
-              >
-                {syncing ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Sincronizar com Usuários
-              </Button>
-            </div>
-            
-            <Alert>
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Fluxo:</strong> 1️⃣ Ajuste as permissões acima → 2️⃣ Clique em "Salvar" → 3️⃣ Clique em "Sincronizar" para aplicar a todos os usuários com esse role. Você também pode personalizar permissões individuais na aba "Gerenciar Usuários".
-              </AlertDescription>
-            </Alert>
+            <Button onClick={handleSave} disabled={loading} className="w-full">
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+              Salvar Permissões por Role
+            </Button>
           </>
         )}
       </CardContent>

@@ -31820,15 +31820,11 @@ export type Database = {
       }
       get_user_combined_module_permissions: {
         Args: { _user_id: string }
-        Returns: {
-          modulo_codigo: string
-        }[]
+        Returns: string[]
       }
       get_user_combined_screen_permissions: {
         Args: { _user_id: string }
-        Returns: {
-          tela_codigo: string
-        }[]
+        Returns: string[]
       }
       get_user_empresa_ids: { Args: { _user_id: string }; Returns: number[] }
       get_user_module_permissions: {
