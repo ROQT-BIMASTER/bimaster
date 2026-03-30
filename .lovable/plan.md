@@ -1,58 +1,47 @@
 
 
-# Atualizar Versao, Corrigir Despacho e Adicionar Manual
+# Devolução Final do Brasil — Upload de Documentos e Seleção para Decisão
 
-## Problemas Identificados
+## Contexto
 
-### 1. Bug critico no Despacho: `nome_completo` nao existe na tabela `profiles`
+O `ProcessDecisionDialog` atualmente permite apenas selecionar tipo de decisão, escrever justificativa e (em caso de ajuste) marcar documentos existentes. Falta:
+1. **Upload de arquivos** como evidência/parecer anexo à decisão
+2. **Seleção de documentos** visível para TODOS os tipos de decisão (não apenas "needs_revision")
 
-O hook `useChinaFichaVisibilidade.ts` consulta `profiles.nome_completo` (linhas 34 e 112), mas a coluna real chama-se `nome`. Resultado: todos os nomes aparecem como "—", impossibilitando identificar usuarios no seletor de destino e no historico de despachos. Este e o motivo pelo qual o despacho "nao funciona" — o usuario nao consegue ver quem selecionar.
-
-### 2. Versao desatualizada
-
-Atualizar de `2.14.0` para `2.15.0`.
-
-### 3. Manual inexistente no topo da tela
-
-A tela de Ficha Produto China ja usa `ManualFabricaDrawer`, mas outras telas de despacho e projetos nao tem manual. O pedido e para colocar um manual com passo a passo no topo.
-
----
+O hook `useProcessDecisions` já suporta o campo `attachments: Array<{ url: string; nome: string }>`, mas o dialog nunca envia anexos.
 
 ## Plano
 
-### Fase 1 — Corrigir despacho (bug critico)
+### 1. Adicionar upload de arquivos ao dialog
 
-**Arquivo:** `src/hooks/useChinaFichaVisibilidade.ts`
-- Linha 34: trocar `nome_completo` por `nome`
-- Linha 43: trocar `nome_completo` por `nome`
-- Linha 112: trocar `nome_completo` por `nome`
-- Linha 115: trocar `nome_completo` por `nome`
+- Adicionar zona de upload (input file múltiplo) abaixo da justificativa
+- Ao selecionar arquivos, fazer upload para Supabase Storage bucket `process-attachments`
+- Exibir lista de arquivos selecionados com nome, tamanho e botão remover
+- Passar os URLs resultantes no campo `attachments` ao criar a decisão
 
-Isso corrige imediatamente: lista de usuarios no seletor de destino, historico de despachos com nomes reais.
+### 2. Seleção de documentos para TODAS as decisões
 
-### Fase 2 — Atualizar versao
+- Mover o checklist de documentos para fora do bloco condicional `needs_revision`
+- Mostrar para todos os tipos (aprovação parcial, rejeição com itens específicos, ajuste)
+- Label contextual: "Documentos relacionados" (genérico) em vez de "Itens que precisam de correção"
+- Manter o campo `motivo` por item apenas quando `needs_revision`
 
-**Arquivo:** `src/lib/version.ts`
-- Alterar `APP_VERSION` para `2.15.0`
+### 3. Criar bucket Storage (se não existir)
 
-### Fase 3 — Adicionar Manual no topo
+- Migration para criar bucket `process-attachments` com políticas de acesso autenticado
 
-**Arquivo:** `src/pages/ChinaFichaProduto.tsx`
-- O manual ja existe via `ManualFabricaDrawer` na screen `china-ficha-produto`. Verificar se o conteudo do manual cobre o passo a passo de despacho.
+### 4. UX aprimorada
 
-**Arquivo:** `src/components/fabrica/ManualFabricaDrawer.tsx`
-- Atualizar o conteudo da screen `china-ficha-produto` para incluir passo a passo completo de:
-  1. Como despachar uma ficha para um modulo
-  2. Como selecionar usuario destino
-  3. Como adicionar observacoes/instrucoes
-  4. Como verificar historico de despachos
-  5. Como conceder visibilidade a outros usuarios
+- Seção de anexos com ícone Paperclip e drag indicator
+- Preview de nome do arquivo com badge de tamanho
+- Loading state durante upload antes de permitir submissão
+- DialogDescription para resolver o warning de acessibilidade nos logs
 
 ## Arquivos Afetados
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/hooks/useChinaFichaVisibilidade.ts` | Fix `nome_completo` → `nome` (4 ocorrencias) |
-| `src/lib/version.ts` | Bump para 2.15.0 |
-| `src/components/fabrica/ManualFabricaDrawer.tsx` | Expandir manual com passo a passo de despacho |
+| `src/components/processo/ProcessDecisionDialog.tsx` | Upload de arquivos, seleção de docs para todos os tipos, DialogDescription |
+| `src/hooks/useProcessDecisions.ts` | Sem mudança (já suporta attachments) |
+| Migration SQL | Criar bucket `process-attachments` com RLS |
 
