@@ -511,13 +511,22 @@ export function HierarquiaUsuarios() {
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
                   <Shield className="h-8 w-8 mx-auto mb-2 text-primary" />
                   <p className="text-2xl font-bold">{stats.admins}</p>
                   <p className="text-xs text-muted-foreground">Administradores</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <UserCog className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-2xl font-bold">{stats.gerentes}</p>
+                  <p className="text-xs text-muted-foreground">Gerentes</p>
                 </div>
               </CardContent>
             </Card>
