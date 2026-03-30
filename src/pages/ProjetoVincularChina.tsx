@@ -615,6 +615,34 @@ export default function ProjetoVincularChina() {
           documentos={documentos.map((d: any) => ({ id: d.id, nome_arquivo: d.nome_arquivo, tipo_documento: d.tipo_documento }))}
         />
       )}
+
+      {/* Desvincular confirmation */}
+      <AlertDialog open={!!desvincularTarget} onOpenChange={open => { if (!open) setDesvincularTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar desvinculação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este vínculo? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDesvincular} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Desvincular
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/** Wrapper to fetch focus-mode documents independently */
+function FocusModeDespachosWrapper({ submissaoId, onPreviewDoc }: { submissaoId: string; onPreviewDoc: (doc: any) => void }) {
+  const { data: focusDocs = [] } = useDocumentosDaSubmissao(submissaoId);
+  return (
+    <div className="mt-4">
+      <DespachosPanel submissaoId={submissaoId} documentos={focusDocs} />
     </div>
   );
 }
