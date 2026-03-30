@@ -201,6 +201,7 @@ export function ExtrairIngredientesIADialog({
     const url = URL.createObjectURL(selectedFile);
     setPreviewUrl(url);
     setTermsAccepted(false);
+    setSelectedDocWorkflow(null);
     setStep("preview");
   };
 
