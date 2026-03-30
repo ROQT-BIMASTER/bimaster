@@ -1,44 +1,41 @@
 
 
-# Iniciar Análise de Embalagem a partir de Submissões Vinculadas
+# Vincular China + Projeto no Checklist Etiqueta/Bula
 
 ## Resumo
 
-O diálogo "Nova Análise" atualmente pede preenchimento manual de SKU, produto e submissão ID. O objetivo é permitir que o usuário selecione diretamente uma submissão já vinculada na tela "Vincular China", auto-preenchendo os campos e associando os documentos do processo.
+Refatorar o diálogo "Novo Checklist" da Etiqueta/Bula para incluir o seletor de submissões vinculadas (mesmo padrão da Análise de Embalagem), permitindo importar dados do Vincular China e pré-visualizar documentos. Também garantir que a listagem principal filtre apenas itens vinculados.
 
 ## Alterações
 
-### 1. `NewAnaliseDialog` — Seletor de submissões vinculadas
+### 1. `NewEtiquetaDialog` — Seletor de submissões vinculadas
 
-- Adicionar uma aba/seção **"Importar do Vincular China"** no topo do diálogo
-- Buscar submissões vinculadas via `china_submissao_tarefa_vinculos` → `china_produto_submissoes` (mesmo padrão usado no Recebimento de Amostra)
-- Listar como cards clicáveis com código, nome e status
-- Ao selecionar, auto-preencher `submissao_id`, `sku` (produto_codigo), `produto_nome`
-- Manter opção de preenchimento manual como fallback
+- Adicionar toggle "Importar do Vincular China" / "Preenchimento Manual" (mesmo padrão do `NewAnaliseDialog`)
+- No modo vinculado: buscar submissões da `china_submissao_tarefa_vinculos` → `china_produto_submissoes`
+- Ao selecionar: auto-preencher `sku` (produto_codigo), `produto_nome`, `linha_marca` (formula_codigo) e salvar `submissao_id` no form
+- Preview de documentos vinculados (busca em `china_produto_documentos`)
+- Manter modo manual como fallback
 
-### 2. `NewAnaliseDialog` — Preview de documentos vinculados
+### 2. Hook `useCreateEtiqueta` — incluir `submissao_id`
 
-- Após selecionar submissão, carregar documentos via `china_produto_documentos` filtrados por `submissao_id`
-- Exibir lista resumida dos docs disponíveis (tipo + nome) como informação
-- Esses documentos ficarão acessíveis na aba "Processo" após criar a análise
+- O `produto_etiqueta_bula` já possui coluna `submissao_id` — garantir que o create passe esse campo
 
-### 3. Filtro na listagem principal
+### 3. Listagem principal — filtro por vínculos
 
-- Assim como no Recebimento de Amostra, filtrar a listagem para mostrar apenas análises cujo `submissao_id` esteja na tabela de vínculos (ou mostrar todas, com badge indicando vínculo)
+- Filtrar etiquetas para exibir apenas aquelas cujo `submissao_id` está na tabela `china_submissao_tarefa_vinculos` (consistente com Recebimento de Amostra e Análise de Embalagem)
 
-## Arquivos
+## Arquivo
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/AnaliseEmbalagem.tsx` | Refatorar `NewAnaliseDialog` com seletor de submissões vinculadas |
+| `src/pages/ChecklistEtiquetaBula.tsx` | Refatorar `NewEtiquetaDialog` com seletor vinculado + filtrar listagem |
 
 ## Fluxo
 
 ```text
-[+ Nova Análise] → Dialog abre
-  → Lista submissões vinculadas (cards)
-  → Usuário clica em uma → campos preenchidos automaticamente
-  → Docs do processo exibidos como preview
-  → [Criar Análise] → análise criada com submissao_id correto
+[Novo Checklist] → Dialog abre
+  → Tab "Importar do Vincular China": cards de submissões vinculadas
+  → Selecionar → auto-preenche SKU, Produto, Linha + preview docs
+  → [Criar Checklist]
 ```
 
