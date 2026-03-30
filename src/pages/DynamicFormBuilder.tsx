@@ -209,6 +209,51 @@ export default function DynamicFormBuilder() {
     setAiImagePreview(null);
   }
 
+  async function handleSpreadsheetUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Planilha deve ter no máximo 10MB");
+      return;
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const parts: string[] = [];
+      workbook.eachSheet((sheet) => {
+        const headers: string[] = [];
+        const sampleRows: string[] = [];
+        sheet.eachRow((row, rowNumber) => {
+          const cells = (row.values as any[]).slice(1).map((v) => (v != null ? String(v).trim() : "")).filter(Boolean);
+          if (rowNumber === 1) {
+            headers.push(...cells);
+          } else if (rowNumber <= 6 && cells.length > 0) {
+            sampleRows.push(cells.join(", "));
+          }
+        });
+        if (headers.length > 0) {
+          parts.push(`Aba "${sheet.name}": Colunas: ${headers.join(", ")}. Exemplos: ${sampleRows.join(" | ")}`);
+        }
+      });
+      if (parts.length === 0) {
+        toast.error("Planilha vazia ou sem dados reconhecíveis");
+        return;
+      }
+      setAiSpreadsheetData(`Planilha de referência "${file.name}". ${parts.join(". ")}`);
+      setAiSpreadsheetName(file.name);
+      toast.success("Planilha carregada para referência IA");
+    } catch {
+      toast.error("Erro ao ler planilha");
+    }
+    e.target.value = "";
+  }
+
+  function clearSpreadsheet() {
+    setAiSpreadsheetData(null);
+    setAiSpreadsheetName(null);
+  }
+
   async function handleSuggestAI() {
     const description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
     if (!description && !aiImageBase64) {
