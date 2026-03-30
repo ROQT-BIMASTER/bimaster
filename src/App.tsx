@@ -465,10 +465,10 @@ function AppContent() {
             <Route path="/dashboard/trade/minhas-solicitacoes" element={<ModuleRoute moduleCode="trade"><MinhasSolicitacoes /></ModuleRoute>} />
 
             {/* Módulo de Eventos Corporativos */}
-            <Route path="/dashboard/eventos" element={<ModuleRoute moduleCode="eventos"><CorporateEvents /></ModuleRoute>} />
-            <Route path="/dashboard/eventos/aprovacoes" element={<ModuleRoute moduleCode="eventos"><EventsApprovalHub /></ModuleRoute>} />
-            <Route path="/dashboard/eventos/:id" element={<ModuleRoute moduleCode="eventos"><CorporateEventDetail /></ModuleRoute>} />
-            <Route path="/dashboard/eventos/dashboard" element={<ModuleRoute moduleCode="eventos"><CorporateEventsDashboard /></ModuleRoute>} />
+            <Route path="/dashboard/eventos" element={<ModuleRoute moduleCode="eventos"><ScreenProtectedRoute screenCode="eventos_lista"><CorporateEvents /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/eventos/aprovacoes" element={<ModuleRoute moduleCode="eventos"><ScreenProtectedRoute screenCode="eventos_aprovacoes"><EventsApprovalHub /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/eventos/:id" element={<ModuleRoute moduleCode="eventos"><ScreenProtectedRoute screenCode="eventos_lista"><CorporateEventDetail /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/eventos/dashboard" element={<ModuleRoute moduleCode="eventos"><ScreenProtectedRoute screenCode="eventos_dashboard"><CorporateEventsDashboard /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Departamentos */}
             <Route path="/dashboard/departamentos" element={<ModuleRoute moduleCode="departamentos"><DepartmentHub /></ModuleRoute>} />
