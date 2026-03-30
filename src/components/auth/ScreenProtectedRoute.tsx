@@ -23,7 +23,7 @@ export const ScreenProtectedRoute = ({
   showAccessDenied = true
 }: ScreenProtectedRouteProps) => {
   const { session } = useAuth();
-  const { loading } = usePermissions();
+  const { loading, permissionsReady } = usePermissions();
   const { hasScreenPermission } = useImpersonation();
 
   // Se não há sessão, deixa o ProtectedRoute lidar
@@ -31,7 +31,8 @@ export const ScreenProtectedRoute = ({
     return <>{children}</>;
   }
 
-  if (loading) {
+  // Aguardar até que as permissões estejam prontas (primeiro fetch completo)
+  if (loading || !permissionsReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
