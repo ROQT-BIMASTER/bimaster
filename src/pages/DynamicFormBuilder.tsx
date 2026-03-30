@@ -511,7 +511,7 @@ export default function DynamicFormBuilder() {
                           />
                           <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
                             <ImagePlus className="h-4 w-4" />
-                            {aiImagePreview ? "Trocar imagem" : "Enviar imagem de referência"}
+                            {aiImagePreview ? "Trocar imagem" : "Imagem"}
                           </div>
                         </label>
 
@@ -526,6 +526,36 @@ export default function DynamicFormBuilder() {
                               type="button"
                               onClick={clearAiImage}
                               className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Spreadsheet upload */}
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            className="hidden"
+                            onChange={handleSpreadsheetUpload}
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            {aiSpreadsheetName ? "Trocar planilha" : "Planilha"}
+                          </div>
+                        </label>
+
+                        {aiSpreadsheetName && (
+                          <div className="flex items-center gap-1.5 bg-muted px-2.5 py-1 rounded-md text-xs">
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="max-w-[120px] truncate">{aiSpreadsheetName}</span>
+                            <button
+                              type="button"
+                              onClick={clearSpreadsheet}
+                              className="text-muted-foreground hover:text-destructive"
                             >
                               <X className="h-3 w-3" />
                             </button>
