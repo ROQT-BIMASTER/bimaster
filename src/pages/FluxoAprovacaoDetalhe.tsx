@@ -34,6 +34,7 @@ export default function FluxoAprovacaoDetalhe() {
   const [observacaoReprovar, setObservacaoReprovar] = useState("");
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
 
   // Get current user
   const { data: currentUser } = useQuery({
