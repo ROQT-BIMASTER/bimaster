@@ -783,10 +783,16 @@ function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos, isCus
   return (
     <div className="p-3 rounded-lg border bg-card space-y-2">
       <div className="flex items-center gap-3">
-        <div className="flex-1">
+        <div className="flex-1 flex items-center gap-2">
           <p className="text-sm font-medium">{item.label}</p>
+          {isCustom && <Badge variant="outline" className="text-[9px]">Personalizado</Badge>}
         </div>
         <div className="flex gap-1">
+          {isCustom && onRemove && (
+            <Button size="sm" variant="ghost" className="text-[10px] h-7 px-1.5 text-destructive hover:text-destructive" onClick={onRemove}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
           <Button
             size="sm"
             variant={item.resultado === "conforme" ? "default" : "outline"}
