@@ -1,52 +1,78 @@
 
 
-# Busca por CNPJ no Formulário Público com Vinculação Automática
+# Dashboard de Respostas + Análise IA por Formulário
 
 ## Resumo
 
-No modo público do `MaterialRequestCard`, substituir o campo de texto livre por um campo de CNPJ com busca automática na Receita Federal (reutilizando a edge function `opencnpj-consulta` existente). Após a consulta, exibir os dados da empresa (razão social, endereço, cidade/UF). No backend, ao salvar a solicitação, tentar vincular automaticamente a uma loja já cadastrada pelo CNPJ.
+Criar uma página de dashboard para cada formulário dinâmico que exibe:
+1. KPIs automáticos (total respostas, por dia, campos mais preenchidos)
+2. Tabela de respostas com visualização inline
+3. Gráficos de distribuição por campo (select, rating, etc.)
+4. Botão "Análise IA" que envia os dados para Lovable AI e gera um relatório generativo em Markdown
 
-## Fluxo
+## Arquitetura
 
 ```text
-Usuário digita CNPJ → clica "Buscar" →
-  opencnpj-consulta retorna dados →
-  Exibe: razão social, endereço, cidade/UF →
-  Usuário confirma solicitação →
-  Backend verifica se CNPJ existe em stores →
-    Sim → loja_id = store.id
-    Não → loja_id = null, salva cnpj + razão social para vinculação futura
+DynamicFormAdmin (card) → clica "📊 Dashboard" →
+  /dashboard/trade/formularios/dashboard?id=FORM_ID →
+    DynamicFormDashboard.tsx
+      ├─ KPIs (total respostas, média/dia, taxa preenchimento)
+      ├─ Gráficos (Recharts: barras para selects, pie para ratings)
+      ├─ Tabela de respostas (expansível por linha)
+      └─ Botão "Gerar Análise IA"
+            → Edge function analyze-form-responses
+            → Lovable AI (gemini-3-flash-preview)
+            → Retorna relatório Markdown renderizado em dialog
 ```
 
 ## Alterações
 
-### `src/components/forms/MaterialRequestCard.tsx`
+### 1. Nova página `src/pages/DynamicFormDashboard.tsx`
 
-No modo `isPublic`:
-- Substituir input de texto livre por input de CNPJ + botão "Buscar"
-- Ao digitar 14 dígitos (limpos), habilitar botão de busca
-- Busca chama `supabase.functions.invoke("opencnpj-consulta", { body: { cnpj } })` — mesma edge function já existente
-- Exibir card com dados retornados (razão social, endereço, cidade/UF)
-- Novos states: `cnpjInput`, `cnpjData`, `cnpjLoading`
-- No `handleConfirm`, buscar loja existente com `supabase.from("stores").select("id, name").eq("cnpj", cnpjClean).maybeSingle()` para vincular automaticamente
-- Salvar `loja_cnpj` no campo de observações ou metadata para rastreabilidade
+- Recebe `?id=FORM_ID` da URL
+- Carrega: formulário (nome, campos), respostas + answers (join)
+- **KPIs**: Total respostas, respostas hoje, taxa de campos obrigatórios preenchidos
+- **Gráficos**: Para cada campo tipo `select`/`radio`/`rating`, gera BarChart/PieChart com contagem de valores. Para campos numéricos, histograma simples
+- **Tabela**: Lista respostas com data, expandir para ver todos os campos/valores
+- **Análise IA**: Botão que chama edge function, exibe resultado em Dialog com ReactMarkdown
 
-### Detalhes técnicos
+### 2. Nova edge function `supabase/functions/analyze-form-responses/index.ts`
 
-- A edge function `opencnpj-consulta` requer autenticação JWT. No modo público o usuário não está autenticado, então a busca será feita **sem auth** — precisamos ajustar para aceitar chamadas sem token OU criar uma versão simplificada
-- **Solução**: Chamar a API BrasilAPI/ViaCEP diretamente do frontend (como já fazemos no `CepAddressField`) em vez da edge function, evitando problema de autenticação. Usar `https://brasilapi.com.br/api/cnpj/v1/{cnpj}` que é pública e gratuita
+- Recebe `{ formId }` no body
+- Busca formulário + campos + todas as respostas/answers do banco
+- Monta um resumo textual dos dados (distribuições, totais, padrões)
+- Envia para Lovable AI Gateway com system prompt analítico
+- Retorna o relatório gerado como texto (sem streaming, via invoke)
+- System prompt: "Você é um analista de dados. Analise as respostas deste formulário e gere um relatório com: resumo executivo, principais insights, distribuição por campo, padrões identificados, recomendações."
 
-### API escolhida para modo público
+### 3. Atualizar `src/pages/DynamicFormAdmin.tsx`
 
-BrasilAPI CNPJ: `https://brasilapi.com.br/api/cnpj/v1/{cnpj}`
-- Pública, sem auth, CORS habilitado
-- Retorna: `razao_social`, `nome_fantasia`, `logradouro`, `municipio`, `uf`, `cep`
+- Adicionar botão "Dashboard" em cada FormCard que navega para a nova página
+
+### 4. Atualizar `src/App.tsx`
+
+- Adicionar rota `/dashboard/trade/formularios/dashboard`
+
+## Dados enviados à IA
+
+```text
+Formulário: "Pesquisa PDV"
+Campos: [Nome da Loja (text), Tipo (select: Mercado/Farmácia/Conveniência), Nota (rating 1-5)]
+Total respostas: 47
+
+Distribuição "Tipo": Mercado: 22, Farmácia: 15, Conveniência: 10
+Distribuição "Nota": 1★: 2, 2★: 5, 3★: 12, 4★: 18, 5★: 10
+Média "Nota": 3.6
+
+Respostas recentes (últimas 10): [...]
+```
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/forms/MaterialRequestCard.tsx` | Adicionar busca CNPJ no modo público + vinculação automática |
-
-Nenhuma migration necessária.
+| `src/pages/DynamicFormDashboard.tsx` | Novo — dashboard completo |
+| `supabase/functions/analyze-form-responses/index.ts` | Nova — análise IA |
+| `src/pages/DynamicFormAdmin.tsx` | Botão dashboard no card |
+| `src/App.tsx` | Nova rota |
 
