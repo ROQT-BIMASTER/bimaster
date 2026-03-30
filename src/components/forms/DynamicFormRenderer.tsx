@@ -51,6 +51,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
   const [submitted, setSubmitted] = useState(false);
   const [attachedBanners, setAttachedBanners] = useState<any[]>([]);
   const [attachedMaterials, setAttachedMaterials] = useState<any[]>([]);
+  const [previewBanner, setPreviewBanner] = useState<any | null>(null);
 
   useEffect(() => {
     loadForm();
