@@ -42,6 +42,9 @@ export const GerenciamentoUsuarios = () => {
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   const [novoUsuario, setNovoUsuario] = useState<{
     nome: string;
