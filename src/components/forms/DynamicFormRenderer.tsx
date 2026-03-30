@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle2, ImageIcon, Package } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { CepAddressField } from "@/components/forms/CepAddressField";
+import { MaterialRequestCard } from "@/components/forms/MaterialRequestCard";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
@@ -231,23 +232,12 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
           </div>
         )}
 
-        {/* Attached Materials */}
+        {/* Attached Materials — Interactive Request Cards */}
         {attachedMaterials.length > 0 && (
-          <div className="mb-6 grid grid-cols-2 gap-3">
+          <div className="mb-6 space-y-3">
+            <p className="text-sm font-medium text-muted-foreground">Materiais disponíveis para solicitação</p>
             {attachedMaterials.map((m: any) => (
-              <div key={m.id} className="flex items-center gap-3 border rounded-lg p-3">
-                {m.foto_url ? (
-                  <img src={m.foto_url} alt={m.nome} className="h-12 w-12 rounded-md object-cover" />
-                ) : (
-                  <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
-                    <Package className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium">{m.nome}</p>
-                  {m.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{m.descricao}</p>}
-                </div>
-              </div>
+              <MaterialRequestCard key={m.id} material={m} formId={formId} />
             ))}
           </div>
         )}
