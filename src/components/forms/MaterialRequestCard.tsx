@@ -123,7 +123,9 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
     <Card className="p-4">
       <div className="flex items-center gap-3">
         {material.foto_url ? (
-          <img src={material.foto_url} alt={material.nome} className="h-12 w-12 rounded-md object-cover" />
+          <button type="button" onClick={() => setShowDetail(true)} className="shrink-0 cursor-pointer">
+            <img src={material.foto_url} alt={material.nome} className="h-12 w-12 rounded-md object-cover" />
+          </button>
         ) : (
           <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
             <Package className="h-5 w-5 text-muted-foreground" />
@@ -135,17 +137,27 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
             <p className="text-xs text-muted-foreground line-clamp-1">{material.descricao}</p>
           )}
         </div>
-        {state === "idle" && (
+        <div className="flex items-center gap-1.5 shrink-0">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setState("selecting")}
-            className="shrink-0"
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowDetail(true)}
           >
-            <ShoppingCart className="h-4 w-4 mr-1" />
-            Solicitar
+            <Eye className="h-4 w-4" />
           </Button>
-        )}
+          {state === "idle" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setState("selecting")}
+            >
+              <ShoppingCart className="h-4 w-4 mr-1" />
+              Solicitar
+            </Button>
+          )}
+        </div>
       </div>
 
       {state === "selecting" && (
