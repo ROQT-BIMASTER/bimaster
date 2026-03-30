@@ -11,6 +11,7 @@ import { useProcessDecisions } from "@/hooks/useProcessDecisions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 interface Props {
   open: boolean;
