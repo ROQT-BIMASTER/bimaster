@@ -295,6 +295,13 @@ export function PermissoesDeAcesso() {
                         </td>
                         <td className="text-center p-4">
                           <Checkbox
+                            checked={tela.permissoes.gerente}
+                            onCheckedChange={() => handlePermissionChange(tela.id, 'gerente')}
+                            className="mx-auto"
+                          />
+                        </td>
+                        <td className="text-center p-4">
+                          <Checkbox
                             checked={tela.permissoes.supervisor}
                             onCheckedChange={() => handlePermissionChange(tela.id, 'supervisor')}
                             className="mx-auto"
