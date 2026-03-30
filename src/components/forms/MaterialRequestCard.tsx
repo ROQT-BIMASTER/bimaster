@@ -39,6 +39,7 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
   const [protocol, setProtocol] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const { stores, loading: storesLoading } = useFilteredStores({ activeOnly: true });
 
