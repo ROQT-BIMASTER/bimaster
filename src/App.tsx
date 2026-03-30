@@ -552,25 +552,25 @@ function AppContent() {
             <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_vinculacoes"><EstoqueVinculacoes /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Aprovação de Artes */}
-            <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoArtes /></ModuleRoute>} />
-            <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoDetalhe /></ModuleRoute>} />
-            <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoConfig /></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoAprovacaoArtes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoAprovacaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/aprovacao-artes/configuracao" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_config"><FluxoAprovacaoConfig /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Checklist Composição */}
-            <Route path="/dashboard/composicao" element={<ModuleRoute moduleCode="composicao"><ChecklistComposicao /></ModuleRoute>} />
+            <Route path="/dashboard/composicao" element={<ModuleRoute moduleCode="composicao"><ScreenProtectedRoute screenCode="composicao_checklist"><ChecklistComposicao /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Recebimento de Amostra */}
-            <Route path="/dashboard/amostras" element={<ModuleRoute moduleCode="amostras"><RecebimentoAmostra /></ModuleRoute>} />
+            <Route path="/dashboard/amostras" element={<ModuleRoute moduleCode="amostras"><ScreenProtectedRoute screenCode="amostras_recebimento"><RecebimentoAmostra /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Análise de Embalagem */}
-            <Route path="/dashboard/analise-embalagem" element={<ModuleRoute moduleCode="analise_embalagem"><AnaliseEmbalagem /></ModuleRoute>} />
+            <Route path="/dashboard/analise-embalagem" element={<ModuleRoute moduleCode="analise_embalagem"><ScreenProtectedRoute screenCode="embalagem_analise"><AnaliseEmbalagem /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Checklist Etiqueta/Bula */}
-            <Route path="/dashboard/etiqueta-bula" element={<ModuleRoute moduleCode="etiqueta_bula"><ChecklistEtiquetaBula /></ModuleRoute>} />
+            <Route path="/dashboard/etiqueta-bula" element={<ModuleRoute moduleCode="etiqueta_bula"><ScreenProtectedRoute screenCode="etiqueta_checklist"><ChecklistEtiquetaBula /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Motor Genérico de Aprovação de Artes */}
-            <Route path="/dashboard/fluxo-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesMotor /></ModuleRoute>} />
-            <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoArtesDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/fluxo-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoArtesMotor /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/fluxo-artes/:id" element={<ModuleRoute moduleCode="aprovacao_artes"><ScreenProtectedRoute screenCode="aprovacao_artes_lista"><FluxoArtesDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Simulação de Dados */}
             <Route path="/dashboard/simulacao" element={<ScreenRoute screenCode="admin"><SimulacaoDados /></ScreenRoute>} />
