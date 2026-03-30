@@ -39,19 +39,20 @@ const TradeModule = () => {
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
       
-      const [visitsRes, photosRes, investmentsRes] = await Promise.all([
+      const [visitsRes, photosRes, sellOutRes] = await Promise.all([
         supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
         supabase.from("photos").select("*", { count: "exact", head: true }),
-        supabase.from("trade_investments").select("amount")
+        (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
       ]);
 
-      const totalInvestments = investmentsRes.data?.reduce((sum, i) => sum + (parseFloat(i.amount as any) || 0), 0) || 0;
+      const sellOutData = (sellOutRes.data || []) as Array<{ quantity: number | null; unit_price: number | null }>;
+      const totalSellOut = sellOutData.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0);
 
       return {
         totalStores: filteredStores.length,
         visitsMonth: visitsRes.count || 0,
         totalPhotos: photosRes.count || 0,
-        totalInvestments
+        totalSellOut
       };
     },
     enabled: !storesLoading,
@@ -201,7 +202,7 @@ const TradeModule = () => {
                   </div>
                   <div className="mt-2">
                     <p className="text-lg sm:text-xl font-bold text-[hsl(330,81%,60%)]">
-                      R$ {((stats?.totalInvestments || 0) / 1000).toFixed(0)}k
+                      R$ {((stats?.totalSellOut || 0) / 1000).toFixed(0)}k
                     </p>
                     <h3 className="text-[11px] sm:text-xs font-medium mt-0.5">Sell Out</h3>
                   </div>

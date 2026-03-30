@@ -13,6 +13,7 @@ import { Navigate } from "react-router-dom";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { NovaPromocaoDialog } from "@/components/trade/NovaPromocaoDialog";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 interface Promotion {
   id: string;
@@ -151,6 +152,7 @@ const TradePromotions = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <ModuleBreadcrumb moduleName="Trade Marketing" moduleHref="/dashboard/trade" currentPage="Promoções" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Gestão de Promoções</h1>
