@@ -407,6 +407,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="composicao">Composição</TabsTrigger>
+          <TabsTrigger value="tarefas">Tarefas Vinculadas</TabsTrigger>
           <TabsTrigger value="regulatorio">Análise Regulatória</TabsTrigger>
           <TabsTrigger value="peticionamento">Peticionamento</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
