@@ -418,7 +418,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
 // ── Tabela de composição ──
 
 function ComposicaoTable({
-  items, cores, validacao, onUpdateItem, onUpdatePerc, onRemoveItem, onAddIngrediente, onAddCor,
+  items, cores, validacao, onUpdateItem, onUpdatePerc, onRemoveItem, onAddIngrediente, onAddCor, onExtractIA,
 }: {
   items: Partial<Composicao>[];
   cores: string[];
@@ -428,6 +428,7 @@ function ComposicaoTable({
   onRemoveItem: (idx: number) => void;
   onAddIngrediente: () => void;
   onAddCor: () => void;
+  onExtractIA?: () => void;
 }) {
   return (
     <Card>
@@ -435,6 +436,12 @@ function ComposicaoTable({
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Ingredientes</CardTitle>
           <div className="flex gap-2">
+            {onExtractIA && (
+              <Button size="sm" variant="outline" onClick={onExtractIA} className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10">
+                <Sparkles className="h-3.5 w-3.5" />
+                Extrair com IA
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={onAddCor}>
               <Plus className="h-3 w-3 mr-1" />Cor
             </Button>
