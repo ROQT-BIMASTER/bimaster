@@ -34,7 +34,8 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { FormAttachmentsPanel } from "@/components/forms/FormAttachmentsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare } from "lucide-react";
+import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare, FileSpreadsheet } from "lucide-react";
+import ExcelJS from "exceljs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 
