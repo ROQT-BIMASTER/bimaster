@@ -153,10 +153,11 @@ export default function Projetos() {
                   const extraMembros = membros.length - 4;
 
                   return (
-                    <div
+                     <div
                       key={projeto.id}
-                      className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3.5 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors group"
+                      className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3.5 items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors group relative"
                       onClick={() => navigate(`/dashboard/projetos/${projeto.id}`)}
+                      style={{ borderLeftWidth: 3, borderLeftColor: projeto.cor, borderLeftStyle: "solid" }}
                     >
                       {/* Name */}
                       <div className="flex items-center gap-3 min-w-0">
