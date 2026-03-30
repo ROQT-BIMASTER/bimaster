@@ -38,6 +38,7 @@ import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
 import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
 import { TarefasVinculadasPanel } from "@/components/composicao/TarefasVinculadasPanel";
+import { DocumentosPendentesPanel } from "@/components/composicao/DocumentosPendentesPanel";
 
 // Fetch submissões for listing (only those linked via Vincular China)
 function useSubmissoes() {
@@ -407,6 +408,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="composicao">Composição</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas Vinculadas</TabsTrigger>
           <TabsTrigger value="regulatorio">Análise Regulatória</TabsTrigger>
           <TabsTrigger value="peticionamento">Peticionamento</TabsTrigger>
@@ -474,6 +476,13 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
                 userInfo: result.userInfo,
               });
             }}
+          />
+        </TabsContent>
+
+        <TabsContent value="documentos" className="mt-4">
+          <DocumentosPendentesPanel
+            submissaoId={submissaoId}
+            onExtractDoc={() => setShowAIExtract(true)}
           />
         </TabsContent>
 
