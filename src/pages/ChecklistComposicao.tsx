@@ -477,6 +477,10 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
           />
         </TabsContent>
 
+        <TabsContent value="tarefas" className="mt-4">
+          <TarefasVinculadasPanel submissaoId={submissaoId} />
+        </TabsContent>
+
         <TabsContent value="regulatorio" className="mt-4">
           <RegulatorioReview submissaoId={submissaoId} />
         </TabsContent>
