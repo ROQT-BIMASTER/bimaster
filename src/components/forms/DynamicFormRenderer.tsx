@@ -204,6 +204,14 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
           <p className="text-muted-foreground">
             Suas respostas foram registradas. Obrigado por preencher o formulário.
           </p>
+          <a
+            href={`/formulario-dashboard?id=${formId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-2"
+          >
+            📊 Ver estatísticas das respostas
+          </a>
         </CardContent>
       </Card>
     );

@@ -248,6 +248,7 @@ const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilde
 const DynamicFormPublic = lazyWithRetry(() => import("./pages/DynamicFormPublic"));
 const DynamicFormAdmin = lazyWithRetry(() => import("./pages/DynamicFormAdmin"));
 const DynamicFormDashboard = lazyWithRetry(() => import("./pages/DynamicFormDashboard"));
+const DynamicFormDashboardPublic = lazyWithRetry(() => import("./pages/DynamicFormDashboardPublic"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
@@ -675,6 +676,7 @@ function AppContent() {
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
             <Route path="/formulario-dinamico" element={<DynamicFormPublic />} />
+            <Route path="/formulario-dashboard" element={<DynamicFormDashboardPublic />} />
 
             {/* Builder de formulários dinâmicos — protegido */}
             <Route path="/dashboard/trade/formularios/builder" element={<ProtectedRoute><DynamicFormBuilder /></ProtectedRoute>} />
