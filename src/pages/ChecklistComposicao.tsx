@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
+import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
 
 // Fetch submissões for listing
 function useSubmissoes() {
