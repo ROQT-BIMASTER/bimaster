@@ -112,7 +112,7 @@ export function useFichaDespachos(submissaoId: string | undefined) {
         .select("id, nome")
         .in("id", userIds);
       const profileMap = Object.fromEntries(
-        (profiles || []).map((p: any) => [p.id, p.nome_completo])
+        (profiles || []).map((p: any) => [p.id, p.nome])
       );
 
       return items.map((i: any) => ({
