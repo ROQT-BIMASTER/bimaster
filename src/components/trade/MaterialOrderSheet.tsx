@@ -12,10 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy, ChevronsUpDown, Check, Building2, Search, X } from "lucide-react";
+import { Package, Minus, Plus, ShoppingCart, CheckCircle2, Copy, ChevronsUpDown, Check, Building2, Search, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TradeMaterial, useCreateSolicitacao } from "@/hooks/useTradeMateriais";
 import { useFilteredStores } from "@/hooks/useFilteredStores";
+import { CadastroClienteCnpjDialog } from "./CadastroClienteCnpjDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
