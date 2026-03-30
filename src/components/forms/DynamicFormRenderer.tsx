@@ -5,6 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,6 +51,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
   const [submitted, setSubmitted] = useState(false);
   const [attachedBanners, setAttachedBanners] = useState<any[]>([]);
   const [attachedMaterials, setAttachedMaterials] = useState<any[]>([]);
+  const [previewBanner, setPreviewBanner] = useState<any | null>(null);
 
   useEffect(() => {
     loadForm();
@@ -92,7 +99,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
 
       if (bannerIds.length) {
-        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, link_destino").in("id", bannerIds);
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, descricao").in("id", bannerIds);
         setAttachedBanners(b || []);
       }
       if (materialIds.length) {
@@ -209,28 +216,48 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
         {formDescription && <CardDescription>{formDescription}</CardDescription>}
       </CardHeader>
       <CardContent>
-        {/* Attached Banners */}
+        {/* Attached Banners — inline preview, no external navigation */}
         {attachedBanners.length > 0 && (
           <div className="mb-6">
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {attachedBanners.map((b: any) => (
-                <a
+                <button
                   key={b.id}
-                  href={b.link_destino || "#"}
-                  target={b.link_destino ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="shrink-0"
+                  type="button"
+                  onClick={() => setPreviewBanner(b)}
+                  className="shrink-0 cursor-pointer rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary/30 transition-all"
                 >
                   <img
                     src={b.imagem_url}
                     alt={b.titulo}
-                    className="h-24 rounded-lg object-cover border"
+                    className="h-24 object-cover"
                   />
-                </a>
+                </button>
               ))}
             </div>
           </div>
         )}
+
+        {/* Banner Preview Dialog — self-contained, no links to system */}
+        <Dialog open={!!previewBanner} onOpenChange={(open) => !open && setPreviewBanner(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{previewBanner?.titulo || "Banner"}</DialogTitle>
+            </DialogHeader>
+            {previewBanner && (
+              <div className="space-y-3">
+                <img
+                  src={previewBanner.imagem_url}
+                  alt={previewBanner.titulo}
+                  className="w-full rounded-lg object-contain max-h-80"
+                />
+                {previewBanner.descricao && (
+                  <p className="text-sm text-muted-foreground">{previewBanner.descricao}</p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Attached Materials — Interactive Request Cards */}
         {attachedMaterials.length > 0 && (
