@@ -1,79 +1,150 @@
 
 
-# Cadastro Inteligente de Cliente via CNPJ no Seletor de Lojas
+# Sistema de Formularios Dinamicos — Plano de Implementacao
 
-## Contexto Atual
+## Situacao Atual
 
-O sistema ja possui:
-- `NovaLojaDialog` com campo CNPJ + botao `CnpjSearchButton` para consulta na Receita Federal
-- Verificacao de duplicidade por CNPJ e nome normalizado
-- Edge function `opencnpj-consulta` com cache de 30 dias
-- `MaterialOrderSheet` com seletor de loja (Popover/Combobox) sem opcao de cadastro rapido
-
-O que falta: um fluxo CNPJ-first no `MaterialOrderSheet` (e potencialmente em outros seletores) onde o usuario digita o CNPJ e o sistema faz tudo automaticamente, incluindo deteccao de duplicatas com opcao de vincular.
+O sistema possui um formulario fixo (`FormularioEquipe`) com campos hardcoded (nome, CPF, WhatsApp, camiseta, etc.), gerenciado via tokens (`team_form_tokens` / `team_form_submissions`). O supervisor gera um link com token e o vendedor preenche campos pre-definidos. Nao existe builder de formularios nem renderizacao dinamica.
 
 ## Solucao
 
-### 1. Botao "+ Cadastrar novo cliente via CNPJ" no seletor de lojas
+Criar um sistema completo de formularios dinamicos com: builder visual, renderizacao automatica, e sugestao de campos via IA.
 
-No `MaterialOrderSheet`, dentro do Popover de selecao de loja, adicionar um botao fixo no rodape da lista que abre um novo dialog/sheet de cadastro rapido via CNPJ.
+### 1. Novas Tabelas (Migration)
 
-### 2. Novo componente `CadastroClienteCnpjDialog`
+```sql
+-- Formularios dinamicos
+CREATE TABLE public.dynamic_forms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT, -- 'equipe', 'pdv', 'auditoria', 'campanha'
+  company_id UUID REFERENCES public.empresas(id),
+  created_by UUID REFERENCES auth.users(id),
+  status TEXT DEFAULT 'draft', -- 'draft', 'active', 'archived'
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-Dialog dedicado com fluxo em etapas:
+-- Campos do formulario
+CREATE TABLE public.dynamic_form_fields (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  form_id UUID REFERENCES public.dynamic_forms(id) ON DELETE CASCADE NOT NULL,
+  label TEXT NOT NULL,
+  field_type TEXT NOT NULL, -- 'text','number','date','select','checkbox','file','image','geolocation','grid','ean_scanner','price'
+  required BOOLEAN DEFAULT false,
+  options JSONB DEFAULT '[]', -- para select/checkbox
+  placeholder TEXT,
+  validation JSONB DEFAULT '{}', -- min, max, pattern, etc
+  order_index INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-**Etapa 1 — Informar CNPJ**
-- Campo unico para digitar o CNPJ (com mascara)
-- Botao "Consultar" que chama `opencnpj-consulta`
-- Validacao de formato antes de consultar
+-- Respostas (uma por preenchimento)
+CREATE TABLE public.dynamic_form_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  form_id UUID REFERENCES public.dynamic_forms(id) ON DELETE CASCADE NOT NULL,
+  token_id UUID REFERENCES public.team_form_tokens(id),
+  user_id UUID REFERENCES auth.users(id),
+  client_id UUID, -- vinculo opcional com store
+  metadata JSONB DEFAULT '{}', -- geolocation, device, etc
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-**Etapa 2 — Verificacao de Duplicidade**
-- Se CNPJ ja existe na tabela `stores`:
-  - Exibir card com dados do cliente existente
-  - Botao "Vincular a voce" que insere registro em `store_sellers` associando o usuario atual
-  - Opcao de cancelar
-- Se CNPJ nao existe: seguir para etapa 3
+-- Respostas individuais por campo
+CREATE TABLE public.dynamic_form_answers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  response_id UUID REFERENCES public.dynamic_form_responses(id) ON DELETE CASCADE NOT NULL,
+  field_id UUID REFERENCES public.dynamic_form_fields(id) ON DELETE CASCADE NOT NULL,
+  value JSONB NOT NULL -- texto, numero, array, upload URL, etc
+);
 
-**Etapa 3 — Preenchimento Automatico + Revisao**
-- Campos pre-preenchidos com dados da Receita: razao social, nome fantasia, endereco, cidade, UF, telefone, email, CNAE, situacao cadastral, porte, regime tributario
-- Todos os campos editaveis para ajuste manual
-- Card informativo com dados da Receita (situacao, porte, regime) como ja existe no `NovaLojaDialog`
+-- RLS em todas as tabelas
+ALTER TABLE public.dynamic_forms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dynamic_form_fields ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dynamic_form_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dynamic_form_answers ENABLE ROW LEVEL SECURITY;
+```
 
-**Etapa 4 — Confirmacao e Cadastro**
-- Criar registro em `stores` com `created_by = user.id`
-- Inserir em `store_sellers` vinculando o usuario como vendedor principal
-- Registrar log de auditoria com: usuario, data/hora, origem ("receita_federal"), CNPJ consultado
-- Retornar o novo `store.id` para selecao automatica no seletor
+### 2. Builder de Formularios (Nova Pagina)
 
-### 3. Vinculacao automatica
+**Arquivo:** `src/pages/DynamicFormBuilder.tsx`
 
-- O cliente cadastrado sera automaticamente vinculado ao usuario logado via `store_sellers`
-- O `supervisor_id` sera herdado do perfil do vendedor (logica ja existente no `NovaLojaDialog`)
-- Respeitar contexto multi-empresa (`EmpresaContext`)
+Interface visual estilo Google Forms:
+- Campo de nome/descricao do formulario no topo
+- Lista de campos com drag-and-drop (usando `@dnd-kit/sortable`)
+- Cada campo renderiza um card com: label, tipo (dropdown), obrigatorio (toggle), opcoes (se select)
+- Botao "Adicionar campo" no final
+- Painel lateral de configuracao ao clicar num campo
+- Botao "Sugerir campos com IA" que chama edge function com descricao do formulario e retorna campos sugeridos
+- Preview em tempo real ao lado (desktop split view)
 
-### 4. Audit log
+### 3. Renderizador Dinamico
 
-Registrar em `audit_logs`:
-- `action`: "cadastro_cliente_cnpj"
-- `metadata`: usuario_id, cnpj, origem (manual/receita), store_id criado, dados preenchidos
-- Para vinculacao de cliente existente: `action`: "vinculacao_cliente_existente"
+**Arquivo:** `src/components/forms/DynamicFormRenderer.tsx`
+
+Componente que recebe `formId`, busca campos do banco, e renderiza dinamicamente:
+
+```text
+fields.map(field => {
+  switch(field.field_type) {
+    'text' → Input
+    'number' → Input type=number
+    'date' → DatePicker
+    'select' → Select com field.options
+    'checkbox' → Checkbox group
+    'file' → FileUpload (storage bucket)
+    'image' → ImageCapture (camera + upload)
+    'geolocation' → auto-captura GPS
+    'grid' → tabela editavel
+    'ean_scanner' → EanScanner existente
+    'price' → Input monetario formatado
+  }
+})
+```
+
+Salva respostas em `dynamic_form_responses` + `dynamic_form_answers`.
+
+### 4. Sugestao IA de Campos
+
+**Arquivo:** `supabase/functions/suggest-form-fields/index.ts`
+
+Edge function que recebe descricao do formulario (ex: "Pesquisa de preco no PDV") e retorna campos sugeridos usando Lovable AI (`google/gemini-3-flash-preview`). Usa tool calling para retornar JSON estruturado com array de campos (label, type, required, options).
+
+### 5. Integracao com Tela Existente
+
+**Arquivo:** `src/pages/TradeSupervisorDashboard.tsx` (aba Formularios)
+
+- Substituir/complementar o sistema atual de tokens com opcao de criar formulario dinamico
+- Botao "Criar Formulario Personalizado" ao lado do "Gerar Link Formulario"
+- Lista de formularios dinamicos criados com status, contagem de respostas
+- Ao gerar link, associar o `dynamic_form.id` ao token
+
+### 6. Rota e Pagina Publica
+
+**Arquivo:** `src/pages/DynamicFormPublic.tsx`
+
+Pagina publica (sem auth) que recebe `?token=X&form=Y`, valida o token e renderiza o `DynamicFormRenderer`.
 
 ## Arquivos Afetados
 
 | Arquivo | Acao |
 |---------|------|
-| `src/components/trade/CadastroClienteCnpjDialog.tsx` | Novo — dialog de cadastro CNPJ-first com etapas |
-| `src/components/trade/MaterialOrderSheet.tsx` | Adicionar botao "+ Cadastrar via CNPJ" no rodape do Popover de lojas |
+| Migration SQL | 4 novas tabelas + RLS |
+| `supabase/functions/suggest-form-fields/index.ts` | Nova edge function IA |
+| `src/pages/DynamicFormBuilder.tsx` | Nova — builder visual |
+| `src/components/forms/DynamicFormRenderer.tsx` | Novo — renderizador dinamico |
+| `src/components/forms/FormFieldCard.tsx` | Novo — card de campo no builder |
+| `src/components/forms/FieldConfigPanel.tsx` | Novo — painel de config do campo |
+| `src/pages/DynamicFormPublic.tsx` | Nova — pagina publica de preenchimento |
+| `src/pages/TradeSupervisorDashboard.tsx` | Adicionar integracao com formularios dinamicos |
+| `src/App.tsx` | Novas rotas |
 
-## Detalhes Tecnicos
+## Implementacao em Fases
 
-```text
-Fluxo:
-  CNPJ digitado → opencnpj-consulta → 
-    → stores.select(cnpj = X) →
-      → existe? → mostrar card + botao "Vincular" → store_sellers.insert
-      → nao existe? → preencher form → stores.insert + store_sellers.insert + audit_logs.insert
-```
-
-Reutiliza: `CnpjSearchButton` (logica interna), `opencnpj-consulta` (edge function), validacao Zod existente do `NovaLojaDialog`, `store_sellers` para vinculacao.
+**Fase 1 (este ciclo):** Tabelas + Builder + Renderizador + Rota publica
+**Fase 2:** Sugestao IA + importacao de estrutura por documento
+**Fase 3:** Tipos avancados (grid, scanner EAN, geolocalizacao, camera)
+**Fase 4:** Dashboard de respostas + vinculacao com cliente/produto/campanha
 
