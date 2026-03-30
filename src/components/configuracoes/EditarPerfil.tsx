@@ -30,7 +30,32 @@ export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [departamentoNome, setDepartamentoNome] = useState<string>("");
   const { toast } = useToast();
+
+  // Fetch departamento name from departamento_id
+  useEffect(() => {
+    const fetchDepartamento = async () => {
+      if (!profile.id) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("departamento_id")
+        .eq("id", profile.id)
+        .single();
+      
+      if (data?.departamento_id) {
+        const { data: dept } = await supabase
+          .from("departamentos")
+          .select("nome")
+          .eq("id", data.departamento_id)
+          .single();
+        setDepartamentoNome(dept?.nome || "Não definido");
+      } else {
+        setDepartamentoNome(profile.departamento || "Não definido");
+      }
+    };
+    fetchDepartamento();
+  }, [profile.id, profile.departamento]);
 
   const getTipoUsuarioLabel = () => {
     switch (profile?.tipo_usuario) {
