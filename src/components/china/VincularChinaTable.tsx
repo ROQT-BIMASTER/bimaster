@@ -140,7 +140,7 @@ export function VincularChinaTable({
     });
 
     return result;
-  }, [data, search, statusFilter, filterProjeto, pendenciaFilter, sortKey, sortDir, projetos]);
+  }, [data, search, statusFilter, vinculoFilter, filterProjeto, pendenciaFilter, sortKey, sortDir, projetos]);
 
   const allSelected = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id));
 
