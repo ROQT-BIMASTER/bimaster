@@ -38,7 +38,7 @@ export const ThemeSelector = () => {
                 "relative rounded-[10px] border-2 overflow-hidden transition-all duration-200 hover:-translate-y-0.5",
                 selected === theme.key
                   ? "border-current shadow-md"
-                  : "border-[#dde1e9] hover:shadow-md"
+                  : "border-border hover:shadow-md"
               )}
               style={selected === theme.key ? { borderColor: theme.primary } : undefined}
             >

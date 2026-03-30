@@ -160,9 +160,9 @@ export default function FilaExportacaoERP() {
   }, [selectedIds]);
 
   const kpis = [
-    { label: "Aguardando Provisão", value: status?.pending_registration ?? "—", color: "text-[#EA580C]" },
-    { label: "Aguardando Baixa", value: status?.pending_payment ?? "—", color: "text-[#2563EB]" },
-    { label: "Com Erro", value: status?.errors ?? "—", color: "text-[#DC2626]" },
+    { label: "Aguardando Provisão", value: status?.pending_registration ?? "—", color: "text-warning" },
+    { label: "Aguardando Baixa", value: status?.pending_payment ?? "—", color: "text-primary" },
+    { label: "Com Erro", value: status?.errors ?? "—", color: "text-destructive" },
   ];
 
   function renderTable(items: any[] | undefined, loading: boolean, exportType: string, showErpRef = false) {
@@ -205,7 +205,7 @@ export default function FilaExportacaoERP() {
         <div className="rounded-md border">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#F9FAFB]">
+              <TableRow className="bg-muted/50">
                 <TableHead className="w-10">
                   <Checkbox
                     checked={list.length > 0 && list.every((i: any) => selectedIds.has(i.id))}
@@ -227,7 +227,7 @@ export default function FilaExportacaoERP() {
               {list.map((item: any, idx: number) => {
                 const st = STATUS_BADGES[item.status] || STATUS_BADGES.pending;
                 return (
-                  <TableRow key={item.id} className={idx % 2 === 0 ? "" : "bg-[#F9FAFB]"}>
+                  <TableRow key={item.id} className={idx % 2 === 0 ? "" : "bg-muted/50"}>
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(item.id)}
@@ -255,7 +255,7 @@ export default function FilaExportacaoERP() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs text-[#DC2626]"
+                          className="text-xs text-destructive"
                           onClick={() => retryMutation.mutate([item.id])}
                           disabled={retryMutation.isPending}
                         >
@@ -285,7 +285,7 @@ export default function FilaExportacaoERP() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1B2A4A]">Fila de Exportação ERP</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Fila de Exportação ERP</h1>
             <p className="text-sm text-muted-foreground">Gerencie provisões, baixas e histórico de exportação</p>
           </div>
         </div>
@@ -404,15 +404,15 @@ export default function FilaExportacaoERP() {
         <Dialog open={reconcModal} onOpenChange={setReconcModal}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-[#1B2A4A]">Reconciliação BiMaster x ERP</DialogTitle>
+              <DialogTitle className="text-foreground">Reconciliação BiMaster x ERP</DialogTitle>
             </DialogHeader>
             {reconcResumo && Object.keys(reconcResumo).length > 0 ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>Total Títulos: <strong>{reconcResumo.total_titulos}</strong></div>
-                  <div>Exportados: <strong className="text-[#16A34A]">{reconcResumo.exportados}</strong></div>
-                  <div>Com Erro: <strong className="text-[#DC2626]">{reconcResumo.com_erro}</strong></div>
-                  <div>Taxa Sinc.: <strong className="text-[#2563EB]">{reconcResumo.taxa_sincronizacao}%</strong></div>
+                  <div>Exportados: <strong className="text-success">{reconcResumo.exportados}</strong></div>
+                  <div>Com Erro: <strong className="text-destructive">{reconcResumo.com_erro}</strong></div>
+                  <div>Taxa Sinc.: <strong className="text-primary">{reconcResumo.taxa_sincronizacao}%</strong></div>
                 </div>
               </div>
             ) : (

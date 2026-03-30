@@ -51,7 +51,7 @@ export function ErpStatusSection({ tituloId }: ErpStatusSectionProps) {
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-[#1B2A4A]">
+      <h4 className="text-sm font-semibold text-foreground">
         Histórico de Exportação ERP
       </h4>
       <div className="relative border-l-2 border-muted pl-4 space-y-4">
@@ -76,7 +76,7 @@ export function ErpStatusSection({ tituloId }: ErpStatusSectionProps) {
                 <p className="text-xs mt-0.5">Ref ERP: {entry.erp_reference}</p>
               )}
               {entry.error_message && (
-                <p className="text-xs text-[#DC2626] mt-0.5">
+                <p className="text-xs text-destructive mt-0.5">
                   {entry.error_message}
                 </p>
               )}

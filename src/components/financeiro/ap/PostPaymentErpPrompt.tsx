@@ -42,7 +42,7 @@ export function PostPaymentErpPrompt({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-[#1B2A4A]">
+          <AlertDialogTitle className="text-foreground">
             Exportar baixa ao ERP?
           </AlertDialogTitle>
           <AlertDialogDescription>

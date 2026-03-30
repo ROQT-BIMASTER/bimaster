@@ -288,7 +288,7 @@ export default function IntegracaoERP() {
             </Dialog>
           </div>
 
-          <Card className="border-[#dde1e9]">
+          <Card className="border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Testar a API</CardTitle>
               <CardDescription>Importe a collection oficial Huggs ERP v1 direto no Postman</CardDescription>
