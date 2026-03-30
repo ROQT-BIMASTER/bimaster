@@ -543,12 +543,12 @@ function AppContent() {
             <Route path="/dashboard/precos/simulador" element={<ScreenRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenRoute>} />
             
             {/* Módulo de Estoque */}
-            <Route path="/dashboard/estoque" element={<ModuleRoute moduleCode="estoque"><EstoqueModule /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/distribuidoras" element={<ModuleRoute moduleCode="estoque"><EstoqueDistribuidoras /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/produtos-master" element={<ModuleRoute moduleCode="estoque"><EstoqueProdutosMaster /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/saldos" element={<ModuleRoute moduleCode="estoque"><EstoqueSaldos /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><EstoqueConsolidado /></ModuleRoute>} />
-            <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><EstoqueVinculacoes /></ModuleRoute>} />
+            <Route path="/dashboard/estoque" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_dashboard"><EstoqueModule /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/distribuidoras" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_distribuidoras"><EstoqueDistribuidoras /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/produtos-master" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_produtos_master"><EstoqueProdutosMaster /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/saldos" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_saldos"><EstoqueSaldos /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/consolidado" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_consolidado"><EstoqueConsolidado /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/estoque/vinculacoes" element={<ModuleRoute moduleCode="estoque"><ScreenProtectedRoute screenCode="estoque_vinculacoes"><EstoqueVinculacoes /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Aprovação de Artes */}
             <Route path="/dashboard/aprovacao-artes" element={<ModuleRoute moduleCode="aprovacao_artes"><FluxoAprovacaoArtes /></ModuleRoute>} />
