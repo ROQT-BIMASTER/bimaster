@@ -205,11 +205,11 @@ export function ProjetoTarefaDetalhe({
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("supervisor_id, gerente_id")
+        .select("supervisor_id")
         .eq("id", user.id)
         .single();
 
-      const superiorId = profile?.supervisor_id || profile?.gerente_id;
+      const superiorId = profile?.supervisor_id;
       if (!superiorId) {
         toast.error("Nenhum superior hierárquico encontrado no seu perfil.");
         return;

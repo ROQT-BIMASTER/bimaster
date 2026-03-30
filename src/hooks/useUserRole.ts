@@ -22,6 +22,8 @@ export const useUserRole = () => {
     const normalizedRole = effectiveRole === 'promotora' ? 'promotor' : effectiveRole;
     const userType = normalizedRole as UserType;
 
+    const isManager = userType === "admin" || userType === "gerente" || userType === "supervisor";
+
     return {
       userType,
       isAdmin: userType === "admin",
@@ -30,7 +32,8 @@ export const useUserRole = () => {
       isVendedor: userType === "vendedor",
       isPromotor: userType === "promotor",
       isCliente: userType === "cliente",
-      isAdminOrSupervisor: userType === "admin" || userType === "gerente" || userType === "supervisor",
+      isManager,
+      isAdminOrSupervisor: isManager, // alias retrocompatível
       isSalesTeam: userType === "vendedor" || userType === "promotor",
       isInternal: userType !== null && userType !== "cliente",
     };

@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import { 
   Users, 
   UserCheck, 
@@ -15,7 +16,8 @@ import {
   Shield,
   UserCog,
   User,
-  UserCircle2
+  UserCircle2,
+  Search
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -39,6 +41,7 @@ export function HierarquiaUsuarios() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [expandedSupervisors, setExpandedSupervisors] = useState<Set<string>>(new Set());
   const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -448,10 +451,10 @@ export function HierarquiaUsuarios() {
   const calcularEstatisticas = () => {
     const stats = {
       admins: usuarios.filter(u => u.role === 'admin').length,
+      gerentes: usuarios.filter(u => u.role === 'gerente').length,
       supervisores: usuarios.filter(u => u.role === 'supervisor').length,
       vendedores: usuarios.filter(u => u.role === 'vendedor').length,
       promotores: usuarios.filter(u => u.role === 'promotor').length,
-      gerentes: usuarios.filter(u => u.role === 'gerente').length,
       semSuperior: usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length,
     };
     return stats;
@@ -490,6 +493,27 @@ export function HierarquiaUsuarios() {
 
   const stats = calcularEstatisticas();
 
+  const matchesSearch = (u: Usuario): boolean => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return u.nome.toLowerCase().includes(term) || u.email.toLowerCase().includes(term);
+  };
+
+  const filteredSupervisores = supervisores.filter(s => {
+    if (!searchTerm) return true;
+    // Show supervisor if they match OR any subordinate matches
+    if (matchesSearch(s)) return true;
+    const subs = usuarios.filter(u => {
+      let current: Usuario | undefined = u;
+      while (current?.supervisor_id) {
+        if (current.supervisor_id === s.id) return true;
+        current = usuarios.find(usr => usr.id === current!.supervisor_id);
+      }
+      return false;
+    });
+    return subs.some(matchesSearch);
+  });
+
   return (
     <div className="space-y-6">
       <Card>
@@ -506,18 +530,27 @@ export function HierarquiaUsuarios() {
           <Alert>
             <AlertDescription>
               <strong>Como funciona:</strong> Vincule usuários criando uma estrutura em pirâmide. 
-              Admins ficam no topo, seguidos por supervisores, vendedores e promotores. 
+              Admins ficam no topo, seguidos por gerentes, supervisores, vendedores e promotores. 
               O sistema impede a criação de hierarquias circulares.
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
                   <Shield className="h-8 w-8 mx-auto mb-2 text-primary" />
                   <p className="text-2xl font-bold">{stats.admins}</p>
                   <p className="text-xs text-muted-foreground">Administradores</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <UserCog className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-2xl font-bold">{stats.gerentes}</p>
+                  <p className="text-xs text-muted-foreground">Gerentes</p>
                 </div>
               </CardContent>
             </Card>
@@ -581,6 +614,15 @@ export function HierarquiaUsuarios() {
               </Button>
             </div>
           </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Admins (sem hierarquia) */}
@@ -605,7 +647,7 @@ export function HierarquiaUsuarios() {
               <CardContent>
                 <div className="space-y-2">
                   {usuarios
-                    .filter(u => u.role === 'admin')
+                    .filter(u => u.role === 'admin' && matchesSearch(u))
                     .map(admin => renderUsuario(admin, 0))}
                 </div>
               </CardContent>
@@ -613,15 +655,21 @@ export function HierarquiaUsuarios() {
           )}
 
           {/* Hierarquias por Supervisor */}
-          {supervisores.length === 0 ? (
+          {filteredSupervisores.length === 0 && supervisores.length === 0 ? (
             <Alert>
               <AlertDescription>
                 Nenhum supervisor cadastrado. Crie supervisores para começar a organizar hierarquias.
               </AlertDescription>
             </Alert>
+          ) : filteredSupervisores.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                Nenhum resultado encontrado para "{searchTerm}".
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-4">
-              {supervisores.map(supervisor => {
+              {filteredSupervisores.map(supervisor => {
                 const hierarquia = hierarquiasPorSupervisor.get(supervisor.id) || [];
                 const isExpanded = expandedSupervisors.has(supervisor.id);
                 const stats = calcularEstatisticasSupervisor(supervisor.id);
@@ -688,7 +736,7 @@ export function HierarquiaUsuarios() {
           )}
 
           {/* Usuários sem supervisor */}
-          {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length > 0 && (
+          {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length > 0 && (
             <Card className="border-2 border-dashed border-muted-foreground/30">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -702,14 +750,14 @@ export function HierarquiaUsuarios() {
                     </div>
                   </div>
                   <Badge variant="outline">
-                    {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length} usuário(s)
+                    {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length} usuário(s)
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {usuarios
-                    .filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor')
+                    .filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor')
                     .map(usuario => renderUsuario(usuario, 0))}
                 </div>
               </CardContent>
