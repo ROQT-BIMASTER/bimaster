@@ -244,7 +244,7 @@ export function GerenciamentoPermissoesModulos() {
               Defina permissões padrão por função. Administradores têm acesso a todos os módulos automaticamente.
             </div>
             
-            {["supervisor", "vendedor", "promotor"].map((role) => (
+            {["gerente", "supervisor", "vendedor", "promotor"].map((role) => (
               <Card key={role}>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
