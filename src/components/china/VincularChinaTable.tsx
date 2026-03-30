@@ -103,6 +103,7 @@ export function VincularChinaTable({
 }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [vinculoFilter, setVinculoFilter] = useState("todos");
   const [pendenciaFilter, setPendenciaFilter] = useState<"todos" | "com" | "sem">("todos");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
