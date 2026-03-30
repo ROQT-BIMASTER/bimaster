@@ -314,8 +314,16 @@ export const GerenciamentoUsuarios = () => {
         if (roleError) throw roleError;
       }
 
-      // Atualizar senha se foi preenchida
-      if (novoUsuario.senha && novoUsuario.senha.length >= 8) {
+      // Atualizar senha se foi preenchida — usar mesma regex do userSchema
+      if (novoUsuario.senha && novoUsuario.senha.length > 0) {
+        const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+        if (novoUsuario.senha.length < 8) {
+          throw new Error("Senha deve ter no mínimo 8 caracteres");
+        }
+        if (!senhaRegex.test(novoUsuario.senha)) {
+          throw new Error("Senha deve conter letras maiúsculas, minúsculas e números");
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error("Sessão expirada");
 
@@ -325,8 +333,6 @@ export const GerenciamentoUsuarios = () => {
 
         if (response.error) throw new Error(response.error.message || "Erro ao atualizar senha");
         if (response.data?.error) throw new Error(response.data.error);
-      } else if (novoUsuario.senha && novoUsuario.senha.length > 0 && novoUsuario.senha.length < 8) {
-        throw new Error("Senha deve ter no mínimo 8 caracteres");
       }
 
       // Atualizar municípios se for vendedor
