@@ -48,15 +48,6 @@ interface ReceitaData {
   matrizFilial?: string;
 }
 
-interface ExistingStore {
-  id: string;
-  name: string;
-  cnpj: string;
-  city?: string;
-  state?: string;
-  status?: string;
-  isLinkedToCurrentUser?: boolean;
-}
 
 type Step = "cnpj" | "review" | "success";
 
