@@ -40,7 +40,14 @@ export default function PortalPerfil() {
 
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("nome, email, telefone, avatar_url, created_at")
+          .select("nome, email, avatar_url, created_at")
+          .eq("id", user.id)
+          .single();
+
+        // Fetch telefone separately since column may not be in generated types yet
+        const { data: telData } = await supabase
+          .from("profiles")
+          .select("telefone" as any)
           .eq("id", user.id)
           .single();
 
