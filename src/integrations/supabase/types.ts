@@ -17398,6 +17398,207 @@ export type Database = {
         }
         Relationships: []
       }
+      oms_condicoes_pagamento: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string
+          dias_entre_parcelas: number | null
+          dias_primeira_parcela: number | null
+          id: string
+          parcelas: number
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          dias_entre_parcelas?: number | null
+          dias_primeira_parcela?: number | null
+          id?: string
+          parcelas?: number
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          dias_entre_parcelas?: number | null
+          dias_primeira_parcela?: number | null
+          id?: string
+          parcelas?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      oms_pedido_itens: {
+        Row: {
+          created_at: string | null
+          desconto_percentual: number | null
+          estoque_reservado: boolean | null
+          id: string
+          pedido_id: string
+          preco_unitario: number
+          produto_codigo: string
+          produto_nome: string | null
+          quantidade: number
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          desconto_percentual?: number | null
+          estoque_reservado?: boolean | null
+          id?: string
+          pedido_id: string
+          preco_unitario: number
+          produto_codigo: string
+          produto_nome?: string | null
+          quantidade: number
+          valor_total: number
+        }
+        Update: {
+          created_at?: string | null
+          desconto_percentual?: number | null
+          estoque_reservado?: boolean | null
+          id?: string
+          pedido_id?: string
+          preco_unitario?: number
+          produto_codigo?: string
+          produto_nome?: string | null
+          quantidade?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oms_pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "oms_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oms_pedido_status_log: {
+        Row: {
+          created_at: string | null
+          id: string
+          observacao: string | null
+          pedido_id: string
+          status_anterior: string | null
+          status_novo: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id: string
+          status_anterior?: string | null
+          status_novo: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          observacao?: string | null
+          pedido_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oms_pedido_status_log_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "oms_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oms_pedidos: {
+        Row: {
+          approved_by: string | null
+          canal_origem: string | null
+          cliente_codigo: string
+          cliente_nome: string | null
+          condicao_pagamento_id: string | null
+          created_at: string | null
+          created_by: string | null
+          desconto_total: number | null
+          empresa_id: number | null
+          id: string
+          idempotency_key: string | null
+          motivo_rejeicao: string | null
+          numero: number
+          observacao: string | null
+          status: string
+          tabela_preco_id: string | null
+          updated_at: string | null
+          valor_total: number | null
+          vendedor_cod: number | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          canal_origem?: string | null
+          cliente_codigo: string
+          cliente_nome?: string | null
+          condicao_pagamento_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          desconto_total?: number | null
+          empresa_id?: number | null
+          id?: string
+          idempotency_key?: string | null
+          motivo_rejeicao?: string | null
+          numero?: never
+          observacao?: string | null
+          status?: string
+          tabela_preco_id?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+          vendedor_cod?: number | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          canal_origem?: string | null
+          cliente_codigo?: string
+          cliente_nome?: string | null
+          condicao_pagamento_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          desconto_total?: number | null
+          empresa_id?: number | null
+          id?: string
+          idempotency_key?: string | null
+          motivo_rejeicao?: string | null
+          numero?: never
+          observacao?: string | null
+          status?: string
+          tabela_preco_id?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+          vendedor_cod?: number | null
+          vendedor_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oms_pedidos_condicao_pagamento_id_fkey"
+            columns: ["condicao_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "oms_condicoes_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opencnpj_cache: {
         Row: {
           cnpj: string
