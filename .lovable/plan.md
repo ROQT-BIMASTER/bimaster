@@ -1,73 +1,67 @@
 
 
-# Auto-Carregar Regras de Aprovacao na Extracao de Documentos
+# Melhorias na Visualização de Documentos e Pendências no Fluxo de Composição
 
 ## Problema
 
-Ao extrair ingredientes de um documento do processo, o sistema nao carrega nem associa as regras de aprovacao configuradas na etapa "Vincular China". O documento despachado possui um `workflow_config_id` na tabela `process_despacho_documento`, mas essa informacao e ignorada durante a extracao.
+1. No Step 2 (Analisar & Aceitar), o fluxo de aprovação mostra apenas as etapas cadastradas, mas não exibe claramente TODAS as etapas com status visual (concluída/atual/pendente)
+2. Planilhas (xlsx, xls, csv) não têm opção de download/visualização no preview
+3. Após extração, na tela principal (ComposicaoEditor), o usuário não consegue ver rapidamente quais documentos já foram processados e quais ainda estão pendentes
 
-## Solucao
+## Solução
 
-### 1. Carregar regras de aprovacao junto com os documentos do processo
+### 1. Etapas do fluxo com status visual completo (ExtrairIngredientesIADialog.tsx)
 
-No `loadProcessoDocs`, alem de buscar os vinculos em `china_documento_tarefa_vinculos`, buscar tambem os registros de `process_despacho_documento` para cada documento, trazendo:
-- `workflow_config_id` (fluxo configurado)
-- `modulo_destino` (modulo de destino)
-- `status` do despacho
-- `etapa_atual`
+No card "Fluxo de Aprovação Vinculado" (Step 2), melhorar a visualização das etapas:
+- Etapas anteriores à `etapa_atual`: ícone CheckCircle2 verde + texto "Concluída"
+- Etapa atual: highlight primário + badge "Etapa atual" (já existe, manter)
+- Etapas futuras: ícone Circle cinza + texto "Pendente"
+- Adicionar barra de progresso visual acima das etapas
 
-Com o `workflow_config_id`, buscar o nome do fluxo em `process_doc_workflow_config` e as etapas em `process_doc_workflow_etapas` (aprovadores, departamentos, tipo de acao).
+### 2. Download e visualização para planilhas e outros formatos (ExtrairIngredientesIADialog.tsx)
 
-### 2. Exibir regras de aprovacao no Step 2 (Analisar & Aceitar)
+No preview (Step 2), quando o arquivo for planilha (.xlsx, .xls, .csv) ou outro formato sem preview inline:
+- Mostrar botão "Download" e "Abrir em nova aba" (como já existe no ChinaDocPreviewDialog)
+- Manter a mensagem de que a IA processará o conteúdo interno
+- Aplicar mesma lógica para .doc, .docx, .xml etc.
 
-Abaixo do preview do documento e acima do Termo de Responsabilidade, exibir um card informativo com:
-- Nome do fluxo de aprovacao vinculado
-- Lista das etapas com aprovadores e tipo de acao
-- Badge indicando a etapa atual do documento no fluxo
+### 3. Painel de Documentos do Processo na tela principal (ChecklistComposicao.tsx)
 
-Isso garante que o usuario visualiza as regras ANTES de extrair.
+Adicionar uma nova aba **"Documentos"** no `ComposicaoEditor` (entre "Composição" e "Tarefas Vinculadas") que mostra:
+- Lista de TODOS os documentos vinculados ao módulo (via `china_documento_tarefa_vinculos`)
+- Para cada documento: nome, tipo, status, checklist de origem
+- Badge visual indicando se já foi "Analisado pela IA" ou "Pendente de análise"
+- Botão rápido para abrir o diálogo de extração com IA pré-selecionando o documento
+- KPIs no topo: Total de documentos, Analisados, Pendentes
 
-### 3. Vincular regras ao resultado da extracao
+Para determinar se um documento já foi analisado, verificar se existe registro em `audit_logs` com `action = "extracao_ia_processo"` e `metadata->documento_id` correspondente.
 
-Ao confirmar os ingredientes (Step 3), incluir nos metadados de auditoria:
-- `workflow_config_id`
-- `despacho_id` (da `process_despacho_documento`)
-- `documento_id` original (imutavel)
-- `etapa_atual` no momento da extracao
+## Arquivos Afetados
 
-Tambem propagar o `workflow_config_id` e `despacho_documento_id` nos itens criados via `onIngredientesExtraidos`, para que o modulo Composicao saiba qual fluxo governa aqueles ingredientes.
-
-### 4. Garantir imutabilidade do vinculo documento-regras
-
-O `documento_id` original e o `workflow_config_id` sao registrados como metadados somente-leitura no audit log. Nenhuma acao do usuario pode alterar a associacao entre o documento original e suas regras de aprovacao apos a extracao.
-
-### 5. Audit trail completo
-
-Expandir o log de auditoria existente para incluir:
-- `workflow_config_id` e `workflow_nome`
-- `despacho_documento_id`
-- `etapas_aprovacao` (snapshot das etapas no momento)
-- `documento_original_id` (referencia imutavel)
-
-## Arquivo Afetado
-
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/components/composicao/ExtrairIngredientesIADialog.tsx` | Carregar despacho/workflow ao listar docs; exibir regras no Step 2; propagar metadados na confirmacao; audit expandido |
+| `src/components/composicao/ExtrairIngredientesIADialog.tsx` | Status visual nas etapas do fluxo; botões download/abrir para planilhas |
+| `src/pages/ChecklistComposicao.tsx` | Nova aba "Documentos" no editor com painel de documentos e pendências |
 
-## Detalhes Tecnicos
+## Detalhes Técnicos
 
+**Etapas com status visual:**
 ```text
-loadProcessoDocs():
-  1. china_documento_tarefa_vinculos → docIds
-  2. china_produto_documentos WHERE id IN docIds
-  3. process_despacho_documento WHERE documento_id IN docIds → workflow_config_id
-  4. process_doc_workflow_config WHERE id = workflow_config_id → nome
-  5. process_doc_workflow_etapas WHERE config_id = workflow_config_id → etapas[]
-
-Cada doc no estado tera:
-  { ...doc, checklists, despacho: { id, workflow_config_id, etapa_atual, status }, workflow: { nome, etapas[] } }
+etapa.ordem < etapa_atual → ✅ Concluída (verde)
+etapa.ordem === etapa_atual → 🔵 Em andamento (highlight)
+etapa.ordem > etapa_atual → ⚪ Pendente (cinza)
 ```
 
-Nenhuma migration necessaria — todas as tabelas ja existem.
+**Detecção de análise prévia:**
+```sql
+SELECT DISTINCT metadata->>'documento_id' 
+FROM audit_logs 
+WHERE action = 'extracao_ia_processo' 
+  AND metadata->>'submissao_id' = $submissaoId
+```
+
+**Download para planilhas (Step 2):**
+- Detectar extensão: `.xlsx`, `.xls`, `.csv`, `.doc`, `.docx`
+- Renderizar botões Download + Abrir junto ao ícone do arquivo
+- Usar `previewUrl` para href dos botões
 
