@@ -29,11 +29,13 @@ interface MaterialRequestCardProps {
     estoque_atual?: number;
   };
   formId: string;
+  isPublic?: boolean;
 }
 
-export function MaterialRequestCard({ material, formId }: MaterialRequestCardProps) {
+export function MaterialRequestCard({ material, formId, isPublic = false }: MaterialRequestCardProps) {
   const [state, setState] = useState<"idle" | "selecting" | "submitting" | "submitted">("idle");
   const [selectedStore, setSelectedStore] = useState<{ id: string; name: string } | null>(null);
+  const [manualStoreName, setManualStoreName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [protocol, setProtocol] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
@@ -60,15 +62,18 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
   }
 
   async function handleConfirm() {
-    if (!selectedStore) {
+    if (!isPublic && !selectedStore) {
       toast.error("Selecione uma loja");
+      return;
+    }
+    if (isPublic && !manualStoreName.trim()) {
+      toast.error("Informe o nome da loja ou local de destino");
       return;
     }
 
     setState("submitting");
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
 
       const proto = generateProtocol();
 
@@ -76,9 +81,9 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
         .from("trade_material_solicitacoes" as any)
         .insert({
           material_id: material.id,
-          user_id: user.id,
-          loja_id: selectedStore.id,
-          loja_nome: selectedStore.name,
+          user_id: user?.id || null,
+          loja_id: isPublic ? null : selectedStore!.id,
+          loja_nome: isPublic ? manualStoreName.trim() : selectedStore!.name,
           quantidade: quantity,
           status: "pendente",
           observacoes: `Solicitação via formulário dinâmico (${formId})`,
@@ -165,51 +170,60 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
           {/* Store selector */}
           <div className="space-y-1.5">
             <Label className="text-xs">Loja de destino</Label>
-            <Popover open={storePopoverOpen} onOpenChange={setStorePopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-sm font-normal h-9">
-                  {selectedStore ? selectedStore.name : "Selecione a loja..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-2" align="start">
-                <div className="relative mb-2">
-                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome ou CNPJ..."
-                    value={storeSearch}
-                    onChange={(e) => setStoreSearch(e.target.value)}
-                    className="pl-8 h-8 text-sm"
-                  />
-                </div>
-                <div className="max-h-48 overflow-y-auto space-y-0.5">
-                  {storesLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : filteredStores.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Nenhuma loja encontrada</p>
-                  ) : (
-                    filteredStores.slice(0, 50).map((store) => (
-                      <button
-                        key={store.id}
-                        type="button"
-                        className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors"
-                        onClick={() => {
-                          setSelectedStore({ id: store.id, name: store.name });
-                          setStorePopoverOpen(false);
-                          setStoreSearch("");
-                        }}
-                      >
-                        <span className="font-medium">{store.name}</span>
-                        {store.cnpj && (
-                          <span className="text-xs text-muted-foreground ml-2">{store.cnpj}</span>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {isPublic ? (
+              <Input
+                placeholder="Digite o nome da loja ou local de destino..."
+                value={manualStoreName}
+                onChange={(e) => setManualStoreName(e.target.value)}
+                className="h-9 text-sm"
+              />
+            ) : (
+              <Popover open={storePopoverOpen} onOpenChange={setStorePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-sm font-normal h-9">
+                    {selectedStore ? selectedStore.name : "Selecione a loja..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-2" align="start">
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome ou CNPJ..."
+                      value={storeSearch}
+                      onChange={(e) => setStoreSearch(e.target.value)}
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-0.5">
+                    {storesLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : filteredStores.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">Nenhuma loja encontrada</p>
+                    ) : (
+                      filteredStores.slice(0, 50).map((store) => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors"
+                          onClick={() => {
+                            setSelectedStore({ id: store.id, name: store.name });
+                            setStorePopoverOpen(false);
+                            setStoreSearch("");
+                          }}
+                        >
+                          <span className="font-medium">{store.name}</span>
+                          {store.cnpj && (
+                            <span className="text-xs text-muted-foreground ml-2">{store.cnpj}</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           {/* Quantity selector */}
@@ -256,6 +270,7 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
               onClick={() => {
                 setState("idle");
                 setSelectedStore(null);
+                setManualStoreName("");
                 setQuantity(1);
               }}
             >
@@ -265,7 +280,7 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
               type="button"
               size="sm"
               onClick={handleConfirm}
-              disabled={!selectedStore}
+              disabled={isPublic ? !manualStoreName.trim() : !selectedStore}
             >
               Confirmar Solicitação
             </Button>
