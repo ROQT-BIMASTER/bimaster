@@ -65,7 +65,7 @@ export const TradeDashboardWidget = memo(() => {
           totalStores: storesCount || 0,
           visitsThisMonth: visitsCount || 0,
           photosThisMonth: photosCount || 0,
-          totalInvestments: totalInv,
+          totalSellOut: totalSellOut,
         });
       } catch (error) {
         console.error("Erro ao carregar stats de trade:", error);
