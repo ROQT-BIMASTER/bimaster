@@ -31984,6 +31984,7 @@ export type Database = {
         Args: { p_ano?: number; p_empresa_ids?: number[] }
         Returns: Json
       }
+      get_form_public_stats: { Args: { p_form_id: string }; Returns: Json }
       get_last_sync_timestamp: {
         Args: { p_entidade: string; p_tipo?: string }
         Returns: string
