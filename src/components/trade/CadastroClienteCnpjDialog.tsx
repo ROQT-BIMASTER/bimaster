@@ -16,10 +16,8 @@ import {
   Loader2,
   Building2,
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
   ArrowLeft,
-  Link2,
   UserPlus,
   FileText,
 } from "lucide-react";
