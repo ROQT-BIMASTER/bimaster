@@ -234,6 +234,13 @@ export default function DynamicFormAdmin() {
                 </Button>
                 <Button
                   variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => navigate(`/dashboard/trade/formularios/dashboard?id=${form.id}`)}
+                  title="Dashboard"
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
                   onClick={() => setShareFormId(form.id)}
                   title="Compartilhar"
                 >
