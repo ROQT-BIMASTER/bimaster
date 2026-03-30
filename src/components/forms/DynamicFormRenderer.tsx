@@ -73,6 +73,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       const initial: Record<string, any> = {};
       fieldData.forEach((f: any) => {
         if (f.field_type === "checkbox") initial[f.id] = [];
+        else if (f.field_type === "address") initial[f.id] = null;
         else initial[f.id] = "";
       });
       setValues(initial);
