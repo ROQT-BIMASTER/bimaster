@@ -554,6 +554,13 @@ export default function DynamicFormBuilder() {
                 </Card>
               )}
 
+              {/* Attachments Panel */}
+              <FormAttachmentsPanel
+                formId={savedFormId}
+                attachments={attachments}
+                onChange={setAttachments}
+              />
+
               {/* Stats */}
               <Card>
                 <CardContent className="p-4">
@@ -564,6 +571,10 @@ export default function DynamicFormBuilder() {
                       <span className="font-medium text-foreground">
                         {fields.filter((f) => f.required).length}
                       </span>
+                    </p>
+                    <p>
+                      Vínculos:{" "}
+                      <span className="font-medium text-foreground">{attachments.length}</span>
                     </p>
                   </div>
                 </CardContent>
