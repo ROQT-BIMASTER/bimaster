@@ -220,6 +220,12 @@ export default function TradeSupervisorDashboard() {
               )}
 
               {canAccessForms && <GenerateFormLinkDialog />}
+              {canAccessForms && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/trade/formularios/builder")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Formulário Personalizado
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={refetchAll}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
