@@ -20,6 +20,7 @@ interface Tela {
   icone: string;
   ordem: number;
   permissoes: {
+    gerente: boolean;
     supervisor: boolean;
     vendedor: boolean;
     promotor: boolean;
@@ -88,6 +89,7 @@ export function PermissoesDeAcesso() {
         icone: tela.icone,
         ordem: tela.ordem,
         permissoes: {
+          gerente: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'gerente') || false,
           supervisor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'supervisor') || false,
           vendedor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'vendedor') || false,
           promotor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'promotor') || false,
@@ -107,7 +109,7 @@ export function PermissoesDeAcesso() {
     }
   };
 
-  const handlePermissionChange = (telaId: string, role: "supervisor" | "vendedor" | "promotor") => {
+  const handlePermissionChange = (telaId: string, role: "gerente" | "supervisor" | "vendedor" | "promotor") => {
     setTelas(prev => prev.map(tela => 
       tela.id === telaId 
         ? { ...tela, permissoes: { ...tela.permissoes, [role]: !tela.permissoes[role] } }
@@ -119,7 +121,7 @@ export function PermissoesDeAcesso() {
     setLoading(true);
     try {
       // Para cada role, deletar e recriar as permissões
-      for (const role of ['supervisor', 'vendedor', 'promotor'] as const) {
+      for (const role of ['gerente', 'supervisor', 'vendedor', 'promotor'] as const) {
         // Deletar permissões existentes do role
         await supabase
           .from("role_permissoes_telas")
@@ -257,14 +259,17 @@ export function PermissoesDeAcesso() {
                           Acesso Total
                         </Badge>
                       </div>
+                     </th>
+                    <th className="text-center p-4 font-medium w-28">
+                      Gerente
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Supervisor
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Vendedor
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Promotor
                     </th>
                   </tr>
@@ -287,6 +292,13 @@ export function PermissoesDeAcesso() {
                           <div className="flex justify-center">
                             <CheckCircle2 className="w-5 h-5 text-primary" />
                           </div>
+                        </td>
+                        <td className="text-center p-4">
+                          <Checkbox
+                            checked={tela.permissoes.gerente}
+                            onCheckedChange={() => handlePermissionChange(tela.id, 'gerente')}
+                            className="mx-auto"
+                          />
                         </td>
                         <td className="text-center p-4">
                           <Checkbox
