@@ -7,6 +7,7 @@ interface PermissionsContextType {
   role: string | null;
   isAdmin: boolean;
   loading: boolean;
+  permissionsReady: boolean;
   hasModulePermission: (moduleCode: string) => boolean;
   hasScreenPermission: (screenCode: string) => boolean;
   refreshPermissions: () => Promise<void>;

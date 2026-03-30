@@ -1,6 +1,7 @@
-import { Lock, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Lock, ShieldAlert, ArrowLeft, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface AccessDeniedProps {
   message?: string;
