@@ -408,7 +408,7 @@ function AppContent() {
             <Route path="/dashboard/ranking" element={<ModuleRoute moduleCode="trade"><Ranking /></ModuleRoute>} />
             <Route path="/dashboard/tarefas" element={<ProtectedRoute><Tarefas /></ProtectedRoute>} />
             <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+            <Route path="/dashboard/configuracoes" element={<ScreenRoute screenCode="admin"><Configuracoes /></ScreenRoute>} />
             <Route path="/dashboard/importar-clientes" element={<ModuleRoute moduleCode="comercial"><ImportarClientes /></ModuleRoute>} />
             <Route path="/dashboard/auditoria" element={<ScreenRoute screenCode="auditoria"><Auditoria /></ScreenRoute>} />
             
