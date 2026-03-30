@@ -89,7 +89,7 @@ export default function RelatorioAPxERP() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-[#1B2A4A]">Relatório AP x ERP</h1>
+              <h1 className="text-2xl font-semibold text-foreground">Relatório AP x ERP</h1>
               <p className="text-sm text-muted-foreground">Diagnóstico técnico de integração</p>
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function RelatorioAPxERP() {
           <Card>
             <CardContent className="pt-6">
               {reconcLoading ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold text-[#2563EB]">{resumo.total_titulos ?? "—"}</div>
+                <div className="text-2xl font-bold text-primary">{resumo.total_titulos ?? "—"}</div>
               )}
               <p className="text-xs text-muted-foreground">Total Títulos</p>
             </CardContent>
@@ -111,7 +111,7 @@ export default function RelatorioAPxERP() {
           <Card>
             <CardContent className="pt-6">
               {reconcLoading ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold text-[#16A34A]">{resumo.exportados ?? "—"}</div>
+                <div className="text-2xl font-bold text-success">{resumo.exportados ?? "—"}</div>
               )}
               <p className="text-xs text-muted-foreground">Exportados</p>
             </CardContent>
@@ -119,7 +119,7 @@ export default function RelatorioAPxERP() {
           <Card>
             <CardContent className="pt-6">
               {reconcLoading ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold text-[#DC2626]">{resumo.com_erro ?? "—"}</div>
+                <div className="text-2xl font-bold text-destructive">{resumo.com_erro ?? "—"}</div>
               )}
               <p className="text-xs text-muted-foreground">Com Erro</p>
             </CardContent>
@@ -127,7 +127,7 @@ export default function RelatorioAPxERP() {
           <Card>
             <CardContent className="pt-6">
               {reconcLoading ? <Skeleton className="h-8 w-16" /> : (
-                <div className="text-2xl font-bold text-[#1B2A4A]">{resumo.taxa_sincronizacao ?? "—"}%</div>
+                <div className="text-2xl font-bold text-foreground">{resumo.taxa_sincronizacao ?? "—"}%</div>
               )}
               <p className="text-xs text-muted-foreground">Taxa Sincronização</p>
             </CardContent>
@@ -137,7 +137,7 @@ export default function RelatorioAPxERP() {
         {/* Export Summary KPIs */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Resumo de Exportação</CardTitle>
+            <CardTitle className="text-lg text-foreground">Resumo de Exportação</CardTitle>
           </CardHeader>
           <CardContent>
             {summaryLoading ? (
@@ -147,19 +147,19 @@ export default function RelatorioAPxERP() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="rounded-md border p-3">
-                  <div className="text-lg font-bold text-[#EA580C]">{summaryData.total_exported ?? "—"}</div>
+                  <div className="text-lg font-bold text-warning">{summaryData.total_exported ?? "—"}</div>
                   <p className="text-xs text-muted-foreground">Total Exportados</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <div className="text-lg font-bold text-[#16A34A]">{formatBRL(summaryData.total_value_exported)}</div>
+                  <div className="text-lg font-bold text-success">{formatBRL(summaryData.total_value_exported)}</div>
                   <p className="text-xs text-muted-foreground">Valor Exportado</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <div className="text-lg font-bold text-[#2563EB]">{summaryData.total_pending ?? "—"}</div>
+                  <div className="text-lg font-bold text-primary">{summaryData.total_pending ?? "—"}</div>
                   <p className="text-xs text-muted-foreground">Pendentes</p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <div className="text-lg font-bold text-[#DC2626]">{summaryData.total_errors ?? "—"}</div>
+                  <div className="text-lg font-bold text-destructive">{summaryData.total_errors ?? "—"}</div>
                   <p className="text-xs text-muted-foreground">Erros</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function RelatorioAPxERP() {
         {/* SVG Lifecycle Flowchart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Ciclo de Vida do Título AP</CardTitle>
+            <CardTitle className="text-lg text-foreground">Ciclo de Vida do Título AP</CardTitle>
           </CardHeader>
           <CardContent>
             <svg viewBox="0 0 920 160" className="w-full h-auto">
@@ -233,13 +233,13 @@ export default function RelatorioAPxERP() {
         {/* Endpoints Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-[#1B2A4A]">Endpoints do Módulo AP ({ENDPOINTS.length})</CardTitle>
+            <CardTitle className="text-lg text-foreground">Endpoints do Módulo AP ({ENDPOINTS.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#F9FAFB]">
+                  <TableRow className="bg-muted/50">
                     <TableHead>Function</TableHead>
                     <TableHead>Método</TableHead>
                     <TableHead>Path</TableHead>
@@ -250,7 +250,7 @@ export default function RelatorioAPxERP() {
                 </TableHeader>
                 <TableBody>
                   {ENDPOINTS.map((ep, i) => (
-                    <TableRow key={i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                    <TableRow key={i} className={i % 2 ? "bg-muted/50" : ""}>
                       <TableCell className="text-xs font-mono">{ep.fn}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[10px]">{ep.method}</Badge>
@@ -275,7 +275,7 @@ export default function RelatorioAPxERP() {
             <CardHeader>
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between cursor-pointer">
-                  <CardTitle className="text-lg text-[#1B2A4A]">Log de Sincronização ERP (últimos 50)</CardTitle>
+                  <CardTitle className="text-lg text-foreground">Log de Sincronização ERP (últimos 50)</CardTitle>
                   <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${logOpen ? "rotate-180" : ""}`} />
                 </div>
               </CollapsibleTrigger>
@@ -288,7 +288,7 @@ export default function RelatorioAPxERP() {
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-[#F9FAFB]">
+                        <TableRow className="bg-muted/50">
                           <TableHead>Data</TableHead>
                           <TableHead>Operação</TableHead>
                           <TableHead>Tabela</TableHead>
@@ -298,7 +298,7 @@ export default function RelatorioAPxERP() {
                       </TableHeader>
                       <TableBody>
                         {(syncLog || []).map((log: any, i: number) => (
-                          <TableRow key={log.id || i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                          <TableRow key={log.id || i} className={i % 2 ? "bg-muted/50" : ""}>
                             <TableCell className="text-xs">{fmtDateTime(log.created_at)}</TableCell>
                             <TableCell className="text-xs">{log.operacao || log.action || "—"}</TableCell>
                             <TableCell className="text-xs">{log.tabela_origem || log.entity_type || "—"}</TableCell>

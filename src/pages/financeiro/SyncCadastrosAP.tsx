@@ -187,7 +187,7 @@ export default function SyncCadastrosAP() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1B2A4A]">Sync Cadastros Auxiliares AP</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Sync Cadastros Auxiliares AP</h1>
             <p className="text-sm text-muted-foreground">Sincronize fornecedores, categorias e contas correntes com o ERP</p>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function SyncCadastrosAP() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-[#F9FAFB]">
+                    <TableRow className="bg-muted/50">
                       <TableHead>Código Huggs</TableHead>
                       <TableHead>Cód. Integração</TableHead>
                       <TableHead>Razão Social</TableHead>
@@ -226,11 +226,11 @@ export default function SyncCadastrosAP() {
                   </TableHeader>
                   <TableBody>
                     {fornList.map((f: any, i: number) => (
-                      <TableRow key={f.id || i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                      <TableRow key={f.id || i} className={i % 2 ? "bg-muted/50" : ""}>
                         <TableCell className="text-xs font-mono">{f.codigo_cliente_huggs || "—"}</TableCell>
                         <TableCell className="text-xs">
                           {f.codigo_cliente_integracao || (
-                            <span className="text-[#DC2626] flex items-center gap-1">
+                            <span className="text-destructive flex items-center gap-1">
                               <AlertTriangle className="h-3 w-3" /> Sem integração
                             </span>
                           )}
@@ -274,7 +274,7 @@ export default function SyncCadastrosAP() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-[#F9FAFB]">
+                    <TableRow className="bg-muted/50">
                       <TableHead>Código</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Tipo</TableHead>
@@ -283,13 +283,13 @@ export default function SyncCadastrosAP() {
                   </TableHeader>
                   <TableBody>
                     {catList.map((c: any, i: number) => (
-                      <TableRow key={c.id || c.codigo || i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                      <TableRow key={c.id || c.codigo || i} className={i % 2 ? "bg-muted/50" : ""}>
                         <TableCell className="text-xs font-mono">{c.codigo || "—"}</TableCell>
                         <TableCell>{c.descricao || c.nome || "—"}</TableCell>
                         <TableCell className="text-xs">{c.tipo || "—"}</TableCell>
                         <TableCell className="text-xs">
                           {c.codigo_grupo || (
-                            <span className="text-[#EA580C] flex items-center gap-1">
+                            <span className="text-warning flex items-center gap-1">
                               <AlertTriangle className="h-3 w-3" /> Sem grupo
                             </span>
                           )}
@@ -318,7 +318,7 @@ export default function SyncCadastrosAP() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-[#F9FAFB]">
+                    <TableRow className="bg-muted/50">
                       <TableHead>Cód. Int.</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Banco</TableHead>
@@ -328,10 +328,10 @@ export default function SyncCadastrosAP() {
                   </TableHeader>
                   <TableBody>
                     {ccList.map((c: any, i: number) => (
-                      <TableRow key={c.id || i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                      <TableRow key={c.id || i} className={i % 2 ? "bg-muted/50" : ""}>
                         <TableCell className="text-xs font-mono">
                           {c.cCodCCInt || (
-                            <span className="text-[#DC2626] flex items-center gap-1">
+                            <span className="text-destructive flex items-center gap-1">
                               <AlertTriangle className="h-3 w-3" /> Sem cód.
                             </span>
                           )}
@@ -360,7 +360,7 @@ export default function SyncCadastrosAP() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-[#F9FAFB]">
+                    <TableRow className="bg-muted/50">
                       <TableHead>Código</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>N° Parcelas</TableHead>
@@ -369,7 +369,7 @@ export default function SyncCadastrosAP() {
                   </TableHeader>
                   <TableBody>
                     {parcList.map((p: any, i: number) => (
-                      <TableRow key={p.id || i} className={i % 2 ? "bg-[#F9FAFB]" : ""}>
+                      <TableRow key={p.id || i} className={i % 2 ? "bg-muted/50" : ""}>
                         <TableCell className="text-xs font-mono">{p.codigo || p.nCodParc || "—"}</TableCell>
                         <TableCell>{p.descricao || p.cDescricao || "—"}</TableCell>
                         <TableCell className="text-xs">{p.num_parcelas || p.nQtdeParc || "—"}</TableCell>
@@ -387,7 +387,7 @@ export default function SyncCadastrosAP() {
         <Dialog open={novaCondicaoModal} onOpenChange={setNovaCondicaoModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-[#1B2A4A]">Nova Condição de Pagamento</DialogTitle>
+              <DialogTitle className="text-foreground">Nova Condição de Pagamento</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -416,7 +416,7 @@ export default function SyncCadastrosAP() {
         <Dialog open={novaCategoriaModal} onOpenChange={setNovaCategoriaModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-[#1B2A4A]">Incluir Categoria</DialogTitle>
+              <DialogTitle className="text-foreground">Incluir Categoria</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -459,7 +459,7 @@ export default function SyncCadastrosAP() {
         <Dialog open={novoGrupoModal} onOpenChange={setNovoGrupoModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-[#1B2A4A]">Incluir Grupo de Categoria</DialogTitle>
+              <DialogTitle className="text-foreground">Incluir Grupo de Categoria</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">

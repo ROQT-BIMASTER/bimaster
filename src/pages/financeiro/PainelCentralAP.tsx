@@ -331,7 +331,7 @@ export default function PainelCentralAP() {
     { label: "Total em Aberto", value: formatBRL(resumo?.contaPagar?.vTotal), color: "text-primary" },
     { label: "Vencidos", value: String(vencidosCount), color: "text-destructive" },
     { label: "Pago no Mês", value: formatBRL(resumo?.contaPagar?.vPago), color: "text-success" },
-    { label: "Aguardando ERP", value: erpStatus?.pending_total ?? "—", color: "text-[#EA580C]" },
+    { label: "Aguardando ERP", value: erpStatus?.pending_total ?? "—", color: "text-warning" },
   ];
 
   return (
