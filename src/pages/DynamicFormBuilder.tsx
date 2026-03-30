@@ -151,15 +151,41 @@ export default function DynamicFormBuilder() {
     }
   }
 
+  function handleAiImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem deve ter no máximo 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setAiImageBase64(base64);
+      setAiImagePreview(base64);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearAiImage() {
+    setAiImageBase64(null);
+    setAiImagePreview(null);
+  }
+
   async function handleSuggestAI() {
-    if (!formName.trim()) {
-      toast.error("Informe o nome do formulário para sugestão IA");
+    const description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
+    if (!description && !aiImageBase64) {
+      toast.error("Informe uma descrição, prompt ou envie uma imagem para sugestão IA");
       return;
     }
     setSuggestingAI(true);
     try {
       const { data, error } = await supabase.functions.invoke("suggest-form-fields", {
-        body: { description: `${formName}. ${formDescription}`.trim(), category },
+        body: {
+          description: description || undefined,
+          category,
+          imageBase64: aiImageBase64 || undefined,
+        },
       });
 
       if (error) throw error;
@@ -177,6 +203,9 @@ export default function DynamicFormBuilder() {
         }));
         setFields((prev) => [...prev, ...newFields]);
         toast.success(`${newFields.length} campos sugeridos pela IA adicionados!`);
+        // Clear AI inputs after success
+        setAiCustomPrompt("");
+        clearAiImage();
       }
     } catch (err: any) {
       console.error("AI suggestion error:", err);
