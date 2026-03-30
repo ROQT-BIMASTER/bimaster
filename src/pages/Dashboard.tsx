@@ -4,12 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Building2, Sparkles, DollarSign, Factory } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { PageHeader } from "@/components/ui/page-header";
+import { KpiCard } from "@/components/ui/kpi-card";
+import {
+  Users, Building2, Sparkles, DollarSign, Factory,
+  LayoutDashboard, ArrowRight,
+} from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
 import { format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
-import { FunilProspeccao } from "@/components/dashboard/FunilProspeccao";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 import { ProspectsDashboardWidget } from "@/components/dashboard/ProspectsDashboardWidget";
 import { TradeDashboardWidget } from "@/components/dashboard/TradeDashboardWidget";
@@ -21,6 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
 import { usePhotoQueueProcessor } from "@/hooks/usePhotoQueueProcessor";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { chartColors } from "@/lib/chart-colors";
+import { cn } from "@/lib/utils";
 
 interface PipelineData {
   stage: string;
@@ -34,12 +42,19 @@ interface ActivityData {
   count: number;
 }
 
+const moduleIcons: Record<string, { icon: typeof Users; gradient: string }> = {
+  prospects:  { icon: Users,     gradient: "from-primary/10 to-primary/5" },
+  trade:      { icon: Building2, gradient: "from-warning/10 to-warning/5" },
+  financeiro: { icon: DollarSign, gradient: "from-success/10 to-success/5" },
+  fabrica:    { icon: Factory,   gradient: "from-accent/10 to-accent/5" },
+};
+
 const Dashboard = () => {
   const { hasModulePermission, loading: permissionsLoading } = useModulePermissions();
   const { isAdmin: realIsAdmin } = usePermissions();
   const { isImpersonating, impersonatedPermissions } = useImpersonation();
   const { t } = useLanguage();
-  
+
   const effectiveIsAdmin = useMemo(() => {
     if (isImpersonating && impersonatedPermissions) {
       return impersonatedPermissions.isAdmin;
@@ -47,26 +62,23 @@ const Dashboard = () => {
     return realIsAdmin;
   }, [isImpersonating, impersonatedPermissions, realIsAdmin]);
 
-  const [pipelineData, setPipelineData] = useState<PipelineData[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
 
   usePhotoQueueProcessor();
 
-  const hasProspectsPermission = useMemo(() => 
-    !permissionsLoading && hasModulePermission("prospects"), 
-    [permissionsLoading, hasModulePermission]
+  const hasProspectsPermission = useMemo(
+    () => !permissionsLoading && hasModulePermission("prospects"),
+    [permissionsLoading, hasModulePermission],
   );
-  
-  const hasTradePermission = useMemo(() => 
-    !permissionsLoading && hasModulePermission("trade"), 
-    [permissionsLoading, hasModulePermission]
+  const hasTradePermission = useMemo(
+    () => !permissionsLoading && hasModulePermission("trade"),
+    [permissionsLoading, hasModulePermission],
   );
-  
-  const hasFinanceiroPermission = useMemo(() => 
-    !permissionsLoading && hasModulePermission("financeiro"), 
-    [permissionsLoading, hasModulePermission]
+  const hasFinanceiroPermission = useMemo(
+    () => !permissionsLoading && hasModulePermission("financeiro"),
+    [permissionsLoading, hasModulePermission],
   );
 
   useEffect(() => {
@@ -74,39 +86,12 @@ const Dashboard = () => {
       setLoading(false);
       return;
     }
-    
+
     const fetchData = async () => {
       try {
-        const stages = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho"] as const;
-        const stageLabels = ["Novo", "Contato", "Proposta", "Negociação", "Ganho"];
-        const stageColors = [
-          "hsl(217, 91%, 60%)",
-          "hsl(199, 89%, 48%)",
-          "hsl(173, 58%, 39%)",
-          "hsl(142, 71%, 45%)",
-          "hsl(120, 100%, 40%)",
-        ];
-
-        const pipelineCounts = await Promise.all(
-          stages.map((stage) =>
-            supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", stage),
-          ),
-        );
-
-        const total = pipelineCounts.reduce((sum, result) => sum + (result.count || 0), 0);
-
-        const pipeline = stages.map((stage, index) => ({
-          stage: stageLabels[index],
-          count: pipelineCounts[index].count || 0,
-          percentage: total > 0 ? Math.round(((pipelineCounts[index].count || 0) / total) * 100) : 0,
-          fill: stageColors[index],
-        }));
-
-        setPipelineData(pipeline);
-
         const startDate = format(subDays(new Date(), 29), "yyyy-MM-dd");
         const endDate = format(new Date(), "yyyy-MM-dd");
-        
+
         const { data: activityCounts } = await supabase.rpc("get_activity_counts_by_date", {
           p_start_date: startDate,
           p_end_date: endDate,
@@ -116,7 +101,7 @@ const Dashboard = () => {
           (activityCounts || []).map((item: { activity_date: string; activity_count: number }) => [
             item.activity_date,
             Number(item.activity_count),
-          ])
+          ]),
         );
 
         const activities = Array.from({ length: 30 }, (_, i) => {
@@ -141,7 +126,7 @@ const Dashboard = () => {
 
   const quickModules = useMemo(() => {
     if (permissionsLoading) return [];
-    
+
     return [
       {
         moduleCode: "prospects",
@@ -174,85 +159,155 @@ const Dashboard = () => {
     ].filter((mod) => hasModulePermission(mod.moduleCode));
   }, [permissionsLoading, hasModulePermission, t]);
 
-  const ActivityTooltip = useCallback(({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-card border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold">{payload[0].payload.date}</p>
-          <p className="text-sm">{t("dashboard.activities_label")}: {payload[0].payload.count}</p>
-        </div>
-      );
-    }
-    return null;
-  }, [t]);
+  const ActivityTooltip = useCallback(
+    ({ active, payload }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-card border rounded-lg p-3 shadow-lg">
+            <p className="font-semibold">{payload[0].payload.date}</p>
+            <p className="text-sm">
+              {t("dashboard.activities_label")}: {payload[0].payload.count}
+            </p>
+          </div>
+        );
+      }
+      return null;
+    },
+    [t],
+  );
 
   const quickModulesGridClass = useMemo(() => {
     const count = quickModules.length;
     if (count === 1) return "md:grid-cols-1";
     if (count === 2) return "md:grid-cols-2";
     if (count === 3) return "md:grid-cols-3";
-    return "md:grid-cols-4";
+    return "md:grid-cols-2 lg:grid-cols-4";
   }, [quickModules.length]);
+
+  // Greeting based on time
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  }, []);
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h2>
-            <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
-          </div>
-          <Button variant="outline" className="gap-2" onClick={() => setChatOpen(true)}>
-            <Sparkles className="h-4 w-4" />
-            {t("dashboard.ai_insights")}
-          </Button>
-        </div>
+      <div className="space-y-6 animate-fade-in">
+        {/* Header */}
+        <PageHeader
+          icon={LayoutDashboard}
+          title={`${greeting}!`}
+          description={t("dashboard.subtitle")}
+          actions={
+            <Button variant="outline" className="gap-2" onClick={() => setChatOpen(true)}>
+              <Sparkles className="h-4 w-4" />
+              {t("dashboard.ai_insights")}
+            </Button>
+          }
+        />
 
         {effectiveIsAdmin && <MetricasDistribuicao />}
 
         <PushNotificationPrompt />
 
-        {permissionsLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : null}
-
-        {hasProspectsPermission && (
-          <div className="grid gap-6">
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("dashboard.activities_30d")}</CardTitle>
-                <CardDescription>{t("dashboard.activities_timeline")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-[300px] w-full" />
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={activityData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip content={ActivityTooltip} />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ fill: "hsl(var(--primary))" }}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+        {permissionsLoading && (
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <KpiCard key={i} title="" value="" loading />
+            ))}
           </div>
         )}
 
+        {/* Quick Access Modules */}
+        {!permissionsLoading && quickModules.length > 0 && (
+          <div className={cn("grid gap-4", quickModulesGridClass)}>
+            {quickModules.map((mod, i) => {
+              const config = moduleIcons[mod.moduleCode] || moduleIcons.prospects;
+              const ModIcon = mod.icon;
+              return (
+                <Link key={mod.moduleCode} to={mod.link} className="group">
+                  <Card
+                    className={cn(
+                      "h-full border transition-all duration-200 hover:shadow-soft-lg hover:-translate-y-0.5 cursor-pointer",
+                    )}
+                    style={{ animationDelay: `${i * 80}ms` }}
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between">
+                        <div className={cn("p-2.5 rounded-xl bg-gradient-to-br", config.gradient)}>
+                          <ModIcon className="h-5 w-5 text-foreground" />
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div className="mt-3">
+                        <h3 className="font-semibold text-foreground">{mod.title}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                          {mod.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Module Widgets */}
+        {hasProspectsPermission && <ProspectsDashboardWidget />}
+        {hasTradePermission && <TradeDashboardWidget />}
+        {hasFinanceiroPermission && <FinanceiroDashboardWidget />}
+
+        {/* Activity Chart */}
+        {hasProspectsPermission && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("dashboard.activities_30d")}</CardTitle>
+              <CardDescription>{t("dashboard.activities_timeline")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-[280px] w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={activityData}>
+                    <defs>
+                      <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={chartColors.primary} stopOpacity={0.2} />
+                        <stop offset="100%" stopColor={chartColors.primary} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={ActivityTooltip} />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke={chartColors.primary}
+                      strokeWidth={2}
+                      fill="url(#activityGradient)"
+                      dot={false}
+                      activeDot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }}
+                      isAnimationActive={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <AIInsightsChat open={chatOpen} onOpenChange={setChatOpen} />
