@@ -270,6 +270,7 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
               onClick={() => {
                 setState("idle");
                 setSelectedStore(null);
+                setManualStoreName("");
                 setQuantity(1);
               }}
             >
@@ -279,7 +280,7 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
               type="button"
               size="sm"
               onClick={handleConfirm}
-              disabled={!selectedStore}
+              disabled={isPublic ? !manualStoreName.trim() : !selectedStore}
             >
               Confirmar Solicitação
             </Button>
