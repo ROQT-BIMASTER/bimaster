@@ -1,6 +1,7 @@
-import { Lock, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Lock, ShieldAlert, ArrowLeft, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface AccessDeniedProps {
   message?: string;
@@ -16,6 +17,7 @@ export const AccessDenied = ({
   showWatermark = true 
 }: AccessDeniedProps) => {
   const navigate = useNavigate();
+  const { isImpersonating, stopImpersonation } = useImpersonation();
 
   const handleGoBack = () => {
     // Tenta voltar no histórico, se não houver histórico, vai para o dashboard
@@ -59,11 +61,25 @@ export const AccessDenied = ({
         <Button
           variant="outline"
           onClick={handleGoBack}
-          className="mb-6"
+          className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
+
+        {isImpersonating && (
+          <Button
+            variant="destructive"
+            onClick={() => {
+              stopImpersonation();
+              navigate("/dashboard");
+            }}
+            className="mb-6 ml-2"
+          >
+            <UserX className="h-4 w-4 mr-2" />
+            Sair da Impersonação
+          </Button>
+        )}
         
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/60">
           <Lock className="h-4 w-4" />

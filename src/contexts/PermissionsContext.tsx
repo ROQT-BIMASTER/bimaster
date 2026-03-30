@@ -7,6 +7,7 @@ interface PermissionsContextType {
   role: string | null;
   isAdmin: boolean;
   loading: boolean;
+  permissionsReady: boolean;
   hasModulePermission: (moduleCode: string) => boolean;
   hasScreenPermission: (screenCode: string) => boolean;
   refreshPermissions: () => Promise<void>;
@@ -56,6 +57,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [permissionsReady, setPermissionsReady] = useState(false);
   const isMountedRef = useRef(true);
   const fetchInProgressRef = useRef(false);
 
@@ -182,6 +184,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (isMountedRef.current) {
         console.log("[PermissionsContext] Finalizando fetchPermissions");
         setLoading(false);
+        setPermissionsReady(true);
       }
     }
   }, []);
@@ -348,10 +351,11 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     role,
     isAdmin,
     loading,
+    permissionsReady,
     hasModulePermission,
     hasScreenPermission,
     refreshPermissions,
-  }), [modules, screens, role, isAdmin, loading, hasModulePermission, hasScreenPermission, refreshPermissions]);
+  }), [modules, screens, role, isAdmin, loading, permissionsReady, hasModulePermission, hasScreenPermission, refreshPermissions]);
 
   return (
     <PermissionsContext.Provider value={value}>

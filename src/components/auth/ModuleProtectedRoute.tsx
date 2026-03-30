@@ -23,7 +23,7 @@ export const ModuleProtectedRoute = ({
   showAccessDenied = true
 }: ModuleProtectedRouteProps) => {
   const { session } = useAuth();
-  const { loading } = usePermissions();
+  const { loading, permissionsReady } = usePermissions();
   const { hasModulePermission } = useImpersonation();
 
   // Se não há sessão, deixa o ProtectedRoute lidar
@@ -31,7 +31,8 @@ export const ModuleProtectedRoute = ({
     return <>{children}</>;
   }
 
-  if (loading) {
+  // Aguardar até que as permissões estejam prontas
+  if (loading || !permissionsReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
