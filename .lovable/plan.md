@@ -1,112 +1,87 @@
 
 
-# Auditoria do Modulo Trade Marketing — O Que Falta Terminar
+# Revisao do Modulo Trade Marketing — Problemas Remanescentes e Melhorias
 
 ## Estado Atual
 
-O modulo Trade tem **~50 rotas** registradas no `App.tsx`, **~27 itens** no sidebar, e cobre: PDVs, Visitas, Fotos, Sell Out, Auditorias, Shelf, Marcas, Competidores, Campanhas, Verbas, Financeiro, Performance, Premiações, Materiais, Banners, Incentivos, Insights IA e WhatsApp.
-
-A estrutura geral esta funcional, mas ha falhas criticas de consistencia e areas incompletas.
+As correcoes anteriores resolveram: screen codes padronizados no sidebar, breadcrumbs adicionados, KPI Sell Out corrigido na home, e "Visao Executiva" no sidebar. O modulo esta em bom estado, mas restam problemas pontuais.
 
 ---
 
-## Problema 1: Screen codes INCONSISTENTES entre sidebar e rotas (CRITICO)
+## Problemas Encontrados
 
-O sidebar (`AppSidebar.tsx`) usa codigos MAIUSCULOS para alguns itens, enquanto as rotas (`App.tsx`) usam codigos minusculos diferentes:
+### 1. TradeDashboardWidget ainda mostra "Investimentos" em vez de Sell Out
 
-| Sidebar screenCode | Rota screenCode (App.tsx) | Item |
-|---|---|---|
-| `TRADE_DASHBOARD` | `trade_performance` | Performance |
-| `TRADE_DASHBOARD` | `trade_equipe` | Minha Equipe |
-| `TRADE_LOJAS` | `trade_stores` | PDVs |
-| `TRADE_VISITAS` | `trade_visits` | Visitas |
-| `TRADE_FOTOS` | `trade_photos` | Fotos |
-| `TRADE_AUDITORIAS` | `trade_auditorias` | Auditorias |
+O widget `TradeDashboardWidget.tsx` (usado na home geral do dashboard) busca de `trade_investments` e exibe como "Investimentos". Porem o `TradeModule.tsx` ja foi corrigido para mostrar Sell Out real. Inconsistencia: o widget da home geral mostra dado diferente do modulo Trade.
 
-**Impacto**: Um usuario pode VER o item no sidebar (permissao `TRADE_DASHBOARD` concedida) mas ao clicar ser BLOQUEADO pela rota (que exige `trade_performance`). Ou o inverso: ter acesso pela rota mas o item nao aparecer no sidebar.
+**Correcao**: Alinhar o widget para tambem buscar de `sell_out_entries`, ou renomear o label para deixar claro que sao investimentos (se for intencional).
 
-**Correcao**: Padronizar todos os screen codes para lowercase (o formato usado nas rotas).
+### 2. `(supabase as any)` no TradeModule — type safety quebrada
 
-## Problema 2: Itens do sidebar com screenCode generico demais
+Linha 45: `(supabase as any).from("sell_out_entries")` indica que a tabela `sell_out_entries` nao existe no tipo gerado. Isso silencia erros de compilacao e pode falhar em runtime sem aviso.
 
-Varios itens usam `TRADE_DASHBOARD` como screenCode generico:
-- Minha Equipe
-- Promocoes
-- Performance
-- Equipe Performance
-- Ranking
+**Correcao**: Verificar se a tabela existe no banco e se o tipo foi regenerado. Se a tabela existir, o cast `as any` pode ser removido apos regenerar os tipos.
 
-Isso significa que nao ha controle granular — se o usuario tem `TRADE_DASHBOARD`, ve TODOS esses itens. Mas as rotas no `App.tsx` usam screen codes especificos (`trade_performance`, `trade_equipe`, `trade_ranking`), entao o acesso real pode falhar.
+### 3. Rotas com screenCode no App.tsx que NAO existem no sidebar (5 telas orfas)
 
-**Correcao**: Usar os mesmos screen codes da rota no sidebar.
+Estas rotas existem no `App.tsx` mas nao tem entrada correspondente no sidebar — so acessiveis via link direto:
 
-## Problema 3: Pagina de "Visao Executiva" nao esta no sidebar Trade
+| Rota | screenCode | Descricao |
+|------|-----------|-----------|
+| `/dashboard/trade/minhas-solicitacoes` | `trade_solicitacoes` | Minhas Solicitacoes |
+| `/dashboard/trade/materiais` | `trade_materiais` | Catalogo Materiais (user) |
+| `/dashboard/trade/import-stores` | `trade_import` | Importar Lojas |
+| `/dashboard/trade/calendar` | `trade_calendar` | Calendario (usa `trade_visits` no sidebar) |
+| `/dashboard/trade/brand-share` | `trade_brands` | Brand Share Dashboard |
 
-A rota `/dashboard/trade/admin/executivo` existe (linha 424) mas NAO aparece no `tradeSubMenus`. So e acessivel via link manual dentro do `TradeAdminModule`.
+O Calendario aparece no sidebar com screenCode `trade_visits`, mas a rota usa `trade_calendar` — se o usuario tem `trade_visits` mas nao `trade_calendar`, ve o item mas e bloqueado.
 
-## Problema 4: Performance/Rewards acessiveis a todos no sidebar mas restritos na rota
+**Correcao**: Alinhar screenCodes entre sidebar e rotas; adicionar itens faltantes ao sidebar (Minhas Solicitacoes, Materiais user, Importar Lojas).
 
-- `trade_rewards` usa screenCode correto no sidebar E na rota — OK
-- `trade_performance` na rota exige `trade_performance`, mas o sidebar usa `TRADE_DASHBOARD` — Inconsistente
+### 4. Rotas admin do Trade usam `ScreenRoute` sem `ModuleRoute`
 
-## Problema 5: Paginas sem ModuleBreadcrumb
+As rotas `/dashboard/trade/admin/*` e `/dashboard/trade/financeiro/*` usam apenas `ScreenRoute screenCode="trade_admin"` sem o wrapper `ModuleRoute moduleCode="trade"`. Isso significa que o guard de modulo NAO e verificado — um usuario com permissao `trade_admin` na tela mas SEM acesso ao modulo Trade consegue acessar essas paginas.
 
-Algumas paginas trade nao possuem `ModuleBreadcrumb` para navegacao:
-- `TradeRewards`
-- `TradePromotions`
-- `TradeCalendar` (tem breadcrumb)
-- `TradeCompetitors` (verificar)
+**Correcao**: Envolver todas as rotas admin/financeiro em `ModuleRoute moduleCode="trade"`.
 
-## Problema 6: KPI "Sell Out" na home mostra investimentos, nao sell out
+### 5. Sidebar com 28 itens — lista muito longa, sem agrupamento visual
 
-No `TradeModule.tsx` linha 48, o card "Sell Out" exibe `totalInvestments` (da tabela `trade_investments`), nao dados reais de sell out. E enganoso.
+O array `tradeSubMenus` tem 28 itens renderizados em lista plana. Em telas menores, o usuario precisa rolar muito. Nao ha separadores ou sub-grupos (Admin, Operacional, Financeiro, Performance).
 
-## Problema 7: Financeiro Trade vs Financeiro Geral — ambiguidade no sidebar
+**Melhoria**: Adicionar separadores visuais (dividers com label) entre blocos logicos no submenu.
 
-O sidebar mostra itens de "Verbas" e "Campanhas" tanto no modulo Trade quanto no Financeiro, usando as mesmas rotas (`/dashboard/trade/financeiro/*`). Isso pode confundir usuarios que nao entendem que sao os mesmos dados.
+### 6. KPIs do TradeModule nao filtram por usuario/hierarquia
+
+Os KPIs de visitas e fotos na home do Trade buscam TODOS os registros sem filtro por usuario ou hierarquia. Um promotor ve o total global, nao seus proprios dados. O `TradeDashboardWidget` ja implementa esse filtro via `shouldFilter` e `effectiveUserId`.
+
+**Correcao**: Aplicar o mesmo padrao de filtro por hierarquia aos KPIs do `TradeModule.tsx`.
 
 ---
 
 ## Plano de Correcao
 
-### Fase 1 — Screen codes (critico, afeta acesso)
+### Fase 1 — Consistencia de acesso (critico)
 
-1. **AppSidebar.tsx**: Padronizar TODOS os screen codes do Trade para lowercase, alinhando com os codigos usados nas rotas:
+1. **App.tsx**: Envolver rotas `trade/admin/*` e `trade/financeiro/*` em `ModuleRoute moduleCode="trade"`
+2. **AppSidebar.tsx**: Alinhar screenCode do Calendario para `trade_calendar`; adicionar "Minhas Solicitacoes" e "Catalogo Materiais" ao sidebar
+3. **AppSidebar.tsx**: Adicionar "Importar Lojas" com `requireAdminOrSupervisor: true`
 
-```
-TRADE_DASHBOARD → trade_marketing (home do modulo)
-TRADE_LOJAS → trade_stores
-TRADE_VISITAS → trade_visits
-TRADE_FOTOS → trade_photos
-TRADE_AUDITORIAS → trade_auditorias
-```
+### Fase 2 — Dados corretos
 
-2. Usar screen codes granulares em vez de `TRADE_DASHBOARD` generico:
-- Performance → `trade_performance`
-- Equipe Performance → `trade_performance`
-- Minha Equipe → `trade_equipe`
-- Promocoes → `trade_promotions`
-- Ranking → `trade_ranking`
+4. **TradeDashboardWidget.tsx**: Substituir `trade_investments` por `sell_out_entries` ou renomear label para "Investimentos" (manter consistencia com TradeModule)
+5. **TradeModule.tsx**: Remover cast `(supabase as any)` — usar tipagem correta
+6. **TradeModule.tsx**: Filtrar KPIs por usuario/hierarquia usando `useFilteredStores` e `useImpersonation`
 
-3. Adicionar "Visao Executiva" ao sidebar com screenCode `trade_admin`
+### Fase 3 — UX
 
-### Fase 2 — Dados e UX
-
-4. **TradeModule.tsx**: Corrigir KPI "Sell Out" para buscar da tabela `sell_out_entries` em vez de `trade_investments`
-
-5. **TradeRewards / TradePromotions**: Adicionar `ModuleBreadcrumb` para navegacao consistente
-
-### Fase 3 — Telas no banco
-
-6. Verificar se os screen codes padronizados ja existem na tabela `telas_sistema`. Se nao existirem, criar via migration INSERT.
+7. **AppSidebar.tsx**: Adicionar separadores visuais no submenu Trade (blocos: Operacional, Performance, Admin, Financeiro)
 
 ## Arquivos Afetados
 
 | Arquivo | Acao |
 |---------|------|
-| `src/components/dashboard/AppSidebar.tsx` | Padronizar screen codes do Trade |
-| `src/pages/modules/TradeModule.tsx` | Corrigir KPI Sell Out |
-| `src/pages/TradeRewards.tsx` | Adicionar ModuleBreadcrumb |
-| `src/pages/TradePromotions.tsx` | Adicionar ModuleBreadcrumb |
-| Migration SQL | INSERT telas faltantes em telas_sistema |
+| `src/App.tsx` | Adicionar `ModuleRoute` nas rotas admin/financeiro do Trade |
+| `src/components/dashboard/AppSidebar.tsx` | Adicionar itens faltantes; alinhar screenCodes; separadores visuais |
+| `src/components/dashboard/TradeDashboardWidget.tsx` | Alinhar KPI com sell_out ou renomear |
+| `src/pages/modules/TradeModule.tsx` | Remover `as any`; filtrar KPIs por hierarquia |
 
