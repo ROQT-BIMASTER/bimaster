@@ -26,7 +26,7 @@ interface EditarPerfilProps {
   onUpdate: (updatedProfile: Profile) => void;
 }
 
-export const EditarPerfil = ({ profile, onUpdate }: EditarPerfilProps) => {
+export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(profile);
