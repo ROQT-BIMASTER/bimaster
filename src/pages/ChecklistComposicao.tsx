@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   FlaskConical, Plus, Trash2, Save, Send, AlertTriangle,
-  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download
+  CheckCircle2, XCircle, AlertCircle, Search, ArrowLeft, FileText, RotateCcw, Download, Sparkles
 } from "lucide-react";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
 import { exportToExcel } from "@/utils/excelExport";
@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { cn } from "@/lib/utils";
+import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngredientesIADialog";
 
 // Fetch submissões for listing
 function useSubmissoes() {
@@ -219,6 +220,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
   const [cores, setCores] = useState<string[]>(["1#"]);
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
+  const [showAIExtract, setShowAIExtract] = useState(false);
 
   // Sync from DB
   useEffect(() => {
@@ -314,6 +316,17 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
 
       <VincularProjetoDialog modulo="composicao" registroId={submissaoId} open={showVinculo} onOpenChange={setShowVinculo} />
 
+      <ExtrairIngredientesIADialog
+        open={showAIExtract}
+        onOpenChange={setShowAIExtract}
+        submissaoId={submissaoId}
+        cores={cores}
+        currentVersion={currentVersion}
+        onIngredientesExtraidos={(newItems) => {
+          setLocalItems(prev => [...prev, ...newItems]);
+        }}
+      />
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="composicao">Composição</TabsTrigger>
@@ -332,6 +345,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
             onRemoveItem={removeItem}
             onAddIngrediente={addIngrediente}
             onAddCor={addCor}
+            onExtractIA={() => setShowAIExtract(true)}
           />
 
           {/* Validation summary */}
@@ -404,7 +418,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
 // ── Tabela de composição ──
 
 function ComposicaoTable({
-  items, cores, validacao, onUpdateItem, onUpdatePerc, onRemoveItem, onAddIngrediente, onAddCor,
+  items, cores, validacao, onUpdateItem, onUpdatePerc, onRemoveItem, onAddIngrediente, onAddCor, onExtractIA,
 }: {
   items: Partial<Composicao>[];
   cores: string[];
@@ -414,6 +428,7 @@ function ComposicaoTable({
   onRemoveItem: (idx: number) => void;
   onAddIngrediente: () => void;
   onAddCor: () => void;
+  onExtractIA?: () => void;
 }) {
   return (
     <Card>
@@ -421,6 +436,12 @@ function ComposicaoTable({
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Ingredientes</CardTitle>
           <div className="flex gap-2">
+            {onExtractIA && (
+              <Button size="sm" variant="outline" onClick={onExtractIA} className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10">
+                <Sparkles className="h-3.5 w-3.5" />
+                Extrair com IA
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={onAddCor}>
               <Plus className="h-3 w-3 mr-1" />Cor
             </Button>
