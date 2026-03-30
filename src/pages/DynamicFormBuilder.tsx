@@ -579,7 +579,7 @@ export default function DynamicFormBuilder() {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Descreva o formulário desejado ou envie uma imagem de um formulário existente para a IA extrair os campos automaticamente.
+                      Descreva, envie uma imagem ou uma planilha de referência para a IA criar os campos automaticamente.
                     </p>
                   </div>
                 </CardContent>

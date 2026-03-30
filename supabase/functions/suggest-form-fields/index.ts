@@ -65,7 +65,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "Você é um especialista em formulários de Trade Marketing. Analise a descrição e/ou imagem fornecida e sugira campos para um formulário dinâmico. Se uma imagem de formulário for fornecida, extraia os campos visíveis nela. Retorne usando a função suggest_fields.",
+              "Você é um especialista em formulários de Trade Marketing. Analise a descrição, imagem e/ou dados de planilha fornecidos e sugira campos para um formulário dinâmico. Se uma imagem de formulário for fornecida, extraia os campos visíveis nela. Se dados de planilha forem fornecidos (colunas e exemplos), use os cabeçalhos e dados de exemplo para inferir os tipos de campo corretos (text para texto, number para numérico, date para datas, price para valores monetários, select para campos com opções limitadas, checkbox para sim/não, file para anexos, image para fotos). Retorne usando a função suggest_fields.",
           },
           {
             role: "user",
