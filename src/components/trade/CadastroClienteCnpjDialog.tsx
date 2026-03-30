@@ -91,7 +91,7 @@ export function CadastroClienteCnpjDialog({
     setCnpj("");
     setLoading(false);
     setReceitaData(null);
-    setExistingStore(null);
+    setCreatedStoreId(null);
     setCreatedStoreId(null);
     setCreatedStoreName("");
     setFormData({ name: "", nomeFantasia: "", address: "", city: "", state: "", phone: "", email: "", cnae: "" });
