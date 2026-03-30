@@ -338,6 +338,15 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
           </div>
         )}
       </SheetContent>
+
+      <CadastroClienteCnpjDialog
+        open={showCadastro}
+        onOpenChange={setShowCadastro}
+        onSuccess={(storeId, storeName) => {
+          setLojaId(storeId);
+          toast.success(`Cliente "${storeName}" selecionado`);
+        }}
+      />
     </Sheet>
   );
 }
