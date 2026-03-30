@@ -272,6 +272,38 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
           </div>
         </div>
       )}
+      {/* Material Detail Dialog — inline, no navigation */}
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{material.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {material.foto_url && (
+              <img
+                src={material.foto_url}
+                alt={material.nome}
+                className="w-full rounded-lg object-contain max-h-64"
+              />
+            )}
+            {material.descricao && (
+              <p className="text-sm text-muted-foreground">{material.descricao}</p>
+            )}
+            {state !== "submitted" && (
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setShowDetail(false);
+                  setState("selecting");
+                }}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Solicitar este material
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
