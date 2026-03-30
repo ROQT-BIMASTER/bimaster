@@ -529,6 +529,7 @@ export const GerenciamentoUsuarios = () => {
                     <Select
                       value={novoUsuario.tipo_usuario}
                       onValueChange={(value: any) => setNovoUsuario({ ...novoUsuario, tipo_usuario: value })}
+                      disabled={editingUser?.id === currentUserId}
                     >
                       <SelectTrigger>
                         <SelectValue />
