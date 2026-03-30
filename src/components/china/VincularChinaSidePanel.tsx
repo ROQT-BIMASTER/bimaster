@@ -302,6 +302,7 @@ export function VincularChinaSidePanel({
               </Button>
             </TabsContent>
           )}
+          )}
         </ScrollArea>
       </Tabs>
     </div>
