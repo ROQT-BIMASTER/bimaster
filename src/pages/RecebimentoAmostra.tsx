@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
-  Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
+  Package, Search, ArrowLeft, Camera, Video, CheckCircle2, FileText,
   XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw, Download,
 } from "lucide-react";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
@@ -369,6 +370,8 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
 
   const isReadOnly = amostra.status === "aprovada" || amostra.status === "reprovada";
 
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
+
   return (
     <Tabs value={tab} onValueChange={setTab}>
       <TabsList>
@@ -379,6 +382,10 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
         </TabsTrigger>
         <TabsTrigger value="checklist">Checklist</TabsTrigger>
         <TabsTrigger value="resultado">Resultado</TabsTrigger>
+        <TabsTrigger value="processo" className="gap-1.5">
+          <FileText className="h-3.5 w-3.5" />
+          Processo
+        </TabsTrigger>
       </TabsList>
 
       {/* Tab: Recebimento */}
@@ -554,6 +561,36 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
             </Card>
           )}
         </div>
+      </TabsContent>
+
+      {/* Tab: Processo */}
+      <TabsContent value="processo" className="mt-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Documentos do Processo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {amostra.submissao_id ? (
+              <>
+                <ProcessoDocumentosSelector
+                  submissaoId={amostra.submissao_id}
+                  moduloDestino="amostras"
+                  onSelectDoc={setSelectedProcessoDoc}
+                />
+                {selectedProcessoDoc?.despacho && (
+                  <ProcessoEtapaInfo despacho={selectedProcessoDoc.despacho} />
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Esta amostra não está vinculada a uma submissão.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );

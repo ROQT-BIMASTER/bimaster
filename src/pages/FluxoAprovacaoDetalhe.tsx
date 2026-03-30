@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ export default function FluxoAprovacaoDetalhe() {
   const [observacaoReprovar, setObservacaoReprovar] = useState("");
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
 
   // Get current user
   const { data: currentUser } = useQuery({
@@ -312,6 +314,28 @@ export default function FluxoAprovacaoDetalhe() {
         instanciaId={instancia.id}
         readOnly={isFinished}
       />
+
+      {/* Documentos do Processo */}
+      {instancia.submissao_id && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Documentos do Processo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ProcessoDocumentosSelector
+              submissaoId={instancia.submissao_id}
+              moduloDestino="aprovacao_artes"
+              onSelectDoc={setSelectedProcessoDoc}
+            />
+            {selectedProcessoDoc?.despacho && (
+              <ProcessoEtapaInfo despacho={selectedProcessoDoc.despacho} />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timeline */}
       <Card>

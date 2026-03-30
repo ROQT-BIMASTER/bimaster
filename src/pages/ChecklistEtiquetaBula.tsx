@@ -33,6 +33,7 @@ import {
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
@@ -274,6 +275,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
   const [regChecklist, setRegChecklist] = useState<RegulatorioItem[]>(
     etiqueta.regulatorio_checklist?.length
       ? etiqueta.regulatorio_checklist
@@ -505,6 +507,28 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Processo */}
+        {etiqueta.submissao_id && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Documentos do Processo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ProcessoDocumentosSelector
+                submissaoId={etiqueta.submissao_id}
+                moduloDestino="etiqueta_bula"
+                onSelectDoc={setSelectedProcessoDoc}
+              />
+              {selectedProcessoDoc?.despacho && (
+                <ProcessoEtapaInfo despacho={selectedProcessoDoc.despacho} />
+              )}
             </CardContent>
           </Card>
         )}
