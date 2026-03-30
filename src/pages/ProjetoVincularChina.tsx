@@ -192,141 +192,155 @@ export default function ProjetoVincularChina() {
 
   const handleVincular = async () => {
     if (!selectedSubmissaoId || !selectedProjetoId || checkedTarefas.size === 0) return;
+    setVinculando(true);
 
-    const firstTarefaId = Array.from(checkedTarefas)[0];
-    const firstTarefa = tarefas.find((t: any) => t.id === firstTarefaId);
+    try {
+      // Step 1: Audit
+      const firstTarefaId = Array.from(checkedTarefas)[0];
+      const firstTarefa = tarefas.find((t: any) => t.id === firstTarefaId);
+      let auditPromise: Promise<any> | null = null;
+      if (selectedSubmissao && firstTarefa) {
+        auditPromise = auditTarefaProduto({
+          tarefa: { titulo: firstTarefa.titulo, estagio: firstTarefa.estagio || undefined },
+          submissao: {
+            produto_codigo: selectedSubmissao.produto_codigo,
+            produto_nome: selectedSubmissao.produto_nome,
+            status: selectedSubmissao.status,
+            formula_codigo: selectedSubmissao.formula_codigo,
+            ean_unidade: selectedSubmissao.ean_unidade,
+            ean_display: selectedSubmissao.ean_display,
+            ean_caixa_master: selectedSubmissao.ean_caixa_master,
+            peso_liquido_g: selectedSubmissao.peso_liquido_g,
+            peso_bruto_g: selectedSubmissao.peso_bruto_g,
+            qty_total: selectedSubmissao.qty_total,
+            observacoes_brasil: selectedSubmissao.observacoes_brasil,
+            observacoes_china: selectedSubmissao.observacoes_china,
+          },
+        }).catch(() => null);
+      }
 
-    let auditPromise: Promise<any> | null = null;
-    if (selectedSubmissao && firstTarefa) {
-      auditPromise = auditTarefaProduto({
-        tarefa: { titulo: firstTarefa.titulo, estagio: firstTarefa.estagio || undefined },
-        submissao: {
-          produto_codigo: selectedSubmissao.produto_codigo,
-          produto_nome: selectedSubmissao.produto_nome,
-          status: selectedSubmissao.status,
-          formula_codigo: selectedSubmissao.formula_codigo,
-          ean_unidade: selectedSubmissao.ean_unidade,
-          ean_display: selectedSubmissao.ean_display,
-          ean_caixa_master: selectedSubmissao.ean_caixa_master,
-          peso_liquido_g: selectedSubmissao.peso_liquido_g,
-          peso_bruto_g: selectedSubmissao.peso_bruto_g,
-          qty_total: selectedSubmissao.qty_total,
-          observacoes_brasil: selectedSubmissao.observacoes_brasil,
-          observacoes_china: selectedSubmissao.observacoes_china,
-        },
-      }).catch(() => null);
-    }
-
-    const vinculosByTarefa = new Map<string, string>();
-    vinculos.forEach(v => vinculosByTarefa.set(v.tarefa_id, v.id));
-
-    for (const tarefaId of checkedTarefas) {
-      const tarefa = tarefas.find((t: any) => t.id === tarefaId);
-      if (vinculosByTarefa.has(tarefaId)) continue;
-      await createVinculo.mutateAsync({
-        submissao_id: selectedSubmissaoId,
-        tarefa_id: tarefaId,
-        secao_id: tarefa?.secao_id || null,
-        projeto_id: selectedProjetoId,
-      });
-    }
-    setCheckedTarefas(new Set());
-
-    if (selectedSubmissao && selectedProjetoId) {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        await (supabase.from("produtos_brasil" as any).insert({
-          submissao_china_id: selectedSubmissaoId,
+      // Step 2: Create task vinculos
+      toast.info("Criando vínculos com tarefas...");
+      const vinculosByTarefa = new Map<string, string>();
+      vinculos.forEach(v => vinculosByTarefa.set(v.tarefa_id, v.id));
+      for (const tarefaId of checkedTarefas) {
+        const tarefa = tarefas.find((t: any) => t.id === tarefaId);
+        if (vinculosByTarefa.has(tarefaId)) continue;
+        await createVinculo.mutateAsync({
+          submissao_id: selectedSubmissaoId,
+          tarefa_id: tarefaId,
+          secao_id: tarefa?.secao_id || null,
           projeto_id: selectedProjetoId,
-          china_nome: selectedSubmissao.produto_nome,
-          china_codigo: selectedSubmissao.produto_codigo,
-          china_ean: selectedSubmissao.ean_unidade || null,
-          china_descricao: selectedSubmissao.observacoes_brasil || null,
-          status: "aguardando_precadastro",
-        }) as any);
-        const { data: prodBrasil } = await (supabase
-          .from("produtos_brasil" as any)
-          .select("id")
-          .eq("submissao_china_id", selectedSubmissaoId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single() as any);
-        if (prodBrasil?.id) {
-          const checklistItems = [
-            "Conferência de rotulagem",
-            "Conferência de composição",
-            "Registro ou notificação (se aplicável)",
-            "Categoria ANVISA",
-            "Tradução e adequação da descrição",
-            "Validação de imagens da embalagem",
-            "Verificação de obrigatoriedade de lote e validade",
-          ].map(item => ({ produto_brasil_id: prodBrasil.id, item, concluido: false }));
-          await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
-        }
-      } catch (e) {
-        console.error("Erro ao criar produto Brasil:", e);
+        });
       }
+      setCheckedTarefas(new Set());
 
-      try {
-        const { supabase: sb } = await import("@/integrations/supabase/client");
-        const { data: existingProcess } = await (sb
-          .from("product_process" as any)
-          .select("id")
-          .eq("produto_tipo", "china")
-          .eq("produto_ref_id", selectedSubmissaoId)
-          .maybeSingle() as any);
-
-        let processId = existingProcess?.id;
-        if (!processId) {
-          const { data: { user } } = await sb.auth.getUser();
-          const { data: newProcess } = await (sb
-            .from("product_process" as any)
-            .insert({
-              produto_tipo: "china",
-              produto_ref_id: selectedSubmissaoId,
-              criado_por: user?.id,
-              etapa_atual: "projeto",
-            })
+      // Step 3: Create produto Brasil
+      if (selectedSubmissao && selectedProjetoId) {
+        try {
+          toast.info("Criando produto Brasil...");
+          const { supabase } = await import("@/integrations/supabase/client");
+          await (supabase.from("produtos_brasil" as any).insert({
+            submissao_china_id: selectedSubmissaoId,
+            projeto_id: selectedProjetoId,
+            china_nome: selectedSubmissao.produto_nome,
+            china_codigo: selectedSubmissao.produto_codigo,
+            china_ean: selectedSubmissao.ean_unidade || null,
+            china_descricao: selectedSubmissao.observacoes_brasil || null,
+            status: "aguardando_precadastro",
+          }) as any);
+          const { data: prodBrasil } = await (supabase
+            .from("produtos_brasil" as any)
             .select("id")
+            .eq("submissao_china_id", selectedSubmissaoId)
+            .order("created_at", { ascending: false })
+            .limit(1)
             .single() as any);
-          processId = newProcess?.id;
-        } else {
-          await (sb
+          if (prodBrasil?.id) {
+            const checklistItems = [
+              "Conferência de rotulagem",
+              "Conferência de composição",
+              "Registro ou notificação (se aplicável)",
+              "Categoria ANVISA",
+              "Tradução e adequação da descrição",
+              "Validação de imagens da embalagem",
+              "Verificação de obrigatoriedade de lote e validade",
+            ].map(item => ({ produto_brasil_id: prodBrasil.id, item, concluido: false }));
+            await (supabase.from("produto_brasil_checklist" as any).insert(checklistItems) as any);
+          }
+        } catch (e) {
+          console.error("Erro ao criar produto Brasil:", e);
+        }
+
+        // Step 4: Register process
+        try {
+          toast.info("Registrando processo...");
+          const { supabase: sb } = await import("@/integrations/supabase/client");
+          const { data: existingProcess } = await (sb
             .from("product_process" as any)
-            .update({ etapa_atual: "projeto" })
-            .eq("id", processId)
-            .eq("etapa_atual", "ideia") as any);
+            .select("id")
+            .eq("produto_tipo", "china")
+            .eq("produto_ref_id", selectedSubmissaoId)
+            .maybeSingle() as any);
+
+          let processId = existingProcess?.id;
+          if (!processId) {
+            const { data: { user } } = await sb.auth.getUser();
+            const { data: newProcess } = await (sb
+              .from("product_process" as any)
+              .insert({
+                produto_tipo: "china",
+                produto_ref_id: selectedSubmissaoId,
+                criado_por: user?.id,
+                etapa_atual: "projeto",
+              })
+              .select("id")
+              .single() as any);
+            processId = newProcess?.id;
+          } else {
+            await (sb
+              .from("product_process" as any)
+              .update({ etapa_atual: "projeto" })
+              .eq("id", processId)
+              .eq("etapa_atual", "ideia") as any);
+          }
+
+          if (processId) {
+            const { data: { user } } = await sb.auth.getUser();
+            const { data: profile } = await sb.from("profiles").select("nome").eq("id", user!.id).maybeSingle();
+            const projetoNome = projetos.find((p: any) => p.id === selectedProjetoId)?.nome || selectedProjetoId;
+
+            await (sb.from("process_events" as any).insert({
+              process_id: processId,
+              tipo_evento: "vinculacao",
+              descricao: `Vinculado ao projeto: ${projetoNome}`,
+              modulo_origem: "processo",
+              usuario_id: user?.id,
+              usuario_nome: profile?.nome || user?.email,
+              metadata: { projeto_id: selectedProjetoId, projeto_nome: projetoNome },
+            }) as any);
+
+            await (sb.from("process_step_history" as any).insert({
+              process_id: processId,
+              etapa: "projeto",
+              status: "em_andamento",
+              responsavel_id: user?.id,
+              data_inicio: new Date().toISOString(),
+            }) as any);
+          }
+        } catch (e) {
+          console.error("Erro ao registrar processo:", e);
         }
-
-        if (processId) {
-          const { data: { user } } = await sb.auth.getUser();
-          const { data: profile } = await sb.from("profiles").select("nome").eq("id", user!.id).maybeSingle();
-          const projetoNome = projetos.find((p: any) => p.id === selectedProjetoId)?.nome || selectedProjetoId;
-
-          await (sb.from("process_events" as any).insert({
-            process_id: processId,
-            tipo_evento: "vinculacao",
-            descricao: `Vinculado ao projeto: ${projetoNome}`,
-            modulo_origem: "processo",
-            usuario_id: user?.id,
-            usuario_nome: profile?.nome || user?.email,
-            metadata: { projeto_id: selectedProjetoId, projeto_nome: projetoNome },
-          }) as any);
-
-          await (sb.from("process_step_history" as any).insert({
-            process_id: processId,
-            etapa: "projeto",
-            status: "em_andamento",
-            responsavel_id: user?.id,
-            data_inicio: new Date().toISOString(),
-          }) as any);
-        }
-      } catch (e) {
-        console.error("Erro ao registrar processo:", e);
       }
-    }
 
-    if (auditPromise) auditPromise.then(() => {});
+      if (auditPromise) auditPromise.then(() => {});
+      toast.success("Vinculação concluída!");
+    } catch (e) {
+      console.error("Erro na vinculação:", e);
+      toast.error("Erro ao vincular");
+    } finally {
+      setVinculando(false);
+    }
   };
 
   const handleDesvincular = (vinculoId: string) => {
