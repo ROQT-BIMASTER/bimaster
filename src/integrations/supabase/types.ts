@@ -6221,6 +6221,41 @@ export type Database = {
           },
         ]
       }
+      dynamic_form_attachments: {
+        Row: {
+          attachment_id: string
+          attachment_type: string
+          created_at: string | null
+          form_id: string
+          id: string
+          order_index: number | null
+        }
+        Insert: {
+          attachment_id: string
+          attachment_type: string
+          created_at?: string | null
+          form_id: string
+          id?: string
+          order_index?: number | null
+        }
+        Update: {
+          attachment_id?: string
+          attachment_type?: string
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          order_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_form_attachments_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dynamic_form_fields: {
         Row: {
           created_at: string | null
@@ -6299,6 +6334,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dynamic_form_responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_form_shares: {
+        Row: {
+          created_at: string | null
+          form_id: string
+          id: string
+          permission: string | null
+          shared_by: string
+          shared_with: string
+        }
+        Insert: {
+          created_at?: string | null
+          form_id: string
+          id?: string
+          permission?: string | null
+          shared_by: string
+          shared_with: string
+        }
+        Update: {
+          created_at?: string | null
+          form_id?: string
+          id?: string
+          permission?: string | null
+          shared_by?: string
+          shared_with?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_form_shares_form_id_fkey"
             columns: ["form_id"]
             isOneToOne: false
             referencedRelation: "dynamic_forms"
