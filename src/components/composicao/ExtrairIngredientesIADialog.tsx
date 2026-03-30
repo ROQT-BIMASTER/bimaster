@@ -574,6 +574,55 @@ export function ExtrairIngredientesIADialog({
               )}
             </div>
 
+            {/* Approval workflow rules (only for process docs with despacho) */}
+            {selectedDocWorkflow?.workflow && (
+              <div className="border border-primary/30 bg-primary/5 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <GitBranch className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">Fluxo de Aprovação Vinculado</p>
+                      <Badge variant="default" className="text-[10px] h-5">
+                        {selectedDocWorkflow.workflow.nome}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Este documento segue o fluxo de aprovação configurado na etapa Vincular China. As regras são imutáveis.
+                    </p>
+                    {selectedDocWorkflow.workflow.etapas?.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        {selectedDocWorkflow.workflow.etapas.map((etapa: any, idx: number) => (
+                          <div
+                            key={etapa.id || idx}
+                            className={`flex items-center gap-2 text-xs rounded px-2.5 py-1.5 ${
+                              selectedDocWorkflow.etapa_atual === etapa.ordem
+                                ? "bg-primary/10 border border-primary/30 font-medium"
+                                : "bg-muted/50"
+                            }`}
+                          >
+                            <span className="text-muted-foreground w-5 text-center">{etapa.ordem + 1}.</span>
+                            <span className="flex-1">{etapa.nome}</span>
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                              {etapa.tipo_acao}
+                            </Badge>
+                            {etapa.aprovadores_nomes?.length > 0 && (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                {etapa.aprovadores_nomes.join(", ")}
+                              </span>
+                            )}
+                            {selectedDocWorkflow.etapa_atual === etapa.ordem && (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Etapa atual</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Terms of responsibility */}
             <div className="border border-warning/40 bg-warning/5 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-2">
