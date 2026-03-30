@@ -837,6 +837,47 @@ function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos, isCus
   );
 }
 
+// ── Add Custom Checklist Item ──
+
+function AddCustomChecklistItem({ onAdd }: { onAdd: (label: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+
+  const handleAdd = () => {
+    if (!label.trim()) return;
+    onAdd(label.trim());
+    setLabel("");
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" className="w-full border-dashed text-muted-foreground" onClick={() => setOpen(true)}>
+        + Adicionar item personalizado
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30">
+      <Input
+        className="text-sm h-8 flex-1"
+        placeholder="Ex: Peso do produto confere?"
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && handleAdd()}
+        autoFocus
+      />
+      <Button size="sm" className="h-8" onClick={handleAdd} disabled={!label.trim()}>
+        Adicionar
+      </Button>
+      <Button size="sm" variant="ghost" className="h-8" onClick={() => { setOpen(false); setLabel(""); }}>
+        Cancelar
+      </Button>
+    </div>
+  );
+}
+
 // ── Image Timeline ──
 
 function ImageTimeline({ amostras }: { amostras: Amostra[] }) {
