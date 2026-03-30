@@ -32,6 +32,7 @@ interface Municipio {
 export const GerenciamentoUsuarios = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
