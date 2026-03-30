@@ -120,13 +120,56 @@ export function ExtrairIngredientesIADialog({
         .in("id", docIds)
         .order("created_at", { ascending: false });
 
-      // Attach checklist info
-      const docsWithChecklist = (data || []).map((doc: any) => ({
+      // 3. Buscar despachos para esses documentos (regras de aprovação)
+      const { data: despachos } = await (supabase
+        .from("process_despacho_documento" as any)
+        .select("id, documento_id, workflow_config_id, modulo_destino, status, etapa_atual")
+        .in("documento_id", docIds) as any);
+
+      // 4. Buscar workflow configs e etapas se houver despachos
+      let workflowMap: Record<string, any> = {};
+      if (despachos && despachos.length > 0) {
+        const configIds = [...new Set((despachos as any[]).map((d: any) => d.workflow_config_id).filter(Boolean))];
+        if (configIds.length > 0) {
+          const [configRes, etapasRes] = await Promise.all([
+            (supabase.from("process_doc_workflow_config" as any).select("id, nome, tipo_documento").in("id", configIds) as any),
+            (supabase.from("process_doc_workflow_etapas" as any).select("*").in("config_id", configIds).order("ordem") as any),
+          ]);
+
+          const configs = (configRes.data || []) as any[];
+          const etapas = (etapasRes.data || []) as any[];
+
+          configs.forEach((cfg: any) => {
+            workflowMap[cfg.id] = {
+              nome: cfg.nome,
+              tipo_documento: cfg.tipo_documento,
+              etapas: etapas.filter((e: any) => e.config_id === cfg.id),
+            };
+          });
+        }
+      }
+
+      // Build despacho map by documento_id
+      const despachoMap: Record<string, any> = {};
+      (despachos as any[] || []).forEach((d: any) => {
+        despachoMap[d.documento_id] = {
+          id: d.id,
+          workflow_config_id: d.workflow_config_id,
+          modulo_destino: d.modulo_destino,
+          status: d.status,
+          etapa_atual: d.etapa_atual,
+          workflow: d.workflow_config_id ? workflowMap[d.workflow_config_id] || null : null,
+        };
+      });
+
+      // Attach checklist + despacho/workflow info
+      const docsWithMeta = (data || []).map((doc: any) => ({
         ...doc,
         checklists: docChecklistMap[doc.id] || [],
+        despacho: despachoMap[doc.id] || null,
       }));
 
-      setProcessoDocs(docsWithChecklist);
+      setProcessoDocs(docsWithMeta);
     } catch {
       toast.error("Erro ao carregar documentos do processo");
     } finally {
