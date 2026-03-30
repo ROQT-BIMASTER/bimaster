@@ -31,7 +31,7 @@ export function useFichaVisibilidade(submissaoId: string | undefined) {
       const userIds = [...new Set(items.map((i: any) => i.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome_completo, email")
+        .select("id, nome, email")
         .in("id", userIds);
 
       const profileMap = Object.fromEntries(
@@ -40,7 +40,7 @@ export function useFichaVisibilidade(submissaoId: string | undefined) {
 
       return items.map((i: any) => ({
         ...i,
-        user_nome: profileMap[i.user_id]?.nome_completo || "—",
+        user_nome: profileMap[i.user_id]?.nome || "—",
         user_email: profileMap[i.user_id]?.email || "",
       })) as FichaVisibilidade[];
     },
@@ -109,10 +109,10 @@ export function useFichaDespachos(submissaoId: string | undefined) {
       ])];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome_completo")
+        .select("id, nome")
         .in("id", userIds);
       const profileMap = Object.fromEntries(
-        (profiles || []).map((p: any) => [p.id, p.nome_completo])
+        (profiles || []).map((p: any) => [p.id, p.nome])
       );
 
       return items.map((i: any) => ({

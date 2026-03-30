@@ -364,6 +364,18 @@ const manualContent: Record<ManualScreen, { title: string; sections: { heading: 
         heading: "Reenvio (China) 重新提交",
         content: "Se documentos foram rejeitados:\n• Banner vermelho indica pendências\n• Faça upload do arquivo corrigido no slot correspondente\n• O novo arquivo entra como 'Pendente' para reavaliação",
       },
+      {
+        heading: "📤 Despachar Ficha — Passo a Passo",
+        content: "O despacho envia a ficha do produto para análise em outro módulo (Composição, Regulatório, Qualidade, etc.).\n\n1️⃣ Na ficha do produto, clique no botão \"Despachar\" (ícone ✈️)\n2️⃣ Selecione o Módulo de Destino no dropdown\n3️⃣ (Opcional) Selecione o Usuário Destino — a pessoa que receberá a ficha\n4️⃣ (Opcional) Escreva uma Observação com instruções específicas\n5️⃣ Clique em \"Despachar\"\n\n✅ O sistema registra o despacho no histórico e concede visibilidade automática ao usuário destino.",
+      },
+      {
+        heading: "👥 Conceder Visibilidade a Outros Usuários",
+        content: "Para permitir que outros usuários vejam e/ou despachem a ficha:\n\n1️⃣ Na ficha, acesse a aba de Visibilidade / Permissões\n2️⃣ Busque o usuário por nome ou email\n3️⃣ Clique em \"Conceder Acesso\"\n4️⃣ (Opcional) Marque \"Pode Despachar\" se o usuário deve ter permissão de despacho\n\n🔒 Apenas usuários com visibilidade concedida podem ver a ficha.\n🗑️ Para remover o acesso, clique no ícone de lixeira ao lado do usuário.",
+      },
+      {
+        heading: "📋 Verificar Histórico de Despachos",
+        content: "No diálogo de Despachar Ficha, role até o final para ver o Histórico de Despachos:\n\n• Módulo de destino (com ícone colorido)\n• Data e hora do despacho\n• Quem despachou (\"Por: nome\")\n• Para quem foi despachado (\"Para: nome\")\n• Prazo para ciência (se configurado)\n• Observação/instrução anexada\n\n⏰ Despachos vencidos aparecem em vermelho; com menos de 6h restantes, em amarelo.",
+      },
     ],
   },
   "china-ordens": {
