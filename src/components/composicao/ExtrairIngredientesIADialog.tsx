@@ -54,11 +54,26 @@ export function ExtrairIngredientesIADialog({
   const loadProcessoDocs = async () => {
     setLoadingDocs(true);
     try {
-      const { data } = await (supabase
-        .from("china_produto_documentos" as any)
+      // 1. Buscar documento_ids vinculados via tela Vincular China
+      const { data: vinculos } = await supabase
+        .from("china_documento_tarefa_vinculos")
+        .select("documento_id");
+
+      const docIdsVinculados = [...new Set((vinculos || []).map((v: any) => v.documento_id))];
+
+      if (docIdsVinculados.length === 0) {
+        setProcessoDocs([]);
+        return;
+      }
+
+      // 2. Buscar apenas documentos da submissão que estão vinculados
+      const { data } = await supabase
+        .from("china_produto_documentos")
         .select("id, tipo_documento, nome_arquivo, arquivo_url, status")
         .eq("submissao_id", submissaoId)
-        .order("created_at", { ascending: false }) as any);
+        .in("id", docIdsVinculados)
+        .order("created_at", { ascending: false });
+
       setProcessoDocs(data || []);
     } catch {
       toast.error("Erro ao carregar documentos do processo");
@@ -278,7 +293,8 @@ export function ExtrairIngredientesIADialog({
                 ) : processoDocs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Nenhum documento encontrado neste processo</p>
+                    <p className="text-sm font-medium">Nenhum documento vinculado a este módulo</p>
+                    <p className="text-xs mt-1">Use a tela <strong>Vincular China</strong> para despachar documentos para o módulo Composição.</p>
                   </div>
                 ) : (
                   <ScrollArea className="h-[300px]">
