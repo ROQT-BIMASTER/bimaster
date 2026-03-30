@@ -605,7 +605,7 @@ function AppContent() {
             <Route path="/dashboard/financeiro/investimentos" element={<ScreenRoute screenCode="financeiro_investimentos"><InvestimentosCorporativos /></ScreenRoute>} />
             
             {/* Marketing Mission Control */}
-            <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleRoute>} />
+            <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><ScreenProtectedRoute screenCode="marketing_mission_control"><MarketingMissionControlPage /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
              <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
