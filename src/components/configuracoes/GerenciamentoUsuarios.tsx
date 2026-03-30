@@ -472,7 +472,7 @@ export const GerenciamentoUsuarios = () => {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => setEditingUser(null)}>
+                <Button onClick={() => { setEditingUser(null); setErrors({}); }}>
                   <UserPlus className="w-4 h-4 mr-2" />
                   Novo Usuário
                 </Button>
