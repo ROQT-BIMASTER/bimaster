@@ -50,7 +50,7 @@ function useSubmissoes() {
 
       if (vErr) throw vErr;
 
-      const ids = [...new Set((vinculos || []).map((v: any) => v.submissao_id).filter(Boolean))];
+      const ids: string[] = [...new Set((vinculos || []).map((v: any) => v.submissao_id as string).filter(Boolean))];
 
       if (ids.length === 0) return [];
 
