@@ -85,25 +85,46 @@ export function ExtrairIngredientesIADialog({
   const loadProcessoDocs = async () => {
     setLoadingDocs(true);
     try {
-      const { data: vinculos } = await supabase
-        .from("china_documento_tarefa_vinculos")
-        .select("documento_id");
+      // 1. Buscar vínculos com info do projeto/seção
+      const { data: vinculos } = await (supabase
+        .from("china_documento_tarefa_vinculos" as any)
+        .select("documento_id, projeto:projetos(nome), secao:projeto_secoes(nome)") as any);
 
-      const docIdsVinculados = [...new Set((vinculos || []).map((v: any) => v.documento_id))];
-
-      if (docIdsVinculados.length === 0) {
+      if (!vinculos || vinculos.length === 0) {
         setProcessoDocs([]);
         return;
       }
 
+      // Build map: documento_id -> checklist labels
+      const docChecklistMap: Record<string, string[]> = {};
+      (vinculos as any[]).forEach((v: any) => {
+        const labels: string[] = [];
+        if (v.projeto?.nome) labels.push(v.projeto.nome);
+        if (v.secao?.nome) labels.push(v.secao.nome);
+        const label = labels.join(" › ") || "Vinculado";
+        if (!docChecklistMap[v.documento_id]) docChecklistMap[v.documento_id] = [];
+        if (!docChecklistMap[v.documento_id].includes(label)) {
+          docChecklistMap[v.documento_id].push(label);
+        }
+      });
+
+      const docIds = Object.keys(docChecklistMap);
+
+      // 2. Buscar documentos vinculados
       const { data } = await supabase
         .from("china_produto_documentos")
         .select("id, tipo_documento, nome_arquivo, arquivo_url, arquivo_path, status")
         .eq("submissao_id", submissaoId)
-        .in("id", docIdsVinculados)
+        .in("id", docIds)
         .order("created_at", { ascending: false });
 
-      setProcessoDocs(data || []);
+      // Attach checklist info
+      const docsWithChecklist = (data || []).map((doc: any) => ({
+        ...doc,
+        checklists: docChecklistMap[doc.id] || [],
+      }));
+
+      setProcessoDocs(docsWithChecklist);
     } catch {
       toast.error("Erro ao carregar documentos do processo");
     } finally {
