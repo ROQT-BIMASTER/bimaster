@@ -58,8 +58,10 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
     fetchDepartamento();
   }, [profile.id, profile.departamento]);
 
+  const effectiveRole = userRole || profile?.tipo_usuario;
+
   const getTipoUsuarioLabel = () => {
-    switch (profile?.tipo_usuario) {
+    switch (effectiveRole) {
       case 'admin': return 'Administrador';
       case 'gerente': return 'Gerente';
       case 'supervisor': return 'Supervisor';
