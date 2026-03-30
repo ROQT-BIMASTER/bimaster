@@ -493,6 +493,27 @@ export function HierarquiaUsuarios() {
 
   const stats = calcularEstatisticas();
 
+  const matchesSearch = (u: Usuario): boolean => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return u.nome.toLowerCase().includes(term) || u.email.toLowerCase().includes(term);
+  };
+
+  const filteredSupervisores = supervisores.filter(s => {
+    if (!searchTerm) return true;
+    // Show supervisor if they match OR any subordinate matches
+    if (matchesSearch(s)) return true;
+    const subs = usuarios.filter(u => {
+      let current: Usuario | undefined = u;
+      while (current?.supervisor_id) {
+        if (current.supervisor_id === s.id) return true;
+        current = usuarios.find(usr => usr.id === current!.supervisor_id);
+      }
+      return false;
+    });
+    return subs.some(matchesSearch);
+  });
+
   return (
     <div className="space-y-6">
       <Card>
