@@ -242,8 +242,19 @@ export function ExtrairIngredientesIADialog({
         submissao_id: submissaoId,
         documento_nome: docName,
         documento_id: docId || null,
+        documento_original_id: docId || null,
         termos_aceitos: true,
         aceite_timestamp: new Date().toISOString(),
+        workflow_config_id: selectedDocWorkflow?.workflow_config_id || null,
+        workflow_nome: selectedDocWorkflow?.workflow?.nome || null,
+        despacho_documento_id: selectedDocWorkflow?.id || null,
+        etapa_atual: selectedDocWorkflow?.etapa_atual ?? null,
+        etapas_aprovacao: selectedDocWorkflow?.workflow?.etapas?.map((e: any) => ({
+          nome: e.nome,
+          tipo_acao: e.tipo_acao,
+          ordem: e.ordem,
+          aprovadores_nomes: e.aprovadores_nomes,
+        })) || null,
       },
     });
   };
