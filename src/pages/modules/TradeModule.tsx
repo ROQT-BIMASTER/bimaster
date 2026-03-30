@@ -43,12 +43,19 @@ const TradeModule = () => {
     queryKey: ['trade-module-stats', filteredStores.length],
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
+      const monthStartStr = monthStart.toISOString().split("T")[0];
       
-      const [visitsRes, photosRes, sellOutRes] = await Promise.all([
-        supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
-        supabase.from("photos").select("*", { count: "exact", head: true }),
-        (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
-      ]);
+      let visitsQuery = supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStartStr);
+      let photosQuery = supabase.from("photos").select("*", { count: "exact", head: true });
+      let sellOutQuery = (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString());
+      
+      if (shouldFilter && effectiveUserId) {
+        visitsQuery = visitsQuery.eq("user_id", effectiveUserId);
+        photosQuery = photosQuery.eq("vendedor_id", effectiveUserId);
+        sellOutQuery = sellOutQuery.eq("user_id", effectiveUserId);
+      }
+      
+      const [visitsRes, photosRes, sellOutRes] = await Promise.all([visitsQuery, photosQuery, sellOutQuery]);
 
       const sellOutData = (sellOutRes.data || []) as Array<{ quantity: number | null; unit_price: number | null }>;
       const totalSellOut = sellOutData.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0);
