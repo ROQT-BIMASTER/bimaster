@@ -655,15 +655,21 @@ export function HierarquiaUsuarios() {
           )}
 
           {/* Hierarquias por Supervisor */}
-          {supervisores.length === 0 ? (
+          {filteredSupervisores.length === 0 && supervisores.length === 0 ? (
             <Alert>
               <AlertDescription>
                 Nenhum supervisor cadastrado. Crie supervisores para começar a organizar hierarquias.
               </AlertDescription>
             </Alert>
+          ) : filteredSupervisores.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                Nenhum resultado encontrado para "{searchTerm}".
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-4">
-              {supervisores.map(supervisor => {
+              {filteredSupervisores.map(supervisor => {
                 const hierarquia = hierarquiasPorSupervisor.get(supervisor.id) || [];
                 const isExpanded = expandedSupervisors.has(supervisor.id);
                 const stats = calcularEstatisticasSupervisor(supervisor.id);
