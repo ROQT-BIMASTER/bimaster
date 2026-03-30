@@ -122,6 +122,9 @@ export function CadastroClienteCnpjDialog({
     setLoading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
       // Check duplicate first
       const { data: existing } = await supabase
         .from("stores")
@@ -140,8 +143,29 @@ export function CadastroClienteCnpjDialog({
       setReceitaData(data);
 
       if (existing && existing.length > 0) {
-        setExistingStore(existing[0] as ExistingStore);
-        setStep("duplicate");
+        const store = existing[0];
+        
+        // Check if already linked to current user
+        const { data: linkData } = await supabase
+          .from("store_sellers")
+          .select("id")
+          .eq("store_id", store.id)
+          .eq("vendedor_id", user.id)
+          .limit(1);
+
+        const isLinked = linkData && linkData.length > 0;
+
+        if (isLinked) {
+          // Already linked to current user — just block
+          toast.info("Este CNPJ já está cadastrado e vinculado ao seu perfil.");
+          setLoading(false);
+          return;
+        }
+
+        // Belongs to another vendor — block entirely
+        toast.error("Este CNPJ já está cadastrado e vinculado a outro vendedor. Não é possível prosseguir.");
+        setLoading(false);
+        return;
       } else {
         // Pre-fill form
         setFormData({
