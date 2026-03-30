@@ -346,7 +346,7 @@ export function ExtrairIngredientesIADialog({
       return;
     }
 
-    // Audit log for confirmation
+    // Audit log for confirmation with workflow metadata
     await auditSensitiveAction({
       action: "extracao_ia_confirmada",
       category: "ACCESS",
@@ -357,6 +357,15 @@ export function ExtrairIngredientesIADialog({
         ingredientes_total: extractedItems.length,
         ingredientes_selecionados: selected.length,
         documento_nome: previewFileName,
+        documento_original_id: previewDoc?.id || null,
+        workflow_config_id: selectedDocWorkflow?.workflow_config_id || null,
+        workflow_nome: selectedDocWorkflow?.workflow?.nome || null,
+        despacho_documento_id: selectedDocWorkflow?.id || null,
+        etapas_aprovacao: selectedDocWorkflow?.workflow?.etapas?.map((e: any) => ({
+          nome: e.nome,
+          tipo_acao: e.tipo_acao,
+          ordem: e.ordem,
+        })) || null,
       },
     });
 
@@ -374,7 +383,7 @@ export function ExtrairIngredientesIADialog({
         funcao: item.funcao,
         percentual_por_cor: percs,
         status_anvisa: "pendente",
-      };
+      } as Partial<Composicao>;
     });
 
     onIngredientesExtraidos(newItems);
