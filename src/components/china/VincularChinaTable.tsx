@@ -314,7 +314,7 @@ export function VincularChinaTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map(row => {
+                paginatedData.map(row => {
                   const isSelected = selectedIds.has(row.id);
                   const dateStr = row.updated_at || row.created_at;
                   return (
