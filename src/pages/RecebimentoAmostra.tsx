@@ -755,10 +755,11 @@ function EvidenciasPanel({ amostraId, fotos, refetch, readOnly }: { amostraId: s
 
 // ── Checklist Row ──
 
-function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos }: {
+function ChecklistRow({ item, disabled, onUpdate, amostraId, refetchFotos, isCustom, onRemove }: {
   item: ChecklistItem; disabled: boolean;
   onUpdate: (updates: Partial<ChecklistItem>) => void;
   amostraId: string; refetchFotos: () => void;
+  isCustom?: boolean; onRemove?: () => void;
 }) {
   const fotoRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
