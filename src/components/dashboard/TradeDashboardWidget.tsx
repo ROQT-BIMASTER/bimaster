@@ -50,14 +50,14 @@ export const TradeDashboardWidget = memo(() => {
         }
         const { count: photosCount } = await photosQuery;
         
-        let investmentsQuery = supabase.from("trade_investments").select("amount").gte("investment_date", monthStartDate);
+        let sellOutQuery = (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStartDate);
         if (shouldFilter && effectiveUserId) {
-          investmentsQuery = investmentsQuery.eq("created_by", effectiveUserId);
+          sellOutQuery = sellOutQuery.eq("user_id", effectiveUserId);
         }
-        const { data: investmentsData } = await investmentsQuery;
+        const { data: sellOutData } = await sellOutQuery;
 
-        const totalInv = (investmentsData as Array<{ amount: number | null }> | null)?.reduce(
-          (sum: number, inv: { amount: number | null }) => sum + (inv.amount || 0), 
+        const totalSellOut = (sellOutData as Array<{ quantity: number | null; unit_price: number | null }> | null)?.reduce(
+          (sum: number, e: { quantity: number | null; unit_price: number | null }) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 
           0
         ) || 0;
 
