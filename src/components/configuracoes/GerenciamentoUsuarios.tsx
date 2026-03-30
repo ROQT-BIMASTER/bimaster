@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Search, CheckCircle, XCircle, Lock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { userSchema } from "@/lib/validations/user";
 import { supabase } from "@/integrations/supabase/client";
 
