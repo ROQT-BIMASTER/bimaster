@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2,
+  ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
   AlertTriangle, Package, Filter, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
