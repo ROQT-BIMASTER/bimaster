@@ -16,7 +16,8 @@ import {
   Shield,
   UserCog,
   User,
-  UserCircle2
+  UserCircle2,
+  Search
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
