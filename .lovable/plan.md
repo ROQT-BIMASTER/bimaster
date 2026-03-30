@@ -1,98 +1,84 @@
 
 
-# Melhorias na Tela Vincular Envio China
+# Padronização Visual do Sistema BiMaster
 
-## Problemas Identificados
+## Diagnóstico
 
-1. **Pendencias fake** — valores calculados com percentuais fixos (`TOTAL_CHECKLIST = 20`, multiplicadores hardcoded) em vez de dados reais do checklist
-2. **Pagina monolitica** — 735 linhas com logica de vinculacao, processo, despachos, documentos tudo junto
-3. **Paineis abaixo da tabela** — ao selecionar um item, cards de vinculacao, documentos, processo e despachos aparecem em scroll infinito abaixo da grid, obrigando o usuario a rolar
-4. **Drawer subutilizado** — mostra apenas detalhes e documentos, mas as acoes ficam fora dele
-5. **Sem paginacao** — tabela carrega todos os registros sem limite
-6. **Acoes em massa incompletas** — botao "Despachar selecionados" nao tem handler conectado
+Após análise completa do código, identifiquei os seguintes problemas de inconsistência:
 
-## Solucao
+### 1. Cores hardcoded espalhadas pelo código
+Existem **~680 ocorrências** de cores hexadecimais escritas diretamente nos componentes (`text-[#DC2626]`, `bg-[#2563EB]`, `text-[#1B2A4A]`) em vez de usar as variáveis CSS do design system. Isso significa que mudanças de tema não afetam essas cores e a manutenção é impossível.
 
-### 1. Pendencias reais (Migration + Hook)
-- Criar RPC `get_pendencias_por_submissao(p_submissao_ids uuid[])` que conta itens do `produto_brasil_checklist` onde `concluido = false` agrupados por `submissao_china_id`
-- Substituir o calculo hardcoded no `tableData` por dados reais
+**Exemplos encontrados:**
+- `text-[#1B2A4A]` para títulos (deveria ser `text-foreground`)
+- `text-[#DC2626]` para erros (deveria ser `text-destructive`)
+- `text-[#16A34A]` para sucesso (deveria ser `text-success`)
+- `text-[#2563EB]` para info/primary (deveria ser `text-primary`)
+- `text-[#EA580C]` para warning (deveria ser `text-warning`)
+- `bg-[#F9FAFB]` para fundos alternados (deveria ser `bg-muted/50`)
+- `border-[#dde1e9]` no card.tsx e header (deveria ser `border-border`)
+- `bg-white` hardcoded no header (deveria ser `bg-card` ou `bg-background`)
 
-### 2. Layout split-panel (refactor principal)
-Reorganizar a pagina em layout de duas colunas quando um item esta selecionado:
+### 2. Componentes UI sem consistência de espaçamento
+- Páginas usam paddings diferentes (`p-4`, `p-6`, `px-4 py-6`)
+- Headers de página sem componente padronizado (cada tela monta o seu)
+- KPI cards com estruturas HTML diferentes em cada módulo
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│ Header + KPIs                                            │
-├──────────────────────────┬───────────────────────────────┤
-│                          │                               │
-│   Tabela (grid)          │   Painel lateral fixo         │
-│   com paginacao          │   (Detalhes + Vincular +      │
-│                          │    Docs + Processo + Chat)    │
-│                          │    em abas                    │
-│                          │                               │
-├──────────────────────────┴───────────────────────────────┤
-│ Vinculos existentes (collapsible)                        │
-└──────────────────────────────────────────────────────────┘
-```
+### 3. Tipografia sem escala definida
+- Títulos de página variam entre `text-2xl font-semibold`, `text-xl font-bold`, `text-[20px] font-bold`
+- Sem componente de PageHeader reutilizável
 
-- Quando nenhum item selecionado: tabela ocupa 100% da largura
-- Quando item selecionado: tabela 60%, painel lateral 40% com abas (Detalhes, Vincular, Documentos, Processo, Chat)
-- Elimina scroll vertical para encontrar paineis
+## Solução
 
-### 3. Paginacao na tabela
-- Adicionar paginacao com 50 registros por pagina no `VincularChinaTable`
+### Fase 1 — Eliminar cores hardcoded (maior impacto)
 
-### 4. Drawer → Painel lateral integrado
-- Remover o Sheet/Drawer separado
-- Mover o conteudo para o painel lateral com abas
-- Aba "Detalhes": info do produto + documentos por categoria (atual drawer)
-- Aba "Vincular": selecao de projeto + tarefas (atual card abaixo da tabela)
-- Aba "Processo": orquestracao + despachos + decisao formal
-- Aba "Chat": chat do processo (quando existir)
+Substituir todas as cores hex inline pelo token semântico correspondente em **14 arquivos de pages** e **6 arquivos de components**:
 
-### 5. Acoes em massa funcionais
-- Conectar "Despachar selecionados" a um dialog de confirmacao que cria despachos batch
+| Hardcoded | Token correto |
+|-----------|---------------|
+| `text-[#1B2A4A]` | `text-foreground` |
+| `text-[#DC2626]` | `text-destructive` |
+| `text-[#16A34A]` | `text-success` |
+| `text-[#2563EB]` | `text-primary` |
+| `text-[#EA580C]` | `text-warning` |
+| `bg-[#F9FAFB]` | `bg-muted/50` |
+| `bg-white` (em áreas dinâmicas) | `bg-card` |
+| `border-[#dde1e9]` | `border-border` |
 
-### 6. Extrair componentes
-- `VincularChinaSidePanel.tsx` — painel lateral com abas
-- `VincularChinaVincularTab.tsx` — aba de vinculacao a tarefas
-- `VincularChinaBulkActions.tsx` — dialog de acoes em massa
+### Fase 2 — Componente PageHeader reutilizável
 
-## Detalhes Tecnicos
+Criar `src/components/ui/page-header.tsx` com estrutura padronizada:
+- Botão voltar (opcional)
+- Título + subtítulo
+- Área de ações à direita
+- KPI badges inline (opcional)
 
-### Migration SQL
-```sql
-CREATE OR REPLACE FUNCTION get_pendencias_por_submissao(p_ids uuid[])
-RETURNS TABLE(submissao_id uuid, total int, pendentes int)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT pb.submissao_china_id, 
-         count(*)::int, 
-         count(*) FILTER (WHERE NOT c.concluido)::int
-  FROM produto_brasil_checklist c
-  JOIN produtos_brasil pb ON pb.id = c.produto_brasil_id
-  WHERE pb.submissao_china_id = ANY(p_ids)
-  GROUP BY pb.submissao_china_id;
-$$;
-```
+### Fase 3 — Componente KpiCard padronizado
 
-### Hook useSubmissaoPendencias
-- Chama a RPC com os IDs das submissoes visiveis
-- Retorna Map<submissao_id, { total, pendentes }>
+Criar `src/components/ui/kpi-card.tsx`:
+- Ícone + label + valor + variação
+- Variantes de cor semânticas (`default`, `success`, `warning`, `destructive`, `info`)
+- Usa tokens CSS em vez de cores hardcoded
 
-### ProjetoVincularChina.tsx (~300 linhas apos refactor)
-- Layout com `flex` e painel condicional
-- Logica de vinculacao movida para componente dedicado
-- Pagina fica como orquestradora de estado
+### Fase 4 — Corrigir card.tsx e header
 
-## Arquivos
+- `card.tsx`: trocar `border-[#dde1e9]` por `border-border` e shadows hardcoded por variáveis CSS
+- `DashboardLayout.tsx` header: trocar `border-[#dde1e9]` e `bg-white` por tokens
 
-| Arquivo | Acao |
+## Arquivos afetados
+
+| Arquivo | Ação |
 |---------|------|
-| Migration SQL | CREATE FUNCTION `get_pendencias_por_submissao` |
-| `src/hooks/useSubmissaoPendencias.ts` | Novo hook para pendencias reais |
-| `src/components/china/VincularChinaSidePanel.tsx` | Novo painel lateral com abas |
-| `src/components/china/VincularChinaVincularTab.tsx` | Aba de vinculacao extraida |
-| `src/components/china/VincularChinaTable.tsx` | Adicionar paginacao |
-| `src/pages/ProjetoVincularChina.tsx` | Refatorar para layout split-panel |
-| `src/components/china/VincularChinaDrawer.tsx` | Remover (conteudo migrado para SidePanel) |
+| `src/components/ui/page-header.tsx` | Criar componente |
+| `src/components/ui/kpi-card.tsx` | Criar componente |
+| `src/components/ui/card.tsx` | Substituir cores hardcoded |
+| `src/components/dashboard/DashboardLayout.tsx` | Substituir cores hardcoded |
+| `src/pages/financeiro/FilaExportacaoERP.tsx` | Migrar para tokens |
+| `src/pages/financeiro/RelatorioAPxERP.tsx` | Migrar para tokens |
+| `src/pages/financeiro/PainelCentralAP.tsx` | Migrar para tokens |
+| `src/components/financeiro/ap/ErpStatusSection.tsx` | Migrar para tokens |
+| `src/components/financeiro/ap/PostPaymentErpPrompt.tsx` | Migrar para tokens |
+| `src/components/financeiro/ap/IACategorySuggestion.tsx` | Migrar para tokens |
+| `src/components/theme/ThemeSelector.tsx` | Migrar para tokens onde aplicável |
+| Demais pages com hardcoded hex | Migrar para tokens |
 
