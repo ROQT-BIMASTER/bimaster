@@ -41,6 +41,7 @@ export function HierarquiaUsuarios() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [expandedSupervisors, setExpandedSupervisors] = useState<Set<string>>(new Set());
   const [selectedSupervisor, setSelectedSupervisor] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
