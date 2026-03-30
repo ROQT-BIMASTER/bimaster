@@ -255,6 +255,15 @@ export function VincularChinaTable({
             </SelectContent>
           </Select>
 
+          <Select value={vinculoFilter} onValueChange={setVinculoFilter}>
+            <SelectTrigger className="h-8 w-[150px] text-xs">
+              <SelectValue placeholder="Vínculo" />
+            </SelectTrigger>
+            <SelectContent>
+              {VINCULO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
           <Select value={pendenciaFilter} onValueChange={v => setPendenciaFilter(v as any)}>
             <SelectTrigger className="h-8 w-[150px] text-xs">
               <SelectValue placeholder="Pendências" />
@@ -269,6 +278,7 @@ export function VincularChinaTable({
           {activeFilterCount > 0 && (
             <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => {
               setStatusFilter("todos");
+              setVinculoFilter("todos");
               onFilterProjetoChange("");
               setPendenciaFilter("todos");
             }}>
