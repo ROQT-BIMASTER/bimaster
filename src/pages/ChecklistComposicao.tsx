@@ -202,6 +202,7 @@ export default function ChecklistComposicao() {
         <div className="md:hidden space-y-2">
           {filtered.map(sub => {
             const badge = STATUS_BADGE[sub.status] || STATUS_BADGE.rascunho;
+            const firstVinc = sub.vinculos?.[0];
             return (
               <Card key={sub.id} className="border-l-4 border-l-primary cursor-pointer active:scale-[0.99] transition-all" onClick={() => setSelectedSubmissao(sub.id)}>
                 <CardContent className="p-3">
@@ -209,6 +210,12 @@ export default function ChecklistComposicao() {
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{sub.produto_nome}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{sub.produto_codigo}</p>
+                      {firstVinc?.projeto_nome && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          📁 {firstVinc.projeto_nome}
+                          {firstVinc.tarefa_titulo ? ` › ${firstVinc.tarefa_titulo}` : ""}
+                        </p>
+                      )}
                     </div>
                     <Badge variant={badge.variant} className="text-[10px] shrink-0">{badge.label}</Badge>
                   </div>
