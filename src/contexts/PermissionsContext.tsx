@@ -24,7 +24,7 @@ let globalPermissionsCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 30 * 1000; // 30 segundos
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos (aumentado de 30s para reduzir re-fetches)
 const SAFETY_TIMEOUT = 5000; // 5s - reduced from 12s
 const LOCAL_STORAGE_KEY = "permissions_cache_v1";
 

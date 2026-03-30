@@ -17,36 +17,30 @@ interface UIPermissionRule {
  * Hook para controle granular de componentes/ações por tela.
  * Combina regras por role e por departamento.
  * Departamento tem prioridade sobre role.
+ * 
+ * Reutiliza role do PermissionsContext (evita query redundante).
  */
 export function useUIPermissions(telaCodigo: string) {
   const { session } = useAuth();
   const { role } = usePermissions();
 
   const { data: rules = [], isLoading } = useQuery({
-    queryKey: ["ui-permissions", telaCodigo, session?.user?.id],
+    queryKey: ["ui-permissions", telaCodigo, session?.user?.id, role],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
-      // Get user's department
+      // Get user's department (only query needed - role comes from context)
       const { data: profile } = await supabase
         .from("profiles")
         .select("departamento_id")
         .eq("id", session.user.id)
         .single();
 
-      // Get user's role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
-      const userRole = roleData?.role;
       const deptId = profile?.departamento_id;
 
       // Build OR filter for matching rules
       const conditions: string[] = [];
-      if (userRole) conditions.push(`role.eq.${userRole}`);
+      if (role) conditions.push(`role.eq.${role}`);
       if (deptId) conditions.push(`departamento_id.eq.${deptId}`);
 
       if (conditions.length === 0) return [];
