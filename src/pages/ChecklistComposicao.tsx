@@ -479,6 +479,13 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
           />
         </TabsContent>
 
+        <TabsContent value="documentos" className="mt-4">
+          <DocumentosPendentesPanel
+            submissaoId={submissaoId}
+            onExtractDoc={() => setShowAIExtract(true)}
+          />
+        </TabsContent>
+
         <TabsContent value="tarefas" className="mt-4">
           <TarefasVinculadasPanel submissaoId={submissaoId} />
         </TabsContent>
