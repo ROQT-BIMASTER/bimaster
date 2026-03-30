@@ -607,35 +607,70 @@ export function ExtrairIngredientesIADialog({
                     <p className="text-xs text-muted-foreground mt-1">
                       Este documento segue o fluxo de aprovação configurado na etapa Vincular China. As regras são imutáveis.
                     </p>
-                    {selectedDocWorkflow.workflow.etapas?.length > 0 && (
-                      <div className="mt-3 space-y-1.5">
-                        {selectedDocWorkflow.workflow.etapas.map((etapa: any, idx: number) => (
-                          <div
-                            key={etapa.id || idx}
-                            className={`flex items-center gap-2 text-xs rounded px-2.5 py-1.5 ${
-                              selectedDocWorkflow.etapa_atual === etapa.ordem
-                                ? "bg-primary/10 border border-primary/30 font-medium"
-                                : "bg-muted/50"
-                            }`}
-                          >
-                            <span className="text-muted-foreground w-5 text-center">{etapa.ordem + 1}.</span>
-                            <span className="flex-1">{etapa.nome}</span>
-                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">
-                              {etapa.tipo_acao}
-                            </Badge>
-                            {etapa.aprovadores_nomes?.length > 0 && (
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <Users className="h-3 w-3" />
-                                {etapa.aprovadores_nomes.join(", ")}
-                              </span>
-                            )}
-                            {selectedDocWorkflow.etapa_atual === etapa.ordem && (
-                              <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Etapa atual</Badge>
-                            )}
+
+                    {selectedDocWorkflow.workflow.etapas?.length > 0 && (() => {
+                      const etapas = selectedDocWorkflow.workflow.etapas;
+                      const etapaAtual = selectedDocWorkflow.etapa_atual ?? 0;
+                      const totalEtapas = etapas.length;
+                      const completedCount = etapas.filter((e: any) => e.ordem < etapaAtual).length;
+                      const progressPct = totalEtapas > 0 ? Math.round(((completedCount + (etapaAtual < totalEtapas ? 0.5 : 0)) / totalEtapas) * 100) : 0;
+
+                      return (
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span>Progresso do fluxo</span>
+                            <span className="ml-auto">{completedCount}/{totalEtapas} etapas</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <Progress value={progressPct} className="h-1.5" />
+
+                          <div className="space-y-1.5 mt-2">
+                            {etapas.map((etapa: any, idx: number) => {
+                              const isCompleted = etapa.ordem < etapaAtual;
+                              const isCurrent = etapa.ordem === etapaAtual;
+                              const isPending = etapa.ordem > etapaAtual;
+
+                              return (
+                                <div
+                                  key={etapa.id || idx}
+                                  className={`flex items-center gap-2 text-xs rounded px-2.5 py-1.5 ${
+                                    isCurrent
+                                      ? "bg-primary/10 border border-primary/30 font-medium"
+                                      : isCompleted
+                                      ? "bg-success/5 border border-success/20"
+                                      : "bg-muted/50"
+                                  }`}
+                                >
+                                  {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />}
+                                  {isCurrent && <Circle className="h-3.5 w-3.5 text-primary fill-primary shrink-0" />}
+                                  {isPending && <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+
+                                  <span className="flex-1">{etapa.nome}</span>
+
+                                  <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                                    {etapa.tipo_acao}
+                                  </Badge>
+                                  {etapa.aprovadores_nomes?.length > 0 && (
+                                    <span className="flex items-center gap-1 text-muted-foreground">
+                                      <Users className="h-3 w-3" />
+                                      {etapa.aprovadores_nomes.join(", ")}
+                                    </span>
+                                  )}
+                                  {isCompleted && (
+                                    <Badge variant="success" className="text-[9px] h-4 px-1.5">Concluída</Badge>
+                                  )}
+                                  {isCurrent && (
+                                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Etapa atual</Badge>
+                                  )}
+                                  {isPending && (
+                                    <span className="text-[9px] text-muted-foreground">Pendente</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
