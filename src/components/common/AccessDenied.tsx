@@ -17,6 +17,7 @@ export const AccessDenied = ({
   showWatermark = true 
 }: AccessDeniedProps) => {
   const navigate = useNavigate();
+  const { isImpersonating, stopImpersonation } = useImpersonation();
 
   const handleGoBack = () => {
     // Tenta voltar no histórico, se não houver histórico, vai para o dashboard
