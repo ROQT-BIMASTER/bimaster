@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   Sparkles, Upload, FileText, Loader2, AlertTriangle, CheckCircle2, X,
-  Eye, ShieldCheck, FileSearch,
+  Eye, ShieldCheck, FileSearch, GitBranch, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
