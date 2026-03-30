@@ -42,10 +42,11 @@ const TradeModule = () => {
       const [visitsRes, photosRes, sellOutRes] = await Promise.all([
         supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
         supabase.from("photos").select("*", { count: "exact", head: true }),
-        supabase.from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
+        (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
       ]);
 
-      const totalSellOut = sellOutRes.data?.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0) || 0;
+      const sellOutData = (sellOutRes.data || []) as Array<{ quantity: number | null; unit_price: number | null }>;
+      const totalSellOut = sellOutData.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0);
 
       return {
         totalStores: filteredStores.length,
