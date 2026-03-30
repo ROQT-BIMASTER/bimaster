@@ -1,63 +1,98 @@
 
 
-# Correcao: Contas a Receber — Valores e Controle de Acesso por Empresa
+# Melhorias na Tela Vincular Envio China
 
-## Diagnostico
+## Problemas Identificados
 
-### Problema 1: Controle de Acesso por Empresa (CRITICO)
-
-As 6 RPCs de Contas a Receber sao `SECURITY DEFINER` (bypassam RLS) e confiam no parametro `p_empresas` enviado pelo frontend. Se o frontend enviar `null` ou IDs de empresas nao autorizadas, a RPC retorna dados de TODAS as empresas.
-
-RPCs afetadas:
-- `get_contas_receber_dashboard_kpis`
-- `get_contas_receber_evolucao_mensal`
-- `get_contas_receber_filter_options`
-- `get_contas_receber_status_dist`
-- `get_contas_receber_pmr_detalhes`
-- `get_contas_receber_totais_filtrados`
-
-A funcao `get_empresa_ids_do_usuario()` ja existe mas NAO e usada nas RPCs. Cada RPC faz apenas `AND (p_empresas IS NULL OR empresa_id = ANY(p_empresas))` — confiando cegamente no cliente.
-
-### Problema 2: Valores nao carregando
-
-O `get_contas_receber_filter_options` nao filtra por empresa do usuario. Isso faz o dropdown de empresas mostrar TODAS as empresas do sistema, incluindo as que o usuario nao tem acesso. Quando o usuario seleciona uma empresa nao autorizada, a query direta (que USA RLS) retorna zero registros, criando a impressao de que os valores nao carregam.
+1. **Pendencias fake** — valores calculados com percentuais fixos (`TOTAL_CHECKLIST = 20`, multiplicadores hardcoded) em vez de dados reais do checklist
+2. **Pagina monolitica** — 735 linhas com logica de vinculacao, processo, despachos, documentos tudo junto
+3. **Paineis abaixo da tabela** — ao selecionar um item, cards de vinculacao, documentos, processo e despachos aparecem em scroll infinito abaixo da grid, obrigando o usuario a rolar
+4. **Drawer subutilizado** — mostra apenas detalhes e documentos, mas as acoes ficam fora dele
+5. **Sem paginacao** — tabela carrega todos os registros sem limite
+6. **Acoes em massa incompletas** — botao "Despachar selecionados" nao tem handler conectado
 
 ## Solucao
 
-### Migration SQL — Reescrever as 6 RPCs com validacao server-side
+### 1. Pendencias reais (Migration + Hook)
+- Criar RPC `get_pendencias_por_submissao(p_submissao_ids uuid[])` que conta itens do `produto_brasil_checklist` onde `concluido = false` agrupados por `submissao_china_id`
+- Substituir o calculo hardcoded no `tableData` por dados reais
 
-Em cada RPC, adicionar no inicio:
+### 2. Layout split-panel (refactor principal)
+Reorganizar a pagina em layout de duas colunas quando um item esta selecionado:
 
-```sql
--- Forcar intersecao entre p_empresas e empresas autorizadas
-v_empresas_permitidas := get_empresa_ids_do_usuario();
-IF p_empresas IS NOT NULL THEN
-  v_empresas := ARRAY(SELECT unnest(p_empresas) INTERSECT SELECT unnest(v_empresas_permitidas));
-ELSE
-  v_empresas := v_empresas_permitidas;
-END IF;
+```text
+┌──────────────────────────────────────────────────────────┐
+│ Header + KPIs                                            │
+├──────────────────────────┬───────────────────────────────┤
+│                          │                               │
+│   Tabela (grid)          │   Painel lateral fixo         │
+│   com paginacao          │   (Detalhes + Vincular +      │
+│                          │    Docs + Processo + Chat)    │
+│                          │    em abas                    │
+│                          │                               │
+├──────────────────────────┴───────────────────────────────┤
+│ Vinculos existentes (collapsible)                        │
+└──────────────────────────────────────────────────────────┘
 ```
 
-E substituir `AND (p_empresas IS NULL OR empresa_id = ANY(p_empresas))` por `AND empresa_id = ANY(v_empresas)`.
+- Quando nenhum item selecionado: tabela ocupa 100% da largura
+- Quando item selecionado: tabela 60%, painel lateral 40% com abas (Detalhes, Vincular, Documentos, Processo, Chat)
+- Elimina scroll vertical para encontrar paineis
 
-### RPCs a alterar
+### 3. Paginacao na tabela
+- Adicionar paginacao com 50 registros por pagina no `VincularChinaTable`
 
-| RPC | Mudanca |
-|-----|---------|
-| `get_contas_receber_dashboard_kpis` | Adicionar `v_empresas` com intersecao |
-| `get_contas_receber_evolucao_mensal` | Idem |
-| `get_contas_receber_filter_options` | Idem — corrige dropdown mostrando empresas nao autorizadas |
-| `get_contas_receber_status_dist` | Idem |
-| `get_contas_receber_pmr_detalhes` | Idem |
-| `get_contas_receber_totais_filtrados` | Idem |
+### 4. Drawer → Painel lateral integrado
+- Remover o Sheet/Drawer separado
+- Mover o conteudo para o painel lateral com abas
+- Aba "Detalhes": info do produto + documentos por categoria (atual drawer)
+- Aba "Vincular": selecao de projeto + tarefas (atual card abaixo da tabela)
+- Aba "Processo": orquestracao + despachos + decisao formal
+- Aba "Chat": chat do processo (quando existir)
 
-### Sem alteracoes no frontend
+### 5. Acoes em massa funcionais
+- Conectar "Despachar selecionados" a um dialog de confirmacao que cria despachos batch
 
-O frontend ja passa `filterEmpresas` corretamente via `useEmpresaFilter`. O problema e exclusivamente no backend que nao valida esses IDs. Apos a correcao, mesmo que o frontend envie IDs nao autorizados, o servidor restringe automaticamente.
+### 6. Extrair componentes
+- `VincularChinaSidePanel.tsx` — painel lateral com abas
+- `VincularChinaVincularTab.tsx` — aba de vinculacao a tarefas
+- `VincularChinaBulkActions.tsx` — dialog de acoes em massa
+
+## Detalhes Tecnicos
+
+### Migration SQL
+```sql
+CREATE OR REPLACE FUNCTION get_pendencias_por_submissao(p_ids uuid[])
+RETURNS TABLE(submissao_id uuid, total int, pendentes int)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT pb.submissao_china_id, 
+         count(*)::int, 
+         count(*) FILTER (WHERE NOT c.concluido)::int
+  FROM produto_brasil_checklist c
+  JOIN produtos_brasil pb ON pb.id = c.produto_brasil_id
+  WHERE pb.submissao_china_id = ANY(p_ids)
+  GROUP BY pb.submissao_china_id;
+$$;
+```
+
+### Hook useSubmissaoPendencias
+- Chama a RPC com os IDs das submissoes visiveis
+- Retorna Map<submissao_id, { total, pendentes }>
+
+### ProjetoVincularChina.tsx (~300 linhas apos refactor)
+- Layout com `flex` e painel condicional
+- Logica de vinculacao movida para componente dedicado
+- Pagina fica como orquestradora de estado
 
 ## Arquivos
 
 | Arquivo | Acao |
 |---------|------|
-| Migration SQL | ALTER 6 RPCs para validar empresa server-side |
+| Migration SQL | CREATE FUNCTION `get_pendencias_por_submissao` |
+| `src/hooks/useSubmissaoPendencias.ts` | Novo hook para pendencias reais |
+| `src/components/china/VincularChinaSidePanel.tsx` | Novo painel lateral com abas |
+| `src/components/china/VincularChinaVincularTab.tsx` | Aba de vinculacao extraida |
+| `src/components/china/VincularChinaTable.tsx` | Adicionar paginacao |
+| `src/pages/ProjetoVincularChina.tsx` | Refatorar para layout split-panel |
+| `src/components/china/VincularChinaDrawer.tsx` | Remover (conteudo migrado para SidePanel) |
 
