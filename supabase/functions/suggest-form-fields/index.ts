@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { description, category } = await req.json();
+    const { description, category, imageBase64 } = await req.json();
 
-    if (!description || typeof description !== "string") {
+    if (!description && !imageBase64) {
       return new Response(
-        JSON.stringify({ error: "Descrição é obrigatória" }),
+        JSON.stringify({ error: "Informe uma descrição ou envie uma imagem" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -29,6 +29,30 @@ serve(async (req) => {
       );
     }
 
+    // Build user message content (text + optional image)
+    const userContent: any[] = [];
+
+    let textPrompt = "";
+    if (description) {
+      textPrompt += `Crie campos para o formulário: "${description}".`;
+    }
+    if (category) {
+      textPrompt += ` Categoria: ${category}.`;
+    }
+    if (imageBase64) {
+      textPrompt += ` Analise também a imagem enviada para extrair campos do formulário mostrado.`;
+    }
+    textPrompt += " Sugira entre 4 e 10 campos relevantes.";
+
+    userContent.push({ type: "text", text: textPrompt });
+
+    if (imageBase64) {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: imageBase64 },
+      });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -36,16 +60,16 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
             content:
-              "Você é um especialista em formulários de Trade Marketing. Sugira campos para formulários dinâmicos com base na descrição fornecida. Retorne usando a função suggest_fields.",
+              "Você é um especialista em formulários de Trade Marketing. Analise a descrição e/ou imagem fornecida e sugira campos para um formulário dinâmico. Se uma imagem de formulário for fornecida, extraia os campos visíveis nela. Retorne usando a função suggest_fields.",
           },
           {
             role: "user",
-            content: `Crie campos para o formulário: "${description}". Categoria: ${category || "geral"}. Sugira entre 4 e 8 campos relevantes.`,
+            content: userContent,
           },
         ],
         tools: [
