@@ -109,7 +109,7 @@ export function PermissoesDeAcesso() {
     }
   };
 
-  const handlePermissionChange = (telaId: string, role: "supervisor" | "vendedor" | "promotor") => {
+  const handlePermissionChange = (telaId: string, role: "gerente" | "supervisor" | "vendedor" | "promotor") => {
     setTelas(prev => prev.map(tela => 
       tela.id === telaId 
         ? { ...tela, permissoes: { ...tela.permissoes, [role]: !tela.permissoes[role] } }
