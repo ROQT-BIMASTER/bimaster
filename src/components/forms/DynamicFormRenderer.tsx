@@ -76,6 +76,28 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       });
       setValues(initial);
     }
+
+    // Load attachments
+    const { data: attData } = await supabase
+      .from("dynamic_form_attachments" as any)
+      .select("*")
+      .eq("form_id", formId)
+      .order("order_index");
+
+    if (attData && (attData as any[]).length > 0) {
+      const bannerIds = (attData as any[]).filter((a) => a.attachment_type === "banner").map((a) => a.attachment_id);
+      const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
+
+      if (bannerIds.length) {
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, link_destino").in("id", bannerIds);
+        setAttachedBanners(b || []);
+      }
+      if (materialIds.length) {
+        const { data: m } = await supabase.from("trade_materiais" as any).select("id, nome, foto_url, descricao").in("id", materialIds);
+        setAttachedMaterials((m || []) as any[]);
+      }
+    }
+
     setLoading(false);
   }
 
