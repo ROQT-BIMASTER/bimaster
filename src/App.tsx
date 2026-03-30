@@ -539,7 +539,7 @@ function AppContent() {
             <Route path="/dashboard/precos/matriz" element={<ScreenRoute screenCode="precos_matriz"><PrecosMatrizComparativa /></ScreenRoute>} />
             <Route path="/dashboard/precos/tabelas" element={<ScreenRoute screenCode="precos_tabelas"><FabricaTabelasPreco /></ScreenRoute>} />
             <Route path="/dashboard/precos/aprovacao" element={<ScreenRoute screenCode="precos_tabelas"><FabricaAprovacaoPrecos /></ScreenRoute>} />
-            <Route path="/dashboard/precos/portal-cliente" element={<ModuleRoute moduleCode="precos"><PortalCliente /></ModuleRoute>} />
+            <Route path="/dashboard/precos/portal-cliente" element={<ModuleRoute moduleCode="precos"><ScreenProtectedRoute screenCode="precos_portal_cliente"><PortalCliente /></ScreenProtectedRoute></ModuleRoute>} />
             <Route path="/dashboard/precos/acesso" element={<ScreenRoute screenCode="precos_tabelas"><GerenciamentoAcessoPrecos /></ScreenRoute>} />
             <Route path="/dashboard/precos/simulador" element={<ScreenRoute screenCode="precos_simulador"><SimuladorCenariosPrecos /></ScreenRoute>} />
             
