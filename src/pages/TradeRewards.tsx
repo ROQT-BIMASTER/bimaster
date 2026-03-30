@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RewardDialog } from "@/components/trade/RewardDialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 
 export default function TradeRewards() {
   const [selectedReward, setSelectedReward] = useState<any>(null);
