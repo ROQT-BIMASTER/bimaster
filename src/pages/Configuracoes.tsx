@@ -78,6 +78,7 @@ const LazyFallback = () => (
 );
 
 function Configuracoes() {
+  const { role: permRole } = usePermissions();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
