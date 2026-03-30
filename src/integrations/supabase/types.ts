@@ -21013,6 +21013,7 @@ export type Database = {
           regulatorio_checklist: Json
           sku: string
           status_geral: Database["public"]["Enums"]["fluxo_arte_status"]
+          submissao_id: string | null
           tipo_checklist: Database["public"]["Enums"]["checklist_arte_tipo"]
           updated_at: string
         }
@@ -21036,6 +21037,7 @@ export type Database = {
           regulatorio_checklist?: Json
           sku: string
           status_geral?: Database["public"]["Enums"]["fluxo_arte_status"]
+          submissao_id?: string | null
           tipo_checklist: Database["public"]["Enums"]["checklist_arte_tipo"]
           updated_at?: string
         }
@@ -21059,10 +21061,19 @@ export type Database = {
           regulatorio_checklist?: Json
           sku?: string
           status_geral?: Database["public"]["Enums"]["fluxo_arte_status"]
+          submissao_id?: string | null
           tipo_checklist?: Database["public"]["Enums"]["checklist_arte_tipo"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produto_fluxo_artes_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produto_fluxo_artes_cores: {
         Row: {

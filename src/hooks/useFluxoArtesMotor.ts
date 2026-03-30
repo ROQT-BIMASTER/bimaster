@@ -118,6 +118,7 @@ export type FluxoArte = {
   faca_url: string | null;
   fotos_referencia: string[];
   data_af_recebida: string | null;
+  submissao_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -251,6 +252,7 @@ export function useCreateFluxoArte() {
       produto_nome: string;
       linha_marca?: string;
       tipo_checklist: ChecklistTipo;
+      submissao_id?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
 
