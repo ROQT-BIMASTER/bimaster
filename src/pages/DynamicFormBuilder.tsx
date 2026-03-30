@@ -319,6 +319,18 @@ export default function DynamicFormBuilder() {
 
       if (fieldErr) throw fieldErr;
 
+      // Save attachments
+      await supabase.from("dynamic_form_attachments" as any).delete().eq("form_id", formId);
+      if (attachments.length > 0) {
+        const attInserts = attachments.map((a: any, i: number) => ({
+          form_id: formId,
+          attachment_type: a.attachment_type,
+          attachment_id: a.attachment_id,
+          order_index: i,
+        }));
+        await supabase.from("dynamic_form_attachments" as any).insert(attInserts as any);
+      }
+
       toast.success(
         status === "active"
           ? "Formulário publicado com sucesso!"
