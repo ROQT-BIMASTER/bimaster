@@ -45,6 +45,7 @@ export function MaterialOrderSheet({ material, onClose }: Props) {
   const [protocol, setProtocol] = useState<string | null>(null);
   const [storeSearchOpen, setStoreSearchOpen] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
+  const [showCadastro, setShowCadastro] = useState(false);
 
   const maxQty = material?.max_por_solicitacao || 999;
   const selectedStore = stores.find((s) => s.id === lojaId);
