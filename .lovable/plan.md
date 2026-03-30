@@ -1,27 +1,33 @@
 
 
-# Filtrar Documentos do Processo por Vinculos da Tela Vincular China
+# Filtrar Checklist Composição por Submissões Vinculadas
 
 ## Problema
 
-Atualmente, a aba "Documento do Processo" no dialog de Extração com IA busca TODOS os documentos da submissão (`china_produto_documentos` WHERE `submissao_id`). O correto é mostrar apenas os documentos que foram despachados/vinculados ao módulo Composição via a tela "Vincular China", usando a tabela `china_documento_tarefa_vinculos`.
+A tela `ChecklistComposicao` exibe TODAS as submissões da tabela `china_produto_submissoes`. O correto é mostrar apenas submissões que passaram pela etapa "Vincular China" (possuem registro em `china_submissao_tarefa_vinculos`).
 
 ## Solução
 
-Alterar `loadProcessoDocs` no `ExtrairIngredientesIADialog.tsx` para:
+Alterar o hook `useSubmissoes()` dentro de `ChecklistComposicao.tsx` para:
 
-1. Buscar os vínculos em `china_documento_tarefa_vinculos` filtrando pelos documentos da submissão atual
-2. Usar os `documento_id` encontrados para filtrar `china_produto_documentos`
-3. Mostrar apenas documentos que possuem vínculo (foram despachados para este módulo)
+1. Buscar os `submissao_id` distintos de `china_submissao_tarefa_vinculos`
+2. Filtrar `china_produto_submissoes` usando `.in("id", submissaoIdsVinculados)`
+3. Mostrar mensagem vazia contextual orientando o usuário a usar a tela "Vincular China" quando não houver resultados
+4. Atualizar KPIs para refletir apenas os itens vinculados
 
-A lógica será:
-- Buscar vínculos: `china_documento_tarefa_vinculos` WHERE `documento_id` IN (documentos da submissão)
-- Filtrar documentos que aparecem nos vínculos
-- Exibir mensagem contextual quando não há documentos vinculados, orientando o usuário a usar a tela Vincular China
+## Detalhes Técnicos
+
+A query será em dois passos:
+```
+1. SELECT DISTINCT submissao_id FROM china_submissao_tarefa_vinculos
+2. SELECT ... FROM china_produto_submissoes WHERE id IN (ids do passo 1)
+```
+
+A mensagem de estado vazio mudará de "Nenhuma submissão encontrada" para incluir orientação sobre a tela Vincular China.
 
 ## Arquivo Afetado
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/composicao/ExtrairIngredientesIADialog.tsx` | Alterar `loadProcessoDocs` para filtrar por `china_documento_tarefa_vinculos`; mensagem vazia contextual |
+| `src/pages/ChecklistComposicao.tsx` | Alterar `useSubmissoes` para filtrar por vínculos; atualizar empty state |
 
