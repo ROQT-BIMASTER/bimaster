@@ -114,6 +114,38 @@ export default function DynamicFormBuilder() {
         }))
       );
     }
+
+    // Load attachments
+    const { data: attData } = await supabase
+      .from("dynamic_form_attachments" as any)
+      .select("*")
+      .eq("form_id", id)
+      .order("order_index");
+
+    if (attData) {
+      // Enrich with names
+      const bannerIds = (attData as any[]).filter((a) => a.attachment_type === "banner").map((a) => a.attachment_id);
+      const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
+
+      let bannerMap: Record<string, string> = {};
+      let materialMap: Record<string, string> = {};
+
+      if (bannerIds.length) {
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo").in("id", bannerIds);
+        (b || []).forEach((x: any) => { bannerMap[x.id] = x.titulo; });
+      }
+      if (materialIds.length) {
+        const { data: m } = await supabase.from("trade_materiais" as any).select("id, nome").in("id", materialIds);
+        ((m || []) as any[]).forEach((x: any) => { materialMap[x.id] = x.nome; });
+      }
+
+      setAttachments(
+        (attData as any[]).map((a) => ({
+          ...a,
+          name: a.attachment_type === "banner" ? bannerMap[a.attachment_id] : materialMap[a.attachment_id],
+        }))
+      );
+    }
   }
 
   function addField() {
