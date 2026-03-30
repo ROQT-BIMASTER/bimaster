@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
