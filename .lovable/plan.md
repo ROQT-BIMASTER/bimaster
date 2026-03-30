@@ -1,41 +1,54 @@
 
 
-# Vincular China + Projeto no Checklist Etiqueta/Bula
+# Vincular China no Motor de Artes
 
 ## Resumo
 
-Refatorar o diálogo "Novo Checklist" da Etiqueta/Bula para incluir o seletor de submissões vinculadas (mesmo padrão da Análise de Embalagem), permitindo importar dados do Vincular China e pré-visualizar documentos. Também garantir que a listagem principal filtre apenas itens vinculados.
+O diálogo "Novo Checklist de Arte" no Motor de Artes atualmente é 100% manual. Adicionar o seletor de submissões vinculadas (mesmo padrão já implementado em Análise de Embalagem e Etiqueta/Bula) para importar dados do Vincular China.
 
 ## Alterações
 
-### 1. `NewEtiquetaDialog` — Seletor de submissões vinculadas
+### 1. Migration — adicionar `submissao_id` na tabela `produto_fluxo_artes`
 
-- Adicionar toggle "Importar do Vincular China" / "Preenchimento Manual" (mesmo padrão do `NewAnaliseDialog`)
-- No modo vinculado: buscar submissões da `china_submissao_tarefa_vinculos` → `china_produto_submissoes`
-- Ao selecionar: auto-preencher `sku` (produto_codigo), `produto_nome`, `linha_marca` (formula_codigo) e salvar `submissao_id` no form
-- Preview de documentos vinculados (busca em `china_produto_documentos`)
-- Manter modo manual como fallback
+A tabela não possui coluna `submissao_id`. Adicionar como nullable UUID com FK para `china_produto_submissoes`.
 
-### 2. Hook `useCreateEtiqueta` — incluir `submissao_id`
+```sql
+ALTER TABLE public.produto_fluxo_artes
+  ADD COLUMN submissao_id uuid REFERENCES public.china_produto_submissoes(id);
+```
 
-- O `produto_etiqueta_bula` já possui coluna `submissao_id` — garantir que o create passe esse campo
+### 2. `useFluxoArtesMotor.ts` — atualizar tipo e mutation
 
-### 3. Listagem principal — filtro por vínculos
+- Adicionar `submissao_id` ao tipo `FluxoArte`
+- Aceitar `submissao_id` opcional no `useCreateFluxoArte` e incluí-lo no insert
 
-- Filtrar etiquetas para exibir apenas aquelas cujo `submissao_id` está na tabela `china_submissao_tarefa_vinculos` (consistente com Recebimento de Amostra e Análise de Embalagem)
+### 3. `FluxoArtesMotor.tsx` — refatorar diálogo de criação
 
-## Arquivo
+- Adicionar tabs "Importar do Vincular China" / "Preenchimento Manual" (mesmo padrão dos outros módulos)
+- No modo vinculado: buscar submissões via `china_submissao_tarefa_vinculos` → `china_produto_submissoes`
+- Ao selecionar: auto-preencher `produto_id`, `sku`, `produto_nome`, `linha_marca` e `submissao_id`
+- Preview de documentos vinculados à submissão selecionada
+- Manter seletor de tipo de checklist em ambos os modos
+
+### 4. Filtro na listagem
+
+- Filtrar fluxos para exibir apenas aqueles cujo `submissao_id` está vinculado (ou sem submissao_id)
+
+## Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/ChecklistEtiquetaBula.tsx` | Refatorar `NewEtiquetaDialog` com seletor vinculado + filtrar listagem |
+| Migration SQL | ADD COLUMN `submissao_id` em `produto_fluxo_artes` |
+| `src/hooks/useFluxoArtesMotor.ts` | Tipo + mutation com `submissao_id` |
+| `src/pages/FluxoArtesMotor.tsx` | Diálogo com seletor vinculado + filtro listagem |
 
 ## Fluxo
 
 ```text
 [Novo Checklist] → Dialog abre
   → Tab "Importar do Vincular China": cards de submissões vinculadas
-  → Selecionar → auto-preenche SKU, Produto, Linha + preview docs
-  → [Criar Checklist]
+  → Selecionar → auto-preenche campos + preview docs
+  → Selecionar tipo de checklist
+  → [Criar] → fluxo criado com submissao_id
 ```
 
