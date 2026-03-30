@@ -342,10 +342,32 @@ export default function DynamicFormDashboard() {
             {/* Response Table */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Respostas ({totalResponses})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    Respostas ({totalResponses})
+                  </CardTitle>
+                  {fields.length > 3 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAllColumns(!showAllColumns)}
+                      className="gap-1.5 text-xs"
+                    >
+                      {showAllColumns ? (
+                        <>
+                          <ChevronUp className="h-3 w-3" />
+                          Resumir colunas
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3" />
+                          Todas as colunas ({fields.length})
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {responses.length === 0 ? (
@@ -353,70 +375,76 @@ export default function DynamicFormDashboard() {
                     Nenhuma resposta registrada ainda.
                   </p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead>Data</TableHead>
-                        {fields.slice(0, 3).map((f) => (
-                          <TableHead key={f.id}>{f.label}</TableHead>
-                        ))}
-                        {fields.length > 3 && (
-                          <TableHead>+{fields.length - 3} campos</TableHead>
-                        )}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {responses.map((resp) => (
-                        <>
-                          <TableRow
-                            key={resp.id}
-                            className="cursor-pointer"
-                            onClick={() =>
-                              setExpandedRow(expandedRow === resp.id ? null : resp.id)
-                            }
-                          >
-                            <TableCell>
-                              {expandedRow === resp.id ? (
-                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {resp.created_at
-                                ? new Date(resp.created_at).toLocaleString("pt-BR")
-                                : "—"}
-                            </TableCell>
-                            {fields.slice(0, 3).map((f) => (
-                              <TableCell key={f.id} className="text-sm max-w-[200px] truncate">
-                                {formatValue(resp.answers[f.id])}
-                              </TableCell>
-                            ))}
-                            {fields.length > 3 && <TableCell />}
-                          </TableRow>
-                          {expandedRow === resp.id && (
-                            <TableRow key={`${resp.id}-expanded`}>
-                              <TableCell colSpan={fields.slice(0, 3).length + 2 + (fields.length > 3 ? 1 : 0)}>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 px-4 bg-muted/30 rounded-md">
-                                  {fields.map((f) => (
-                                    <div key={f.id}>
-                                      <span className="text-xs font-medium text-muted-foreground">
-                                        {f.label}
-                                      </span>
-                                      <p className="text-sm mt-0.5">
-                                        {formatValue(resp.answers[f.id])}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </TableCell>
-                            </TableRow>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>Data</TableHead>
+                          {(showAllColumns ? fields : fields.slice(0, 3)).map((f) => (
+                            <TableHead key={f.id}>{f.label}</TableHead>
+                          ))}
+                          {!showAllColumns && fields.length > 3 && (
+                            <TableHead>+{fields.length - 3} campos</TableHead>
                           )}
-                        </>
-                      ))}
-                    </TableBody>
-                  </Table>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {responses.map((resp) => {
+                          const visibleFields = showAllColumns ? fields : fields.slice(0, 3);
+                          const colSpan = visibleFields.length + 2 + (!showAllColumns && fields.length > 3 ? 1 : 0);
+                          return (
+                            <>
+                              <TableRow
+                                key={resp.id}
+                                className="cursor-pointer"
+                                onClick={() =>
+                                  setExpandedRow(expandedRow === resp.id ? null : resp.id)
+                                }
+                              >
+                                <TableCell>
+                                  {expandedRow === resp.id ? (
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs whitespace-nowrap">
+                                  {resp.created_at
+                                    ? new Date(resp.created_at).toLocaleString("pt-BR")
+                                    : "—"}
+                                </TableCell>
+                                {visibleFields.map((f) => (
+                                  <TableCell key={f.id} className="text-sm max-w-[200px] truncate">
+                                    {formatValue(resp.answers[f.id])}
+                                  </TableCell>
+                                ))}
+                                {!showAllColumns && fields.length > 3 && <TableCell />}
+                              </TableRow>
+                              {expandedRow === resp.id && (
+                                <TableRow key={`${resp.id}-expanded`}>
+                                  <TableCell colSpan={colSpan}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 px-4 bg-muted/30 rounded-md">
+                                      {fields.map((f) => (
+                                        <div key={f.id}>
+                                          <span className="text-xs font-medium text-muted-foreground">
+                                            {f.label}
+                                          </span>
+                                          <p className="text-sm mt-0.5">
+                                            {formatValue(resp.answers[f.id])}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
