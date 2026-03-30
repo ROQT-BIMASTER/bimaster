@@ -1,54 +1,32 @@
 
 
-# Solicitação de Materiais Vinculados ao Formulário
+# Remover Exposição de Lojas no Formulário Público
 
-## Resumo
+## Problema
 
-Quando materiais estão vinculados a um formulário dinâmico, transformar a exibição deles de cards informativos para cards interativos com botão "Solicitar". Ao clicar, abrir um mini-formulário inline (loja + quantidade) que gera uma solicitação em `trade_material_solicitacoes` — o mesmo fluxo já existente no `MaterialOrderSheet`, reaproveitando a lógica de criação.
+O `MaterialRequestCard` usa `useFilteredStores` para carregar lojas internas no seletor. Quando o formulário é compartilhado externamente (via link público/token), pessoas não autorizadas conseguem ver o cadastro completo de clientes/lojas da empresa.
 
-As solicitações geradas ficam vinculadas à resposta do formulário (via metadata), permitindo rastreabilidade e aprovação pelo fluxo já existente de materiais.
+## Solução
+
+Substituir o seletor de lojas (Popover com lista) por um campo de texto livre onde o usuário externo digita manualmente o nome/endereço da loja. Para usuários autenticados (formulários internos), manter o seletor existente.
+
+A lógica: se o formulário está sendo acessado via token (público), usa input de texto. Se o usuário está autenticado, usa o seletor com `useFilteredStores`.
 
 ## Alterações
 
-### 1. `src/components/forms/DynamicFormRenderer.tsx`
+### `src/components/forms/MaterialRequestCard.tsx`
 
-**Substituir** os cards estáticos de materiais por cards interativos:
-- Cada material vinculado exibe foto, nome, descrição + botão "Solicitar"
-- Ao clicar "Solicitar", expande um painel inline com:
-  - Seletor de loja (Combobox com busca, reutilizando `useFilteredStores`)
-  - Seletor de quantidade (+/- com limites do material)
-  - Botão "Confirmar Solicitação"
-- Ao confirmar, insere em `trade_material_solicitacoes` com metadata `{ origem: "formulario", form_id, response_id }`
-- Exibe badge "Solicitado ✓" após envio, impedindo duplicidade
-- As solicitações são feitas **antes** do submit do formulário (independentes) ou **junto** — salvar no estado e submeter após o form submit
+- Adicionar prop `isPublic` (boolean) — derivada da presença de `tokenId` no renderer
+- **Se `isPublic = true`:** renderizar input de texto livre para "Nome da loja / Local de destino" em vez do Popover com lista de lojas. Remover chamada a `useFilteredStores` nesse caso. O `loja_nome` será o texto digitado e `loja_id` será null.
+- **Se `isPublic = false`:** manter comportamento atual (seletor com busca)
+- Ajustar `handleConfirm` para aceitar `loja_id` como null quando público, usando apenas `loja_nome`
 
-### 2. Novo componente `src/components/forms/MaterialRequestCard.tsx`
+### `src/components/forms/DynamicFormRenderer.tsx`
 
-Card encapsulado para cada material vinculado:
-- Props: `material`, `formId`, `onRequested`
-- Usa `useFilteredStores` para seletor de loja
-- Usa `useCreateSolicitacao` de `useTradeMateriais`
-- Estados: idle → selecting → submitted
-- Gera protocolo no mesmo formato `MAT-YYMMDD-XXXX`
-
-### 3. Fluxo
-
-```text
-Formulário carrega → materiais vinculados exibidos como cards
-  → Usuário clica "Solicitar" em material X
-    → Expande: [Loja ▼] [Qtd: 1 +/-] [Confirmar]
-    → Confirma → trade_material_solicitacoes.insert(...)
-    → Card muda para "✓ Solicitado — Protocolo MAT-XXXX"
-  → Usuário preenche campos normais do formulário
-  → Submit do formulário registra as respostas normalmente
-```
-
-## Arquivos
+- Passar `isPublic={!!tokenId}` como prop para cada `MaterialRequestCard`
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/forms/MaterialRequestCard.tsx` | Novo — card interativo de solicitação |
-| `src/components/forms/DynamicFormRenderer.tsx` | Substituir cards estáticos por `MaterialRequestCard` |
-
-Nenhuma migration necessária — reutiliza `trade_material_solicitacoes` existente.
+| `src/components/forms/MaterialRequestCard.tsx` | Modo público com input texto |
+| `src/components/forms/DynamicFormRenderer.tsx` | Passar flag `isPublic` |
 
