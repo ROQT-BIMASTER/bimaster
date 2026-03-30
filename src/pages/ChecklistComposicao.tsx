@@ -316,6 +316,17 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
 
       <VincularProjetoDialog modulo="composicao" registroId={submissaoId} open={showVinculo} onOpenChange={setShowVinculo} />
 
+      <ExtrairIngredientesIADialog
+        open={showAIExtract}
+        onOpenChange={setShowAIExtract}
+        submissaoId={submissaoId}
+        cores={cores}
+        currentVersion={currentVersion}
+        onIngredientesExtraidos={(newItems) => {
+          setLocalItems(prev => [...prev, ...newItems]);
+        }}
+      />
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="composicao">Composição</TabsTrigger>
@@ -334,6 +345,7 @@ function ComposicaoEditor({ submissaoId, onBack }: { submissaoId: string; onBack
             onRemoveItem={removeItem}
             onAddIngrediente={addIngrediente}
             onAddCor={addCor}
+            onExtractIA={() => setShowAIExtract(true)}
           />
 
           {/* Validation summary */}
