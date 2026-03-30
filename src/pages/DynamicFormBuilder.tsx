@@ -291,6 +291,7 @@ export default function DynamicFormBuilder() {
         // Clear AI inputs after success
         setAiCustomPrompt("");
         clearAiImage();
+        clearSpreadsheet();
       }
     } catch (err: any) {
       console.error("AI suggestion error:", err);
