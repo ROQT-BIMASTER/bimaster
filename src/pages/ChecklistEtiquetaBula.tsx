@@ -33,6 +33,7 @@ import {
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 
 // ── Status helpers ──
 const ETAPA_LABELS: Record<string, string> = {
