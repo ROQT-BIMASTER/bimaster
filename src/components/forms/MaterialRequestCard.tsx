@@ -246,16 +246,9 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
               type="button"
               size="sm"
               onClick={handleConfirm}
-              disabled={!selectedStore || state === "submitting"}
+              disabled={!selectedStore}
             >
-              {state === "submitting" ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                  Enviando...
-                </>
-              ) : (
-                "Confirmar Solicitação"
-              )}
+              Confirmar Solicitação
             </Button>
           </div>
         </div>
