@@ -1,49 +1,70 @@
 
 
-# Permitir Upload de Planilha de Referência para Sugestão IA
+# Auto-preenchimento de Endereço por CEP nos Formulários Dinâmicos
 
-## Resumo
+## Análise de APIs
 
-Adicionar a opção de upload de planilha (.xlsx, .xls, .csv) no painel de sugestão IA do builder. A planilha será lida no frontend, convertida em texto (cabeçalhos + primeiras linhas) e enviada junto com a descrição para a edge function gerar campos baseados na estrutura do documento.
+Existem 3 APIs públicas confiáveis para consulta de CEP no Brasil:
 
-## Abordagem
+1. **ViaCEP** (`viacep.com.br`) — Gratuita, sem autenticação, sem limite oficial. Retorna logradouro, bairro, cidade, UF. Formato: `https://viacep.com.br/ws/{cep}/json/`
+2. **BrasilAPI** (`brasilapi.com.br/api/cep/v2/{cep}`) — Gratuita, agrega múltiplas fontes (Correios, ViaCEP, WideNet). Mais resiliente.
+3. **Correios** (API oficial) — Requer cadastro e token. Menos prática.
 
-A leitura da planilha será feita no frontend usando a biblioteca `exceljs` (já instalada no projeto — `src/lib/excel-utils.ts`). Os dados extraídos (cabeçalhos + amostra de 5 linhas) serão enviados como texto no campo `description` para a edge function, sem necessidade de alteração no backend.
+**Recomendação:** Usar **BrasilAPI como primária** com **ViaCEP como fallback**. Ambas são gratuitas, sem necessidade de API key, e podem ser chamadas diretamente do frontend (CORS habilitado). Isso elimina a necessidade de edge function.
+
+## Solução
+
+Adicionar o tipo de campo `address` (endereço) ao sistema de formulários dinâmicos. Quando o usuário digita um CEP, o sistema busca automaticamente e preenche logradouro, bairro, cidade e UF.
 
 ## Alterações
 
-### 1. `src/pages/DynamicFormBuilder.tsx`
+### 1. Novo componente `src/components/forms/CepAddressField.tsx`
 
-- Adicionar estado `aiSpreadsheetData` (string | null) para armazenar o texto extraído da planilha
-- Adicionar estado `aiSpreadsheetName` (string | null) para exibir o nome do arquivo
-- Criar função `handleSpreadsheetUpload`:
-  - Aceitar `.xlsx`, `.xls`, `.csv`
-  - Usar `ExcelJS.Workbook` para ler o arquivo
-  - Extrair cabeçalhos + primeiras 5 linhas de cada aba
-  - Formatar como texto: `"Planilha: [nome]. Aba [X]: Colunas: A, B, C. Linhas exemplo: [...]"`
-  - Salvar no estado
-- No painel IA, adicionar botão "Enviar planilha de referência" ao lado do botão de imagem existente
-  - Input file accept=`.xlsx,.xls,.csv`
-  - Quando carregado, mostrar badge com nome do arquivo + botão X para remover
-- Na função `handleSuggestAI`, concatenar `aiSpreadsheetData` ao `description` enviado para a edge function
-
-### 2. `supabase/functions/suggest-form-fields/index.ts`
-
-- Atualizar o system prompt para incluir instrução: "Se dados de planilha forem fornecidos, use os cabeçalhos e dados de exemplo para inferir os tipos de campo corretos (texto, número, data, select, etc.)"
-- Sem mudança estrutural — os dados da planilha chegam como texto no campo `description`
-
-## Fluxo
+Campo composto que renderiza:
+- Input de CEP com máscara `00000-000`
+- Ao digitar 8 dígitos, dispara busca automática (BrasilAPI → fallback ViaCEP)
+- Spinner de loading durante a consulta
+- Preenche automaticamente: Logradouro, Bairro, Cidade, UF
+- Todos os campos editáveis após preenchimento
+- O valor salvo é um objeto JSON: `{ cep, logradouro, bairro, cidade, uf, numero, complemento }`
 
 ```text
-Usuário seleciona planilha (.xlsx) →
-  Frontend lê com ExcelJS →
-  Extrai: "Colunas: Nome, Preço, Quantidade, Categoria. Exemplo: João, 15.90, 3, Bebidas" →
-  Envia como parte do description para suggest-form-fields →
-  IA retorna campos tipados (text, price, number, select com opções)
+Fluxo:
+  CEP digitado (8 dígitos) →
+    fetch brasilapi.com.br/api/cep/v2/{cep} →
+      sucesso? → preenche campos
+      falha? → fetch viacep.com.br/ws/{cep}/json/ →
+        sucesso? → preenche campos
+        falha? → toast "CEP não encontrado"
 ```
+
+### 2. Atualizar `src/components/forms/DynamicFormRenderer.tsx`
+
+- Importar `CepAddressField`
+- Adicionar case `field.field_type === "address"` que renderiza o componente
+- O valor é armazenado como objeto JSON no `values[field.id]`
+
+### 3. Atualizar `src/components/forms/FormFieldCard.tsx`
+
+- Adicionar `"address"` à lista de tipos disponíveis no dropdown com label "Endereço (CEP)"
+
+### 4. Atualizar `src/pages/DynamicFormBuilder.tsx`
+
+- Adicionar `"address"` ao array de tipos de campo disponíveis
+
+### 5. Atualizar `supabase/functions/suggest-form-fields/index.ts`
+
+- Adicionar `"address"` como tipo válido no prompt da IA, instruindo que campos de endereço devem usar este tipo
+
+## Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/DynamicFormBuilder.tsx` | Adicionar upload de planilha + extração |
-| `supabase/functions/suggest-form-fields/index.ts` | Atualizar system prompt |
+| `src/components/forms/CepAddressField.tsx` | Novo — campo composto com busca CEP |
+| `src/components/forms/DynamicFormRenderer.tsx` | Adicionar case `address` |
+| `src/components/forms/FormFieldCard.tsx` | Adicionar tipo `address` ao dropdown |
+| `src/pages/DynamicFormBuilder.tsx` | Adicionar tipo na lista |
+| `supabase/functions/suggest-form-fields/index.ts` | Incluir `address` no prompt |
+
+Nenhuma migration necessária — o valor é salvo como JSONB no `dynamic_form_answers.value`.
 
