@@ -647,7 +647,7 @@ export function HierarquiaUsuarios() {
               <CardContent>
                 <div className="space-y-2">
                   {usuarios
-                    .filter(u => u.role === 'admin')
+                    .filter(u => u.role === 'admin' && matchesSearch(u))
                     .map(admin => renderUsuario(admin, 0))}
                 </div>
               </CardContent>
