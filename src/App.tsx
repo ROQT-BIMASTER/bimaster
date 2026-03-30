@@ -244,6 +244,8 @@ const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilC
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
+const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
+const DynamicFormPublic = lazyWithRetry(() => import("./pages/DynamicFormPublic"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
@@ -670,6 +672,10 @@ function AppContent() {
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
+            <Route path="/formulario-dinamico" element={<DynamicFormPublic />} />
+
+            {/* Builder de formulários dinâmicos — protegido */}
+            <Route path="/dashboard/trade/formularios/builder" element={<ProtectedRoute><DynamicFormBuilder /></ProtectedRoute>} />
             <Route path="/cofre-share" element={<CofreSharePage />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
