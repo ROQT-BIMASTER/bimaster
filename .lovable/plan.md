@@ -1,52 +1,45 @@
 
 
-# Importar Respostas da Planilha para o Formulário "envio Presskits"
+# Dashboard Público de Respostas do Formulário
 
 ## Resumo
 
-A planilha tem 78 respostas com 10 colunas (Timestamp, E-mail, Razão Social, Qtd Lojas, Nome Completo, Telefone, Endereço, Cidade/Estado, CEP, Representante). O formulário atual tem apenas 5 campos genéricos (Nome, Cargo, Departamento, E-mail, Telefone) que não correspondem à planilha.
+Criar uma versão pública (sem autenticação) do dashboard de respostas, acessível via link compartilhável. Usuários externos que preencheram o formulário poderão ver KPIs e gráficos de distribuição, mas **sem** acesso à análise IA nem aos dados individuais das respostas (protegendo privacidade).
 
-Precisamos: (1) atualizar os campos do formulário para refletir as colunas da planilha, (2) inserir as 78 respostas como `dynamic_form_responses` + `dynamic_form_answers`.
+## Abordagem
+
+Criar uma nova página leve `DynamicFormDashboardPublic.tsx` que reutiliza a lógica de carregamento e visualização do dashboard existente, mas:
+- Sem `DashboardLayout` / `ProtectedRoute` — layout standalone limpo
+- Sem botão de análise IA (requer auth)
+- Sem tabela de respostas individuais (protege dados sensíveis)
+- Apenas: KPIs (total respostas, respostas hoje) + gráficos de distribuição por campo
+- Acessível via rota pública `/formulario-dashboard?id=FORM_ID`
 
 ## Alterações
 
-### 1. Migration — Atualizar campos do formulário + inserir dados
+### 1. `src/pages/DynamicFormDashboardPublic.tsx` — Novo
 
-Uma única migration SQL que:
+- Página standalone com header simples (nome do formulário + logo)
+- Carrega form + fields + responses via Supabase (as tabelas já possuem RLS que permite leitura)
+- Exibe KPIs: total respostas, respostas hoje
+- Exibe gráficos de distribuição (BarChart/PieChart) para campos select/radio/rating
+- Sem tabela de respostas, sem análise IA, sem navegação interna
 
-**a) Remove os 5 campos atuais** do formulário `d5db9e59-ac9b-45e5-8ad1-d878a06be621` e **cria 10 novos campos** mapeados às colunas da planilha:
+### 2. `src/App.tsx` — Adicionar rota
 
-| # | Label | Tipo | Obrigatório |
-|---|-------|------|-------------|
-| 0 | E-mail Corporativo | text | sim |
-| 1 | Razão Social (Nome da Loja/Cliente) | text | sim |
-| 2 | Quantas Lojas no TOTAL? | text | não |
-| 3 | Nome Completo (responsável Marketing) | text | sim |
-| 4 | Telefone com DDD | text | sim |
-| 5 | Endereço | text | sim |
-| 6 | Cidade, Estado | text | sim |
-| 7 | CEP | text | não |
-| 8 | Nome do Representante | text | não |
+- Rota pública: `/formulario-dashboard` → `DynamicFormDashboardPublic`
 
-(Timestamp vira o `created_at` da response, não precisa de campo próprio)
+### 3. `src/components/forms/DynamicFormRenderer.tsx` — Link pós-envio
 
-**b) Insere 78 `dynamic_form_responses`** (uma por linha da planilha) com `created_at` do timestamp original e `metadata: {"fonte": "importacao_planilha"}`.
+- Após submissão bem-sucedida, exibir link/botão "📊 Ver estatísticas" que abre `/formulario-dashboard?id=FORM_ID` em nova aba
 
-**c) Insere os `dynamic_form_answers`** correspondentes (78 × 9 campos = ~702 registros), cada um referenciando o `field_id` correto e `response_id` correto.
+### 4. RLS — Verificar acesso público
 
-### 2. Atualizar status do formulário
+- Confirmar que `dynamic_forms`, `dynamic_form_fields` e `dynamic_form_responses` permitem SELECT para anon (formulários ativos). Se não, criar policy para forms com status `active`.
 
-Mudar o status de `draft` para `active` para que o dashboard funcione.
+## Segurança
 
-### Nenhuma alteração de código
-
-Tudo é feito via migration SQL — os dados ficam disponíveis automaticamente no dashboard já criado.
-
-## Detalhes técnicos
-
-- A migration usará `gen_random_uuid()` para IDs
-- Os valores serão inseridos como JSONB strings (ex: `'"nayiriasloja@gmail.com"'::jsonb`)
-- O timestamp da planilha será convertido para `timestamptz`
-- Campos antigos serão deletados com `DELETE FROM dynamic_form_fields WHERE form_id = '...'`
-- Respostas antigas (se houver) também serão limpas
+- Nenhum dado individual é exposto — apenas agregações (contagens, distribuições)
+- Análise IA não disponível no modo público
+- Dados de metadata/user_id nunca expostos
 
