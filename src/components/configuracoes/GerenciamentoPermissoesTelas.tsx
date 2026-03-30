@@ -54,6 +54,7 @@ export const GerenciamentoPermissoesTelas = () => {
   useEffect(() => {
     fetchScreens();
     fetchUsuarios();
+    fetchModuloTelas();
   }, []);
 
   useEffect(() => {
