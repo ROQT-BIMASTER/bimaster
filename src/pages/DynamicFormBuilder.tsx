@@ -68,6 +68,8 @@ export default function DynamicFormBuilder() {
   const [aiImageBase64, setAiImageBase64] = useState<string | null>(null);
   const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
   const [aiCustomPrompt, setAiCustomPrompt] = useState("");
+  const [aiSpreadsheetData, setAiSpreadsheetData] = useState<string | null>(null);
+  const [aiSpreadsheetName, setAiSpreadsheetName] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
 
   const sensors = useSensors(
