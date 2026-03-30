@@ -358,28 +358,29 @@ export const GerenciamentoUsuarios = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Tem certeza que deseja remover este usuário?")) return;
+    const userToDelete = usuarios.find(u => u.id === userId);
+    if (!confirm(`Tem certeza que deseja remover permanentemente o usuário "${userToDelete?.nome || ''}" (${userToDelete?.email || ''})? Esta ação não pode ser desfeita.`)) return;
     
     try {
-      // A deleção em cascata cuidará dos vínculos em municipios_usuarios
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      // Remover de auth.users via edge function (que também deleta em cascata profiles, roles, etc.)
+      const { data, error: fnError } = await supabase.functions.invoke("delete-admin-user", {
+        body: { user_id: userId },
+      });
 
-      if (error) throw error;
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Usuário removido",
-        description: "O usuário foi removido com sucesso",
+        description: `${userToDelete?.nome || 'O usuário'} foi removido completamente do sistema`,
       });
       
       fetchUsuarios();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao remover usuário:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover o usuário",
+        description: error.message || "Não foi possível remover o usuário",
         variant: "destructive",
       });
     }

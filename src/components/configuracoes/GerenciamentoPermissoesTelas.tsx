@@ -168,6 +168,8 @@ export const GerenciamentoPermissoesTelas = () => {
     }
   };
 
+  const selectedUser = usuarios.find(u => u.id === selectedUsuario);
+
   const handleSave = async () => {
     if (!selectedUsuario) return;
 
@@ -230,8 +232,6 @@ export const GerenciamentoPermissoesTelas = () => {
       setSaving(false);
     }
   };
-
-  const selectedUser = usuarios.find(u => u.id === selectedUsuario);
   const isUserAdmin = selectedUser?.role === 'admin';
 
   return (
