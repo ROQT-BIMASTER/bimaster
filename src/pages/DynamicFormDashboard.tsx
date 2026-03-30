@@ -65,6 +65,7 @@ export default function DynamicFormDashboard() {
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [showAllColumns, setShowAllColumns] = useState(false);
 
   useEffect(() => {
     if (formId) loadData();
