@@ -118,7 +118,7 @@ export default function PortalPerfil() {
         .update({
           nome: formData.nome.trim(),
           telefone: formData.telefone.trim() || null,
-        })
+        } as any)
         .eq("id", userId!);
 
       if (error) throw error;
