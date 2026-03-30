@@ -607,14 +607,14 @@ function AppContent() {
             <Route path="/dashboard/marketing/mission-control" element={<ModuleRoute moduleCode="marketing"><MarketingMissionControlPage /></ModuleRoute>} />
 
             {/* Módulo de Projetos */}
-             <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><Projetos /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ProjetoInbox /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ProjetoAprovacaoCadastro /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ProjetosMinhaEquipe /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ProjetoVincularChina /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ProdutosBrasilListagem /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ProdutoBrasilCadastro /></ModuleRoute>} />
-             <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ProjetoDetalhe /></ModuleRoute>} />
+             <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/vincular-china" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_vincular_china"><ProjetoVincularChina /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/produto-brasil" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutosBrasilListagem /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/produto-brasil/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_produto_brasil"><ProdutoBrasilCadastro /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/:id" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><ProjetoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo OMS */}
             <Route path="/dashboard/oms" element={<ModuleRoute moduleCode="oms"><OmsPainelPedidos /></ModuleRoute>} />
