@@ -1,70 +1,54 @@
 
 
-# Auto-preenchimento de Endereço por CEP nos Formulários Dinâmicos
+# Solicitação de Materiais Vinculados ao Formulário
 
-## Análise de APIs
+## Resumo
 
-Existem 3 APIs públicas confiáveis para consulta de CEP no Brasil:
+Quando materiais estão vinculados a um formulário dinâmico, transformar a exibição deles de cards informativos para cards interativos com botão "Solicitar". Ao clicar, abrir um mini-formulário inline (loja + quantidade) que gera uma solicitação em `trade_material_solicitacoes` — o mesmo fluxo já existente no `MaterialOrderSheet`, reaproveitando a lógica de criação.
 
-1. **ViaCEP** (`viacep.com.br`) — Gratuita, sem autenticação, sem limite oficial. Retorna logradouro, bairro, cidade, UF. Formato: `https://viacep.com.br/ws/{cep}/json/`
-2. **BrasilAPI** (`brasilapi.com.br/api/cep/v2/{cep}`) — Gratuita, agrega múltiplas fontes (Correios, ViaCEP, WideNet). Mais resiliente.
-3. **Correios** (API oficial) — Requer cadastro e token. Menos prática.
-
-**Recomendação:** Usar **BrasilAPI como primária** com **ViaCEP como fallback**. Ambas são gratuitas, sem necessidade de API key, e podem ser chamadas diretamente do frontend (CORS habilitado). Isso elimina a necessidade de edge function.
-
-## Solução
-
-Adicionar o tipo de campo `address` (endereço) ao sistema de formulários dinâmicos. Quando o usuário digita um CEP, o sistema busca automaticamente e preenche logradouro, bairro, cidade e UF.
+As solicitações geradas ficam vinculadas à resposta do formulário (via metadata), permitindo rastreabilidade e aprovação pelo fluxo já existente de materiais.
 
 ## Alterações
 
-### 1. Novo componente `src/components/forms/CepAddressField.tsx`
+### 1. `src/components/forms/DynamicFormRenderer.tsx`
 
-Campo composto que renderiza:
-- Input de CEP com máscara `00000-000`
-- Ao digitar 8 dígitos, dispara busca automática (BrasilAPI → fallback ViaCEP)
-- Spinner de loading durante a consulta
-- Preenche automaticamente: Logradouro, Bairro, Cidade, UF
-- Todos os campos editáveis após preenchimento
-- O valor salvo é um objeto JSON: `{ cep, logradouro, bairro, cidade, uf, numero, complemento }`
+**Substituir** os cards estáticos de materiais por cards interativos:
+- Cada material vinculado exibe foto, nome, descrição + botão "Solicitar"
+- Ao clicar "Solicitar", expande um painel inline com:
+  - Seletor de loja (Combobox com busca, reutilizando `useFilteredStores`)
+  - Seletor de quantidade (+/- com limites do material)
+  - Botão "Confirmar Solicitação"
+- Ao confirmar, insere em `trade_material_solicitacoes` com metadata `{ origem: "formulario", form_id, response_id }`
+- Exibe badge "Solicitado ✓" após envio, impedindo duplicidade
+- As solicitações são feitas **antes** do submit do formulário (independentes) ou **junto** — salvar no estado e submeter após o form submit
+
+### 2. Novo componente `src/components/forms/MaterialRequestCard.tsx`
+
+Card encapsulado para cada material vinculado:
+- Props: `material`, `formId`, `onRequested`
+- Usa `useFilteredStores` para seletor de loja
+- Usa `useCreateSolicitacao` de `useTradeMateriais`
+- Estados: idle → selecting → submitted
+- Gera protocolo no mesmo formato `MAT-YYMMDD-XXXX`
+
+### 3. Fluxo
 
 ```text
-Fluxo:
-  CEP digitado (8 dígitos) →
-    fetch brasilapi.com.br/api/cep/v2/{cep} →
-      sucesso? → preenche campos
-      falha? → fetch viacep.com.br/ws/{cep}/json/ →
-        sucesso? → preenche campos
-        falha? → toast "CEP não encontrado"
+Formulário carrega → materiais vinculados exibidos como cards
+  → Usuário clica "Solicitar" em material X
+    → Expande: [Loja ▼] [Qtd: 1 +/-] [Confirmar]
+    → Confirma → trade_material_solicitacoes.insert(...)
+    → Card muda para "✓ Solicitado — Protocolo MAT-XXXX"
+  → Usuário preenche campos normais do formulário
+  → Submit do formulário registra as respostas normalmente
 ```
-
-### 2. Atualizar `src/components/forms/DynamicFormRenderer.tsx`
-
-- Importar `CepAddressField`
-- Adicionar case `field.field_type === "address"` que renderiza o componente
-- O valor é armazenado como objeto JSON no `values[field.id]`
-
-### 3. Atualizar `src/components/forms/FormFieldCard.tsx`
-
-- Adicionar `"address"` à lista de tipos disponíveis no dropdown com label "Endereço (CEP)"
-
-### 4. Atualizar `src/pages/DynamicFormBuilder.tsx`
-
-- Adicionar `"address"` ao array de tipos de campo disponíveis
-
-### 5. Atualizar `supabase/functions/suggest-form-fields/index.ts`
-
-- Adicionar `"address"` como tipo válido no prompt da IA, instruindo que campos de endereço devem usar este tipo
 
 ## Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/forms/CepAddressField.tsx` | Novo — campo composto com busca CEP |
-| `src/components/forms/DynamicFormRenderer.tsx` | Adicionar case `address` |
-| `src/components/forms/FormFieldCard.tsx` | Adicionar tipo `address` ao dropdown |
-| `src/pages/DynamicFormBuilder.tsx` | Adicionar tipo na lista |
-| `supabase/functions/suggest-form-fields/index.ts` | Incluir `address` no prompt |
+| `src/components/forms/MaterialRequestCard.tsx` | Novo — card interativo de solicitação |
+| `src/components/forms/DynamicFormRenderer.tsx` | Substituir cards estáticos por `MaterialRequestCard` |
 
-Nenhuma migration necessária — o valor é salvo como JSONB no `dynamic_form_answers.value`.
+Nenhuma migration necessária — reutiliza `trade_material_solicitacoes` existente.
 
