@@ -11,7 +11,7 @@ interface TradeStats {
   totalStores: number;
   visitsThisMonth: number;
   photosThisMonth: number;
-  totalInvestments: number;
+  totalSellOut: number;
 }
 
 export const TradeDashboardWidget = memo(() => {
