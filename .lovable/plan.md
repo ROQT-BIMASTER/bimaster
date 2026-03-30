@@ -1,74 +1,112 @@
 
 
-# Auditoria de Hierarquia — Falhas e Melhorias
+# Auditoria do Modulo Trade Marketing — O Que Falta Terminar
 
-## Problemas Encontrados
+## Estado Atual
 
-### 1. `usuario_tem_acesso_loja` ignora o role "gerente"
+O modulo Trade tem **~50 rotas** registradas no `App.tsx`, **~27 itens** no sidebar, e cobre: PDVs, Visitas, Fotos, Sell Out, Auditorias, Shelf, Marcas, Competidores, Campanhas, Verbas, Financeiro, Performance, Premiações, Materiais, Banners, Incentivos, Insights IA e WhatsApp.
 
-A funcao (migration `20251030184321`) verifica apenas `admin` e `supervisor` por role explícito. Um gerente NAO tem bypass — ele so acessa lojas se for supervisor direto via `is_supervisor_of()`. Porem, `is_admin_or_supervisor()` ja inclui gerente. A funcao `usuario_tem_acesso_loja` deveria usar `is_admin_or_supervisor()` em vez de `has_role(_, 'admin')` e `has_role(_, 'supervisor')` separados.
+A estrutura geral esta funcional, mas ha falhas criticas de consistencia e areas incompletas.
 
-**Impacto**: Gerentes podem nao ver lojas de seus subordinados indiretos.
+---
 
-### 2. `get_subordinados` nao filtra por status
+## Problema 1: Screen codes INCONSISTENTES entre sidebar e rotas (CRITICO)
 
-A RPC retorna TODOS os subordinados, incluindo usuarios com `status != 'ativo'`. Isso significa que dados de usuarios inativos/desligados aparecem em dashboards de equipe, mapa, e rankings.
+O sidebar (`AppSidebar.tsx`) usa codigos MAIUSCULOS para alguns itens, enquanto as rotas (`App.tsx`) usam codigos minusculos diferentes:
 
-**Impacto**: Supervisores veem dados de usuarios desligados.
+| Sidebar screenCode | Rota screenCode (App.tsx) | Item |
+|---|---|---|
+| `TRADE_DASHBOARD` | `trade_performance` | Performance |
+| `TRADE_DASHBOARD` | `trade_equipe` | Minha Equipe |
+| `TRADE_LOJAS` | `trade_stores` | PDVs |
+| `TRADE_VISITAS` | `trade_visits` | Visitas |
+| `TRADE_FOTOS` | `trade_photos` | Fotos |
+| `TRADE_AUDITORIAS` | `trade_auditorias` | Auditorias |
 
-### 3. HierarquiaUsuarios.tsx — role "gerente" nao aparece nas estatísticas
+**Impacto**: Um usuario pode VER o item no sidebar (permissao `TRADE_DASHBOARD` concedida) mas ao clicar ser BLOQUEADO pela rota (que exige `trade_performance`). Ou o inverso: ter acesso pela rota mas o item nao aparecer no sidebar.
 
-O card de estatísticas (linha 514) mostra Admin, Supervisor, Vendedor, Promotor — mas NAO mostra Gerente. O campo `stats.gerentes` e calculado mas nunca renderizado. Gerentes aparecem como "supervisores" na arvore (linha 121: `u.role === 'supervisor' || u.role === 'gerente'`), misturando os dois.
+**Correcao**: Padronizar todos os screen codes para lowercase (o formato usado nas rotas).
 
-### 4. HierarquiaUsuarios.tsx — "Sem Supervisor" exclui gerentes indevidamente
+## Problema 2: Itens do sidebar com screenCode generico demais
 
-Linha 691/712: o filtro `u.role !== 'supervisor'` exclui supervisores sem superior, mas NAO exclui gerentes. Um gerente sem `supervisor_id` nao deveria aparecer como "sem supervisor" (gerentes sao nivel 2 na hierarquia).
+Varios itens usam `TRADE_DASHBOARD` como screenCode generico:
+- Minha Equipe
+- Promocoes
+- Performance
+- Equipe Performance
+- Ranking
 
-### 5. Coluna `gerente_id` na tabela profiles e redundante
+Isso significa que nao ha controle granular — se o usuario tem `TRADE_DASHBOARD`, ve TODOS esses itens. Mas as rotas no `App.tsx` usam screen codes especificos (`trade_performance`, `trade_equipe`, `trade_ranking`), entao o acesso real pode falhar.
 
-`profiles` tem AMBOS `supervisor_id` e `gerente_id`. Apenas `supervisor_id` e usado pela hierarquia recursiva (`get_subordinados`, `is_supervisor_of`). `gerente_id` e usado apenas em 1 lugar (`ProjetoTarefaDetalhe.tsx` linha 208: `profile?.supervisor_id || profile?.gerente_id`). Isso cria ambiguidade — qual campo e o "verdadeiro" superior?
+**Correcao**: Usar os mesmos screen codes da rota no sidebar.
 
-### 6. `isAdminOrSupervisor` no frontend inclui gerente, mas nome e enganoso
+## Problema 3: Pagina de "Visao Executiva" nao esta no sidebar Trade
 
-`useUserRole.ts` define `isAdminOrSupervisor = admin || gerente || supervisor`. O nome sugere apenas 2 roles, mas inclui 3. Todos os 37 componentes que usam esse flag assumem comportamento de "gestao", o que esta correto, mas o nome causa confusao.
+A rota `/dashboard/trade/admin/executivo` existe (linha 424) mas NAO aparece no `tradeSubMenus`. So e acessivel via link manual dentro do `TradeAdminModule`.
 
-### 7. Drag-and-drop ausente na hierarquia
+## Problema 4: Performance/Rewards acessiveis a todos no sidebar mas restritos na rota
 
-A interface de hierarquia usa Select dropdowns para vincular supervisores. Com muitos usuarios, reorganizar a arvore e lento e propenso a erros. Nao ha visualizacao de organograma.
+- `trade_rewards` usa screenCode correto no sidebar E na rota — OK
+- `trade_performance` na rota exige `trade_performance`, mas o sidebar usa `TRADE_DASHBOARD` — Inconsistente
 
-### 8. Sem auditoria de mudancas hierarquicas
+## Problema 5: Paginas sem ModuleBreadcrumb
 
-Trocar o `supervisor_id` de um usuario nao gera log. Nao ha historico de quem alterou a hierarquia, quando, ou qual era o estado anterior.
+Algumas paginas trade nao possuem `ModuleBreadcrumb` para navegacao:
+- `TradeRewards`
+- `TradePromotions`
+- `TradeCalendar` (tem breadcrumb)
+- `TradeCompetitors` (verificar)
 
-### 9. Role "cliente" existe no frontend mas nao no banco
+## Problema 6: KPI "Sell Out" na home mostra investimentos, nao sell out
 
-`useUserRole.ts` reconhece o tipo "cliente", mas o enum `app_role` no banco NAO inclui "cliente". Se um usuario tiver esse role atribuído manualmente, a RPC falharia.
+No `TradeModule.tsx` linha 48, o card "Sell Out" exibe `totalInvestments` (da tabela `trade_investments`), nao dados reais de sell out. E enganoso.
 
-## Plano de Melhorias
+## Problema 7: Financeiro Trade vs Financeiro Geral — ambiguidade no sidebar
 
-### Fase 1 — Correcoes criticas de dados
+O sidebar mostra itens de "Verbas" e "Campanhas" tanto no modulo Trade quanto no Financeiro, usando as mesmas rotas (`/dashboard/trade/financeiro/*`). Isso pode confundir usuarios que nao entendem que sao os mesmos dados.
 
-1. **Recriar `usuario_tem_acesso_loja`**: Usar `is_admin_or_supervisor()` para o bypass inicial, cobrindo admin+gerente+supervisor
-2. **Filtrar inativos em `get_subordinados`**: Adicionar `AND status = 'ativo'` na CTE recursiva (ou join com profiles para verificar)
-3. **HierarquiaUsuarios.tsx**: Adicionar card de Gerentes; excluir gerentes do bloco "Sem Supervisor"; separar visualmente gerentes de supervisores na arvore
+---
 
-### Fase 2 — Limpeza estrutural
+## Plano de Correcao
 
-4. **Deprecar `gerente_id`**: Migrar o unico uso em `ProjetoTarefaDetalhe.tsx` para usar apenas `supervisor_id`. Marcar a coluna como deprecated (comment SQL)
-5. **Renomear `isAdminOrSupervisor`**: Alias para `isManager` (manter retrocompatibilidade com export do nome antigo)
-6. **Adicionar auditoria**: Trigger SQL que insere em `audit_logs` ao alterar `supervisor_id` em profiles
+### Fase 1 — Screen codes (critico, afeta acesso)
 
-### Fase 3 — UX
+1. **AppSidebar.tsx**: Padronizar TODOS os screen codes do Trade para lowercase, alinhando com os codigos usados nas rotas:
 
-7. **Organograma visual**: Renderizar a hierarquia como arvore com linhas de conexao (CSS tree) em vez de lista indentada
-8. **Busca e filtro**: Adicionar campo de busca por nome/email na tela de hierarquia
+```
+TRADE_DASHBOARD → trade_marketing (home do modulo)
+TRADE_LOJAS → trade_stores
+TRADE_VISITAS → trade_visits
+TRADE_FOTOS → trade_photos
+TRADE_AUDITORIAS → trade_auditorias
+```
 
-## Arquivos afetados
+2. Usar screen codes granulares em vez de `TRADE_DASHBOARD` generico:
+- Performance → `trade_performance`
+- Equipe Performance → `trade_performance`
+- Minha Equipe → `trade_equipe`
+- Promocoes → `trade_promotions`
+- Ranking → `trade_ranking`
+
+3. Adicionar "Visao Executiva" ao sidebar com screenCode `trade_admin`
+
+### Fase 2 — Dados e UX
+
+4. **TradeModule.tsx**: Corrigir KPI "Sell Out" para buscar da tabela `sell_out_entries` em vez de `trade_investments`
+
+5. **TradeRewards / TradePromotions**: Adicionar `ModuleBreadcrumb` para navegacao consistente
+
+### Fase 3 — Telas no banco
+
+6. Verificar se os screen codes padronizados ja existem na tabela `telas_sistema`. Se nao existirem, criar via migration INSERT.
+
+## Arquivos Afetados
 
 | Arquivo | Acao |
 |---------|------|
-| Migration SQL | Recriar `usuario_tem_acesso_loja` com `is_admin_or_supervisor`; filtrar inativos em `get_subordinados`; trigger de auditoria |
-| `src/components/configuracoes/HierarquiaUsuarios.tsx` | Card gerente; filtro corrigido; organograma visual |
-| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Remover uso de `gerente_id` |
-| `src/hooks/useUserRole.ts` | Adicionar alias `isManager` |
+| `src/components/dashboard/AppSidebar.tsx` | Padronizar screen codes do Trade |
+| `src/pages/modules/TradeModule.tsx` | Corrigir KPI Sell Out |
+| `src/pages/TradeRewards.tsx` | Adicionar ModuleBreadcrumb |
+| `src/pages/TradePromotions.tsx` | Adicionar ModuleBreadcrumb |
+| Migration SQL | INSERT telas faltantes em telas_sistema |
 
