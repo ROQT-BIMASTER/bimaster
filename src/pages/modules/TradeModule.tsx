@@ -39,19 +39,19 @@ const TradeModule = () => {
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
       
-      const [visitsRes, photosRes, investmentsRes] = await Promise.all([
+      const [visitsRes, photosRes, sellOutRes] = await Promise.all([
         supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
         supabase.from("photos").select("*", { count: "exact", head: true }),
-        supabase.from("trade_investments").select("amount")
+        supabase.from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
       ]);
 
-      const totalInvestments = investmentsRes.data?.reduce((sum, i) => sum + (parseFloat(i.amount as any) || 0), 0) || 0;
+      const totalSellOut = sellOutRes.data?.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0) || 0;
 
       return {
         totalStores: filteredStores.length,
         visitsMonth: visitsRes.count || 0,
         totalPhotos: photosRes.count || 0,
-        totalInvestments
+        totalSellOut
       };
     },
     enabled: !storesLoading,
