@@ -184,6 +184,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
       if (isMountedRef.current) {
         console.log("[PermissionsContext] Finalizando fetchPermissions");
         setLoading(false);
+        setPermissionsReady(true);
       }
     }
   }, []);
