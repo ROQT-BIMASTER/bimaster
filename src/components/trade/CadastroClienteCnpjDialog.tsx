@@ -185,61 +185,7 @@ export function CadastroClienteCnpjDialog({
     }
   };
 
-  // Step 2 (duplicate): Vincular ao existente
-  const handleVincular = async () => {
-    if (!existingStore) return;
-    setLoading(true);
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      // Check if already linked
-      const { data: existingLink } = await supabase
-        .from("store_sellers")
-        .select("id")
-        .eq("store_id", existingStore.id)
-        .eq("vendedor_id", user.id)
-        .limit(1);
-
-      if (existingLink && existingLink.length > 0) {
-        toast.info("Você já está vinculado a este cliente");
-        onSuccess?.(existingStore.id, existingStore.name);
-        handleClose(false);
-        return;
-      }
-
-      const { error } = await supabase.from("store_sellers").insert({
-        store_id: existingStore.id,
-        vendedor_id: user.id,
-        is_principal: false,
-        created_by: user.id,
-      });
-
-      if (error) throw error;
-
-      // Audit log
-      await supabase.from("audit_logs").insert([{
-        action: "vinculacao_cliente_existente",
-        entity_type: "store",
-        entity_id: existingStore.id,
-        user_id: user.id,
-        metadata: {
-          cnpj: cleanCnpj,
-          store_name: existingStore.name,
-          origem: "cadastro_cnpj_dialog",
-        } as any,
-      }]);
-
-      toast.success(`Vinculado ao cliente: ${existingStore.name}`);
-      onSuccess?.(existingStore.id, existingStore.name);
-      handleClose(false);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao vincular cliente");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Step 3 (review): Cadastrar novo
   const handleCadastrar = async () => {
