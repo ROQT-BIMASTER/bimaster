@@ -31,6 +31,7 @@ import {
 import { FormFieldCard, type FormField } from "@/components/forms/FormFieldCard";
 import { FieldConfigPanel } from "@/components/forms/FieldConfigPanel";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import { FormAttachmentsPanel } from "@/components/forms/FormAttachmentsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare } from "lucide-react";
@@ -66,6 +67,7 @@ export default function DynamicFormBuilder() {
   const [aiImageBase64, setAiImageBase64] = useState<string | null>(null);
   const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
   const [aiCustomPrompt, setAiCustomPrompt] = useState("");
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -109,6 +111,38 @@ export default function DynamicFormBuilder() {
           placeholder: f.placeholder || "",
           validation: f.validation || {},
           order_index: f.order_index,
+        }))
+      );
+    }
+
+    // Load attachments
+    const { data: attData } = await supabase
+      .from("dynamic_form_attachments" as any)
+      .select("*")
+      .eq("form_id", id)
+      .order("order_index");
+
+    if (attData) {
+      // Enrich with names
+      const bannerIds = (attData as any[]).filter((a) => a.attachment_type === "banner").map((a) => a.attachment_id);
+      const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
+
+      let bannerMap: Record<string, string> = {};
+      let materialMap: Record<string, string> = {};
+
+      if (bannerIds.length) {
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo").in("id", bannerIds);
+        (b || []).forEach((x: any) => { bannerMap[x.id] = x.titulo; });
+      }
+      if (materialIds.length) {
+        const { data: m } = await supabase.from("trade_materiais" as any).select("id, nome").in("id", materialIds);
+        ((m || []) as any[]).forEach((x: any) => { materialMap[x.id] = x.nome; });
+      }
+
+      setAttachments(
+        (attData as any[]).map((a) => ({
+          ...a,
+          name: a.attachment_type === "banner" ? bannerMap[a.attachment_id] : materialMap[a.attachment_id],
         }))
       );
     }
@@ -284,6 +318,18 @@ export default function DynamicFormBuilder() {
         .insert(fieldInserts as any);
 
       if (fieldErr) throw fieldErr;
+
+      // Save attachments
+      await supabase.from("dynamic_form_attachments" as any).delete().eq("form_id", formId);
+      if (attachments.length > 0) {
+        const attInserts = attachments.map((a: any, i: number) => ({
+          form_id: formId,
+          attachment_type: a.attachment_type,
+          attachment_id: a.attachment_id,
+          order_index: i,
+        }));
+        await supabase.from("dynamic_form_attachments" as any).insert(attInserts as any);
+      }
 
       toast.success(
         status === "active"
@@ -508,6 +554,13 @@ export default function DynamicFormBuilder() {
                 </Card>
               )}
 
+              {/* Attachments Panel */}
+              <FormAttachmentsPanel
+                formId={savedFormId}
+                attachments={attachments}
+                onChange={setAttachments}
+              />
+
               {/* Stats */}
               <Card>
                 <CardContent className="p-4">
@@ -518,6 +571,10 @@ export default function DynamicFormBuilder() {
                       <span className="font-medium text-foreground">
                         {fields.filter((f) => f.required).length}
                       </span>
+                    </p>
+                    <p>
+                      Vínculos:{" "}
+                      <span className="font-medium text-foreground">{attachments.length}</span>
                     </p>
                   </div>
                 </CardContent>

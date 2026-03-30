@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, ImageIcon, Package } from "lucide-react";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
@@ -41,6 +41,8 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [attachedBanners, setAttachedBanners] = useState<any[]>([]);
+  const [attachedMaterials, setAttachedMaterials] = useState<any[]>([]);
 
   useEffect(() => {
     loadForm();
@@ -74,6 +76,28 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       });
       setValues(initial);
     }
+
+    // Load attachments
+    const { data: attData } = await supabase
+      .from("dynamic_form_attachments" as any)
+      .select("*")
+      .eq("form_id", formId)
+      .order("order_index");
+
+    if (attData && (attData as any[]).length > 0) {
+      const bannerIds = (attData as any[]).filter((a) => a.attachment_type === "banner").map((a) => a.attachment_id);
+      const materialIds = (attData as any[]).filter((a) => a.attachment_type === "material").map((a) => a.attachment_id);
+
+      if (bannerIds.length) {
+        const { data: b } = await supabase.from("trade_banners").select("id, titulo, imagem_url, link_destino").in("id", bannerIds);
+        setAttachedBanners(b || []);
+      }
+      if (materialIds.length) {
+        const { data: m } = await supabase.from("trade_materiais" as any).select("id, nome, foto_url, descricao").in("id", materialIds);
+        setAttachedMaterials((m || []) as any[]);
+      }
+    }
+
     setLoading(false);
   }
 
@@ -177,6 +201,50 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
         {formDescription && <CardDescription>{formDescription}</CardDescription>}
       </CardHeader>
       <CardContent>
+        {/* Attached Banners */}
+        {attachedBanners.length > 0 && (
+          <div className="mb-6">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {attachedBanners.map((b: any) => (
+                <a
+                  key={b.id}
+                  href={b.link_destino || "#"}
+                  target={b.link_destino ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  <img
+                    src={b.imagem_url}
+                    alt={b.titulo}
+                    className="h-24 rounded-lg object-cover border"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Attached Materials */}
+        {attachedMaterials.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 gap-3">
+            {attachedMaterials.map((m: any) => (
+              <div key={m.id} className="flex items-center gap-3 border rounded-lg p-3">
+                {m.foto_url ? (
+                  <img src={m.foto_url} alt={m.nome} className="h-12 w-12 rounded-md object-cover" />
+                ) : (
+                  <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
+                    <Package className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium">{m.nome}</p>
+                  {m.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{m.descricao}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           {fields.map((field) => (
             <div key={field.id} className="space-y-2">
