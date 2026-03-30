@@ -165,7 +165,7 @@ export function VincularChinaTable({
     onSelectionChange(next);
   };
 
-  const activeFilterCount = [statusFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
+  const activeFilterCount = [statusFilter !== "todos", vinculoFilter !== "todos", filterProjeto && filterProjeto !== "todos", pendenciaFilter !== "todos"].filter(Boolean).length;
 
   // Pagination
   const PAGE_SIZE = 50;
