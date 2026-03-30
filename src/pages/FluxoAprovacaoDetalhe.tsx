@@ -315,6 +315,28 @@ export default function FluxoAprovacaoDetalhe() {
         readOnly={isFinished}
       />
 
+      {/* Documentos do Processo */}
+      {instancia.submissao_id && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Documentos do Processo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ProcessoDocumentosSelector
+              submissaoId={instancia.submissao_id}
+              moduloDestino="aprovacao_artes"
+              onSelectDoc={setSelectedProcessoDoc}
+            />
+            {selectedProcessoDoc?.despacho && (
+              <ProcessoEtapaInfo despacho={selectedProcessoDoc.despacho} />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Timeline */}
       <Card>
         <CardHeader>
