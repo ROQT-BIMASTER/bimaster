@@ -259,14 +259,17 @@ export function PermissoesDeAcesso() {
                           Acesso Total
                         </Badge>
                       </div>
+                     </th>
+                    <th className="text-center p-4 font-medium w-28">
+                      Gerente
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Supervisor
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Vendedor
                     </th>
-                    <th className="text-center p-4 font-medium w-32">
+                    <th className="text-center p-4 font-medium w-28">
                       Promotor
                     </th>
                   </tr>
