@@ -275,6 +275,7 @@ function FlowDialog({ open, onClose, etiqueta }: { open: boolean; onClose: () =>
   const [showDevolucao, setShowDevolucao] = useState(false);
   const [showVinculo, setShowVinculo] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selectedProcessoDoc, setSelectedProcessoDoc] = useState<ProcessoDoc | null>(null);
   const [regChecklist, setRegChecklist] = useState<RegulatorioItem[]>(
     etiqueta.regulatorio_checklist?.length
       ? etiqueta.regulatorio_checklist
