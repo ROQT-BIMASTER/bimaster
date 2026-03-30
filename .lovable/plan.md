@@ -1,75 +1,74 @@
 
 
-# Auditoria Final de Configuracoes — Falhas e Melhorias
+# Auditoria de Hierarquia — Falhas e Melhorias
 
 ## Problemas Encontrados
 
-### 1. DOM nesting error — `<button>` dentro de `<button>` (BUG ATIVO no console)
+### 1. `usuario_tem_acesso_loja` ignora o role "gerente"
 
-Em `GerenciamentoPermissoesTelas.tsx` linha 338-349, o `CollapsibleTrigger` renderiza como `<button>`, e dentro dele ha dois `<button>` nativos ("Todas" / "Nenhuma"). Isso causa o warning `validateDOMNesting` visivel no console e pode causar comportamento inconsistente de cliques em alguns browsers.
+A funcao (migration `20251030184321`) verifica apenas `admin` e `supervisor` por role explícito. Um gerente NAO tem bypass — ele so acessa lojas se for supervisor direto via `is_supervisor_of()`. Porem, `is_admin_or_supervisor()` ja inclui gerente. A funcao `usuario_tem_acesso_loja` deveria usar `is_admin_or_supervisor()` em vez de `has_role(_, 'admin')` e `has_role(_, 'supervisor')` separados.
 
-**Correcao**: Mover os botoes "Todas"/"Nenhuma" para FORA do `CollapsibleTrigger`, ao lado dele no mesmo container flex.
+**Impacto**: Gerentes podem nao ver lojas de seus subordinados indiretos.
 
-### 2. Permissoes de Modulos — toggle com logica ambigua no modo heranca
+### 2. `get_subordinados` nao filtra por status
 
-Em `GerenciamentoPermissoesModulos.tsx` linha 365-368, quando o usuario esta em modo heranca (sem overrides), o Switch mostra `checked={isActive}` (vindo de role/dept) mas `onCheckedChange` chama `toggleUserPermission(selectedUser, module.id, hasIndividual)`. Como `hasIndividual` e `false`, o toggle sempre INSERE um registro individual. Porem, o usuario ve o toggle como "ligado" (via role) e ao clicar espera "desligar", mas na verdade vai CRIAR um override individual para esse modulo — sem criar overrides para os outros modulos que ele tem via role. Resultado: o usuario perde acesso a TODOS os outros modulos que vinham do role, ficando apenas com esse unico modulo.
+A RPC retorna TODOS os subordinados, incluindo usuarios com `status != 'ativo'`. Isso significa que dados de usuarios inativos/desligados aparecem em dashboards de equipe, mapa, e rankings.
 
-**Correcao**: Ao entrar em modo override pela primeira vez, copiar TODAS as permissoes atuais do role+dept como base individual, e entao aplicar o toggle. Adicionar confirmacao visual antes de converter para modo override.
+**Impacto**: Supervisores veem dados de usuarios desligados.
 
-### 3. Mesmo problema em Permissoes de Telas
+### 3. HierarquiaUsuarios.tsx — role "gerente" nao aparece nas estatísticas
 
-Em `GerenciamentoPermissoesTelas.tsx`, o checkbox altera `userPermissions` (Set local) mas se o usuario esta em modo heranca e marca/desmarca uma unica tela, ao salvar, APENAS aquela tela ficara como override — perdendo todas as outras que vinham do role. O usuario precisa marcar TODAS as telas que deseja antes de salvar.
+O card de estatísticas (linha 514) mostra Admin, Supervisor, Vendedor, Promotor — mas NAO mostra Gerente. O campo `stats.gerentes` e calculado mas nunca renderizado. Gerentes aparecem como "supervisores" na arvore (linha 121: `u.role === 'supervisor' || u.role === 'gerente'`), misturando os dois.
 
-**Correcao**: Ao iniciar edicao de um usuario em modo heranca, pre-popular o Set `userPermissions` com as telas efetivas (role+dept) para que o usuario edite a partir do estado real. Adicionar aviso quando passando de heranca para override.
+### 4. HierarquiaUsuarios.tsx — "Sem Supervisor" exclui gerentes indevidamente
 
-### 4. Configuracoes.tsx — query redundante a `user_roles` (nao corrigido na implementacao anterior)
+Linha 691/712: o filtro `u.role !== 'supervisor'` exclui supervisores sem superior, mas NAO exclui gerentes. Um gerente sem `supervisor_id` nao deveria aparecer como "sem supervisor" (gerentes sao nivel 2 na hierarquia).
 
-Linhas 106-112 ainda fazem query manual a `user_roles` em vez de usar `usePermissions().role`. O plano anterior pedia essa correcao mas nao foi aplicado.
+### 5. Coluna `gerente_id` na tabela profiles e redundante
 
-**Correcao**: Substituir pela prop `role` do `usePermissions()`.
+`profiles` tem AMBOS `supervisor_id` e `gerente_id`. Apenas `supervisor_id` e usado pela hierarquia recursiva (`get_subordinados`, `is_supervisor_of`). `gerente_id` e usado apenas em 1 lugar (`ProjetoTarefaDetalhe.tsx` linha 208: `profile?.supervisor_id || profile?.gerente_id`). Isso cria ambiguidade — qual campo e o "verdadeiro" superior?
 
-### 5. GerenciamentoUsuarios — `confirm()` nativo para delete
+### 6. `isAdminOrSupervisor` no frontend inclui gerente, mas nome e enganoso
 
-Linha 375 usa `window.confirm()` que e bloqueante e nao segue o design system. Outros componentes ja usam `AlertDialog`.
+`useUserRole.ts` define `isAdminOrSupervisor = admin || gerente || supervisor`. O nome sugere apenas 2 roles, mas inclui 3. Todos os 37 componentes que usam esse flag assumem comportamento de "gestao", o que esta correto, mas o nome causa confusao.
 
-**Correcao**: Substituir por `AlertDialog` do Radix.
+### 7. Drag-and-drop ausente na hierarquia
 
-### 6. GerenciamentoUsuarios — tabela sem paginacao
+A interface de hierarquia usa Select dropdowns para vincular supervisores. Com muitos usuarios, reorganizar a arvore e lento e propenso a erros. Nao ha visualizacao de organograma.
 
-Com muitos usuarios, a tabela renderiza tudo de uma vez. Sem virtualizacao nem paginacao.
+### 8. Sem auditoria de mudancas hierarquicas
 
-**Correcao**: Adicionar paginacao simples (20 por pagina) com controles prev/next.
+Trocar o `supervisor_id` de um usuario nao gera log. Nao ha historico de quem alterou a hierarquia, quando, ou qual era o estado anterior.
 
-### 7. Tooltip badges dentro de TooltipTrigger sem asChild
+### 9. Role "cliente" existe no frontend mas nao no banco
 
-Em `GerenciamentoPermissoesModulos.tsx` linhas 346-347, o `TooltipTrigger` envolve um `Badge` diretamente. Se o Badge nao aceita `ref`, o tooltip pode nao funcionar. Deveria usar `asChild` ou envolver em `<span>`.
+`useUserRole.ts` reconhece o tipo "cliente", mas o enum `app_role` no banco NAO inclui "cliente". Se um usuario tiver esse role atribuído manualmente, a RPC falharia.
 
-**Correcao**: Adicionar wrapper `<span>` dentro de `TooltipTrigger` ou usar `asChild`.
+## Plano de Melhorias
 
-## Plano de Correcao
+### Fase 1 — Correcoes criticas de dados
 
-### Fase 1 — Bugs criticos (afetam funcionalidade)
+1. **Recriar `usuario_tem_acesso_loja`**: Usar `is_admin_or_supervisor()` para o bypass inicial, cobrindo admin+gerente+supervisor
+2. **Filtrar inativos em `get_subordinados`**: Adicionar `AND status = 'ativo'` na CTE recursiva (ou join com profiles para verificar)
+3. **HierarquiaUsuarios.tsx**: Adicionar card de Gerentes; excluir gerentes do bloco "Sem Supervisor"; separar visualmente gerentes de supervisores na arvore
 
-1. **GerenciamentoPermissoesTelas**: Mover botoes "Todas/Nenhuma" para fora do `CollapsibleTrigger` (fix DOM nesting)
-2. **GerenciamentoPermissoesModulos**: Ao primeiro toggle em modo heranca, copiar permissoes efetivas (role+dept) como base individual antes de aplicar a mudanca
-3. **GerenciamentoPermissoesTelas**: Pre-popular `userPermissions` com telas efetivas ao selecionar usuario em modo heranca; mostrar dialog de confirmacao ao converter para override
+### Fase 2 — Limpeza estrutural
 
-### Fase 2 — Consistencia
-
-4. **Configuracoes.tsx**: Usar `usePermissions()` para role em vez de query manual
-5. **GerenciamentoUsuarios**: Substituir `confirm()` por `AlertDialog`
-6. **TooltipTrigger badges**: Adicionar `asChild` ou `<span>` wrapper
+4. **Deprecar `gerente_id`**: Migrar o unico uso em `ProjetoTarefaDetalhe.tsx` para usar apenas `supervisor_id`. Marcar a coluna como deprecated (comment SQL)
+5. **Renomear `isAdminOrSupervisor`**: Alias para `isManager` (manter retrocompatibilidade com export do nome antigo)
+6. **Adicionar auditoria**: Trigger SQL que insere em `audit_logs` ao alterar `supervisor_id` em profiles
 
 ### Fase 3 — UX
 
-7. **GerenciamentoUsuarios**: Paginacao de 20 registros por pagina
+7. **Organograma visual**: Renderizar a hierarquia como arvore com linhas de conexao (CSS tree) em vez de lista indentada
+8. **Busca e filtro**: Adicionar campo de busca por nome/email na tela de hierarquia
 
 ## Arquivos afetados
 
 | Arquivo | Acao |
 |---------|------|
-| `src/components/configuracoes/GerenciamentoPermissoesTelas.tsx` | Fix DOM nesting; pre-popular permissoes em modo heranca |
-| `src/components/configuracoes/GerenciamentoPermissoesModulos.tsx` | Copiar base ao entrar em override; fix tooltip wrappers |
-| `src/pages/Configuracoes.tsx` | Usar usePermissions() para role |
-| `src/components/configuracoes/GerenciamentoUsuarios.tsx` | AlertDialog para delete; paginacao |
+| Migration SQL | Recriar `usuario_tem_acesso_loja` com `is_admin_or_supervisor`; filtrar inativos em `get_subordinados`; trigger de auditoria |
+| `src/components/configuracoes/HierarquiaUsuarios.tsx` | Card gerente; filtro corrigido; organograma visual |
+| `src/components/projetos/ProjetoTarefaDetalhe.tsx` | Remover uso de `gerente_id` |
+| `src/hooks/useUserRole.ts` | Adicionar alias `isManager` |
 
