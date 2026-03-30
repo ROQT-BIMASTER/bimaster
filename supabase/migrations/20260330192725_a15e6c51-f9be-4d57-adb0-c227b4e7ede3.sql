@@ -1,0 +1,1 @@
+ALTER TABLE public.produto_fluxo_artes ADD COLUMN submissao_id uuid REFERENCES public.china_produto_submissoes(id);
