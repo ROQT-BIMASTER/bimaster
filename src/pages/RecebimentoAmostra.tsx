@@ -51,13 +51,22 @@ export default function RecebimentoAmostra() {
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const { data: allAmostras = [], isLoading } = useAllAmostras();
 
-  // List submissões with amostras
+  // Only show submissões linked via "Vincular China"
   const { data: submissoes = [] } = useQuery({
-    queryKey: ["submissoes_amostras"],
+    queryKey: ["submissoes_amostras_vinculadas"],
     queryFn: async () => {
+      // First get all linked submissao IDs
+      const { data: vinculos, error: vErr } = await (supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id") as any);
+      if (vErr) throw vErr;
+      const linkedIds = [...new Set((vinculos || []).map((v: any) => v.submissao_id))] as string[];
+      if (linkedIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, created_at")
+        .in("id", linkedIds)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
