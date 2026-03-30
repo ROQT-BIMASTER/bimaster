@@ -89,7 +89,7 @@ serve(async (req) => {
                         label: { type: "string", description: "Nome do campo" },
                         field_type: {
                           type: "string",
-                          enum: ["text", "number", "date", "select", "checkbox", "file", "image", "price"],
+                          enum: ["text", "number", "date", "select", "checkbox", "file", "image", "price", "address"],
                         },
                         required: { type: "boolean" },
                         options: {
