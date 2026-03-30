@@ -41,12 +41,27 @@ import { ExtrairIngredientesIADialog } from "@/components/composicao/ExtrairIngr
 // Fetch submissões for listing
 function useSubmissoes() {
   return useQuery({
-    queryKey: ["submissoes_composicao"],
+    queryKey: ["submissoes_composicao_vinculadas"],
     queryFn: async () => {
+      // 1. Buscar submissão IDs vinculadas via "Vincular China"
+      const { data: vinculos, error: vErr } = await (supabase
+        .from("china_submissao_tarefa_vinculos" as any)
+        .select("submissao_id") as any);
+
+      if (vErr) throw vErr;
+
+      const idSet = new Set<string>();
+      (vinculos || []).forEach((v: any) => { if (v.submissao_id) idSet.add(v.submissao_id); });
+      const ids = Array.from(idSet);
+
+      if (ids.length === 0) return [];
+
+      // 2. Buscar apenas submissões vinculadas
       const { data, error } = await supabase
         .from("china_produto_submissoes")
         .select("id, produto_codigo, produto_nome, status, created_at")
         .is("deleted_at", null)
+        .in("id", ids)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -197,7 +212,8 @@ export default function ChecklistComposicao() {
           {!loadingSub && filtered.length === 0 && (
             <div className="py-12 text-center text-muted-foreground">
               <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Nenhuma submissão encontrada</p>
+              <p className="font-medium">Nenhum produto vinculado a este módulo</p>
+              <p className="text-xs mt-1">Use a tela <strong>Vincular China</strong> para despachar produtos para o módulo Composição.</p>
             </div>
           )}
         </div>
