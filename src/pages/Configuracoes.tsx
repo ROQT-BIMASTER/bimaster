@@ -272,7 +272,7 @@ function Configuracoes() {
       case "perfil":
         return (
           <div className="space-y-4">
-            <EditarPerfil profile={profile!} onUpdate={handleUpdateProfile} />
+            <EditarPerfil profile={profile!} userRole={userRole} onUpdate={handleUpdateProfile} />
             <Card>
               <CardHeader>
                 <CardTitle>Segurança</CardTitle>

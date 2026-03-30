@@ -96,7 +96,6 @@ export const EditarPerfil = ({ profile, userRole, onUpdate }: EditarPerfilProps)
           nome: formData.nome.trim(),
           telefone: formData.telefone?.trim() || null,
           cargo: formData.cargo?.trim() || null,
-          departamento: formData.departamento?.trim() || null,
         })
         .eq("id", profile.id);
 

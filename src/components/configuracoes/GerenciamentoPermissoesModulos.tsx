@@ -181,8 +181,9 @@ export function GerenciamentoPermissoesModulos() {
         setUserPermissions((prev) => [...prev, { userId, moduleId }]);
       }
 
-      // Invalidar cache do usuário específico
+      // Invalidar cache do usuário específico e notificar context
       permissionsCache.invalidate(userId);
+      window.dispatchEvent(new Event('permissions-updated'));
 
       // Log de auditoria
       await logModulePermissionToggle(
