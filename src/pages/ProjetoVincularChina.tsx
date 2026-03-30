@@ -344,7 +344,14 @@ export default function ProjetoVincularChina() {
   };
 
   const handleDesvincular = (vinculoId: string) => {
-    deleteVinculo.mutate(vinculoId);
+    setDesvincularTarget(vinculoId);
+  };
+
+  const confirmDesvincular = () => {
+    if (desvincularTarget) {
+      deleteVinculo.mutate(desvincularTarget);
+      setDesvincularTarget(null);
+    }
   };
 
   const handleToggleDocVinculo = async (docId: string, tarefaId: string) => {
