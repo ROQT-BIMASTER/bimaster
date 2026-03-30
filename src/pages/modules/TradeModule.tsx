@@ -39,7 +39,7 @@ const TradeModule = () => {
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
   const { data: stats } = useQuery({
-    queryKey: ['trade-module-stats', filteredStores.length],
+    queryKey: ['trade-module-stats', filteredStores.length, effectiveUserId, shouldFilter],
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
       const monthStartStr = monthStart.toISOString().split("T")[0];
