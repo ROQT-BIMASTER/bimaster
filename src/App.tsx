@@ -672,6 +672,10 @@ function AppContent() {
 
             {/* Formulário público - sem autenticação */}
             <Route path="/formulario-equipe" element={<FormularioEquipe />} />
+            <Route path="/formulario-dinamico" element={<DynamicFormPublic />} />
+
+            {/* Builder de formulários dinâmicos — protegido */}
+            <Route path="/dashboard/trade/formularios/builder" element={<ProtectedRoute><DynamicFormBuilder /></ProtectedRoute>} />
             <Route path="/cofre-share" element={<CofreSharePage />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
