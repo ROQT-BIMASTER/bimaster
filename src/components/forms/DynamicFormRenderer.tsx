@@ -124,7 +124,12 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
     for (const field of fields) {
       if (field.required) {
         const val = values[field.id];
-        if (!val || (Array.isArray(val) && val.length === 0) || val === "") {
+        if (field.field_type === "address") {
+          if (!val || !val.cep || !val.logradouro || !val.cidade || !val.uf) {
+            toast.error(`Preencha o endereço completo em "${field.label}"`);
+            return;
+          }
+        } else if (!val || (Array.isArray(val) && val.length === 0) || val === "") {
           toast.error(`O campo "${field.label}" é obrigatório`);
           return;
         }
