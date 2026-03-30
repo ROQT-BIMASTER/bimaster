@@ -352,7 +352,6 @@ export function CadastroClienteCnpjDialog({
           </DialogTitle>
           <DialogDescription>
             {step === "cnpj" && "Informe o CNPJ para consulta automática na Receita Federal"}
-            {step === "duplicate" && "Cliente já cadastrado no sistema"}
             {step === "review" && "Revise e ajuste os dados antes de confirmar"}
             {step === "success" && "Cliente cadastrado com sucesso"}
           </DialogDescription>
