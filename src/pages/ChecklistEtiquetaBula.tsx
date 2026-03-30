@@ -261,7 +261,7 @@ function NewEtiquetaDialog({ open, onClose }: { open: boolean; onClose: () => vo
         .from("china_submissao_tarefa_vinculos" as any)
         .select("submissao_id") as any);
       if (error) throw error;
-      const ids: string[] = [...new Set((data || []).map((v: any) => v.submissao_id as string))];
+      const ids = Array.from(new Set((data || []).map((v: any) => String(v.submissao_id))));
       if (!ids.length) return [];
       const { data: subs, error: e2 } = await supabase
         .from("china_produto_submissoes")
