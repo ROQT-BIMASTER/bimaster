@@ -623,8 +623,8 @@ function AppContent() {
             <Route path="/dashboard/oms/condicoes-pagamento" element={<ModuleRoute moduleCode="oms"><ScreenProtectedRoute screenCode="oms_condicoes"><OmsCondicoesPagamento /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Reuniões */}
-            <Route path="/dashboard/reunioes" element={<ModuleRoute moduleCode="reunioes"><Reunioes /></ModuleRoute>} />
-            <Route path="/dashboard/reunioes/:id" element={<ModuleRoute moduleCode="reunioes"><ReuniaoDetalhe /></ModuleRoute>} />
+            <Route path="/dashboard/reunioes" element={<ModuleRoute moduleCode="reunioes"><ScreenProtectedRoute screenCode="reunioes_lista"><Reunioes /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/reunioes/:id" element={<ModuleRoute moduleCode="reunioes"><ScreenProtectedRoute screenCode="reunioes_detalhe"><ReuniaoDetalhe /></ScreenProtectedRoute></ModuleRoute>} />
             
             {/* Rotas antigas mantidas para compatibilidade */}
             <Route path="/dashboard/contas-a-pagar" element={
