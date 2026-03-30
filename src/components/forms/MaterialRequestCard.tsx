@@ -11,13 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye } from "lucide-react";
+import { Package, Minus, Plus, Loader2, CheckCircle2, ShoppingCart, Search, Eye, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+interface CnpjApiData {
+  razao_social?: string;
+  nome_fantasia?: string;
+  logradouro?: string;
+  numero?: string;
+  municipio?: string;
+  uf?: string;
+  cep?: string;
+}
 
 interface MaterialRequestCardProps {
   material: {
@@ -32,25 +42,63 @@ interface MaterialRequestCardProps {
   isPublic?: boolean;
 }
 
+function formatCnpj(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
 export function MaterialRequestCard({ material, formId, isPublic = false }: MaterialRequestCardProps) {
   const [state, setState] = useState<"idle" | "selecting" | "submitting" | "submitted">("idle");
   const [selectedStore, setSelectedStore] = useState<{ id: string; name: string } | null>(null);
-  const [manualStoreName, setManualStoreName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [protocol, setProtocol] = useState("");
   const [storeSearch, setStoreSearch] = useState("");
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
 
+  // CNPJ lookup states (public mode)
+  const [cnpjInput, setCnpjInput] = useState("");
+  const [cnpjData, setCnpjData] = useState<CnpjApiData | null>(null);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+
   const { stores, loading: storesLoading } = useFilteredStores({ activeOnly: true });
 
   const maxQty = material.max_por_solicitacao || 999;
+  const cnpjClean = cnpjInput.replace(/\D/g, "");
 
   const filteredStores = stores.filter(
     (s) =>
       s.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
       (s.cnpj && s.cnpj.includes(storeSearch))
   );
+
+  async function handleCnpjSearch() {
+    if (cnpjClean.length !== 14) return;
+    setCnpjLoading(true);
+    setCnpjData(null);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjClean}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error("CNPJ não encontrado na Receita Federal");
+        } else {
+          toast.error("Erro ao consultar CNPJ. Tente novamente.");
+        }
+        return;
+      }
+      const data: CnpjApiData = await res.json();
+      setCnpjData(data);
+      toast.success("Dados carregados da Receita Federal!");
+    } catch {
+      toast.error("Erro ao consultar CNPJ. Verifique sua conexão.");
+    } finally {
+      setCnpjLoading(false);
+    }
+  }
 
   function generateProtocol() {
     const now = new Date();
@@ -66,8 +114,8 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
       toast.error("Selecione uma loja");
       return;
     }
-    if (isPublic && !manualStoreName.trim()) {
-      toast.error("Informe o nome da loja ou local de destino");
+    if (isPublic && !cnpjData) {
+      toast.error("Busque o CNPJ antes de confirmar");
       return;
     }
 
@@ -77,16 +125,42 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
 
       const proto = generateProtocol();
 
+      // Try to find matching internal store by CNPJ
+      let lojaId: string | null = null;
+      let lojaNome = "";
+
+      if (isPublic && cnpjData) {
+        lojaNome = cnpjData.razao_social || cnpjData.nome_fantasia || cnpjClean;
+        const { data: matchedStore } = await supabase
+          .from("stores")
+          .select("id, name")
+          .eq("cnpj", cnpjClean)
+          .maybeSingle();
+        if (matchedStore) {
+          lojaId = matchedStore.id;
+          lojaNome = matchedStore.name;
+        }
+      } else if (selectedStore) {
+        lojaId = selectedStore.id;
+        lojaNome = selectedStore.name;
+      }
+
+      const endereco = cnpjData
+        ? [cnpjData.logradouro, cnpjData.numero, cnpjData.municipio, cnpjData.uf].filter(Boolean).join(", ")
+        : "";
+
       const { error } = await supabase
         .from("trade_material_solicitacoes" as any)
         .insert({
           material_id: material.id,
           user_id: user?.id || null,
-          loja_id: isPublic ? null : selectedStore!.id,
-          loja_nome: isPublic ? manualStoreName.trim() : selectedStore!.name,
+          loja_id: lojaId,
+          loja_nome: lojaNome,
           quantidade: quantity,
           status: "pendente",
-          observacoes: `Solicitação via formulário dinâmico (${formId})`,
+          observacoes: isPublic
+            ? `CNPJ: ${cnpjClean} | ${endereco} | Via formulário (${formId})`
+            : `Solicitação via formulário dinâmico (${formId})`,
         } as any);
 
       if (error) throw error;
@@ -169,14 +243,53 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
         <div className="mt-4 space-y-3 pt-3 border-t">
           {/* Store selector */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Loja de destino</Label>
+            <Label className="text-xs">{isPublic ? "CNPJ da loja" : "Loja de destino"}</Label>
             {isPublic ? (
-              <Input
-                placeholder="Digite o nome da loja ou local de destino..."
-                value={manualStoreName}
-                onChange={(e) => setManualStoreName(e.target.value)}
-                className="h-9 text-sm"
-              />
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={cnpjInput}
+                    onChange={(e) => {
+                      setCnpjInput(formatCnpj(e.target.value));
+                      setCnpjData(null);
+                    }}
+                    className="h-9 text-sm"
+                    maxLength={18}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-9"
+                    onClick={handleCnpjSearch}
+                    disabled={cnpjClean.length !== 14 || cnpjLoading}
+                  >
+                    {cnpjLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span className="ml-1.5">Buscar</span>
+                  </Button>
+                </div>
+                {cnpjData && (
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm font-medium">{cnpjData.razao_social}</span>
+                    </div>
+                    {cnpjData.nome_fantasia && (
+                      <p className="text-xs text-muted-foreground pl-6">{cnpjData.nome_fantasia}</p>
+                    )}
+                    {(cnpjData.logradouro || cnpjData.municipio) && (
+                      <p className="text-xs text-muted-foreground pl-6">
+                        {[cnpjData.logradouro, cnpjData.numero, cnpjData.municipio, cnpjData.uf].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
               <Popover open={storePopoverOpen} onOpenChange={setStorePopoverOpen}>
                 <PopoverTrigger asChild>
@@ -270,7 +383,8 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
               onClick={() => {
                 setState("idle");
                 setSelectedStore(null);
-                setManualStoreName("");
+                setCnpjInput("");
+                setCnpjData(null);
                 setQuantity(1);
               }}
             >
@@ -280,7 +394,7 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
               type="button"
               size="sm"
               onClick={handleConfirm}
-              disabled={isPublic ? !manualStoreName.trim() : !selectedStore}
+              disabled={isPublic ? !cnpjData : !selectedStore}
             >
               Confirmar Solicitação
             </Button>
