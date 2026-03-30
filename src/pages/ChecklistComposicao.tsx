@@ -212,7 +212,8 @@ export default function ChecklistComposicao() {
           {!loadingSub && filtered.length === 0 && (
             <div className="py-12 text-center text-muted-foreground">
               <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Nenhuma submissão encontrada</p>
+              <p className="font-medium">Nenhum produto vinculado a este módulo</p>
+              <p className="text-xs mt-1">Use a tela <strong>Vincular China</strong> para despachar produtos para o módulo Composição.</p>
             </div>
           )}
         </div>
