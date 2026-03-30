@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { ModuleBreadcrumb } from "@/components/navigation/ModuleBreadcrumb";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, CalendarDays, ClipboardList, Link2 } from "lucide-react";
+import { RefreshCw, Users, CalendarDays, ClipboardList, Link2, Plus, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useTradeSupervisorDashboard,
