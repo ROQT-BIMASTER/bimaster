@@ -360,7 +360,18 @@ export function VincularChinaTable({
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-medium truncate">{row.produto_nome}</span>
-                          {row.isLinked && <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />}
+                          {row.isLinked ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>Vinculado</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Link2Off className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
