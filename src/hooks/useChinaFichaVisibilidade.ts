@@ -40,7 +40,7 @@ export function useFichaVisibilidade(submissaoId: string | undefined) {
 
       return items.map((i: any) => ({
         ...i,
-        user_nome: profileMap[i.user_id]?.nome_completo || "—",
+        user_nome: profileMap[i.user_id]?.nome || "—",
         user_email: profileMap[i.user_id]?.email || "",
       })) as FichaVisibilidade[];
     },
