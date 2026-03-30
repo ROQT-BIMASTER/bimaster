@@ -55,6 +55,7 @@ export function ExtrairIngredientesIADialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processoDocs, setProcessoDocs] = useState<any[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [selectedDocWorkflow, setSelectedDocWorkflow] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Preview state
