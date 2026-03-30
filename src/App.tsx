@@ -247,6 +247,7 @@ const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
 const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
 const DynamicFormPublic = lazyWithRetry(() => import("./pages/DynamicFormPublic"));
 const DynamicFormAdmin = lazyWithRetry(() => import("./pages/DynamicFormAdmin"));
+const DynamicFormDashboard = lazyWithRetry(() => import("./pages/DynamicFormDashboard"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
