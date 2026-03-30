@@ -11,6 +11,7 @@ import { useProcessDecisions } from "@/hooks/useProcessDecisions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { validateFileForUpload } from "@/lib/utils/file-security";
 
 interface Props {
   open: boolean;
@@ -60,7 +61,13 @@ export function ProcessDecisionDialog({ open, onOpenChange, processId, submissao
       const newFiles: UploadedFile[] = [];
 
       for (const file of Array.from(files)) {
-        const ext = file.name.split('.').pop();
+        // Validação de segurança antes do upload
+        const validation = await validateFileForUpload(file);
+        if (!validation.valid) {
+          toast.error(validation.error || `Arquivo "${file.name}" rejeitado.`);
+          continue;
+        }
+
         const path = `${user.id}/${processId}/${Date.now()}-${file.name}`;
 
         const { error } = await supabase.storage
