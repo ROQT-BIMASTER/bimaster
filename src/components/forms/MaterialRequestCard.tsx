@@ -289,18 +289,16 @@ export function MaterialRequestCard({ material, formId }: MaterialRequestCardPro
             {material.descricao && (
               <p className="text-sm text-muted-foreground">{material.descricao}</p>
             )}
-            {state !== "submitted" && (
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setShowDetail(false);
-                  setState("selecting");
-                }}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Solicitar este material
-              </Button>
-            )}
+            <Button
+              className="w-full"
+              onClick={() => {
+                setShowDetail(false);
+                setState("selecting");
+              }}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Solicitar este material
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
