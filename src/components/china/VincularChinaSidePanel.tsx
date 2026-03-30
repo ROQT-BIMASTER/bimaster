@@ -147,6 +147,15 @@ export function VincularChinaSidePanel({
         </TabsList>
 
         <ScrollArea className="flex-1">
+          {isTransitioning ? (
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : (
+          <>
           {/* Detalhes Tab */}
           <TabsContent value="detalhes" className="m-0 p-4 space-y-4">
             <div className="grid grid-cols-2 gap-2.5 text-xs">
