@@ -70,7 +70,7 @@ export function CadastroClienteCnpjDialog({
   const [cnpj, setCnpj] = useState("");
   const [loading, setLoading] = useState(false);
   const [receitaData, setReceitaData] = useState<ReceitaData | null>(null);
-  const [existingStore, setExistingStore] = useState<ExistingStore | null>(null);
+  const [createdStoreId, setCreatedStoreId] = useState<string | null>(null);
   const [createdStoreId, setCreatedStoreId] = useState<string | null>(null);
   const [createdStoreName, setCreatedStoreName] = useState("");
 
