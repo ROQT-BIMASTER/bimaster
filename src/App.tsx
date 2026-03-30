@@ -501,7 +501,7 @@ function AppContent() {
             <Route path="/dashboard/fabrica/comunicacao-revisoes" element={<ScreenRoute screenCode="fabrica_produtos"><FabricaComunicacaoRevisoes /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/executivo" element={<ScreenRoute screenCode="fabrica_dashboard"><FabricaExecutiveDashboard /></ScreenRoute>} />
             <Route path="/dashboard/fabrica/fornecedores" element={<ScreenRoute screenCode="fabrica_fornecedores"><FabricaFornecedores /></ScreenRoute>} />
-            <Route path="/dashboard/fabrica/manual" element={<ModuleRoute moduleCode="fabrica"><FabricaManualPage /></ModuleRoute>} />
+            <Route path="/dashboard/fabrica/manual" element={<ModuleRoute moduleCode="fabrica"><ScreenProtectedRoute screenCode="fabrica_manual"><FabricaManualPage /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo Fábrica China */}
             <Route path="/dashboard/fabrica-china" element={<ModuleRoute moduleCode="china"><ScreenProtectedRoute screenCode="china_dashboard"><ChinaFabrica /></ScreenProtectedRoute></ModuleRoute>} />
