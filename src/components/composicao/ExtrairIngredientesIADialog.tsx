@@ -559,10 +559,26 @@ export function ExtrairIngredientesIADialog({
                   title={previewFileName}
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full py-20 gap-2">
+                <div className="flex flex-col items-center justify-center h-full py-20 gap-3">
                   <FileText className="h-12 w-12 text-muted-foreground" />
                   <p className="text-sm font-medium">{previewFileName}</p>
                   <p className="text-xs text-muted-foreground">Prévia visual não disponível. A IA processará o conteúdo interno.</p>
+                  {previewUrl && isSpreadsheetOrDoc(previewFileName) && (
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={previewUrl} download={previewFileName}>
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                          Download
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          Abrir em nova aba
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
