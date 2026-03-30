@@ -29,11 +29,13 @@ interface MaterialRequestCardProps {
     estoque_atual?: number;
   };
   formId: string;
+  isPublic?: boolean;
 }
 
-export function MaterialRequestCard({ material, formId }: MaterialRequestCardProps) {
+export function MaterialRequestCard({ material, formId, isPublic = false }: MaterialRequestCardProps) {
   const [state, setState] = useState<"idle" | "selecting" | "submitting" | "submitted">("idle");
   const [selectedStore, setSelectedStore] = useState<{ id: string; name: string } | null>(null);
+  const [manualStoreName, setManualStoreName] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [protocol, setProtocol] = useState("");
   const [storeSearch, setStoreSearch] = useState("");

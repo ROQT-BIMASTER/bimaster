@@ -264,7 +264,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
           <div className="mb-6 space-y-3">
             <p className="text-sm font-medium text-muted-foreground">Materiais disponíveis para solicitação</p>
             {attachedMaterials.map((m: any) => (
-              <MaterialRequestCard key={m.id} material={m} formId={formId} />
+              <MaterialRequestCard key={m.id} material={m} formId={formId} isPublic={!!tokenId} />
             ))}
           </div>
         )}
