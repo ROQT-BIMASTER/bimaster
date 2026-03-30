@@ -43,8 +43,8 @@ export function SplashScreen({ progress, status, onComplete }: SplashScreenProps
         <div className="mb-8 relative">
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <img 
-            src={logoUnion} 
-            alt="BiMaster" 
+            src={logoHuugs} 
+            alt="Huugs MakeUp" 
             className="h-24 w-auto relative z-10 drop-shadow-lg"
           />
         </div>
