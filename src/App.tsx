@@ -526,13 +526,13 @@ function AppContent() {
             {/* Módulo Comercial */}
             <Route path="/dashboard/comercial" element={<ModuleRoute moduleCode="comercial"><ComercialModule /></ModuleRoute>} />
             <Route path="/dashboard/comercial/lancamentos" element={<ScreenRoute screenCode="comercial_lancamentos"><FabricaLancamentos /></ScreenRoute>} />
-            <Route path="/dashboard/comercial/ibge" element={<ModuleRoute moduleCode="comercial"><IBGEData /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/mineracao" element={<ModuleRoute moduleCode="comercial"><LeadMining /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/inteligencia" element={<ModuleRoute moduleCode="comercial"><MarketIntelligence /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/reativacao" element={<ModuleRoute moduleCode="comercial"><ClientReactivation /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/mapa" element={<ModuleRoute moduleCode="comercial"><ComercialMapa /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/municipios-inteligencia" element={<ModuleRoute moduleCode="comercial"><MunicipiosIntelligence /></ModuleRoute>} />
-            <Route path="/dashboard/comercial/whitespace" element={<ModuleRoute moduleCode="comercial"><WhitespaceAnalysis /></ModuleRoute>} />
+            <Route path="/dashboard/comercial/ibge" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_ibge"><IBGEData /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/mineracao" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_mineracao"><LeadMining /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/inteligencia" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_inteligencia"><MarketIntelligence /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/reativacao" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_reativacao"><ClientReactivation /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/mapa" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_mapa"><ComercialMapa /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/municipios-inteligencia" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_municipios"><MunicipiosIntelligence /></ScreenProtectedRoute></ModuleRoute>} />
+            <Route path="/dashboard/comercial/whitespace" element={<ModuleRoute moduleCode="comercial"><ScreenProtectedRoute screenCode="comercial_whitespace"><WhitespaceAnalysis /></ScreenProtectedRoute></ModuleRoute>} />
 
             {/* Módulo de Tabelas de Preços */}
             <Route path="/dashboard/precos" element={<ModuleRoute moduleCode="precos"><TabelasPrecosModule /></ModuleRoute>} />
