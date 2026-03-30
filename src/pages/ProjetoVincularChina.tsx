@@ -4,11 +4,17 @@ import { Link2, Package, Loader2, ArrowLeft, Maximize2, Gavel, CheckCircle2, Shi
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuditChinaVinculoBadge } from "@/components/china/AuditChinaVinculoBadge";
 import { ChinaGradeView } from "@/components/china/ChinaGradeView";
 import { ChinaDocPreviewDialog } from "@/components/china/ChinaDocPreviewDialog";
@@ -44,6 +50,7 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useUserDepartments } from "@/hooks/useUserDepartments";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { FileText, ChevronRight, Unlink } from "lucide-react";
+import { toast } from "sonner";
 
 const DEV_DEPARTMENT_ID = "9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130";
 
