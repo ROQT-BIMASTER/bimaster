@@ -34,7 +34,8 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { FormAttachmentsPanel } from "@/components/forms/FormAttachmentsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare } from "lucide-react";
+import { Plus, Save, Eye, EyeOff, ArrowLeft, Loader2, Sparkles, ImagePlus, X, MessageSquare, FileSpreadsheet } from "lucide-react";
+import ExcelJS from "exceljs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 
@@ -67,6 +68,8 @@ export default function DynamicFormBuilder() {
   const [aiImageBase64, setAiImageBase64] = useState<string | null>(null);
   const [aiImagePreview, setAiImagePreview] = useState<string | null>(null);
   const [aiCustomPrompt, setAiCustomPrompt] = useState("");
+  const [aiSpreadsheetData, setAiSpreadsheetData] = useState<string | null>(null);
+  const [aiSpreadsheetName, setAiSpreadsheetName] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
 
   const sensors = useSensors(
@@ -206,10 +209,58 @@ export default function DynamicFormBuilder() {
     setAiImagePreview(null);
   }
 
+  async function handleSpreadsheetUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Planilha deve ter no máximo 10MB");
+      return;
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const parts: string[] = [];
+      workbook.eachSheet((sheet) => {
+        const headers: string[] = [];
+        const sampleRows: string[] = [];
+        sheet.eachRow((row, rowNumber) => {
+          const cells = (row.values as any[]).slice(1).map((v) => (v != null ? String(v).trim() : "")).filter(Boolean);
+          if (rowNumber === 1) {
+            headers.push(...cells);
+          } else if (rowNumber <= 6 && cells.length > 0) {
+            sampleRows.push(cells.join(", "));
+          }
+        });
+        if (headers.length > 0) {
+          parts.push(`Aba "${sheet.name}": Colunas: ${headers.join(", ")}. Exemplos: ${sampleRows.join(" | ")}`);
+        }
+      });
+      if (parts.length === 0) {
+        toast.error("Planilha vazia ou sem dados reconhecíveis");
+        return;
+      }
+      setAiSpreadsheetData(`Planilha de referência "${file.name}". ${parts.join(". ")}`);
+      setAiSpreadsheetName(file.name);
+      toast.success("Planilha carregada para referência IA");
+    } catch {
+      toast.error("Erro ao ler planilha");
+    }
+    e.target.value = "";
+  }
+
+  function clearSpreadsheet() {
+    setAiSpreadsheetData(null);
+    setAiSpreadsheetName(null);
+  }
+
   async function handleSuggestAI() {
-    const description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
+    let description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
+    if (aiSpreadsheetData) {
+      description = description ? `${description}\n\n${aiSpreadsheetData}` : aiSpreadsheetData;
+    }
     if (!description && !aiImageBase64) {
-      toast.error("Informe uma descrição, prompt ou envie uma imagem para sugestão IA");
+      toast.error("Informe uma descrição, prompt, planilha ou imagem para sugestão IA");
       return;
     }
     setSuggestingAI(true);
@@ -240,6 +291,7 @@ export default function DynamicFormBuilder() {
         // Clear AI inputs after success
         setAiCustomPrompt("");
         clearAiImage();
+        clearSpreadsheet();
       }
     } catch (err: any) {
       console.error("AI suggestion error:", err);
@@ -459,7 +511,7 @@ export default function DynamicFormBuilder() {
                           />
                           <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
                             <ImagePlus className="h-4 w-4" />
-                            {aiImagePreview ? "Trocar imagem" : "Enviar imagem de referência"}
+                            {aiImagePreview ? "Trocar imagem" : "Imagem"}
                           </div>
                         </label>
 
@@ -474,6 +526,36 @@ export default function DynamicFormBuilder() {
                               type="button"
                               onClick={clearAiImage}
                               className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Spreadsheet upload */}
+                      <div className="flex items-center gap-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            className="hidden"
+                            onChange={handleSpreadsheetUpload}
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-accent transition-colors">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            {aiSpreadsheetName ? "Trocar planilha" : "Planilha"}
+                          </div>
+                        </label>
+
+                        {aiSpreadsheetName && (
+                          <div className="flex items-center gap-1.5 bg-muted px-2.5 py-1 rounded-md text-xs">
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="max-w-[120px] truncate">{aiSpreadsheetName}</span>
+                            <button
+                              type="button"
+                              onClick={clearSpreadsheet}
+                              className="text-muted-foreground hover:text-destructive"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -497,7 +579,7 @@ export default function DynamicFormBuilder() {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      Descreva o formulário desejado ou envie uma imagem de um formulário existente para a IA extrair os campos automaticamente.
+                      Descreva, envie uma imagem ou uma planilha de referência para a IA criar os campos automaticamente.
                     </p>
                   </div>
                 </CardContent>
