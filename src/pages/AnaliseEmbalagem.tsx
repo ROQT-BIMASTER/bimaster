@@ -37,6 +37,7 @@ import {
 import { DevolucaoEtapaDialog, type DevolucaoResult } from "@/components/shared/DevolucaoEtapaDialog";
 import { VinculoProjetoBadges } from "@/components/shared/VinculoProjetoBadges";
 import { VincularProjetoDialog } from "@/components/shared/VincularProjetoDialog";
+import { ProcessoDocumentosSelector, ProcessoEtapaInfo, type ProcessoDoc } from "@/components/shared/ProcessoDocumentosSelector";
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
   pendente: { label: "Pendente", color: "bg-muted text-muted-foreground", icon: Clock },
