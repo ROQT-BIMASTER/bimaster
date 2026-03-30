@@ -62,15 +62,18 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
   }
 
   async function handleConfirm() {
-    if (!selectedStore) {
+    if (!isPublic && !selectedStore) {
       toast.error("Selecione uma loja");
+      return;
+    }
+    if (isPublic && !manualStoreName.trim()) {
+      toast.error("Informe o nome da loja ou local de destino");
       return;
     }
 
     setState("submitting");
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
 
       const proto = generateProtocol();
 
@@ -78,9 +81,9 @@ export function MaterialRequestCard({ material, formId, isPublic = false }: Mate
         .from("trade_material_solicitacoes" as any)
         .insert({
           material_id: material.id,
-          user_id: user.id,
-          loja_id: selectedStore.id,
-          loja_nome: selectedStore.name,
+          user_id: user?.id || null,
+          loja_id: isPublic ? null : selectedStore!.id,
+          loja_nome: isPublic ? manualStoreName.trim() : selectedStore!.name,
           quantidade: quantity,
           status: "pendente",
           observacoes: `Solicitação via formulário dinâmico (${formId})`,
