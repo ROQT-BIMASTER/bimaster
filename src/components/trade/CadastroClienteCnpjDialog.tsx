@@ -364,9 +364,9 @@ export function CadastroClienteCnpjDialog({
               <div
                 className={cn(
                   "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                  step === s || (step === "duplicate" && s === "review")
+                  step === s
                     ? "bg-primary text-primary-foreground"
-                    : ["success"].includes(step) || (step === "review" && i === 0)
+                    : (step === "review" && i === 0) || (step === "success" && i < 2)
                     ? "bg-primary/20 text-primary"
                     : "bg-muted text-muted-foreground"
                 )}
