@@ -62,8 +62,16 @@ export function VincularChinaSidePanel({
   onToggleTarefa, onVincular, onToggleDocVinculo, vinculosPending, auditResult, auditLoading,
 }: Props) {
   const navigate = useNavigate();
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { data: documentos = [], isLoading: loadingDocs } = useDocumentosDaSubmissao(submissao.id);
   const { data: despachos = [] } = useDespachosPorSubmissao(submissao.id);
+
+  // Show brief loading state when switching submissions
+  useEffect(() => {
+    setIsTransitioning(true);
+    const t = setTimeout(() => setIsTransitioning(false), 150);
+    return () => clearTimeout(t);
+  }, [submissao.id]);
 
   const statusMap = useMemo(() => {
     const map: Record<string, string> = {};
