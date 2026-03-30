@@ -244,7 +244,8 @@ function KanbanCard({
       draggable
       onDragStart={onDragStart}
       className={cn(
-        "rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group flex overflow-hidden",
+        "rounded-lg border cursor-grab active:cursor-grabbing transition-all group flex overflow-hidden",
+        "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] hover:-translate-y-[1px]",
         darkBg
           ? "bg-white/5 border-white/10 hover:border-white/25"
           : "bg-background border-border/60 hover:border-primary/40",

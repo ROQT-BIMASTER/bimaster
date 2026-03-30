@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -104,7 +105,7 @@ export default function ProjetoDetalhe() {
           className="flex-1 overflow-auto transition-colors duration-300"
           style={customBg ? { backgroundColor: projeto.bg_cor! } : undefined}
         >
-          <div className="p-6 max-w-7xl mx-auto space-y-6">
+          <div className="p-6 max-w-7xl mx-auto space-y-5">
             {/* Back button + sidebar trigger + color picker */}
             <div className="flex items-center gap-2">
               <SidebarTrigger />
@@ -148,15 +149,22 @@ export default function ProjetoDetalhe() {
               onRestaurarTarefa={(id) => restaurarTarefa.mutate(id)}
             />
 
-            {/* Tab content */}
-            {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
-            {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "painel" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
-            {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
+            {/* Tab content wrapped in card container */}
+            <div className={cn(
+              "rounded-xl border shadow-sm animate-fade-in-up",
+              darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
+            )}>
+              <div className="p-4">
+                {activeTab === "lista" && <ProjetoListView projetoId={projeto.id} darkBg={darkBg} filters={filters} sort={sort} />}
+                {activeTab === "quadro" && <ProjetoKanbanView projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "cronograma" && <ProjetoCronogramaView projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "calendario" && <ProjetoCalendarioView projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "briefings" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "painel" && <ProjetoBriefingPanel projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "equipe" && <ProjetoEquipeDashboard projetoId={projeto.id} darkBg={darkBg} />}
+                {activeTab === "arquivos" && <ProjetoArquivosView projetoId={projeto.id} darkBg={darkBg} />}
+              </div>
+            </div>
           </div>
         </main>
       </div>
