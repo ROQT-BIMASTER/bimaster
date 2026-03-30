@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, ImageIcon, Package } from "lucide-react";
+import { CepAddressField } from "@/components/forms/CepAddressField";
 import { toast } from "sonner";
 
 interface DynamicFormRendererProps {
@@ -72,6 +73,7 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
       const initial: Record<string, any> = {};
       fieldData.forEach((f: any) => {
         if (f.field_type === "checkbox") initial[f.id] = [];
+        else if (f.field_type === "address") initial[f.id] = null;
         else initial[f.id] = "";
       });
       setValues(initial);
@@ -122,7 +124,12 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
     for (const field of fields) {
       if (field.required) {
         const val = values[field.id];
-        if (!val || (Array.isArray(val) && val.length === 0) || val === "") {
+        if (field.field_type === "address") {
+          if (!val || !val.cep || !val.logradouro || !val.cidade || !val.uf) {
+            toast.error(`Preencha o endereço completo em "${field.label}"`);
+            return;
+          }
+        } else if (!val || (Array.isArray(val) && val.length === 0) || val === "") {
           toast.error(`O campo "${field.label}" é obrigatório`);
           return;
         }
@@ -340,6 +347,14 @@ export function DynamicFormRenderer({ formId, tokenId, userId, onSubmitSuccess }
                     const file = e.target.files?.[0];
                     if (file) updateValue(field.id, file.name);
                   }}
+                />
+              )}
+
+              {field.field_type === "address" && (
+                <CepAddressField
+                  value={values[field.id] || null}
+                  onChange={(v) => updateValue(field.id, v)}
+                  required={field.required}
                 />
               )}
             </div>
