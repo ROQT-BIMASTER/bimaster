@@ -89,6 +89,7 @@ export function PermissoesDeAcesso() {
         icone: tela.icone,
         ordem: tela.ordem,
         permissoes: {
+          gerente: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'gerente') || false,
           supervisor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'supervisor') || false,
           vendedor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'vendedor') || false,
           promotor: rolePermissoes?.some(p => p.tela_id === tela.id && p.role === 'promotor') || false,
