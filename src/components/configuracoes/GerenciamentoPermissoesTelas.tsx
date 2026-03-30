@@ -132,10 +132,26 @@ export const GerenciamentoPermissoesTelas = () => {
     }
   };
 
-  const fetchUserPermissions = async (userId: string) => {
+  const fetchUserPermissionsAndPrepopulate = async (userId: string) => {
     try {
       const { data } = await supabase.from("usuario_permissoes_telas").select("tela_id").eq("usuario_id", userId);
-      setUserPermissions(new Set(data?.map(p => p.tela_id) || []));
+      const individualPerms = data?.map(p => p.tela_id) || [];
+      
+      if (individualPerms.length > 0) {
+        // User has custom overrides — use them
+        setUserPermissions(new Set(individualPerms));
+      } else {
+        // Pre-populate with effective permissions from role+dept so toggling doesn't lose access
+        const user = usuarios.find(u => u.id === userId);
+        const effectivePerms = new Set<string>();
+        if (user?.role) {
+          roleScreenPerms.filter(r => r.role === user.role).forEach(r => effectivePerms.add(r.tela_id));
+        }
+        if (user?.departamento_id) {
+          deptScreenPerms.filter(d => d.departamento_id === user.departamento_id).forEach(d => effectivePerms.add(d.tela_id));
+        }
+        setUserPermissions(effectivePerms);
+      }
     } catch (error) {
       console.error("Error fetching user permissions:", error);
     }
