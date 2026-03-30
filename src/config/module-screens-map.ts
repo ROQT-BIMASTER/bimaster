@@ -29,6 +29,10 @@ export const MODULE_ICON_MAP: Record<string, string> = {
   reunioes: "Calendar",
   configuracoes: "Settings",
   oms: "PackageCheck",
+  central_inteligencia: "BarChart3",
+  estoque: "Warehouse",
+  eventos: "CalendarDays",
+  departamentos: "Building2",
 };
 
 /**
