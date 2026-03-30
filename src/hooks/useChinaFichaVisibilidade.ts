@@ -31,7 +31,7 @@ export function useFichaVisibilidade(submissaoId: string | undefined) {
       const userIds = [...new Set(items.map((i: any) => i.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome_completo, email")
+        .select("id, nome, email")
         .in("id", userIds);
 
       const profileMap = Object.fromEntries(
