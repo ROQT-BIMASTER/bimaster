@@ -614,33 +614,41 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
   ];
 
   const tradeSubMenus = [
+    // — Operacional —
+    { title: t("trade.pdvs"), url: "/dashboard/trade/stores", icon: Store, screenCode: "trade_stores" },
+    { title: "Redes", url: "/dashboard/trade/store-chains", icon: Network, screenCode: "trade_stores" },
+    { title: t("trade.visits"), url: "/dashboard/trade/visits", icon: Calendar, screenCode: "trade_visits" },
+    { title: "Calendário", url: "/dashboard/trade/calendar", icon: Calendar, screenCode: "trade_calendar" },
+    { title: t("trade.photos"), url: "/dashboard/trade/photos", icon: Camera, screenCode: "trade_photos" },
+    { title: t("trade.ideal_photos"), url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
+    { title: t("trade.sellout"), url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
+    { title: t("trade.shelf"), url: "/dashboard/trade/shelf-measurements", icon: Activity, screenCode: "trade_shelf" },
+    { title: t("trade.audit"), url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "trade_auditorias" },
+    { title: t("trade.brands"), url: "/dashboard/trade/our-brands", icon: Tag, screenCode: "trade_brands" },
+    { title: t("trade.competitive"), url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
+    { title: "Comparação Produtos", url: "/dashboard/trade/comparacao-produtos", icon: Scale, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
+    { title: "Catálogo Materiais", url: "/dashboard/trade/materiais", icon: Package, screenCode: "trade_materiais" },
+    { title: "Minhas Solicitações", url: "/dashboard/trade/minhas-solicitacoes", icon: ClipboardCheck, screenCode: "trade_solicitacoes" },
+    { title: t("trade.rewards"), url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
+    { title: t("trade.whatsapp"), url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
+    // — Performance —
+    { title: "separator", url: "", icon: TrendingUp, screenCode: "", isSeparator: true, separatorLabel: "Performance" },
+    { title: t("trade.my_team"), url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "trade_equipe", requireAdminOrSupervisor: true },
+    { title: "Performance", url: "/dashboard/trade/performance", icon: TrendingUp, screenCode: "trade_performance", requireAdminOrSupervisor: true },
+    { title: "Equipe Performance", url: "/dashboard/trade/team-performance", icon: UserCheck, screenCode: "trade_performance", requireAdminOrSupervisor: true },
+    { title: "Ranking", url: "/dashboard/ranking", icon: Trophy, screenCode: "trade_ranking", requireAdminOrSupervisor: true },
+    { title: "Promoções", url: "/dashboard/trade/promotions", icon: Megaphone, screenCode: "trade_promotions", requireAdminOrSupervisor: true },
+    { title: t("trade.ai_insights"), url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },
+    // — Admin & Financeiro —
+    { title: "separator", url: "", icon: Settings, screenCode: "", isSeparator: true, separatorLabel: "Administração" },
     { title: t("trade.admin"), url: "/dashboard/trade/admin", icon: Settings, screenCode: "trade_admin" },
     { title: "Banners", url: "/dashboard/trade/admin/banners", icon: Image, screenCode: "trade_admin" },
     { title: "Incentivos", url: "/dashboard/trade/admin/incentivos", icon: Trophy, screenCode: "trade_admin" },
     { title: "Catálogo Displays", url: "/dashboard/trade/admin/displays", icon: Package, screenCode: "trade_admin" },
-    { title: "Catálogo Materiais", url: "/dashboard/trade/admin/materiais", icon: Package, screenCode: "trade_admin" },
+    { title: "Catálogo Materiais (Admin)", url: "/dashboard/trade/admin/materiais", icon: Package, screenCode: "trade_admin" },
+    { title: "Importar Lojas", url: "/dashboard/trade/import-stores", icon: Upload, screenCode: "trade_import", requireAdminOrSupervisor: true },
     { title: "Central de Aprovações", url: "/dashboard/trade/aprovacoes", icon: Shield, screenCode: "trade_admin" },
-    { title: t("trade.my_team"), url: "/dashboard/trade/minha-equipe", icon: Users, screenCode: "trade_equipe", requireAdminOrSupervisor: true },
-    { title: t("trade.pdvs"), url: "/dashboard/trade/stores", icon: Store, screenCode: "trade_stores" },
-    { title: t("trade.visits"), url: "/dashboard/trade/visits", icon: Calendar, screenCode: "trade_visits" },
-    { title: t("trade.sellout"), url: "/dashboard/trade/sellout", icon: DollarSign, screenCode: "trade_sellout" },
-    { title: t("trade.shelf"), url: "/dashboard/trade/shelf-measurements", icon: Activity, screenCode: "trade_shelf" },
-    { title: "Redes", url: "/dashboard/trade/store-chains", icon: Network, screenCode: "trade_stores" },
-    { title: t("trade.brands"), url: "/dashboard/trade/our-brands", icon: Tag, screenCode: "trade_brands" },
-    { title: t("trade.photos"), url: "/dashboard/trade/photos", icon: Camera, screenCode: "trade_photos" },
-    { title: t("trade.ideal_photos"), url: "/dashboard/trade/ideal-photos", icon: Image, screenCode: "trade_ideal_photos" },
-    { title: t("trade.audit"), url: "/dashboard/trade/auditorias", icon: ClipboardCheck, screenCode: "trade_auditorias" },
-    { title: "Calendário", url: "/dashboard/trade/calendar", icon: Calendar, screenCode: "trade_visits" },
-    { title: t("trade.competitive"), url: "/dashboard/trade/relatorio-competitivo", icon: BarChart3, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
-    { title: "Comparação Produtos", url: "/dashboard/trade/comparacao-produtos", icon: Scale, screenCode: "trade_competitors", requireAdminOrSupervisor: true },
-    { title: "Promoções", url: "/dashboard/trade/promotions", icon: Megaphone, screenCode: "trade_promotions", requireAdminOrSupervisor: true },
-    { title: "Performance", url: "/dashboard/trade/performance", icon: TrendingUp, screenCode: "trade_performance", requireAdminOrSupervisor: true },
-    { title: "Equipe Performance", url: "/dashboard/trade/team-performance", icon: UserCheck, screenCode: "trade_performance", requireAdminOrSupervisor: true },
-    { title: "Ranking", url: "/dashboard/ranking", icon: Trophy, screenCode: "trade_ranking", requireAdminOrSupervisor: true },
     { title: "Visão Executiva", url: "/dashboard/trade/admin/executivo", icon: BarChart2, screenCode: "trade_admin", requireAdminOrSupervisor: true },
-    { title: t("trade.rewards"), url: "/dashboard/trade/rewards", icon: Trophy, screenCode: "trade_rewards" },
-    { title: t("trade.whatsapp"), url: "/dashboard/trade/whatsapp", icon: MessageSquare, screenCode: "trade_whatsapp" },
-    { title: t("trade.ai_insights"), url: "/dashboard/trade/insights", icon: Sparkles, screenCode: "trade_insights", requireAdminOrSupervisor: true },
   ];
 
   const marketingSubMenus = [
@@ -677,7 +685,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     
     switch (moduleCode) {
       case "prospects": return filterItems(prospectsSubMenus).length + (hasPermission("PROSPECTS_DASHBOARD") ? 1 : 0);
-      case "trade": return filterItems(tradeSubMenus).length + (hasPermission("trade_marketing") ? 1 : 0);
+      case "trade": return filterItems(tradeSubMenus.filter(i => !i.isSeparator)).length + (hasPermission("trade_marketing") ? 1 : 0);
       case "marketing": return filterItems(marketingSubMenus).length + (hasPermission("MARKETING_DASHBOARD") ? 1 : 0);
       case "precos": return filterItems(precosSubMenus).length;
       case "fabrica": {
@@ -829,9 +837,15 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
             {hasPermission("trade_marketing") && (
               <MenuItemLink to="/dashboard/trade" icon={Home} title={t("prospects.overview")} colorKey="trade" end />
             )}
-            {tradeSubMenus.filter(i => hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor)).map(item => (
-              <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
-            ))}
+            {tradeSubMenus.filter(i => i.isSeparator || (hasPermission(i.screenCode) && (!i.requireAdminOrSupervisor || isAdminOrSupervisor))).map((item, idx) => 
+              item.isSeparator ? (
+                <div key={`sep-${idx}`} className="pt-3 pb-1 px-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.separatorLabel}</p>
+                </div>
+              ) : (
+                <MenuItemLink key={item.url} to={item.url} icon={item.icon} title={item.title} colorKey="trade" />
+              )
+            )}
           </ModuleSubmenu>
         );
 

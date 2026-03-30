@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Link, Navigate } from "react-router-dom";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,7 +15,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScreenPermissions } from "@/hooks/useScreenPermissions";
-import { useUserRole } from "@/hooks/useUserRole";
 import { startOfMonth } from "date-fns";
 import { QuickEntryDialog } from "@/components/trade/QuickEntryDialog";
 import { TourButton, tradeModuleTourSteps, TRADE_MODULE_TOUR_ID } from "@/components/tour";
@@ -28,22 +29,32 @@ import { ClipboardList } from "lucide-react";
 
 const TradeModule = () => {
   const { hasPermission, loading: permissionsLoading } = useScreenPermissions();
-  const { isAdmin: _isAdmin, isAdminOrSupervisor: _isAdminOrSupervisor } = useUserRole();
+  const { isAdmin, isAdminOrSupervisor } = useUserRole();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   
+  const effectiveUserId = isImpersonating ? impersonatedUser?.id : null;
+  const shouldFilter = !isAdmin || isImpersonating;
   
   const { stores: filteredStores, loading: storesLoading } = useFilteredStores();
 
   const { data: stats } = useQuery({
-    queryKey: ['trade-module-stats', filteredStores.length],
+    queryKey: ['trade-module-stats', filteredStores.length, effectiveUserId, shouldFilter],
     queryFn: async () => {
       const monthStart = startOfMonth(new Date());
+      const monthStartStr = monthStart.toISOString().split("T")[0];
       
-      const [visitsRes, photosRes, sellOutRes] = await Promise.all([
-        supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStart.toISOString().split("T")[0]),
-        supabase.from("photos").select("*", { count: "exact", head: true }),
-        (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString())
-      ]);
+      let visitsQuery = supabase.from("visits").select("*", { count: "exact", head: true }).gte("scheduled_date", monthStartStr);
+      let photosQuery = supabase.from("photos").select("*", { count: "exact", head: true });
+      let sellOutQuery = (supabase as any).from("sell_out_entries").select("quantity, unit_price").gte("created_at", monthStart.toISOString());
+      
+      if (shouldFilter && effectiveUserId) {
+        visitsQuery = visitsQuery.eq("user_id", effectiveUserId);
+        photosQuery = photosQuery.eq("vendedor_id", effectiveUserId);
+        sellOutQuery = sellOutQuery.eq("user_id", effectiveUserId);
+      }
+      
+      const [visitsRes, photosRes, sellOutRes] = await Promise.all([visitsQuery, photosQuery, sellOutQuery]);
 
       const sellOutData = (sellOutRes.data || []) as Array<{ quantity: number | null; unit_price: number | null }>;
       const totalSellOut = sellOutData.reduce((sum, e) => sum + ((e.quantity || 0) * (e.unit_price || 0)), 0);
