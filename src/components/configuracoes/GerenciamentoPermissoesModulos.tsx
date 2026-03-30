@@ -370,16 +370,16 @@ export function GerenciamentoPermissoesModulos() {
                               <Label htmlFor={`user-${module.id}`} className="font-medium">{module.nome}</Label>
                               {source === "role" && (
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge variant="default" className="text-[10px] px-1.5 py-0">Role</Badge>
+                                  <TooltipTrigger asChild>
+                                    <span><Badge variant="default" className="text-[10px] px-1.5 py-0">Role</Badge></span>
                                   </TooltipTrigger>
                                   <TooltipContent>Herdado da função "{selectedUserObj.role}"</TooltipContent>
                                 </Tooltip>
                               )}
                               {source === "departamento" && (
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 border-blue-200">Dept</Badge>
+                                  <TooltipTrigger asChild>
+                                    <span><Badge className="text-[10px] px-1.5 py-0 bg-blue-100 text-blue-800 border-blue-200">Dept</Badge></span>
                                   </TooltipTrigger>
                                   <TooltipContent>Herdado do departamento</TooltipContent>
                                 </Tooltip>

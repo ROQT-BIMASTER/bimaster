@@ -104,14 +104,7 @@ function Configuracoes() {
 
       if (error) throw error;
       setProfile(data);
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      setUserRole(roleData?.role || null);
+      setUserRole(permRole || null);
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
       toast({
