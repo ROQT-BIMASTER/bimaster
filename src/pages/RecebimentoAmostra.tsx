@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
-  Package, Search, ArrowLeft, Camera, Video, CheckCircle2,
+  Package, Search, ArrowLeft, Camera, Video, CheckCircle2, FileText,
   XCircle, Upload, AlertTriangle, Send, Eye, Clock, Loader2, Trash2, RotateCcw, Download,
 } from "lucide-react";
 import { DateRangeFilter, filterByDateRange } from "@/components/shared/DateRangeFilter";
