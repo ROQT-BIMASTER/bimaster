@@ -255,9 +255,12 @@ export default function DynamicFormBuilder() {
   }
 
   async function handleSuggestAI() {
-    const description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
+    let description = aiCustomPrompt.trim() || `${formName}. ${formDescription}`.trim();
+    if (aiSpreadsheetData) {
+      description = description ? `${description}\n\n${aiSpreadsheetData}` : aiSpreadsheetData;
+    }
     if (!description && !aiImageBase64) {
-      toast.error("Informe uma descrição, prompt ou envie uma imagem para sugestão IA");
+      toast.error("Informe uma descrição, prompt, planilha ou imagem para sugestão IA");
       return;
     }
     setSuggestingAI(true);
