@@ -79,27 +79,40 @@ export const GerenciamentoPermissoesTelas = () => {
   };
 
   const fetchModuloTelas = async () => {
-    const { data, error } = await supabase
-      .from("modulo_telas")
-      .select("modulo_codigo, tela_id, modulos_sistema(nome)")
-      .order("modulo_codigo");
+    try {
+      // Use RPC or direct query to get module-screen mapping
+      const { data: modulosData } = await supabase
+        .from("modulos_sistema")
+        .select("codigo, nome")
+        .eq("ativo", true);
 
-    if (error) {
-      console.error("Error fetching modulo_telas:", error);
-      return;
+      const { data: telasModuloData } = await supabase
+        .from("telas_sistema")
+        .select("id, codigo")
+        .eq("ativo", true);
+
+      // Group by module prefix from screen code (e.g. "trade_materiais" → "trade")
+      const moduloMap = new Map((modulosData || []).map(m => [m.codigo, m.nome]));
+      const mappings: ModuloTela[] = [];
+
+      (telasModuloData || []).forEach(tela => {
+        const parts = tela.codigo.split("_");
+        const prefix = parts[0];
+        const moduloNome = moduloMap.get(prefix) || prefix;
+        mappings.push({
+          modulo_codigo: prefix,
+          modulo_nome: moduloNome,
+          tela_id: tela.id,
+        });
+      });
+
+      setModuloTelas(mappings);
+      const codes = new Set(mappings.map(m => m.modulo_codigo));
+      codes.add("sem_modulo");
+      setOpenGroups(codes);
+    } catch (error) {
+      console.error("Error fetching modulo telas:", error);
     }
-
-    setModuloTelas(
-      (data || []).map((mt: any) => ({
-        modulo_codigo: mt.modulo_codigo,
-        modulo_nome: mt.modulos_sistema?.nome || mt.modulo_codigo,
-        tela_id: mt.tela_id,
-      }))
-    );
-    // Open all groups by default
-    const codes = new Set((data || []).map((mt: any) => mt.modulo_codigo as string));
-    codes.add("sem_modulo");
-    setOpenGroups(codes);
   };
 
   const fetchUsuarios = async () => {
