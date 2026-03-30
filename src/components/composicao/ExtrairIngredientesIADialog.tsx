@@ -231,6 +231,7 @@ export function ExtrairIngredientesIADialog({
 
   const isImageFile = (name: string) => /\.(png|jpg|jpeg|webp|gif|bmp|svg)$/i.test(name);
   const isPdfFile = (name: string) => /\.pdf$/i.test(name);
+  const isSpreadsheetOrDoc = (name: string) => /\.(xlsx|xls|csv|doc|docx|xml|txt)$/i.test(name);
 
   // -- Audit logging --
   const logExtractionAudit = async (action: string, docName: string, docId?: string) => {
