@@ -6,10 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
   FileText, Loader2, Eye, GitBranch, Users, Circle, CheckCircle2,
+  Download, CheckCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getSignedUrl } from "@/lib/utils/storage-helper";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
 export interface ProcessoDoc {
   id: string;
@@ -33,9 +37,16 @@ export interface ProcessoDoc {
   } | null;
 }
 
+interface Recebimento {
+  id: string;
+  documento_id: string;
+  confirmado_por: string;
+  confirmado_em: string;
+}
+
 interface Props {
   submissaoId: string;
-  moduloDestino?: string; // Filter docs dispatched to this module
+  moduloDestino?: string;
   onSelectDoc: (doc: ProcessoDoc) => void;
   className?: string;
 }
@@ -44,12 +55,14 @@ export function ProcessoDocumentosSelector({ submissaoId, moduloDestino, onSelec
   const [docs, setDocs] = useState<ProcessoDoc[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [recebimentos, setRecebimentos] = useState<Record<string, Recebimento>>({});
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const loadDocs = useCallback(async () => {
     if (loaded) return;
     setLoading(true);
     try {
-      // 1. Fetch links with project/section info
       const { data: vinculos } = await (supabase
         .from("china_documento_tarefa_vinculos" as any)
         .select("documento_id, projeto:projetos(nome), secao:projeto_secoes(nome)") as any);
@@ -74,27 +87,38 @@ export function ProcessoDocumentosSelector({ submissaoId, moduloDestino, onSelec
 
       const docIds = Object.keys(docChecklistMap);
 
-      // 2. Fetch documents
-      const { data } = await supabase
-        .from("china_produto_documentos")
-        .select("id, tipo_documento, nome_arquivo, arquivo_url, arquivo_path, status")
-        .eq("submissao_id", submissaoId)
-        .in("id", docIds)
-        .order("created_at", { ascending: false });
+      const [docsRes, despachoRes, recebimentosRes] = await Promise.all([
+        supabase
+          .from("china_produto_documentos")
+          .select("id, tipo_documento, nome_arquivo, arquivo_url, arquivo_path, status")
+          .eq("submissao_id", submissaoId)
+          .in("id", docIds)
+          .order("created_at", { ascending: false }),
+        ((() => {
+          let q = supabase
+            .from("process_despacho_documento" as any)
+            .select("id, documento_id, workflow_config_id, modulo_destino, status, etapa_atual")
+            .in("documento_id", docIds);
+          if (moduloDestino) q = q.eq("modulo_destino", moduloDestino);
+          return q;
+        })() as any),
+        (supabase
+          .from("processo_documento_recebimentos" as any)
+          .select("id, documento_id, confirmado_por, confirmado_em")
+          .eq("submissao_id", submissaoId) as any),
+      ]);
 
-      // 3. Fetch dispatches
-      let despachoQuery = supabase
-        .from("process_despacho_documento" as any)
-        .select("id, documento_id, workflow_config_id, modulo_destino, status, etapa_atual")
-        .in("documento_id", docIds);
-      
-      if (moduloDestino) {
-        despachoQuery = despachoQuery.eq("modulo_destino", moduloDestino);
-      }
+      // Map recebimentos by documento_id
+      const recMap: Record<string, Recebimento> = {};
+      ((recebimentosRes.data || []) as Recebimento[]).forEach((r) => {
+        recMap[r.documento_id] = r;
+      });
+      setRecebimentos(recMap);
 
-      const { data: despachos } = await (despachoQuery as any);
+      const data = docsRes.data;
+      const despachos = despachoRes.data;
 
-      // 4. Fetch workflow configs
+      // Fetch workflow configs
       let workflowMap: Record<string, any> = {};
       if (despachos && despachos.length > 0) {
         const configIds = [...new Set((despachos as any[]).map((d: any) => d.workflow_config_id).filter(Boolean))];
@@ -133,7 +157,6 @@ export function ProcessoDocumentosSelector({ submissaoId, moduloDestino, onSelec
         despacho: despachoMap[doc.id] || null,
       }));
 
-      // If filtering by module, only show docs that have a dispatch to this module
       const filtered = moduloDestino
         ? docsWithMeta.filter(d => d.despacho !== null)
         : docsWithMeta;
@@ -150,6 +173,66 @@ export function ProcessoDocumentosSelector({ submissaoId, moduloDestino, onSelec
   useEffect(() => {
     loadDocs();
   }, [loadDocs]);
+
+  const handleVerDocumento = async (doc: ProcessoDoc) => {
+    try {
+      let url = doc.arquivo_url;
+      if (doc.arquivo_path) {
+        const { signedUrl } = await getSignedUrl("china-documentos", doc.arquivo_path);
+        if (signedUrl) url = signedUrl;
+      }
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        toast.error("Arquivo não encontrado");
+      }
+    } catch {
+      toast.error("Erro ao abrir documento");
+    }
+  };
+
+  const handleConfirmarRecebimento = async (doc: ProcessoDoc) => {
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    setConfirmando(doc.id);
+    try {
+      const { error } = await (supabase
+        .from("processo_documento_recebimentos" as any)
+        .insert({
+          documento_id: doc.id,
+          submissao_id: submissaoId,
+          confirmado_por: user.id,
+        }) as any);
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("Recebimento já confirmado anteriormente");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Recebimento confirmado com sucesso");
+      }
+
+      // Refresh recebimentos
+      const { data: updated } = await (supabase
+        .from("processo_documento_recebimentos" as any)
+        .select("id, documento_id, confirmado_por, confirmado_em")
+        .eq("submissao_id", submissaoId) as any);
+
+      const recMap: Record<string, Recebimento> = {};
+      ((updated || []) as Recebimento[]).forEach((r) => {
+        recMap[r.documento_id] = r;
+      });
+      setRecebimentos(recMap);
+    } catch {
+      toast.error("Erro ao confirmar recebimento");
+    } finally {
+      setConfirmando(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -170,36 +253,82 @@ export function ProcessoDocumentosSelector({ submissaoId, moduloDestino, onSelec
   }
 
   return (
-    <ScrollArea className={cn("h-[300px]", className)}>
+    <ScrollArea className={cn("h-[400px]", className)}>
       <div className="space-y-2">
-        {docs.map((doc) => (
-          <Card key={doc.id} className="cursor-pointer hover:bg-accent/30 transition-colors">
-            <CardContent className="p-3 flex items-center gap-3">
-              <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{doc.nome_arquivo || doc.tipo_documento}</p>
-                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                  <span className="text-xs text-muted-foreground">{doc.tipo_documento}</span>
-                  {doc.checklists?.map((cl, i) => (
-                    <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-normal">
-                      {cl}
-                    </Badge>
-                  ))}
+        {docs.map((doc) => {
+          const rec = recebimentos[doc.id];
+          const isConfirmado = !!rec;
+
+          return (
+            <Card key={doc.id} className={cn(
+              "transition-colors",
+              isConfirmado && "border-emerald-500/30 bg-emerald-500/5"
+            )}>
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.nome_arquivo || doc.tipo_documento}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span className="text-xs text-muted-foreground">{doc.tipo_documento}</span>
+                      {doc.checklists?.map((cl, i) => (
+                        <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-normal">
+                          {cl}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] shrink-0">{doc.status}</Badge>
                 </div>
-              </div>
-              <Badge variant="outline" className="text-[10px] shrink-0">{doc.status}</Badge>
-              <Button size="sm" onClick={() => onSelectDoc(doc)} className="gap-1.5">
-                <Eye className="h-3.5 w-3.5" />
-                Selecionar
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+
+                {isConfirmado && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded px-2 py-1">
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    <span>Recebido em {format(new Date(rec.confirmado_em), "dd/MM/yyyy HH:mm")}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleVerDocumento(doc)}
+                    className="gap-1.5 text-xs"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Ver Documento
+                  </Button>
+
+                  {!isConfirmado && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleConfirmarRecebimento(doc)}
+                      disabled={confirmando === doc.id}
+                      className="gap-1.5 text-xs"
+                    >
+                      {confirmando === doc.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      )}
+                      Confirmar Recebimento
+                    </Button>
+                  )}
+
+                  <Button size="sm" variant="ghost" onClick={() => onSelectDoc(doc)} className="gap-1.5 text-xs">
+                    <Eye className="h-3.5 w-3.5" />
+                    Detalhes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </ScrollArea>
   );
 }
-
 /** Displays the workflow/stage info for a selected process document */
 export function ProcessoEtapaInfo({ despacho }: { despacho: ProcessoDoc["despacho"] }) {
   if (!despacho?.workflow) return null;

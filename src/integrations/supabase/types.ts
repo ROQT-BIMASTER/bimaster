@@ -19829,6 +19829,48 @@ export type Database = {
           },
         ]
       }
+      processo_documento_recebimentos: {
+        Row: {
+          confirmado_em: string
+          confirmado_por: string
+          documento_id: string
+          id: string
+          observacao: string | null
+          submissao_id: string
+        }
+        Insert: {
+          confirmado_em?: string
+          confirmado_por: string
+          documento_id: string
+          id?: string
+          observacao?: string | null
+          submissao_id: string
+        }
+        Update: {
+          confirmado_em?: string
+          confirmado_por?: string
+          documento_id?: string
+          id?: string
+          observacao?: string | null
+          submissao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processo_documento_recebimentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processo_documento_recebimentos_submissao_id_fkey"
+            columns: ["submissao_id"]
+            isOneToOne: false
+            referencedRelation: "china_produto_submissoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_comparisons: {
         Row: {
           comparison_notes: string | null
