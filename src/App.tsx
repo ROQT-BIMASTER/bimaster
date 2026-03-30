@@ -244,6 +244,8 @@ const ProdutoBrasilCadastro = lazyWithRetry(() => import("./pages/ProdutoBrasilC
 const ProdutosBrasilListagem = lazyWithRetry(() => import("./pages/ProdutosBrasilListagem"));
 const PoliticaPrivacidade = lazyWithRetry(() => import("./pages/PoliticaPrivacidade"));
 const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
+const DynamicFormBuilder = lazyWithRetry(() => import("./pages/DynamicFormBuilder"));
+const DynamicFormPublic = lazyWithRetry(() => import("./pages/DynamicFormPublic"));
 const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
