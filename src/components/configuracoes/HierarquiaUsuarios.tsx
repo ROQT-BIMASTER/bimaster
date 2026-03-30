@@ -697,7 +697,7 @@ export function HierarquiaUsuarios() {
           )}
 
           {/* Usuários sem supervisor */}
-          {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length > 0 && (
+          {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length > 0 && (
             <Card className="border-2 border-dashed border-muted-foreground/30">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -711,14 +711,14 @@ export function HierarquiaUsuarios() {
                     </div>
                   </div>
                   <Badge variant="outline">
-                    {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor').length} usuário(s)
+                    {usuarios.filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor').length} usuário(s)
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {usuarios
-                    .filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'supervisor')
+                    .filter(u => !u.supervisor_id && u.role !== 'admin' && u.role !== 'gerente' && u.role !== 'supervisor')
                     .map(usuario => renderUsuario(usuario, 0))}
                 </div>
               </CardContent>
