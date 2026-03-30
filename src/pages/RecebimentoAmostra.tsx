@@ -459,8 +459,19 @@ function AmostraEditor({ amostra }: { amostra: Amostra }) {
                 }}
                 amostraId={amostra.id}
                 refetchFotos={refetchFotos}
+                isCustom={!CHECKLIST_ITEMS.find(ci => ci.key === item.key)}
+                onRemove={!isReadOnly ? () => setChecklist(prev => prev.filter((_, i) => i !== idx)) : undefined}
               />
             ))}
+
+            {/* Add custom item */}
+            {!isReadOnly && (
+              <AddCustomChecklistItem onAdd={(label) => {
+                const key = `custom_${Date.now()}`;
+                setChecklist(prev => [...prev, { key, label, resultado: null, observacao: "" }]);
+              }} />
+            )}
+
             {!isReadOnly && (
               <Button size="sm" onClick={handleSaveChecklist} disabled={!evidenciasOk || updateAmostra.isPending}>
                 Salvar Checklist
