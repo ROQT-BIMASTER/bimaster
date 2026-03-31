@@ -1,10 +1,13 @@
 import { ProjetoAtividade } from "@/hooks/useProjetoAtividades";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageSquare, Archive, CheckCircle2, UserPlus, FolderPlus, ArrowRight } from "lucide-react";
+import { ThumbsUp, MessageSquare, Archive, CheckCircle2, UserPlus, FolderPlus, ArrowRight, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const TIPO_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string }> = {
   criou_tarefa: { icon: FolderPlus, label: "adicionou tarefa", color: "text-blue-400" },
@@ -21,12 +24,32 @@ interface ProjetoInboxCardProps {
 export function ProjetoInboxCard({ atividade }: ProjetoInboxCardProps) {
   const config = TIPO_CONFIG[atividade.tipo] || TIPO_CONFIG.criou_tarefa;
   const Icon = config.icon;
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const marcarLida = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (atividade.lida) return;
+    await supabase.from("projeto_atividades").update({ lida: true }).eq("id", atividade.id);
+    queryClient.invalidateQueries({ queryKey: ["projeto-atividades"] });
+  };
+
+  const handleClick = async () => {
+    if (!atividade.lida) {
+      await supabase.from("projeto_atividades").update({ lida: true }).eq("id", atividade.id);
+      queryClient.invalidateQueries({ queryKey: ["projeto-atividades"] });
+    }
+    navigate(`/dashboard/projetos/${atividade.projeto_id}`);
+  };
 
   return (
-    <div className={cn(
-      "flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/30 group",
-      !atividade.lida && "bg-primary/5"
-    )}>
+    <div 
+      className={cn(
+        "flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/30 group cursor-pointer",
+        !atividade.lida && "bg-primary/5"
+      )}
+      onClick={handleClick}
+    >
       {/* Unread indicator */}
       <div className="w-2 pt-2 flex-shrink-0">
         {!atividade.lida && <div className="w-2 h-2 rounded-full bg-primary" />}
@@ -61,9 +84,13 @@ export function ProjetoInboxCard({ atividade }: ProjetoInboxCardProps) {
       <Icon className={cn("h-4 w-4 mt-1 flex-shrink-0", config.color)} />
 
       {/* Quick actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        {!atividade.lida && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Marcar como lida" onClick={marcarLida}>
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="h-7 w-7"><ThumbsUp className="h-3.5 w-3.5" /></Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7"><MessageSquare className="h-3.5 w-3.5" /></Button>
         <Button variant="ghost" size="icon" className="h-7 w-7"><Archive className="h-3.5 w-3.5" /></Button>
       </div>
     </div>
