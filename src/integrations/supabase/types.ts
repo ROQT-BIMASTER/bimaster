@@ -30416,7 +30416,6 @@ export type Database = {
       }
       configuracoes_cobranca_safe: {
         Row: {
-          api_key: string | null
           automacao_ativa: boolean | null
           created_at: string | null
           created_by: string | null
@@ -30429,10 +30428,8 @@ export type Database = {
           nome_remetente: string | null
           updated_at: string | null
           updated_by: string | null
-          whatsapp_verify_token: string | null
         }
         Insert: {
-          api_key?: never
           automacao_ativa?: boolean | null
           created_at?: string | null
           created_by?: string | null
@@ -30445,10 +30442,8 @@ export type Database = {
           nome_remetente?: string | null
           updated_at?: string | null
           updated_by?: string | null
-          whatsapp_verify_token?: never
         }
         Update: {
-          api_key?: never
           automacao_ativa?: boolean | null
           created_at?: string | null
           created_by?: string | null
@@ -30461,7 +30456,6 @@ export type Database = {
           nome_remetente?: string | null
           updated_at?: string | null
           updated_by?: string | null
-          whatsapp_verify_token?: never
         }
         Relationships: []
       }
