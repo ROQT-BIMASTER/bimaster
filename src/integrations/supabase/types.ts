@@ -30520,6 +30520,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           email_remetente: string | null
+          has_api_key: boolean | null
+          has_whatsapp_token: boolean | null
           hora_fim_envio: string | null
           hora_inicio_envio: string | null
           id: string | null
@@ -30534,6 +30536,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email_remetente?: string | null
+          has_api_key?: never
+          has_whatsapp_token?: never
           hora_fim_envio?: string | null
           hora_inicio_envio?: string | null
           id?: string | null
@@ -30548,6 +30552,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email_remetente?: string | null
+          has_api_key?: never
+          has_whatsapp_token?: never
           hora_fim_envio?: string | null
           hora_inicio_envio?: string | null
           id?: string | null
@@ -30566,6 +30572,8 @@ export type Database = {
           config_value: string | null
           description: string | null
           empresa_id: number | null
+          has_api_key: boolean | null
+          has_api_key_hash: boolean | null
           id: string | null
           is_secret: boolean | null
           updated_at: string | null
@@ -30574,9 +30582,11 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           config_key?: string | null
-          config_value?: string | null
+          config_value?: never
           description?: string | null
           empresa_id?: number | null
+          has_api_key?: never
+          has_api_key_hash?: never
           id?: string | null
           is_secret?: boolean | null
           updated_at?: string | null
@@ -30585,9 +30595,11 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           config_key?: string | null
-          config_value?: string | null
+          config_value?: never
           description?: string | null
           empresa_id?: number | null
+          has_api_key?: never
+          has_api_key_hash?: never
           id?: string | null
           is_secret?: boolean | null
           updated_at?: string | null
@@ -30825,9 +30837,9 @@ export type Database = {
       }
       social_media_accounts_safe: {
         Row: {
-          access_token: string | null
           account_name: string | null
           created_at: string | null
+          has_access_token: boolean | null
           id: string | null
           last_sync_at: string | null
           platform: string | null
@@ -30837,9 +30849,9 @@ export type Database = {
           username: string | null
         }
         Insert: {
-          access_token?: never
           account_name?: string | null
           created_at?: string | null
+          has_access_token?: never
           id?: string | null
           last_sync_at?: string | null
           platform?: string | null
@@ -30849,9 +30861,9 @@ export type Database = {
           username?: string | null
         }
         Update: {
-          access_token?: never
           account_name?: string | null
           created_at?: string | null
+          has_access_token?: never
           id?: string | null
           last_sync_at?: string | null
           platform?: string | null
@@ -30864,36 +30876,36 @@ export type Database = {
       }
       social_media_credentials_safe: {
         Row: {
-          access_token: string | null
           created_at: string | null
           expires_at: string | null
+          has_access_token: boolean | null
+          has_refresh_token: boolean | null
           id: string | null
           platform: string | null
-          refresh_token: string | null
           scope: string | null
           token_type: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          access_token?: never
           created_at?: string | null
           expires_at?: string | null
+          has_access_token?: never
+          has_refresh_token?: never
           id?: string | null
           platform?: string | null
-          refresh_token?: never
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
-          access_token?: never
           created_at?: string | null
           expires_at?: string | null
+          has_access_token?: never
+          has_refresh_token?: never
           id?: string | null
           platform?: string | null
-          refresh_token?: never
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
@@ -31042,9 +31054,13 @@ export type Database = {
       stores_with_sellers: {
         Row: {
           address: string | null
+          branch_count: number | null
+          capital_social: string | null
           category: string | null
           chain: string | null
           city: string | null
+          classification: string | null
+          cnae_principal: string | null
           cnpj: string | null
           code: string | null
           created_at: string | null
@@ -31055,83 +31071,25 @@ export type Database = {
           longitude: number | null
           manager_name: string | null
           manager_phone: string | null
+          matriz_filial: string | null
           monthly_revenue: number | null
           name: string | null
           notes: string | null
           phone: string | null
+          porte_empresa: string | null
           priority: string | null
+          regime_tributario: string | null
+          situacao_cadastral: string | null
           size: string | null
           state: string | null
           status: string | null
           supervisor_id: string | null
           updated_at: string | null
+          vendedor_email: string | null
           vendedor_id: string | null
-          vendedor_principal_id: string | null
-          vendedores: Json | null
+          vendedor_nome: string | null
           visit_frequency: string | null
           zip_code: string | null
-        }
-        Insert: {
-          address?: string | null
-          category?: string | null
-          chain?: string | null
-          city?: string | null
-          cnpj?: string | null
-          code?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          email?: string | null
-          id?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          manager_name?: string | null
-          manager_phone?: string | null
-          monthly_revenue?: number | null
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          priority?: string | null
-          size?: string | null
-          state?: string | null
-          status?: string | null
-          supervisor_id?: string | null
-          updated_at?: string | null
-          vendedor_id?: string | null
-          vendedor_principal_id?: never
-          vendedores?: never
-          visit_frequency?: string | null
-          zip_code?: string | null
-        }
-        Update: {
-          address?: string | null
-          category?: string | null
-          chain?: string | null
-          city?: string | null
-          cnpj?: string | null
-          code?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          email?: string | null
-          id?: string | null
-          latitude?: number | null
-          longitude?: number | null
-          manager_name?: string | null
-          manager_phone?: string | null
-          monthly_revenue?: number | null
-          name?: string | null
-          notes?: string | null
-          phone?: string | null
-          priority?: string | null
-          size?: string | null
-          state?: string | null
-          status?: string | null
-          supervisor_id?: string | null
-          updated_at?: string | null
-          vendedor_id?: string | null
-          vendedor_principal_id?: never
-          vendedores?: never
-          visit_frequency?: string | null
-          zip_code?: string | null
         }
         Relationships: []
       }

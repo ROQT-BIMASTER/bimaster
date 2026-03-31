@@ -9,8 +9,8 @@ export interface TeamMemberDetail {
   id: string;
   user_id: string;
   nome_completo: string | null;
-  cpf: string | null;
-  rg: string | null;
+  cpf_masked: string | null;
+  rg_masked: string | null;
   data_nascimento: string | null;
   email_pessoal: string | null;
   whatsapp: string | null;
@@ -36,7 +36,7 @@ export interface TeamMemberWithProfile {
 
 const REQUIRED_FIELDS: (keyof TeamMemberDetail)[] = [
   "nome_completo",
-  "cpf",
+  "cpf_masked",
   "whatsapp",
   "tamanho_camiseta",
   "equipe_comercial",
