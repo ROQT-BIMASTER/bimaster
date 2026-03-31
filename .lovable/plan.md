@@ -1,68 +1,89 @@
 
 
-# Melhorias Visuais no Módulo de Projetos
+# Análise: Backend Seguro — Contexto Lovable Cloud
 
-## Diagnóstico atual
+## Realidade do Projeto
 
-Após análise do código e da tela, identifiquei estas oportunidades:
+Este projeto roda no **Lovable Cloud** (Supabase), que é uma plataforma serverless. **Não é possível** adicionar um servidor Node.js tradicional (Express, Fastify, etc.) ao projeto. O sandbox não executa servidores persistentes.
 
-| Area | Problema | Impacto |
-|------|----------|---------|
-| Header do projeto | Ícone quadrado simples com letra, sem hierarquia visual | Aspecto genérico |
-| Barra de progresso (HealthPanel) | Fina (2.5px), cores hardcoded (`bg-emerald-500`, `bg-blue-500`...) | Pouco destaque, fora do design system |
-| Tabs | 9 abas em linha, ocupam muito espaço, sem destaque visual | Poluição visual, difícil scan |
-| Área de conteúdo (Lista) | Sem card container, flutua no fundo | Falta de delimitação |
-| Listagem de projetos | Tabela funcional mas sem hierarquia visual clara | Monótona |
-| Botões de ação (Membros, IA, Lixeira) | Botões ghost pequenos, sem agrupamento | Se perdem no layout |
+Porém, a boa notícia: **a maioria dos requisitos já está implementada ou pode ser implementada** usando a arquitetura existente (Edge Functions + RLS + Supabase Auth).
 
-## Alterações propostas
+## Mapeamento: Requisito → Status Atual
 
-### 1. Hero Header do Projeto
-- Substituir o ícone quadrado+letra por um **hero banner** compacto (80px altura) com gradiente baseado na cor do projeto
-- Nome do projeto em fonte maior (text-2xl) sobre o gradiente
-- Descrição como subtitle translúcido
-- Avatares dos membros empilhados à direita do header
-- Botões de ação (Membros, Resumo IA, Lixeira) como icon-buttons agrupados em um container pill
+| Requisito | Status | Implementação |
+|-----------|--------|---------------|
+| JWT (access + refresh) | ✅ Nativo | Supabase Auth gerencia automaticamente |
+| Hash bcrypt | ✅ Nativo | Supabase Auth usa bcrypt internamente |
+| Middleware de token | ✅ Implementado | `_shared/auth.ts` com `validateAny` |
+| RBAC | ✅ Implementado | `user_roles` + `has_role()` + RLS |
+| Permissões granulares | ✅ Implementado | `usuario_permissoes_modulos/telas` + ABAC |
+| SQL Injection | ✅ Protegido | Supabase SDK usa prepared statements |
+| Validação Zod | ✅ Implementado | `_shared/validate.ts` |
+| XSS | ⚠️ Parcial | CSP headers existem, sanitização parcial |
+| CSRF | ✅ Nativo | JWT-based auth não usa cookies |
+| Mass Assignment | ⚠️ Parcial | Algumas funções fazem whitelist, outras não |
+| Rate Limiting | ✅ Implementado | `_shared/rate-limit.ts` (60 req/min) |
+| Helmet/Headers | ✅ Implementado | `_shared/security-headers.ts` |
+| CORS restritivo | ✅ Implementado | `_shared/cors.ts` com allowlist |
+| Upload seguro | ✅ Implementado | `file-security.ts` (magic bytes + whitelist) |
+| MIME validation | ✅ Implementado | Validação 3 camadas |
+| Limite tamanho | ✅ Implementado | 20MB max |
+| Logs de login | ✅ Parcial | `audit_logs` + `access_audit_log` |
+| Logs de erro | ⚠️ Básico | Console only, sem structured logging |
+| HTTPS | ✅ Nativo | Supabase/Lovable forçam HTTPS |
+| Env vars | ✅ Configurado | `.env` automático + secrets |
+| SSRF Guard | ✅ Implementado | `ssrf-guard.ts` (HTTPS-only) |
+| Token expiration | ✅ Nativo | Supabase Auth gerencia TTL |
+| IP Blacklist | ❌ Não existe | Pode ser implementado |
+| DDoS básico | ⚠️ Parcial | Rate limit existe, throttling não |
 
-### 2. Health Panel Premium
-- Aumentar altura da barra para 4px com border-radius
-- Substituir cores hardcoded por tokens semânticos (`bg-success`, `bg-warning`, `bg-destructive`)
-- Adicionar KPI chips acima da barra: "12 tarefas · 8 concluídas · 2 atrasadas" em badges compactos
-- Animação de entrada suave (fade-in)
+## Gaps Reais a Corrigir
 
-### 3. Tabs Redesenhadas
-- Agrupar as 9 abas em **2 grupos visuais** com separador sutil:
-  - Trabalho: Lista, Quadro, Cronograma, Calendário
-  - Gestão: Painel, Briefings, Equipe, Arquivos, Aprovações
-- Usar ícones menores (h-3.5) sem label em telas menores
-- Tab ativa com underline accent + background sutil em vez de pill
+Dos requisitos listados, existem **5 gaps** que podem ser fechados:
 
-### 4. Container de Conteúdo
-- Envolver o conteúdo de cada tab em um card com `bg-card rounded-xl border shadow-sm`
-- Padding interno consistente
-- Transição suave entre tabs (fade)
+### 1. Structured Audit Logging (Edge Functions)
+- Criar `_shared/structured-logger.ts` com níveis (info, warn, error, security)
+- Registrar em tabela `security_audit_log` com campos: action, ip, user_agent, user_id, severity, metadata
+- Integrar em todas as Edge Functions via wrapper
 
-### 5. Listagem de Projetos (página `/projetos`)
-- Adicionar **hover card** com preview: mini progress bar, 3 últimas tarefas, membros
-- Linha do projeto com indicador lateral colorido (borda esquerda com cor do projeto)
-- Status badge com dot animado para "Em andamento"
+### 2. IP Blacklist Middleware
+- Criar tabela `ip_blacklist` (ip, reason, expires_at, created_by)
+- Criar middleware `_shared/ip-guard.ts` que verifica antes de processar
+- Auto-blacklist após X falhas de login (via trigger)
 
-### 6. Kanban Visual Polish
-- Cards com borda-esquerda colorida por estágio (já tem `ESTAGIO_ACCENT`)
-- Sombra suave nos cards ao arrastar
-- Counter badge no header de cada coluna
+### 3. Mass Assignment Protection
+- Auditar Edge Functions que aceitam body direto sem whitelist
+- Garantir que todas usem schema Zod (já existe `validateBody`)
+- Funções como `create-admin-users` precisam de schema explícito
 
-## Arquivos afetados
+### 4. Request Throttling (complementar ao rate limit)
+- Adicionar throttling progressivo: delay crescente após falhas consecutivas
+- Implementar via RPC no banco (já existe infraestrutura de rate limit)
+
+### 5. Login Security Enhancement
+- Registrar todas tentativas de login (sucesso/falha) em `security_audit_log`
+- Implementar account lockout após 5 falhas (já referenciado na memória)
+- Notificar admin sobre padrões suspeitos
+
+## Arquivos a Criar/Modificar
 
 | Arquivo | Ação |
 |---------|------|
-| `ProjetoHeader.tsx` | Hero banner + reorganizar botões + tabs agrupadas |
-| `ProjetoHealthPanel.tsx` | Tokens semânticos + KPI chips + barra maior |
-| `ProjetoDetalhe.tsx` | Card container para conteúdo + animação |
-| `Projetos.tsx` | Borda colorida lateral + hover polish |
-| `ProjetoKanbanView.tsx` | Card borders coloridas + counters |
+| Migration SQL | Tabelas `security_audit_log` + `ip_blacklist` |
+| `_shared/structured-logger.ts` | Criar — logging estruturado |
+| `_shared/ip-guard.ts` | Criar — middleware IP blacklist |
+| `_shared/request-throttle.ts` | Criar — throttling progressivo |
+| `create-admin-users/index.ts` | Adicionar schema Zod + logging |
+| `update-user-password/index.ts` | Adicionar logging de segurança |
 
-## Resultado esperado
+## O que NÃO se aplica
 
-Visual premium, hierarquia clara, identidade por projeto (cor), consistência com o design system. Zero mudança funcional — apenas refinamento visual.
+- **Servidor Node.js** (Express/Fastify): impossível no Lovable
+- **Prisma/Sequelize ORM**: Supabase SDK já protege contra injection
+- **CSRF tokens**: desnecessário com auth JWT (sem cookies)
+- **Armazenamento fora da raiz**: storage é gerenciado pelo Supabase
+
+## Resumo
+
+Score atual: **~85/100**. Com as 5 correções acima: **~95/100**. A arquitetura existente já cobre a maioria dos vetores OWASP Top 10. Os gaps são em logging estruturado, IP blacklist e throttling.
 
