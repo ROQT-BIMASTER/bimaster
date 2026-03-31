@@ -161,80 +161,92 @@ export default function PlanoContas() {
     });
   };
 
+  // Determine row styling based on code depth to match the spreadsheet
+  const getRowStyle = (account: Account) => {
+    const code = account.code;
+    const depth = code.split('.').length;
+    const topLevel = code.split('.')[0];
+    
+    // Level 1 headers (1, 2, 3, 4) — green background like spreadsheet
+    if (depth === 1 && !code.includes('.')) {
+      return "bg-emerald-600 text-white font-bold text-sm";
+    }
+    // Level 2 sub-headers (2.5, 3.1, 3.2, etc.) — darker green
+    if (depth === 2) {
+      return "bg-emerald-500/15 font-semibold text-sm border-l-4 border-emerald-500";
+    }
+    // Level 3 items
+    if (depth === 3) {
+      return "text-sm";
+    }
+    // Level 4+ sub-items
+    return "text-sm text-muted-foreground";
+  };
+
+  const getIndent = (code: string) => {
+    const depth = code.split('.').length;
+    if (depth === 1) return 8;
+    if (depth === 2) return 24;
+    if (depth === 3) return 48;
+    if (depth === 4) return 72;
+    return 96;
+  };
+
   const renderAccountRow = (account: Account, level: number = 0) => {
     const hasChildren = account.children && account.children.length > 0;
     const isExpanded = expandedNodes.has(account.id);
-    const paddingLeft = level * 24;
+    const rowStyle = getRowStyle(account);
+    const indent = getIndent(account.code);
+    const isTopLevel = !account.code.includes('.');
 
     return (
       <div key={account.id}>
         <div
-          className={`flex items-center py-3 px-4 hover:bg-accent/50 border-b transition-colors ${
-            account.is_group ? "font-semibold bg-muted/30" : ""
-          }`}
-          style={{ paddingLeft: `${paddingLeft + 16}px` }}
+          className={`flex items-center py-2 px-4 border-b transition-colors hover:bg-accent/30 ${rowStyle}`}
         >
-          <div className="flex items-center gap-2 flex-1">
-            {hasChildren && (
+          <div className="flex items-center gap-1.5 flex-1" style={{ paddingLeft: `${indent}px` }}>
+            {hasChildren ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className={`h-5 w-5 p-0 ${isTopLevel ? "text-white hover:text-white/80" : ""}`}
                 onClick={() => toggleNode(account.id)}
               >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
+                {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               </Button>
+            ) : (
+              <div className="w-5" />
             )}
-            {!hasChildren && <div className="w-6" />}
             
-            <span className="font-mono text-sm min-w-[100px]">{account.code}</span>
+            <span className={`font-mono min-w-[90px] ${isTopLevel ? "text-white font-bold" : "text-muted-foreground"}`}>
+              {account.code}
+            </span>
             <span className="flex-1">{account.name}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            {account.categoria_dre && (
+            {!isTopLevel && account.categoria_dre && (
               <Badge 
                 variant="outline" 
-                className={categoriaDreColors[account.categoria_dre] || "bg-muted text-muted-foreground"}
+                className={`text-[10px] px-1.5 py-0 ${categoriaDreColors[account.categoria_dre] || ""}`}
               >
                 {categoriaDreLabels[account.categoria_dre] || account.categoria_dre}
               </Badge>
             )}
-            <Badge variant="outline" className={accountTypeColors[account.account_type]}>
-              {accountTypeLabels[account.account_type]}
-            </Badge>
-            <Badge variant="secondary" className="font-mono">
-              {account.natureza}
-            </Badge>
-            {!account.permite_lancamento && (
-              <Badge variant="outline" className="text-muted-foreground">
-                Grupo
-              </Badge>
-            )}
             {!account.is_active && (
-              <Badge variant="destructive">Inativo</Badge>
+              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Inativo</Badge>
             )}
-            
-            {account.departamento_id && departamentos && (
-              <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
-                {departamentos.find((d: any) => d.id === account.departamento_id)?.nome || 'Dept.'}
-              </Badge>
-            )}
-            
             <Button
               variant="ghost"
               size="sm"
+              className={`h-6 w-6 p-0 ${isTopLevel ? "text-white/70 hover:text-white" : ""}`}
               title="Editar conta"
               onClick={() => {
                 setSelectedAccount(account);
                 setIsEditDialogOpen(true);
               }}
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
