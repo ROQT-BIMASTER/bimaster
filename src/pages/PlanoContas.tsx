@@ -363,7 +363,45 @@ export default function PlanoContas() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="migracao">
+          <TabsContent value="inativos" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Contas Inativas</CardTitle>
+                <CardDescription>
+                  Contas desativadas ou do plano anterior (v1). Estas contas não aparecem em formulários e seletores.
+                </CardDescription>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar contas inativas..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="p-4 space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                ) : filteredInactiveHierarchy.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Nenhuma conta inativa encontrada
+                  </div>
+                ) : (
+                  <div className="border-t opacity-75">
+                    {filteredInactiveHierarchy.map(account => renderAccountRow(account))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
             <MigracaoPlanoContasPanel />
           </TabsContent>
         </Tabs>
