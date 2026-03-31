@@ -72,7 +72,7 @@ const categoriaDreColors: Record<string, string> = {
 
 export default function PlanoContas() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["1", "2", "4", "5", "6", "7", "8"]));
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
