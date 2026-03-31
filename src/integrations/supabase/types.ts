@@ -31734,6 +31734,7 @@ export type Database = {
         Returns: number
       }
       exec_sql: { Args: { sql_query: string }; Returns: undefined }
+      executar_migracao_plano_contas: { Args: never; Returns: undefined }
       fn_atribuir_vendedor_territorio: {
         Args: { p_cidade: string; p_uf: string }
         Returns: string
