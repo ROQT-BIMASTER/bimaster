@@ -98,13 +98,23 @@ function TarefaSection({ group, onToggle }: { group: { label: string; key: strin
 }
 
 export default function ProjetoHome() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { data: tarefas = [], isLoading: loadingTarefas } = useMinhasTarefas();
   const { data: projetos = [], isLoading: loadingProjetos } = useMeusProjetosRecentes();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const userName = profile?.nome?.split(" ")[0] || user?.email?.split("@")[0] || "Usuário";
+  // Fetch profile name
+  const { data: profileData } = useQuery({
+    queryKey: ["my-profile-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("nome").eq("id", user!.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const userName = profileData?.nome?.split(" ")[0] || user?.email?.split("@")[0] || "Usuário";
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR });
 
   const pendentes = tarefas.filter(t => t.status !== "concluida");
