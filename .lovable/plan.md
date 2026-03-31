@@ -1,78 +1,79 @@
 
 
-# Elevar Segurança — 19 Findings (11 Errors + 6 Warnings + 2 Platform)
+# Aprofundar Segurança — 9 Findings (5 Errors + 4 Warnings)
 
 ## Scan Atual
 
-### 🔴 11 Errors
+### 🔴 5 Errors
 
-| # | Finding | Correção |
+| # | Finding | Problema |
 |---|---------|----------|
-| 1 | `audit_logs_archive` — todos approved users leem IPs e histórico | Restringir SELECT a admin only |
-| 2 | `china_pasta_digital` — CRUD aberto a qualquer autenticado | Restringir por módulo `fabrica_china` ou `created_by` |
-| 3 | `vendedor_territorios` — INSERT/UPDATE/DELETE sem ownership | Restringir escrita a admin/supervisor |
-| 4 | `produto_peticionamento` — ALL com apenas `auth.uid() IS NOT NULL` | Restringir por módulo regulatório ou ownership |
-| 5 | `china_submissao_tarefa_vinculos` — ALL aberto | Restringir por membership no projeto/módulo china |
-| 6 | `erp_config` — API keys em plaintext | Remover colunas `api_key` e `api_key_anterior`, manter apenas `api_key_hash` |
-| 7 | `configuracoes_cobranca` — API key e WhatsApp token em plaintext | Migrar para Vault ou hash; remover plaintext |
-| 8 | `produto_composicao` — ALL aberto | Restringir por módulo fábrica |
-| 9 | `produto_gate_criacao` — ALL aberto | Restringir a approver roles |
-| 10 | `processo_documento_recebimentos` — SELECT `true` | Restringir por participante do processo |
-| 11 | `trade-photos` — INSERT sem path ownership | Adicionar `(storage.foldername(name))[1] = auth.uid()::text` |
+| 1 | **social_media_credentials_safe** | View expõe `access_token` e `refresh_token` sem `security_invoker = true` — qualquer autenticado lê OAuth tokens de outros |
+| 2 | **team_member_details_safe** | View expõe CPF, RG, data de nascimento sem herdar RLS da tabela base |
+| 3 | **stores_safe** | View expõe PIX, agência, conta bancária sem `security_invoker = true` |
+| 4 | **fabrica_fornecedores_safe** | View expõe dados bancários de fornecedores sem proteção RLS |
+| 5 | **erp_config** | API keys em plaintext acessíveis a admins sem criptografia |
 
-### 🟡 6 Warnings
+### 🟡 4 Warnings
 
-| # | Finding | Correção |
+| # | Finding | Problema |
 |---|---------|----------|
-| 12 | `erp_portal_access_modules` — sem SELECT para non-admin | Adicionar SELECT por profile assignment |
-| 13 | `fabrica_formula_itens` — DELETE sem módulo | Restringir DELETE ao módulo `fabrica` |
-| 14 | `ai_training_examples` — SELECT `true` | Restringir a módulo financeiro/admin |
-| 15 | `fabrica-produto-fotos` — storage sem path ownership | Adicionar path check ou módulo |
-| 16 | `cofre_share_tokens` — sem filtro de expirado/revogado em RLS | Adicionar `is_revoked = false AND expires_at > now()` |
-| 17-18 | Extensions in public + RLS always true | Platform limitation (ignorar) |
+| 6 | **Extensions in public** | Limitação da plataforma (aceito) |
+| 7 | **RLS always true** | Policies com `USING(true)` em operações de escrita |
+| 8 | **configuracoes_cobranca** | `api_key` e `whatsapp_verify_token` em plaintext |
+| 9 | **dynamic_form_responses** | Anon pode submeter PII sem rate limiting no RLS |
 
-## Estratégia de Execução
+## Plano de Correção
 
-### Fase 1 — RLS Hardening (1 migration)
+### Fase 1 — Views com security_invoker (1 migration)
 
-Corrigir os 8 findings de tabelas com policies permissivas:
-- `china_pasta_digital`, `vendedor_territorios`, `produto_peticionamento`, `china_submissao_tarefa_vinculos`, `produto_composicao`, `produto_gate_criacao`, `processo_documento_recebimentos`, `audit_logs_archive`
+Recriar 4 views com `WITH (security_invoker = true)` e remover colunas sensíveis:
 
-Padrão: DROP policy permissiva → CREATE com `check_user_access(auth.uid(), 'modulo')` ou ownership check.
+- **social_media_credentials_safe**: Remover `access_token` e `refresh_token`, substituir por `has_access_token boolean`
+- **team_member_details_safe**: Mascarar CPF (`'***.XXX.XX-**'`) e RG, remover `email_pessoal` para non-admin
+- **stores_safe**: Mascarar PIX e dados bancários para non-admin
+- **fabrica_fornecedores_safe**: Mascarar dados bancários para non-admin
 
-### Fase 2 — Storage Path Ownership (1 migration)
+Todas com `security_invoker = true` para herdar RLS das tabelas base.
 
-- `trade-photos` INSERT: adicionar path ownership
-- `fabrica-produto-fotos` INSERT/UPDATE/DELETE: adicionar path ownership
+### Fase 2 — Credentials Hardening (1 migration)
 
-### Fase 3 — Credentials Hardening (1 migration)
+- **erp_config**: Criar policy que oculta `api_key` e `api_key_anterior` no SELECT — retornar apenas `api_key_hash` e flag `has_key`. Verificar se edge functions usam plaintext (já verificado: `_shared/auth.ts` usa hash comparison, pode remover plaintext)
+- **configuracoes_cobranca**: Mesma abordagem — ocultar `api_key` e `whatsapp_verify_token` via view safe existente
 
-- `erp_config`: verificar se edge functions usam `api_key` plaintext. Se apenas `api_key_hash` é necessário, remover colunas plaintext
-- `configuracoes_cobranca`: mesma análise — migrar secrets para edge function env vars ou Vault
+### Fase 3 — Dynamic Forms Rate Limiting (1 migration)
 
-### Fase 4 — Warnings Cleanup (1 migration)
+Adicionar constraint no RLS de `dynamic_form_responses` para limitar submissions por IP/sessão:
+```sql
+-- Limitar a 10 respostas por form por sessão anon (via created_at interval)
+CREATE POLICY "Rate limit anon submissions"
+  ON dynamic_form_responses FOR INSERT TO anon
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM dynamic_forms f WHERE f.id = form_id AND f.status = 'active')
+    AND (SELECT count(*) FROM dynamic_form_responses r 
+         WHERE r.form_id = dynamic_form_responses.form_id 
+         AND r.created_at > now() - interval '1 hour'
+         AND r.respondent_ip = current_setting('request.headers', true)::json->>'x-forwarded-for'
+        ) < 10
+  );
+```
 
-- `erp_portal_access_modules`: SELECT por profile
-- `fabrica_formula_itens`: DELETE com módulo `fabrica`
-- `ai_training_examples`: SELECT restrito
-- `cofre_share_tokens`: filtro de expiração em RLS
+### Fase 4 — RLS always true audit
 
-### Fase 5 — Platform Findings
+Identificar tabelas com `WITH CHECK(true)` em INSERT/UPDATE/DELETE e restringir onde possível.
 
-Marcar `extensions_in_public` e `rls_always_true` como limitações aceitas.
+### Fase 5 — Platform findings
+
+Marcar `extensions_in_public` como limitação aceita.
 
 ## Resultado Esperado
 
 | Antes | Depois |
 |-------|--------|
-| 11 errors, 6 warnings | 0 errors, 0 warnings (2 aceitos) |
-| 19 findings | 2 findings (platform) |
+| 5 errors, 4 warnings | 0 errors, 2 warnings (platform + aceitos) |
+| Score ~92 | Score ~98 |
 
-## Recursos
+## Execução
 
-| Recurso | Ação |
-|---------|------|
-| 4 migrations SQL | Fases 1-4 |
-| Verificação de edge functions | Antes de remover plaintext keys |
-| 0 alterações frontend | Apenas banco de dados |
+3 migrations SQL. Verificação prévia do frontend para garantir que views recriadas não quebrem queries existentes. Zero alterações no frontend.
 
