@@ -283,7 +283,8 @@ export default function PlanoContas() {
 
         <Tabs defaultValue="plano">
           <TabsList>
-            <TabsTrigger value="plano">Plano Atual</TabsTrigger>
+            <TabsTrigger value="plano">Plano Ativo ({activeAccounts.length})</TabsTrigger>
+            <TabsTrigger value="inativos">Inativas ({inactiveAccounts.length})</TabsTrigger>
             <TabsTrigger value="migracao" className="flex items-center gap-2">
               <RefreshCw className="h-3.5 w-3.5" />
               Migração v2
