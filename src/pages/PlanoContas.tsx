@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, ChevronRight, ChevronDown, Edit, Eye, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, ChevronRight, ChevronDown, Edit, Eye, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NovaContaDialog } from "@/components/configuracoes/NovaContaDialog";
 import { EditarContaDialog } from "@/components/configuracoes/EditarContaDialog";
 import { ClassificarContasEmLoteDialog } from "@/components/configuracoes/ClassificarContasEmLoteDialog";
+import { MigracaoPlanoContasPanel } from "@/components/configuracoes/MigracaoPlanoContasPanel";
 
 interface Account {
   id: string;
