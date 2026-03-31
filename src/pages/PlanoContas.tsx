@@ -248,8 +248,12 @@ export default function PlanoContas() {
     );
   };
 
-  const hierarchy = accounts ? buildHierarchy(accounts) : [];
+  const activeAccounts = accounts?.filter(a => a.is_active) || [];
+  const inactiveAccounts = accounts?.filter(a => !a.is_active) || [];
+  const hierarchy = buildHierarchy(activeAccounts);
+  const inactiveHierarchy = buildHierarchy(inactiveAccounts);
   const filteredHierarchy = searchTerm ? filterAccounts([...hierarchy], searchTerm) : hierarchy;
+  const filteredInactiveHierarchy = searchTerm ? filterAccounts([...inactiveHierarchy], searchTerm) : inactiveHierarchy;
 
   return (
     <DashboardLayout>
