@@ -147,7 +147,7 @@ function MemberRow({
         {member.details?.equipe_comercial || "—"}
       </TableCell>
       <TableCell className="hidden md:table-cell text-sm font-mono">
-        {member.details?.cpf ? maskCPF(member.details.cpf) : "—"}
+        {member.details?.cpf_masked ? maskCPF(member.details.cpf_masked) : "—"}
       </TableCell>
       <TableCell className="hidden lg:table-cell text-sm">
         {member.details?.whatsapp ? formatPhone(member.details.whatsapp) : "—"}
@@ -370,8 +370,8 @@ export function TeamMemberRegistration({
       Cargo: ROLE_CONFIG[m.profile_role || ""]?.label || m.profile_role || "",
       "Equipe Comercial": m.details?.equipe_comercial || "",
       Supervisor: m.details?.supervisor_nome || "",
-      CPF: m.details?.cpf ? formatCPF(m.details.cpf) : "",
-      RG: m.details?.rg || "",
+      CPF: m.details?.cpf_masked ? formatCPF(m.details.cpf_masked) : "",
+      RG: m.details?.rg_masked || "",
       "Data Nascimento": m.details?.data_nascimento
         ? format(new Date(m.details.data_nascimento), "dd/MM/yyyy")
         : "",
