@@ -1,91 +1,78 @@
 
 
-# Elevar Score de Segurança — 4 Errors + 3 Warnings
+# Elevar Segurança — 19 Findings (11 Errors + 6 Warnings + 2 Platform)
 
-## Scan Atual: 7 Findings
+## Scan Atual
 
-### 🔴 4 Errors
+### 🔴 11 Errors
 
-| # | Finding | Problema |
+| # | Finding | Correção |
 |---|---------|----------|
-| 1 | **Realtime channel authorization** | Qualquer autenticado pode assinar qualquer canal Realtime e ver dados de prospects, notifications, visits, etc. |
-| 2 | **process-attachments** bucket | SELECT sem ownership — qualquer autenticado lê todos os documentos de processos |
-| 3 | **documento-anexos** bucket | SELECT e INSERT sem ownership — qualquer autenticado lê/grava documentos de empresas |
-| 4 | **projeto-anexos** bucket | SELECT e INSERT sem ownership — qualquer autenticado lê anexos de projetos sem ser membro |
+| 1 | `audit_logs_archive` — todos approved users leem IPs e histórico | Restringir SELECT a admin only |
+| 2 | `china_pasta_digital` — CRUD aberto a qualquer autenticado | Restringir por módulo `fabrica_china` ou `created_by` |
+| 3 | `vendedor_territorios` — INSERT/UPDATE/DELETE sem ownership | Restringir escrita a admin/supervisor |
+| 4 | `produto_peticionamento` — ALL com apenas `auth.uid() IS NOT NULL` | Restringir por módulo regulatório ou ownership |
+| 5 | `china_submissao_tarefa_vinculos` — ALL aberto | Restringir por membership no projeto/módulo china |
+| 6 | `erp_config` — API keys em plaintext | Remover colunas `api_key` e `api_key_anterior`, manter apenas `api_key_hash` |
+| 7 | `configuracoes_cobranca` — API key e WhatsApp token em plaintext | Migrar para Vault ou hash; remover plaintext |
+| 8 | `produto_composicao` — ALL aberto | Restringir por módulo fábrica |
+| 9 | `produto_gate_criacao` — ALL aberto | Restringir a approver roles |
+| 10 | `processo_documento_recebimentos` — SELECT `true` | Restringir por participante do processo |
+| 11 | `trade-photos` — INSERT sem path ownership | Adicionar `(storage.foldername(name))[1] = auth.uid()::text` |
 
-### 🟡 3 Warnings
+### 🟡 6 Warnings
 
-| # | Finding | Problema |
+| # | Finding | Correção |
 |---|---------|----------|
-| 5 | **Extensions in public** | Extensões instaladas no schema `public` (limitação da plataforma) |
-| 6 | **RLS always true** | Policies com `USING(true)` ou `WITH CHECK(true)` em operações de escrita |
-| 7 | **Storage INSERT sem path ownership** | 5 buckets (`fabrica-revisao-docs`, `marketing-assets`, `campaign-evidence`, `comprovantes`, `trade-budget-docs`) permitem upload em qualquer pasta |
+| 12 | `erp_portal_access_modules` — sem SELECT para non-admin | Adicionar SELECT por profile assignment |
+| 13 | `fabrica_formula_itens` — DELETE sem módulo | Restringir DELETE ao módulo `fabrica` |
+| 14 | `ai_training_examples` — SELECT `true` | Restringir a módulo financeiro/admin |
+| 15 | `fabrica-produto-fotos` — storage sem path ownership | Adicionar path check ou módulo |
+| 16 | `cofre_share_tokens` — sem filtro de expirado/revogado em RLS | Adicionar `is_revoked = false AND expires_at > now()` |
+| 17-18 | Extensions in public + RLS always true | Platform limitation (ignorar) |
 
-## Plano de Correção
+## Estratégia de Execução
 
-### Fix 1: Realtime — remover tabelas sensíveis da publicação
+### Fase 1 — RLS Hardening (1 migration)
 
-Remover `prospects`, `notifications`, `lead_activity_logs`, `visits` e `fabrica_revisao_documentos` do `supabase_realtime`. Substituir realtime dessas tabelas por polling ou RPCs no frontend (se necessário).
+Corrigir os 8 findings de tabelas com policies permissivas:
+- `china_pasta_digital`, `vendedor_territorios`, `produto_peticionamento`, `china_submissao_tarefa_vinculos`, `produto_composicao`, `produto_gate_criacao`, `processo_documento_recebimentos`, `audit_logs_archive`
 
-```sql
-ALTER PUBLICATION supabase_realtime DROP TABLE prospects;
-ALTER PUBLICATION supabase_realtime DROP TABLE notifications;
-ALTER PUBLICATION supabase_realtime DROP TABLE lead_activity_logs;
-ALTER PUBLICATION supabase_realtime DROP TABLE visits;
-ALTER PUBLICATION supabase_realtime DROP TABLE fabrica_revisao_documentos;
-```
+Padrão: DROP policy permissiva → CREATE com `check_user_access(auth.uid(), 'modulo')` ou ownership check.
 
-Depois marcar o finding `REALTIME_NO_CHANNEL_AUTHORIZATION` como mitigado (schema reservado).
+### Fase 2 — Storage Path Ownership (1 migration)
 
-### Fix 2: process-attachments — restringir SELECT
+- `trade-photos` INSERT: adicionar path ownership
+- `fabrica-produto-fotos` INSERT/UPDATE/DELETE: adicionar path ownership
 
-Remover policy permissiva e criar nova com path ownership ou join ao processo.
+### Fase 3 — Credentials Hardening (1 migration)
 
-```sql
-DROP POLICY [policy permissiva] ON storage.objects;
-CREATE POLICY "Users read own process attachments"
-  ON storage.objects FOR SELECT TO authenticated
-  USING (
-    bucket_id = 'process-attachments'
-    AND (
-      (storage.foldername(name))[1] = auth.uid()::text
-      OR public.is_admin_or_supervisor(auth.uid())
-    )
-  );
-```
+- `erp_config`: verificar se edge functions usam `api_key` plaintext. Se apenas `api_key_hash` é necessário, remover colunas plaintext
+- `configuracoes_cobranca`: mesma análise — migrar secrets para edge function env vars ou Vault
 
-### Fix 3: documento-anexos — restringir SELECT e INSERT
+### Fase 4 — Warnings Cleanup (1 migration)
 
-```sql
--- Remover policies permissivas e recriar com ownership
--- SELECT: path ownership ou empresa access
--- INSERT: (storage.foldername(name))[1] = auth.uid()::text
-```
+- `erp_portal_access_modules`: SELECT por profile
+- `fabrica_formula_itens`: DELETE com módulo `fabrica`
+- `ai_training_examples`: SELECT restrito
+- `cofre_share_tokens`: filtro de expiração em RLS
 
-### Fix 4: projeto-anexos — usar `user_can_access_projeto()`
+### Fase 5 — Platform Findings
 
-Seguir o padrão já existente em `projeto-documentos` que valida membership.
-
-### Fix 5: Extensions in public — ignorar
-
-Limitação da plataforma Lovable Cloud. Marcar como aceito.
-
-### Fix 6: RLS always true — auditar e corrigir
-
-Verificar quais tabelas têm `WITH CHECK(true)` em INSERT/UPDATE/DELETE e restringir onde necessário.
-
-### Fix 7: Storage INSERT path ownership — 5 buckets
-
-Adicionar `(storage.foldername(name))[1] = auth.uid()::text` com fallback para admin/supervisor nos 5 buckets listados.
+Marcar `extensions_in_public` e `rls_always_true` como limitações aceitas.
 
 ## Resultado Esperado
 
 | Antes | Depois |
 |-------|--------|
-| 4 errors, 3 warnings | 0 errors, 1 warning (extensions — aceito) |
-| Score ~90 | Score ~98 |
+| 11 errors, 6 warnings | 0 errors, 0 warnings (2 aceitos) |
+| 19 findings | 2 findings (platform) |
 
-## Execução
+## Recursos
 
-1 migration SQL cobrindo todos os fixes. Verificação prévia das policies existentes em cada bucket antes de dropar. Zero alterações no frontend (exceto se realtime quebrar funcionalidade visível).
+| Recurso | Ação |
+|---------|------|
+| 4 migrations SQL | Fases 1-4 |
+| Verificação de edge functions | Antes de remover plaintext keys |
+| 0 alterações frontend | Apenas banco de dados |
 
