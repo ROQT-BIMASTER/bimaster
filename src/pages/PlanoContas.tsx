@@ -82,8 +82,8 @@ export default function PlanoContas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trade_chart_of_accounts")
-        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre")
-        .order("ordem", { ascending: true });
+        .select("id, code, name, account_type, nivel, natureza, is_group, permite_lancamento, parent_account_id, description, is_active, ordem, departamento_id, categoria_dre, versao")
+        .order("code", { ascending: true });
 
       if (error) throw error;
       return data as Account[];
