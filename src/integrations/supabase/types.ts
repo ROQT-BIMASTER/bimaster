@@ -15060,6 +15060,33 @@ export type Database = {
           },
         ]
       }
+      ip_blacklist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          ip_address: unknown
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address: unknown
+          reason?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown
+          reason?: string
+        }
+        Relationships: []
+      }
       kpi_snapshots: {
         Row: {
           created_at: string | null
@@ -24211,6 +24238,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sensitive_access_log: {
         Row: {
           accessed_at: string | null
@@ -31530,6 +31590,14 @@ export type Database = {
         Args: { p_chave: string; p_limite: number }
         Returns: boolean
       }
+      check_throttle: {
+        Args: {
+          p_key: string
+          p_lockout_minutes?: number
+          p_max_failures?: number
+        }
+        Returns: Json
+      }
       check_user_access: {
         Args: { _module_code?: string; _user_id: string }
         Returns: boolean
@@ -32169,6 +32237,7 @@ export type Database = {
       importar_clientes: { Args: { p_clientes: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
+      is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
         Returns: boolean
