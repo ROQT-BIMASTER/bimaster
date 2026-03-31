@@ -30,6 +30,7 @@ interface Account {
   ordem: number;
   departamento_id?: string | null;
   categoria_dre?: string | null;
+  versao?: string | null;
   children?: Account[];
 }
 
