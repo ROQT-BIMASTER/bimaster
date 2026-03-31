@@ -1,89 +1,70 @@
 
 
-# Análise: Backend Seguro — Contexto Lovable Cloud
+# Aprofundamento de Segurança — 7 Findings Ativos
 
-## Realidade do Projeto
+## Scan Atual: 4 Errors + 3 Warnings
 
-Este projeto roda no **Lovable Cloud** (Supabase), que é uma plataforma serverless. **Não é possível** adicionar um servidor Node.js tradicional (Express, Fastify, etc.) ao projeto. O sandbox não executa servidores persistentes.
+| # | Severidade | Finding | Risco |
+|---|-----------|---------|-------|
+| 1 | 🔴 Error | View `configuracoes_cobranca_safe` expõe API keys | Credenciais legíveis por qualquer autenticado |
+| 2 | 🔴 Error | Realtime sem RLS em `realtime.messages` | Cross-user data leakage via channels |
+| 3 | 🔴 Error | Storage buckets privados sem ownership check (~9 buckets) | Qualquer autenticado lê qualquer documento |
+| 4 | 🔴 Error | `leads_minerados` com RLS permissivo | Todos leem/editam/deletam leads de outros |
+| 5 | 🟡 Warn | `dynamic_form_responses` policy ampla demais | PII acessível a qualquer autenticado |
+| 6 | 🟡 Warn | Extensions no schema `public` | Best practice violation |
+| 7 | 🟡 Warn | RLS policies com `USING(true)` em INSERT/UPDATE/DELETE | Escrita sem restrição |
 
-Porém, a boa notícia: **a maioria dos requisitos já está implementada ou pode ser implementada** usando a arquitetura existente (Edge Functions + RLS + Supabase Auth).
+## Plano de Correção
 
-## Mapeamento: Requisito → Status Atual
+### Fase 1 — Errors (Críticos)
 
-| Requisito | Status | Implementação |
-|-----------|--------|---------------|
-| JWT (access + refresh) | ✅ Nativo | Supabase Auth gerencia automaticamente |
-| Hash bcrypt | ✅ Nativo | Supabase Auth usa bcrypt internamente |
-| Middleware de token | ✅ Implementado | `_shared/auth.ts` com `validateAny` |
-| RBAC | ✅ Implementado | `user_roles` + `has_role()` + RLS |
-| Permissões granulares | ✅ Implementado | `usuario_permissoes_modulos/telas` + ABAC |
-| SQL Injection | ✅ Protegido | Supabase SDK usa prepared statements |
-| Validação Zod | ✅ Implementado | `_shared/validate.ts` |
-| XSS | ⚠️ Parcial | CSP headers existem, sanitização parcial |
-| CSRF | ✅ Nativo | JWT-based auth não usa cookies |
-| Mass Assignment | ⚠️ Parcial | Algumas funções fazem whitelist, outras não |
-| Rate Limiting | ✅ Implementado | `_shared/rate-limit.ts` (60 req/min) |
-| Helmet/Headers | ✅ Implementado | `_shared/security-headers.ts` |
-| CORS restritivo | ✅ Implementado | `_shared/cors.ts` com allowlist |
-| Upload seguro | ✅ Implementado | `file-security.ts` (magic bytes + whitelist) |
-| MIME validation | ✅ Implementado | Validação 3 camadas |
-| Limite tamanho | ✅ Implementado | 20MB max |
-| Logs de login | ✅ Parcial | `audit_logs` + `access_audit_log` |
-| Logs de erro | ⚠️ Básico | Console only, sem structured logging |
-| HTTPS | ✅ Nativo | Supabase/Lovable forçam HTTPS |
-| Env vars | ✅ Configurado | `.env` automático + secrets |
-| SSRF Guard | ✅ Implementado | `ssrf-guard.ts` (HTTPS-only) |
-| Token expiration | ✅ Nativo | Supabase Auth gerencia TTL |
-| IP Blacklist | ❌ Não existe | Pode ser implementado |
-| DDoS básico | ⚠️ Parcial | Rate limit existe, throttling não |
+**1. View `configuracoes_cobranca_safe`**
+- Recriar a view omitindo colunas `api_key` e `whatsapp_verify_token`
+- Ou adicionar RLS policy restringindo SELECT a admins
 
-## Gaps Reais a Corrigir
+**2. Realtime `realtime.messages`**
+- Este é um schema reservado do Supabase — não podemos criar policies diretamente
+- Ação: remover tabelas sensíveis da publicação Realtime (`ALTER PUBLICATION supabase_realtime DROP TABLE ...`) para as que não precisam de realtime
+- Para as que precisam: a proteção vem das RLS das tabelas de origem (já ativas)
 
-Dos requisitos listados, existem **5 gaps** que podem ser fechados:
+**3. Storage buckets — ownership check (9 buckets)**
+- Para cada bucket, atualizar policies de SELECT para verificar ownership via path prefix (`(storage.foldername(name))[1] = auth.uid()::text`) ou join contra tabela relacionada
+- Buckets afetados: `campaign-evidence`, `china-documentos`, `trade-expense-docs`, `fabrica-custo-evidencias`, `comprovantes`, `fabrica-revisao-docs`, `department-expense-docs`, `event-expense-docs`, `payment-chat-files`
 
-### 1. Structured Audit Logging (Edge Functions)
-- Criar `_shared/structured-logger.ts` com níveis (info, warn, error, security)
-- Registrar em tabela `security_audit_log` com campos: action, ip, user_agent, user_id, severity, metadata
-- Integrar em todas as Edge Functions via wrapper
+**4. `leads_minerados` — restringir por owner**
+- DROP policies atuais
+- CREATE policy SELECT: `minerado_por = auth.uid() OR is_admin_or_supervisor(auth.uid())`
+- CREATE policy INSERT: `minerado_por = auth.uid()`
+- CREATE policy UPDATE/DELETE: `minerado_por = auth.uid() OR is_admin_or_supervisor(auth.uid())`
 
-### 2. IP Blacklist Middleware
-- Criar tabela `ip_blacklist` (ip, reason, expires_at, created_by)
-- Criar middleware `_shared/ip-guard.ts` que verifica antes de processar
-- Auto-blacklist após X falhas de login (via trigger)
+### Fase 2 — Warnings
 
-### 3. Mass Assignment Protection
-- Auditar Edge Functions que aceitam body direto sem whitelist
-- Garantir que todas usem schema Zod (já existe `validateBody`)
-- Funções como `create-admin-users` precisam de schema explícito
+**5. `dynamic_form_responses` — remover policy ampla**
+- DROP policy "Authenticated can view responses of active forms"
+- Manter apenas policies de owner e submitter (já existem)
 
-### 4. Request Throttling (complementar ao rate limit)
-- Adicionar throttling progressivo: delay crescente após falhas consecutivas
-- Implementar via RPC no banco (já existe infraestrutura de rate limit)
+**6. Extensions em `public`**
+- Mover extensions para schema `extensions` (migration com DROP + CREATE em novo schema)
 
-### 5. Login Security Enhancement
-- Registrar todas tentativas de login (sucesso/falha) em `security_audit_log`
-- Implementar account lockout após 5 falhas (já referenciado na memória)
-- Notificar admin sobre padrões suspeitos
+**7. RLS policies `USING(true)` em operações de escrita**
+- Auditar e substituir por condições baseadas em role/ownership
 
-## Arquivos a Criar/Modificar
+### Impacto Estimado
 
-| Arquivo | Ação |
+| Antes | Depois |
+|-------|--------|
+| 4 errors, 3 warnings | 0 errors, 0 warnings |
+| Score ~85 | Score ~98 |
+
+## Arquivos/Recursos
+
+| Recurso | Ação |
 |---------|------|
-| Migration SQL | Tabelas `security_audit_log` + `ip_blacklist` |
-| `_shared/structured-logger.ts` | Criar — logging estruturado |
-| `_shared/ip-guard.ts` | Criar — middleware IP blacklist |
-| `_shared/request-throttle.ts` | Criar — throttling progressivo |
-| `create-admin-users/index.ts` | Adicionar schema Zod + logging |
-| `update-user-password/index.ts` | Adicionar logging de segurança |
+| Migration SQL (Fase 1) | View + leads_minerados + storage policies |
+| Migration SQL (Fase 2) | form responses + extensions + USING(true) audit |
+| Zero alteração no frontend | Apenas banco de dados |
 
-## O que NÃO se aplica
+## Ordem de Execução
 
-- **Servidor Node.js** (Express/Fastify): impossível no Lovable
-- **Prisma/Sequelize ORM**: Supabase SDK já protege contra injection
-- **CSRF tokens**: desnecessário com auth JWT (sem cookies)
-- **Armazenamento fora da raiz**: storage é gerenciado pelo Supabase
-
-## Resumo
-
-Score atual: **~85/100**. Com as 5 correções acima: **~95/100**. A arquitetura existente já cobre a maioria dos vetores OWASP Top 10. Os gaps são em logging estruturado, IP blacklist e throttling.
+Começar pela Fase 1 (4 errors críticos) que resolve os riscos de exposição de dados. Fase 2 na sequência para limpar warnings.
 
