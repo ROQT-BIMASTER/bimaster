@@ -402,6 +402,7 @@ export default function PlanoContas() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="migracao">
             <MigracaoPlanoContasPanel />
           </TabsContent>
         </Tabs>
