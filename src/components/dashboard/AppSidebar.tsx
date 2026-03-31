@@ -1107,6 +1107,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
         return (
           <ModuleSubmenu icon={FolderKanban} title="Projetos" colorKey="comercial">
             <MenuItemLink to="/dashboard/projetos/home" icon={Home} title="Página Inicial" />
+            <MenuItemLink to="/dashboard/projetos/minhas-tarefas" icon={CheckSquare} title="Minhas Tarefas" />
             <MenuItemLink to="/dashboard/projetos/inbox" icon={Inbox} title="Caixa de Entrada" />
             <MenuItemLink to="/dashboard/projetos" icon={FolderKanban} title="Meus Projetos" end />
             {(isAdmin || userDepartments.some(d => d.id === '9937b2ff-bb1d-4f92-9d8b-4b3c0c7ad130')) && (

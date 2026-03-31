@@ -4,10 +4,31 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Filter, Inbox } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Filter, Inbox, CheckCheck, Bookmark } from "lucide-react";
+import { useProjetoAtividades } from "@/hooks/useProjetoAtividades";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function ProjetoInbox() {
   const [activeTab, setActiveTab] = useState("atividade");
+  const { atividades, naoLidas } = useProjetoAtividades();
+  const queryClient = useQueryClient();
+
+  const handleMarcarTodasLidas = async () => {
+    const naoLidasIds = atividades.filter(a => !a.lida).map(a => a.id);
+    if (naoLidasIds.length === 0) return;
+
+    const { error } = await supabase
+      .from("projeto_atividades")
+      .update({ lida: true })
+      .in("id", naoLidasIds);
+
+    if (error) { toast.error("Erro ao marcar como lidas"); return; }
+    queryClient.invalidateQueries({ queryKey: ["projeto-atividades"] });
+    toast.success(`${naoLidasIds.length} notificações marcadas como lidas`);
+  };
 
   return (
     <SidebarProvider>
@@ -22,17 +43,27 @@ export default function ProjetoInbox() {
                 <div className="flex items-center gap-2">
                   <Inbox className="h-6 w-6 text-primary" />
                   <h1 className="text-2xl font-bold text-foreground">Caixa de Entrada</h1>
+                  {naoLidas > 0 && (
+                    <Badge variant="destructive" className="text-[10px] h-5 px-1.5">{naoLidas}</Badge>
+                  )}
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <Filter className="h-4 w-4" /> Filtrar
-              </Button>
+              <div className="flex items-center gap-2">
+                {naoLidas > 0 && (
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
+                    <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="bg-muted/30">
-                <TabsTrigger value="atividade">Atividade</TabsTrigger>
+                <TabsTrigger value="atividade" className="gap-1.5">
+                  Atividade
+                  {naoLidas > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1">{naoLidas}</Badge>}
+                </TabsTrigger>
                 <TabsTrigger value="mencoes">@Menções</TabsTrigger>
                 <TabsTrigger value="arquivadas">Arquivadas</TabsTrigger>
               </TabsList>
@@ -42,13 +73,17 @@ export default function ProjetoInbox() {
             <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
               {activeTab === "atividade" && <ProjetoInboxFeed />}
               {activeTab === "mencoes" && (
-                <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-                  Nenhuma menção ainda
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Bookmark className="h-10 w-10 mb-3 opacity-30" />
+                  <p className="font-medium text-sm">Nenhuma menção ainda</p>
+                  <p className="text-xs">Quando alguém mencionar você, aparecerá aqui</p>
                 </div>
               )}
               {activeTab === "arquivadas" && (
-                <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
-                  Nenhuma atividade arquivada
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Inbox className="h-10 w-10 mb-3 opacity-30" />
+                  <p className="font-medium text-sm">Nenhuma atividade arquivada</p>
+                  <p className="text-xs">Arquive notificações para limpá-las da sua caixa</p>
                 </div>
               )}
             </div>
