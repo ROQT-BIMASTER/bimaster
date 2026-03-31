@@ -1,97 +1,91 @@
 
 
-# Correção dos Findings Restantes — 4 Errors + 2 Warnings
+# Elevar Score de Segurança — 4 Errors + 3 Warnings
 
-## Diagnóstico Atual (via queries diretas)
+## Scan Atual: 7 Findings
 
 ### 🔴 4 Errors
 
-| # | Finding | Problema Real |
-|---|---------|--------------|
-| 1 | **trade-photos UPDATE/DELETE sem ownership** | 2 policies antigas permitem UPDATE/DELETE a qualquer autenticado sem verificar dono: `"Usuários podem atualizar suas próprias fotos"` e `"Usuários podem deletar suas próprias fotos"` têm `qual: bucket_id = 'trade-photos'` SEM check de `owner` |
-| 2 | **vendor_availability acesso público** | Policy `"Todos podem ver disponibilidade"` com `qual: true` — permite SELECT até para anon |
-| 3 | **realtime.messages** | Schema reservado do Supabase — **não pode ser corrigido** (limitação da plataforma) |
-| 4 | **dynamic_form_attachments acesso anon** | Policy `"Anyone can read attachments"` dá SELECT a `anon, authenticated` com `USING(true)` |
+| # | Finding | Problema |
+|---|---------|----------|
+| 1 | **Realtime channel authorization** | Qualquer autenticado pode assinar qualquer canal Realtime e ver dados de prospects, notifications, visits, etc. |
+| 2 | **process-attachments** bucket | SELECT sem ownership — qualquer autenticado lê todos os documentos de processos |
+| 3 | **documento-anexos** bucket | SELECT e INSERT sem ownership — qualquer autenticado lê/grava documentos de empresas |
+| 4 | **projeto-anexos** bucket | SELECT e INSERT sem ownership — qualquer autenticado lê anexos de projetos sem ser membro |
 
-### 🟡 2 Warnings
+### 🟡 3 Warnings
 
 | # | Finding | Problema |
 |---|---------|----------|
-| 5 | **Storage INSERT sem path ownership** | 15+ buckets permitem upload em qualquer pasta sem verificar `auth.uid()` no path |
-| 6 | **Dynamic forms anon** | Coberto pelo item 4 acima |
+| 5 | **Extensions in public** | Extensões instaladas no schema `public` (limitação da plataforma) |
+| 6 | **RLS always true** | Policies com `USING(true)` ou `WITH CHECK(true)` em operações de escrita |
+| 7 | **Storage INSERT sem path ownership** | 5 buckets (`fabrica-revisao-docs`, `marketing-assets`, `campaign-evidence`, `comprovantes`, `trade-budget-docs`) permitem upload em qualquer pasta |
 
-## Plano de Correção (1 migration)
+## Plano de Correção
 
-### Fix 1: trade-photos — remover policies duplicadas sem ownership
+### Fix 1: Realtime — remover tabelas sensíveis da publicação
 
-```sql
-DROP POLICY "Usuários podem atualizar suas próprias fotos" ON storage.objects;
-DROP POLICY "Usuários podem deletar suas próprias fotos" ON storage.objects;
--- Policies corretas já existem:
--- "Criadores podem atualizar fotos trade" (owner check)
--- "Admins podem deletar fotos trade" (admin check)
--- "Users can delete own trade photos" (owner OR admin)
-```
-
-### Fix 2: vendor_availability — restringir SELECT
+Remover `prospects`, `notifications`, `lead_activity_logs`, `visits` e `fabrica_revisao_documentos` do `supabase_realtime`. Substituir realtime dessas tabelas por polling ou RPCs no frontend (se necessário).
 
 ```sql
-DROP POLICY "Todos podem ver disponibilidade" ON vendor_availability;
--- Policies existentes já cobrem:
--- "Admins e supervisores visualizam toda disponibilidade"
--- "Vendedores gerenciam sua disponibilidade" (ALL com vendedor_id = auth.uid())
+ALTER PUBLICATION supabase_realtime DROP TABLE prospects;
+ALTER PUBLICATION supabase_realtime DROP TABLE notifications;
+ALTER PUBLICATION supabase_realtime DROP TABLE lead_activity_logs;
+ALTER PUBLICATION supabase_realtime DROP TABLE visits;
+ALTER PUBLICATION supabase_realtime DROP TABLE fabrica_revisao_documentos;
 ```
 
-### Fix 3: dynamic_form_attachments — remover anon, manter via RPC
+Depois marcar o finding `REALTIME_NO_CHANNEL_AUTHORIZATION` como mitigado (schema reservado).
+
+### Fix 2: process-attachments — restringir SELECT
+
+Remover policy permissiva e criar nova com path ownership ou join ao processo.
 
 ```sql
-DROP POLICY "Anyone can read attachments" ON dynamic_form_attachments;
-
-CREATE POLICY "Authenticated can read attachments"
-  ON dynamic_form_attachments FOR SELECT TO authenticated
-  USING (true);
-
-CREATE POLICY "Anon read active form attachments"
-  ON dynamic_form_attachments FOR SELECT TO anon
-  USING (EXISTS (
-    SELECT 1 FROM dynamic_forms f
-    WHERE f.id = dynamic_form_attachments.form_id
-    AND f.status = 'active'
-  ));
+DROP POLICY [policy permissiva] ON storage.objects;
+CREATE POLICY "Users read own process attachments"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'process-attachments'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR public.is_admin_or_supervisor(auth.uid())
+    )
+  );
 ```
 
-### Fix 4: Storage path ownership — adicionar `uid()` check em INSERT
+### Fix 3: documento-anexos — restringir SELECT e INSERT
 
-Para os 15 buckets sem path ownership, adicionar check `(storage.foldername(name))[1] = auth.uid()::text`. Buckets afetados:
-- pasta-digital, china-pasta-digital, amostras, embalagem-analise, etiqueta-bula
-- projeto-documentos, aprovacao-artes, documento-anexos, fabrica-nfe-xmls
-- campaign-evidence, fabrica-custo-evidencias, fabrica-produto-fotos
-- produto-brasil-imagens, projeto-anexos, process-attachments, fluxo-artes
-- trade-assets, trade-expense-docs
+```sql
+-- Remover policies permissivas e recriar com ownership
+-- SELECT: path ownership ou empresa access
+-- INSERT: (storage.foldername(name))[1] = auth.uid()::text
+```
 
-**Nota:** Preciso verificar se o frontend já organiza uploads por `uid/` path — senão, o path ownership quebrará uploads existentes. Vou criar as policies com fallback para admin/supervisor.
+### Fix 4: projeto-anexos — usar `user_can_access_projeto()`
 
-### Fix 5: realtime.messages — marcar como ignorado
+Seguir o padrão já existente em `projeto-documentos` que valida membership.
 
-Schema reservado, não podemos criar policies. Será registrado como limitação aceita.
+### Fix 5: Extensions in public — ignorar
 
-### Fix 6: Remover INSERT duplicadas conflitantes
+Limitação da plataforma Lovable Cloud. Marcar como aceito.
 
-- `department-expense-docs` tem 2 INSERT policies (uma com path ownership, outra sem) — remover a sem ownership
-- `event-expense-docs` mesmo caso
+### Fix 6: RLS always true — auditar e corrigir
+
+Verificar quais tabelas têm `WITH CHECK(true)` em INSERT/UPDATE/DELETE e restringir onde necessário.
+
+### Fix 7: Storage INSERT path ownership — 5 buckets
+
+Adicionar `(storage.foldername(name))[1] = auth.uid()::text` com fallback para admin/supervisor nos 5 buckets listados.
 
 ## Resultado Esperado
 
 | Antes | Depois |
 |-------|--------|
-| 4 errors + 2 warnings | 0 errors + 0 warnings (1 limitação aceita) |
+| 4 errors, 3 warnings | 0 errors, 1 warning (extensions — aceito) |
 | Score ~90 | Score ~98 |
 
-## Recursos
+## Execução
 
-| Recurso | Ação |
-|---------|------|
-| 1 Migration SQL | Todas as correções de policies |
-| 0 alterações frontend | Apenas banco de dados |
-| Ignorar realtime.messages | Limitação da plataforma |
+1 migration SQL cobrindo todos os fixes. Verificação prévia das policies existentes em cada bucket antes de dropar. Zero alterações no frontend (exceto se realtime quebrar funcionalidade visível).
 
