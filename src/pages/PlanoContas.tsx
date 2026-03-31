@@ -261,8 +261,10 @@ export default function PlanoContas() {
     );
   };
 
-  const activeAccounts = accounts?.filter(a => a.is_active) || [];
-  const inactiveAccounts = accounts?.filter(a => !a.is_active) || [];
+  const v2Accounts = accounts?.filter(a => a.versao === 'v2') || [];
+  const v1Accounts = accounts?.filter(a => a.versao !== 'v2') || [];
+  const activeAccounts = v2Accounts.length > 0 ? v2Accounts : accounts?.filter(a => a.is_active) || [];
+  const inactiveAccounts = v1Accounts.length > 0 ? v1Accounts : accounts?.filter(a => !a.is_active) || [];
   const hierarchy = buildHierarchy(activeAccounts);
   const inactiveHierarchy = buildHierarchy(inactiveAccounts);
   const filteredHierarchy = searchTerm ? filterAccounts([...hierarchy], searchTerm) : hierarchy;
