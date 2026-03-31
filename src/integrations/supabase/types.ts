@@ -4550,6 +4550,30 @@ export type Database = {
           },
         ]
       }
+      contas_pagar_backup_plano: {
+        Row: {
+          backup_at: string | null
+          id: string
+          plano_contas_codigo: string | null
+          plano_contas_id: string | null
+          plano_contas_nome: string | null
+        }
+        Insert: {
+          backup_at?: string | null
+          id: string
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+        }
+        Update: {
+          backup_at?: string | null
+          id?: string
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+        }
+        Relationships: []
+      }
       contas_pagar_historico: {
         Row: {
           campo_alterado: string
@@ -18630,6 +18654,72 @@ export type Database = {
           },
         ]
       }
+      plano_contas_migracao: {
+        Row: {
+          confianca: string | null
+          confirmado: boolean | null
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string | null
+          id: string
+          mapeado_por: string | null
+          new_account_id: string | null
+          new_code: string | null
+          new_name: string | null
+          old_account_id: string | null
+          old_code: string | null
+          old_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confianca?: string | null
+          confirmado?: boolean | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          id?: string
+          mapeado_por?: string | null
+          new_account_id?: string | null
+          new_code?: string | null
+          new_name?: string | null
+          old_account_id?: string | null
+          old_code?: string | null
+          old_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confianca?: string | null
+          confirmado?: boolean | null
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          id?: string
+          mapeado_por?: string | null
+          new_account_id?: string | null
+          new_code?: string | null
+          new_name?: string | null
+          old_account_id?: string | null
+          old_code?: string | null
+          old_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_contas_migracao_new_account_id_fkey"
+            columns: ["new_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_contas_migracao_old_account_id_fkey"
+            columns: ["old_account_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -28002,6 +28092,7 @@ export type Database = {
           tipo_categoria: string | null
           transferencia: string | null
           updated_at: string | null
+          versao: string | null
         }
         Insert: {
           account_type: string
@@ -28036,6 +28127,7 @@ export type Database = {
           tipo_categoria?: string | null
           transferencia?: string | null
           updated_at?: string | null
+          versao?: string | null
         }
         Update: {
           account_type?: string
@@ -28070,6 +28162,7 @@ export type Database = {
           tipo_categoria?: string | null
           transferencia?: string | null
           updated_at?: string | null
+          versao?: string | null
         }
         Relationships: [
           {
