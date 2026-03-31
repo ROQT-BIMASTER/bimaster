@@ -617,6 +617,7 @@ function AppContent() {
             {/* Módulo de Projetos */}
              <Route path="/dashboard/projetos" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_dashboard"><Projetos /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/home" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_home"><ProjetoHome /></ScreenProtectedRoute></ModuleRoute>} />
+             <Route path="/dashboard/projetos/minhas-tarefas" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_minhas_tarefas"><MinhasTarefas /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/inbox" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_inbox"><ProjetoInbox /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/aprovacoes" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_aprovacoes"><ProjetoAprovacaoCadastro /></ScreenProtectedRoute></ModuleRoute>} />
              <Route path="/dashboard/projetos/minha-equipe" element={<ModuleRoute moduleCode="projetos"><ScreenProtectedRoute screenCode="projetos_equipe"><ProjetosMinhaEquipe /></ScreenProtectedRoute></ModuleRoute>} />
