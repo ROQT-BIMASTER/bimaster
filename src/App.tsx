@@ -238,6 +238,7 @@ const Projetos = lazyWithRetry(() => import("./pages/Projetos"));
 const ProjetoDetalhe = lazyWithRetry(() => import("./pages/ProjetoDetalhe"));
 const ProjetoInbox = lazyWithRetry(() => import("./pages/ProjetoInbox"));
 const ProjetoHome = lazyWithRetry(() => import("./pages/ProjetoHome"));
+const MinhasTarefas = lazyWithRetry(() => import("./pages/MinhasTarefas"));
 const ProjetosMinhaEquipe = lazyWithRetry(() => import("./pages/ProjetosMinhaEquipe"));
 const ProjetoAprovacaoCadastro = lazyWithRetry(() => import("./pages/ProjetoAprovacaoCadastro"));
 const ProjetoVincularChina = lazyWithRetry(() => import("./pages/ProjetoVincularChina"));
