@@ -25239,6 +25239,13 @@ export type Database = {
             referencedRelation: "social_media_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "social_media_metrics_history_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_accounts_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       social_media_posts: {
@@ -30815,6 +30822,84 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      social_media_accounts_safe: {
+        Row: {
+          access_token: string | null
+          account_name: string | null
+          created_at: string | null
+          id: string | null
+          last_sync_at: string | null
+          platform: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          access_token?: never
+          account_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          platform?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          access_token?: never
+          account_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_sync_at?: string | null
+          platform?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      social_media_credentials_safe: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          platform: string | null
+          refresh_token: string | null
+          scope: string | null
+          token_type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token?: never
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          platform?: string | null
+          refresh_token?: never
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: never
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          platform?: string | null
+          refresh_token?: never
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       stores_safe: {
         Row: {
