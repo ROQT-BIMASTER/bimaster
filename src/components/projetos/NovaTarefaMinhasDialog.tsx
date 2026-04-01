@@ -78,7 +78,7 @@ export function NovaTarefaMinhasDialog({ open, onOpenChange }: NovaTarefaMinhasD
 
     setSaving(false);
     if (error) {
-      toast.error("Erro ao criar tarefa");
+      toast.error(`Erro ao criar tarefa: ${error.message}`);
       return;
     }
 
