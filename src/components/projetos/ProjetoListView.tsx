@@ -8,8 +8,9 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { ColumnConfig, loadColumnConfig, saveColumnConfig, buildGridCols, ColumnConfigPopover } from "./ColumnConfigPopover";
 
-// Grid template: expand, check, nome, produto, sep, responsável, status, timeline, prazo, prioridade
+// Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_90px_120px_80px_80px]";
 
 interface ProjetoListViewProps {
@@ -30,6 +31,10 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
+  const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
+
+  const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+  const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
 
   const isFiltering = hasActiveFilters(filters);
 
@@ -185,17 +190,20 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     <>
       <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
-        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
-          <div /> {/* expand */}
-          <div /> {/* checkbox */}
-          <div>Nome da tarefa</div>
-          <div>Produto</div>
-          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
-          <div>Responsável</div>
-          <div className="text-center">Status</div>
-          <div className="text-center">Timeline</div>
-          <div>Prazo</div>
-          <div className="text-center">Prior.</div>
+        <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
+          <div className="flex-1 flex items-center gap-0" style={{ display: "grid", gridTemplateColumns: buildGridCols(columns).replace(/_/g, " ") }}>
+            <div /> {/* expand */}
+            <div /> {/* checkbox */}
+            <div>Nome da tarefa</div>
+            {vis("produto") && <div>Produto</div>}
+            <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
+            {vis("responsavel") && <div>Responsável</div>}
+            {vis("status") && <div className="text-center">Status</div>}
+            {vis("timeline") && <div className="text-center">Timeline</div>}
+            {vis("prazo") && <div>Prazo</div>}
+            {vis("prioridade") && <div className="text-center">Prior.</div>}
+          </div>
+          <ColumnConfigPopover columns={columns} onChange={setColumns} darkBg={darkBg} className="ml-1 flex-shrink-0" />
         </div>
 
         {secoes.map((secao, index) => (
@@ -221,6 +229,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
             darkBg={darkBg}
+            columns={columns}
           />
         ))}
 

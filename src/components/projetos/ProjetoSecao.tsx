@@ -9,6 +9,7 @@ import { BriefingView } from "./BriefingView";
 import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
+import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,17 +53,21 @@ interface ProjetoSecaoProps {
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
+  columns?: ColumnConfig[];
 }
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
-  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
+  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
   const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
   const { briefing, saveBriefing, deleteBriefing } = useProjetoBriefing(temBriefing ? secaoId : undefined);
+
+  const vis = (key: string) => !columns || columns.find(c => c.key === key)?.visible !== false;
+  const gridStyle = columns ? buildGridCols(columns).replace(/_/g, " ") : undefined;
 
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
@@ -180,13 +185,15 @@ export function ProjetoSecao({
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}
               darkBg={darkBg}
+              columns={columns}
             />
           ))}
 
           {ghostList.map(ghost => (
             <div
               key={`ghost-${ghost.tarefa_id}`}
-              className={`group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 min-h-[36px] opacity-50 italic ${darkBg ? "border-b border-white/10" : "border-b border-border/20"}`}
+              className={`group items-center gap-0 px-3 py-1.5 min-h-[36px] opacity-50 italic ${columns ? "" : `grid ${GRID_COLS}`} ${darkBg ? "border-b border-white/10" : "border-b border-border/20"}`}
+              style={columns ? { display: "grid", gridTemplateColumns: gridStyle } : undefined}
             >
               <div />
               <div />
@@ -202,15 +209,17 @@ export function ProjetoSecao({
                   {ghost.destSecaoNome}
                 </span>
               </div>
-              <div />
+              {vis("produto") && <div />}
               <div /> {/* separator */}
-              <div className={`text-[10px] ${darkBg ? "text-white/40" : "text-muted-foreground"}`}>
-                {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
-              </div>
-              <div /> {/* status */}
-              <div /> {/* timeline */}
-              <div /> {/* prazo */}
-              <div /> {/* prioridade */}
+              {vis("responsavel") && (
+                <div className={`text-[10px] ${darkBg ? "text-white/40" : "text-muted-foreground"}`}>
+                  {format(new Date(ghost.created_at), "dd MMM", { locale: ptBR })}
+                </div>
+              )}
+              {vis("status") && <div />}
+              {vis("timeline") && <div />}
+              {vis("prazo") && <div />}
+              {vis("prioridade") && <div />}
             </div>
           ))}
 
