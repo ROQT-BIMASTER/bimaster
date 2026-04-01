@@ -1,54 +1,50 @@
 
 
-# Melhorar Calendário de Minhas Tarefas
+# Correções do Ambiente de Projetos — Bugs Encontrados nos Testes
 
-## Problemas Atuais
+## Testes Realizados
 
-- Calendário vazio parece sem vida (grid de células vazias sem contexto)
-- Sem botão "Hoje" para voltar rapidamente ao mês atual
-- Sem resumo mensal (quantas tarefas no mês, concluídas, atrasadas)
-- Células não têm posição `relative` (o indicador de atraso com `absolute` não funciona)
-- Sem legenda de cores dos projetos
-- Popover funcional mas sem opção de concluir tarefa direto do calendário
-- Sem distinção visual entre dias úteis e fins de semana
-- Navegação básica (só setas, sem mini-strip de meses)
+| Funcionalidade | Resultado |
+|---|---|
+| Home Pessoal (KPIs, saudação, projetos) | ✅ OK |
+| Minhas Tarefas — Lista | ✅ OK (empty state funcional) |
+| Minhas Tarefas — Quadro (Kanban) | ✅ OK |
+| Minhas Tarefas — Calendário | ✅ OK (hoje destacado, empty state) |
+| Caixa de Entrada (Inbox) | ✅ OK (KPIs, tabs, filtros, empty states) |
+| Lista de Projetos | ✅ OK (status, progresso, membros) |
+| Detalhe do Projeto — Lista de tarefas | ✅ OK (seções, inline input) |
+| **Criar tarefa (Dialog "Nova Tarefa")** | ❌ ERRO |
+| **Criar tarefa inline no projeto** | ❌ ERRO (silencioso) |
 
-## Melhorias Propostas
+## Bug Crítico Encontrado
 
-### 1. Header Enriquecido
-- Botão "Hoje" entre as setas de navegação para voltar ao mês atual
-- Mini-resumo ao lado do título: "8 tarefas · 2 atrasadas"
-- Título maior e mais destacado
+**Trigger `generate_tarefa_codigo` está quebrada.** A função referencia:
+- `NEW.tipo` → coluna não existe (o campo correto é `tipo_tarefa`)
+- Tabela `tarefas` → não existe (o nome correto é `projeto_tarefas`)
 
-### 2. Células Visuais Melhoradas
-- Adicionar `relative` nas células (fix do indicador de atraso)
-- Fins de semana com background sutil diferente (bg-muted/20)
-- Dia de hoje com badge circular no número (como Google Calendar)
-- Hover mais expressivo com sombra e scale sutil
-- Altura mínima maior para melhor leitura
+Isso impede **toda e qualquer criação de tarefa** no sistema (tanto via dialog quanto inline).
 
-### 3. Legenda de Projetos
-- Strip de chips coloridos abaixo do header mostrando os projetos presentes no mês
-- Clicável para filtrar tarefas de um projeto específico
+**Erro no banco:** `record "new" has no field "tipo"`
 
-### 4. Popover Melhorado
-- Checkbox para concluir tarefa direto do popover (sem precisar abrir detalhe)
-- Badge de prioridade com cores (urgente, alta, normal)
-- Mostrar horário se disponível
-- Separador visual entre tarefas concluídas e pendentes
+## Bug Secundário
 
-### 5. Empty State do Mês
-- Quando o mês não tem tarefas, mostrar mensagem centralizada no grid: "Nenhuma tarefa neste mês"
-- Sugestão para criar tarefa
+- O dialog `NovaTarefaMinhasDialog` mostra erro genérico "Erro ao criar tarefa" sem detalhes — deveria logar o `error.message` para facilitar debug.
+- A criação inline no projeto falha **silenciosamente** (sem toast de erro).
 
-### 6. Mini-stats do Mês
-- Barra sutil abaixo do calendário: "Abril: 12 tarefas · 8 concluídas · 2 atrasadas · 2 pendentes"
+## Correções
 
-## Alterações Técnicas
+### 1. Migration: Corrigir trigger `generate_tarefa_codigo`
+Recriar a função para usar os nomes corretos:
+- `NEW.tipo` → `NEW.tipo_tarefa`
+- `FROM tarefas` → `FROM projeto_tarefas`
+- `WHERE tipo =` → `WHERE tipo_tarefa =`
 
-| Arquivo | Ação |
-|---------|------|
-| `MinhasTarefasCalendar.tsx` | Refatorar com header premium, fix relative, legenda, popover melhorado, empty state, mini-stats |
+### 2. Melhorar mensagem de erro no Dialog
+Em `NovaTarefaMinhasDialog.tsx`, incluir `error.message` no toast de erro.
 
-Zero migrations. Apenas refinamento visual do componente existente.
+### 3. Adicionar toast de erro na criação inline
+Localizar o componente de criação inline de tarefas e adicionar feedback de erro visível ao usuário.
+
+## Resultado Esperado
+Após as correções, criar tarefas tanto pelo dialog quanto inline funcionará corretamente, com códigos auto-gerados (ex: `PAD-0001`).
 
