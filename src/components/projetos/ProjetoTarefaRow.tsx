@@ -12,6 +12,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
+import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-gray-400 text-white",
