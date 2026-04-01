@@ -52,7 +52,44 @@ export const useNotifications = () => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            const newNotif = payload.new as any;
+            // Show toast for new notification
+            if (newNotif?.title) {
+              toast(newNotif.title, {
+                description: newNotif.message?.substring(0, 100),
+                action: newNotif.action_url ? {
+                  label: "Ver",
+                  onClick: () => {
+                    window.location.href = newNotif.action_url;
+                  },
+                } : undefined,
+              });
+            }
+            fetchNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            fetchNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
             schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
