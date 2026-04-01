@@ -345,7 +345,7 @@ export default function ProjetoInbox() {
             )}
 
             {/* Feed */}
-            <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
+            <div className="border border-border/50 rounded-lg overflow-hidden bg-card" data-tour="inbox-feed">
               <ProjetoInboxFeed
                 atividades={currentList}
                 isLoading={isLoading}
