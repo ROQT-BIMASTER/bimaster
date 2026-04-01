@@ -41,6 +41,10 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
         return <Clock className="h-5 w-5 text-blue-600" />;
       case 'approval_pending':
         return <AlertCircle className="h-5 w-5 text-orange-600" />;
+      case 'task_assigned':
+        return <ClipboardList className="h-5 w-5 text-primary" />;
+      case 'task_mention':
+        return <UserPlus className="h-5 w-5 text-blue-500" />;
       default:
         return <Target className="h-5 w-5 text-muted-foreground" />;
     }
