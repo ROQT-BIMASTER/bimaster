@@ -302,6 +302,7 @@ export default function ProjetoHome() {
           </div>
         </main>
       </div>
+      <TourButton tourId={PROJETO_HOME_TOUR_ID} tourSteps={projetoHomeTourSteps} title="Manual da Home" description="Aprenda a usar sua página inicial passo a passo" />
     </SidebarProvider>
   );
 }

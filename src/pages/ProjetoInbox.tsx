@@ -389,6 +389,7 @@ export default function ProjetoInbox() {
         onToggleFavorita={detailAtividade ? () => toggleFavorita(detailAtividade.id) : undefined}
         onArquivar={detailAtividade ? () => { arquivar([detailAtividade.id]); setDetailAtividade(null); } : undefined}
       />
+      <TourButton tourId={PROJETO_INBOX_TOUR_ID} tourSteps={projetoInboxTourSteps} title="Manual da Caixa de Entrada" description="Aprenda a usar a caixa de entrada passo a passo" />
     </SidebarProvider>
   );
 }

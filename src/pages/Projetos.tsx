@@ -226,6 +226,7 @@ export default function Projetos() {
       </div>
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
     </SidebarProvider>
   );
 }

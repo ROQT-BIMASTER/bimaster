@@ -400,6 +400,7 @@ export default function MinhasTarefas() {
           </div>
         </main>
       </div>
+      <TourButton tourId={MINHAS_TAREFAS_TOUR_ID} tourSteps={minhasTarefasTourSteps} title="Manual de Tarefas" description="Aprenda a gerenciar suas tarefas passo a passo" />
     </SidebarProvider>
   );
 }

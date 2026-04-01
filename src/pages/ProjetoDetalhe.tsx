@@ -169,6 +169,7 @@ export default function ProjetoDetalhe() {
           </div>
         </main>
       </div>
+      <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
     </SidebarProvider>
   );
 }

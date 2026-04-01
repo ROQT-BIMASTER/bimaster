@@ -37,3 +37,11 @@ export { tradeCampaignApprovalTourSteps, TRADE_CAMPAIGN_APPROVAL_TOUR_ID } from 
 
 // Tour - Lançamento Rápido (Dialog)
 export { tradeQuickEntryTourSteps, TRADE_QUICK_ENTRY_TOUR_ID } from "./tours/tradeQuickEntryTour";
+
+// Tour definitions - Projetos
+export { projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "./tours/projetoHomeTour";
+export { minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "./tours/minhasTarefasTour";
+export { projetoInboxTourSteps, PROJETO_INBOX_TOUR_ID } from "./tours/projetoInboxTour";
+export { projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "./tours/projetosListaTour";
+export { projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "./tours/projetoDetalheTour";
+export { projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "./tours/projetosEquipeTour";
