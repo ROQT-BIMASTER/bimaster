@@ -105,6 +105,7 @@ interface ProjetoTarefaRowProps {
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
   columns?: ColumnConfig[];
+  metasProgress?: MetasProgress;
 }
 
 export function ProjetoTarefaRow({
