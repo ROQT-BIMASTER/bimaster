@@ -280,7 +280,9 @@ export default function MinhasTarefas() {
             </div>
 
             {/* KPIs */}
-            <MinhasTarefasKPIs tarefas={tarefas} loading={isLoading} />
+            <div data-tour="mt-kpis">
+              <MinhasTarefasKPIs tarefas={tarefas} loading={isLoading} />
+            </div>
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
