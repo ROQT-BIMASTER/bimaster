@@ -444,8 +444,26 @@ function DraggableKanbanCard({
                 <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             ))}
-          </div>
+        </div>
 
+        {/* Checklist progress bar */}
+        {metasProgress && metasProgress.total > 0 && (
+          <div className="mt-2.5 flex items-center gap-2">
+            <Target className={cn("h-3 w-3 flex-shrink-0", metasProgress.percent === 100 ? "text-emerald-400" : "text-muted-foreground")} />
+            <Progress
+              value={metasProgress.percent}
+              className={cn("h-1.5 flex-1", darkBg ? "bg-white/10" : "bg-muted")}
+            />
+            <span className={cn(
+              "text-[10px] font-medium flex-shrink-0",
+              metasProgress.percent === 100
+                ? "text-emerald-400"
+                : darkBg ? "text-white/60" : "text-muted-foreground"
+            )}>
+              {metasProgress.concluidas}/{metasProgress.total}
+            </span>
+          </div>
+        )}
           <div className="flex items-center gap-2">
             {subtaskTotal > 0 && tarefa.subtarefas && (
               <SubtarefasPopover subtarefas={tarefa.subtarefas} />
