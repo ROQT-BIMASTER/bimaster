@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { ProjetoInboxFeed } from "@/components/projetos/ProjetoInboxFeed";
 import { ProjetoInboxDetail } from "@/components/projetos/ProjetoInboxDetail";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,30 +8,58 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
+import { KpiCard } from "@/components/ui/kpi-card";
 import {
   Inbox, CheckCheck, Star, Archive, MessageSquare, Search,
   Bell, CalendarDays, LayoutList, FolderOpen, ChevronDown,
-  SquareCheckBig, X
+  SquareCheckBig, X, AtSign, CheckCircle2, FolderPlus, ArrowRight,
+  Sparkles
 } from "lucide-react";
 import { useProjetoAtividades, type ProjetoAtividade, type InboxFilter } from "@/hooks/useProjetoAtividades";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type TabKey = "atividade" | "mencoes" | "favoritas" | "arquivadas";
 type GroupMode = "tempo" | "projeto";
 
+const TIPO_FILTERS = [
+  { key: "criou_tarefa", label: "Tarefas", icon: FolderPlus },
+  { key: "completou", label: "Concluídas", icon: CheckCircle2 },
+  { key: "comentou", label: "Comentários", icon: MessageSquare },
+  { key: "moveu", label: "Movidas", icon: ArrowRight },
+];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return { text: "Bom dia", emoji: "☀️" };
+  if (h < 18) return { text: "Boa tarde", emoji: "🌤️" };
+  return { text: "Boa noite", emoji: "🌙" };
+}
+
 export default function ProjetoInbox() {
+  const { user } = useAuth();
+  const [userName, setUserName] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("atividade");
   const [groupMode, setGroupMode] = useState<GroupMode>("tempo");
   const [search, setSearch] = useState("");
   const [filterProjetoIds, setFilterProjetoIds] = useState<string[]>([]);
+  const [filterTipos, setFilterTipos] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailAtividade, setDetailAtividade] = useState<ProjetoAtividade | null>(null);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("nome").eq("id", user.id).single()
+      .then(({ data }) => { if (data?.nome) setUserName(data.nome.split(" ")[0]); });
+  }, [user]);
+
   const filter: InboxFilter = useMemo(() => ({
     projetoIds: filterProjetoIds.length > 0 ? filterProjetoIds : undefined,
+    tipos: filterTipos.length > 0 ? filterTipos : undefined,
     search: search || undefined,
-  }), [filterProjetoIds, search]);
+  }), [filterProjetoIds, filterTipos, search]);
 
   const {
     atividades, arquivadas, favoritas, mencoes, isLoading,
@@ -96,61 +124,72 @@ export default function ProjetoInbox() {
     );
   };
 
+  const toggleFilterTipo = (tipo: string) => {
+    setFilterTipos(prev =>
+      prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]
+    );
+  };
+
+  const greeting = getGreeting();
+
+  const subtitleText = naoLidas > 0
+    ? `Você tem ${naoLidas} notificação${naoLidas > 1 ? "ões" : ""} não lida${naoLidas > 1 ? "s" : ""}`
+    : "Tudo em dia! Nenhuma notificação pendente ✨";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
-          <div className="p-6 max-w-5xl mx-auto space-y-5">
-            {/* Header */}
+          <div className="p-6 max-w-5xl mx-auto space-y-5 animate-fade-in">
+            {/* Header with greeting */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
-                <div className="flex items-center gap-2">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Inbox className="h-5 w-5 text-primary" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-foreground">
+                      {greeting.emoji} {greeting.text}{userName ? `, ${userName}` : ""}
+                    </h1>
                   </div>
-                  <h1 className="text-2xl font-bold text-foreground">Caixa de Entrada</h1>
+                  <p className="text-sm text-muted-foreground mt-0.5">{subtitleText}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {naoLidas > 0 && (
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
                     <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
                   </Button>
                 )}
               </div>
             </div>
 
-            {/* KPI Strip */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/50">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Bell className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-foreground">{naoLidas}</p>
-                  <p className="text-[11px] text-muted-foreground">Não lidas</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/50">
-                <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <MessageSquare className="h-4 w-4 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-foreground">{mencoes.length}</p>
-                  <p className="text-[11px] text-muted-foreground">Menções</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/50">
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <CalendarDays className="h-4 w-4 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-foreground">{hoje}</p>
-                  <p className="text-[11px] text-muted-foreground">Hoje</p>
-                </div>
-              </div>
+            {/* KPI Strip with KpiCard */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <KpiCard
+                title="Não lidas"
+                value={naoLidas}
+                icon={Bell}
+                variant="info"
+              />
+              <KpiCard
+                title="Menções"
+                value={mencoes.length}
+                icon={AtSign}
+                variant="warning"
+              />
+              <KpiCard
+                title="Favoritas"
+                value={favoritas.length}
+                icon={Star}
+                variant="accent"
+              />
+              <KpiCard
+                title="Hoje"
+                value={hoje}
+                icon={CalendarDays}
+                variant="success"
+              />
             </div>
 
             {/* Toolbar: Tabs + Filters */}
@@ -163,16 +202,19 @@ export default function ProjetoInbox() {
                     {naoLidas > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{naoLidas}</Badge>}
                   </TabsTrigger>
                   <TabsTrigger value="mencoes" className="gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    @Menções
+                    <AtSign className="h-3.5 w-3.5" />
+                    Menções
+                    {mencoes.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{mencoes.length}</Badge>}
                   </TabsTrigger>
                   <TabsTrigger value="favoritas" className="gap-1.5">
                     <Star className="h-3.5 w-3.5" />
                     Favoritas
+                    {favoritas.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{favoritas.length}</Badge>}
                   </TabsTrigger>
                   <TabsTrigger value="arquivadas" className="gap-1.5">
                     <Archive className="h-3.5 w-3.5" />
                     Arquivadas
+                    {arquivadas.length > 0 && <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">{arquivadas.length}</Badge>}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -245,6 +287,39 @@ export default function ProjetoInbox() {
               </div>
             </div>
 
+            {/* Type filter chips */}
+            {activeTab === "atividade" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium">Tipo:</span>
+                {TIPO_FILTERS.map(tf => {
+                  const TfIcon = tf.icon;
+                  const active = filterTipos.includes(tf.key);
+                  return (
+                    <button
+                      key={tf.key}
+                      onClick={() => toggleFilterTipo(tf.key)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <TfIcon className="h-3 w-3" />
+                      {tf.label}
+                    </button>
+                  );
+                })}
+                {filterTipos.length > 0 && (
+                  <button
+                    onClick={() => setFilterTipos([])}
+                    className="text-xs text-primary hover:underline ml-1"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Bulk actions bar */}
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20 animate-fade-in">
@@ -284,12 +359,20 @@ export default function ProjetoInbox() {
                 emptyTitle={
                   activeTab === "mencoes" ? "Nenhuma menção ainda" :
                   activeTab === "favoritas" ? "Nenhuma favorita" :
-                  activeTab === "arquivadas" ? "Nenhuma arquivada" : undefined
+                  activeTab === "arquivadas" ? "Nenhuma arquivada" :
+                  "Tudo em dia! 🎉"
                 }
                 emptyDesc={
-                  activeTab === "mencoes" ? "Quando alguém mencionar você em um comentário, aparecerá aqui" :
-                  activeTab === "favoritas" ? "Marque notificações com estrela para acessá-las rapidamente" :
-                  activeTab === "arquivadas" ? "Arquive notificações para limpá-las da caixa de entrada" : undefined
+                  activeTab === "mencoes" ? "Quando alguém mencionar você com @, a notificação aparecerá aqui" :
+                  activeTab === "favoritas" ? "Marque notificações com ⭐ para acessá-las rapidamente" :
+                  activeTab === "arquivadas" ? "Arquive notificações antigas para manter sua caixa organizada" :
+                  "Nenhuma notificação pendente. Aproveite para focar no que importa!"
+                }
+                emptyIcon={
+                  activeTab === "mencoes" ? AtSign :
+                  activeTab === "favoritas" ? Star :
+                  activeTab === "arquivadas" ? Archive :
+                  Sparkles
                 }
               />
             </div>
