@@ -29,6 +29,7 @@ import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs
 import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDetail";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
+import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
