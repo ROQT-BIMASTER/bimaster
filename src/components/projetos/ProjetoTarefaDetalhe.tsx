@@ -153,6 +153,18 @@ export function ProjetoTarefaDetalhe({
     enabled: !!projetoId,
   });
 
+  // Fetch creator profile for metadata display
+  const criadorId = (tarefa as any)?.criador_id;
+  const { data: criadorProfile } = useQuery({
+    queryKey: ["profile-mini", criadorId],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, nome, avatar_url").eq("id", criadorId).single();
+      return data;
+    },
+    enabled: !!criadorId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (tarefa) {
       setTitleValue(tarefa.titulo);
@@ -434,6 +446,29 @@ export function ProjetoTarefaDetalhe({
                     {tarefa.titulo}
                   </h2>
                 )}
+
+                {/* Creation & attribution metadata */}
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                  {criadorProfile && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Criada por <span className="font-medium text-foreground">{criadorProfile.nome?.split(" ")[0]}</span>
+                    </span>
+                  )}
+                  {tarefa.created_at && (
+                    <span>
+                      em {format(new Date(tarefa.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  )}
+                  {(tarefa as any).responsavel && (
+                    <>
+                      <span className="text-border">·</span>
+                      <span className="flex items-center gap-1">
+                        Atribuída a <span className="font-medium text-foreground">{String((tarefa as any).responsavel).split(" ")[0]}</span>
+                      </span>
+                    </>
+                  )}
+                </div>
 
                 {/* Fields grid */}
                 <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-3 text-sm">
