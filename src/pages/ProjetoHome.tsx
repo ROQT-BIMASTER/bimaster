@@ -189,10 +189,14 @@ export default function ProjetoHome() {
             </div>
 
             {/* KPIs */}
-            <ProjetoHomeKPIs tarefas={tarefas} loading={loadingTarefas} />
+            <div data-tour="home-kpis">
+              <ProjetoHomeKPIs tarefas={tarefas} loading={loadingTarefas} />
+            </div>
 
             {/* Quick Actions */}
-            <ProjetoHomeQuickActions />
+            <div data-tour="home-quick-actions">
+              <ProjetoHomeQuickActions />
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Column — Tasks */}
