@@ -84,6 +84,8 @@ export function ProjetoSecao({
 
   const sectionColor = SECTION_COLORS[secaoIndex % SECTION_COLORS.length];
 
+  
+
   return (
     <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
       <div className={`flex items-center gap-0 px-3 py-2.5 w-full ${darkBg ? "hover:bg-white/5" : "hover:bg-muted/30"}`}>
