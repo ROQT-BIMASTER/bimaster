@@ -10,7 +10,6 @@ import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoBriefing } from "@/hooks/useProjetoBriefing";
 import { GRID_COLS } from "./ProjetoListView";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
