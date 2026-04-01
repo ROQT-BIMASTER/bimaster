@@ -58,7 +58,7 @@ interface ProjetoSecaoProps {
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
-  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, gridCols: gridColsProp, visibleColumns,
+  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
