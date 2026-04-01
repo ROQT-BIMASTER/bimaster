@@ -191,9 +191,9 @@ export function ProjetoTarefaRow({
         </div>
 
         {/* Produto vinculado */}
+        {vis("produto") && (
         <div className="flex items-center gap-1 min-w-0 overflow-hidden">
           {(() => {
-            // Show linked_produtos from junction table, or fallback to produto_id
             const produtos = tarefa.linked_produtos && tarefa.linked_produtos.length > 0
               ? tarefa.linked_produtos
               : tarefa.produto_foto_url
@@ -217,11 +217,13 @@ export function ProjetoTarefaRow({
             );
           })()}
         </div>
+        )}
 
         {/* Separator: Identity | People */}
         <div className={`w-px h-5 ${darkBg ? "bg-white/8" : "bg-border/30"}`} />
 
         {/* Responsável - inline picker */}
+        {vis("responsavel") && (
         <div className="flex items-center gap-1.5 min-w-0">
           <PersonPicker
             current={tarefa.responsavel}
@@ -229,8 +231,10 @@ export function ProjetoTarefaRow({
             onSelect={(userId) => onUpdate?.(tarefa.id, { responsavel_id: userId })}
           />
         </div>
+        )}
 
         {/* Status */}
+        {vis("status") && (
         <div className="flex justify-center">
           <InlineSelector
             value={tarefa.status}
@@ -240,8 +244,10 @@ export function ProjetoTarefaRow({
             onChange={(val) => onUpdate?.(tarefa.id, { status: val })}
           />
         </div>
+        )}
 
         {/* Timeline bar */}
+        {vis("timeline") && (
         <div className="flex items-center px-1">
           <TimelineBar
             dataInicio={(tarefa as any).data_inicio}
@@ -251,8 +257,10 @@ export function ProjetoTarefaRow({
             onChangePrazo={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
           />
         </div>
+        )}
 
         {/* Data prazo - inline date picker */}
+        {vis("prazo") && (
         <div className="text-xs min-w-0">
           <InlineDatePicker
             value={tarefa.data_prazo}
@@ -261,8 +269,10 @@ export function ProjetoTarefaRow({
             onChange={(date) => onUpdate?.(tarefa.id, { data_prazo: date })}
           />
         </div>
+        )}
 
         {/* Prioridade - estrelas */}
+        {vis("prioridade") && (
         <div className="flex justify-center items-center gap-0.5">
           <PriorityStars
             value={tarefa.prioridade}
@@ -278,6 +288,18 @@ export function ProjetoTarefaRow({
             </button>
           )}
         </div>
+        )}
+
+        {/* Delete button when prioridade is hidden */}
+        {!vis("prioridade") && onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(tarefa.id); }}
+            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 absolute right-2 ${darkBg ? "text-red-400 hover:text-red-300" : "text-destructive/60 hover:text-destructive"}`}
+            title="Excluir tarefa"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Subtarefas */}
