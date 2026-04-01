@@ -22,6 +22,7 @@ import { Loader2, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
