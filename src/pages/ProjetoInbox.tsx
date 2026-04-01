@@ -195,7 +195,7 @@ export default function ProjetoInbox() {
 
             {/* Toolbar: Tabs + Filters */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <Tabs value={activeTab} onValueChange={v => { setActiveTab(v as TabKey); setSelectedIds(new Set()); }}>
+              <Tabs value={activeTab} onValueChange={v => { setActiveTab(v as TabKey); setSelectedIds(new Set()); }} data-tour="inbox-tabs">
                 <TabsList className="bg-muted/30">
                   <TabsTrigger value="atividade" className="gap-1.5">
                     <LayoutList className="h-3.5 w-3.5" />
