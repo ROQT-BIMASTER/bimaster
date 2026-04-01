@@ -1,79 +1,57 @@
 
 
-# Aprofundar Segurança — 9 Findings (5 Errors + 4 Warnings)
+# Melhorar Caixa de Entrada — De Simples para Profissional
 
-## Scan Atual
+## Diagnóstico
 
-### 🔴 5 Errors
+A Inbox atual tem: lista flat de notificações, tabs vazias (Menções/Arquivadas), cards com texto simples sem contexto visual, sem filtros, sem preview de conteúdo, sem agrupamento por projeto.
 
-| # | Finding | Problema |
-|---|---------|----------|
-| 1 | **social_media_credentials_safe** | View expõe `access_token` e `refresh_token` sem `security_invoker = true` — qualquer autenticado lê OAuth tokens de outros |
-| 2 | **team_member_details_safe** | View expõe CPF, RG, data de nascimento sem herdar RLS da tabela base |
-| 3 | **stores_safe** | View expõe PIX, agência, conta bancária sem `security_invoker = true` |
-| 4 | **fabrica_fornecedores_safe** | View expõe dados bancários de fornecedores sem proteção RLS |
-| 5 | **erp_config** | API keys em plaintext acessíveis a admins sem criptografia |
+## Melhorias Propostas
 
-### 🟡 4 Warnings
+### 1. Header Premium com Estatísticas
+- KPI strip: "12 não lidas", "3 menções", "5 hoje" com ícones coloridos
+- Filtro rápido por projeto (dropdown multi-select) e por tipo de atividade
+- Busca inline por texto nas notificações
 
-| # | Finding | Problema |
-|---|---------|----------|
-| 6 | **Extensions in public** | Limitação da plataforma (aceito) |
-| 7 | **RLS always true** | Policies com `USING(true)` em operações de escrita |
-| 8 | **configuracoes_cobranca** | `api_key` e `whatsapp_verify_token` em plaintext |
-| 9 | **dynamic_form_responses** | Anon pode submeter PII sem rate limiting no RLS |
+### 2. Cards Ricos com Contexto Visual
+- Barra lateral colorida com a cor do projeto (como Asana)
+- Preview do conteúdo: se comentou, mostrar trecho do comentário; se completou tarefa, mostrar nome da tarefa em destaque
+- Ícone de tipo mais proeminente com background circular colorido
+- Badge de prioridade quando a tarefa associada for urgente/alta
+- Timestamp relativo + nome do projeto com cor, tudo mais legível
 
-## Plano de Correção
+### 3. Painel de Detalhe (Split View)
+- Ao clicar numa notificação, abrir painel lateral direito com detalhes completos em vez de navegar para o projeto
+- Mostrar: tarefa completa, comentários recentes, timeline de ações, botão "Ir para o projeto"
+- Permite consumir notificações sem sair da Inbox
 
-### Fase 1 — Views com security_invoker (1 migration)
+### 4. Agrupamento Inteligente
+- Além do agrupamento temporal (Hoje/Ontem/7 dias), opção de agrupar por **Projeto**
+- Toggle entre "Por tempo" e "Por projeto" no header
+- Cada grupo de projeto mostra ícone colorido e contagem
 
-Recriar 4 views com `WITH (security_invoker = true)` e remover colunas sensíveis:
+### 5. Tabs Funcionais
+- **@Menções**: Filtrar atividades onde `tipo = 'comentou'` e o texto contenha o nome do user ou `@mention`
+- **Arquivadas**: Adicionar campo `arquivada` na tabela `projeto_atividades` e permitir arquivar/desarquivar com swipe ou botão
+- **Favoritas**: Nova tab para notificações marcadas com estrela (campo `favorita`)
 
-- **social_media_credentials_safe**: Remover `access_token` e `refresh_token`, substituir por `has_access_token boolean`
-- **team_member_details_safe**: Mascarar CPF (`'***.XXX.XX-**'`) e RG, remover `email_pessoal` para non-admin
-- **stores_safe**: Mascarar PIX e dados bancários para non-admin
-- **fabrica_fornecedores_safe**: Mascarar dados bancários para non-admin
+### 6. Ações em Lote
+- Checkbox em cada card para seleção múltipla
+- Barra de ações flutuante: "Marcar como lidas", "Arquivar", "Favoritar" em batch
+- Select all / deselect all
 
-Todas com `security_invoker = true` para herdar RLS das tabelas base.
+### 7. Empty States Premium
+- Ilustrações SVG customizadas para cada tab vazia
+- Sugestões contextuais ("Crie uma tarefa para começar a receber notificações")
 
-### Fase 2 — Credentials Hardening (1 migration)
+## Alterações Técnicas
 
-- **erp_config**: Criar policy que oculta `api_key` e `api_key_anterior` no SELECT — retornar apenas `api_key_hash` e flag `has_key`. Verificar se edge functions usam plaintext (já verificado: `_shared/auth.ts` usa hash comparison, pode remover plaintext)
-- **configuracoes_cobranca**: Mesma abordagem — ocultar `api_key` e `whatsapp_verify_token` via view safe existente
-
-### Fase 3 — Dynamic Forms Rate Limiting (1 migration)
-
-Adicionar constraint no RLS de `dynamic_form_responses` para limitar submissions por IP/sessão:
-```sql
--- Limitar a 10 respostas por form por sessão anon (via created_at interval)
-CREATE POLICY "Rate limit anon submissions"
-  ON dynamic_form_responses FOR INSERT TO anon
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM dynamic_forms f WHERE f.id = form_id AND f.status = 'active')
-    AND (SELECT count(*) FROM dynamic_form_responses r 
-         WHERE r.form_id = dynamic_form_responses.form_id 
-         AND r.created_at > now() - interval '1 hour'
-         AND r.respondent_ip = current_setting('request.headers', true)::json->>'x-forwarded-for'
-        ) < 10
-  );
-```
-
-### Fase 4 — RLS always true audit
-
-Identificar tabelas com `WITH CHECK(true)` em INSERT/UPDATE/DELETE e restringir onde possível.
-
-### Fase 5 — Platform findings
-
-Marcar `extensions_in_public` como limitação aceita.
-
-## Resultado Esperado
-
-| Antes | Depois |
-|-------|--------|
-| 5 errors, 4 warnings | 0 errors, 2 warnings (platform + aceitos) |
-| Score ~92 | Score ~98 |
-
-## Execução
-
-3 migrations SQL. Verificação prévia do frontend para garantir que views recriadas não quebrem queries existentes. Zero alterações no frontend.
+| Recurso | Ação |
+|---------|------|
+| 1 Migration SQL | Adicionar `arquivada`, `favorita` em `projeto_atividades` |
+| `ProjetoInbox.tsx` | Refatorar com header premium, filtros, split view |
+| `ProjetoInboxCard.tsx` | Cards ricos com barra de cor, preview, badges |
+| `ProjetoInboxFeed.tsx` | Agrupamento dual (tempo/projeto), seleção múltipla |
+| Novo: `ProjetoInboxDetail.tsx` | Painel lateral de detalhe |
+| `useProjetoAtividades.ts` | Suporte a filtros, arquivadas, favoritas |
 
