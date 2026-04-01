@@ -290,7 +290,7 @@ export default function ProjetoInbox() {
 
             {/* Type filter chips */}
             {activeTab === "atividade" && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap" data-tour="inbox-tipo-filters">
                 <span className="text-xs text-muted-foreground font-medium">Tipo:</span>
                 {TIPO_FILTERS.map(tf => {
                   const TfIcon = tf.icon;
