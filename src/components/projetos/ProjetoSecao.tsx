@@ -182,6 +182,7 @@ export function ProjetoSecao({
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}
               darkBg={darkBg}
+              columns={columns}
             />
           ))}
 

@@ -312,6 +312,7 @@ export function ProjetoTarefaRow({
           onRemoveColaborador={onRemoveColaborador}
           selected={false}
           darkBg={darkBg}
+          columns={columns}
         />
       ))}
     </>
