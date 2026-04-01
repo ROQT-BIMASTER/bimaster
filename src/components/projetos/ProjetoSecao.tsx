@@ -84,7 +84,7 @@ export function ProjetoSecao({
 
   const sectionColor = SECTION_COLORS[secaoIndex % SECTION_COLORS.length];
 
-  const activeGridCols = gridColsProp || GRID_COLS;
+  
 
   return (
     <div className={cn("mb-1 border-l-[3px]", sectionColor.border)}>
