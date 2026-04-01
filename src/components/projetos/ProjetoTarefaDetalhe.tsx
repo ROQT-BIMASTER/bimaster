@@ -153,6 +153,18 @@ export function ProjetoTarefaDetalhe({
     enabled: !!projetoId,
   });
 
+  // Fetch creator profile for metadata display
+  const criadorId = (tarefa as any)?.criador_id;
+  const { data: criadorProfile } = useQuery({
+    queryKey: ["profile-mini", criadorId],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, nome, avatar_url").eq("id", criadorId).single();
+      return data;
+    },
+    enabled: !!criadorId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (tarefa) {
       setTitleValue(tarefa.titulo);
