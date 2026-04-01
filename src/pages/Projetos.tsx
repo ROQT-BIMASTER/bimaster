@@ -107,7 +107,7 @@ export default function Projetos() {
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
                 </div>
               </div>
-              <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
                 <Plus className="h-4 w-4" /> Novo Projeto
               </Button>
             </div>
