@@ -1,57 +1,30 @@
 
 
-# Melhorar Caixa de Entrada — De Simples para Profissional
+# Adicionar Botão "Nova Tarefa" na página Minhas Tarefas
 
-## Diagnóstico
+## Problema
+A página "Minhas Tarefas" não possui opção para criar novas tarefas diretamente.
 
-A Inbox atual tem: lista flat de notificações, tabs vazias (Menções/Arquivadas), cards com texto simples sem contexto visual, sem filtros, sem preview de conteúdo, sem agrupamento por projeto.
+## Solução
+Adicionar um botão "Nova Tarefa" no header da página que abre o `NovaAtividadeDialog` (já existente no sistema) ou um dialog simplificado para criar tarefa rápida com campos mínimos (título, projeto, prazo, prioridade).
 
-## Melhorias Propostas
+## Alterações
 
-### 1. Header Premium com Estatísticas
-- KPI strip: "12 não lidas", "3 menções", "5 hoje" com ícones coloridos
-- Filtro rápido por projeto (dropdown multi-select) e por tipo de atividade
-- Busca inline por texto nas notificações
+### 1. `src/pages/MinhasTarefas.tsx`
+- Importar `Button` e `Plus` icon
+- Adicionar botão `+ Nova Tarefa` ao lado direito do header (entre as stats e o view switcher)
+- Integrar um dialog de criação rápida de tarefa com:
+  - **Título** (obrigatório)
+  - **Projeto** (select com projetos do usuário)
+  - **Prazo** (date picker opcional)
+  - **Prioridade** (select opcional)
+- Ao criar, inserir em `projeto_tarefas` com `responsavel_id = user.id` e invalidar a query `minhas-tarefas`
 
-### 2. Cards Ricos com Contexto Visual
-- Barra lateral colorida com a cor do projeto (como Asana)
-- Preview do conteúdo: se comentou, mostrar trecho do comentário; se completou tarefa, mostrar nome da tarefa em destaque
-- Ícone de tipo mais proeminente com background circular colorido
-- Badge de prioridade quando a tarefa associada for urgente/alta
-- Timestamp relativo + nome do projeto com cor, tudo mais legível
+### 2. Componente inline (dentro do mesmo arquivo ou novo `NovaTarefaDialog.tsx`)
+- Dialog com form simples usando os componentes UI existentes
+- Query para listar projetos do usuário (para o select de projeto)
+- Mutation de insert na tabela `projeto_tarefas`
 
-### 3. Painel de Detalhe (Split View)
-- Ao clicar numa notificação, abrir painel lateral direito com detalhes completos em vez de navegar para o projeto
-- Mostrar: tarefa completa, comentários recentes, timeline de ações, botão "Ir para o projeto"
-- Permite consumir notificações sem sair da Inbox
-
-### 4. Agrupamento Inteligente
-- Além do agrupamento temporal (Hoje/Ontem/7 dias), opção de agrupar por **Projeto**
-- Toggle entre "Por tempo" e "Por projeto" no header
-- Cada grupo de projeto mostra ícone colorido e contagem
-
-### 5. Tabs Funcionais
-- **@Menções**: Filtrar atividades onde `tipo = 'comentou'` e o texto contenha o nome do user ou `@mention`
-- **Arquivadas**: Adicionar campo `arquivada` na tabela `projeto_atividades` e permitir arquivar/desarquivar com swipe ou botão
-- **Favoritas**: Nova tab para notificações marcadas com estrela (campo `favorita`)
-
-### 6. Ações em Lote
-- Checkbox em cada card para seleção múltipla
-- Barra de ações flutuante: "Marcar como lidas", "Arquivar", "Favoritar" em batch
-- Select all / deselect all
-
-### 7. Empty States Premium
-- Ilustrações SVG customizadas para cada tab vazia
-- Sugestões contextuais ("Crie uma tarefa para começar a receber notificações")
-
-## Alterações Técnicas
-
-| Recurso | Ação |
-|---------|------|
-| 1 Migration SQL | Adicionar `arquivada`, `favorita` em `projeto_atividades` |
-| `ProjetoInbox.tsx` | Refatorar com header premium, filtros, split view |
-| `ProjetoInboxCard.tsx` | Cards ricos com barra de cor, preview, badges |
-| `ProjetoInboxFeed.tsx` | Agrupamento dual (tempo/projeto), seleção múltipla |
-| Novo: `ProjetoInboxDetail.tsx` | Painel lateral de detalhe |
-| `useProjetoAtividades.ts` | Suporte a filtros, arquivadas, favoritas |
+## Resultado
+Botão visível no header → Dialog abre → Usuário preenche título + projeto → Tarefa criada e aparece na lista imediatamente.
 
