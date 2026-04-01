@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TourButton, projetoInboxTourSteps, PROJETO_INBOX_TOUR_ID } from "@/components/tour";
 
 type TabKey = "atividade" | "mencoes" | "favoritas" | "arquivadas";
 type GroupMode = "tempo" | "projeto";
