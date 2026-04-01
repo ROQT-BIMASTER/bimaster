@@ -94,6 +94,23 @@ export function useProjetoTarefaDetalhe(tarefaId: string | undefined, produtoId?
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // Realtime subscription for comments
+  useEffect(() => {
+    if (!tarefaId) return;
+    const channel = supabase
+      .channel(`tarefa-comentarios-${tarefaId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "projeto_tarefa_comentarios",
+        filter: `tarefa_id=eq.${tarefaId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["tarefa-comentarios", tarefaId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tarefaId, queryClient]);
+
   // ===== Anexos =====
   const { data: anexos = [] } = useQuery({
     queryKey: ["tarefa-anexos", tarefaId],
