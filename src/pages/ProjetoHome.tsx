@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ProjetoHomeKPIs } from "@/components/projetos/home/ProjetoHomeKPIs";
 import { ProjetoHomeQuickActions } from "@/components/projetos/home/ProjetoHomeQuickActions";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
+import { TourButton, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
 
 function getGreeting() {
   const hour = new Date().getHours();
