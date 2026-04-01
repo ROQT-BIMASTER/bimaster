@@ -190,17 +190,20 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     <>
       <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
-        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
-          <div /> {/* expand */}
-          <div /> {/* checkbox */}
-          <div>Nome da tarefa</div>
-          <div>Produto</div>
-          <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
-          <div>Responsável</div>
-          <div className="text-center">Status</div>
-          <div className="text-center">Timeline</div>
-          <div>Prazo</div>
-          <div className="text-center">Prior.</div>
+        <div className={`flex items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
+          <div className="flex-1 flex items-center gap-0" style={{ display: "grid", gridTemplateColumns: buildGridCols(columns).replace(/_/g, " ") }}>
+            <div /> {/* expand */}
+            <div /> {/* checkbox */}
+            <div>Nome da tarefa</div>
+            {vis("produto") && <div>Produto</div>}
+            <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
+            {vis("responsavel") && <div>Responsável</div>}
+            {vis("status") && <div className="text-center">Status</div>}
+            {vis("timeline") && <div className="text-center">Timeline</div>}
+            {vis("prazo") && <div>Prazo</div>}
+            {vis("prioridade") && <div className="text-center">Prior.</div>}
+          </div>
+          <ColumnConfigPopover columns={columns} onChange={setColumns} darkBg={darkBg} className="ml-1 flex-shrink-0" />
         </div>
 
         {secoes.map((secao, index) => (
@@ -226,6 +229,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
             darkBg={darkBg}
+            columns={columns}
           />
         ))}
 
