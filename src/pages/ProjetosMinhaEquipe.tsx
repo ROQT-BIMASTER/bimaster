@@ -813,7 +813,7 @@ export default function ProjetosMinhaEquipe() {
       </div>
 
       {/* Project Filter */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-tour="equipe-filters">
         <ProjetoFilterSelect
           projetos={projetos}
           value={projetoFilter}
