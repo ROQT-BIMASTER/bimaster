@@ -108,7 +108,7 @@ export default function ProjetoDetalhe() {
         >
           <div className="p-6 max-w-7xl mx-auto space-y-5">
             {/* Back button + sidebar trigger + color picker */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-tour="pd-header">
               <SidebarTrigger />
               <Button
                 variant="ghost"
