@@ -451,7 +451,7 @@ export function ProjetoTarefaDetalhe({
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
                   {criadorProfile && (
                     <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
+                      <Clock className="h-3 w-3" />
                       Criada por <span className="font-medium text-foreground">{criadorProfile.nome?.split(" ")[0]}</span>
                     </span>
                   )}
@@ -460,11 +460,11 @@ export function ProjetoTarefaDetalhe({
                       em {format(new Date(tarefa.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   )}
-                  {tarefa.responsavel_nome && (
+                  {(tarefa as any).responsavel && (
                     <>
                       <span className="text-border">·</span>
                       <span className="flex items-center gap-1">
-                        Atribuída a <span className="font-medium text-foreground">{tarefa.responsavel_nome?.split(" ")[0]}</span>
+                        Atribuída a <span className="font-medium text-foreground">{String((tarefa as any).responsavel).split(" ")[0]}</span>
                       </span>
                     </>
                   )}
