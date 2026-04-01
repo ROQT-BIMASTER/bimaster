@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { useMetasProgress } from "@/hooks/useMetasProgress";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
