@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs";
 import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDetail";
