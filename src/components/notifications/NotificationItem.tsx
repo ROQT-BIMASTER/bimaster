@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X, CheckCircle2, AlertCircle, Clock, Target } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, Clock, Target, ClipboardList, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
