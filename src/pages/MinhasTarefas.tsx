@@ -381,6 +381,8 @@ export default function MinhasTarefas() {
             ) : (
               <CalendarView tarefas={filtered} onToggle={handleToggle} onNavigate={handleNavigate} />
             )}
+
+            <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
           </div>
         </main>
       </div>
