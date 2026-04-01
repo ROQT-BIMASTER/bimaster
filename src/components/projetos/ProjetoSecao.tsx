@@ -66,6 +66,9 @@ export function ProjetoSecao({
   const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
   const { briefing, saveBriefing, deleteBriefing } = useProjetoBriefing(temBriefing ? secaoId : undefined);
 
+  const vis = (key: string) => !columns || columns.find(c => c.key === key)?.visible !== false;
+  const gridStyle = columns ? buildGridCols(columns).replace(/_/g, " ") : undefined;
+
   const completedCount = tarefas.reduce((acc, t) => {
     const sub = t.subtarefas?.filter(s => s.status === "concluida").length || 0;
     return acc + (t.status === "concluida" ? 1 : 0) + sub;
