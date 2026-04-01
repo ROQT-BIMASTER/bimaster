@@ -1,94 +1,64 @@
 
 
-# Manuais Interativos em Todas as Telas de Projetos
+# Trilha de Auditoria Completa para Tarefas de Projetos
 
-## Escopo
+## Problema
 
-Criar tours interativos (driver.js) para as **6 telas principais** do módulo de Projetos que ainda não possuem manual:
+Atualmente, alterações em tarefas (status, prioridade, responsável, prazo, estágio, título, descrição) **não são registradas** na tabela `projeto_tarefa_atividades`. O log de atividades só captura despachos de processos. Não há rastreabilidade de quem mudou o quê, quando.
 
-| Tela | Tour ID | Qtd Steps |
-|------|---------|-----------|
-| **Home Pessoal** (`ProjetoHome.tsx`) | `projeto-home` | ~8 |
-| **Minhas Tarefas** (`MinhasTarefas.tsx`) | `minhas-tarefas` | ~10 |
-| **Caixa de Entrada** (`ProjetoInbox.tsx`) | `projeto-inbox` | ~8 |
-| **Lista de Projetos** (`Projetos.tsx`) | `projeto-lista` | ~6 |
-| **Detalhe do Projeto** (`ProjetoDetalhe.tsx`) | `projeto-detalhe` | ~10 |
-| **Minha Equipe** (`ProjetosMinhaEquipe.tsx`) | `projetos-equipe` | ~5 |
+## Solução
 
-## O que cada tour cobre (detalhado)
+Implementar auditoria automática via **trigger de banco de dados** que captura todas as alterações relevantes na tabela `projeto_tarefas`, registrando automaticamente na `projeto_tarefa_atividades` — sem depender do frontend.
 
-### Home Pessoal
-- Saudação e contexto do dia
-- KPIs de produtividade (tarefas pendentes, concluídas, atrasadas)
-- Quick Actions (atalhos rápidos)
-- Lista de tarefas agrupadas por prazo
-- Card "Meus Projetos" com progresso
-- Feed de atividades recentes
+### 1. Trigger de Auditoria no Banco (Migration)
 
-### Minhas Tarefas
-- KPIs do topo (total, concluídas, atrasadas, pendentes)
-- Visões: Lista, Quadro Kanban, Calendário (como alternar)
-- Filtros por projeto e busca
-- Criar nova tarefa (botão + dialog)
-- Marcar tarefa como concluída (checkbox)
-- Painel de detalhe lateral (clicar na tarefa)
-- Agrupamento temporal (Hoje, Esta Semana, Próxima Semana)
-- Seleção múltipla e ações em lote
+Criar função `audit_projeto_tarefa_changes()` que dispara em `UPDATE` de `projeto_tarefas` e registra automaticamente:
 
-### Caixa de Entrada
-- KPIs (não lidas, menções, favoritas, hoje)
-- Tabs: Atividade, Menções, Favoritas, Arquivadas
-- Filtros por tipo de atividade (chips)
-- Filtro por projeto
-- Agrupamento (tempo vs projeto)
-- Ações nos cards (marcar lida, favoritar, arquivar)
-- Seleção múltipla e "Marcar todas como lidas"
+| Campo Monitorado | Tipo Registrado | Descrição Gerada |
+|---|---|---|
+| `status` | `status_change` | "Alterou status de X para Y" |
+| `prioridade` | `prioridade_change` | "Alterou prioridade de X para Y" |
+| `estagio` | `estagio_change` | "Alterou estágio de X para Y" |
+| `responsavel_id` | `responsavel_change` | "Atribuiu responsável Z" |
+| `data_prazo` | `prazo_change` | "Alterou prazo de X para Y" |
+| `titulo` | `titulo_change` | "Alterou título" |
+| `descricao` | `descricao_change` | "Alterou descrição" |
+| `data_inicio_planejada` | `inicio_change` | "Alterou início planejado" |
+| `secao_id` | `secao_change` | "Moveu para outra seção" |
+| `validacao_status` | `validacao_change` | "Enviou para validação / Validada / Rejeitada" |
 
-### Lista de Projetos
-- Visão geral de todos os projetos
-- Criar novo projeto (botão +)
-- Status e progresso de cada projeto
-- Membros da equipe
-- Menu de ações (finalizar, excluir)
+Também captura `INSERT` com tipo `criacao` — "Criou a tarefa".
 
-### Detalhe do Projeto
-- Header com nome, status e cor de fundo
-- Tabs de trabalho: Lista, Quadro, Cronograma, Calendário
-- Tabs de gestão: Painel, Briefings, Equipe, Arquivos
-- Filtros e ordenação de tarefas
-- Criar tarefa inline
-- Seções e agrupamentos
-- Lixeira (tarefas excluídas)
+O trigger usa `auth.uid()` para identificar quem fez a alteração e busca o nome no `profiles`.
 
-### Minha Equipe
-- Árvore de equipe
-- Métricas por membro
-- Tarefas atribuídas
+### 2. Melhorar o Componente de Log de Atividades
 
-## Implementação Técnica
+Refatorar `ProjetoAtividadesLog.tsx`:
 
-### Novos arquivos (6 tour definitions)
-- `src/components/tour/tours/projetoHomeTour.ts`
-- `src/components/tour/tours/minhasTarefasTour.ts`
-- `src/components/tour/tours/projetoInboxTour.ts`
-- `src/components/tour/tours/projetosListaTour.ts`
-- `src/components/tour/tours/projetoDetalheTour.ts`
-- `src/components/tour/tours/projetosEquipeTour.ts`
+- Adicionar ícones e cores específicos por tipo de mudança (igual ao `AuditTimeline`)
+- Mostrar valores anterior → novo com destaque visual
+- Badges coloridos por tipo de ação
+- Formato: "**João** alterou o status de `pendente` → `em_andamento`"
+- Tooltip com data/hora completa
 
-### Arquivos editados (7)
-- `src/components/tour/index.ts` — exportar os 6 novos tours
-- `src/pages/ProjetoHome.tsx` — adicionar `data-tour` attrs + `TourButton`
-- `src/pages/MinhasTarefas.tsx` — adicionar `data-tour` attrs + `TourButton`
-- `src/pages/ProjetoInbox.tsx` — adicionar `data-tour` attrs + `TourButton`
-- `src/pages/Projetos.tsx` — adicionar `data-tour` attrs + `TourButton`
-- `src/pages/ProjetoDetalhe.tsx` — adicionar `data-tour` attrs + `TourButton`
-- `src/pages/ProjetosMinhaEquipe.tsx` — adicionar `data-tour` attrs + `TourButton`
+### 3. Aba "Histórico" no Detalhe da Tarefa
 
-### Padrão
-Cada tour segue o padrão existente:
-1. Arquivo `.ts` com `DriveStep[]` usando `element: '[data-tour="..."]'`
-2. `TourButton` fixo (bottom-right) na página
-3. Atributos `data-tour="..."` nos elementos-alvo da página
+No `ProjetoTarefaDetalhe.tsx`, criar uma seção dedicada "Histórico de Alterações" abaixo dos comentários, usando o `ProjetoAtividadesLog` melhorado — sempre visível, sem precisar clicar.
 
-Zero migrations. Apenas código frontend.
+### 4. Informações de Criação e Atribuição no Header
+
+No header do detalhe da tarefa, exibir:
+- "Criada por **Fulano** em DD/MM/YYYY"
+- "Atribuída a **Ciclano** por **Beltrano** em DD/MM"
+- Último editor e data da última alteração
+
+## Alterações Técnicas
+
+| Arquivo | Ação |
+|---|---|
+| **Migration SQL** | Criar trigger `audit_projeto_tarefa_changes` + função |
+| `ProjetoAtividadesLog.tsx` | Visual premium com ícones, cores, badges, valores anterior/novo |
+| `ProjetoTarefaDetalhe.tsx` | Adicionar seção "Histórico" + info de criação/atribuição no header |
+
+Zero mudança no `useProjetoTarefas.ts` — toda auditoria é feita pelo trigger no banco, garantindo que alterações por qualquer caminho (UI, API, direto) sejam rastreadas.
 
