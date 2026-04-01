@@ -8,8 +8,23 @@ import { useProjetoIA } from "@/hooks/useProjetoIA";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
 import { ProjetoFilters, ProjetoSort, applyFilters, applySort, hasActiveFilters, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { ColumnConfig, loadColumnConfig } from "./ColumnConfigPopover";
 
-// Grid template: expand, check, nome, produto, sep, responsável, status, timeline, prazo, prioridade
+export function buildGridCols(columns: ColumnConfig[]): string {
+  // Base: expand(20px) + check(20px) + nome(1fr)
+  const parts = ["20px", "20px", "1fr"];
+  const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+  if (vis("produto")) parts.push("80px");
+  parts.push("1px"); // separator
+  if (vis("responsavel")) parts.push("100px");
+  if (vis("status")) parts.push("90px");
+  if (vis("timeline")) parts.push("120px");
+  if (vis("prazo")) parts.push("80px");
+  if (vis("prioridade")) parts.push("80px");
+  return `grid-cols-[${parts.join("_")}]`;
+}
+
+// Legacy export for backwards compat
 export const GRID_COLS = "grid-cols-[20px_20px_1fr_80px_1px_100px_90px_120px_80px_80px]";
 
 interface ProjetoListViewProps {
@@ -17,9 +32,10 @@ interface ProjetoListViewProps {
   darkBg?: boolean;
   filters?: ProjetoFilters;
   sort?: ProjetoSort;
+  columns?: ColumnConfig[];
 }
 
-export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: ProjetoListViewProps) {
+export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT, columns }: ProjetoListViewProps) {
   const {
     secoes, tarefas, tarefasPorSecao, ghostsPorSecao,
     secoesLoading, tarefasLoading,
@@ -31,7 +47,11 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
 
+  const activeColumns = columns || loadColumnConfig();
+  const gridCols = useMemo(() => buildGridCols(activeColumns), [activeColumns]);
   const isFiltering = hasActiveFilters(filters);
+
+  const vis = (key: string) => activeColumns.find(c => c.key === key)?.visible ?? true;
 
   // Memoize filtered tarefas per section
   const filteredTarefasPorSecao = useMemo(() => {
@@ -96,29 +116,19 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   };
 
   const handleCreateIAItems = async (data: { secoes: { nome: string }[]; tasks: any[]; documentFiles: File[] }) => {
-    // 1. Create new sections and collect their IDs mapped by name
     const newSecaoMap: Record<string, string> = {};
-    
     for (const secao of data.secoes) {
       createSecao.mutate(secao.nome, {
         onSuccess: (created: any) => {
-          if (created?.id) {
-            newSecaoMap[secao.nome] = created.id;
-          }
+          if (created?.id) newSecaoMap[secao.nome] = created.id;
         },
       });
     }
+    if (data.secoes.length > 0) await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Small delay to let sections be created
-    if (data.secoes.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-
-    // 2. Create tasks - map secao_nome to existing or new section IDs
     for (const task of data.tasks) {
       let secaoId = task.secao_id;
       if (!secaoId && task.secao_nome) {
-        // Try to find in existing sections
         const existing = secoes.find(s => s.nome.toLowerCase() === task.secao_nome.toLowerCase());
         secaoId = existing?.id || newSecaoMap[task.secao_nome] || secoes[0]?.id;
       }
@@ -127,40 +137,26 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
       createTarefa.mutate({ titulo: task.titulo, secao_id: secaoId }, {
         onSuccess: async (created: any) => {
           if (created?.id) {
-            // Update extra fields
             const updates: any = {};
             if (task.descricao) updates.descricao = task.descricao;
             if (task.prioridade) updates.prioridade = task.prioridade;
             if (task.estagio) updates.estagio = task.estagio;
             if (task.data_prazo) updates.data_prazo = task.data_prazo;
-            if (Object.keys(updates).length > 0) {
-              updateTarefa.mutate({ id: created.id, ...updates });
-            }
+            if (Object.keys(updates).length > 0) updateTarefa.mutate({ id: created.id, ...updates });
 
-            // Upload document files and link to first task
             if (data.documentFiles.length > 0 && data.tasks.indexOf(task) === 0) {
               for (const file of data.documentFiles) {
                 try {
                   const path = `${projetoId}/${created.id}/${Date.now()}_${file.name}`;
                   const { supabase } = await import("@/integrations/supabase/client");
-                  const { error: uploadError } = await supabase.storage
-                    .from("projeto-documentos")
-                    .upload(path, file);
+                  const { error: uploadError } = await supabase.storage.from("projeto-documentos").upload(path, file);
                   if (!uploadError) {
-                    const { data: signedData } = await supabase.storage
-                      .from("projeto-documentos")
-                      .createSignedUrl(path, 31536000);
+                    const { data: signedData } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 31536000);
                     await supabase.from("projeto_tarefa_documentos" as any).insert({
-                      tarefa_id: created.id,
-                      nome_arquivo: file.name,
-                      url: signedData?.signedUrl || path,
-                      tipo_arquivo: file.type,
-                      tamanho: file.size,
+                      tarefa_id: created.id, nome_arquivo: file.name, url: signedData?.signedUrl || path, tipo_arquivo: file.type, tamanho: file.size,
                     });
                   }
-                } catch (e) {
-                  console.error("Error uploading doc:", e);
-                }
+                } catch (e) { console.error("Error uploading doc:", e); }
               }
             }
           }
@@ -173,9 +169,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     for (const task of tasks) {
       createTarefa.mutate({ titulo: task.titulo, secao_id: task.secao_id }, {
         onSuccess: (data: any) => {
-          if (data?.id) {
-            updateTarefa.mutate({ id: data.id, descricao: task.descricao, prioridade: task.prioridade } as any);
-          }
+          if (data?.id) updateTarefa.mutate({ id: data.id, descricao: task.descricao, prioridade: task.prioridade } as any);
         },
       });
     }
@@ -185,17 +179,17 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
     <>
       <div className={`border rounded-lg overflow-hidden ${darkBg ? "border-white/20 bg-white/5" : "border-border/50 bg-card"}`}>
         {/* Column headers */}
-        <div className={`grid ${GRID_COLS} items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
+        <div className={`grid ${gridCols} items-center gap-0 px-3 py-2 border-b font-semibold text-[11px] uppercase tracking-wider ${darkBg ? "border-white/10 bg-white/5 text-white/70" : "border-border/50 bg-muted/50 text-foreground/60"}`}>
           <div /> {/* expand */}
           <div /> {/* checkbox */}
           <div>Nome da tarefa</div>
-          <div>Produto</div>
+          {vis("produto") && <div>Produto</div>}
           <div className={`w-px h-4 ${darkBg ? "bg-white/10" : "bg-border/40"}`} />
-          <div>Responsável</div>
-          <div className="text-center">Status</div>
-          <div className="text-center">Timeline</div>
-          <div>Prazo</div>
-          <div className="text-center">Prior.</div>
+          {vis("responsavel") && <div>Responsável</div>}
+          {vis("status") && <div className="text-center">Status</div>}
+          {vis("timeline") && <div className="text-center">Timeline</div>}
+          {vis("prazo") && <div>Prazo</div>}
+          {vis("prioridade") && <div className="text-center">Prior.</div>}
         </div>
 
         {secoes.map((secao, index) => (
@@ -221,6 +215,8 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onAddColaborador={(tarefaId, userId) => addColaborador.mutate({ tarefaId, userId })}
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
             darkBg={darkBg}
+            gridCols={gridCols}
+            visibleColumns={activeColumns}
           />
         ))}
 
