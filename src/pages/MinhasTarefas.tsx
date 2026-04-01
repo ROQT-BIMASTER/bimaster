@@ -139,7 +139,18 @@ function ListSection({
 // ─── Main Page ──────────────────────────────────────────────
 export default function MinhasTarefas() {
   const { data: tarefas = [], isLoading } = useMinhasTarefas();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+
+  // Fetch user profile name
+  const { data: profileData } = useQuery({
+    queryKey: ["my-profile-name", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase.from("profiles").select("nome").eq("id", user.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   const [view, setView] = useState<"list" | "board" | "calendar">("list");
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
