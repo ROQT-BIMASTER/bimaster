@@ -260,10 +260,10 @@ export default function MinhasTarefas() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)} data-tour="mt-nova-tarefa">
                   <Plus className="h-4 w-4" /> Nova Tarefa
                 </Button>
-                <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+                <Tabs value={view} onValueChange={(v) => setView(v as any)} data-tour="mt-views">
                   <TabsList className="h-8">
                     <TabsTrigger value="list" className="text-xs gap-1 px-2">
                       <LayoutList className="h-3.5 w-3.5" /> Lista
