@@ -827,7 +827,7 @@ export default function ProjetosMinhaEquipe() {
         )}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-6" data-tour="equipe-cards">
         {/* Hierarchy */}
         <Card className="md:col-span-2">
           <CardHeader>
