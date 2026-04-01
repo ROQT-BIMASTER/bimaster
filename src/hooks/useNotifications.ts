@@ -18,6 +18,8 @@ const MODULE_RESTRICTED_TYPES: Record<string, string> = {
   meeting_risk: "reunioes",
   meeting_reminder: "reunioes",
   meeting_completed: "reunioes",
+  task_assigned: "projetos",
+  task_mention: "projetos",
 };
 
 export const useNotifications = () => {
