@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check } from "lucide-react";
+import { ChevronRight, ChevronDown, Circle, CheckCircle2, Plus, X, UserPlus, Package, RotateCcw, Trash2, Search, Check, Target } from "lucide-react";
+import { MetasProgress } from "@/hooks/useMetasProgress";
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { TarefaRiskBadge } from "./TarefaRiskBadge";
@@ -104,12 +105,13 @@ interface ProjetoTarefaRowProps {
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
   columns?: ColumnConfig[];
+  metasProgress?: MetasProgress;
 }
 
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
   onToggle, onSelect, onUpdate, onDelete,
-  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns,
+  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
@@ -174,6 +176,28 @@ export function ProjetoTarefaRow({
           {hasSubtarefas && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-0.5 text-muted-foreground border-border/50 flex-shrink-0">
               {subtaskCompleted}/{subtaskTotal} ts
+            </Badge>
+          )}
+          {metasProgress && metasProgress.total > 0 && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] px-1.5 py-0 h-5 gap-1 flex-shrink-0 border-border/50",
+                metasProgress.percent === 100 ? "text-emerald-400 border-emerald-400/30" : "text-muted-foreground"
+              )}
+              title={`Checklist: ${metasProgress.concluidas}/${metasProgress.total} (${metasProgress.percent}%)`}
+            >
+              <Target className="h-2.5 w-2.5" />
+              <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    metasProgress.percent === 100 ? "bg-emerald-400" : "bg-primary"
+                  )}
+                  style={{ width: `${metasProgress.percent}%` }}
+                />
+              </div>
+              {metasProgress.concluidas}/{metasProgress.total}
             </Badge>
           )}
           <TarefaRiskBadge

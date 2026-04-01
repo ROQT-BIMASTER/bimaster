@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { useMetasProgress } from "@/hooks/useMetasProgress";
 import { ProjetoSecao } from "./ProjetoSecao";
 import { NovaSecaoInline } from "./NovaSecaoInline";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
@@ -32,6 +33,10 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
+
+  // Batch-fetch checklist progress for all tasks
+  const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
+  const metasProgress = useMetasProgress(allTaskIds);
 
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
   const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
@@ -230,6 +235,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
             darkBg={darkBg}
             columns={columns}
+            metasProgress={metasProgress}
           />
         ))}
 

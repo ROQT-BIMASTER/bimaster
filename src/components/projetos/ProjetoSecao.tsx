@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles } from
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
+import { MetasProgress } from "@/hooks/useMetasProgress";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { BriefingImportDialog } from "./BriefingImportDialog";
 import { BriefingView } from "./BriefingView";
@@ -54,12 +55,13 @@ interface ProjetoSecaoProps {
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
   columns?: ColumnConfig[];
+  metasProgress?: Record<string, MetasProgress>;
 }
 
 export function ProjetoSecao({
   nome, tarefas, secaoId, projetoId, selectedTarefaId, ghosts = [], temBriefing = false, allSecoes = [], secaoIndex = 0,
   onToggleTarefa, onSelectTarefa, onAddTarefa, onUpdateTarefa, onDeleteTarefa, onToggleBriefing, onCreateBriefingTasks,
-  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns,
+  teamMembers, onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoSecaoProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
@@ -184,9 +186,10 @@ export function ProjetoSecao({
               teamMembers={teamMembers}
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}
-              darkBg={darkBg}
-              columns={columns}
-            />
+               darkBg={darkBg}
+               columns={columns}
+               metasProgress={metasProgress?.[tarefa.id]}
+             />
           ))}
 
           {ghostList.map(ghost => (

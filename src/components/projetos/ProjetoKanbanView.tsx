@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
@@ -14,8 +14,10 @@ import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, ListChecks, GripVertical,
+  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target,
 } from "lucide-react";
+import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
+import { Progress } from "@/components/ui/progress";
 import {
   DndContext,
   DragOverlay,
@@ -106,6 +108,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
+
+  // Batch-fetch checklist progress for all tasks
+  const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
+  const metasProgress = useMetasProgress(allTaskIds);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -207,6 +213,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
                           onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
                           darkBg={darkBg}
                           isDragActive={activeId === tarefa.id}
+                          metasProgress={metasProgress[tarefa.id]}
                         />
                       ))}
                       {secaoTarefas.length === 0 && (
@@ -307,12 +314,14 @@ function DraggableKanbanCard({
   onToggle,
   darkBg = false,
   isDragActive = false,
+  metasProgress,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
   onToggle: () => void;
   darkBg?: boolean;
   isDragActive?: boolean;
+  metasProgress?: MetasProgress;
 }) {
   const {
     attributes,
@@ -435,8 +444,26 @@ function DraggableKanbanCard({
                 <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             ))}
-          </div>
+        </div>
 
+        {/* Checklist progress bar */}
+        {metasProgress && metasProgress.total > 0 && (
+          <div className="mt-2.5 flex items-center gap-2">
+            <Target className={cn("h-3 w-3 flex-shrink-0", metasProgress.percent === 100 ? "text-emerald-400" : "text-muted-foreground")} />
+            <Progress
+              value={metasProgress.percent}
+              className={cn("h-1.5 flex-1", darkBg ? "bg-white/10" : "bg-muted")}
+            />
+            <span className={cn(
+              "text-[10px] font-medium flex-shrink-0",
+              metasProgress.percent === 100
+                ? "text-emerald-400"
+                : darkBg ? "text-white/60" : "text-muted-foreground"
+            )}>
+              {metasProgress.concluidas}/{metasProgress.total}
+            </span>
+          </div>
+        )}
           <div className="flex items-center gap-2">
             {subtaskTotal > 0 && tarefa.subtarefas && (
               <SubtarefasPopover subtarefas={tarefa.subtarefas} />
