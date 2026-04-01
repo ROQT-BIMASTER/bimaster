@@ -22035,8 +22035,10 @@ export type Database = {
       }
       projeto_atividades: {
         Row: {
+          arquivada: boolean
           created_at: string | null
           descricao: string | null
+          favorita: boolean
           id: string
           lida: boolean | null
           metadata: Json | null
@@ -22046,8 +22048,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          arquivada?: boolean
           created_at?: string | null
           descricao?: string | null
+          favorita?: boolean
           id?: string
           lida?: boolean | null
           metadata?: Json | null
@@ -22057,8 +22061,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          arquivada?: boolean
           created_at?: string | null
           descricao?: string | null
+          favorita?: boolean
           id?: string
           lida?: boolean | null
           metadata?: Json | null
