@@ -186,9 +186,10 @@ export function ProjetoSecao({
               teamMembers={teamMembers}
               onAddColaborador={onAddColaborador}
               onRemoveColaborador={onRemoveColaborador}
-              darkBg={darkBg}
-              columns={columns}
-            />
+               darkBg={darkBg}
+               columns={columns}
+               metasProgress={metasProgress?.[tarefa.id]}
+             />
           ))}
 
           {ghostList.map(ghost => (
