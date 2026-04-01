@@ -156,7 +156,7 @@ export default function ProjetoInbox() {
                   <p className="text-sm text-muted-foreground mt-0.5">{subtitleText}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="inbox-mark-all">
                 {naoLidas > 0 && (
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
                     <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
