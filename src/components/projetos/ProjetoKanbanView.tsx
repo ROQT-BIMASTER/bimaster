@@ -314,12 +314,14 @@ function DraggableKanbanCard({
   onToggle,
   darkBg = false,
   isDragActive = false,
+  metasProgress,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
   onToggle: () => void;
   darkBg?: boolean;
   isDragActive?: boolean;
+  metasProgress?: MetasProgress;
 }) {
   const {
     attributes,
