@@ -103,6 +103,7 @@ interface ProjetoTarefaRowProps {
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
+  columns?: ColumnConfig[];
 }
 
 export function ProjetoTarefaRow({
