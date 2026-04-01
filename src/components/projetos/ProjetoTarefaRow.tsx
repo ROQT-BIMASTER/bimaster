@@ -109,7 +109,7 @@ interface ProjetoTarefaRowProps {
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
   onToggle, onSelect, onUpdate, onDelete,
-  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false,
+  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
@@ -119,16 +119,21 @@ export function ProjetoTarefaRow({
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
 
+  const vis = (key: string) => !columns || columns.find(c => c.key === key)?.visible !== false;
+  const gridStyle = columns ? buildGridCols(columns).replace(/_/g, " ") : undefined;
+
   return (
     <>
       <div
         className={cn(
-          `group grid ${GRID_COLS} items-center gap-0 px-3 py-1.5 transition-colors min-h-[40px] relative`,
+          `group items-center gap-0 px-3 py-1.5 transition-colors min-h-[40px] relative`,
+          columns ? "" : `grid ${GRID_COLS}`,
           darkBg ? "border-b border-white/10 hover:bg-white/5" : "border-b border-border/60 hover:bg-muted/30",
           indented && "pl-10",
           isCompleted && "opacity-70",
           selected && (darkBg ? "bg-white/10 border-l-2 border-l-primary" : "bg-primary/5 border-l-2 border-l-primary")
         )}
+        style={columns ? { display: "grid", gridTemplateColumns: gridStyle } : undefined}
       >
         {/* Expand toggle */}
         <div className="flex-shrink-0">
