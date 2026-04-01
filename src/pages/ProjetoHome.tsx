@@ -232,7 +232,7 @@ export default function ProjetoHome() {
               {/* Sidebar */}
               <div className="space-y-6">
                 {/* Projects */}
-                <Card>
+                <Card data-tour="home-projetos">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <FolderKanban className="h-4 w-4 text-primary" />
