@@ -235,7 +235,7 @@ export default function MinhasTarefas() {
   // Greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-  const firstName = profile?.nome?.split(" ")[0] || "";
+  const firstName = profileData?.nome?.split(" ")[0] || "";
 
   return (
     <SidebarProvider>
