@@ -34,6 +34,10 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
   const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
 
+  // Batch-fetch checklist progress for all tasks
+  const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
+  const metasProgress = useMetasProgress(allTaskIds);
+
   const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
   const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
 
