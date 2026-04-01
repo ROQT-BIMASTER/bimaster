@@ -109,6 +109,10 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
 
+  // Batch-fetch checklist progress for all tasks
+  const allTaskIds = useMemo(() => tarefas.map(t => t.id), [tarefas]);
+  const metasProgress = useMetasProgress(allTaskIds);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
