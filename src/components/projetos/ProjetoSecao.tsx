@@ -53,6 +53,8 @@ interface ProjetoSecaoProps {
   onAddColaborador?: (tarefaId: string, userId: string) => void;
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
+  gridCols?: string;
+  visibleColumns?: ColumnConfig[];
 }
 
 export function ProjetoSecao({
