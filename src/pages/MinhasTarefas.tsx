@@ -29,6 +29,7 @@ import { MinhasTarefasKPIs } from "@/components/minhas-tarefas/MinhasTarefasKPIs
 import { MinhasTarefaDetail } from "@/components/minhas-tarefas/MinhasTarefaDetail";
 import { MinhasTarefasBoard } from "@/components/minhas-tarefas/MinhasTarefasBoard";
 import { MinhasTarefasCalendar } from "@/components/minhas-tarefas/MinhasTarefasCalendar";
+import { TourButton, minhasTarefasTourSteps, MINHAS_TAREFAS_TOUR_ID } from "@/components/tour";
 
 // ─── List Row ───────────────────────────────────────────────
 function ListRow({
@@ -259,10 +260,10 @@ export default function MinhasTarefas() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)} data-tour="mt-nova-tarefa">
                   <Plus className="h-4 w-4" /> Nova Tarefa
                 </Button>
-                <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+                <Tabs value={view} onValueChange={(v) => setView(v as any)} data-tour="mt-views">
                   <TabsList className="h-8">
                     <TabsTrigger value="list" className="text-xs gap-1 px-2">
                       <LayoutList className="h-3.5 w-3.5" /> Lista
@@ -279,10 +280,12 @@ export default function MinhasTarefas() {
             </div>
 
             {/* KPIs */}
-            <MinhasTarefasKPIs tarefas={tarefas} loading={isLoading} />
+            <div data-tour="mt-kpis">
+              <MinhasTarefasKPIs tarefas={tarefas} loading={isLoading} />
+            </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3" data-tour="mt-filters">
               <div className="relative flex-1 min-w-[200px] max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -345,6 +348,7 @@ export default function MinhasTarefas() {
             )}
 
             {/* Content */}
+            <div data-tour="mt-content">
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -388,6 +392,7 @@ export default function MinhasTarefas() {
             ) : (
               <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
             )}
+            </div>
 
             {/* Dialogs */}
             <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
@@ -395,6 +400,7 @@ export default function MinhasTarefas() {
           </div>
         </main>
       </div>
+      <TourButton tourId={MINHAS_TAREFAS_TOUR_ID} tourSteps={minhasTarefasTourSteps} title="Manual de Tarefas" description="Aprenda a gerenciar suas tarefas passo a passo" />
     </SidebarProvider>
   );
 }

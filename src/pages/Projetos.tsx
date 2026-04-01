@@ -14,6 +14,7 @@ import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TourButton, projetosListaTourSteps, PROJETOS_LISTA_TOUR_ID } from "@/components/tour";
 
 function MemberAvatar({ avatarUrl, nome }: { avatarUrl: string | null; nome: string | null }) {
   const resolved = useResolvedAvatarUrl(avatarUrl);
@@ -106,7 +107,7 @@ export default function Projetos() {
                   <p className="text-sm text-muted-foreground">Gerencie seus projetos e equipes</p>
                 </div>
               </div>
-              <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Button onClick={() => setDialogOpen(true)} className="gap-2" data-tour="projetos-novo">
                 <Plus className="h-4 w-4" /> Novo Projeto
               </Button>
             </div>
@@ -131,7 +132,7 @@ export default function Projetos() {
 
             {/* Table view */}
             {!isLoading && projetos.length > 0 && (
-              <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+              <div className="border rounded-xl overflow-hidden bg-card shadow-sm" data-tour="projetos-tabela">
                 {/* Table header */}
                 <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b uppercase tracking-wider">
                   <span>Projeto</span>
@@ -225,6 +226,7 @@ export default function Projetos() {
       </div>
 
       <NovoProjetoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <TourButton tourId={PROJETOS_LISTA_TOUR_ID} tourSteps={projetosListaTourSteps} title="Manual de Projetos" description="Aprenda a gerenciar seus projetos passo a passo" />
     </SidebarProvider>
   );
 }

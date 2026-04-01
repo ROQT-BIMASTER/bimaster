@@ -22,6 +22,7 @@ import { Loader2, ArrowLeft, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TourButton, projetoDetalheTourSteps, PROJETO_DETALHE_TOUR_ID } from "@/components/tour";
 
 function isDarkColor(hex: string | null): boolean {
   if (!hex) return false;
@@ -107,7 +108,7 @@ export default function ProjetoDetalhe() {
         >
           <div className="p-6 max-w-7xl mx-auto space-y-5">
             {/* Back button + sidebar trigger + color picker */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-tour="pd-header">
               <SidebarTrigger />
               <Button
                 variant="ghost"
@@ -150,7 +151,7 @@ export default function ProjetoDetalhe() {
             />
 
             {/* Tab content wrapped in card container */}
-            <div className={cn(
+            <div data-tour="pd-content" className={cn(
               "rounded-xl border shadow-sm animate-fade-in-up",
               darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
             )}>
@@ -168,6 +169,7 @@ export default function ProjetoDetalhe() {
           </div>
         </main>
       </div>
+      <TourButton tourId={PROJETO_DETALHE_TOUR_ID} tourSteps={projetoDetalheTourSteps} title="Manual do Projeto" description="Aprenda a usar o detalhe do projeto passo a passo" />
     </SidebarProvider>
   );
 }

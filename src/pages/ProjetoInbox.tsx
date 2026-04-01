@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TourButton, projetoInboxTourSteps, PROJETO_INBOX_TOUR_ID } from "@/components/tour";
 
 type TabKey = "atividade" | "mencoes" | "favoritas" | "arquivadas";
 type GroupMode = "tempo" | "projeto";
@@ -155,7 +156,7 @@ export default function ProjetoInbox() {
                   <p className="text-sm text-muted-foreground mt-0.5">{subtitleText}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="inbox-mark-all">
                 {naoLidas > 0 && (
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleMarcarTodasLidas}>
                     <CheckCheck className="h-3.5 w-3.5" /> Marcar todas como lidas
@@ -165,7 +166,7 @@ export default function ProjetoInbox() {
             </div>
 
             {/* KPI Strip with KpiCard */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-tour="inbox-kpis">
               <KpiCard
                 title="Não lidas"
                 value={naoLidas}
@@ -194,7 +195,7 @@ export default function ProjetoInbox() {
 
             {/* Toolbar: Tabs + Filters */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <Tabs value={activeTab} onValueChange={v => { setActiveTab(v as TabKey); setSelectedIds(new Set()); }}>
+              <Tabs value={activeTab} onValueChange={v => { setActiveTab(v as TabKey); setSelectedIds(new Set()); }} data-tour="inbox-tabs">
                 <TabsList className="bg-muted/30">
                   <TabsTrigger value="atividade" className="gap-1.5">
                     <LayoutList className="h-3.5 w-3.5" />
@@ -219,7 +220,7 @@ export default function ProjetoInbox() {
                 </TabsList>
               </Tabs>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-tour="inbox-toolbar">
                 {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -289,7 +290,7 @@ export default function ProjetoInbox() {
 
             {/* Type filter chips */}
             {activeTab === "atividade" && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap" data-tour="inbox-tipo-filters">
                 <span className="text-xs text-muted-foreground font-medium">Tipo:</span>
                 {TIPO_FILTERS.map(tf => {
                   const TfIcon = tf.icon;
@@ -344,7 +345,7 @@ export default function ProjetoInbox() {
             )}
 
             {/* Feed */}
-            <div className="border border-border/50 rounded-lg overflow-hidden bg-card">
+            <div className="border border-border/50 rounded-lg overflow-hidden bg-card" data-tour="inbox-feed">
               <ProjetoInboxFeed
                 atividades={currentList}
                 isLoading={isLoading}
@@ -388,6 +389,7 @@ export default function ProjetoInbox() {
         onToggleFavorita={detailAtividade ? () => toggleFavorita(detailAtividade.id) : undefined}
         onArquivar={detailAtividade ? () => { arquivar([detailAtividade.id]); setDetailAtividade(null); } : undefined}
       />
+      <TourButton tourId={PROJETO_INBOX_TOUR_ID} tourSteps={projetoInboxTourSteps} title="Manual da Caixa de Entrada" description="Aprenda a usar a caixa de entrada passo a passo" />
     </SidebarProvider>
   );
 }

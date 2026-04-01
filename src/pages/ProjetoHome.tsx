@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ProjetoHomeKPIs } from "@/components/projetos/home/ProjetoHomeKPIs";
 import { ProjetoHomeQuickActions } from "@/components/projetos/home/ProjetoHomeQuickActions";
 import { ProjetoHomeAtividades } from "@/components/projetos/home/ProjetoHomeAtividades";
+import { TourButton, projetoHomeTourSteps, PROJETO_HOME_TOUR_ID } from "@/components/tour";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -188,14 +189,18 @@ export default function ProjetoHome() {
             </div>
 
             {/* KPIs */}
-            <ProjetoHomeKPIs tarefas={tarefas} loading={loadingTarefas} />
+            <div data-tour="home-kpis">
+              <ProjetoHomeKPIs tarefas={tarefas} loading={loadingTarefas} />
+            </div>
 
             {/* Quick Actions */}
-            <ProjetoHomeQuickActions />
+            <div data-tour="home-quick-actions">
+              <ProjetoHomeQuickActions />
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Column — Tasks */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-4" data-tour="home-tarefas">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">Minhas Tarefas</h2>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/projetos/minhas-tarefas")} className="gap-1 text-xs">
@@ -227,7 +232,7 @@ export default function ProjetoHome() {
               {/* Sidebar */}
               <div className="space-y-6">
                 {/* Projects */}
-                <Card>
+                <Card data-tour="home-projetos">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <FolderKanban className="h-4 w-4 text-primary" />
@@ -289,12 +294,15 @@ export default function ProjetoHome() {
                 </Card>
 
                 {/* Recent Activity */}
-                <ProjetoHomeAtividades />
+                <div data-tour="home-atividades">
+                  <ProjetoHomeAtividades />
+                </div>
               </div>
             </div>
           </div>
         </main>
       </div>
+      <TourButton tourId={PROJETO_HOME_TOUR_ID} tourSteps={projetoHomeTourSteps} title="Manual da Home" description="Aprenda a usar sua página inicial passo a passo" />
     </SidebarProvider>
   );
 }

@@ -25,3 +25,11 @@ export * from "./tradeCampaignApprovalTour";
 
 // Tour - Lançamento Rápido
 export * from "./tradeQuickEntryTour";
+
+// Projetos Tours
+export * from "./projetoHomeTour";
+export * from "./minhasTarefasTour";
+export * from "./projetoInboxTour";
+export * from "./projetosListaTour";
+export * from "./projetoDetalheTour";
+export * from "./projetosEquipeTour";

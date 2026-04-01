@@ -21,6 +21,7 @@ import { useResolvedAvatarUrl } from "@/hooks/useResolvedAvatarUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { TourButton, projetosEquipeTourSteps, PROJETOS_EQUIPE_TOUR_ID } from "@/components/tour";
 
 const ROLE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   admin: {
@@ -812,7 +813,7 @@ export default function ProjetosMinhaEquipe() {
       </div>
 
       {/* Project Filter */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-tour="equipe-filters">
         <ProjetoFilterSelect
           projetos={projetos}
           value={projetoFilter}
@@ -826,7 +827,7 @@ export default function ProjetosMinhaEquipe() {
         )}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-6" data-tour="equipe-cards">
         {/* Hierarchy */}
         <Card className="md:col-span-2">
           <CardHeader>
@@ -888,6 +889,7 @@ export default function ProjetosMinhaEquipe() {
         allMembers={allMembers}
         projetos={projetos}
       />
+      <TourButton tourId={PROJETOS_EQUIPE_TOUR_ID} tourSteps={projetosEquipeTourSteps} title="Manual da Equipe" description="Aprenda a acompanhar sua equipe passo a passo" />
     </div>
   );
 }
