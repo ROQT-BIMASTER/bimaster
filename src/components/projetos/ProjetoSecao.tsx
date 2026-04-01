@@ -55,6 +55,7 @@ interface ProjetoSecaoProps {
   onRemoveColaborador?: (tarefaId: string, userId: string) => void;
   darkBg?: boolean;
   columns?: ColumnConfig[];
+  metasProgress?: Record<string, MetasProgress>;
 }
 
 export function ProjetoSecao({
