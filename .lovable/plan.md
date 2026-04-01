@@ -1,50 +1,94 @@
 
 
-# Correções do Ambiente de Projetos — Bugs Encontrados nos Testes
+# Manuais Interativos em Todas as Telas de Projetos
 
-## Testes Realizados
+## Escopo
 
-| Funcionalidade | Resultado |
-|---|---|
-| Home Pessoal (KPIs, saudação, projetos) | ✅ OK |
-| Minhas Tarefas — Lista | ✅ OK (empty state funcional) |
-| Minhas Tarefas — Quadro (Kanban) | ✅ OK |
-| Minhas Tarefas — Calendário | ✅ OK (hoje destacado, empty state) |
-| Caixa de Entrada (Inbox) | ✅ OK (KPIs, tabs, filtros, empty states) |
-| Lista de Projetos | ✅ OK (status, progresso, membros) |
-| Detalhe do Projeto — Lista de tarefas | ✅ OK (seções, inline input) |
-| **Criar tarefa (Dialog "Nova Tarefa")** | ❌ ERRO |
-| **Criar tarefa inline no projeto** | ❌ ERRO (silencioso) |
+Criar tours interativos (driver.js) para as **6 telas principais** do módulo de Projetos que ainda não possuem manual:
 
-## Bug Crítico Encontrado
+| Tela | Tour ID | Qtd Steps |
+|------|---------|-----------|
+| **Home Pessoal** (`ProjetoHome.tsx`) | `projeto-home` | ~8 |
+| **Minhas Tarefas** (`MinhasTarefas.tsx`) | `minhas-tarefas` | ~10 |
+| **Caixa de Entrada** (`ProjetoInbox.tsx`) | `projeto-inbox` | ~8 |
+| **Lista de Projetos** (`Projetos.tsx`) | `projeto-lista` | ~6 |
+| **Detalhe do Projeto** (`ProjetoDetalhe.tsx`) | `projeto-detalhe` | ~10 |
+| **Minha Equipe** (`ProjetosMinhaEquipe.tsx`) | `projetos-equipe` | ~5 |
 
-**Trigger `generate_tarefa_codigo` está quebrada.** A função referencia:
-- `NEW.tipo` → coluna não existe (o campo correto é `tipo_tarefa`)
-- Tabela `tarefas` → não existe (o nome correto é `projeto_tarefas`)
+## O que cada tour cobre (detalhado)
 
-Isso impede **toda e qualquer criação de tarefa** no sistema (tanto via dialog quanto inline).
+### Home Pessoal
+- Saudação e contexto do dia
+- KPIs de produtividade (tarefas pendentes, concluídas, atrasadas)
+- Quick Actions (atalhos rápidos)
+- Lista de tarefas agrupadas por prazo
+- Card "Meus Projetos" com progresso
+- Feed de atividades recentes
 
-**Erro no banco:** `record "new" has no field "tipo"`
+### Minhas Tarefas
+- KPIs do topo (total, concluídas, atrasadas, pendentes)
+- Visões: Lista, Quadro Kanban, Calendário (como alternar)
+- Filtros por projeto e busca
+- Criar nova tarefa (botão + dialog)
+- Marcar tarefa como concluída (checkbox)
+- Painel de detalhe lateral (clicar na tarefa)
+- Agrupamento temporal (Hoje, Esta Semana, Próxima Semana)
+- Seleção múltipla e ações em lote
 
-## Bug Secundário
+### Caixa de Entrada
+- KPIs (não lidas, menções, favoritas, hoje)
+- Tabs: Atividade, Menções, Favoritas, Arquivadas
+- Filtros por tipo de atividade (chips)
+- Filtro por projeto
+- Agrupamento (tempo vs projeto)
+- Ações nos cards (marcar lida, favoritar, arquivar)
+- Seleção múltipla e "Marcar todas como lidas"
 
-- O dialog `NovaTarefaMinhasDialog` mostra erro genérico "Erro ao criar tarefa" sem detalhes — deveria logar o `error.message` para facilitar debug.
-- A criação inline no projeto falha **silenciosamente** (sem toast de erro).
+### Lista de Projetos
+- Visão geral de todos os projetos
+- Criar novo projeto (botão +)
+- Status e progresso de cada projeto
+- Membros da equipe
+- Menu de ações (finalizar, excluir)
 
-## Correções
+### Detalhe do Projeto
+- Header com nome, status e cor de fundo
+- Tabs de trabalho: Lista, Quadro, Cronograma, Calendário
+- Tabs de gestão: Painel, Briefings, Equipe, Arquivos
+- Filtros e ordenação de tarefas
+- Criar tarefa inline
+- Seções e agrupamentos
+- Lixeira (tarefas excluídas)
 
-### 1. Migration: Corrigir trigger `generate_tarefa_codigo`
-Recriar a função para usar os nomes corretos:
-- `NEW.tipo` → `NEW.tipo_tarefa`
-- `FROM tarefas` → `FROM projeto_tarefas`
-- `WHERE tipo =` → `WHERE tipo_tarefa =`
+### Minha Equipe
+- Árvore de equipe
+- Métricas por membro
+- Tarefas atribuídas
 
-### 2. Melhorar mensagem de erro no Dialog
-Em `NovaTarefaMinhasDialog.tsx`, incluir `error.message` no toast de erro.
+## Implementação Técnica
 
-### 3. Adicionar toast de erro na criação inline
-Localizar o componente de criação inline de tarefas e adicionar feedback de erro visível ao usuário.
+### Novos arquivos (6 tour definitions)
+- `src/components/tour/tours/projetoHomeTour.ts`
+- `src/components/tour/tours/minhasTarefasTour.ts`
+- `src/components/tour/tours/projetoInboxTour.ts`
+- `src/components/tour/tours/projetosListaTour.ts`
+- `src/components/tour/tours/projetoDetalheTour.ts`
+- `src/components/tour/tours/projetosEquipeTour.ts`
 
-## Resultado Esperado
-Após as correções, criar tarefas tanto pelo dialog quanto inline funcionará corretamente, com códigos auto-gerados (ex: `PAD-0001`).
+### Arquivos editados (7)
+- `src/components/tour/index.ts` — exportar os 6 novos tours
+- `src/pages/ProjetoHome.tsx` — adicionar `data-tour` attrs + `TourButton`
+- `src/pages/MinhasTarefas.tsx` — adicionar `data-tour` attrs + `TourButton`
+- `src/pages/ProjetoInbox.tsx` — adicionar `data-tour` attrs + `TourButton`
+- `src/pages/Projetos.tsx` — adicionar `data-tour` attrs + `TourButton`
+- `src/pages/ProjetoDetalhe.tsx` — adicionar `data-tour` attrs + `TourButton`
+- `src/pages/ProjetosMinhaEquipe.tsx` — adicionar `data-tour` attrs + `TourButton`
+
+### Padrão
+Cada tour segue o padrão existente:
+1. Arquivo `.ts` com `DriveStep[]` usando `element: '[data-tour="..."]'`
+2. `TourButton` fixo (bottom-right) na página
+3. Atributos `data-tour="..."` nos elementos-alvo da página
+
+Zero migrations. Apenas código frontend.
 
