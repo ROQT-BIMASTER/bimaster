@@ -151,7 +151,7 @@ export default function ProjetoDetalhe() {
             />
 
             {/* Tab content wrapped in card container */}
-            <div className={cn(
+            <div data-tour="pd-content" className={cn(
               "rounded-xl border shadow-sm animate-fade-in-up",
               darkBg ? "bg-white/5 border-white/10" : customBg ? "bg-white/60 border-black/10 backdrop-blur-sm" : "bg-card border-border"
             )}>
