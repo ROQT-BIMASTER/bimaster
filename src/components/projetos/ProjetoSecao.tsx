@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, ArrowRight, FileSpreadsheet, Sparkles } from
 import { cn } from "@/lib/utils";
 import { ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaRow, TeamMember } from "./ProjetoTarefaRow";
+import { MetasProgress } from "@/hooks/useMetasProgress";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { BriefingImportDialog } from "./BriefingImportDialog";
 import { BriefingView } from "./BriefingView";
