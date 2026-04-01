@@ -132,7 +132,7 @@ export default function Projetos() {
 
             {/* Table view */}
             {!isLoading && projetos.length > 0 && (
-              <div className="border rounded-xl overflow-hidden bg-card shadow-sm">
+              <div className="border rounded-xl overflow-hidden bg-card shadow-sm" data-tour="projetos-tabela">
                 {/* Table header */}
                 <div className="grid grid-cols-[minmax(250px,2fr)_110px_minmax(180px,1.5fr)_100px_140px_100px_40px] gap-4 px-5 py-3 bg-muted/50 text-xs font-medium text-muted-foreground border-b uppercase tracking-wider">
                   <span>Projeto</span>
