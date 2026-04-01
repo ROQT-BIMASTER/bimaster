@@ -889,6 +889,7 @@ export default function ProjetosMinhaEquipe() {
         allMembers={allMembers}
         projetos={projetos}
       />
+      <TourButton tourId={PROJETOS_EQUIPE_TOUR_ID} tourSteps={projetosEquipeTourSteps} title="Manual da Equipe" description="Aprenda a acompanhar sua equipe passo a passo" />
     </div>
   );
 }
