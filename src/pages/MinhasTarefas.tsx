@@ -26,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { NovaTarefaMinhasDialog } from "@/components/projetos/NovaTarefaMinhasDialog";
 
 // ─── Board Column ───────────────────────────────────────────
 function BoardColumn({ 
