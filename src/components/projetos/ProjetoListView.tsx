@@ -31,6 +31,10 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [iaDialogOpen, setIaDialogOpen] = useState(false);
   const { createTasksWithAI, createFromFile, loading: iaLoading } = useProjetoIA();
+  const [columns, setColumns] = useState<ColumnConfig[]>(loadColumnConfig);
+
+  const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+  const dynamicGrid = `grid-cols-[${buildGridCols(columns)}]`;
 
   const isFiltering = hasActiveFilters(filters);
 
