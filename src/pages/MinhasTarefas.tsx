@@ -209,6 +209,7 @@ export default function MinhasTarefas() {
   const [view, setView] = useState<"list" | "board" | "calendar">("list");
   const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [showNewTask, setShowNewTask] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
