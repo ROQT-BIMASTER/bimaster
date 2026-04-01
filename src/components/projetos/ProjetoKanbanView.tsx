@@ -213,6 +213,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
                           onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
                           darkBg={darkBg}
                           isDragActive={activeId === tarefa.id}
+                          metasProgress={metasProgress[tarefa.id]}
                         />
                       ))}
                       {secaoTarefas.length === 0 && (
