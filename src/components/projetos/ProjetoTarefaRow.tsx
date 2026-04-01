@@ -111,7 +111,7 @@ interface ProjetoTarefaRowProps {
 export function ProjetoTarefaRow({
   tarefa, indented = false, selected = false,
   onToggle, onSelect, onUpdate, onDelete,
-  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns,
+  teamMembers = [], onAddColaborador, onRemoveColaborador, darkBg = false, columns, metasProgress,
 }: ProjetoTarefaRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasSubtarefas = (tarefa.subtarefas?.length || 0) > 0;
