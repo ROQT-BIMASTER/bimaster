@@ -1,67 +1,51 @@
 
 
-# Profissionalizar "Minhas Tarefas" — Nível Asana
+# Profissionalizar Home Pessoal (Página Inicial de Projetos)
 
 ## Diagnóstico
 
-A página atual é funcional mas básica: header simples, cards sem detalhes ricos, sem drag-and-drop no quadro, calendário mostra apenas 7 dias, sem subtarefas, sem painel de detalhe lateral, sem métricas de produtividade.
+A página atual tem: saudação simples, lista flat de tarefas com seções colapsáveis, sidebar com projetos + card de métricas básico (4 números). Layout funcional mas visualmente pobre comparado ao Asana.
 
 ## Melhorias Propostas
 
-### 1. Header Premium com KPIs Visuais
-- Strip de métricas: "12 pendentes", "3 atrasadas", "5 concluídas hoje", "85% produtividade semanal"
-- Cards com ícones coloridos e micro-trends (seta ↑↓)
-- Saudação contextual (Bom dia, Boa tarde) com nome do usuário
+### 1. KPIs Premium no Topo
+- Substituir o card de métricas simples por uma strip de `KpiCard` (componente já existente) com ícones coloridos
+- Métricas: Pendentes, Atrasadas, Concluídas Hoje, Produtividade Semanal (%) com progress ring SVG
+- Usar variantes de cor (info, destructive, success, warning)
 
-### 2. Painel de Detalhe Lateral (Sheet)
-- Ao clicar numa tarefa, abrir side-sheet com detalhes completos em vez de navegar para o projeto
-- Mostrar: título editável inline, descrição, subtarefas, comentários, histórico de atividade, anexos
-- Botões de ação: alterar status, prioridade, prazo, responsável
-- Botão "Abrir no projeto" para navegação completa
+### 2. Seção "Próximas Tarefas" com Cards Ricos
+- Substituir a lista flat por cards com barra lateral colorida (cor do projeto), badge de prioridade, ícone de status
+- Mostrar apenas as 5 mais urgentes (atrasadas + hoje) com botão "Ver todas" → Minhas Tarefas
+- Hover com elevação e transição suave
 
-### 3. Quadro com Drag-and-Drop
-- Implementar arrastar tarefas entre colunas (Atrasadas → Hoje → A fazer → Concluídas)
-- Atualizar status/prazo automaticamente ao mover
-- Feedback visual durante o arraste (sombra, placeholder)
+### 3. Atalhos Rápidos (Quick Actions)
+- Botões de ação: "+ Nova Tarefa", "Ver Inbox", "Minhas Tarefas"
+- Grid de atalhos contextuais logo abaixo da saudação
 
-### 4. Calendário Mensal Completo
-- Substituir a visão semanal por calendário mensal navegável (← Maio 2026 →)
-- Dots coloridos por projeto nos dias com tarefas
-- Clique no dia para expandir lista de tarefas
-- Mini-popover com detalhes ao hover
+### 4. Sidebar Direita Enriquecida
+- **Meus Projetos**: Manter mas adicionar badge de tarefas atrasadas em vermelho, status tag (Ativo/Pausado)
+- **Atividade Recente**: Nova seção mostrando últimas 5 atividades do usuário (comentários, tarefas concluídas) puxadas de `projeto_atividades`
+- **Agenda do Dia**: Mini-calendário mostrando tarefas com prazo hoje/amanhã
 
-### 5. Filtros Avançados e Agrupamento
-- Filtro por projeto (multi-select com cores)
-- Filtro por status (pendente, em progresso, concluída)
-- Toggle de agrupamento: por prazo (atual), por projeto, por prioridade
-- Salvar filtros no localStorage
+### 5. Empty State Premium
+- Quando sem tarefas: ilustração SVG maior, sugestões contextuais ("Crie sua primeira tarefa", "Explore seus projetos")
+- Botão CTA direto para criar tarefa
 
-### 6. Ações em Lote
-- Checkbox de seleção múltipla nas tarefas
-- Barra flutuante: "Concluir selecionadas", "Alterar prioridade", "Mover prazo"
-- Select all / deselect
-
-### 7. Empty States e Micro-interações
-- Animações fade-in-up ao carregar tarefas
-- Confetti sutil ao concluir tarefa (opcional)
-- Empty states com ilustrações SVG por visão
-- Skeleton loading premium (shimmer)
-
-### 8. Progress Ring Semanal
-- Anel circular mostrando % de tarefas concluídas na semana
-- Meta visual (ex: "7 de 10 concluídas esta semana")
+### 6. Animações e Polish
+- Fade-in-up nos cards ao carregar
+- Skeleton shimmer durante loading (já existe o componente)
+- Saudação com emoji contextual (☀️ manhã, 🌤️ tarde, 🌙 noite)
 
 ## Alterações Técnicas
 
 | Arquivo | Ação |
 |---------|------|
-| `MinhasTarefas.tsx` | Refatorar header com KPIs, adicionar filtros avançados, ações em lote |
-| Novo: `MinhasTarefaDetail.tsx` | Sheet lateral com detalhes completos da tarefa |
-| Novo: `MinhasTarefasBoard.tsx` | Quadro com drag-and-drop (dnd-kit ou similar via HTML5) |
-| Novo: `MinhasTarefasCalendar.tsx` | Calendário mensal navegável |
-| Novo: `MinhasTarefasKPIs.tsx` | Strip de métricas com progress ring |
-| `useMinhasTarefas.ts` | Adicionar métricas calculadas (produtividade, trends) |
+| `ProjetoHome.tsx` | Refatorar completo: KPIs no topo, quick actions, cards ricos, atividade recente |
+| Novo: `ProjetoHomeKPIs.tsx` | Strip de KPIs com progress ring semanal |
+| Novo: `ProjetoHomeAtividades.tsx` | Feed de atividade recente do usuário |
+| Novo: `ProjetoHomeQuickActions.tsx` | Grid de atalhos rápidos |
+| `useMeusProjetosRecentes.ts` | Sem alteração |
+| `useMinhasTarefas.ts` | Sem alteração |
 
-## Resultado
-Experiência visual e funcional equivalente ao Asana: painel de detalhe sem sair da página, drag-and-drop no quadro, calendário mensal, KPIs de produtividade e filtros avançados.
+Nenhuma migration necessária — usa dados já existentes nas tabelas `projeto_tarefas`, `projeto_atividades` e `projetos`.
 
