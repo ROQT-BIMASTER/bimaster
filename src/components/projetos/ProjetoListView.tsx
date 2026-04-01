@@ -235,6 +235,7 @@ export function ProjetoListView({ projetoId, darkBg = false, filters = EMPTY_FIL
             onRemoveColaborador={(tarefaId, userId) => removeColaborador.mutate({ tarefaId, userId })}
             darkBg={darkBg}
             columns={columns}
+            metasProgress={metasProgress}
           />
         ))}
 
