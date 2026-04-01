@@ -21,6 +21,19 @@ export const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "prioridade", label: "Prioridade", visible: true },
 ];
 
+export function buildGridCols(columns: ColumnConfig[]): string {
+  const vis = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+  const parts: string[] = ["20px", "20px", "1fr"];
+  if (vis("produto")) parts.push("80px");
+  parts.push("1px"); // separator
+  if (vis("responsavel")) parts.push("100px");
+  if (vis("status")) parts.push("90px");
+  if (vis("timeline")) parts.push("120px");
+  if (vis("prazo")) parts.push("80px");
+  if (vis("prioridade")) parts.push("80px");
+  return parts.join("_");
+}
+
 const STORAGE_KEY = "projeto-columns-config";
 
 export function loadColumnConfig(): ColumnConfig[] {
