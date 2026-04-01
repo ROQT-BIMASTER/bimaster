@@ -348,6 +348,7 @@ export default function MinhasTarefas() {
             )}
 
             {/* Content */}
+            <div data-tour="mt-content">
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
