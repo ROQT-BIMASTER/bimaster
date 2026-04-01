@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
