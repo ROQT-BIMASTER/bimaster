@@ -1,56 +1,54 @@
 
 
-# Melhorar Caixa de Entrada — Visual Premium e UX Refinada
+# Melhorar Calendário de Minhas Tarefas
 
 ## Problemas Atuais
 
-- KPI cards são simples e sem personalidade visual (todos iguais)
-- Empty state genérico e pouco convidativo
-- Sem indicação visual de "tudo em dia" quando inbox está vazia
-- Tabs sem contadores nas abas secundárias
-- Falta de onboarding/dicas contextuais para usuários novos
-- Header sem contexto temporal (ex: "Bom dia")
+- Calendário vazio parece sem vida (grid de células vazias sem contexto)
+- Sem botão "Hoje" para voltar rapidamente ao mês atual
+- Sem resumo mensal (quantas tarefas no mês, concluídas, atrasadas)
+- Células não têm posição `relative` (o indicador de atraso com `absolute` não funciona)
+- Sem legenda de cores dos projetos
+- Popover funcional mas sem opção de concluir tarefa direto do calendário
+- Sem distinção visual entre dias úteis e fins de semana
+- Navegação básica (só setas, sem mini-strip de meses)
 
-## Melhorias
+## Melhorias Propostas
 
-### 1. KPI Cards Evoluídos
-- Usar o componente `KpiCard` existente no sistema (consistência com Home e Minhas Tarefas)
-- Adicionar 4o KPI: "Favoritas" com ícone estrela
-- Gradientes sutis nos ícones, hover com elevação
+### 1. Header Enriquecido
+- Botão "Hoje" entre as setas de navegação para voltar ao mês atual
+- Mini-resumo ao lado do título: "8 tarefas · 2 atrasadas"
+- Título maior e mais destacado
 
-### 2. Empty States Premium por Tab
-- **Atividade vazia**: Ilustração de inbox limpa com mensagem motivacional "Tudo em dia! Nenhuma notificação pendente" + ícone animado (checkmark)
-- **Menções vazia**: Ícone de @mention com texto contextual
-- **Favoritas vazia**: Estrela com dica "Marque notificações importantes"
-- **Arquivadas vazia**: Caixa com dica "Arquive para organizar"
-- Cada empty state com cor e ícone únicos, animação fade-in
+### 2. Células Visuais Melhoradas
+- Adicionar `relative` nas células (fix do indicador de atraso)
+- Fins de semana com background sutil diferente (bg-muted/20)
+- Dia de hoje com badge circular no número (como Google Calendar)
+- Hover mais expressivo com sombra e scale sutil
+- Altura mínima maior para melhor leitura
 
-### 3. Header com Saudação e Contexto
-- Saudação temporal: "Bom dia, João" com emoji contextual
-- Subtítulo: "Você tem X notificações não lidas" ou "Tudo em dia!"
-- Mover botão "Marcar todas como lidas" para posição mais visível
+### 3. Legenda de Projetos
+- Strip de chips coloridos abaixo do header mostrando os projetos presentes no mês
+- Clicável para filtrar tarefas de um projeto específico
 
-### 4. Tabs com Contadores
-- Badge com contagem em cada tab (Menções: 2, Favoritas: 5, Arquivadas: 12)
-- Highlight visual na tab com itens não lidos
+### 4. Popover Melhorado
+- Checkbox para concluir tarefa direto do popover (sem precisar abrir detalhe)
+- Badge de prioridade com cores (urgente, alta, normal)
+- Mostrar horário se disponível
+- Separador visual entre tarefas concluídas e pendentes
 
-### 5. Filtro por Tipo de Atividade
-- Adicionar filtro por tipo (Tarefas criadas, Completadas, Comentários, Movidas)
-- Chips visuais com ícones coloridos
+### 5. Empty State do Mês
+- Quando o mês não tem tarefas, mostrar mensagem centralizada no grid: "Nenhuma tarefa neste mês"
+- Sugestão para criar tarefa
 
-### 6. Micro-interações
-- Skeleton shimmer durante loading (substituir spinner simples)
-- Animação fade-in-up nos cards ao aparecer
-- Transição suave ao trocar tabs
+### 6. Mini-stats do Mês
+- Barra sutil abaixo do calendário: "Abril: 12 tarefas · 8 concluídas · 2 atrasadas · 2 pendentes"
 
 ## Alterações Técnicas
 
 | Arquivo | Ação |
 |---------|------|
-| `ProjetoInbox.tsx` | Header com saudação, KPIs melhorados, filtro por tipo, contadores nas tabs |
-| `ProjetoInboxFeed.tsx` | Skeleton loading, animações nos cards |
-| `ProjetoInboxCard.tsx` | Polish visual menor (já está bom) |
-| `useProjetoAtividades.ts` | Expor contagem de favoritas |
+| `MinhasTarefasCalendar.tsx` | Refatorar com header premium, fix relative, legenda, popover melhorado, empty state, mini-stats |
 
-Zero migrations. Apenas refinamento visual e UX.
+Zero migrations. Apenas refinamento visual do componente existente.
 
