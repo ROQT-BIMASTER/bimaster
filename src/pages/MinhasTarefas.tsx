@@ -392,6 +392,7 @@ export default function MinhasTarefas() {
             ) : (
               <MinhasTarefasCalendar tarefas={filtered} onSelect={handleSelectTask} />
             )}
+            </div>
 
             {/* Dialogs */}
             <NovaTarefaMinhasDialog open={showNewTask} onOpenChange={setShowNewTask} />
