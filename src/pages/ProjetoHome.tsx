@@ -294,7 +294,9 @@ export default function ProjetoHome() {
                 </Card>
 
                 {/* Recent Activity */}
-                <ProjetoHomeAtividades />
+                <div data-tour="home-atividades">
+                  <ProjetoHomeAtividades />
+                </div>
               </div>
             </div>
           </div>
