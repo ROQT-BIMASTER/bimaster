@@ -283,7 +283,10 @@ export default function MinhasTarefas() {
                       <AlertTriangle className="h-3.5 w-3.5" /> {atrasadas.length} atrasadas
                     </span>
                   )}
-                </div>
+                <Button size="sm" className="gap-1.5" onClick={() => setShowNewTask(true)}>
+                  <Plus className="h-4 w-4" /> Nova Tarefa
+                </Button>
+              </div>
               </div>
 
               {/* View Switcher */}
