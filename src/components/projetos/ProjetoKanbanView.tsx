@@ -14,8 +14,23 @@ import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, Eye, ListChecks, Plus,
+  CheckCircle2, Circle, Calendar, ListChecks, GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+} from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const STATUS_COLORS: Record<string, string> = {
   pendente: "bg-muted text-muted-foreground",
@@ -65,6 +80,22 @@ interface Props {
   darkBg?: boolean;
 }
 
+/* ───────── Droppable Column ───────── */
+function DroppableSecao({ id, children, isOver }: { id: string; children: React.ReactNode; isOver: boolean }) {
+  const { setNodeRef } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex-1 transition-all duration-200 min-h-[100px]",
+        isOver && "bg-primary/5 ring-2 ring-primary/20 rounded-lg"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
   const {
     secoes, tarefas, secoesLoading, tarefasLoading,
@@ -73,25 +104,54 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
   } = useProjetoTarefas(projetoId);
 
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overColumnId, setOverColumnId] = useState<string | null>(null);
 
-  const handleDragStart = (e: React.DragEvent, tarefa: ProjetoTarefa) => {
-    e.dataTransfer.setData("tarefaId", tarefa.id);
-    e.dataTransfer.setData("secaoOrigemId", tarefa.secao_id);
-    e.dataTransfer.effectAllowed = "move";
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  // Find the tarefa being dragged for the overlay
+  const activeTarefa = activeId ? tarefas.find(t => t.id === activeId) : null;
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (e: React.DragEvent, secaoDestinoId: string) => {
-    e.preventDefault();
-    const tarefaId = e.dataTransfer.getData("tarefaId");
-    const secaoOrigemId = e.dataTransfer.getData("secaoOrigemId");
-    if (tarefaId && secaoOrigemId && secaoOrigemId !== secaoDestinoId) {
-      moveTarefaToSecao.mutate({ tarefaId, secaoOrigemId, secaoDestinoId });
+  const handleDragOver = (event: DragOverEvent) => {
+    const overId = event.over?.id as string | null;
+    if (overId && secoes.some(s => s.id === overId)) {
+      setOverColumnId(overId);
     }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    setOverColumnId(null);
+
+    const overId = event.over?.id as string | null;
+    if (!overId || !event.active.id) return;
+
+    const tarefaId = event.active.id as string;
+    const tarefa = tarefas.find(t => t.id === tarefaId);
+    if (!tarefa) return;
+
+    const targetSecao = secoes.find(s => s.id === overId);
+    if (!targetSecao) return;
+
+    if (tarefa.secao_id !== targetSecao.id) {
+      moveTarefaToSecao.mutate({
+        tarefaId,
+        secaoOrigemId: tarefa.secao_id,
+        secaoDestinoId: targetSecao.id,
+      });
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setOverColumnId(null);
   };
 
   if (secoesLoading || tarefasLoading) {
@@ -104,63 +164,86 @@ export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
-        {secoes.map((secao) => {
-          const secaoTarefas = tarefasPorSecao(secao.id);
-          const completedCount = secaoTarefas.filter(t => t.status === "concluida").length;
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: "60vh" }}>
+          {secoes.map((secao) => {
+            const secaoTarefas = tarefasPorSecao(secao.id);
+            const completedCount = secaoTarefas.filter(t => t.status === "concluida").length;
 
-          return (
-            <div
-              key={secao.id}
-              className={cn(
-                "flex-shrink-0 w-72 rounded-xl border flex flex-col",
-                darkBg ? "bg-white/5 border-white/15" : "bg-muted/30 border-border/50"
-              )}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, secao.id)}
-            >
-              {/* Column header */}
-              <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
-                <div className="flex items-center justify-between">
-                  <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
-                  <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
-                    {completedCount}/{secaoTarefas.length}
-                  </Badge>
+            return (
+              <div
+                key={secao.id}
+                className={cn(
+                  "flex-shrink-0 w-72 rounded-xl border flex flex-col",
+                  darkBg ? "bg-white/5 border-white/15" : "bg-muted/30 border-border/50"
+                )}
+              >
+                {/* Column header */}
+                <div className={cn("px-3 py-3 border-b", darkBg ? "border-white/10" : "border-border/30")}>
+                  <div className="flex items-center justify-between">
+                    <h3 className={cn("text-sm font-semibold truncate", darkBg ? "text-white" : "")}>{secao.nome}</h3>
+                    <Badge variant="secondary" className={cn("text-[10px] px-1.5 h-5", darkBg && "bg-white/10 text-white/70")}>
+                      {completedCount}/{secaoTarefas.length}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Cards */}
+                <ScrollArea className="flex-1 p-2">
+                  <DroppableSecao id={secao.id} isOver={overColumnId === secao.id}>
+                    <div className="space-y-2">
+                      {secaoTarefas.map((tarefa) => (
+                        <DraggableKanbanCard
+                          key={tarefa.id}
+                          tarefa={tarefa}
+                          onSelect={() => setSelectedTarefa(tarefa)}
+                          onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
+                          darkBg={darkBg}
+                          isDragActive={activeId === tarefa.id}
+                        />
+                      ))}
+                      {secaoTarefas.length === 0 && (
+                        <div className={cn(
+                          "text-center py-8 text-xs border-2 border-dashed rounded-lg transition-all",
+                          overColumnId === secao.id
+                            ? "border-primary/40 bg-primary/5 text-primary"
+                            : darkBg ? "border-white/10 text-white/40" : "border-border/30 text-muted-foreground"
+                        )}>
+                          {overColumnId === secao.id ? "Solte aqui ↓" : "Sem tarefas"}
+                        </div>
+                      )}
+                    </div>
+                  </DroppableSecao>
+                </ScrollArea>
+
+                {/* Add task */}
+                <div className={cn("border-t", darkBg ? "border-white/10" : "border-border/30")}>
+                  <NovaTarefaInline
+                    onAdd={(titulo) => createTarefa.mutate({ titulo, secao_id: secao.id })}
+                    darkBg={darkBg}
+                  />
                 </div>
               </div>
+            );
+          })}
 
-              {/* Cards */}
-              <ScrollArea className="flex-1 p-2">
-                <div className="space-y-2">
-                  {secaoTarefas.map((tarefa) => (
-                    <KanbanCard
-                      key={tarefa.id}
-                      tarefa={tarefa}
-                      onSelect={() => setSelectedTarefa(tarefa)}
-                      onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
-                      onDragStart={(e) => handleDragStart(e, tarefa)}
-                      darkBg={darkBg}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-
-              {/* Add task */}
-              <div className={cn("border-t", darkBg ? "border-white/10" : "border-border/30")}>
-                <NovaTarefaInline
-                  onAdd={(titulo) => createTarefa.mutate({ titulo, secao_id: secao.id })}
-                  darkBg={darkBg}
-                />
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add column */}
-        <div className="flex-shrink-0 w-72">
-          <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
+          {/* Add column */}
+          <div className="flex-shrink-0 w-72">
+            <NovaSecaoInline onAdd={(nome) => createSecao.mutate(nome)} darkBg={darkBg} />
+          </div>
         </div>
-      </div>
+
+        <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
+          {activeTarefa ? <OverlayKanbanCard tarefa={activeTarefa} darkBg={darkBg} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Task detail sheet */}
       <ProjetoTarefaDetalhe
@@ -217,146 +300,197 @@ function SubtarefasPopover({ subtarefas }: { subtarefas: ProjetoTarefa[] }) {
   );
 }
 
-/* ───────── Kanban Card ───────── */
-function KanbanCard({
+/* ───────── Draggable Kanban Card ───────── */
+function DraggableKanbanCard({
   tarefa,
   onSelect,
   onToggle,
-  onDragStart,
   darkBg = false,
+  isDragActive = false,
 }: {
   tarefa: ProjetoTarefa;
   onSelect: () => void;
   onToggle: () => void;
-  onDragStart: (e: React.DragEvent) => void;
   darkBg?: boolean;
+  isDragActive?: boolean;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tarefa.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+  };
+
   const isCompleted = tarefa.status === "concluida";
   const isOverdue = tarefa.data_prazo && isPast(new Date(tarefa.data_prazo)) && !isCompleted;
   const isDueToday = tarefa.data_prazo && isToday(new Date(tarefa.data_prazo));
   const subtaskCompleted = tarefa.subtarefas?.filter(s => s.status === "concluida").length || 0;
   const subtaskTotal = tarefa.subtarefas?.length || 0;
-
   const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
+      ref={setNodeRef}
+      style={style}
       className={cn(
-        "rounded-lg border cursor-grab active:cursor-grabbing transition-all group flex overflow-hidden",
+        "rounded-lg border transition-all group flex overflow-hidden",
         "hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] hover:-translate-y-[1px]",
         darkBg
           ? "bg-white/5 border-white/10 hover:border-white/25"
           : "bg-background border-border/60 hover:border-primary/40",
-        isCompleted && "opacity-60"
+        isCompleted && "opacity-60",
+        isDragging && "shadow-xl z-50"
       )}
     >
       {/* Accent bar */}
       {accentColor && <div className={cn("w-1 flex-shrink-0 rounded-l-lg", accentColor)} />}
-      
+
       <div className="flex-1 p-3">
-      {/* Product photo */}
-      {tarefa.produto_foto_url && (
-        <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
-          <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="xl" className="w-full h-full rounded-md" />
+        {/* Product photo */}
+        {tarefa.produto_foto_url && (
+          <div className="mb-2 rounded-md overflow-hidden aspect-[16/9] bg-muted">
+            <ProductThumbnail src={tarefa.produto_foto_url} alt={tarefa.titulo} size="xl" className="w-full h-full rounded-md" />
+          </div>
+        )}
+
+        {/* Title row */}
+        <div className="flex items-start gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            className={cn(
+              "mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none",
+              darkBg ? "text-white/30 hover:text-white/60" : "text-muted-foreground/50 hover:text-muted-foreground"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            className={cn(
+              "mt-0.5 flex-shrink-0 transition-colors",
+              isCompleted ? "text-emerald-400" : (darkBg ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
+            )}
+          >
+            {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+          </button>
+          <span
+            className={cn(
+              "text-sm cursor-pointer hover:text-primary transition-colors flex-1",
+              darkBg && !isCompleted && "text-white",
+              isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground")
+            )}
+            onClick={onSelect}
+          >
+            {tarefa.titulo}
+          </span>
         </div>
+
+        {/* Meta row */}
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {tarefa.codigo && (
+            <span className={cn("text-[10px] font-mono", darkBg ? "text-white/50" : "text-muted-foreground")}>{tarefa.codigo}</span>
+          )}
+          {tarefa.estagio && ESTAGIO_LABELS[tarefa.estagio] && (
+            <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", ESTAGIO_COLORS[tarefa.estagio])}>
+              {ESTAGIO_LABELS[tarefa.estagio]}
+            </Badge>
+          )}
+          {tarefa.status && tarefa.status !== "pendente" && (
+            <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", STATUS_COLORS[tarefa.status])}>
+              {STATUS_LABELS[tarefa.status] || tarefa.status}
+            </Badge>
+          )}
+          <TarefaRiskBadge
+            status={tarefa.status}
+            dataPrazo={tarefa.data_prazo}
+            diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
+            compact
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center -space-x-1">
+            {tarefa.responsavel && (
+              <Avatar className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
+                <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
+                <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                  {tarefa.responsavel.nome?.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
+            {tarefa.colaboradores?.slice(0, 2).map(c => (
+              <Avatar key={c.user_id} className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
+                <AvatarImage src={c.avatar_url || undefined} />
+                <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {subtaskTotal > 0 && tarefa.subtarefas && (
+              <SubtarefasPopover subtarefas={tarefa.subtarefas} />
+            )}
+            {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <DisplayGradePopover
+                  produtoId={tarefa.produto_id}
+                  produtoNome={tarefa.titulo}
+                  produtoCodigo={tarefa.codigo || undefined}
+                />
+              </div>
+            )}
+            {tarefa.data_prazo ? (
+              <span className={cn(
+                "text-[10px] flex items-center gap-1",
+                isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
+              )}>
+                <Calendar className="h-3 w-3" />
+                {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Overlay Card (shown while dragging) ───────── */
+function OverlayKanbanCard({ tarefa, darkBg = false }: { tarefa: ProjetoTarefa; darkBg?: boolean }) {
+  const isCompleted = tarefa.status === "concluida";
+  const accentColor = tarefa.estagio ? ESTAGIO_ACCENT[tarefa.estagio] : "";
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border shadow-2xl rotate-[2deg] scale-105 w-72 flex overflow-hidden",
+        darkBg ? "bg-white/10 border-white/20" : "bg-background border-primary/40"
       )}
-
-      {/* Title row */}
-      <div className="flex items-start gap-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          className={cn(
-            "mt-0.5 flex-shrink-0 transition-colors",
-            isCompleted ? "text-emerald-400" : (darkBg ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
-          )}
-        >
-          {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-        </button>
-        <span
-          className={cn(
-            "text-sm cursor-pointer hover:text-primary transition-colors flex-1",
-            darkBg && !isCompleted && "text-white",
-            isCompleted && (darkBg ? "line-through text-white/40" : "line-through text-muted-foreground")
-          )}
-          onClick={onSelect}
-        >
-          {tarefa.titulo}
-        </span>
-      </div>
-
-      {/* Meta row */}
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+    >
+      {accentColor && <div className={cn("w-1 flex-shrink-0", accentColor)} />}
+      <div className="flex-1 p-3">
+        <div className="flex items-start gap-2">
+          <GripVertical className="h-4 w-4 mt-0.5 text-muted-foreground" />
+          {isCompleted ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-400" /> : <Circle className="h-4 w-4 mt-0.5 text-muted-foreground" />}
+          <span className={cn("text-sm flex-1", darkBg && "text-white", isCompleted && "line-through text-muted-foreground")}>
+            {tarefa.titulo}
+          </span>
+        </div>
         {tarefa.codigo && (
-          <span className={cn("text-[10px] font-mono", darkBg ? "text-white/50" : "text-muted-foreground")}>{tarefa.codigo}</span>
+          <span className="text-[10px] font-mono text-muted-foreground ml-10 mt-1 block">{tarefa.codigo}</span>
         )}
-        {tarefa.estagio && ESTAGIO_LABELS[tarefa.estagio] && (
-          <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", ESTAGIO_COLORS[tarefa.estagio])}>
-            {ESTAGIO_LABELS[tarefa.estagio]}
-          </Badge>
-        )}
-        {tarefa.status && tarefa.status !== "pendente" && (
-          <Badge className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border-0", STATUS_COLORS[tarefa.status])}>
-            {STATUS_LABELS[tarefa.status] || tarefa.status}
-          </Badge>
-        )}
-        <TarefaRiskBadge
-          status={tarefa.status}
-          dataPrazo={tarefa.data_prazo}
-          diasAlertaAntes={(tarefa as any).dias_alerta_antes ?? 2}
-          compact
-        />
       </div>
-
-      {/* Footer: avatars left, date + grade + subtasks right */}
-      <div className="flex items-center justify-between mt-2.5">
-        <div className="flex items-center -space-x-1">
-          {tarefa.responsavel && (
-            <Avatar className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
-              <AvatarImage src={tarefa.responsavel.avatar_url || undefined} />
-              <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                {tarefa.responsavel.nome?.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          )}
-          {tarefa.colaboradores?.slice(0, 2).map(c => (
-            <Avatar key={c.user_id} className={cn("h-5 w-5 border", darkBg ? "border-white/20" : "border-background")}>
-              <AvatarImage src={c.avatar_url || undefined} />
-              <AvatarFallback className="text-[8px] bg-muted">{c.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Subtasks popover */}
-          {subtaskTotal > 0 && tarefa.subtarefas && (
-            <SubtarefasPopover subtarefas={tarefa.subtarefas} />
-          )}
-
-          {/* Eye icon - Grade do produto (only for DISPLAY type) */}
-          {tarefa.produto_id && (tarefa as any).produto_tipo === "DISPLAY" && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <DisplayGradePopover
-                produtoId={tarefa.produto_id}
-                produtoNome={tarefa.titulo}
-                produtoCodigo={tarefa.codigo || undefined}
-              />
-            </div>
-          )}
-
-          {tarefa.data_prazo ? (
-            <span className={cn(
-              "text-[10px] flex items-center gap-1",
-              isOverdue ? "text-red-400 font-medium" : isDueToday ? "text-amber-400" : (darkBg ? "text-white/50" : "text-muted-foreground")
-            )}>
-              <Calendar className="h-3 w-3" />
-              {format(new Date(tarefa.data_prazo), "dd MMM", { locale: ptBR })}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      </div> {/* end flex-1 inner content */}
     </div>
   );
 }
