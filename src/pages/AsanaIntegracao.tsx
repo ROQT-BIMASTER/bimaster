@@ -397,11 +397,14 @@ export default function AsanaIntegracao() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
               <StatCard icon={FolderKanban} label="Projetos" value={syncResult.projects_synced} />
               <StatCard icon={ListTodo} label="Seções" value={syncResult.sections_synced} />
               <StatCard icon={ListTodo} label="Tarefas" value={syncResult.tasks_synced} />
+              <StatCard icon={ListTodo} label="Subtarefas" value={syncResult.subtasks_synced} />
+              <StatCard icon={Link2} label="Anexos" value={syncResult.attachments_synced} />
               <StatCard icon={MessageSquare} label="Comentários" value={syncResult.comments_synced} />
+              <StatCard icon={Users} label="Colaboradores" value={syncResult.collaborators_synced} />
               <StatCard icon={Users} label="Usuários" value={syncResult.users_mapped} />
             </div>
 
