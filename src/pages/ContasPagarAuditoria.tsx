@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -448,7 +449,7 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
 
             {/* Main Content Tabs */}
             <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+              <ScrollableTabsList className="sm:grid-cols-5 lg:w-[750px]">
                 <TabsTrigger value="chat" className="gap-2">
                   <MessageCircle className="h-4 w-4" />
                   Chat IA
@@ -469,7 +470,7 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
                   <Shield className="h-4 w-4" />
                   Por Categoria
                 </TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
 
               {/* Tab: Chat com IA */}
               <TabsContent value="chat">

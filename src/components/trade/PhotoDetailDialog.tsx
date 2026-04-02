@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -208,13 +209,13 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
           </div>
         ) : (
           <Tabs defaultValue="photo" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <ScrollableTabsList className="sm:grid-cols-5">
               <TabsTrigger value="photo">Foto</TabsTrigger>
               <TabsTrigger value="store">PDV</TabsTrigger>
               <TabsTrigger value="visit">Visita</TabsTrigger>
               <TabsTrigger value="investments">Investimentos</TabsTrigger>
               <TabsTrigger value="analysis">Análise</TabsTrigger>
-            </TabsList>
+            </ScrollableTabsList>
 
             {/* Aba: Informações da Foto */}
             <TabsContent value="photo" className="space-y-4">

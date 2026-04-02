@@ -274,7 +274,7 @@ export const KanbanBoard = () => {
         onDragEnd={handleDragEnd}
         collisionDetection={closestCorners}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 md:overflow-visible md:snap-none md:pb-0">
           {STAGES.map((stage) => {
             const stageProspects = getProspectsByStatus(stage.id);
             return (
