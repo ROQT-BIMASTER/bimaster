@@ -1,57 +1,141 @@
 
 
-# Implementar Filtro de Visibilidade por Seções Marcadas
+# Auditoria Completa do Modulo de Projetos — Nota: 72/100
 
-## Problema
+## Resumo Executivo
 
-As seções visíveis configuradas no dialog de membros (`projeto_membro_secoes`) **não são aplicadas em nenhum lugar**. Todos os membros veem todas as tarefas e seções, independentemente do que foi marcado.
+O modulo de Projetos e robusto em funcionalidades (8 visualizacoes, IA integrada, Asana sync, briefings, cofre documental), porem apresenta falhas de performance, seguranca e UX que impactam a operacao com 987 tarefas ativas e 40 membros.
 
-Três pontos de falha:
+---
 
-1. **Área Pessoal (Minhas Tarefas / Home)**: `useMinhasTarefas` busca todas as tarefas onde `responsavel_id = user.id`, sem verificar se a seção da tarefa está entre as permitidas
-2. **Detalhe do Projeto**: `useProjetoTarefas` carrega todas as seções e tarefas do projeto sem filtrar pelas seções permitidas ao membro atual
-3. **Sem enforcement no backend**: Nenhuma RLS ou filtro server-side existe para restringir por seção
+## Pontuacao por Categoria
 
-## Solução
+| Categoria | Nota | Peso | Pontos |
+|---|---|---|---|
+| Funcionalidades | 85/100 | 25% | 21.25 |
+| Performance | 55/100 | 20% | 11.0 |
+| Seguranca/RLS | 60/100 | 20% | 12.0 |
+| UX/Interface | 75/100 | 15% | 11.25 |
+| Qualidade de Codigo | 70/100 | 10% | 7.0 |
+| Dados/Integridade | 65/100 | 10% | 6.5 |
+| **TOTAL** | | | **72/100** |
 
-### 1. `src/hooks/useMinhasTarefas.ts` — Filtrar tarefas pessoais por seções permitidas
+---
 
-- Após buscar as tarefas, consultar `projeto_membro_secoes` para o usuário atual
-- Construir um mapa `projeto_id → Set<secao_id>` das seções permitidas
-- Filtrar: se o membro tem seções configuradas (array não vazio) para um projeto, mostrar apenas tarefas cuja `secao_id` esteja na lista; se não tem configuração (0 seções marcadas = sem restrição), mostrar todas
-- **Regra**: 0 seções marcadas = acesso total (coordenador/sem restrição); 1+ seções = acesso restrito
+## FALHAS CRITICAS (Prioridade Alta)
 
-### 2. `src/hooks/useProjetoTarefas.ts` — Filtrar seções e tarefas no detalhe do projeto
+### 1. Performance — Waterfall de queries no useProjetoTarefas (Nota: 55)
+O hook faz **7 queries sequenciais** em cascata: tarefas -> profiles -> colaboradores -> produtos -> linked_produtos -> movimentacoes -> team-members. Em projetos com 200+ tarefas, isso causa lentidao perceptivel.
 
-- Buscar o membro atual (`projeto_membros` + `projeto_membro_secoes`) para o projeto em questão
-- Se o membro tem seções configuradas (1+), filtrar:
-  - `secoes` → apenas as seções permitidas
-  - `tarefas` → apenas tarefas cujo `secao_id` está nas seções permitidas
-- Coordenadores e admins veem tudo (0 seções = sem restrição)
+**Correcao**: Paralelizar queries independentes com `Promise.all`, usar batch fetching.
 
-### 3. `src/pages/ProjetoDetalhe.tsx` — Passar dados filtrados às views
+### 2. Limite de 1000 registros nao tratado (Nota: 55)
+O `useProjetos` busca **todas** as tarefas de **todos** os projetos para calcular metricas (`projetos-metrics`). Com 987 tarefas ativas, estamos no limite do Supabase (1000 rows). Quando ultrapassar, as metricas ficarao incorretas silenciosamente.
 
-- Nenhuma mudança estrutural necessária, pois as views já consomem `secoes` e `tarefas` do hook. A filtragem no hook resolve automaticamente.
+**Correcao**: Criar uma view materializada ou RPC no banco para calcular metricas por projeto.
 
-### Lógica de negócio
+### 3. Seguranca — Policies com `USING (true)` (Nota: 60)
+- `projeto_briefings` tem SELECT com `USING (true)` — qualquer usuario autenticado ve todos os briefings
+- `projeto_atividades` tem SELECT com `USING (true)` — qualquer usuario ve todas as atividades
+- `projeto_calendario_regras` tem ALL com `auth.uid() IS NOT NULL` — qualquer usuario pode deletar regras de qualquer projeto
 
-```text
-Se membro tem secoes_ids.length === 0 → vê TUDO (coordenador/sem restrição)
-Se membro tem secoes_ids.length >= 1  → vê APENAS tarefas dessas seções
-Se não é membro do projeto           → não vê nada (RLS existente já bloqueia)
-```
+**Correcao**: Restringir policies a membros do projeto usando `user_can_access_projeto()`.
 
-## Arquivos a alterar
+### 4. 56% das tarefas abertas sem responsavel (261/465)
+Dado real do banco: 261 tarefas ativas nao tem `responsavel_id`. Isso compromete filtros de visibilidade, KPIs de equipe e produtividade.
 
-| Arquivo | Alteração |
-|---|---|
-| `src/hooks/useMinhasTarefas.ts` | Consultar seções permitidas e filtrar tarefas |
-| `src/hooks/useProjetoTarefas.ts` | Filtrar seções e tarefas pelo membro atual |
+**Correcao**: Alertar na UI quando tarefas nao tem responsavel; adicionar filtro rapido "Sem responsavel".
 
-## Resultado esperado
+### 5. 97% das tarefas abertas sem prazo (450/465)
+Apenas 15 tarefas abertas possuem data de prazo. O cronograma, calendario e alertas de atraso ficam essencialmente vazios.
 
-- Claudia Tiemi Nakano (0/6 seções marcadas) vê todas as tarefas do projeto
-- Um membro com 2/6 seções marcadas vê apenas tarefas dessas 2 seções
-- A área pessoal (Home + Minhas Tarefas) respeita o mesmo filtro
-- Coordenadores e admins mantêm visão completa
+**Correcao**: Dashboard de saude do projeto deveria alertar sobre isso; wizard de criacao deveria sugerir prazo.
+
+---
+
+## MELHORIAS RECOMENDADAS (Prioridade Media)
+
+### 6. Duplicacao massiva de constantes
+`STATUS_COLORS`, `STATUS_LABELS`, `ESTAGIO_COLORS` sao definidos em **5 arquivos diferentes** (KanbanView, TarefaRow, CronogramaView, CalendarioView, FilterSort). Qualquer alteracao precisa ser replicada em todos.
+
+**Correcao**: Criar `src/lib/projetoConstants.ts` unificado.
+
+### 7. ProjetoTarefaDetalhe tem 1477 linhas
+Componente monolitico que gerencia abas (descricao, comentarios, anexos, briefing, cofre, timeline, dependencias, aprovacao, produtos). Dificil de manter.
+
+**Correcao**: Extrair cada aba em componente separado.
+
+### 8. Filtros e ordenacao so funcionam na visao Lista
+Os filtros (`ProjetoFilterSort`) sao aplicados apenas em `ProjetoListView`. Kanban, Cronograma e Calendario ignoram os filtros selecionados.
+
+**Correcao**: Passar `filters` e `sort` para todas as views.
+
+### 9. Kanban sem persistencia de drag-and-drop
+O KanbanView (526 linhas) implementa DnD com @dnd-kit, mas a reordenacao dentro de uma coluna nao persiste o campo `ordem` no banco.
+
+**Correcao**: Chamar `updateTarefa` com nova `ordem` apos drop.
+
+### 10. Tab "briefings" e "painel" renderizam o mesmo componente
+No `ProjetoDetalhe.tsx`, ambos `activeTab === "briefings"` e `activeTab === "painel"` renderizam `ProjetoBriefingPanel`. Provavelmente um erro — "painel" deveria ser um dashboard de KPIs.
+
+**Correcao**: Vincular a tab "painel" ao componente correto (ProjetoHealthPanel?).
+
+### 11. teamMembers carrega TODOS os profiles
+A query `team-members` no `useProjetoTarefas` busca **todos os profiles da plataforma** sem filtro por projeto ou departamento. Ineficiente e potencialmente expoe dados.
+
+**Correcao**: Filtrar por `projeto_membros` do projeto atual.
+
+### 12. Arquivos sem filtro de visibilidade por secao
+O `ProjetoArquivosView` busca anexos de TODAS as tarefas do projeto, ignorando o filtro de secoes permitidas do membro.
+
+**Correcao**: Aplicar filtro `allowedSecaoIds` nos arquivos tambem.
+
+### 13. Exclusao de projeto sem confirmacao robusta
+`deleteProjeto` faz `DELETE` direto sem verificar se tem tarefas ativas, membros ou dados vinculados. Pode causar perda de dados.
+
+**Correcao**: Implementar soft delete com campo `excluido_em` ou dialog de confirmacao com resumo do impacto.
+
+---
+
+## MELHORIAS MENORES (Prioridade Baixa)
+
+### 14. Sem paginacao na listagem de projetos
+Com 5 projetos atuais nao e problema, mas nao escala.
+
+### 15. Busca de projetos inexistente
+A pagina `Projetos.tsx` nao tem campo de busca por nome.
+
+### 16. Sem exportacao de dados do cronograma
+Equipe Dashboard tem export Excel, mas Cronograma e Calendario nao.
+
+### 17. Tour/onboarding define steps em imports separados
+Boa pratica ja implementada com `TourButton`.
+
+---
+
+## O QUE ESTA BEM FEITO
+
+- **Arquitetura de visibilidade por secoes** — Recentemente implementada e funcional
+- **Soft delete de tarefas** com lixeira e restauracao
+- **Audit trail automatico** via triggers no banco
+- **Sistema de briefings** com aprovacao/rejeicao
+- **Cofre documental** com versionamento
+- **Integracao Asana** para sync bidirecional
+- **IA integrada** para resumos e criacao de tarefas
+- **Drag-and-drop** no Kanban com @dnd-kit
+- **Colunas configuraveis** com persistencia em localStorage
+- **Cronograma Gantt** com zoom por semana/mes/trimestre
+
+---
+
+## Proximos Passos Recomendados (Ordem de Prioridade)
+
+1. Corrigir policies RLS permissivas (seguranca)
+2. Resolver limite de 1000 rows nas metricas (data integrity)
+3. Unificar constantes duplicadas (manutenibilidade)
+4. Propagar filtros para Kanban/Cronograma/Calendario (UX)
+5. Corrigir tab "painel" duplicada (bug)
+6. Filtrar teamMembers por projeto (performance/seguranca)
+7. Aplicar filtro de secoes nos Arquivos (seguranca)
+8. Refatorar ProjetoTarefaDetalhe em componentes menores (manutenibilidade)
 
