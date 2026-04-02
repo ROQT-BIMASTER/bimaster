@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
 
               // Sync tasks
               const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
-                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.email,tags,tags.name,tags.color,dependencies,dependencies.gid",
+                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
               });
 
               const taskMap = new Map<string, string>(); // asana task gid -> local id
