@@ -344,7 +344,7 @@ function PersonPicker({ current, members, onSelect }: {
           {current ? (
             <>
               <Avatar className="h-6 w-6 flex-shrink-0 ring-2 ring-primary/20">
-                <AvatarImage src={current.avatar_url || undefined} />
+                <AvatarImage src={current.avatar_url || undefined} referrerPolicy="no-referrer" crossOrigin="anonymous" />
                 <AvatarFallback className="text-[10px] bg-primary/15 text-primary font-semibold">
                   {current.nome?.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
