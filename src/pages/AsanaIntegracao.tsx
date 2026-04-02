@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export default function AsanaIntegracao() {
   const navigate = useNavigate();
-  const { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading } = useAsanaSync();
+  const { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading, syncStatus } = useAsanaSync();
 
   const [step, setStep] = useState(1);
   const [pat, setPat] = useState(() => localStorage.getItem("asana_pat") || "");
@@ -375,7 +375,9 @@ export default function AsanaIntegracao() {
         <Card>
           <CardContent className="py-8 flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Sincronizando projetos do Asana...</p>
+            <p className="text-sm text-muted-foreground">
+              {syncStatus || "Sincronizando projetos do Asana..."}
+            </p>
             <Progress value={undefined} className="w-64" />
           </CardContent>
         </Card>

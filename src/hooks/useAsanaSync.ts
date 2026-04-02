@@ -16,12 +16,20 @@ interface AsanaProject {
 
 interface SyncResult {
   success: boolean;
+  phase: string;
+  complete?: boolean;
+  next_phase?: string;
+  log_id: string;
   projects_synced: number;
   sections_synced: number;
   tasks_synced: number;
+  subtasks_synced: number;
+  attachments_synced: number;
   comments_synced: number;
+  collaborators_synced: number;
   users_mapped: number;
   errors: any[];
+  message?: string;
 }
 
 interface SyncLog {
@@ -41,6 +49,7 @@ interface SyncLog {
 
 export function useAsanaSync() {
   const [loading, setLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string>("");
 
   async function callAsana(path: string, extra: Record<string, any> = {}) {
     const { data: { session } } = await supabase.auth.getSession();
@@ -92,18 +101,82 @@ export function useAsanaSync() {
   ): Promise<SyncResult> {
     setLoading(true);
     try {
-      const result = await callAsana("/sync-project", {
+      // Phase 1: Core (projects, sections, tasks)
+      setSyncStatus("Fase 1: Sincronizando projetos, seções e tarefas...");
+      const coreResult = await callAsana("/sync-project", {
         pat,
         workspace_gid: workspaceGid,
         project_gids: projectGids,
+        phase: "core",
       });
-      if (result.success) {
-        toast.success(
-          `Sincronizado: ${result.projects_synced} projetos, ${result.tasks_synced} tarefas, ${result.comments_synced} comentários`
-        );
+
+      toast.success(
+        `Fase 1: ${coreResult.projects_synced} projetos, ${coreResult.tasks_synced} tarefas`
+      );
+
+      // Phase 2: Secondary (subtasks, attachments, comments) — may need multiple calls
+      const logId = coreResult.log_id;
+      let secondaryComplete = false;
+      let totalSubtasks = 0, totalAttachments = 0, totalComments = 0;
+      let lastErrors: any[] = [];
+      let attempts = 0;
+      const maxAttempts = 10; // Safety limit
+
+      while (!secondaryComplete && attempts < maxAttempts) {
+        attempts++;
+        setSyncStatus(`Fase 2 (${attempts}): Subtarefas, anexos e comentários...`);
+
+        try {
+          const secResult = await callAsana("/sync-project", {
+            pat,
+            workspace_gid: workspaceGid,
+            project_gids: projectGids,
+            phase: "secondary",
+            log_id: logId,
+          });
+
+          totalSubtasks += secResult.subtasks_synced || 0;
+          totalAttachments += secResult.attachments_synced || 0;
+          totalComments += secResult.comments_synced || 0;
+          lastErrors = secResult.errors || [];
+
+          if (secResult.complete) {
+            secondaryComplete = true;
+          } else {
+            toast.info(`Fase 2 parcial (${attempts}): +${secResult.subtasks_synced || 0} subtarefas, +${secResult.comments_synced || 0} comentários. Continuando...`);
+          }
+        } catch (e: any) {
+          // If secondary phase fails, still return core success
+          console.error("Secondary phase error:", e);
+          lastErrors.push({ phase: "secondary", attempt: attempts, error: e.message });
+          break;
+        }
       }
-      return result;
+
+      setSyncStatus("");
+      const finalResult: SyncResult = {
+        success: true,
+        phase: "complete",
+        complete: secondaryComplete,
+        log_id: logId,
+        projects_synced: coreResult.projects_synced || 0,
+        sections_synced: coreResult.sections_synced || 0,
+        tasks_synced: coreResult.tasks_synced || 0,
+        subtasks_synced: totalSubtasks,
+        attachments_synced: totalAttachments,
+        comments_synced: totalComments,
+        collaborators_synced: coreResult.collaborators_synced || 0,
+        users_mapped: coreResult.users_mapped || 0,
+        errors: [...(coreResult.errors || []), ...lastErrors],
+      };
+
+      toast.success(
+        `Sincronizado: ${finalResult.projects_synced} projetos, ${finalResult.tasks_synced} tarefas, ${totalSubtasks} subtarefas, ${totalAttachments} anexos, ${totalComments} comentários`
+      );
+
+      return finalResult;
     } catch (e: any) {
+      setSyncStatus("");
       toast.error(`Erro na sincronização: ${e.message}`);
       throw e;
     } finally {
@@ -140,5 +213,5 @@ export function useAsanaSync() {
     }
   }
 
-  return { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading };
+  return { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading, syncStatus };
 }
