@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
 import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
