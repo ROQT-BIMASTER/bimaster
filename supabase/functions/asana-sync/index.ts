@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
           const asanaUsers = await asanaGetAll(`/workspaces/${workspace_gid}/users`, asanaPat, {
             opt_fields: "name,email,photo",
           });
-          const { data: profiles } = await adminClient.from("profiles").select("id, email, nome");
+          const { data: profiles } = await adminClient.from("profiles").select("id, email, nome, avatar_url");
           const userMap = new Map<string, string>();
 
           const userGids = asanaUsers.filter((u: any) => u.gid).map((u: any) => u.gid);
