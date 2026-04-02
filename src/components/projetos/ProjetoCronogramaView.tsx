@@ -53,10 +53,19 @@ interface Props {
   projetoId: string;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
-export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = false }: Props) {
-  const { tarefas, secoes, tarefasLoading, secoesLoading } = useProjetoTarefas(projetoId);
+export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
+  const { tarefas: rawTarefas, secoes, tarefasLoading, secoesLoading } = useProjetoTarefas(projetoId);
+
+  // Apply external filters
+  const tarefas = useMemo(() => {
+    let t = rawTarefas;
+    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters);
+    return applyProjetoSort(t, sort);
+  }, [rawTarefas, filters, sort]);
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [filterSecao, setFilterSecao] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");

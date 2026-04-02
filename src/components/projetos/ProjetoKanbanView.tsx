@@ -64,12 +64,30 @@ function DroppableSecao({ id, children, isOver }: { id: string; children: React.
   );
 }
 
-export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
+export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
   const {
-    secoes, tarefas, secoesLoading, tarefasLoading,
-    tarefasPorSecao, createTarefa, updateTarefa,
+    secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
+    tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
     toggleTarefaCompleta, moveTarefaToSecao, createSecao,
   } = useProjetoTarefas(projetoId);
+
+  // Apply external filters/sort
+  const filtersActive = hasActiveFilters(filters);
+  const tarefas = useMemo(() => {
+    let t = rawTarefas;
+    if (filtersActive) t = applyProjetoFilters(t, filters);
+    return applyProjetoSort(t, sort);
+  }, [rawTarefas, filters, sort, filtersActive]);
+
+  const tarefasPorSecao = useMemo(() => {
+    if (!filtersActive) return rawTarefasPorSecao;
+    const filteredIds = new Set(tarefas.map(t => t.id));
+    const result: Record<string, ProjetoTarefa[]> = {};
+    for (const [secId, tasks] of Object.entries(rawTarefasPorSecao)) {
+      result[secId] = tasks.filter(t => filteredIds.has(t.id));
+    }
+    return result;
+  }, [rawTarefasPorSecao, tarefas, filtersActive]);
 
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
