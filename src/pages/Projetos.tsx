@@ -67,7 +67,7 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 }
 
 export default function Projetos() {
-  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros } = useProjetos();
+  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -81,6 +81,7 @@ export default function Projetos() {
 
   const membrosMap = useMemo(() => {
     const map = new Map<string, Array<{ user_id: string; nome: string | null; avatar_url: string | null }>>();
+    // Add formal members first
     for (const m of projetoMembros) {
       if (!map.has(m.projeto_id)) map.set(m.projeto_id, []);
       map.get(m.projeto_id)!.push({
@@ -89,8 +90,16 @@ export default function Projetos() {
         avatar_url: m.profiles?.avatar_url || null,
       });
     }
+    // Merge task collaborators, deduplicating by user_id
+    for (const c of projetoColaboradores) {
+      if (!map.has(c.projeto_id)) map.set(c.projeto_id, []);
+      const list = map.get(c.projeto_id)!;
+      if (!list.some(m => m.user_id === c.user_id)) {
+        list.push({ user_id: c.user_id, nome: c.nome, avatar_url: c.avatar_url });
+      }
+    }
     return map;
-  }, [projetoMembros]);
+  }, [projetoMembros, projetoColaboradores]);
 
   return (
     <SidebarProvider>
@@ -150,8 +159,8 @@ export default function Projetos() {
                   const progressPercent = metrics.total > 0 ? Math.round((metrics.concluidas / metrics.total) * 100) : 0;
                   const displayPercent = isFinalizado ? 100 : progressPercent;
                   const status = getProjetoStatus(projeto.status, metrics);
-                  const displayMembros = membros.slice(0, 4);
-                  const extraMembros = membros.length - 4;
+                  const displayMembros = membros.slice(0, 6);
+                  const extraMembros = membros.length - 6;
 
                   return (
                      <div
