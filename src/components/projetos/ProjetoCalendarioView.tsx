@@ -353,7 +353,7 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
       </div>
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-2">
-          <StatusIcon className={cn("h-4 w-4", statusEntry.className)} />
+          <StatusIcon className={cn("h-4 w-4", cfg2.className)} />
           <span className={darkBg ? "text-white/70" : "text-muted-foreground"}>
             {tarefa.status === "concluida" ? "Concluído" : tarefa.status === "em_andamento" ? "Em andamento" : tarefa.status === "bloqueada" ? "Bloqueada" : "Não iniciado"}
           </span>

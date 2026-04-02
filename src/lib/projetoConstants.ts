@@ -10,12 +10,12 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelada: "Cancelada",
 };
 
-export const STATUS_OPTIONS = [
+export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "pendente", label: "Não iniciado" },
   { value: "em_andamento", label: "Em andamento" },
   { value: "concluida", label: "Concluído" },
   { value: "bloqueada", label: "Bloqueada" },
-] as const;
+];
 
 export const ESTAGIO_LABELS: Record<string, string> = {
   briefing: "Briefing",
