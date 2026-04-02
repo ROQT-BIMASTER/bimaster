@@ -50,13 +50,13 @@ export const SocialMediaMonitoring = () => {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <ScrollableTabsList className="sm:grid-cols-5">
           <TabsTrigger value="accounts">Gerenciar Contas</TabsTrigger>
           <TabsTrigger value="calendar">Calendário Editorial</TabsTrigger>
-          <TabsTrigger value="realtime">Métricas em Tempo Real (Legacy)</TabsTrigger>
-          <TabsTrigger value="charts">Gráficos de Evolução</TabsTrigger>
-          <TabsTrigger value="sentiment">Análise de Sentimento</TabsTrigger>
-        </TabsList>
+          <TabsTrigger value="realtime">Métricas (Legacy)</TabsTrigger>
+          <TabsTrigger value="charts">Gráficos</TabsTrigger>
+          <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
+        </ScrollableTabsList>
 
         <TabsContent value="accounts" className="space-y-6">
           <MultiAccountDashboard />
