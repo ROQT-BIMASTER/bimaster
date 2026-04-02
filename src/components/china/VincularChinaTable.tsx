@@ -106,9 +106,12 @@ interface Props {
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
+  statusFilter: externalStatusFilter, onStatusFilterChange,
 }: Props) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
+  const statusFilter = externalStatusFilter ?? internalStatusFilter;
+  const setStatusFilter = onStatusFilterChange ?? setInternalStatusFilter;
   const [vinculoFilter, setVinculoFilter] = useState("todos");
   const [pendenciaFilter, setPendenciaFilter] = useState<"todos" | "com" | "sem">("todos");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
