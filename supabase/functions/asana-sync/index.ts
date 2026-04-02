@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
         const logId = logRow!.id;
         const errors: any[] = [];
-        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0;
+        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0, collaboratorsSynced = 0;
 
         try {
           // Map Asana users to local profiles
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
 
               // Sync tasks
               const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
-                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.email,tags,tags.name,tags.color,dependencies,dependencies.gid",
+                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
               });
 
               const taskMap = new Map<string, string>(); // asana task gid -> local id
@@ -325,10 +325,26 @@ Deno.serve(async (req) => {
                 tasksSynced++;
 
                 // Sync followers → projeto_tarefa_colaboradores
-                if (task.followers?.length) {
-                  for (const follower of task.followers) {
+                let followers = task.followers || [];
+                // Fallback: if bulk didn't return followers, fetch individually
+                if (followers.length === 0) {
+                  try {
+                    const detail = await asanaGet(`/tasks/${task.gid}`, asanaPat, {
+                      opt_fields: "followers,followers.gid,followers.email,followers.name",
+                    });
+                    followers = detail?.followers || [];
+                  } catch (e) {
+                    console.warn(`[followers-fallback] Falha ao buscar followers da tarefa ${task.gid}:`, e);
+                  }
+                }
+                let collabsLinked = 0;
+                if (followers.length) {
+                  for (const follower of followers) {
                     const localUserId = follower.gid ? userMap.get(follower.gid) : null;
-                    if (!localUserId) continue;
+                    if (!localUserId) {
+                      console.log(`[followers] Follower sem mapeamento: gid=${follower.gid}, email=${follower.email}`);
+                      continue;
+                    }
                     const { data: existingCollab } = await adminClient
                       .from("projeto_tarefa_colaboradores")
                       .select("id")
@@ -341,8 +357,11 @@ Deno.serve(async (req) => {
                         user_id: localUserId,
                       });
                     }
+                    collabsLinked++;
                   }
                 }
+                console.log(`[followers] Tarefa ${task.gid}: ${followers.length} followers encontrados, ${collabsLinked} vinculados`);
+                collaboratorsSynced += collabsLinked;
 
                 // Sync tags → projeto_tags + projeto_tarefa_tags
                 if (task.tags?.length) {
@@ -580,6 +599,7 @@ Deno.serve(async (req) => {
             sections_synced: sectionsSynced,
             tasks_synced: tasksSynced,
             comments_synced: commentsSynced,
+            collaborators_synced: collaboratorsSynced,
             users_mapped: usersMapped,
             errors,
           });
