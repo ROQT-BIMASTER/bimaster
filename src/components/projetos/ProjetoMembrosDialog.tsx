@@ -86,6 +86,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const membroUserIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
   const filteredResults = searchResults.filter((p: any) => !membroUserIds.has(p.id));
 
+  const filteredMembros = useMemo(() => {
+    if (search.length < 2) return membros;
+    const q = search.toLowerCase();
+    return membros.filter(m =>
+      m.profile?.nome?.toLowerCase().includes(q) ||
+      m.profile?.email?.toLowerCase().includes(q)
+    );
+  }, [membros, search]);
+
   const handleToggleSecao = (membro: ProjetoMembro, secaoId: string) => {
     const currentIds = membro.secoes_ids || [];
     const newIds = currentIds.includes(secaoId)
