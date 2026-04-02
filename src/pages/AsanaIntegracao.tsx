@@ -453,7 +453,10 @@ export default function AsanaIntegracao() {
                   <TableHead>Status</TableHead>
                   <TableHead>Projetos</TableHead>
                   <TableHead>Tarefas</TableHead>
+                  <TableHead>Subtarefas</TableHead>
+                  <TableHead>Anexos</TableHead>
                   <TableHead>Comentários</TableHead>
+                  <TableHead>Colaboradores</TableHead>
                   <TableHead>Erros</TableHead>
                 </TableRow>
               </TableHeader>
