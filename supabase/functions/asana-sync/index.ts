@@ -335,11 +335,12 @@ Deno.serve(async (req) => {
                 if (timeLeft() < 5000) {
                   console.log(`[time] Budget exhausted. Processed ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments so far.`);
                   // Return partial — client should call again
-                  await adminClient.from("asana_sync_log").update({
+                  const { error: partialErr } = await adminClient.from("asana_sync_log").update({
                     status: "secondary_partial", comments_synced: commentsSynced,
                     subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
                     errors,
                   }).eq("id", logId);
+                  if (partialErr) console.error("[secondary] Partial log update failed:", partialErr.message);
 
                   return json({
                     success: true, phase: "secondary", complete: false, log_id: logId,
