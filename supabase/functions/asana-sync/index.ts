@@ -295,13 +295,15 @@ Deno.serve(async (req) => {
             }
 
             // Update log with core results
-            await adminClient.from("asana_sync_log").update({
+            console.log(`[core] Done: ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks, ${collaboratorsSynced} collaborators. LogId: ${logId}`);
+            const { error: updateErr } = await adminClient.from("asana_sync_log").update({
               status: "core_done",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
               collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
+            if (updateErr) console.error("[core] Log update failed:", updateErr.message);
 
             return json({
               success: true, phase: "core", next_phase: "secondary", log_id: logId,
