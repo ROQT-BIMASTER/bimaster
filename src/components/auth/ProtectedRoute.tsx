@@ -44,6 +44,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
+  // Safety timeout triggered while still loading — only check session
+  // approved/isActive may be stale defaults, so skip those guards
+  if (timedOut && loading) {
+    if (!session) {
+      return <Navigate to="/auth/login" replace />;
+    }
+    return <>{children}</>;
+  }
+
   if (!session) {
     return <Navigate to="/auth/login" replace />;
   }
