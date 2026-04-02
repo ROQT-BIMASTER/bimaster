@@ -99,6 +99,8 @@ interface Props {
   onDespacharClick?: (ids: string[]) => void;
   filterProjeto: string;
   onFilterProjetoChange: (v: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (v: string) => void;
 }
 
 export function VincularChinaTable({
