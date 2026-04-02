@@ -254,21 +254,6 @@ export function ProjetoTarefaDetalhe({
     }
   };
 
-  const handleCommentSubmit = (text: string, mentionIds: string[]) => {
-    addComentario.mutate({ conteudo: text, mentions: mentionIds });
-  };
-
-  const handleChatSubmit = (text: string, mentionIds: string[]) => {
-    sendMessage.mutate({ conteudo: text, mentions: mentionIds });
-    setChatValue("");
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(f => uploadAnexo.mutate(f));
-    e.target.value = "";
-  };
 
   const handleDownload = async (anexo: any) => {
     const url = await getAnexoUrl(anexo.storage_path);
