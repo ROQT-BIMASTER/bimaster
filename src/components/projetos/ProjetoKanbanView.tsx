@@ -257,29 +257,31 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                 {/* Cards */}
                 <ScrollArea className="flex-1 p-2">
                   <DroppableSecao id={secao.id} isOver={overColumnId === secao.id}>
-                    <div className="space-y-2">
-                      {secaoTarefas.map((tarefa) => (
-                        <DraggableKanbanCard
-                          key={tarefa.id}
-                          tarefa={tarefa}
-                          onSelect={() => setSelectedTarefa(tarefa)}
-                          onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
-                          darkBg={darkBg}
-                          isDragActive={activeId === tarefa.id}
-                          metasProgress={metasProgress[tarefa.id]}
-                        />
-                      ))}
-                      {secaoTarefas.length === 0 && (
-                        <div className={cn(
-                          "text-center py-8 text-xs border-2 border-dashed rounded-lg transition-all",
-                          overColumnId === secao.id
-                            ? "border-primary/40 bg-primary/5 text-primary"
-                            : darkBg ? "border-white/10 text-white/40" : "border-border/30 text-muted-foreground"
-                        )}>
-                          {overColumnId === secao.id ? "Solte aqui ↓" : "Sem tarefas"}
-                        </div>
-                      )}
-                    </div>
+                    <SortableContext items={secaoTarefas.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {secaoTarefas.map((tarefa) => (
+                          <DraggableKanbanCard
+                            key={tarefa.id}
+                            tarefa={tarefa}
+                            onSelect={() => setSelectedTarefa(tarefa)}
+                            onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
+                            darkBg={darkBg}
+                            isDragActive={activeId === tarefa.id}
+                            metasProgress={metasProgress[tarefa.id]}
+                          />
+                        ))}
+                        {secaoTarefas.length === 0 && (
+                          <div className={cn(
+                            "text-center py-8 text-xs border-2 border-dashed rounded-lg transition-all",
+                            overColumnId === secao.id
+                              ? "border-primary/40 bg-primary/5 text-primary"
+                              : darkBg ? "border-white/10 text-white/40" : "border-border/30 text-muted-foreground"
+                          )}>
+                            {overColumnId === secao.id ? "Solte aqui ↓" : "Sem tarefas"}
+                          </div>
+                        )}
+                      </div>
+                    </SortableContext>
                   </DroppableSecao>
                 </ScrollArea>
 
