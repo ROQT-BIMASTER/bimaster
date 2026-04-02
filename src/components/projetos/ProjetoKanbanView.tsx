@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
+import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
@@ -42,6 +44,8 @@ import {
 interface Props {
   projetoId: string;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
 /* ───────── Droppable Column ───────── */
@@ -60,12 +64,34 @@ function DroppableSecao({ id, children, isOver }: { id: string; children: React.
   );
 }
 
-export function ProjetoKanbanView({ projetoId, darkBg = false }: Props) {
+export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
   const {
-    secoes, tarefas, secoesLoading, tarefasLoading,
-    tarefasPorSecao, createTarefa, updateTarefa,
+    secoes, tarefas: rawTarefas, secoesLoading, tarefasLoading,
+    tarefasPorSecao: rawTarefasPorSecao, createTarefa, updateTarefa,
     toggleTarefaCompleta, moveTarefaToSecao, createSecao,
   } = useProjetoTarefas(projetoId);
+
+  // Apply external filters/sort
+  const filtersActive = hasActiveFilters(filters);
+  const filteredIds = useMemo(() => {
+    if (!filtersActive) return null;
+    const filtered = applyProjetoFilters(rawTarefas, filters);
+    return new Set(filtered.map(t => t.id));
+  }, [rawTarefas, filters, filtersActive]);
+
+  const tarefas = useMemo(() => {
+    let t = rawTarefas;
+    if (filtersActive && filteredIds) t = t.filter(x => filteredIds.has(x.id));
+    return applyProjetoSort(t, sort);
+  }, [rawTarefas, sort, filtersActive, filteredIds]);
+
+  const tarefasPorSecao = useMemo(() => {
+    return (secaoId: string) => {
+      const base = rawTarefasPorSecao(secaoId);
+      if (!filtersActive || !filteredIds) return base;
+      return base.filter(t => filteredIds.has(t.id));
+    };
+  }, [rawTarefasPorSecao, filtersActive, filteredIds]);
 
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);

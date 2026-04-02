@@ -2,6 +2,8 @@ import { useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
 import { parseLocalDate, formatLocalDate } from "@/utils/dateUtils";
 import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -51,10 +53,19 @@ interface Props {
   projetoId: string;
   onSelectTarefa?: (tarefa: ProjetoTarefa) => void;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
-export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = false }: Props) {
-  const { tarefas, secoes, tarefasLoading, secoesLoading } = useProjetoTarefas(projetoId);
+export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
+  const { tarefas: rawTarefas, secoes, tarefasLoading, secoesLoading } = useProjetoTarefas(projetoId);
+
+  // Apply external filters
+  const tarefas = useMemo(() => {
+    let t: typeof rawTarefas = rawTarefas;
+    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters) as typeof rawTarefas;
+    return applyProjetoSort(t, sort) as typeof rawTarefas;
+  }, [rawTarefas, filters, sort]);
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [filterSecao, setFilterSecao] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");

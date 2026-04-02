@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
+import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
+import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
 import { getDateKey, parseLocalDate, getToday } from "@/utils/dateUtils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,10 +28,19 @@ const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 interface Props {
   projetoId: string;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
-export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
-  const { tarefas, secoes } = useProjetoTarefas(projetoId);
+export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMPTY_FILTERS, sort = DEFAULT_SORT }: Props) {
+  const { tarefas: rawTarefas, secoes } = useProjetoTarefas(projetoId);
+
+  // Apply external filters
+  const tarefas = useMemo(() => {
+    let t: typeof rawTarefas = rawTarefas;
+    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters) as typeof rawTarefas;
+    return applyProjetoSort(t, sort) as typeof rawTarefas;
+  }, [rawTarefas, filters, sort]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [filterSecao, setFilterSecao] = useState<string>("all");
