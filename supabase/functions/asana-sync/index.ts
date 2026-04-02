@@ -1,0 +1,426 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+
+const ASANA_API = "https://app.asana.com/api/1.0";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    // Auth: validate JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Não autorizado" }, 401);
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return json({ error: "Token inválido" }, 401);
+    }
+    const userId = claimsData.claims.sub as string;
+
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const body = await req.json();
+    const { path, pat, workspace_gid, project_gids } = body;
+
+    const asanaPat = pat || Deno.env.get("ASANA_PAT");
+    if (!asanaPat && path !== "/status") {
+      return json({ error: "Token do Asana não configurado" }, 400);
+    }
+
+    switch (path) {
+      case "/test-connection": {
+        const res = await asanaGet("/users/me", asanaPat);
+        const workspaces = await asanaGet("/workspaces", asanaPat);
+        return json({
+          user: { name: res.data.name, email: res.data.email },
+          workspaces: workspaces.data.map((w: any) => ({ gid: w.gid, name: w.name })),
+        });
+      }
+
+      case "/list-projects": {
+        if (!workspace_gid) return json({ error: "workspace_gid obrigatório" }, 400);
+        const projects = await asanaGetAll(`/workspaces/${workspace_gid}/projects`, asanaPat, {
+          opt_fields: "name,color,archived,created_at,modified_at,current_status",
+        });
+        return json({
+          projects: projects
+            .filter((p: any) => !p.archived)
+            .map((p: any) => ({
+              gid: p.gid,
+              name: p.name,
+              color: p.color,
+              modified_at: p.modified_at,
+            })),
+        });
+      }
+
+      case "/sync-project": {
+        if (!workspace_gid || !project_gids?.length) {
+          return json({ error: "workspace_gid e project_gids obrigatórios" }, 400);
+        }
+
+        // Create sync log
+        const { data: logRow } = await adminClient
+          .from("asana_sync_log")
+          .insert({
+            workspace_gid,
+            project_gids,
+            status: "running",
+            started_by: userId,
+          })
+          .select()
+          .single();
+
+        const logId = logRow!.id;
+        const errors: any[] = [];
+        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0;
+
+        try {
+          // Map Asana users to local profiles
+          const asanaUsers = await asanaGetAll(`/workspaces/${workspace_gid}/users`, asanaPat, {
+            opt_fields: "name,email",
+          });
+          const { data: profiles } = await adminClient.from("profiles").select("id, email, nome");
+          const userMap = new Map<string, string>(); // asana_gid -> local profile id
+
+          for (const au of asanaUsers) {
+            if (!au.email) continue;
+            const match = (profiles || []).find(
+              (p: any) => p.email?.toLowerCase() === au.email.toLowerCase()
+            );
+            if (match) {
+              userMap.set(au.gid, match.id);
+              usersMapped++;
+            }
+          }
+
+          for (const projectGid of project_gids) {
+            try {
+              const proj = await asanaGet(`/projects/${projectGid}`, asanaPat, {
+                opt_fields: "name,color,notes,created_at,modified_at",
+              });
+
+              // Upsert project
+              const { data: existingProj } = await adminClient
+                .from("projetos")
+                .select("id")
+                .eq("asana_gid", projectGid)
+                .maybeSingle();
+
+              let localProjectId: string;
+              if (existingProj) {
+                localProjectId = existingProj.id;
+                await adminClient.from("projetos").update({
+                  nome: proj.data.name,
+                  descricao: proj.data.notes || null,
+                  updated_at: new Date().toISOString(),
+                }).eq("id", localProjectId);
+              } else {
+                const { data: newProj } = await adminClient.from("projetos").insert({
+                  nome: proj.data.name,
+                  descricao: proj.data.notes || null,
+                  cor: mapAsanaColor(proj.data.color),
+                  criador_id: userId,
+                  tipo: "kanban",
+                  status: "ativo",
+                  asana_gid: projectGid,
+                  origem_projeto: "asana",
+                }).select().single();
+                localProjectId = newProj!.id;
+              }
+              projectsSynced++;
+
+              // Sync sections
+              const sections = await asanaGetAll(`/projects/${projectGid}/sections`, asanaPat, {
+                opt_fields: "name,created_at",
+              });
+
+              const sectionMap = new Map<string, string>(); // asana section gid -> local id
+              for (let i = 0; i < sections.length; i++) {
+                const sec = sections[i];
+                const { data: existingSec } = await adminClient
+                  .from("projeto_secoes")
+                  .select("id")
+                  .eq("asana_gid", sec.gid)
+                  .eq("projeto_id", localProjectId)
+                  .maybeSingle();
+
+                if (existingSec) {
+                  sectionMap.set(sec.gid, existingSec.id);
+                  await adminClient.from("projeto_secoes").update({
+                    nome: sec.name || "(Sem título)",
+                    ordem: i,
+                  }).eq("id", existingSec.id);
+                } else {
+                  const { data: newSec } = await adminClient.from("projeto_secoes").insert({
+                    projeto_id: localProjectId,
+                    nome: sec.name || "(Sem título)",
+                    ordem: i,
+                    asana_gid: sec.gid,
+                  }).select().single();
+                  sectionMap.set(sec.gid, newSec!.id);
+                }
+                sectionsSynced++;
+              }
+
+              // Get first section as default
+              const defaultSectionId = sectionMap.values().next().value;
+              if (!defaultSectionId) {
+                errors.push({ project: projectGid, error: "Nenhuma seção encontrada" });
+                continue;
+              }
+
+              // Sync tasks
+              const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
+                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields",
+              });
+
+              const taskMap = new Map<string, string>(); // asana task gid -> local id
+
+              // First pass: create/update tasks (no parent linking)
+              for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                const sectionGid = task.memberships?.[0]?.section?.gid;
+                const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
+
+                const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
+                const status = task.completed ? "concluida" : "em_andamento";
+
+                const taskData: Record<string, any> = {
+                  titulo: task.name || "(Sem título)",
+                  descricao: task.notes || null,
+                  status,
+                  data_prazo: task.due_on || null,
+                  data_inicio: task.start_on || null,
+                  data_conclusao: task.completed_at || null,
+                  responsavel_id: assigneeId || null,
+                  ordem: i,
+                  asana_gid: task.gid,
+                };
+
+                const { data: existingTask } = await adminClient
+                  .from("projeto_tarefas")
+                  .select("id")
+                  .eq("asana_gid", task.gid)
+                  .maybeSingle();
+
+                if (existingTask) {
+                  taskMap.set(task.gid, existingTask.id);
+                  await adminClient.from("projeto_tarefas").update(taskData).eq("id", existingTask.id);
+                } else {
+                  const { data: newTask } = await adminClient.from("projeto_tarefas").insert({
+                    ...taskData,
+                    projeto_id: localProjectId,
+                    secao_id: sectionId || defaultSectionId,
+                    criador_id: userId,
+                  }).select().single();
+                  taskMap.set(task.gid, newTask!.id);
+                }
+                tasksSynced++;
+              }
+
+              // Second pass: link parent tasks
+              for (const task of tasks) {
+                if (task.parent?.gid && taskMap.has(task.gid) && taskMap.has(task.parent.gid)) {
+                  await adminClient.from("projeto_tarefas").update({
+                    parent_tarefa_id: taskMap.get(task.parent.gid),
+                  }).eq("id", taskMap.get(task.gid));
+                }
+              }
+
+              // Sync comments (stories) for each task
+              for (const task of tasks) {
+                const localTaskId = taskMap.get(task.gid);
+                if (!localTaskId) continue;
+
+                try {
+                  const stories = await asanaGetAll(`/tasks/${task.gid}/stories`, asanaPat, {
+                    opt_fields: "text,type,created_by,created_at",
+                  });
+
+                  for (const story of stories) {
+                    if (story.type !== "comment" || !story.text) continue;
+
+                    const authorId = story.created_by?.gid
+                      ? userMap.get(story.created_by.gid) || userId
+                      : userId;
+
+                    // Check if comment already exists via mapping
+                    const { data: existing } = await adminClient
+                      .from("asana_sync_mappings")
+                      .select("local_id")
+                      .eq("asana_gid", story.gid)
+                      .eq("entity_type", "comment")
+                      .maybeSingle();
+
+                    if (!existing) {
+                      const { data: newComment } = await adminClient
+                        .from("projeto_tarefa_comentarios")
+                        .insert({
+                          tarefa_id: localTaskId,
+                          user_id: authorId,
+                          conteudo: story.text,
+                        })
+                        .select()
+                        .single();
+
+                      if (newComment) {
+                        await adminClient.from("asana_sync_mappings").insert({
+                          asana_gid: story.gid,
+                          entity_type: "comment",
+                          local_id: newComment.id,
+                          workspace_gid,
+                        });
+                        commentsSynced++;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  errors.push({ task: task.gid, error: `Erro ao sync comentários: ${e.message}` });
+                }
+              }
+            } catch (e) {
+              errors.push({ project: projectGid, error: e.message });
+            }
+          }
+
+          await adminClient.from("asana_sync_log").update({
+            status: "completed",
+            projects_synced: projectsSynced,
+            sections_synced: sectionsSynced,
+            tasks_synced: tasksSynced,
+            comments_synced: commentsSynced,
+            users_mapped: usersMapped,
+            errors,
+            completed_at: new Date().toISOString(),
+          }).eq("id", logId);
+
+          return json({
+            success: true,
+            log_id: logId,
+            projects_synced: projectsSynced,
+            sections_synced: sectionsSynced,
+            tasks_synced: tasksSynced,
+            comments_synced: commentsSynced,
+            users_mapped: usersMapped,
+            errors,
+          });
+        } catch (e) {
+          await adminClient.from("asana_sync_log").update({
+            status: "failed",
+            errors: [...errors, { fatal: e.message }],
+            completed_at: new Date().toISOString(),
+          }).eq("id", logId);
+
+          return json({ error: e.message, errors }, 500);
+        }
+      }
+
+      case "/status": {
+        const { data: logs } = await adminClient
+          .from("asana_sync_log")
+          .select("*")
+          .eq("started_by", userId)
+          .order("started_at", { ascending: false })
+          .limit(10);
+
+        return json({ logs: logs || [] });
+      }
+
+      default:
+        return json({ error: `Rota desconhecida: ${path}` }, 400);
+    }
+  } catch (e) {
+    console.error("asana-sync error:", e);
+    return json({ error: e.message }, 500);
+  }
+});
+
+// --- Helpers ---
+
+function json(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function asanaGet(path: string, pat: string, params?: Record<string, string>) {
+  const url = new URL(`${ASANA_API}${path}`);
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${pat}` },
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Asana API ${res.status}: ${errBody}`);
+  }
+
+  return res.json();
+}
+
+async function asanaGetAll(path: string, pat: string, params?: Record<string, string>) {
+  const all: any[] = [];
+  let offset: string | null = null;
+
+  do {
+    const url = new URL(`${ASANA_API}${path}`);
+    url.searchParams.set("limit", "100");
+    if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    if (offset) url.searchParams.set("offset", offset);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${pat}` },
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Asana API ${res.status}: ${errBody}`);
+    }
+
+    const json = await res.json();
+    all.push(...(json.data || []));
+    offset = json.next_page?.offset || null;
+  } while (offset);
+
+  return all;
+}
+
+function mapAsanaColor(color: string | null): string {
+  const colorMap: Record<string, string> = {
+    "dark-pink": "#E91E63",
+    "dark-green": "#4CAF50",
+    "dark-blue": "#2196F3",
+    "dark-red": "#F44336",
+    "dark-teal": "#009688",
+    "dark-brown": "#795548",
+    "dark-orange": "#FF9800",
+    "dark-purple": "#9C27B0",
+    "dark-warm-gray": "#9E9E9E",
+    "light-pink": "#FCE4EC",
+    "light-green": "#E8F5E9",
+    "light-blue": "#E3F2FD",
+    "light-red": "#FFEBEE",
+    "light-teal": "#E0F2F1",
+    "light-orange": "#FFF3E0",
+    "light-purple": "#F3E5F5",
+    "light-warm-gray": "#F5F5F5",
+  };
+  return colorMap[color || ""] || "#6366f1";
+}
