@@ -217,6 +217,97 @@ export default function AsanaIntegracao() {
         </Card>
       )}
 
+      {/* AI Analysis */}
+      {step >= 2 && selectedWorkspace && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Brain className="h-5 w-5" /> Análise Inteligente de Estrutura
+            </CardTitle>
+            <CardDescription>
+              A IA analisa todos os campos, custom fields, tags e dependências do Asana e compara com o sistema local
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!analysisReport && !analyzing && (
+              <Button
+                onClick={async () => {
+                  setAnalyzing(true);
+                  try {
+                    const result = await analyzeStructure(pat, selectedWorkspace);
+                    setAnalysisReport(result.report);
+                  } catch {
+                    // handled in hook
+                  } finally {
+                    setAnalyzing(false);
+                  }
+                }}
+                disabled={loading}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Analisar Estrutura com IA
+              </Button>
+            )}
+
+            {analyzing && (
+              <div className="py-8 flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Analisando estrutura do Asana com IA... Isso pode levar alguns segundos.
+                </p>
+              </div>
+            )}
+
+            {analysisReport && (
+              <>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setAnalyzing(true);
+                      setAnalysisReport(null);
+                      try {
+                        const result = await analyzeStructure(pat, selectedWorkspace);
+                        setAnalysisReport(result.report);
+                      } catch {
+                        // handled
+                      } finally {
+                        setAnalyzing(false);
+                      }
+                    }}
+                    className="gap-1"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Reanalisar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(analysisReport);
+                      setReportCopied(true);
+                      toast.success("Relatório copiado!");
+                      setTimeout(() => setReportCopied(false), 2000);
+                    }}
+                    className="gap-1"
+                  >
+                    {reportCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {reportCopied ? "Copiado!" : "Copiar"}
+                  </Button>
+                </div>
+                <ScrollArea className="max-h-[60vh]">
+                  <div className="prose prose-sm max-w-none dark:prose-invert px-2">
+                    <ReactMarkdown>{analysisReport}</ReactMarkdown>
+                  </div>
+                </ScrollArea>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Step 3: Projects selection */}
       {step >= 3 && projects.length > 0 && !syncing && step < 4 && (
         <Card>

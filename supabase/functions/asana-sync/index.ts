@@ -330,7 +330,175 @@ Deno.serve(async (req) => {
         }
       }
 
+      case "/analyze-structure": {
+        if (!workspace_gid) return json({ error: "workspace_gid obrigatório" }, 400);
+
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY não configurada" }, 500);
+
+        // 1. Fetch all projects with custom_fields
+        const allProjects = await asanaGetAll(`/workspaces/${workspace_gid}/projects`, asanaPat, {
+          opt_fields: "name,custom_field_settings,custom_field_settings.custom_field,custom_field_settings.custom_field.name,custom_field_settings.custom_field.type,custom_field_settings.custom_field.enum_options,custom_field_settings.custom_field.enum_options.name",
+        });
+
+        // 2. Sample tasks from up to 3 projects for deep field analysis
+        const sampleProjects = allProjects.filter((p: any) => !p.archived).slice(0, 3);
+        const sampleTasks: any[] = [];
+        const allCustomFields = new Map<string, any>();
+        const allTags = new Set<string>();
+        let hasDependencies = false;
+        let hasAttachments = false;
+        let hasFollowers = false;
+
+        for (const proj of sampleProjects) {
+          // Collect custom_field_settings from project
+          for (const cfs of (proj.custom_field_settings || [])) {
+            const cf = cfs.custom_field;
+            if (cf) {
+              allCustomFields.set(cf.gid, {
+                gid: cf.gid,
+                name: cf.name,
+                type: cf.type,
+                enum_options: cf.enum_options?.map((o: any) => o.name) || [],
+              });
+            }
+          }
+
+          // Sample tasks
+          const tasks = await asanaGetAll(`/projects/${proj.gid}/tasks`, asanaPat, {
+            opt_fields: "name,custom_fields,custom_fields.name,custom_fields.type,custom_fields.display_value,custom_fields.enum_value,tags,tags.name,dependencies,dependents,attachments,followers,start_on,due_on,due_at,completed,parent,num_subtasks",
+          });
+
+          for (const t of tasks.slice(0, 10)) {
+            sampleTasks.push(t);
+            // Collect custom fields from tasks
+            for (const cf of (t.custom_fields || [])) {
+              if (!allCustomFields.has(cf.gid)) {
+                allCustomFields.set(cf.gid, {
+                  gid: cf.gid,
+                  name: cf.name,
+                  type: cf.type,
+                });
+              }
+            }
+            // Collect tags
+            for (const tag of (t.tags || [])) {
+              allTags.add(tag.name);
+            }
+            if (t.dependencies?.length > 0 || t.dependents?.length > 0) hasDependencies = true;
+            if (t.attachments?.length > 0) hasAttachments = true;
+            if (t.followers?.length > 0) hasFollowers = true;
+          }
+        }
+
+        // 3. Build analysis payload
+        const asanaStructure = {
+          total_projects: allProjects.filter((p: any) => !p.archived).length,
+          sample_projects: sampleProjects.map((p: any) => p.name),
+          custom_fields: Array.from(allCustomFields.values()),
+          tags: Array.from(allTags),
+          has_dependencies: hasDependencies,
+          has_attachments: hasAttachments,
+          has_followers: hasFollowers,
+          sample_task_count: sampleTasks.length,
+          sample_tasks: sampleTasks.slice(0, 5).map((t: any) => ({
+            name: t.name,
+            custom_fields: t.custom_fields?.map((cf: any) => ({
+              name: cf.name,
+              type: cf.type,
+              display_value: cf.display_value,
+            })),
+            tags: t.tags?.map((tag: any) => tag.name),
+            has_parent: !!t.parent,
+            num_subtasks: t.num_subtasks,
+          })),
+        };
+
+        const localSchema = {
+          projeto_tarefas: [
+            "id", "projeto_id", "secao_id", "titulo", "descricao", "status (pendente/em_andamento/concluida/cancelada)",
+            "prioridade (baixa/media/alta/urgente)", "data_prazo", "data_inicio", "data_conclusao",
+            "responsavel_id", "criador_id", "ordem", "estagio", "codigo", "cor_etiqueta",
+            "parent_tarefa_id", "asana_gid", "origem_projeto",
+          ],
+          projeto_secoes: ["id", "projeto_id", "nome", "cor", "ordem", "asana_gid"],
+          projetos: ["id", "nome", "descricao", "cor", "status", "tipo", "asana_gid", "origem_projeto"],
+          projeto_tarefa_comentarios: ["id", "tarefa_id", "user_id", "conteudo"],
+        };
+
+        // 4. Call AI for analysis
+        const aiPrompt = `Você é um engenheiro de dados analisando uma migração do Asana para um sistema customizado.
+
+## Estrutura encontrada no Asana:
+${JSON.stringify(asanaStructure, null, 2)}
+
+## Schema atual do sistema local:
+${JSON.stringify(localSchema, null, 2)}
+
+## Tarefa:
+Analise os dados do Asana e produza um relatório detalhado em Markdown com:
+
+1. **📊 Resumo da Estrutura Asana** — Quantos projetos, campos customizados, tags, dependências encontrados.
+
+2. **🔄 Mapeamento Campo a Campo** — Tabela com 3 colunas:
+   | Campo Asana | Campo Local Equivalente | Status |
+   Para cada campo do Asana, identifique se já existe no sistema local (✅ Existe), se precisa ser criado (🆕 Criar), ou se pode ser ignorado (⏭️ Ignorar).
+
+3. **🆕 Campos que Precisam Ser Criados** — Para cada campo que não existe localmente:
+   - Nome sugerido para a coluna
+   - Tipo de dado (text, boolean, jsonb, etc.)
+   - Justificativa
+
+4. **📋 SQL Sugerido** — Bloco SQL com ALTER TABLE e CREATE TABLE para adicionar os campos/tabelas faltantes.
+
+5. **🖥️ Sugestões de Frontend** — Quais componentes precisam ser criados/modificados na UI para exibir os novos campos.
+
+6. **⚠️ Pontos de Atenção** — Riscos, dados que podem ser perdidos, campos ambíguos.
+
+Seja específico com nomes de colunas, tipos e relações. Use o padrão snake_case em português para nomes de colunas.`;
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "user", content: aiPrompt },
+            ],
+            temperature: 0.3,
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          if (aiResponse.status === 429) return json({ error: "Limite de requisições IA excedido, tente novamente em instantes" }, 429);
+          if (aiResponse.status === 402) return json({ error: "Créditos insuficientes para análise IA" }, 402);
+          const errText = await aiResponse.text();
+          console.error("AI Gateway error:", aiResponse.status, errText);
+          return json({ error: "Erro na análise IA" }, 500);
+        }
+
+        const aiData = await aiResponse.json();
+        const report = aiData.choices?.[0]?.message?.content || "Relatório não gerado";
+
+        return json({
+          report,
+          structure: asanaStructure,
+        });
+      }
+
       case "/status": {
+        const { data: logs } = await adminClient
+          .from("asana_sync_log")
+          .select("*")
+          .eq("started_by", userId)
+          .order("started_at", { ascending: false })
+          .limit(10);
+
+        return json({ logs: logs || [] });
+      }
         const { data: logs } = await adminClient
           .from("asana_sync_log")
           .select("*")
