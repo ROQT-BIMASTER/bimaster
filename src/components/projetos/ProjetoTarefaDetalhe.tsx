@@ -1152,50 +1152,8 @@ export function ProjetoTarefaDetalhe({
         </SheetContent>
       </Sheet>
 
-      {/* Cofre Dialog - Per-attachment category */}
-      <Dialog open={cofreDialogOpen} onOpenChange={setCofreDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-emerald-500" />
-              Enviar ao Cofre de Documentos
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm">Documentos selecionados — selecione a categoria de cada um</Label>
-              <div className="mt-2 space-y-2">
-                {anexos.filter(a => selectedAnexoIds.includes(a.id)).map(a => (
-                  <div key={a.id} className="flex items-center gap-2 text-xs p-2 bg-muted/30 rounded-md">
-                    {getFileIcon(a.tipo_arquivo)}
-                    <span className="truncate flex-1 min-w-0">{a.nome}</span>
-                    <Select
-                      value={categoriasPorAnexo[a.id] || ""}
-                      onValueChange={v => setCategoriasPorAnexo(prev => ({ ...prev, [a.id]: v }))}
-                    >
-                      <SelectTrigger className="h-7 w-[130px] text-[11px]">
-                        <SelectValue placeholder="Categoria..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COFRE_CATEGORIAS.map(c => (
-                          <SelectItem key={c} value={c}>{COFRE_CATEGORIA_LABELS[c]}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCofreDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSendToCofre} disabled={sendToCofre.isPending} className="gap-1.5">
-              <FolderOpen className="h-4 w-4" />
-              {sendToCofre.isPending ? "Enviando..." : "Enviar ao Cofre"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Validação Final Dialog */}
       {(tarefa as any).produto_id && (
