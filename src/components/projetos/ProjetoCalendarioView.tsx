@@ -17,32 +17,9 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// ─── Stage colors for pills ───
-const ESTAGIO_PILL_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500",
-  em_criacao: "bg-blue-500",
-  revisao: "bg-amber-500",
-  aprovado: "bg-emerald-500",
-  producao: "bg-pink-500",
-  lancamento: "bg-pink-500",
-};
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
-
-const STATUS_ICONS: Record<string, { icon: typeof Circle; className: string }> = {
-  pendente: { icon: Circle, className: "text-muted-foreground" },
-  nao_iniciado: { icon: Circle, className: "text-pink-500" },
-  em_andamento: { icon: Circle, className: "text-amber-500" },
-  concluida: { icon: CheckCircle2, className: "text-emerald-500" },
-  bloqueada: { icon: Circle, className: "text-red-500" },
-};
+import {
+  ESTAGIO_LABELS, ESTAGIO_PILL_COLORS, STATUS_ICON_CONFIG,
+} from "@/lib/projetoConstants";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -303,9 +280,9 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
 // ─── Task Pill ───
 function TaskPill({ tarefa, darkBg, onClick }: { tarefa: ProjetoTarefa; darkBg: boolean; onClick: () => void }) {
   const stageColor = ESTAGIO_PILL_COLORS[tarefa.estagio || ""] || "bg-muted-foreground/50";
-  const statusEntry = STATUS_ICONS[tarefa.status] || STATUS_ICONS.pendente;
-  const StatusIcon = statusEntry.icon;
-  const isCompleted = tarefa.status === "concluida";
+  const cfg = STATUS_ICON_CONFIG[tarefa.status] || STATUS_ICON_CONFIG.pendente;
+  const StatusIcon = cfg.completed ? CheckCircle2 : Circle;
+  const isCompleted = cfg.completed;
 
   return (
     <button
@@ -317,7 +294,7 @@ function TaskPill({ tarefa, darkBg, onClick }: { tarefa: ProjetoTarefa; darkBg: 
       )}
     >
       <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", stageColor)} />
-      <StatusIcon className={cn("h-3 w-3 shrink-0", statusEntry.className)} />
+      <StatusIcon className={cn("h-3 w-3 shrink-0", cfg.className)} />
       <span className={cn(
         "truncate flex-1 font-medium",
         darkBg ? "text-white" : "text-foreground",
@@ -361,8 +338,8 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
   const tarefa = tarefas.find((t) => t.id === tarefaId);
   if (!tarefa) return null;
 
-  const statusEntry = STATUS_ICONS[tarefa.status] || STATUS_ICONS.pendente;
-  const StatusIcon = statusEntry.icon;
+  const cfg2 = STATUS_ICON_CONFIG[tarefa.status] || STATUS_ICON_CONFIG.pendente;
+  const StatusIcon = cfg2.completed ? CheckCircle2 : Circle;
   const stageLabel = ESTAGIO_LABELS[tarefa.estagio || ""] || "—";
 
   return (
@@ -376,7 +353,7 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
       </div>
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-2">
-          <StatusIcon className={cn("h-4 w-4", statusEntry.className)} />
+          <StatusIcon className={cn("h-4 w-4", cfg2.className)} />
           <span className={darkBg ? "text-white/70" : "text-muted-foreground"}>
             {tarefa.status === "concluida" ? "Concluído" : tarefa.status === "em_andamento" ? "Em andamento" : tarefa.status === "bloqueada" ? "Bloqueada" : "Não iniciado"}
           </span>

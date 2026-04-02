@@ -43,13 +43,7 @@ const TIPO_CONFIG: Record<string, { icon: React.ReactNode; color: string; label:
   despacho_processo:  { icon: <Send className="h-3 w-3" />,         color: "bg-primary/20 text-primary",         label: "Despacho" },
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Pendente", em_andamento: "Em Andamento", concluida: "Concluída",
-  bloqueada: "Bloqueada", cancelada: "Cancelada",
-};
-const PRIORIDADE_LABELS: Record<string, string> = {
-  baixa: "Baixa", media: "Média", alta: "Alta", urgente: "Urgente",
-};
+import { STATUS_LABELS, PRIORIDADE_LABELS } from "@/lib/projetoConstants";
 
 function formatFieldValue(campo: string | null, valor: string | null): string {
   if (!valor) return "—";

@@ -50,30 +50,13 @@ export function useProjetos() {
     enabled: !!user,
   });
 
-  // Fetch task metrics per project
+  // Fetch task metrics per project using RPC (avoids 1000-row limit)
   const { data: projetoMetrics = [] } = useQuery({
     queryKey: ["projetos-metrics"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projeto_tarefas")
-        .select("projeto_id, status, data_prazo, excluida_em")
-        .is("excluida_em", null);
+      const { data, error } = await supabase.rpc("get_projeto_metrics" as any);
       if (error) throw error;
-
-      const metricsMap = new Map<string, ProjetoMetrics>();
-      const now = new Date();
-
-      for (const t of data || []) {
-        if (!metricsMap.has(t.projeto_id)) {
-          metricsMap.set(t.projeto_id, { projeto_id: t.projeto_id, total_tarefas: 0, concluidas: 0, atrasadas: 0 });
-        }
-        const m = metricsMap.get(t.projeto_id)!;
-        m.total_tarefas++;
-        if (t.status === "concluida") m.concluidas++;
-        else if (t.data_prazo && new Date(t.data_prazo) < now) m.atrasadas++;
-      }
-
-      return Array.from(metricsMap.values());
+      return (data || []) as ProjetoMetrics[];
     },
     enabled: !!user,
   });

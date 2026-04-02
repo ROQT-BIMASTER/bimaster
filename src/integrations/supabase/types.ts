@@ -32435,6 +32435,15 @@ export type Database = {
       get_potencial_uf:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
+      get_projeto_metrics: {
+        Args: never
+        Returns: {
+          atrasadas: number
+          concluidas: number
+          projeto_id: string
+          total_tarefas: number
+        }[]
+      }
       get_reativacao_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
       get_sales_performance: {
         Args: never

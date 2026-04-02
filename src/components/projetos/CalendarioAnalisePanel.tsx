@@ -42,48 +42,10 @@ const TIPO_LABELS: Record<string, string> = {
   max_simultaneas_andamento: "Máx. Simultâneas em Andamento",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Não iniciado",
-  nao_iniciado: "Não iniciado",
-  em_andamento: "Em andamento",
-  concluida: "Concluída",
-  bloqueada: "Bloqueada",
-};
-
-const STATUS_BADGE_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive"> = {
-  pendente: "secondary",
-  nao_iniciado: "secondary",
-  em_andamento: "warning",
-  concluida: "success",
-  bloqueada: "destructive",
-};
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
-
-const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  em_criacao: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  revisao: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-  aprovado: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  producao: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-  lancamento: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-};
-
-const ESTAGIO_COLORS_LIGHT: Record<string, string> = {
-  briefing: "bg-purple-100 text-purple-700 border-purple-200",
-  em_criacao: "bg-blue-100 text-blue-700 border-blue-200",
-  revisao: "bg-amber-100 text-amber-700 border-amber-200",
-  aprovado: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  producao: "bg-pink-100 text-pink-700 border-pink-200",
-  lancamento: "bg-pink-100 text-pink-700 border-pink-200",
-};
+import {
+  STATUS_LABELS, STATUS_BADGE_VARIANT, ESTAGIO_LABELS,
+  ESTAGIO_COLORS_ANALISE_DARK as ESTAGIO_COLORS, ESTAGIO_COLORS_ANALISE_LIGHT as ESTAGIO_COLORS_LIGHT,
+} from "@/lib/projetoConstants";
 
 const STATUS_PLANO_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" }> = {
   pendente: { label: "Pendente", variant: "secondary" },

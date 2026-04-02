@@ -439,16 +439,25 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     onError: (err: Error) => toast.error(err.message),
   });
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ["team-members"],
+    queryKey: ["team-members", projetoId],
     queryFn: async () => {
+      if (!projetoId) return [];
+      // Only fetch profiles of project members
+      const { data: membros } = await supabase
+        .from("projeto_membros")
+        .select("user_id")
+        .eq("projeto_id", projetoId);
+      if (!membros || membros.length === 0) return [];
+      const userIds = membros.map(m => m.user_id);
       const { data, error } = await supabase
         .from("profiles")
         .select("id, nome, avatar_url")
+        .in("id", userIds)
         .order("nome");
       if (error) throw error;
       return data as { id: string; nome: string; avatar_url: string | null }[];
     },
-    enabled: !!user,
+    enabled: !!user && !!projetoId,
   });
 
   // Soft delete
