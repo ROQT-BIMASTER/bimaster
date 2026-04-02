@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Users view own or member projetos" ON public.projetos;
