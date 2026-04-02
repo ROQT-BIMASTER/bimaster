@@ -599,6 +599,7 @@ Deno.serve(async (req) => {
             sections_synced: sectionsSynced,
             tasks_synced: tasksSynced,
             comments_synced: commentsSynced,
+            collaborators_synced: collaboratorsSynced,
             users_mapped: usersMapped,
             errors,
           });
