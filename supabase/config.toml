@@ -301,3 +301,5 @@ project_id = "aokkyrgaqjarhlywhjju"
     verify_jwt = false
   [functions.webhook-subscriptions-api]
     verify_jwt = false
+  [functions.asana-sync]
+    verify_jwt = false
