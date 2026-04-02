@@ -372,13 +372,16 @@ export function VincularChinaTable({
                 paginatedData.map(row => {
                   const isSelected = selectedIds.has(row.id);
                   const dateStr = row.updated_at || row.created_at;
+                  const daysSinceUpdate = dateStr ? differenceInDays(new Date(), new Date(dateStr)) : 0;
+                  const isStale = daysSinceUpdate > 7;
                   return (
                     <TableRow
                       key={row.id}
                       className={cn(
                         "cursor-pointer transition-colors",
                         isSelected && "bg-primary/5",
-                        row.isLinked && "border-l-2 border-l-success"
+                        row.isLinked && "border-l-2 border-l-success",
+                        isStale && "bg-destructive/3"
                       )}
                       onClick={() => onRowClick(row)}
                     >
@@ -410,6 +413,15 @@ export function VincularChinaTable({
                       </TableCell>
                       <TableCell>{getStatusBadge(row.status)}</TableCell>
                       <TableCell>{getPendenciaBadge(row.pendencias ?? 0, row.totalChecklist ?? 0)}</TableCell>
+                      <TableCell className="text-center">
+                        {(row.docCount ?? 0) > 0 ? (
+                          <Badge variant="secondary" className="text-[10px] gap-1">
+                            <FileText className="h-3 w-3" />{row.docCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {row.projetoNome ? (
                           <div className="flex items-center gap-1.5">
@@ -421,8 +433,9 @@ export function VincularChinaTable({
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">
+                        <span className={cn("text-xs", isStale ? "text-destructive font-semibold" : "text-muted-foreground")}>
                           {dateStr ? format(new Date(dateStr), "dd/MM/yy") : "—"}
+                          {isStale && <span className="ml-1">({daysSinceUpdate}d)</span>}
                         </span>
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
