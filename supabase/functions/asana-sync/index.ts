@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
 
               // Sync tasks
               const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
-                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields",
+                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.email",
               });
 
               const taskMap = new Map<string, string>(); // asana task gid -> local id
@@ -198,12 +198,35 @@ Deno.serve(async (req) => {
                 const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
 
                 const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
-                const status = task.completed ? "concluida" : "em_andamento";
+
+                // Map custom_fields by NAME (not GID) to normalize across projects
+                const cfMap = new Map<string, string>();
+                for (const cf of (task.custom_fields || [])) {
+                  const val = cf.enum_value?.name || cf.display_value || null;
+                  if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
+                }
+
+                // Status mapping from custom_fields or completion
+                const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || null;
+                const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
+
+                // Priority mapping from custom_fields
+                const asanaPriority = cfMap.get("prioridade") || cfMap.get("priority") || null;
+                const prioridade = mapAsanaPriority(asanaPriority);
+
+                // Stage mapping
+                const estagio = cfMap.get("estágio") || cfMap.get("stage") || null;
+
+                // ACOM code
+                const codigoAcom = cfMap.get("acom") || null;
 
                 const taskData: Record<string, any> = {
                   titulo: task.name || "(Sem título)",
                   descricao: task.notes || null,
                   status,
+                  prioridade,
+                  estagio,
+                  codigo_acom: codigoAcom,
                   data_prazo: task.due_on || null,
                   data_inicio: task.start_on || null,
                   data_conclusao: task.completed_at || null,
@@ -218,9 +241,11 @@ Deno.serve(async (req) => {
                   .eq("asana_gid", task.gid)
                   .maybeSingle();
 
+                let localTaskId: string;
                 if (existingTask) {
-                  taskMap.set(task.gid, existingTask.id);
-                  await adminClient.from("projeto_tarefas").update(taskData).eq("id", existingTask.id);
+                  localTaskId = existingTask.id;
+                  taskMap.set(task.gid, localTaskId);
+                  await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                 } else {
                   const { data: newTask } = await adminClient.from("projeto_tarefas").insert({
                     ...taskData,
@@ -228,9 +253,30 @@ Deno.serve(async (req) => {
                     secao_id: sectionId || defaultSectionId,
                     criador_id: userId,
                   }).select().single();
-                  taskMap.set(task.gid, newTask!.id);
+                  localTaskId = newTask!.id;
+                  taskMap.set(task.gid, localTaskId);
                 }
                 tasksSynced++;
+
+                // Sync followers → projeto_tarefa_colaboradores
+                if (task.followers?.length) {
+                  for (const follower of task.followers) {
+                    const localUserId = follower.gid ? userMap.get(follower.gid) : null;
+                    if (!localUserId) continue;
+                    const { data: existingCollab } = await adminClient
+                      .from("projeto_tarefa_colaboradores")
+                      .select("id")
+                      .eq("tarefa_id", localTaskId)
+                      .eq("user_id", localUserId)
+                      .maybeSingle();
+                    if (!existingCollab) {
+                      await adminClient.from("projeto_tarefa_colaboradores").insert({
+                        tarefa_id: localTaskId,
+                        user_id: localUserId,
+                      });
+                    }
+                  }
+                }
               }
 
               // Second pass: link parent tasks
@@ -239,6 +285,38 @@ Deno.serve(async (req) => {
                   await adminClient.from("projeto_tarefas").update({
                     parent_tarefa_id: taskMap.get(task.parent.gid),
                   }).eq("id", taskMap.get(task.gid));
+                }
+              }
+
+              // Third pass: sync attachments
+              for (const task of tasks) {
+                const localTaskId = taskMap.get(task.gid);
+                if (!localTaskId) continue;
+                try {
+                  const attachments = await asanaGetAll(`/tasks/${task.gid}/attachments`, asanaPat, {
+                    opt_fields: "name,download_url,host,view_url,size,created_at",
+                  });
+                  for (const att of attachments) {
+                    if (!att.gid) continue;
+                    const { data: existingAtt } = await adminClient
+                      .from("projeto_tarefa_anexos")
+                      .select("id")
+                      .eq("asana_gid", att.gid)
+                      .maybeSingle();
+                    if (!existingAtt) {
+                      await adminClient.from("projeto_tarefa_anexos").insert({
+                        tarefa_id: localTaskId,
+                        nome: att.name || "attachment",
+                        storage_path: att.download_url || att.view_url || "",
+                        tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
+                        tamanho: att.size || null,
+                        asana_gid: att.gid,
+                        uploaded_by: userId,
+                      });
+                    }
+                  }
+                } catch (e) {
+                  errors.push({ task: task.gid, error: `Erro ao sync anexos: ${e.message}` });
                 }
               }
 
