@@ -86,9 +86,9 @@ Deno.serve(async (req) => {
         try {
           // ===== MAP ASANA USERS (both phases need this) =====
           const asanaUsers = await asanaGetAll(`/workspaces/${workspace_gid}/users`, asanaPat, {
-            opt_fields: "name,email",
+            opt_fields: "name,email,photo",
           });
-          const { data: profiles } = await adminClient.from("profiles").select("id, email, nome");
+          const { data: profiles } = await adminClient.from("profiles").select("id, email, nome, avatar_url");
           const userMap = new Map<string, string>();
 
           const userGids = asanaUsers.filter((u: any) => u.gid).map((u: any) => u.gid);
@@ -101,15 +101,26 @@ Deno.serve(async (req) => {
 
           for (const au of asanaUsers) {
             if (!au.email) continue;
+            const photoUrl = au.photo?.image_128x128 || au.photo?.image_60x60 || null;
             const existingLocal = existingUserMap.get(au.gid);
             if (existingLocal) {
               userMap.set(au.gid, existingLocal);
+              // Update avatar if available and not yet set
+              if (photoUrl) {
+                const prof = (profiles || []).find((p: any) => p.id === existingLocal);
+                if (prof && !prof.avatar_url) {
+                  await adminClient.from("profiles").update({ avatar_url: photoUrl }).eq("id", existingLocal);
+                }
+              }
               usersMapped++;
               continue;
             }
             const match = (profiles || []).find((p: any) => p.email?.toLowerCase() === au.email.toLowerCase());
             if (match) {
               userMap.set(au.gid, match.id);
+              if (photoUrl && !match.avatar_url) {
+                await adminClient.from("profiles").update({ avatar_url: photoUrl }).eq("id", match.id);
+              }
               usersMapped++;
             } else if (currentPhase === "core") {
               // Only create users during core phase
@@ -125,6 +136,7 @@ Deno.serve(async (req) => {
                 }
                 await adminClient.from("profiles").update({
                   nome: au.name || au.email, aprovado: false, status: "importado_asana",
+                  avatar_url: photoUrl,
                 }).eq("id", authUser.user.id);
                 await adminClient.from("asana_sync_mappings").insert({
                   asana_gid: au.gid, entity_type: "user", local_id: authUser.user.id, workspace_gid,
