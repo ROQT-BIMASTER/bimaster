@@ -34,6 +34,7 @@ import {
 import { TarefaFocusMode } from "./TarefaFocusMode";
 import { ProjetoAprovacaoWorkflow } from "./ProjetoAprovacaoWorkflow";
 import { ProjetoAtividadesLog } from "./ProjetoAtividadesLog";
+import { ProjetoTarefaTimeline } from "./ProjetoTarefaTimeline";
 import { ProjetoTarefaDependencias } from "./ProjetoTarefaDependencias";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";

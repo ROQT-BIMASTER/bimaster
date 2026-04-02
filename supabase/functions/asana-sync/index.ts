@@ -484,8 +484,77 @@ Deno.serve(async (req) => {
                     }
                   }
                   console.log(`Task ${task.gid}: ${storiesPassedFilter} comments passed filter`);
+
+                  // Import system stories as activities
+                  const systemStories = stories.filter((s: any) => {
+                    if (s.type === "comment" || s.resource_subtype === "comment_added") return false;
+                    return s.type === "system" || s.resource_subtype;
+                  });
+                  console.log(`Task ${task.gid}: ${systemStories.length} system stories to import`);
+
+                  for (const story of systemStories) {
+                    if (!story.text) continue;
+                    // Dedup via asana_sync_mappings
+                    const { data: existingAct } = await adminClient
+                      .from("asana_sync_mappings")
+                      .select("local_id")
+                      .eq("asana_gid", story.gid)
+                      .eq("entity_type", "activity")
+                      .maybeSingle();
+                    if (existingAct) continue;
+
+                    const actAuthorId = story.created_by?.gid
+                      ? userMap.get(story.created_by.gid) || userId
+                      : userId;
+
+                    // Map resource_subtype to local tipo
+                    const subtypeMap: Record<string, { tipo: string; campo: string | null }> = {
+                      "enum_custom_field_changed": { tipo: "estagio_change", campo: "campo_customizado" },
+                      "section_changed": { tipo: "secao_change", campo: "secao" },
+                      "added_to_project": { tipo: "secao_change", campo: "projeto" },
+                      "assigned": { tipo: "responsavel_change", campo: "responsavel" },
+                      "reassigned": { tipo: "responsavel_change", campo: "responsavel" },
+                      "due_date_changed": { tipo: "prazo_change", campo: "data_prazo" },
+                      "marked_duplicate": { tipo: "sistema", campo: null },
+                      "marked_complete": { tipo: "status_change", campo: "status" },
+                      "marked_incomplete": { tipo: "status_change", campo: "status" },
+                      "name_changed": { tipo: "titulo_change", campo: "titulo" },
+                      "notes_changed": { tipo: "descricao_change", campo: "descricao" },
+                    };
+
+                    const mapping = subtypeMap[story.resource_subtype] || { tipo: "sistema", campo: null };
+
+                    // Try to extract valor_novo from text (e.g. "Fulano mudou X para Y")
+                    let valorNovo: string | null = null;
+                    const paraMatch = story.text.match(/(?:para|to)\s+["""]?(.+?)["""]?\s*$/i);
+                    if (paraMatch) valorNovo = paraMatch[1].trim();
+
+                    const { data: newAct } = await adminClient
+                      .from("projeto_tarefa_atividades")
+                      .insert({
+                        tarefa_id: localTaskId,
+                        projeto_id: localProjectId,
+                        user_id: actAuthorId,
+                        tipo: mapping.tipo,
+                        campo: mapping.campo,
+                        valor_novo: valorNovo,
+                        descricao: story.text,
+                        created_at: story.created_at || new Date().toISOString(),
+                      })
+                      .select("id")
+                      .single();
+
+                    if (newAct) {
+                      await adminClient.from("asana_sync_mappings").insert({
+                        asana_gid: story.gid,
+                        entity_type: "activity",
+                        local_id: newAct.id,
+                        workspace_gid,
+                      });
+                    }
+                  }
                 } catch (e) {
-                  errors.push({ task: task.gid, error: `Erro ao sync comentários: ${e.message}` });
+                  errors.push({ task: task.gid, error: `Erro ao sync comentários/atividades: ${e.message}` });
                 }
               }
             } catch (e) {
