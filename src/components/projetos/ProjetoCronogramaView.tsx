@@ -295,6 +295,13 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-3">
+        {/* Deadline warning banner */}
+        {showDeadlineBanner && (
+          <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs", darkBg ? "bg-warning/10 text-warning" : "bg-warning/10 text-warning")}>
+            <Calendar className="h-4 w-4 flex-shrink-0" />
+            <span>{tasksWithoutDeadline} de {totalParentTasks} tarefas sem prazo definido — defina prazos para visualizá-las no cronograma.</span>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
