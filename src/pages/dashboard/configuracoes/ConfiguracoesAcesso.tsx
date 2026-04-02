@@ -1,6 +1,7 @@
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Users, UserCheck, Building2, Settings2, Table } from "lucide-react";
 import VincularVendedor from "@/components/configuracoes-acesso/VincularVendedor";
 import VincularSupervisor from "@/components/configuracoes-acesso/VincularSupervisor";
