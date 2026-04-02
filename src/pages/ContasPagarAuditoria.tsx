@@ -449,7 +449,7 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
 
             {/* Main Content Tabs */}
             <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+              <ScrollableTabsList className="sm:grid-cols-5 lg:w-[750px]">
                 <TabsTrigger value="chat" className="gap-2">
                   <MessageCircle className="h-4 w-4" />
                   Chat IA
@@ -470,7 +470,7 @@ ${idx + 1}. [${i.severidade.toUpperCase()}] ${i.titulo}
                   <Shield className="h-4 w-4" />
                   Por Categoria
                 </TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
 
               {/* Tab: Chat com IA */}
               <TabsContent value="chat">
