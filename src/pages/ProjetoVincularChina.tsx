@@ -124,6 +124,23 @@ export default function ProjetoVincularChina() {
   const submissaoIds = useMemo(() => submissoes.map((s: any) => s.id), [submissoes]);
   const { data: pendenciasMap } = useSubmissaoPendencias(submissaoIds);
 
+  // Doc counts per submissao
+  const { data: docCountsRaw } = useQuery({
+    queryKey: ["china-doc-counts", submissaoIds],
+    enabled: submissaoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_documentos")
+        .select("submissao_id")
+        .in("submissao_id", submissaoIds);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      (data || []).forEach((d: any) => map.set(d.submissao_id, (map.get(d.submissao_id) || 0) + 1));
+      return map;
+    },
+  });
+  const docCounts = docCountsRaw ?? new Map<string, number>();
+
   const submissaoVinculadas = useMemo(() => {
     const set = new Set<string>();
     allVinculos.forEach(v => set.add(v.submissao_id));
