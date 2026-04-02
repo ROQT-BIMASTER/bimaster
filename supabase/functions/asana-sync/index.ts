@@ -698,6 +698,8 @@ Deno.serve(async (req) => {
             projects_synced: projectsSynced,
             sections_synced: sectionsSynced,
             tasks_synced: tasksSynced,
+            subtasks_synced: subtasksSynced,
+            attachments_synced: attachmentsSynced,
             comments_synced: commentsSynced,
             collaborators_synced: collaboratorsSynced,
             users_mapped: usersMapped,
