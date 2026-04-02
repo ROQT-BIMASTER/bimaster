@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
             const match = (profiles || []).find((p: any) => p.email?.toLowerCase() === au.email.toLowerCase());
             if (match) {
               userMap.set(au.gid, match.id);
-              if (photoUrl && !match.avatar_url) {
+              if (photoUrl && (!match.avatar_url || match.avatar_url === "")) {
                 await adminClient.from("profiles").update({ avatar_url: photoUrl }).eq("id", match.id);
               }
               usersMapped++;
