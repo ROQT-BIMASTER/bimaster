@@ -1,47 +1,62 @@
 
 
-# Análise Inteligente do Asana com IA — Leitura Pura + Mapeamento de Campos
+# Implementar Sugestões da Análise IA do Asana
 
-## Contexto
+## Descobertas da Exploração
 
-A integração atual já importa dados do Asana (projetos, seções, tarefas, comentários). Porém:
-1. Ela **modifica** dados no Asana? Não — já é somente leitura via PAT com GET requests
-2. O Asana possui **custom_fields** (campos personalizados) que já são buscados na API (`opt_fields: "...custom_fields"`) mas são **ignorados** — não são salvos nem analisados
-3. Campos como tags, followers, attachments, dependencies e custom_fields do Asana não têm equivalente no sistema local
+O banco já possui várias tabelas que a IA sugeriu criar:
+- **`projeto_tarefa_anexos`** — JÁ EXISTE (com `tarefa_id`, `nome`, `storage_path`, `tipo_arquivo`, `tamanho`)
+- **`projeto_tarefa_colaboradores`** — JÁ EXISTE (serve como "seguidores" com `tarefa_id`, `user_id`)
+- **`asana_gid`** em `projeto_tarefas` — JÁ EXISTE
 
-## O que será feito
+O que **realmente falta**:
+1. Campo `codigo_acom` na tabela `projeto_tarefas`
+2. Campo `asana_gid` na tabela `projeto_tarefa_anexos` (para deduplicação na migração)
+3. Mapeamento expandido de status/prioridade no sync para aceitar valores Asana como "Aguardando Terceiros", "Aprovado com Fiscal"
+4. Frontend: Badge ACOM + exibição de seguidores na tarefa
 
-### 1. Nova rota `/analyze-structure` na Edge Function
-Uma rota de **leitura pura** que:
-- Busca todos os projetos de um workspace com campos detalhados
-- Coleta `custom_fields` (campos personalizados criados pelas equipes no Asana)
-- Coleta `tags`, `dependencies`, `attachments`, `followers` de uma amostra de tarefas
-- Envia tudo para a **IA (Gemini 3 Flash)** com um prompt que pede:
-  - Lista de todos os campos encontrados no Asana
-  - Quais já têm equivalente no sistema local (`projeto_tarefas` tem: titulo, descricao, status, prioridade, data_prazo, data_inicio, responsavel_id, estagio, codigo, etc.)
-  - Quais campos **precisam ser criados** (ex: custom_fields específicos, tags, dependências)
-  - Sugestão de SQL para migrations
-  - Sugestão de componentes frontend para exibir esses campos
+## Plano
 
-### 2. Tela de Análise no Frontend
-Nova seção na página `AsanaIntegracao.tsx`:
-- Botão "Analisar Estrutura com IA" (aparece após conexão no Step 2)
-- Exibe o relatório da IA em Markdown formatado
-- Mostra tabela comparativa: Campo Asana → Campo Local → Status (existe/precisa criar)
-- Botão para copiar sugestões de migration SQL
+### 1. Migration SQL
+- `ALTER TABLE projeto_tarefas ADD COLUMN codigo_acom VARCHAR(50)`
+- `ALTER TABLE projeto_tarefa_anexos ADD COLUMN asana_gid TEXT`
+- Sem necessidade de criar tabelas de seguidores ou anexos (já existem)
 
-### 3. Garantias de Somente Leitura
-- Toda comunicação com Asana continua usando apenas `GET` requests
-- Nenhum `POST/PUT/DELETE` para a API do Asana
-- O PAT é usado apenas para leitura — as equipes não perceberão nada
+### 2. Edge Function `asana-sync` — Melhorias no Sync
+- Mapear custom_field "ACOM" → `codigo_acom`
+- Mapear custom_fields de Prioridade/Status **por nome** (não por GID) para normalizar redundâncias entre projetos
+- Importar attachments do Asana → `projeto_tarefa_anexos` (download URL + metadata)
+- Importar followers → `projeto_tarefa_colaboradores`
+- Tratar valores nulos em prioridade/status graciosamente
+- Importar subtarefas em segunda passada (pai primeiro, filhos depois)
+
+### 3. Frontend — Badge ACOM no Detalhe da Tarefa
+- Exibir badge com `codigo_acom` ao lado do título na listagem e no detalhe
+- Componente simples: se `codigo_acom` existe, mostra `<Badge>ACOM-34</Badge>`
+
+### 4. Mapeamento De/Para de Status e Prioridade
+Expandir o mapeamento na edge function:
+
+| Asana Status | Sistema Local |
+|---|---|
+| Em andamento | em_andamento |
+| Aguardando Terceiros | aguardando_terceiros |
+| Aprovado com Fiscal | aprovado_fiscal |
+| Concluído | concluida |
+| (null) | pendente |
+
+| Asana Prioridade | Sistema Local |
+|---|---|
+| Alto / Alta | alta |
+| Médio / Média | media |
+| Baixo / Baixa | baixa |
+| (null) | (null) |
 
 ## Alterações Técnicas
 
-| Arquivo | Ação |
-|---------|------|
-| `supabase/functions/asana-sync/index.ts` | Adicionar rota `/analyze-structure` que busca custom_fields, tags, dependencies e envia para IA |
-| `src/pages/AsanaIntegracao.tsx` | Adicionar botão "Analisar Estrutura" e seção de exibição do relatório IA |
-| `src/hooks/useAsanaSync.ts` | Adicionar função `analyzeStructure()` |
-
-Zero migrations neste passo — a IA apenas **sugere** o que criar. As migrations serão implementadas depois, com base no relatório.
+| Arquivo/Recurso | Ação |
+|---|---|
+| **Migration SQL** | Adicionar `codigo_acom` em `projeto_tarefas`, `asana_gid` em `projeto_tarefa_anexos` |
+| **`supabase/functions/asana-sync/index.ts`** | Expandir sync: custom_fields por nome, attachments, followers, subtarefas ordenadas |
+| **Componente tarefa (listagem/detalhe)** | Badge ACOM quando campo preenchido |
 
