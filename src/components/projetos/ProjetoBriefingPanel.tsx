@@ -208,7 +208,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs gap-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/10"
                           onClick={() => handleApprove(b.id)}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -219,7 +219,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setRejectDialog({ open: true, briefingId: b.id })}
                         >
                           <XCircle className="h-3.5 w-3.5" />
