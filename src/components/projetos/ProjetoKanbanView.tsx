@@ -157,6 +157,16 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     );
   }
 
+  if (filtersActive && tarefas.length === 0) {
+    return (
+      <EmptyState
+        icon={LayoutGrid}
+        title="Nenhuma tarefa encontrada"
+        description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+      />
+    );
+  }
+
   return (
     <>
       <DndContext
