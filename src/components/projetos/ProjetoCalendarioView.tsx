@@ -48,6 +48,15 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
 
+  // Reset internal filters when external filters become active
+  const externalFiltersActive = hasActiveFilters(filters);
+  useEffect(() => {
+    if (externalFiltersActive) {
+      setFilterSecao("all");
+      setFilterStatus("all");
+    }
+  }, [externalFiltersActive]);
+
   // Period boundaries for analysis
   const periodoInfo = useMemo(() => {
     if (viewMode === "month") {

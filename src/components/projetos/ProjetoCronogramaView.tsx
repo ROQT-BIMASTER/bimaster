@@ -71,6 +71,15 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Reset internal filters when external filters become active
+  const externalFiltersActive = hasActiveFilters(filters);
+  useEffect(() => {
+    if (externalFiltersActive) {
+      setFilterSecao("all");
+      setFilterStatus("all");
+    }
+  }, [externalFiltersActive]);
+
   // Fetch product links
   const { data: produtoLinks = [] } = useQuery({
     queryKey: ["projeto-tarefa-produtos", projetoId],
