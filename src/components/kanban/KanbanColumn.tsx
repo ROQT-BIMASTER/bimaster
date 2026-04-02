@@ -35,7 +35,7 @@ export const KanbanColumn = ({ stage, prospects, onProspectClick }: KanbanColumn
   return (
     <Card 
       ref={setNodeRef}
-      className={`flex flex-col h-full min-h-[500px] transition-colors ${
+      className={`flex flex-col h-full min-h-[500px] min-w-[280px] snap-center md:min-w-0 md:snap-align-none transition-colors ${
         isOver ? "ring-2 ring-primary" : ""
       }`}
     >
