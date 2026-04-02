@@ -1,72 +1,47 @@
 
 
-# Importar Atividades do Asana + Timeline Unificada
+# Corrigir Importação de Colaboradores do Asana
 
-## O que falta hoje
+## Diagnóstico
 
-O sync atual só importa stories do tipo `comment`. As atividades do Asana (mudanças de status, campo customizado, estágio, duplicação, etc.) são descartadas pelo filtro. Além disso, o sistema não tem uma view unificada "Comentários + Atividades" como a do Asana (screenshot).
+O código de sync de followers já existe (linhas 327-345), mas provavelmente **não está funcionando** por dois motivos:
 
-## Plano
+1. **`followers.gid` não está nos `opt_fields`** — a API do Asana pode não retornar o `gid` dos followers sem solicitação explícita no endpoint de listagem de tarefas
+2. **Sem logging** — se followers vieram vazios ou sem gid, o `continue` silencioso não deixa rastro
+3. **Possível limitação do endpoint de lista** — o Asana pode não expandir `followers` no bulk `/projects/{gid}/tasks`. Pode ser necessário buscar followers por tarefa individualmente via `/tasks/{gid}` com opt_fields incluindo `followers.gid,followers.email,followers.name`
 
-### 1. Importar stories de sistema do Asana como atividades
+## Correções
 
-No `supabase/functions/asana-sync/index.ts`, após o loop de comentários, adicionar um segundo loop para stories que **não** são comentários (system activities):
+### 1. Adicionar `followers.gid` nos opt_fields (linha 243)
 
-- Filtrar stories onde `type === "system"` ou `resource_subtype` é um dos tipos conhecidos: `added_to_project`, `moved`, `enum_custom_field_changed`, `marked_duplicate`, `section_changed`, etc.
-- Mapear para `projeto_tarefa_atividades` com:
-  - `tipo`: derivado do `resource_subtype` (ex: `enum_custom_field_changed` → `estagio_change` ou `status_change`)
-  - `descricao`: `story.text` (ex: "Luana modificou Estágio para Lançamento")
-  - `campo`: extraído do subtype quando possível
-  - `valor_novo`: extraído do texto quando possível
-  - `user_id`: mapeado via `userMap`
-  - `created_at`: `story.created_at`
-  - `projeto_id`: do projeto local
-- Deduplicar via `asana_sync_mappings` com `entity_type = "activity"`
+Incluir `followers.gid,followers.name` no `opt_fields` da chamada de tasks:
 
-### 2. Criar componente de Timeline Unificada (Comentários + Atividades)
-
-Novo componente `ProjetoTarefaTimeline.tsx` que combina:
-- Dados de `projeto_tarefa_comentarios` (comentários)
-- Dados de `projeto_tarefa_atividades` (atividades/mudanças)
-- Mesclados e ordenados por `created_at` desc
-- UI com tabs "Comentários" | "Todas as atividades" como no screenshot do Asana
-- Comentários: avatar + nome + texto + data
-- Atividades de sistema: ícone contextual + "Fulano modificou X para Y" com badge colorido no valor novo
-- Estilo visual similar ao screenshot: fundo escuro, linha do tempo vertical, badges de valor
-
-### 3. Integrar no detalhe da tarefa
-
-Substituir/complementar o `ProjetoAtividadesLog` existente com o novo componente unificado no drawer/modal de detalhe da tarefa.
-
-## Detalhes Técnicos
-
-```text
-Asana story (type=system, resource_subtype=enum_custom_field_changed)
-  → text: "Luana modificou Estágio para Lançamento"
-  → INSERT projeto_tarefa_atividades (tipo=estagio_change, descricao=text, ...)
-  → dedup via asana_sync_mappings (entity_type=activity, asana_gid=story.gid)
-
-UI:
-  Tab "Comentários" → query projeto_tarefa_comentarios
-  Tab "Todas as atividades" → merge comentários + atividades, sort by created_at
+```
+followers,followers.gid,followers.email,followers.name
 ```
 
-### Mapeamento de subtypes Asana → tipos locais
+### 2. Fallback: buscar followers individualmente quando bulk retornar vazio
 
-| resource_subtype | tipo local |
+Se `task.followers` vier undefined/vazio apesar de existir no Asana, fazer uma chamada individual:
+```
+GET /tasks/{gid}?opt_fields=followers,followers.gid,followers.email
+```
+
+### 3. Adicionar logging de diagnóstico
+
+Logar quantos followers foram encontrados por tarefa e quantos foram mapeados com sucesso, para facilitar debug futuro.
+
+### 4. Contar colaboradores no resultado do sync
+
+Adicionar um contador `collaboratorsSynced` ao resultado para visibilidade.
+
+## Arquivo a alterar
+
+| Arquivo | Alteração |
 |---|---|
-| `enum_custom_field_changed` | campo customizado (detectar por texto) |
-| `section_changed` / `added_to_project` | `secao_change` |
-| `marked_duplicate` | `sistema` |
-| `assigned` / `reassigned` | `responsavel_change` |
-| `due_date_changed` | `prazo_change` |
-| outros | `sistema` (genérico, com `descricao = story.text`) |
+| `supabase/functions/asana-sync/index.ts` | Fix opt_fields, fallback individual, logging, contador |
 
-### Arquivos a alterar/criar
+## Resultado esperado
 
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/asana-sync/index.ts` | Adicionar loop de importação de system stories |
-| `src/components/projetos/ProjetoTarefaTimeline.tsx` | Novo componente com tabs Comentários / Todas as atividades |
-| Componente de detalhe da tarefa | Integrar o novo timeline |
+Após resync, as tarefas do Asana terão seus colaboradores/seguidores importados e visíveis na UI (que já exibe avatars de colaboradores na listagem e no detalhe da tarefa).
 
