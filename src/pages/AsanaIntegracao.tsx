@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export default function AsanaIntegracao() {
   const navigate = useNavigate();
-  const { testConnection, listProjects, syncProjects, getSyncLogs, loading } = useAsanaSync();
+  const { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading } = useAsanaSync();
 
   const [step, setStep] = useState(1);
   const [pat, setPat] = useState("");
