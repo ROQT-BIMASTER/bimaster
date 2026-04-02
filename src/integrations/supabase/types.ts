@@ -22491,6 +22491,7 @@ export type Database = {
       }
       projeto_tarefa_anexos: {
         Row: {
+          asana_gid: string | null
           created_at: string
           id: string
           nome: string
@@ -22501,6 +22502,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          asana_gid?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -22511,6 +22513,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          asana_gid?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -23022,6 +23025,7 @@ export type Database = {
         Row: {
           asana_gid: string | null
           codigo: string | null
+          codigo_acom: string | null
           created_at: string | null
           criador_id: string | null
           data_conclusao: string | null
@@ -23053,6 +23057,7 @@ export type Database = {
         Insert: {
           asana_gid?: string | null
           codigo?: string | null
+          codigo_acom?: string | null
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
@@ -23084,6 +23089,7 @@ export type Database = {
         Update: {
           asana_gid?: string | null
           codigo?: string | null
+          codigo_acom?: string | null
           created_at?: string | null
           criador_id?: string | null
           data_conclusao?: string | null
