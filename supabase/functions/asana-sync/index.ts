@@ -483,6 +483,7 @@ Deno.serve(async (req) => {
                       }
                     }
                   }
+                  console.log(`Task ${task.gid}: ${storiesPassedFilter} comments passed filter`);
                 } catch (e) {
                   errors.push({ task: task.gid, error: `Erro ao sync comentários: ${e.message}` });
                 }
