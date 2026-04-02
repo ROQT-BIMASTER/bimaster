@@ -471,12 +471,16 @@ export default function AsanaIntegracao() {
                         variant={
                           log.status === "completed"
                             ? "default"
-                            : log.status === "running"
+                            : ["running", "core_done", "secondary_partial"].includes(log.status)
                             ? "secondary"
                             : "destructive"
                         }
                       >
-                        {log.status === "completed" ? "Concluído" : log.status === "running" ? "Em andamento" : "Falhou"}
+                        {log.status === "completed" ? "Concluído" 
+                          : log.status === "running" ? "Em andamento" 
+                          : log.status === "core_done" ? "Fase 1 OK"
+                          : log.status === "secondary_partial" ? "Fase 2 parcial"
+                          : "Falhou"}
                       </Badge>
                     </TableCell>
                     <TableCell>{log.projects_synced}</TableCell>
