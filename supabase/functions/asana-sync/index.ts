@@ -295,13 +295,15 @@ Deno.serve(async (req) => {
             }
 
             // Update log with core results
-            await adminClient.from("asana_sync_log").update({
+            console.log(`[core] Done: ${projectsSynced} projects, ${sectionsSynced} sections, ${tasksSynced} tasks, ${collaboratorsSynced} collaborators. LogId: ${logId}`);
+            const { error: updateErr } = await adminClient.from("asana_sync_log").update({
               status: "core_done",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
               collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
+            if (updateErr) console.error("[core] Log update failed:", updateErr.message);
 
             return json({
               success: true, phase: "core", next_phase: "secondary", log_id: logId,
@@ -333,11 +335,12 @@ Deno.serve(async (req) => {
                 if (timeLeft() < 5000) {
                   console.log(`[time] Budget exhausted. Processed ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments so far.`);
                   // Return partial — client should call again
-                  await adminClient.from("asana_sync_log").update({
+                  const { error: partialErr } = await adminClient.from("asana_sync_log").update({
                     status: "secondary_partial", comments_synced: commentsSynced,
                     subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
                     errors,
                   }).eq("id", logId);
+                  if (partialErr) console.error("[secondary] Partial log update failed:", partialErr.message);
 
                   return json({
                     success: true, phase: "secondary", complete: false, log_id: logId,
@@ -435,12 +438,14 @@ Deno.serve(async (req) => {
             }
 
             // All done
-            await adminClient.from("asana_sync_log").update({
+            const { error: completeErr } = await adminClient.from("asana_sync_log").update({
               status: "completed", comments_synced: commentsSynced,
               subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
               collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
+            if (completeErr) console.error("[secondary] Complete log update failed:", completeErr.message);
+            console.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
 
             return json({
               success: true, phase: "secondary", complete: true, log_id: logId,
