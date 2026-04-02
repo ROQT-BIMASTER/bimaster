@@ -392,7 +392,7 @@ function PersonPicker({ current, members, onSelect }: {
                 )}
               >
                 <Avatar className={cn("h-6 w-6 flex-shrink-0", isSelected && "ring-2 ring-primary/30")}>
-                  <AvatarImage src={m.avatar_url || undefined} />
+                  <AvatarImage src={m.avatar_url || undefined} referrerPolicy="no-referrer" crossOrigin="anonymous" />
                   <AvatarFallback className={cn(
                     "text-[9px] font-semibold",
                     isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
