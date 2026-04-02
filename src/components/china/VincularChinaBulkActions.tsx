@@ -18,6 +18,8 @@ export function VincularChinaBulkActions({ open, onOpenChange, selectedIds, subm
   const [loading, setLoading] = useState(false);
 
   const selected = submissoes.filter(s => selectedIds.includes(s.id));
+  const unlinked = selected.filter(s => !s.isLinked);
+  const linked = selected.filter(s => s.isLinked);
 
   const handleDespachar = async () => {
     setLoading(true);
