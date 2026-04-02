@@ -50,6 +50,11 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
     { label: "Retrabalho", count: retrabalhoCount, color: "bg-orange-500", icon: RefreshCw, tooltip: `${retrabalhoCount} retrabalho` },
   ].filter(s => s.count > 0);
 
+  // Warning segment for tasks without deadline
+  const warningSegments = showDeadlineWarning ? [
+    { label: "Sem prazo", count: openWithoutDeadline, warning: true },
+  ] : [];
+
   const completedPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
