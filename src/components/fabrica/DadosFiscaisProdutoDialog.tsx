@@ -350,13 +350,13 @@ export const DadosFiscaisProdutoDialog = ({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <Tabs defaultValue="fiscal" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <ScrollableTabsList className="sm:grid-cols-5">
                 <TabsTrigger value="fiscal">Fiscal</TabsTrigger>
                 <TabsTrigger value="iva">IVA Dual</TabsTrigger>
                 <TabsTrigger value="precos">Preços</TabsTrigger>
                 <TabsTrigger value="estoque">Estoque</TabsTrigger>
                 <TabsTrigger value="outros">Outros</TabsTrigger>
-              </TabsList>
+              </ScrollableTabsList>
 
               <TabsContent value="fiscal" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

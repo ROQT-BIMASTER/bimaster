@@ -208,13 +208,13 @@ export function PhotoDetailDialog({ photoId, open, onOpenChange }: PhotoDetailDi
           </div>
         ) : (
           <Tabs defaultValue="photo" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <ScrollableTabsList className="sm:grid-cols-5">
               <TabsTrigger value="photo">Foto</TabsTrigger>
               <TabsTrigger value="store">PDV</TabsTrigger>
               <TabsTrigger value="visit">Visita</TabsTrigger>
               <TabsTrigger value="investments">Investimentos</TabsTrigger>
               <TabsTrigger value="analysis">Análise</TabsTrigger>
-            </TabsList>
+            </ScrollableTabsList>
 
             {/* Aba: Informações da Foto */}
             <TabsContent value="photo" className="space-y-4">

@@ -23,7 +23,7 @@ const ConfiguracoesAcesso = () => {
       </div>
 
       <Tabs defaultValue="vendedores" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <ScrollableTabsList className="sm:grid-cols-5 max-w-2xl">
           <TabsTrigger value="vendedores" className="flex items-center gap-2">
             <UserCheck className="h-4 w-4" />
             Vendedores

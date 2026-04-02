@@ -37,13 +37,13 @@ export default function WhatsAppMonitoring() {
         <WhatsAppFilters onFilterChange={setFilters} />
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <ScrollableTabsList className="sm:grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="sentiment">Sentimento</TabsTrigger>
-            <TabsTrigger value="agent-flow">Fluxo do Agente</TabsTrigger>
-            <TabsTrigger value="agent-config">Configuração IA</TabsTrigger>
+            <TabsTrigger value="agent-flow">Fluxo Agente</TabsTrigger>
+            <TabsTrigger value="agent-config">Config IA</TabsTrigger>
             <TabsTrigger value="about">Sobre</TabsTrigger>
-          </TabsList>
+          </ScrollableTabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
             <WhatsAppMonitoringPanel
