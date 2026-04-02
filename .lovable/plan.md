@@ -1,47 +1,36 @@
 
 
-# Corrigir Importação de Colaboradores do Asana
+# Corrigir Importação de Subtarefas e Fotos/Anexos do Asana
 
-## Diagnóstico
+## Problemas Identificados
 
-O código de sync de followers já existe (linhas 327-345), mas provavelmente **não está funcionando** por dois motivos:
+### 1. Subtarefas não são importadas
+O endpoint `/projects/{gid}/tasks` do Asana retorna **apenas tarefas de nível superior**. Subtarefas precisam ser buscadas individualmente via `/tasks/{gid}/subtasks`. Resultado atual: 114 tarefas importadas, **0 subtarefas** (todas com `parent_tarefa_id = null`).
 
-1. **`followers.gid` não está nos `opt_fields`** — a API do Asana pode não retornar o `gid` dos followers sem solicitação explícita no endpoint de listagem de tarefas
-2. **Sem logging** — se followers vieram vazios ou sem gid, o `continue` silencioso não deixa rastro
-3. **Possível limitação do endpoint de lista** — o Asana pode não expandir `followers` no bulk `/projects/{gid}/tasks`. Pode ser necessário buscar followers por tarefa individualmente via `/tasks/{gid}` com opt_fields incluindo `followers.gid,followers.email,followers.name`
+### 2. Anexos/fotos falham silenciosamente
+Na linha 443 do insert, o campo `uploaded_by` **não existe** na tabela `projeto_tarefa_anexos` (que só tem: `id, tarefa_id, user_id, nome, storage_path, tipo_arquivo, tamanho, created_at, asana_gid`). O insert falha com erro de coluna desconhecida, mas é capturado pelo catch genérico. Resultado: **0 anexos** importados.
 
 ## Correções
 
-### 1. Adicionar `followers.gid` nos opt_fields (linha 243)
+### 1. Buscar subtarefas recursivamente
 
-Incluir `followers.gid,followers.name` no `opt_fields` da chamada de tasks:
+Após o primeiro pass de tarefas, adicionar um loop que para cada tarefa busca `/tasks/{gid}/subtasks` com os mesmos `opt_fields`. As subtarefas são inseridas na mesma tabela `projeto_tarefas` com `parent_tarefa_id` apontando para a tarefa pai local. Recursão de até 3 níveis de profundidade para cobrir subtarefas de subtarefas.
 
-```
-followers,followers.gid,followers.email,followers.name
-```
+### 2. Remover `uploaded_by` do insert de anexos
 
-### 2. Fallback: buscar followers individualmente quando bulk retornar vazio
+Linha 443: remover `uploaded_by: userId` — o campo correto `user_id` já está na linha 444.
 
-Se `task.followers` vier undefined/vazio apesar de existir no Asana, fazer uma chamada individual:
-```
-GET /tasks/{gid}?opt_fields=followers,followers.gid,followers.email
-```
+### 3. Adicionar contadores ao resultado
 
-### 3. Adicionar logging de diagnóstico
-
-Logar quantos followers foram encontrados por tarefa e quantos foram mapeados com sucesso, para facilitar debug futuro.
-
-### 4. Contar colaboradores no resultado do sync
-
-Adicionar um contador `collaboratorsSynced` ao resultado para visibilidade.
+Incluir `subtasks_synced` e `attachments_synced` no resultado do sync para visibilidade.
 
 ## Arquivo a alterar
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/asana-sync/index.ts` | Fix opt_fields, fallback individual, logging, contador |
+| `supabase/functions/asana-sync/index.ts` | Adicionar fetch de subtarefas recursivo, remover `uploaded_by`, contadores |
 
 ## Resultado esperado
 
-Após resync, as tarefas do Asana terão seus colaboradores/seguidores importados e visíveis na UI (que já exibe avatars de colaboradores na listagem e no detalhe da tarefa).
+Após resync: subtarefas aparecem vinculadas às tarefas pai, fotos e arquivos do Asana ficam acessíveis como anexos das tarefas.
 
