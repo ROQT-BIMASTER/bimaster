@@ -1118,60 +1118,14 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
 
                 {/* Anexos */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium flex items-center gap-1.5">
-                      <Paperclip className="h-4 w-4" /> Anexos ({anexos.length})
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      {selectedAnexoIds.length > 0 && (tarefa as any).produto_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 text-emerald-400 border-emerald-500/30"
-                          onClick={() => setCofreDialogOpen(true)}
-                        >
-                          <FolderOpen className="h-3.5 w-3.5" /> Enviar ao Cofre ({selectedAnexoIds.length})
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="h-3.5 w-3.5" /> Upload
-                      </Button>
-                    </div>
-                    <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
-                  </div>
-                  {anexos.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {anexos.map(a => (
-                        <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
-                          <Checkbox
-                            checked={selectedAnexoIds.includes(a.id)}
-                            onCheckedChange={() => toggleAnexoSelection(a.id)}
-                            className="flex-shrink-0"
-                          />
-                          {getFileIcon(a.tipo_arquivo)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{a.nome}</p>
-                            <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
-                  )}
-                  {!(tarefa as any).produto_id && selectedAnexoIds.length > 0 && (
-                    <p className="text-[10px] text-amber-400 mt-1">
-                      ⚠ Vincule um produto à tarefa para enviar ao Cofre
-                    </p>
-                  )}
-                </div>
+                <TarefaAnexosSection
+                  anexos={anexos}
+                  produtoId={(tarefa as any).produto_id || null}
+                  uploadAnexo={uploadAnexo}
+                  deleteAnexo={deleteAnexo}
+                  getAnexoUrl={getAnexoUrl}
+                  sendToCofre={sendToCofre}
+                />
 
                 <Separator />
 
