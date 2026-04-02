@@ -26,14 +26,14 @@ export const ESTAGIO_LABELS: Record<string, string> = {
   lancamento: "Lançamento",
 };
 
-export const ESTAGIO_OPTIONS = [
+export const ESTAGIO_OPTIONS: { value: string; label: string }[] = [
   { value: "briefing", label: "Briefing" },
   { value: "em_criacao", label: "Em Criação" },
   { value: "revisao", label: "Revisão" },
   { value: "aprovado", label: "Aprovado" },
   { value: "producao", label: "Produção" },
   { value: "lancamento", label: "Lançamento" },
-] as const;
+];
 
 export const PRIORIDADE_LABELS: Record<string, string> = {
   baixa: "Baixa",
