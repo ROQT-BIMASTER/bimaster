@@ -101,6 +101,7 @@ export default function ProjetoVincularChina() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [desvincularTarget, setDesvincularTarget] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
+  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
