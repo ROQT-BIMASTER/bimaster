@@ -105,6 +105,60 @@ Deno.serve(async (req) => {
             if (match) {
               userMap.set(au.gid, match.id);
               usersMapped++;
+            } else {
+              // Auto-create placeholder profile for unmapped Asana user
+              try {
+                // Check if already mapped from a previous sync
+                const { data: existingMapping } = await adminClient
+                  .from("asana_sync_mappings")
+                  .select("local_id")
+                  .eq("asana_gid", au.gid)
+                  .eq("entity_type", "user")
+                  .maybeSingle();
+
+                if (existingMapping) {
+                  userMap.set(au.gid, existingMapping.local_id);
+                  usersMapped++;
+                  continue;
+                }
+
+                // Create auth user with random password (cannot login)
+                const randomPwd = crypto.randomUUID() + "Aa1!";
+                const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
+                  email: au.email,
+                  password: randomPwd,
+                  email_confirm: true,
+                  user_metadata: { nome: au.name || au.email, origem: "asana" },
+                });
+
+                if (authErr || !authUser?.user) {
+                  console.warn(`Não foi possível criar auth user para ${au.email}: ${authErr?.message}`);
+                  errors.push({ user: au.email, error: `Auto-create auth falhou: ${authErr?.message}` });
+                  continue;
+                }
+
+                // Update profile (created by trigger) with Asana metadata
+                await adminClient.from("profiles").update({
+                  nome: au.name || au.email,
+                  aprovado: false,
+                  status: "importado_asana",
+                }).eq("id", authUser.user.id);
+
+                // Map in asana_sync_mappings for deduplication
+                await adminClient.from("asana_sync_mappings").insert({
+                  asana_gid: au.gid,
+                  entity_type: "user",
+                  local_id: authUser.user.id,
+                  workspace_gid,
+                });
+
+                userMap.set(au.gid, authUser.user.id);
+                usersMapped++;
+                console.log(`Criado profile placeholder para ${au.name} (${au.email})`);
+              } catch (createErr: any) {
+                console.error(`Erro ao criar profile para ${au.email}:`, createErr.message);
+                errors.push({ user: au.email, error: `Auto-create falhou: ${createErr.message}` });
+              }
             }
           }
 
@@ -368,6 +422,7 @@ Deno.serve(async (req) => {
                         tamanho: att.size || null,
                         asana_gid: att.gid,
                         uploaded_by: userId,
+                        user_id: userId,
                       });
                     }
                   }
@@ -386,9 +441,13 @@ Deno.serve(async (req) => {
                     opt_fields: "gid,text,html_text,type,resource_subtype,created_by,created_at",
                   });
 
+                  console.log(`Task ${task.gid}: ${stories.length} stories fetched`);
+                  let storiesPassedFilter = 0;
+
                   for (const story of stories) {
                     const isComment = story.type === "comment" || story.resource_subtype === "comment_added";
                     if (!isComment || !story.text) continue;
+                    storiesPassedFilter++;
 
                     const authorId = story.created_by?.gid
                       ? userMap.get(story.created_by.gid) || userId
@@ -424,6 +483,7 @@ Deno.serve(async (req) => {
                       }
                     }
                   }
+                  console.log(`Task ${task.gid}: ${storiesPassedFilter} comments passed filter`);
                 } catch (e) {
                   errors.push({ task: task.gid, error: `Erro ao sync comentários: ${e.message}` });
                 }
