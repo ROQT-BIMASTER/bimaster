@@ -132,7 +132,23 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     const tarefa = tarefas.find(t => t.id === tarefaId);
     if (!tarefa) return;
 
-    const targetSecao = secoes.find(s => s.id === overId);
+    // Determine target column: overId can be a secao id or another tarefa id
+    let targetSecaoId: string | null = null;
+    let overTarefaId: string | null = null;
+
+    if (secoes.some(s => s.id === overId)) {
+      targetSecaoId = overId;
+    } else {
+      // overId is a tarefa — find which column it belongs to
+      const overTarefa = tarefas.find(t => t.id === overId);
+      if (overTarefa) {
+        targetSecaoId = overTarefa.secao_id;
+        overTarefaId = overId;
+      }
+    }
+
+    if (!targetSecaoId) return;
+    const targetSecao = secoes.find(s => s.id === targetSecaoId);
     if (!targetSecao) return;
 
     const changedColumn = tarefa.secao_id !== targetSecao.id;
@@ -145,14 +161,41 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       });
     }
 
-    // Persist ordem: calculate new position based on drop index
-    const columnTasks = tarefasPorSecao(targetSecao.id).filter(t => t.id !== tarefaId);
-    // Find the drop index (default to end)
-    const overIndex = columnTasks.length; // dropped at end
-    const newOrdem = overIndex;
+    // Calculate real drop position
+    const columnTasks = tarefasPorSecao(targetSecao.id);
+    const oldIndex = columnTasks.findIndex(t => t.id === tarefaId);
+    let newIndex = columnTasks.length; // default: end
 
-    // Always persist ordem when dropping (handles both same-column reorder and cross-column)
-    updateTarefa.mutate({ id: tarefaId, ordem: newOrdem });
+    if (overTarefaId) {
+      const overIdx = columnTasks.findIndex(t => t.id === overTarefaId);
+      if (overIdx !== -1) newIndex = overIdx;
+    }
+
+    // Persist ordem for all affected cards in the column
+    const reordered = changedColumn
+      ? [...columnTasks.filter(t => t.id !== tarefaId)]
+      : [...columnTasks];
+
+    if (changedColumn) {
+      reordered.splice(newIndex, 0, tarefa);
+    } else if (oldIndex !== -1 && oldIndex !== newIndex) {
+      const moved = arrayMove(reordered, oldIndex, newIndex);
+      moved.forEach((t, i) => {
+        if (t.ordem !== i) {
+          updateTarefa.mutate({ id: t.id, ordem: i });
+        }
+      });
+      return;
+    } else {
+      return; // no change
+    }
+
+    // Cross-column: persist ordem for all cards in destination
+    reordered.forEach((t, i) => {
+      if (t.ordem !== i) {
+        updateTarefa.mutate({ id: t.id, ordem: i });
+      }
+    });
   };
 
   const handleDragCancel = () => {
