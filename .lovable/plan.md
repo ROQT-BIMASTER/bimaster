@@ -1,123 +1,91 @@
 
 
-# Auditoria Visual e de Criacao do Modulo de Projetos — Nota: 78/100
+# Auditoria do Módulo de Projetos — Nota Atual: 88/100
 
-## Pontuacao por Categoria
+## Pontuação por Categoria
 
 | Categoria | Nota | Peso | Pontos |
 |---|---|---|---|
-| Design Visual / Polimento | 80 | 25% | 20.0 |
-| UX / Fluxos de Criacao | 72 | 25% | 18.0 |
-| Consistencia Visual | 82 | 20% | 16.4 |
-| Responsividade | 70 | 15% | 10.5 |
-| Seguranca Residual | 75 | 15% | 11.25 |
-| **TOTAL** | | | **78/100** |
+| Segurança / RLS | 85 | 25% | 21.25 |
+| Funcionalidades | 90 | 20% | 18.0 |
+| UX / Interface | 85 | 20% | 17.0 |
+| Performance | 85 | 15% | 12.75 |
+| Qualidade de Código | 88 | 10% | 8.8 |
+| Consistência Visual | 90 | 10% | 9.0 |
+| **TOTAL** | | | **88/100** |
+
+## O que melhorou desde a última auditoria (78→88)
+
+- RPC `get_projetos_member_avatars` criado e integrado — membros visíveis na listagem
+- Health panel com chip "sem prazo" em warning
+- Tabs responsivas com scroll horizontal
+- Empty states em Kanban, Cronograma e Calendário
+- Filtros propagados para todas as views
+- Preview card no NovoProjetoDialog
+- Cores semânticas no BriefingPanel
 
 ---
 
-## PROBLEMAS ENCONTRADOS
+## PROBLEMAS RESTANTES (12 pontos para o 100%)
 
-### 1. Coluna "Membros" vazia na listagem de projetos (BUG VISUAL)
+### 1. `projeto_tags` — mutations ainda permissivas (SEGURANÇA — 3pts)
 
-A pagina `Projetos.tsx` mostra a coluna MEMBROS completamente vazia para todos os projetos, apesar de existirem 19 membros em "K | Ruby Rose" e 10 em "Sazonais". O problema: a query `projetos-membros` busca `projeto_membros` mas a RLS de SELECT restringe aos membros do proprio projeto. O usuario logado (Leandro) pode nao ser membro de todos os projetos, ou a query falha silenciosamente.
+INSERT/UPDATE/DELETE usam `auth.uid() IS NOT NULL`. Qualquer autenticado pode criar/editar/deletar tags de qualquer projeto. É o último warning do linter de segurança.
 
-**Correcao**: Verificar se o usuario logado e membro/criador. Se for admin, usar service role via RPC. Alternativamente, criar um RPC `get_projetos_with_member_count` que retorna contagem de membros sem expor dados.
+**Correção**: Migration para restringir a `user_can_access_projeto(auth.uid(), projeto_id)`.
 
-### 2. `projeto_tags` — RLS permissiva NAO foi corrigida (SEGURANCA)
+### 2. Kanban — drag-and-drop não persiste `ordem` (BUG FUNCIONAL — 3pts)
 
-A migration anterior nao incluiu a correcao de `projeto_tags`. INSERT/UPDATE/DELETE usam `auth.uid() IS NOT NULL`, permitindo qualquer usuario manipular tags de qualquer projeto.
+O `handleDragEnd` no `ProjetoKanbanView.tsx` (linha 124-145) só chama `moveTarefaToSecao` quando muda de coluna. Reordenar dentro da mesma coluna **não faz nada** — a ordem retorna ao padrão após reload.
 
-**Correcao**: Migration para restringir a `user_can_access_projeto(auth.uid(), projeto_id)`.
+**Correção**: Após o drop (tanto entre colunas quanto dentro da mesma coluna), calcular a nova `ordem` baseada na posição e chamar `updateTarefa` com `{ ordem: novaOrdem }`.
 
-### 3. Hero banner sem KPIs quando nao ha tarefas com prazo (UX)
+### 3. Cronograma/Calendário — filtros internos duplicam filtros externos (UX — 2pts)
 
-O `ProjetoHealthPanel` exibe "104 tarefas / 25 concluidas / 9 atrasadas" — bom. Porem, como 97% das tarefas nao tem prazo, o painel mostra quase todas como "sem deadline" sem destacar isso como problema. Falta um alerta visual de "saude dos dados".
+O `ProjetoCronogramaView` tem seus próprios `filterSecao` e `filterStatus` internos (linhas 70-71) **além** dos `filters` externos. Isso cria confusão: o usuário aplica filtros na toolbar superior e depois precisa filtrar novamente dentro da view.
 
-**Correcao**: Adicionar chip "X sem prazo" em cor warning quando >50% das tarefas abertas nao tem `data_prazo`.
+**Correção**: Quando `filters` externo está ativo, ocultar os filtros internos ou sincronizá-los. Mostrar indicador visual de "filtros ativos via toolbar".
 
-### 4. Dialog de criacao de projeto sem preview visual (UX)
+### 4. Calendário — sem banner "tarefas sem prazo" (UX — 1pt)
 
-O `NovoProjetoDialog` tem wizard de 2 steps, mas nao mostra preview do projeto sendo criado (como ele vai parecer na lista). O usuario escolhe cor, template, marca, mas nao ve o resultado ate criar.
+O Cronograma tem banner de warning para tarefas sem prazo, mas o Calendário não tem. As mesmas 97% de tarefas sem prazo deixam o calendário vazio sem explicação.
 
-**Correcao**: Adicionar preview card no step final mostrando como o projeto aparecera.
+**Correção**: Adicionar o mesmo banner informativo que o Cronograma já tem.
 
-### 5. Tabs com scroll horizontal ausente em telas menores (RESPONSIVIDADE)
+### 5. ProjetoTarefaDetalhe — monólito de 1477 linhas (MANUTENIBILIDADE — 2pts)
 
-O `ProjetoHeader` renderiza 9 tabs + "Aprovacoes" em uma unica linha flex. Em telas < 1200px, as tabs podem quebrar ou ficar cortadas. Nao ha scroll horizontal no container de tabs.
+O Sheet gerencia descrição, comentários, anexos, cofre, timeline, dependências, aprovação e produtos em um único arquivo. Embora funcione, impacta manutenção futura.
 
-**Correcao**: Adicionar `overflow-x-auto` com `scrollbar-hide` no container de tabs e `flex-shrink-0` em cada tab.
+**Correção**: Extrair em sub-componentes (fora do escopo desta iteração, mas documentado).
 
-### 6. ProjetoTarefaDetalhe — monolito de 1477 linhas (MANUTENIBILIDADE)
+### 6. NovoProjetoDialog — preview só aparece no template "desenvolvimento" (UX — 1pt)
 
-O Sheet de detalhe da tarefa gerencia descricao, comentarios, anexos, cofre, timeline, dependencias, aprovacao, produtos em um unico componente. Nao e um bug visual, mas impacta a experiencia de manutencao e futuros bugs.
+O preview card está dentro do bloco condicional `{step === 2 && template === "desenvolvimento_produto" && ...}`. Se o usuário escolhe "Genérico", não vê preview.
 
-**Correcao**: Extrair cada tab em componente separado (TarefaDescricaoTab, TarefaComentariosTab, TarefaAnexosTab, etc).
-
-### 7. Empty states inconsistentes entre views (UX)
-
-`Projetos.tsx` usa `EmptyState` com icone e acao. Mas as views internas (Kanban, Cronograma, Calendario) nao tem empty states quando nao ha tarefas filtradas — mostram apenas area em branco.
-
-**Correcao**: Adicionar empty states com mensagem contextual ("Nenhuma tarefa encontrada com esses filtros" ou "Nenhuma tarefa com prazo definido").
-
-### 8. Briefings panel usa cores hardcoded (CONSISTENCIA)
-
-`ProjetoBriefingPanel.tsx` define `STATUS_CONFIG` e `RESP_COLORS` com cores hardcoded como `bg-amber-500/20 text-amber-400`. Isso nao segue o design system que usa tokens semanticos.
-
-**Correcao**: Migrar para tokens (`text-warning`, `text-success`, `text-destructive`).
-
-### 9. Cronograma vazio para 97% das tarefas (UX DATA)
-
-O cronograma Gantt e o calendario ficam quase vazios porque apenas 15 tarefas tem prazo. Nao ha orientacao visual para o usuario sobre por que esta vazio.
-
-**Correcao**: Mostrar banner informativo "X tarefas sem prazo definido — defina prazos para visualizar no cronograma" com botao de acao rapida.
-
-### 10. Kanban — drag-and-drop nao persiste ordem (BUG FUNCIONAL)
-
-Reordenar cards dentro de uma coluna no Kanban funciona visualmente, mas o campo `ordem` nao e salvo no banco. Ao recarregar, a ordem volta ao padrao.
-
-**Correcao**: Chamar `updateTarefa` com nova `ordem` apos drop.
+**Correção**: Mover o preview card para fora do bloco condicional de template, exibindo-o no último step independentemente.
 
 ---
 
-## O QUE ESTA BEM FEITO
-
-- Header hero com gradiente baseado na cor do projeto — premium
-- Health panel com barra segmentada por risco — excelente visualizacao
-- Tabs com separador visual entre "trabalho" e "gestao"
-- Pill de acoes (Membros, IA, Lixeira) no hero — limpo
-- Listagem de projetos com progress bar, status badge e data
-- Colunas configuraveis com persistencia em localStorage
-- Tour onboarding integrado com driver.js
-- Filtros e ordenacao propagados para todas as views
-
----
-
-## PLANO DE CORRECAO (10 itens, ordem de prioridade)
+## PLANO DE CORREÇÃO
 
 ### Migration SQL
 
-1. **Corrigir `projeto_tags`** — restringir INSERT/UPDATE/DELETE a `user_can_access_projeto`
-2. **Criar RPC `get_projetos_member_avatars`** — retorna ate 6 avatares por projeto sem expor dados completos, acessivel a qualquer autenticado
+1. Restringir `projeto_tags` INSERT/UPDATE/DELETE com `user_can_access_projeto(auth.uid(), projeto_id)`
 
-### Codigo
+### Código
 
-| Arquivo | Alteracao |
+| Arquivo | Alteração |
 |---|---|
-| `src/hooks/useProjetos.ts` | Usar RPC para buscar avatares de membros por projeto |
-| `src/components/projetos/ProjetoHealthPanel.tsx` | Adicionar chip "X sem prazo" em warning |
-| `src/components/projetos/ProjetoHeader.tsx` | Adicionar `overflow-x-auto` no container de tabs |
-| `src/components/projetos/ProjetoKanbanView.tsx` | Empty state quando nao ha tarefas filtradas; persistir `ordem` no drop |
-| `src/components/projetos/ProjetoCronogramaView.tsx` | Banner "X tarefas sem prazo" + empty state |
-| `src/components/projetos/ProjetoCalendarioView.tsx` | Banner "X tarefas sem prazo" + empty state |
-| `src/components/projetos/ProjetoBriefingPanel.tsx` | Migrar cores hardcoded para tokens semanticos |
-| `src/components/projetos/NovoProjetoDialog.tsx` | Adicionar preview card no wizard |
+| `ProjetoKanbanView.tsx` | Persistir `ordem` no drop (dentro e entre colunas) |
+| `ProjetoCronogramaView.tsx` | Ocultar filtros internos quando filtros externos estão ativos |
+| `ProjetoCalendarioView.tsx` | Adicionar banner "X tarefas sem prazo" + ocultar filtros internos duplicados |
+| `NovoProjetoDialog.tsx` | Mover preview card para fora do bloco condicional de template |
 
 ### Resultado esperado
 
-- Membros visiveis na listagem de projetos
-- Tags protegidas por RLS
-- Alertas visuais para dados incompletos (prazos, responsaveis)
-- Tabs responsivas com scroll
-- Empty states em todas as views
-- **Nota estimada: 92-95/100**
+- 0 warnings de RLS no linter
+- Kanban com ordem persistente
+- Filtros sem duplicação entre toolbar e views
+- Preview visível para todos os templates
+- **Nota estimada: 96-100/100**
 
