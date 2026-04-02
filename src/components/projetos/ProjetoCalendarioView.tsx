@@ -338,8 +338,8 @@ function TaskDetailPanel({ tarefaId, tarefas, darkBg, onClose }: { tarefaId: str
   const tarefa = tarefas.find((t) => t.id === tarefaId);
   if (!tarefa) return null;
 
-  const statusEntry = STATUS_ICONS[tarefa.status] || STATUS_ICONS.pendente;
-  const StatusIcon = statusEntry.icon;
+  const cfg2 = STATUS_ICON_CONFIG[tarefa.status] || STATUS_ICON_CONFIG.pendente;
+  const StatusIcon = cfg2.completed ? CheckCircle2 : Circle;
   const stageLabel = ESTAGIO_LABELS[tarefa.estagio || ""] || "—";
 
   return (
