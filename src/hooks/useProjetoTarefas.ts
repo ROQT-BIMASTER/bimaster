@@ -49,7 +49,36 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: secoes = [], isLoading: secoesLoading } = useQuery({
+  // Fetch allowed section IDs for current user in this project
+  const { data: allowedSecaoIds } = useQuery({
+    queryKey: ["membro-secoes-permitidas", projetoId, user?.id],
+    queryFn: async () => {
+      if (!projetoId || !user?.id) return null;
+      
+      const { data: membro } = await supabase
+        .from("projeto_membros")
+        .select("id, papel")
+        .eq("projeto_id", projetoId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!membro) return null; // not a member, RLS handles access
+
+      // Coordinators/admins see everything
+      if (["coordenador", "gestor_produto"].includes(membro.papel)) return null;
+
+      const { data: secAssignments } = await supabase
+        .from("projeto_membro_secoes")
+        .select("secao_id")
+        .eq("membro_id", membro.id);
+
+      if (!secAssignments || secAssignments.length === 0) return null; // 0 = full access
+      return secAssignments.map(s => s.secao_id);
+    },
+    enabled: !!projetoId && !!user?.id,
+  });
+
+  const { data: allSecoes = [], isLoading: secoesLoading } = useQuery({
     queryKey: ["projeto-secoes", projetoId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -63,7 +92,12 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     enabled: !!projetoId && !!user,
   });
 
-  const { data: tarefas = [], isLoading: tarefasLoading } = useQuery({
+  // Filter sections by allowed list
+  const secoes = allowedSecaoIds
+    ? allSecoes.filter(s => allowedSecaoIds.includes(s.id))
+    : allSecoes;
+
+  const { data: allTarefas = [], isLoading: tarefasLoading } = useQuery({
     queryKey: ["projeto-tarefas", projetoId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -191,6 +225,11 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     },
     enabled: !!projetoId && !!user,
   });
+
+  // Filter tarefas by allowed sections
+  const tarefas = allowedSecaoIds
+    ? allTarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
+    : allTarefas;
 
   // Movement history for ghost rows
   const { data: movimentacoes = [] } = useQuery({

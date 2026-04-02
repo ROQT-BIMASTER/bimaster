@@ -34,14 +34,14 @@ export function useMinhasTarefas() {
 
       const { data, error } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor)")
+        .select("id, titulo, status, prioridade, data_prazo, data_conclusao, projeto_id, secao_id, estagio, criador_id, visibilidade, projetos:projeto_id(nome, cor)")
         .eq("responsavel_id", user.id)
         .is("excluida_em", null)
         .order("data_prazo", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
 
-      return (data || []).map((t: any) => ({
+      const allTarefas = (data || []).map((t: any) => ({
         id: t.id,
         titulo: t.titulo,
         status: t.status,
@@ -49,12 +49,53 @@ export function useMinhasTarefas() {
         data_prazo: t.data_prazo,
         data_conclusao: t.data_conclusao,
         projeto_id: t.projeto_id,
+        secao_id: t.secao_id as string | null,
         projeto_nome: t.projetos?.nome || "Sem projeto",
         projeto_cor: t.projetos?.cor || "#6366f1",
         estagio: t.estagio,
         criador_id: t.criador_id,
         visibilidade: t.visibilidade,
-      })) as MinaTarefa[];
+      }));
+
+      // Fetch section visibility restrictions for this user
+      const projetoIds = [...new Set(allTarefas.map(t => t.projeto_id))];
+      if (projetoIds.length === 0) return allTarefas as MinaTarefa[];
+
+      // Get user's membro records for all relevant projects
+      const { data: membrosData } = await supabase
+        .from("projeto_membros")
+        .select("id, projeto_id")
+        .eq("user_id", user.id)
+        .in("projeto_id", projetoIds);
+
+      if (!membrosData || membrosData.length === 0) return allTarefas as MinaTarefa[];
+
+      const membroIds = membrosData.map(m => m.id);
+      const { data: secAssignments } = await supabase
+        .from("projeto_membro_secoes")
+        .select("membro_id, secao_id")
+        .in("membro_id", membroIds);
+
+      // Build map: projeto_id → Set<secao_id>
+      const membroToProjeto = new Map(membrosData.map(m => [m.id, m.projeto_id]));
+      const allowedSecoesByProjeto = new Map<string, Set<string>>();
+
+      for (const sa of (secAssignments || [])) {
+        const projetoId = membroToProjeto.get(sa.membro_id);
+        if (!projetoId) continue;
+        if (!allowedSecoesByProjeto.has(projetoId)) {
+          allowedSecoesByProjeto.set(projetoId, new Set());
+        }
+        allowedSecoesByProjeto.get(projetoId)!.add(sa.secao_id);
+      }
+
+      // Filter: 0 sections = full access, 1+ sections = restricted
+      return allTarefas.filter(t => {
+        const allowed = allowedSecoesByProjeto.get(t.projeto_id);
+        if (!allowed || allowed.size === 0) return true; // no restriction
+        if (!t.secao_id) return true; // tasks without section always visible
+        return allowed.has(t.secao_id);
+      }) as MinaTarefa[];
     },
     enabled: !!user?.id,
   });
