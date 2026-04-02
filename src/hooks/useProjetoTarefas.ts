@@ -226,6 +226,11 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     enabled: !!projetoId && !!user,
   });
 
+  // Filter tarefas by allowed sections
+  const tarefas = allowedSecaoIds
+    ? allTarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
+    : allTarefas;
+
   // Movement history for ghost rows
   const { data: movimentacoes = [] } = useQuery({
     queryKey: ["tarefa-movimentacoes", projetoId],
