@@ -299,6 +299,7 @@ Deno.serve(async (req) => {
               status: "core_done",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
+              collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
 
