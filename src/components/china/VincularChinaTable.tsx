@@ -342,6 +342,7 @@ export function VincularChinaTable({
                 <TableHead className="w-[100px] cursor-pointer select-none" onClick={() => toggleSort("pendencias")}>
                   <span className="flex items-center">Pendências <SortIcon col="pendencias" /></span>
                 </TableHead>
+                <TableHead className="w-[60px] text-center">Docs</TableHead>
                 <TableHead className="w-[150px] cursor-pointer select-none" onClick={() => toggleSort("projetoNome")}>
                   <span className="flex items-center">Projeto <SortIcon col="projetoNome" /></span>
                 </TableHead>
