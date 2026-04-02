@@ -294,7 +294,7 @@ function TaskPill({ tarefa, darkBg, onClick }: { tarefa: ProjetoTarefa; darkBg: 
       )}
     >
       <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", stageColor)} />
-      <StatusIcon className={cn("h-3 w-3 shrink-0", statusEntry.className)} />
+      <StatusIcon className={cn("h-3 w-3 shrink-0", cfg.className)} />
       <span className={cn(
         "truncate flex-1 font-medium",
         darkBg ? "text-white" : "text-foreground",
