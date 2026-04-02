@@ -87,7 +87,6 @@ export function useProjetos() {
         .select("projeto_id, user_id, papel");
       if (error) throw error;
 
-      // Fetch profiles separately
       const userIds = [...new Set((data || []).map(m => m.user_id))];
       const { data: profiles } = userIds.length > 0
         ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds)
@@ -106,6 +105,68 @@ export function useProjetos() {
         papel: string;
         profiles: { nome: string | null; avatar_url: string | null } | null;
       }>;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch task collaborators per project (from Asana sync)
+  const { data: projetoColaboradores = [] } = useQuery({
+    queryKey: ["projetos-colaboradores"],
+    queryFn: async () => {
+      // Get all collaborators with their task's projeto_id
+      const { data: tarefas, error: tErr } = await supabase
+        .from("projeto_tarefas")
+        .select("id, projeto_id")
+        .is("excluida_em", null);
+      if (tErr) throw tErr;
+
+      const tarefaIds = (tarefas || []).map(t => t.id);
+      if (tarefaIds.length === 0) return [];
+
+      // Fetch in batches of 500 to avoid query limits
+      const allCollabs: Array<{ tarefa_id: string; user_id: string }> = [];
+      for (let i = 0; i < tarefaIds.length; i += 500) {
+        const batch = tarefaIds.slice(i, i + 500);
+        const { data: collabs } = await supabase
+          .from("projeto_tarefa_colaboradores")
+          .select("tarefa_id, user_id")
+          .in("tarefa_id", batch);
+        if (collabs) allCollabs.push(...collabs);
+      }
+
+      // Map tarefa_id -> projeto_id
+      const tarefaProjetoMap = new Map((tarefas || []).map(t => [t.id, t.projeto_id]));
+
+      // Unique collaborators per project
+      const projetoCollabMap = new Map<string, Set<string>>();
+      for (const c of allCollabs) {
+        const projetoId = tarefaProjetoMap.get(c.tarefa_id);
+        if (!projetoId) continue;
+        if (!projetoCollabMap.has(projetoId)) projetoCollabMap.set(projetoId, new Set());
+        projetoCollabMap.get(projetoId)!.add(c.user_id);
+      }
+
+      // Get all unique user ids
+      const allUserIds = [...new Set(allCollabs.map(c => c.user_id))];
+      const { data: profiles } = allUserIds.length > 0
+        ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", allUserIds)
+        : { data: [] as Array<{ id: string; nome: string | null; avatar_url: string | null }> };
+
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      const result: Array<{ projeto_id: string; user_id: string; nome: string | null; avatar_url: string | null }> = [];
+      for (const [projetoId, userIds] of projetoCollabMap) {
+        for (const userId of userIds) {
+          const profile = profileMap.get(userId);
+          result.push({
+            projeto_id: projetoId,
+            user_id: userId,
+            nome: profile?.nome || null,
+            avatar_url: profile?.avatar_url || null,
+          });
+        }
+      }
+      return result;
     },
     enabled: !!user,
   });
