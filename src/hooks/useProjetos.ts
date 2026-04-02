@@ -246,5 +246,5 @@ export function useProjetos() {
     },
   });
 
-  return { projetos, isLoading, createProjeto, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros };
+  return { projetos, isLoading, createProjeto, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores };
 }

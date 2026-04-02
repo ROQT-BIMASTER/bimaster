@@ -159,8 +159,8 @@ export default function Projetos() {
                   const progressPercent = metrics.total > 0 ? Math.round((metrics.concluidas / metrics.total) * 100) : 0;
                   const displayPercent = isFinalizado ? 100 : progressPercent;
                   const status = getProjetoStatus(projeto.status, metrics);
-                  const displayMembros = membros.slice(0, 4);
-                  const extraMembros = membros.length - 4;
+                  const displayMembros = membros.slice(0, 6);
+                  const extraMembros = membros.length - 6;
 
                   return (
                      <div
