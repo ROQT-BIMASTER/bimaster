@@ -1,70 +1,72 @@
 
 
-# Reconhecer Usuários do Asana + Corrigir Importação de Anexos
+# Importar Atividades do Asana + Timeline Unificada
 
-## Problemas Identificados
+## O que falta hoje
 
-### 1. Usuários do Asana não são criados no sistema
-O código atual (linhas 93-109) busca usuários do workspace Asana e tenta casar por email com profiles existentes. Quando não encontra, simplesmente ignora — o `userMap` fica sem entrada e o `responsavel_id` da tarefa fica `null`.
+O sync atual só importa stories do tipo `comment`. As atividades do Asana (mudanças de status, campo customizado, estágio, duplicação, etc.) são descartadas pelo filtro. Além disso, o sistema não tem uma view unificada "Comentários + Atividades" como a do Asana (screenshot).
 
-**Resultado**: tarefas ficam sem responsável, comentários são atribuídos ao usuário que rodou o sync.
+## Plano
 
-### 2. Anexos falham silenciosamente
-Na linha 371, o insert usa `uploaded_by: userId`, mas a coluna real na tabela é `user_id` (NOT NULL). Isso causa violação de constraint, mas o erro é capturado pelo try/catch e pode não aparecer no log se a exceção for genérica.
+### 1. Importar stories de sistema do Asana como atividades
 
-### 3. Comentários zerados
-O último sync mostra `comments_synced: 0` sem erros. Pode ser que as tarefas desse projeto não tenham comentários, mas também pode ser um problema de paginação ou filtro. Vou adicionar logging para diagnosticar.
+No `supabase/functions/asana-sync/index.ts`, após o loop de comentários, adicionar um segundo loop para stories que **não** são comentários (system activities):
 
----
+- Filtrar stories onde `type === "system"` ou `resource_subtype` é um dos tipos conhecidos: `added_to_project`, `moved`, `enum_custom_field_changed`, `marked_duplicate`, `section_changed`, etc.
+- Mapear para `projeto_tarefa_atividades` com:
+  - `tipo`: derivado do `resource_subtype` (ex: `enum_custom_field_changed` → `estagio_change` ou `status_change`)
+  - `descricao`: `story.text` (ex: "Luana modificou Estágio para Lançamento")
+  - `campo`: extraído do subtype quando possível
+  - `valor_novo`: extraído do texto quando possível
+  - `user_id`: mapeado via `userMap`
+  - `created_at`: `story.created_at`
+  - `projeto_id`: do projeto local
+- Deduplicar via `asana_sync_mappings` com `entity_type = "activity"`
 
-## Plano de Implementação
+### 2. Criar componente de Timeline Unificada (Comentários + Atividades)
 
-### 1. Auto-criar profiles para usuários Asana não encontrados
+Novo componente `ProjetoTarefaTimeline.tsx` que combina:
+- Dados de `projeto_tarefa_comentarios` (comentários)
+- Dados de `projeto_tarefa_atividades` (atividades/mudanças)
+- Mesclados e ordenados por `created_at` desc
+- UI com tabs "Comentários" | "Todas as atividades" como no screenshot do Asana
+- Comentários: avatar + nome + texto + data
+- Atividades de sistema: ícone contextual + "Fulano modificou X para Y" com badge colorido no valor novo
+- Estilo visual similar ao screenshot: fundo escuro, linha do tempo vertical, badges de valor
 
-No bloco de mapeamento de usuários (linhas 100-109), quando não houver match por email:
-- Criar um profile placeholder na tabela `profiles` com:
-  - `nome`: nome do Asana
-  - `email`: email do Asana
-  - `aprovado`: false (não pode logar, só serve de referência)
-  - `status`: "importado_asana"
-- Criar entrada em `user_roles` com role `vendedor` (padrão)
-- Adicionar ao `userMap` para que tarefas e comentários fiquem vinculados
-- Registrar no `asana_sync_mappings` para deduplicação
+### 3. Integrar no detalhe da tarefa
 
-**Nota**: Esses profiles NÃO terão conta auth (não podem logar). São registros de referência para vincular tarefas/comentários.
-
-### 2. Corrigir insert de anexos
-
-Linha 363-371 — trocar `uploaded_by: userId` por `user_id: userId`.
-
-### 3. Adicionar logs de diagnóstico nos comentários
-
-Adicionar `console.log` para contar stories retornadas e quantas passam pelo filtro, para diagnosticar se o problema é falta de dados ou filtro.
-
----
+Substituir/complementar o `ProjetoAtividadesLog` existente com o novo componente unificado no drawer/modal de detalhe da tarefa.
 
 ## Detalhes Técnicos
 
 ```text
-Fluxo atual de usuários:
-  Asana user → busca por email → não achou → ignora
+Asana story (type=system, resource_subtype=enum_custom_field_changed)
+  → text: "Luana modificou Estágio para Lançamento"
+  → INSERT projeto_tarefa_atividades (tipo=estagio_change, descricao=text, ...)
+  → dedup via asana_sync_mappings (entity_type=activity, asana_gid=story.gid)
 
-Fluxo novo:
-  Asana user → busca por email → não achou
-    → cria auth.users via admin API (com senha aleatória)
-    → cria profile (aprovado=false, status="importado_asana")
-    → mapeia no userMap
-    → tarefas e comentários ficam vinculados
-
-Anexos:
-  uploaded_by: userId  →  user_id: userId
+UI:
+  Tab "Comentários" → query projeto_tarefa_comentarios
+  Tab "Todas as atividades" → merge comentários + atividades, sort by created_at
 ```
 
-### Arquivos a alterar
-| Arquivo | Alteração |
-|---|---|
-| `supabase/functions/asana-sync/index.ts` | Auto-criar profiles, fix `user_id` em anexos, logs em comentários |
+### Mapeamento de subtypes Asana → tipos locais
 
-### Sem migrations necessárias
-A tabela `profiles` já tem os campos necessários. O campo `status` já existe como text.
+| resource_subtype | tipo local |
+|---|---|
+| `enum_custom_field_changed` | campo customizado (detectar por texto) |
+| `section_changed` / `added_to_project` | `secao_change` |
+| `marked_duplicate` | `sistema` |
+| `assigned` / `reassigned` | `responsavel_change` |
+| `due_date_changed` | `prazo_change` |
+| outros | `sistema` (genérico, com `descricao = story.text`) |
+
+### Arquivos a alterar/criar
+
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/asana-sync/index.ts` | Adicionar loop de importação de system stories |
+| `src/components/projetos/ProjetoTarefaTimeline.tsx` | Novo componente com tabs Comentários / Todas as atividades |
+| Componente de detalhe da tarefa | Integrar o novo timeline |
 
