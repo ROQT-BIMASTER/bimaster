@@ -383,11 +383,12 @@ Deno.serve(async (req) => {
 
                 try {
                   const stories = await asanaGetAll(`/tasks/${task.gid}/stories`, asanaPat, {
-                    opt_fields: "text,type,created_by,created_at",
+                    opt_fields: "gid,text,html_text,type,resource_subtype,created_by,created_at",
                   });
 
                   for (const story of stories) {
-                    if (story.type !== "comment" || !story.text) continue;
+                    const isComment = story.type === "comment" || story.resource_subtype === "comment_added";
+                    if (!isComment || !story.text) continue;
 
                     const authorId = story.created_by?.gid
                       ? userMap.get(story.created_by.gid) || userId
