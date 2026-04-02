@@ -435,7 +435,11 @@ export default function ProjetoVincularChina() {
       </div>
 
       {/* KPIs */}
-      <VincularChinaKpis data={kpiData} />
+      <VincularChinaKpis
+        data={kpiData}
+        activeFilter={kpiStatusFilter}
+        onFilterClick={(status) => setKpiStatusFilter(status)}
+      />
 
       {/* Split panel: Table + Side Panel */}
       <div style={{ minHeight: "calc(100vh - 320px)" }}>
