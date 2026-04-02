@@ -60,6 +60,7 @@ function getStatusBadgeVariant(status: string): "secondary" | "default" | "warni
     case "enviado": return "default";
     case "em_revisao": return "warning";
     case "aprovado": return "success";
+    case "enviado_brasil": return "default";
     case "arte_enviada": return "outline";
     case "rejeitado": return "destructive";
     default: return "secondary";
@@ -72,6 +73,7 @@ function getStatusLabel(status: string): string {
     case "enviado": return "Enviado";
     case "em_revisao": return "Em Revisão";
     case "aprovado": return "Aprovado";
+    case "enviado_brasil": return "Enviado ao Brasil";
     case "arte_enviada": return "Docs Enviados";
     case "rejeitado": return "Rejeitado";
     default: return status;
