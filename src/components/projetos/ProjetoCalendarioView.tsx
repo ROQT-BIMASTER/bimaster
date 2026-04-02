@@ -234,23 +234,31 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
             <button onClick={() => setViewMode("month")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "month" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Mês</button>
             <button onClick={() => setViewMode("week")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors", viewMode === "week" ? (darkBg ? "bg-white/20 text-white" : "bg-primary text-primary-foreground") : (darkBg ? "text-white/60 hover:bg-white/10" : "text-muted-foreground hover:bg-muted"))}>Semana</button>
           </div>
-          <Select value={filterSecao} onValueChange={setFilterSecao}>
-            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Seção" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas seções</SelectItem>
-              {secoes.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos status</SelectItem>
-              <SelectItem value="pendente">Não iniciado</SelectItem>
-              <SelectItem value="em_andamento">Em andamento</SelectItem>
-              <SelectItem value="concluida">Concluído</SelectItem>
-              <SelectItem value="bloqueada">Bloqueada</SelectItem>
-            </SelectContent>
-          </Select>
+          {hasActiveFilters(filters) ? (
+            <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
+              <CalendarDays className="h-3 w-3" /> Filtros ativos via toolbar
+            </Badge>
+          ) : (
+            <>
+              <Select value={filterSecao} onValueChange={setFilterSecao}>
+                <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Seção" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas seções</SelectItem>
+                  {secoes.map((s) => (<SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>))}
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos status</SelectItem>
+                  <SelectItem value="pendente">Não iniciado</SelectItem>
+                  <SelectItem value="em_andamento">Em andamento</SelectItem>
+                  <SelectItem value="concluida">Concluído</SelectItem>
+                  <SelectItem value="bloqueada">Bloqueada</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
       </div>
 

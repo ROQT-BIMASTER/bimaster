@@ -305,30 +305,38 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Filter className={`h-4 w-4 ${darkBg ? "text-white/60" : "text-muted-foreground"}`} />
-            <Select value={filterSecao} onValueChange={setFilterSecao}>
-              <SelectTrigger className={cn("h-8 w-[160px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
-                <SelectValue placeholder="Seção" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as seções</SelectItem>
-                {secoes.map(s => (
-                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="em_andamento">Em andamento</SelectItem>
-                <SelectItem value="concluida">Concluída</SelectItem>
-                <SelectItem value="bloqueada">Bloqueada</SelectItem>
-              </SelectContent>
-            </Select>
+            {hasActiveFilters(filters) ? (
+              <Badge variant="outline" className={cn("text-[10px] h-6 gap-1", darkBg && "border-white/20 text-white/70")}>
+                <Filter className="h-3 w-3" /> Filtros ativos via toolbar
+              </Badge>
+            ) : (
+              <>
+                <Filter className={`h-4 w-4 ${darkBg ? "text-white/60" : "text-muted-foreground"}`} />
+                <Select value={filterSecao} onValueChange={setFilterSecao}>
+                  <SelectTrigger className={cn("h-8 w-[160px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
+                    <SelectValue placeholder="Seção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as seções</SelectItem>
+                    {secoes.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className={cn("h-8 w-[140px] text-xs", darkBg && "bg-white/10 border-white/20 text-white")}>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em andamento</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="bloqueada">Bloqueada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" className={cn("h-7 w-7", darkBg && "text-white hover:bg-white/10")} onClick={() => setZoom(z => z === "quarter" ? "month" : "week")}>

@@ -135,13 +135,24 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     const targetSecao = secoes.find(s => s.id === overId);
     if (!targetSecao) return;
 
-    if (tarefa.secao_id !== targetSecao.id) {
+    const changedColumn = tarefa.secao_id !== targetSecao.id;
+
+    if (changedColumn) {
       moveTarefaToSecao.mutate({
         tarefaId,
         secaoOrigemId: tarefa.secao_id,
         secaoDestinoId: targetSecao.id,
       });
     }
+
+    // Persist ordem: calculate new position based on drop index
+    const columnTasks = tarefasPorSecao(targetSecao.id).filter(t => t.id !== tarefaId);
+    // Find the drop index (default to end)
+    const overIndex = columnTasks.length; // dropped at end
+    const newOrdem = overIndex;
+
+    // Always persist ordem when dropping (handles both same-column reorder and cross-column)
+    updateTarefa.mutate({ id: tarefaId, ordem: newOrdem });
   };
 
   const handleDragCancel = () => {
