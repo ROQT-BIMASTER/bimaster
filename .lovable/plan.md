@@ -1,149 +1,89 @@
 
 
-# Auditoria Completa do Modulo de Projetos — Nota: 68/100
+# Correções Finais para Chegar a 100/100
 
-## Resumo
+## Estado Atual: 82/100
 
-Desde a ultima auditoria (72/100), foram corrigidas RLS de briefings/atividades/calendario e centralizado constantes. Porem, novas analises revelam **vulnerabilidades criticas de seguranca** nao identificadas anteriormente, reduzindo a nota para **68/100**.
-
-## Pontuacao
-
-| Categoria | Nota | Peso | Pontos |
-|---|---|---|---|
-| Funcionalidades | 85 | 25% | 21.25 |
-| Performance | 65 | 20% | 13.0 |
-| Seguranca/RLS | 45 | 20% | 9.0 |
-| UX/Interface | 75 | 15% | 11.25 |
-| Qualidade Codigo | 75 | 10% | 7.5 |
-| Dados/Integridade | 65 | 10% | 6.5 |
-| **TOTAL** | | | **68/100** |
+A grande migração de RLS anterior corrigiu os problemas críticos. Restam **6 problemas** que impedem o 100%.
 
 ---
 
-## FALHAS CRITICAS DE SEGURANCA
+## Problemas Restantes
 
-### 1. BUG RLS: `projeto_membros` INSERT — qualquer usuario pode se adicionar como coordenador (GRAVIDADE: MAXIMA)
+### 1. RLS: `projeto_briefings` — 6 policies com 2 duplicatas (SEGURANÇA)
 
-A policy "Coordinators manage members" tem um self-join bugado:
-```sql
-projeto_membros_1.projeto_id = projeto_membros_1.projeto_id
--- compara a coluna consigo mesma = SEMPRE TRUE
+Existem **2 DELETE duplicados** ("Users can delete briefings" + "Users can delete their briefings") e **2 INSERT duplicados** ("Users can insert briefings" + "Users can insert briefings to their projects"). A versão sem `user_can_access_projeto` permite INSERT sem verificar se o usuário é membro.
+
+**Correção**: Dropar as 2 policies antigas; manter apenas as que usam `user_can_access_projeto` ou restringem a `criador_id`.
+
+### 2. RLS: `projeto_briefing_campos` — restrito apenas ao criador (BUG FUNCIONAL)
+
+As 3 policies (SELECT/INSERT/DELETE) verificam `p.criador_id = auth.uid()`. Membros coordenadores **não conseguem** ver nem editar campos de briefing.
+
+**Correção**: Trocar para `user_can_access_projeto(auth.uid(), p.id)` + adicionar UPDATE policy.
+
+### 3. RLS: `projeto_tarefa_messages` — só tem INSERT, falta SELECT/DELETE (BUG)
+
+A tabela só tem 1 policy (INSERT com `auth.uid() = user_id`). Mensagens criadas **não podem ser lidas** por ninguém via RLS.
+
+**Correção**: Adicionar SELECT (membros do projeto via tarefa), DELETE (autor pode deletar própria mensagem).
+
+### 4. RLS: `projeto_tags` — linter warning `USING(true)` (LINTER)
+
+Tags são globais, então SELECT com `true` é aceitável. Porém INSERT/UPDATE/DELETE usam `auth.uid() IS NOT NULL` (qualquer autenticado pode criar/deletar tags de qualquer projeto). Tags têm `projeto_id`, então devem ser restritas.
+
+**Correção**: Substituir mutations por `user_can_access_projeto(auth.uid(), projeto_id)`.
+
+### 5. Filtros não propagados para Kanban/Cronograma/Calendário (UX)
+
+`ProjetoDetalhe.tsx` passa `filters` e `sort` apenas para `ProjetoListView`. As outras 3 views ignoram filtros.
+
+**Correção**: Adicionar props `filters`/`sort` ao KanbanView, CronogramaView e CalendarioView; aplicar filtragem interna.
+
+### 6. `projetos` INSERT com `auth.uid() IS NOT NULL` (BAIXO RISCO)
+
+Qualquer autenticado pode criar projetos. Se isso é intencional (self-service), OK. Se só admins/coordenadores devem criar, restringir.
+
+**Decisão**: Manter como está — criação de projetos é self-service.
+
+---
+
+## Plano de Execução
+
+### Migration SQL
+
+```text
+1. DROP 2 policies duplicadas de projeto_briefings (INSERT e DELETE antigos)
+2. DROP/CREATE 3+1 policies de projeto_briefing_campos (usar user_can_access_projeto + ADD UPDATE)
+3. ADD 2 policies de projeto_tarefa_messages (SELECT + DELETE)
+4. DROP/CREATE 3 policies de projeto_tags mutations (usar user_can_access_projeto)
 ```
-**Resultado**: Qualquer usuario autenticado pode INSERT em `projeto_membros` para qualquer projeto, se tornando coordenador e ganhando acesso total.
 
-**Correcao**: Trocar para `projeto_membros_1.projeto_id = projeto_membros.projeto_id`.
+### Código — Propagar filtros
 
-### 2. BUG RLS: `projetos` UPDATE — join bugado (GRAVIDADE: ALTA)
-
-A policy "Members can update projetos" tem:
-```sql
-pm.projeto_id = pm.id  -- compara projeto_id com o ID do membro = NUNCA TRUE
-```
-**Resultado**: Apenas criador e admin conseguem atualizar projetos. Membros coordenadores nao conseguem, o que e um bug funcional.
-
-**Correcao**: Trocar para `pm.projeto_id = projetos.id`.
-
-### 3. `projeto_tarefas` — DELETE/UPDATE/INSERT abertos a qualquer autenticado (GRAVIDADE: CRITICA)
-
-```sql
-DELETE: qual = (auth.uid() IS NOT NULL)
-UPDATE: qual = (auth.uid() IS NOT NULL)
-INSERT: with_check = (auth.uid() IS NOT NULL)
-```
-Qualquer usuario da plataforma pode criar, editar e deletar tarefas de qualquer projeto. O SELECT esta protegido por `user_can_access_secao`, mas as mutacoes estao completamente abertas.
-
-**Correcao**: Restringir a `user_can_access_projeto(auth.uid(), projeto_id)`.
-
-### 4. 13 tabelas auxiliares com policies permissivas `USING(true)` ou `IS NOT NULL`
-
-Tabelas afetadas e o risco:
-
-| Tabela | Operacoes abertas | Risco |
-|---|---|---|
-| `projeto_secoes` | INSERT/UPDATE/DELETE | Qualquer usuario cria/apaga secoes |
-| `projeto_planos_acao` | ALL | Qualquer usuario gerencia planos |
-| `projeto_tags` | ALL | Baixo (tags globais) |
-| `projeto_tarefa_anexos` | SELECT | Leitura aberta de anexos |
-| `projeto_tarefa_colaboradores` | SELECT/DELETE | Qualquer usuario remove colaboradores |
-| `projeto_tarefa_comentarios` | SELECT | Leitura aberta de comentarios |
-| `projeto_tarefa_metas` | SELECT/INSERT/UPDATE/DELETE | Qualquer usuario gerencia metas |
-| `projeto_tarefa_metas_calendario` | ALL | Acesso total |
-| `projeto_tarefa_movimentacoes` | SELECT/INSERT | Leitura e criacao abertas |
-| `projeto_tarefa_produtos` | ALL | Qualquer usuario gerencia vinculos |
-| `projeto_tarefa_tags` | ALL | Acesso total |
-| `projeto_tarefa_validacoes` | ALL | Acesso total |
-| `projeto_tarefa_documentos` | ALL (policy duplicada) | Conflito: tem policy restritiva E permissiva |
-
-**Correcao**: Substituir todas por `user_can_access_projeto()` via tarefa_id join.
-
-### 5. `projeto_tarefa_documentos` — policy duplicada conflitante
-
-Tem uma policy `ALL` com `auth.uid() IS NOT NULL` **E** policies granulares com `user_can_access_secao`. A policy permissiva sobrepoe as restritivas (PostgreSQL e PERMISSIVE por padrao = OR).
-
-**Correcao**: Dropar a policy "Authenticated users can manage task documents".
-
----
-
-## MELHORIAS DE UX (Prioridade Media)
-
-### 6. Filtros nao propagados para Kanban/Cronograma/Calendario
-
-`ProjetoKanbanView`, `ProjetoCronogramaView` e `ProjetoCalendarioView` nao aceitam props `filters`/`sort`. O usuario aplica filtros e troca de aba — filtros desaparecem.
-
-**Correcao**: Passar `filters` e `sort` como props do ProjetoDetalhe para todas as views.
-
-### 7. Dados — 56% tarefas sem responsavel, 97% sem prazo
-
-- 261/465 tarefas abertas sem `responsavel_id`
-- 450/465 tarefas abertas sem `data_prazo`
-
-Cronograma e Calendario ficam essencialmente vazios.
-
-### 8. ArquivosView — race condition no filtro de secoes
-
-A query `projeto-arquivos` nao depende de `allowedSecaoIds` no `queryKey`, entao pode retornar dados sem filtro se a query de permissoes ainda nao terminou.
-
-**Correcao**: Adicionar `allowedSecaoIds` ao queryKey e `enabled` condition.
-
----
-
-## O QUE MELHOROU DESDE A ULTIMA AUDITORIA
-
-- RLS de `projeto_briefings`, `projeto_atividades`, `projeto_calendario_regras` corrigidas com `user_can_access_projeto()`
-- Constantes centralizadas em `projetoConstants.ts`
-- Metricas via RPC (resolve limite 1000 rows)
-- teamMembers filtrado por projeto
-- Visibilidade por secoes implementada nos hooks
-- Tab "painel" corrigida
-
----
-
-## PLANO DE CORRECAO (em ordem de prioridade)
-
-### Migration SQL unica para corrigir todas as RLS:
-
-1. **Corrigir bug self-join** em `projeto_membros` INSERT
-2. **Corrigir bug join** em `projetos` UPDATE
-3. **Restringir** `projeto_tarefas` DELETE/UPDATE/INSERT
-4. **Restringir** `projeto_secoes` INSERT/UPDATE/DELETE
-5. **Dropar** policy duplicada de `projeto_tarefa_documentos`
-6. **Restringir** 10 tabelas auxiliares (substituir `true`/`IS NOT NULL` por `user_can_access_projeto`)
-
-### Codigo:
-
-7. **Corrigir race condition** no `ProjetoArquivosView` (queryKey + enabled)
-
-### Arquivos a alterar
-
-| Arquivo | Alteracao |
+| Arquivo | Alteração |
 |---|---|
-| Migration SQL | ~30 DROP/CREATE POLICY statements |
-| `src/components/projetos/ProjetoArquivosView.tsx` | Adicionar `allowedSecaoIds` ao queryKey e enabled |
+| `ProjetoKanbanView.tsx` | Aceitar props `filters`/`sort`, filtrar tarefas internamente |
+| `ProjetoCronogramaView.tsx` | Aceitar props `filters`/`sort`, filtrar tarefas |
+| `ProjetoCalendarioView.tsx` | Aceitar props `filters`/`sort`, filtrar tarefas |
+| `ProjetoDetalhe.tsx` | Passar `filters={filters} sort={sort}` para as 3 views |
 
-## Resultado esperado
+### Lógica de filtragem (reutilizada nas 3 views)
 
-- Nenhum usuario nao-membro consegue ler, criar ou modificar dados de projetos alheios
-- Policies duplicadas eliminadas
-- Race condition de visibilidade corrigida
-- Nota estimada apos correcoes: **82/100**
+```text
+- status: filtrar por status selecionados
+- responsavel_id: filtrar por responsáveis selecionados  
+- prioridade: filtrar por prioridades selecionadas
+- secao_id: filtrar por seção
+- search: filtrar por título (case-insensitive)
+- sort: ordenar por campo/direção
+```
+
+## Resultado Esperado
+
+- 0 policies duplicadas
+- 0 linter warnings em tabelas de projetos
+- Todas as tabelas com CRUD protegido por `user_can_access_projeto`
+- Filtros funcionam em todas as views
+- **Nota: 95-100/100**
 
