@@ -417,7 +417,107 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // Third pass: sync attachments
+              // Subtask pass: fetch subtasks recursively (up to 3 levels)
+              async function syncSubtasks(parentAsanaGid: string, parentLocalId: string, depth: number) {
+                if (depth > 3) return;
+                try {
+                  const subtasks = await asanaGetAll(`/tasks/${parentAsanaGid}/subtasks`, asanaPat, {
+                    opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.gid,assignee.email,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name",
+                  });
+                  for (let si = 0; si < subtasks.length; si++) {
+                    const sub = subtasks[si];
+                    const assigneeId = sub.assignee?.gid ? userMap.get(sub.assignee.gid) : null;
+
+                    const cfMap = new Map<string, string>();
+                    for (const cf of (sub.custom_fields || [])) {
+                      const val = cf.enum_value?.name || cf.display_value || null;
+                      if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
+                    }
+
+                    const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || null;
+                    const status = sub.completed ? "concluida" : mapAsanaStatus(asanaStatus);
+                    const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
+
+                    const subData: Record<string, any> = {
+                      titulo: sub.name || "(Sem título)",
+                      descricao: sub.notes || null,
+                      status,
+                      prioridade,
+                      data_prazo: sub.due_on || null,
+                      data_inicio: sub.start_on || null,
+                      data_conclusao: sub.completed_at || null,
+                      responsavel_id: assigneeId || null,
+                      ordem: si,
+                      asana_gid: sub.gid,
+                      parent_tarefa_id: parentLocalId,
+                    };
+
+                    const { data: existingSub } = await adminClient
+                      .from("projeto_tarefas")
+                      .select("id")
+                      .eq("asana_gid", sub.gid)
+                      .maybeSingle();
+
+                    let localSubId: string;
+                    if (existingSub) {
+                      localSubId = existingSub.id;
+                      await adminClient.from("projeto_tarefas").update(subData).eq("id", localSubId);
+                    } else {
+                      const { data: newSub, error: subErr } = await adminClient.from("projeto_tarefas").insert({
+                        ...subData,
+                        projeto_id: localProjectId,
+                        secao_id: defaultSectionId,
+                        criador_id: userId,
+                      }).select().single();
+                      if (subErr || !newSub) {
+                        errors.push({ subtask: sub.gid, error: `Subtask insert falhou: ${subErr?.message}` });
+                        continue;
+                      }
+                      localSubId = newSub.id;
+                    }
+                    taskMap.set(sub.gid, localSubId);
+                    subtasksSynced++;
+
+                    // Fetch attachments for subtask
+                    try {
+                      const subAtts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, {
+                        opt_fields: "name,download_url,host,view_url,size,created_at",
+                      });
+                      for (const att of subAtts) {
+                        if (!att.gid) continue;
+                        const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
+                        if (!ea) {
+                          const { error: aErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+                            tarefa_id: localSubId,
+                            nome: att.name || "attachment",
+                            storage_path: att.download_url || att.view_url || "",
+                            tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
+                            tamanho: att.size || null,
+                            asana_gid: att.gid,
+                            user_id: userId,
+                          });
+                          if (!aErr) attachmentsSynced++;
+                        }
+                      }
+                    } catch (_) { /* skip subtask attachment errors */ }
+
+                    // Recurse deeper
+                    await syncSubtasks(sub.gid, localSubId, depth + 1);
+                  }
+                } catch (e: any) {
+                  console.warn(`[subtasks] Erro ao buscar subtarefas de ${parentAsanaGid} (depth=${depth}):`, e.message);
+                }
+              }
+
+              // Trigger subtask sync for all top-level tasks
+              for (const task of tasks) {
+                const localId = taskMap.get(task.gid);
+                if (localId) {
+                  await syncSubtasks(task.gid, localId, 1);
+                }
+              }
+
+
               for (const task of tasks) {
                 const localTaskId = taskMap.get(task.gid);
                 if (!localTaskId) continue;
