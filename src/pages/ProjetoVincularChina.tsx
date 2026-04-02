@@ -244,15 +244,26 @@ export default function ProjetoVincularChina() {
         try {
           toast.info("Criando produto Brasil...");
           const { supabase } = await import("@/integrations/supabase/client");
-          await (supabase.from("produtos_brasil" as any).insert({
-            submissao_china_id: selectedSubmissaoId,
-            projeto_id: selectedProjetoId,
-            china_nome: selectedSubmissao.produto_nome,
-            china_codigo: selectedSubmissao.produto_codigo,
-            china_ean: selectedSubmissao.ean_unidade || null,
-            china_descricao: selectedSubmissao.observacoes_brasil || null,
-            status: "aguardando_precadastro",
-          }) as any);
+          
+          // Check if produto_brasil already exists for this submissao
+          const { data: existingProduto } = await (supabase
+            .from("produtos_brasil" as any)
+            .select("id")
+            .eq("submissao_china_id", selectedSubmissaoId)
+            .maybeSingle() as any);
+          
+          if (!existingProduto) {
+            await (supabase.from("produtos_brasil" as any).insert({
+              submissao_china_id: selectedSubmissaoId,
+              projeto_id: selectedProjetoId,
+              china_nome: selectedSubmissao.produto_nome,
+              china_codigo: selectedSubmissao.produto_codigo,
+              china_ean: selectedSubmissao.ean_unidade || null,
+              china_descricao: selectedSubmissao.observacoes_brasil || null,
+              status: "aguardando_precadastro",
+            }) as any);
+          }
+
           const { data: prodBrasil } = await (supabase
             .from("produtos_brasil" as any)
             .select("id")
