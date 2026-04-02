@@ -1,141 +1,149 @@
 
 
-# Auditoria Completa do Modulo de Projetos — Nota: 72/100
+# Auditoria Completa do Modulo de Projetos — Nota: 68/100
 
-## Resumo Executivo
+## Resumo
 
-O modulo de Projetos e robusto em funcionalidades (8 visualizacoes, IA integrada, Asana sync, briefings, cofre documental), porem apresenta falhas de performance, seguranca e UX que impactam a operacao com 987 tarefas ativas e 40 membros.
+Desde a ultima auditoria (72/100), foram corrigidas RLS de briefings/atividades/calendario e centralizado constantes. Porem, novas analises revelam **vulnerabilidades criticas de seguranca** nao identificadas anteriormente, reduzindo a nota para **68/100**.
 
----
-
-## Pontuacao por Categoria
+## Pontuacao
 
 | Categoria | Nota | Peso | Pontos |
 |---|---|---|---|
-| Funcionalidades | 85/100 | 25% | 21.25 |
-| Performance | 55/100 | 20% | 11.0 |
-| Seguranca/RLS | 60/100 | 20% | 12.0 |
-| UX/Interface | 75/100 | 15% | 11.25 |
-| Qualidade de Codigo | 70/100 | 10% | 7.0 |
-| Dados/Integridade | 65/100 | 10% | 6.5 |
-| **TOTAL** | | | **72/100** |
+| Funcionalidades | 85 | 25% | 21.25 |
+| Performance | 65 | 20% | 13.0 |
+| Seguranca/RLS | 45 | 20% | 9.0 |
+| UX/Interface | 75 | 15% | 11.25 |
+| Qualidade Codigo | 75 | 10% | 7.5 |
+| Dados/Integridade | 65 | 10% | 6.5 |
+| **TOTAL** | | | **68/100** |
 
 ---
 
-## FALHAS CRITICAS (Prioridade Alta)
+## FALHAS CRITICAS DE SEGURANCA
 
-### 1. Performance — Waterfall de queries no useProjetoTarefas (Nota: 55)
-O hook faz **7 queries sequenciais** em cascata: tarefas -> profiles -> colaboradores -> produtos -> linked_produtos -> movimentacoes -> team-members. Em projetos com 200+ tarefas, isso causa lentidao perceptivel.
+### 1. BUG RLS: `projeto_membros` INSERT — qualquer usuario pode se adicionar como coordenador (GRAVIDADE: MAXIMA)
 
-**Correcao**: Paralelizar queries independentes com `Promise.all`, usar batch fetching.
+A policy "Coordinators manage members" tem um self-join bugado:
+```sql
+projeto_membros_1.projeto_id = projeto_membros_1.projeto_id
+-- compara a coluna consigo mesma = SEMPRE TRUE
+```
+**Resultado**: Qualquer usuario autenticado pode INSERT em `projeto_membros` para qualquer projeto, se tornando coordenador e ganhando acesso total.
 
-### 2. Limite de 1000 registros nao tratado (Nota: 55)
-O `useProjetos` busca **todas** as tarefas de **todos** os projetos para calcular metricas (`projetos-metrics`). Com 987 tarefas ativas, estamos no limite do Supabase (1000 rows). Quando ultrapassar, as metricas ficarao incorretas silenciosamente.
+**Correcao**: Trocar para `projeto_membros_1.projeto_id = projeto_membros.projeto_id`.
 
-**Correcao**: Criar uma view materializada ou RPC no banco para calcular metricas por projeto.
+### 2. BUG RLS: `projetos` UPDATE — join bugado (GRAVIDADE: ALTA)
 
-### 3. Seguranca — Policies com `USING (true)` (Nota: 60)
-- `projeto_briefings` tem SELECT com `USING (true)` — qualquer usuario autenticado ve todos os briefings
-- `projeto_atividades` tem SELECT com `USING (true)` — qualquer usuario ve todas as atividades
-- `projeto_calendario_regras` tem ALL com `auth.uid() IS NOT NULL` — qualquer usuario pode deletar regras de qualquer projeto
+A policy "Members can update projetos" tem:
+```sql
+pm.projeto_id = pm.id  -- compara projeto_id com o ID do membro = NUNCA TRUE
+```
+**Resultado**: Apenas criador e admin conseguem atualizar projetos. Membros coordenadores nao conseguem, o que e um bug funcional.
 
-**Correcao**: Restringir policies a membros do projeto usando `user_can_access_projeto()`.
+**Correcao**: Trocar para `pm.projeto_id = projetos.id`.
 
-### 4. 56% das tarefas abertas sem responsavel (261/465)
-Dado real do banco: 261 tarefas ativas nao tem `responsavel_id`. Isso compromete filtros de visibilidade, KPIs de equipe e produtividade.
+### 3. `projeto_tarefas` — DELETE/UPDATE/INSERT abertos a qualquer autenticado (GRAVIDADE: CRITICA)
 
-**Correcao**: Alertar na UI quando tarefas nao tem responsavel; adicionar filtro rapido "Sem responsavel".
+```sql
+DELETE: qual = (auth.uid() IS NOT NULL)
+UPDATE: qual = (auth.uid() IS NOT NULL)
+INSERT: with_check = (auth.uid() IS NOT NULL)
+```
+Qualquer usuario da plataforma pode criar, editar e deletar tarefas de qualquer projeto. O SELECT esta protegido por `user_can_access_secao`, mas as mutacoes estao completamente abertas.
 
-### 5. 97% das tarefas abertas sem prazo (450/465)
-Apenas 15 tarefas abertas possuem data de prazo. O cronograma, calendario e alertas de atraso ficam essencialmente vazios.
+**Correcao**: Restringir a `user_can_access_projeto(auth.uid(), projeto_id)`.
 
-**Correcao**: Dashboard de saude do projeto deveria alertar sobre isso; wizard de criacao deveria sugerir prazo.
+### 4. 13 tabelas auxiliares com policies permissivas `USING(true)` ou `IS NOT NULL`
 
----
+Tabelas afetadas e o risco:
 
-## MELHORIAS RECOMENDADAS (Prioridade Media)
+| Tabela | Operacoes abertas | Risco |
+|---|---|---|
+| `projeto_secoes` | INSERT/UPDATE/DELETE | Qualquer usuario cria/apaga secoes |
+| `projeto_planos_acao` | ALL | Qualquer usuario gerencia planos |
+| `projeto_tags` | ALL | Baixo (tags globais) |
+| `projeto_tarefa_anexos` | SELECT | Leitura aberta de anexos |
+| `projeto_tarefa_colaboradores` | SELECT/DELETE | Qualquer usuario remove colaboradores |
+| `projeto_tarefa_comentarios` | SELECT | Leitura aberta de comentarios |
+| `projeto_tarefa_metas` | SELECT/INSERT/UPDATE/DELETE | Qualquer usuario gerencia metas |
+| `projeto_tarefa_metas_calendario` | ALL | Acesso total |
+| `projeto_tarefa_movimentacoes` | SELECT/INSERT | Leitura e criacao abertas |
+| `projeto_tarefa_produtos` | ALL | Qualquer usuario gerencia vinculos |
+| `projeto_tarefa_tags` | ALL | Acesso total |
+| `projeto_tarefa_validacoes` | ALL | Acesso total |
+| `projeto_tarefa_documentos` | ALL (policy duplicada) | Conflito: tem policy restritiva E permissiva |
 
-### 6. Duplicacao massiva de constantes
-`STATUS_COLORS`, `STATUS_LABELS`, `ESTAGIO_COLORS` sao definidos em **5 arquivos diferentes** (KanbanView, TarefaRow, CronogramaView, CalendarioView, FilterSort). Qualquer alteracao precisa ser replicada em todos.
+**Correcao**: Substituir todas por `user_can_access_projeto()` via tarefa_id join.
 
-**Correcao**: Criar `src/lib/projetoConstants.ts` unificado.
+### 5. `projeto_tarefa_documentos` — policy duplicada conflitante
 
-### 7. ProjetoTarefaDetalhe tem 1477 linhas
-Componente monolitico que gerencia abas (descricao, comentarios, anexos, briefing, cofre, timeline, dependencias, aprovacao, produtos). Dificil de manter.
+Tem uma policy `ALL` com `auth.uid() IS NOT NULL` **E** policies granulares com `user_can_access_secao`. A policy permissiva sobrepoe as restritivas (PostgreSQL e PERMISSIVE por padrao = OR).
 
-**Correcao**: Extrair cada aba em componente separado.
-
-### 8. Filtros e ordenacao so funcionam na visao Lista
-Os filtros (`ProjetoFilterSort`) sao aplicados apenas em `ProjetoListView`. Kanban, Cronograma e Calendario ignoram os filtros selecionados.
-
-**Correcao**: Passar `filters` e `sort` para todas as views.
-
-### 9. Kanban sem persistencia de drag-and-drop
-O KanbanView (526 linhas) implementa DnD com @dnd-kit, mas a reordenacao dentro de uma coluna nao persiste o campo `ordem` no banco.
-
-**Correcao**: Chamar `updateTarefa` com nova `ordem` apos drop.
-
-### 10. Tab "briefings" e "painel" renderizam o mesmo componente
-No `ProjetoDetalhe.tsx`, ambos `activeTab === "briefings"` e `activeTab === "painel"` renderizam `ProjetoBriefingPanel`. Provavelmente um erro — "painel" deveria ser um dashboard de KPIs.
-
-**Correcao**: Vincular a tab "painel" ao componente correto (ProjetoHealthPanel?).
-
-### 11. teamMembers carrega TODOS os profiles
-A query `team-members` no `useProjetoTarefas` busca **todos os profiles da plataforma** sem filtro por projeto ou departamento. Ineficiente e potencialmente expoe dados.
-
-**Correcao**: Filtrar por `projeto_membros` do projeto atual.
-
-### 12. Arquivos sem filtro de visibilidade por secao
-O `ProjetoArquivosView` busca anexos de TODAS as tarefas do projeto, ignorando o filtro de secoes permitidas do membro.
-
-**Correcao**: Aplicar filtro `allowedSecaoIds` nos arquivos tambem.
-
-### 13. Exclusao de projeto sem confirmacao robusta
-`deleteProjeto` faz `DELETE` direto sem verificar se tem tarefas ativas, membros ou dados vinculados. Pode causar perda de dados.
-
-**Correcao**: Implementar soft delete com campo `excluido_em` ou dialog de confirmacao com resumo do impacto.
+**Correcao**: Dropar a policy "Authenticated users can manage task documents".
 
 ---
 
-## MELHORIAS MENORES (Prioridade Baixa)
+## MELHORIAS DE UX (Prioridade Media)
 
-### 14. Sem paginacao na listagem de projetos
-Com 5 projetos atuais nao e problema, mas nao escala.
+### 6. Filtros nao propagados para Kanban/Cronograma/Calendario
 
-### 15. Busca de projetos inexistente
-A pagina `Projetos.tsx` nao tem campo de busca por nome.
+`ProjetoKanbanView`, `ProjetoCronogramaView` e `ProjetoCalendarioView` nao aceitam props `filters`/`sort`. O usuario aplica filtros e troca de aba — filtros desaparecem.
 
-### 16. Sem exportacao de dados do cronograma
-Equipe Dashboard tem export Excel, mas Cronograma e Calendario nao.
+**Correcao**: Passar `filters` e `sort` como props do ProjetoDetalhe para todas as views.
 
-### 17. Tour/onboarding define steps em imports separados
-Boa pratica ja implementada com `TourButton`.
+### 7. Dados — 56% tarefas sem responsavel, 97% sem prazo
 
----
+- 261/465 tarefas abertas sem `responsavel_id`
+- 450/465 tarefas abertas sem `data_prazo`
 
-## O QUE ESTA BEM FEITO
+Cronograma e Calendario ficam essencialmente vazios.
 
-- **Arquitetura de visibilidade por secoes** — Recentemente implementada e funcional
-- **Soft delete de tarefas** com lixeira e restauracao
-- **Audit trail automatico** via triggers no banco
-- **Sistema de briefings** com aprovacao/rejeicao
-- **Cofre documental** com versionamento
-- **Integracao Asana** para sync bidirecional
-- **IA integrada** para resumos e criacao de tarefas
-- **Drag-and-drop** no Kanban com @dnd-kit
-- **Colunas configuraveis** com persistencia em localStorage
-- **Cronograma Gantt** com zoom por semana/mes/trimestre
+### 8. ArquivosView — race condition no filtro de secoes
+
+A query `projeto-arquivos` nao depende de `allowedSecaoIds` no `queryKey`, entao pode retornar dados sem filtro se a query de permissoes ainda nao terminou.
+
+**Correcao**: Adicionar `allowedSecaoIds` ao queryKey e `enabled` condition.
 
 ---
 
-## Proximos Passos Recomendados (Ordem de Prioridade)
+## O QUE MELHOROU DESDE A ULTIMA AUDITORIA
 
-1. Corrigir policies RLS permissivas (seguranca)
-2. Resolver limite de 1000 rows nas metricas (data integrity)
-3. Unificar constantes duplicadas (manutenibilidade)
-4. Propagar filtros para Kanban/Cronograma/Calendario (UX)
-5. Corrigir tab "painel" duplicada (bug)
-6. Filtrar teamMembers por projeto (performance/seguranca)
-7. Aplicar filtro de secoes nos Arquivos (seguranca)
-8. Refatorar ProjetoTarefaDetalhe em componentes menores (manutenibilidade)
+- RLS de `projeto_briefings`, `projeto_atividades`, `projeto_calendario_regras` corrigidas com `user_can_access_projeto()`
+- Constantes centralizadas em `projetoConstants.ts`
+- Metricas via RPC (resolve limite 1000 rows)
+- teamMembers filtrado por projeto
+- Visibilidade por secoes implementada nos hooks
+- Tab "painel" corrigida
+
+---
+
+## PLANO DE CORRECAO (em ordem de prioridade)
+
+### Migration SQL unica para corrigir todas as RLS:
+
+1. **Corrigir bug self-join** em `projeto_membros` INSERT
+2. **Corrigir bug join** em `projetos` UPDATE
+3. **Restringir** `projeto_tarefas` DELETE/UPDATE/INSERT
+4. **Restringir** `projeto_secoes` INSERT/UPDATE/DELETE
+5. **Dropar** policy duplicada de `projeto_tarefa_documentos`
+6. **Restringir** 10 tabelas auxiliares (substituir `true`/`IS NOT NULL` por `user_can_access_projeto`)
+
+### Codigo:
+
+7. **Corrigir race condition** no `ProjetoArquivosView` (queryKey + enabled)
+
+### Arquivos a alterar
+
+| Arquivo | Alteracao |
+|---|---|
+| Migration SQL | ~30 DROP/CREATE POLICY statements |
+| `src/components/projetos/ProjetoArquivosView.tsx` | Adicionar `allowedSecaoIds` ao queryKey e enabled |
+
+## Resultado esperado
+
+- Nenhum usuario nao-membro consegue ler, criar ou modificar dados de projetos alheios
+- Policies duplicadas eliminadas
+- Race condition de visibilidade corrigida
+- Nota estimada apos correcoes: **82/100**
 
