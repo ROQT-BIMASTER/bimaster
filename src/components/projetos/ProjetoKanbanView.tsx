@@ -44,6 +44,8 @@ import {
 interface Props {
   projetoId: string;
   darkBg?: boolean;
+  filters?: ProjetoFilters;
+  sort?: ProjetoSort;
 }
 
 /* ───────── Droppable Column ───────── */
