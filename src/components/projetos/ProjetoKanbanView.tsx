@@ -34,48 +34,10 @@ import {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-muted text-muted-foreground",
-  nao_iniciado: "bg-pink-500/20 text-pink-400",
-  em_andamento: "bg-amber-500/20 text-amber-400",
-  concluida: "bg-emerald-500/20 text-emerald-400",
-  bloqueada: "bg-red-500/20 text-red-400",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Não iniciado",
-  nao_iniciado: "Não iniciado",
-  em_andamento: "Em andamento",
-  concluida: "Concluído",
-  bloqueada: "Bloqueada",
-};
-
-const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500/20 text-purple-400",
-  em_criacao: "bg-blue-500/20 text-blue-400",
-  revisao: "bg-amber-500/20 text-amber-400",
-  aprovado: "bg-emerald-500/20 text-emerald-400",
-  producao: "bg-pink-500/20 text-pink-400",
-  lancamento: "bg-pink-500/20 text-pink-400",
-};
-
-const ESTAGIO_ACCENT: Record<string, string> = {
-  briefing: "bg-purple-500",
-  em_criacao: "bg-blue-500",
-  revisao: "bg-amber-500",
-  aprovado: "bg-emerald-500",
-  producao: "bg-pink-500",
-  lancamento: "bg-pink-500",
-};
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
+import {
+  STATUS_LABELS, STATUS_COLORS_KANBAN as STATUS_COLORS,
+  ESTAGIO_LABELS, ESTAGIO_COLORS_KANBAN as ESTAGIO_COLORS, ESTAGIO_ACCENT_KANBAN as ESTAGIO_ACCENT,
+} from "@/lib/projetoConstants";
 
 interface Props {
   projetoId: string;

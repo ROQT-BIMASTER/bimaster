@@ -17,10 +17,9 @@ import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
 import {
   STATUS_LABELS, STATUS_OPTIONS, STATUS_COLORS_LIST as STATUS_COLORS, STATUS_COLORS_LIST_DARK as STATUS_COLORS_DARK,
-  ESTAGIO_LABELS, ESTAGIO_OPTIONS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS_DARK,
+  ESTAGIO_LABELS, ESTAGIO_OPTIONS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS,
   PRIORITY_MAP, PRIORITY_REVERSE,
 } from "@/lib/projetoConstants";
-};
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };
 
