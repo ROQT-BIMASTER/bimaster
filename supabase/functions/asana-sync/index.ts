@@ -105,10 +105,10 @@ Deno.serve(async (req) => {
             const existingLocal = existingUserMap.get(au.gid);
             if (existingLocal) {
               userMap.set(au.gid, existingLocal);
-              // Update avatar if available and not yet set
+              // Update avatar if Asana has photo and local profile is missing it
               if (photoUrl) {
                 const prof = (profiles || []).find((p: any) => p.id === existingLocal);
-                if (prof && !prof.avatar_url) {
+                if (prof && (!prof.avatar_url || prof.avatar_url === "")) {
                   await adminClient.from("profiles").update({ avatar_url: photoUrl }).eq("id", existingLocal);
                 }
               }
