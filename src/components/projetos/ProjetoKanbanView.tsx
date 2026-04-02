@@ -406,6 +406,9 @@ function DraggableKanbanCard({
 
         {/* Meta row */}
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {(tarefa as any).codigo_acom && (
+            <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded">{(tarefa as any).codigo_acom}</span>
+          )}
           {tarefa.codigo && (
             <span className={cn("text-[10px] font-mono", darkBg ? "text-white/50" : "text-muted-foreground")}>{tarefa.codigo}</span>
           )}
