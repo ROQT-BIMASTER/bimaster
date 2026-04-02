@@ -207,6 +207,29 @@ export function NovoProjetoDialog({ open, onOpenChange }: NovoProjetoDialogProps
               <Label>Categoria / Linha</Label>
               <Input value={categoriaLinha} onChange={e => setCategoriaLinha(e.target.value)} placeholder="Ex: Maquiagem, Skincare, Corpo..." />
             </div>
+
+            {/* Preview card */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Preview do projeto</Label>
+              <div className="rounded-lg border bg-muted/30 p-3 flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0"
+                  style={{ backgroundColor: cor }}
+                >
+                  <span className="text-white text-lg font-bold">{nome.charAt(0) || "?"}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{nome || "Nome do projeto"}</p>
+                  {descricao && <p className="text-xs text-muted-foreground truncate">{descricao}</p>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      {TEMPLATES[template].label}
+                    </span>
+                    {marca && <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{marca}</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

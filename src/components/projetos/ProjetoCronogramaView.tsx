@@ -271,14 +271,23 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   }
 
   if (filteredTarefas.length === 0) {
+    const totalParent = tarefas.filter(t => !t.parent_tarefa_id).length;
+    const withoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
     return (
       <div className={`flex flex-col items-center justify-center py-20 gap-2 ${darkBg ? "text-white/60" : "text-muted-foreground"}`}>
         <Calendar className="h-10 w-10 opacity-40" />
         <p className="text-sm">Nenhuma tarefa encontrada para exibir no cronograma.</p>
-        <p className="text-xs">Crie tarefas com prazos para visualizá-las aqui.</p>
+        {withoutDeadline > 0 && (
+          <p className="text-xs text-warning">{withoutDeadline} de {totalParent} tarefas sem prazo definido — defina prazos para visualizá-las aqui.</p>
+        )}
       </div>
     );
   }
+
+  // Deadline warning banner
+  const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
+  const tasksWithoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
+  const showDeadlineBanner = totalParentTasks > 0 && (tasksWithoutDeadline / totalParentTasks) > 0.5;
 
   const LANE_LABEL_WIDTH = 260;
   const ROW_HEIGHT = 48;
@@ -286,6 +295,13 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-3">
+        {/* Deadline warning banner */}
+        {showDeadlineBanner && (
+          <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs", darkBg ? "bg-warning/10 text-warning" : "bg-warning/10 text-warning")}>
+            <Calendar className="h-4 w-4 flex-shrink-0" />
+            <span>{tasksWithoutDeadline} de {totalParentTasks} tarefas sem prazo definido — defina prazos para visualizá-las no cronograma.</span>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">

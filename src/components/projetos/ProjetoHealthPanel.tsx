@@ -28,6 +28,14 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
     return { onTrack, atRisk, overdue, completed, noDeadline, total: tarefas.filter(t => !t.parent_tarefa_id).length };
   }, [tarefas]);
 
+  // Count open tasks without deadline
+  const openWithoutDeadline = useMemo(() => {
+    const open = tarefas.filter(t => !t.parent_tarefa_id && t.status !== "concluida");
+    return open.filter(t => !t.data_prazo).length;
+  }, [tarefas]);
+  const openTotal = useMemo(() => tarefas.filter(t => !t.parent_tarefa_id && t.status !== "concluida").length, [tarefas]);
+  const showDeadlineWarning = openTotal > 0 && (openWithoutDeadline / openTotal) > 0.5;
+
   const retrabalhoCount = useMemo(() => {
     return tarefas.filter(t => !t.parent_tarefa_id && (t as any).tipo_tarefa === "retrabalho").length;
   }, [tarefas]);
@@ -41,6 +49,11 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
     { label: "Atrasadas", count: stats.overdue, color: "bg-destructive", icon: XCircle, tooltip: `${stats.overdue} atrasada${stats.overdue !== 1 ? "s" : ""}` },
     { label: "Retrabalho", count: retrabalhoCount, color: "bg-orange-500", icon: RefreshCw, tooltip: `${retrabalhoCount} retrabalho` },
   ].filter(s => s.count > 0);
+
+  // Warning segment for tasks without deadline
+  const warningSegments = showDeadlineWarning ? [
+    { label: "Sem prazo", count: openWithoutDeadline, warning: true },
+  ] : [];
 
   const completedPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
@@ -71,6 +84,19 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
               </Badge>
             );
           })}
+          {warningSegments.map(seg => (
+            <Badge
+              key={seg.label}
+              variant="secondary"
+              className={cn(
+                "text-[11px] gap-1.5 font-medium px-2.5 py-1",
+                darkBg ? "bg-warning/20 text-warning border-warning/20" : "bg-warning/10 text-warning border-warning/20"
+              )}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {seg.count} sem prazo
+            </Badge>
+          ))}
         </div>
 
         {/* Progress bar + percentage */}

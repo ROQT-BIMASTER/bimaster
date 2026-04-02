@@ -32444,6 +32444,15 @@ export type Database = {
           total_tarefas: number
         }[]
       }
+      get_projetos_member_avatars: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          nome: string
+          projeto_id: string
+          user_id: string
+        }[]
+      }
       get_reativacao_kpis: { Args: { p_empresa_id?: number }; Returns: Json }
       get_sales_performance: {
         Args: never

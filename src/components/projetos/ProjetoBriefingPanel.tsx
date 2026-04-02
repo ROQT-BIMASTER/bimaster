@@ -18,18 +18,18 @@ import {
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  pendente: { label: "Pendente", color: "bg-amber-500/20 text-amber-400", icon: Clock },
-  em_analise: { label: "Em Análise", color: "bg-blue-500/20 text-blue-400", icon: Eye },
-  aprovado: { label: "Aprovado", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle2 },
-  rejeitado: { label: "Rejeitado", color: "bg-red-500/20 text-red-400", icon: XCircle },
+  pendente: { label: "Pendente", color: "bg-warning/20 text-warning", icon: Clock },
+  em_analise: { label: "Em Análise", color: "bg-primary/20 text-primary", icon: Eye },
+  aprovado: { label: "Aprovado", color: "bg-success/20 text-success", icon: CheckCircle2 },
+  rejeitado: { label: "Rejeitado", color: "bg-destructive/20 text-destructive", icon: XCircle },
 };
 
 const RESP_COLORS: Record<string, string> = {
-  D: "bg-blue-500/20 text-blue-400",
-  C: "bg-purple-500/20 text-purple-400",
-  R: "bg-red-500/20 text-red-400",
-  E: "bg-amber-500/20 text-amber-400",
-  COMP: "bg-emerald-500/20 text-emerald-400",
+  D: "bg-primary/20 text-primary",
+  C: "bg-accent/20 text-accent-foreground",
+  R: "bg-destructive/20 text-destructive",
+  E: "bg-warning/20 text-warning",
+  COMP: "bg-success/20 text-success",
 };
 
 interface ProjetoBriefingPanelProps {
@@ -112,9 +112,9 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: "Total", value: total, icon: FileSpreadsheet, color: "text-primary" },
-          { label: "Aprovados", value: aprovados, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-amber-400" },
-          { label: "Rejeitados", value: rejeitados, icon: XCircle, color: "text-red-400" },
+          { label: "Aprovados", value: aprovados, icon: CheckCircle2, color: "text-success" },
+          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-warning" },
+          { label: "Rejeitados", value: rejeitados, icon: XCircle, color: "text-destructive" },
           { label: "Cumprimento", value: `${cumprimento}%`, icon: AlertCircle, color: "text-primary" },
         ].map(kpi => (
           <div key={kpi.label} className={cn("rounded-lg border p-3", cardBg)}>
@@ -208,7 +208,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs gap-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/10"
                           onClick={() => handleApprove(b.id)}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -219,7 +219,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setRejectDialog({ open: true, briefingId: b.id })}
                         >
                           <XCircle className="h-3.5 w-3.5" />
@@ -232,7 +232,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
 
                 <CollapsibleContent>
                   {b.observacao_aprovacao && (
-                    <div className={cn("mx-4 mb-3 p-2 rounded text-xs", darkBg ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600")}>
+                   <div className={cn("mx-4 mb-3 p-2 rounded text-xs", darkBg ? "bg-destructive/10 text-destructive" : "bg-destructive/5 text-destructive")}>
                       <strong>Observação:</strong> {b.observacao_aprovacao}
                     </div>
                   )}

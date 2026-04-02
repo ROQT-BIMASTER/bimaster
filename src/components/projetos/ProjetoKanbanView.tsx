@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useProjetoTarefas, ProjetoTarefa, ProjetoSecao } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ProjetoTarefaDetalhe } from "./ProjetoTarefaDetalhe";
 import { NovaTarefaInline } from "./NovaTarefaInline";
 import { NovaSecaoInline } from "./NovaSecaoInline";
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target,
+  CheckCircle2, Circle, Calendar, ListChecks, GripVertical, Target, LayoutGrid,
 } from "lucide-react";
 import { useMetasProgress, MetasProgress } from "@/hooks/useMetasProgress";
 import { Progress } from "@/components/ui/progress";
@@ -153,6 +154,16 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       <div className={cn("flex items-center justify-center py-20", darkBg ? "text-white/60" : "text-muted-foreground")}>
         Carregando...
       </div>
+    );
+  }
+
+  if (filtersActive && tarefas.length === 0) {
+    return (
+      <EmptyState
+        icon={LayoutGrid}
+        title="Nenhuma tarefa encontrada"
+        description="Nenhuma tarefa corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+      />
     );
   }
 

@@ -146,29 +146,29 @@ export function ProjetoHeader({
       </div>
 
       {/* Tabs + toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className={cn(
-          "flex items-center gap-1 rounded-lg p-1",
+          "flex items-center gap-1 rounded-lg p-1 overflow-x-auto scrollbar-hide",
           darkBg ? "bg-white/10" : customBg ? "bg-black/10" : "bg-muted"
         )}>
           {/* Work tabs */}
           {WORK_TABS.map(tab => {
             const Icon = tab.icon;
             return (
-              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={tabCls(activeTab === tab.value)}>
+              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
                 <Icon className="h-3.5 w-3.5" /> {tab.label}
               </button>
             );
           })}
 
           {/* Separator */}
-          <div className={cn("w-px h-5 mx-1", darkBg ? "bg-white/20" : customBg ? "bg-black/15" : "bg-border")} />
+          <div className={cn("w-px h-5 mx-1 flex-shrink-0", darkBg ? "bg-white/20" : customBg ? "bg-black/15" : "bg-border")} />
 
           {/* Management tabs */}
           {MANAGE_TABS.map(tab => {
             const Icon = tab.icon;
             return (
-              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={tabCls(activeTab === tab.value)}>
+              <button key={tab.value} onClick={() => onTabChange(tab.value)} className={cn(tabCls(activeTab === tab.value), "flex-shrink-0")}>
                 <Icon className="h-3.5 w-3.5" /> {tab.label}
               </button>
             );
@@ -178,7 +178,7 @@ export function ProjetoHeader({
           <button
             onClick={() => navigate("/dashboard/projetos/aprovacoes")}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors",
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors flex-shrink-0",
               darkBg ? "text-white/50 hover:text-white hover:bg-white/10" : customBg ? "text-black/40 hover:text-black hover:bg-black/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
