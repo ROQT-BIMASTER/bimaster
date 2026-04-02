@@ -1,71 +1,78 @@
 
 
-# Melhorias de Responsividade Mobile — Correções Globais
+# Análise da Tela Vincular China — Bugs, Lacunas e Melhorias
 
-## Problemas Identificados
+## Bugs Encontrados
 
-### 1. Header do Dashboard — Overflow no Mobile
-O header (`DashboardLayout.tsx` linha 97-108) contém 5+ elementos (EmpresaSelector, LanguageSelector, ImpersonationSelector, NotificationBell, logo) todos visíveis sem breakpoints. Em telas < 768px, eles transbordam ou comprimem.
+### 1. Status `enviado_brasil` não mapeado na UI
+Existem **5 submissões** com status `enviado_brasil` no banco de dados, mas esse status não aparece em nenhum lugar do frontend:
+- Não está no `STATUS_OPTIONS` do filtro da tabela
+- Não está no `getStatusBadge()` nem `getStatusConfig()` — cai no fallback genérico "secondary"
+- Resultado: esses itens aparecem com badge cinza sem label legível
 
-**Correção**: Esconder título do sistema no mobile, reduzir gaps, esconder seletores secundários (Language, Impersonation) em mobile — acessíveis via menu lateral.
+**Correção**: Adicionar `enviado_brasil` como "Enviado ao Brasil" em todos os mapeamentos de status (tabela, painel lateral, KPIs).
 
-### 2. TabsList com grid-cols-5/6/7 — Texto Ilegível no Mobile
-26+ componentes usam `TabsList grid w-full grid-cols-5` ou mais. Em 360px, cada tab tem ~72px — texto fica cortado e ilegível.
+### 2. KPI não contabiliza `enviado_brasil`
+O cálculo de KPIs ignora completamente submissões com status `enviado_brasil` — não aparecem em nenhum card. São 5 registros "invisíveis" nos indicadores.
 
-**Correção**: Criar componente wrapper `ScrollableTabsList` que no mobile usa `flex overflow-x-auto` em vez de `grid`, permitindo scroll horizontal nas tabs. Aplicar nos 6 piores ofensores (SocialMediaMonitoring, WhatsAppMonitoring, configurações, etc).
+**Correção**: Adicionar KPI "Enviado Brasil" ou agrupar com "Enviados".
 
-### 3. Kanban de Prospects — 6 Colunas no Mobile
-`KanbanBoard.tsx` usa `xl:grid-cols-6` mas no mobile fica `grid-cols-1` — OK, mas sem indicação visual de scroll entre colunas.
+### 3. Despacho em lote sem validação de projeto
+O botão "Despachar Selecionados" apenas registra eventos em `process_events` mas não verifica se as submissões estão vinculadas a um projeto. Despachos de itens sem vínculo criam eventos órfãos.
 
-**Correção**: No mobile, adicionar scroll horizontal com snap-to-column em vez de empilhar verticalmente (que fica muito longo).
+**Correção**: Filtrar apenas submissões vinculadas no despacho em lote, ou avisar o usuário.
 
-### 4. Chat — Ambos Painéis Visíveis no Mobile
-`Chat.tsx` mostra lista + janela simultaneamente (`grid-cols-1 md:grid-cols-3`). No mobile, a lista e janela ficam empilhados, desperdiçando espaço.
+### 4. RLS inconsistente entre tabelas de vínculo
+- `china_submissao_tarefa_vinculos` usa `check_user_access(auth.uid(), 'fabrica_china')` — restritivo
+- `china_documento_tarefa_vinculos` usa apenas `auth.uid() IS NOT NULL` — qualquer autenticado pode manipular
 
-**Correção**: No mobile, mostrar apenas lista OU janela (com botão voltar).
+**Correção**: Alinhar políticas RLS para ambas as tabelas.
 
-### 5. Títulos h2 text-3xl — Muito Grandes no Mobile
-183+ páginas usam `text-3xl font-bold` para títulos. Em 360px, ocupam muito espaço vertical.
+### 5. Vinculação cria produto Brasil duplicado
+Cada vez que se vincula a mesma submissão, `handleVincular` tenta inserir um novo `produtos_brasil` sem verificar se já existe um para aquele `submissao_china_id`. Resultado: duplicatas no banco.
 
-**Correção**: Usar `text-xl sm:text-3xl` nos componentes de header reutilizáveis (`PageHeader`).
+**Correção**: Usar `upsert` ou verificar existência antes de inserir.
 
-### 6. KPI Grids — Comprimidos no Mobile
-Muitas páginas usam `grid-cols-2 md:grid-cols-4` para KPIs. Em 320px, 2 colunas ficam apertadas.
+## Melhorias Propostas
 
-**Correção**: Garantir `grid-cols-1 sm:grid-cols-2 md:grid-cols-4` nos principais dashboards.
+### 6. Indicador visual de documentos por submissão na tabela
+A tabela não mostra quantos documentos cada submissão possui. O usuário precisa clicar em cada linha para ver.
+
+**Correção**: Adicionar coluna "Docs" com badge mostrando contagem.
+
+### 7. Filtro rápido por status no KPI (click-to-filter)
+Os cards KPI são estáticos. Clicar em "Em Revisão" deveria filtrar a tabela automaticamente.
+
+**Correção**: Tornar KPIs clicáveis com callback para setar o filtro.
+
+### 8. Atalho de teclado para navegação
+Não há navegação por teclado (↑↓ para navegar entre submissões, Enter para abrir).
+
+**Correção**: Adicionar keyboard listeners na tabela.
+
+### 9. Exportação de dados
+Sem opção de exportar a lista filtrada para CSV/Excel.
+
+**Correção**: Botão "Exportar" que gera CSV da lista filtrada.
+
+### 10. Indicador de tempo desde última atualização
+A coluna "Atualização" mostra apenas data. Submissões paradas há muito tempo não se destacam.
+
+**Correção**: Destacar em vermelho submissões com mais de 7 dias sem atualização.
 
 ## Plano de Implementação
 
-### 1. Header Mobile Responsivo (`DashboardLayout.tsx`)
-- Esconder `h1` (título do sistema) no mobile (`hidden sm:block`)
-- Esconder `LanguageSelector` e `ImpersonationSelector` no mobile
-- Reduzir logo para `h-8` no mobile
-- Reduzir gap para `gap-2`
+### Migration SQL
+- Alinhar RLS de `china_documento_tarefa_vinculos` com `check_user_access`
 
-### 2. ScrollableTabsList Wrapper (`src/components/ui/scrollable-tabs.tsx`)
-- Componente que renderiza `TabsList` com `overflow-x-auto flex` no mobile
-- Aplicar em: `SocialMediaMonitoring`, `WhatsAppMonitoring`, `InadimplenteDrawerPro`, `DocumentacaoIntegracaoERP`, `ContasReceberSyncPage`, `TradeVisits`
+### Arquivos a alterar
 
-### 3. Chat Mobile com Toggle (`Chat.tsx`)
-- Usar `useIsMobile()` para alternar entre lista/janela
-- Botão "Voltar" na janela de chat
-
-### 4. PageHeader Responsivo
-- Ajustar `text-3xl` → `text-xl sm:text-3xl` no componente `PageHeader`
-
-### 5. Kanban Horizontal no Mobile
-- `KanbanBoard.tsx`: no mobile usar `flex overflow-x-auto snap-x` em vez de grid empilhado
-
-## Alterações Técnicas
-
-| Arquivo | Ação |
-|---------|------|
-| `DashboardLayout.tsx` | Header responsivo: esconder elementos secundários no mobile |
-| `src/components/ui/scrollable-tabs.tsx` | Novo componente wrapper para tabs scrolláveis |
-| `SocialMediaMonitoring.tsx` + 5 outros | Trocar TabsList por ScrollableTabsList |
-| `Chat.tsx` | Toggle lista/janela no mobile |
-| `src/components/ui/page-header.tsx` | Título responsivo |
-| `KanbanBoard.tsx` | Scroll horizontal no mobile |
-
-Zero migrations. Apenas CSS/layout responsivo.
+| Arquivo | Alteração |
+|---------|-----------|
+| `VincularChinaTable.tsx` | Adicionar `enviado_brasil` nos STATUS_OPTIONS, adicionar coluna "Docs", destaque de itens antigos |
+| `VincularChinaSidePanel.tsx` | Adicionar `enviado_brasil` no `getStatusConfig` |
+| `VincularChinaKpis.tsx` | Adicionar KPI "Enviado Brasil", tornar cards clicáveis |
+| `ProjetoVincularChina.tsx` | Fix duplicata de `produtos_brasil` (check before insert), adicionar estado de filtro por KPI, adicionar `enviado_brasil` no `getStatusLabel`/`getStatusBadgeVariant`, adicionar exportação CSV |
+| `VincularChinaBulkActions.tsx` | Validar que submissões têm vínculo antes de despachar |
+| Migration | Alinhar RLS de `china_documento_tarefa_vinculos` |
 
