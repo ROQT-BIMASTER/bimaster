@@ -22489,6 +22489,30 @@ export type Database = {
           },
         ]
       }
+      projeto_tags: {
+        Row: {
+          asana_gid: string | null
+          cor: string | null
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          asana_gid?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          asana_gid?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       projeto_tarefa_anexos: {
         Row: {
           asana_gid: string | null
@@ -22977,6 +23001,42 @@ export type Database = {
           },
         ]
       }
+      projeto_tarefa_tags: {
+        Row: {
+          created_at: string
+          id: string
+          tag_id: string
+          tarefa_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tag_id: string
+          tarefa_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tag_id?: string
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_tarefa_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_tarefa_tags_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_tarefa_validacoes: {
         Row: {
           aprovado_em: string | null
@@ -23024,6 +23084,8 @@ export type Database = {
       projeto_tarefas: {
         Row: {
           asana_gid: string | null
+          asana_json_raw: Json | null
+          campos_customizados: Json | null
           codigo: string | null
           codigo_acom: string | null
           created_at: string | null
@@ -23056,6 +23118,8 @@ export type Database = {
         }
         Insert: {
           asana_gid?: string | null
+          asana_json_raw?: Json | null
+          campos_customizados?: Json | null
           codigo?: string | null
           codigo_acom?: string | null
           created_at?: string | null
@@ -23088,6 +23152,8 @@ export type Database = {
         }
         Update: {
           asana_gid?: string | null
+          asana_json_raw?: Json | null
+          campos_customizados?: Json | null
           codigo?: string | null
           codigo_acom?: string | null
           created_at?: string | null
