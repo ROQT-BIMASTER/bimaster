@@ -661,3 +661,45 @@ function mapAsanaColor(color: string | null): string {
   };
   return colorMap[color || ""] || "#6366f1";
 }
+
+function mapAsanaStatus(asanaStatus: string | null): string {
+  if (!asanaStatus) return "pendente";
+  const s = asanaStatus.toLowerCase().trim();
+  const statusMap: Record<string, string> = {
+    "em andamento": "em_andamento",
+    "in progress": "em_andamento",
+    "aguardando terceiros": "em_andamento",
+    "aprovado com fiscal": "concluida",
+    "concluído": "concluida",
+    "concluido": "concluida",
+    "completed": "concluida",
+    "done": "concluida",
+    "cancelado": "cancelada",
+    "cancelled": "cancelada",
+    "não iniciado": "pendente",
+    "not started": "pendente",
+    "pendente": "pendente",
+  };
+  return statusMap[s] || "pendente";
+}
+
+function mapAsanaPriority(asanaPriority: string | null): string | null {
+  if (!asanaPriority) return null;
+  const p = asanaPriority.toLowerCase().trim();
+  const priorityMap: Record<string, string> = {
+    "alto": "alta",
+    "alta": "alta",
+    "high": "alta",
+    "médio": "media",
+    "medio": "media",
+    "média": "media",
+    "media": "media",
+    "medium": "media",
+    "baixo": "baixa",
+    "baixa": "baixa",
+    "low": "baixa",
+    "urgente": "urgente",
+    "urgent": "urgente",
+  };
+  return priorityMap[p] || null;
+}

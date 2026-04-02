@@ -165,6 +165,9 @@ export function ProjetoTarefaRow({
           {tarefa.codigo && (
             <span className={`text-[10px] font-mono flex-shrink-0 ${darkBg ? "text-white/50" : "text-foreground/60"}`}>{tarefa.codigo}</span>
           )}
+          {(tarefa as any).codigo_acom && (
+            <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded flex-shrink-0">{(tarefa as any).codigo_acom}</span>
+          )}
           <InlineTitle
             value={tarefa.titulo}
             isCompleted={isCompleted}
