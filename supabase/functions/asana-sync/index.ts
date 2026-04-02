@@ -3,13 +3,33 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const ASANA_API = "https://app.asana.com/api/1.0";
 
+// Concurrency limiter to avoid overwhelming APIs
+function pLimit(concurrency: number) {
+  const queue: (() => void)[] = [];
+  let active = 0;
+  function next() {
+    if (queue.length > 0 && active < concurrency) {
+      active++;
+      const fn = queue.shift()!;
+      fn();
+    }
+  }
+  return function <T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      queue.push(() => {
+        fn().then(resolve, reject).finally(() => { active--; next(); });
+      });
+      next();
+    });
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Auth: validate JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return json({ error: "Não autorizado" }, 401);
@@ -73,7 +93,6 @@ Deno.serve(async (req) => {
           return json({ error: "workspace_gid e project_gids obrigatórios" }, 400);
         }
 
-        // Create sync log
         const { data: logRow } = await adminClient
           .from("asana_sync_log")
           .insert({
@@ -87,18 +106,39 @@ Deno.serve(async (req) => {
 
         const logId = logRow!.id;
         const errors: any[] = [];
-        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0, collaboratorsSynced = 0, subtasksSynced = 0, attachmentsSynced = 0;
+        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0;
+        let usersMapped = 0, collaboratorsSynced = 0, subtasksSynced = 0, attachmentsSynced = 0;
+        const limit = pLimit(5); // Max 5 concurrent operations
 
         try {
-          // Map Asana users to local profiles
+          // ===== MAP ASANA USERS =====
           const asanaUsers = await asanaGetAll(`/workspaces/${workspace_gid}/users`, asanaPat, {
             opt_fields: "name,email",
           });
           const { data: profiles } = await adminClient.from("profiles").select("id, email, nome");
-          const userMap = new Map<string, string>(); // asana_gid -> local profile id
+          const userMap = new Map<string, string>();
+
+          // Batch-load existing user mappings
+          const userGids = asanaUsers.filter((u: any) => u.gid).map((u: any) => u.gid);
+          const { data: existingUserMappings } = await adminClient
+            .from("asana_sync_mappings")
+            .select("asana_gid, local_id")
+            .eq("entity_type", "user")
+            .in("asana_gid", userGids.length ? userGids : ["__none__"]);
+
+          const existingUserMap = new Map((existingUserMappings || []).map((m: any) => [m.asana_gid, m.local_id]));
 
           for (const au of asanaUsers) {
             if (!au.email) continue;
+
+            // Check existing mapping first (fastest path)
+            const existingLocal = existingUserMap.get(au.gid);
+            if (existingLocal) {
+              userMap.set(au.gid, existingLocal);
+              usersMapped++;
+              continue;
+            }
+
             const match = (profiles || []).find(
               (p: any) => p.email?.toLowerCase() === au.email.toLowerCase()
             );
@@ -106,23 +146,7 @@ Deno.serve(async (req) => {
               userMap.set(au.gid, match.id);
               usersMapped++;
             } else {
-              // Auto-create placeholder profile for unmapped Asana user
               try {
-                // Check if already mapped from a previous sync
-                const { data: existingMapping } = await adminClient
-                  .from("asana_sync_mappings")
-                  .select("local_id")
-                  .eq("asana_gid", au.gid)
-                  .eq("entity_type", "user")
-                  .maybeSingle();
-
-                if (existingMapping) {
-                  userMap.set(au.gid, existingMapping.local_id);
-                  usersMapped++;
-                  continue;
-                }
-
-                // Create auth user with random password (cannot login)
                 const randomPwd = crypto.randomUUID() + "Aa1!";
                 const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
                   email: au.email,
@@ -132,19 +156,16 @@ Deno.serve(async (req) => {
                 });
 
                 if (authErr || !authUser?.user) {
-                  console.warn(`Não foi possível criar auth user para ${au.email}: ${authErr?.message}`);
                   errors.push({ user: au.email, error: `Auto-create auth falhou: ${authErr?.message}` });
                   continue;
                 }
 
-                // Update profile (created by trigger) with Asana metadata
                 await adminClient.from("profiles").update({
                   nome: au.name || au.email,
                   aprovado: false,
                   status: "importado_asana",
                 }).eq("id", authUser.user.id);
 
-                // Map in asana_sync_mappings for deduplication
                 await adminClient.from("asana_sync_mappings").insert({
                   asana_gid: au.gid,
                   entity_type: "user",
@@ -154,13 +175,13 @@ Deno.serve(async (req) => {
 
                 userMap.set(au.gid, authUser.user.id);
                 usersMapped++;
-                console.log(`Criado profile placeholder para ${au.name} (${au.email})`);
+                console.log(`Criado profile para ${au.name} (${au.email})`);
               } catch (createErr: any) {
-                console.error(`Erro ao criar profile para ${au.email}:`, createErr.message);
                 errors.push({ user: au.email, error: `Auto-create falhou: ${createErr.message}` });
               }
             }
           }
+          console.log(`[users] ${usersMapped} usuários mapeados`);
 
           for (const projectGid of project_gids) {
             try {
@@ -198,12 +219,12 @@ Deno.serve(async (req) => {
               }
               projectsSynced++;
 
-              // Sync sections
+              // ===== SYNC SECTIONS =====
               const sections = await asanaGetAll(`/projects/${projectGid}/sections`, asanaPat, {
                 opt_fields: "name,created_at",
               });
 
-              const sectionMap = new Map<string, string>(); // asana section gid -> local id
+              const sectionMap = new Map<string, string>();
               for (let i = 0; i < sections.length; i++) {
                 const sec = sections[i];
                 const { data: existingSec } = await adminClient
@@ -231,47 +252,45 @@ Deno.serve(async (req) => {
                 sectionsSynced++;
               }
 
-              // Get first section as default
               const defaultSectionId = sectionMap.values().next().value;
               if (!defaultSectionId) {
                 errors.push({ project: projectGid, error: "Nenhuma seção encontrada" });
                 continue;
               }
 
-              // Sync tasks
+              // ===== SYNC TASKS =====
               const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
                 opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,assignee.gid,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.gid,followers.email,followers.name,tags,tags.name,tags.color,dependencies,dependencies.gid",
               });
 
-              const taskMap = new Map<string, string>(); // asana task gid -> local id
+              // Batch-load existing tasks by asana_gid
+              const taskGids = tasks.map((t: any) => t.gid);
+              const { data: existingTasks } = await adminClient
+                .from("projeto_tarefas")
+                .select("id, asana_gid")
+                .in("asana_gid", taskGids.length ? taskGids : ["__none__"]);
+              const existingTaskMap = new Map((existingTasks || []).map((t: any) => [t.asana_gid, t.id]));
 
-              // First pass: create/update tasks (no parent linking)
+              const taskMap = new Map<string, string>();
+
+              // First pass: create/update tasks
               for (let i = 0; i < tasks.length; i++) {
                 const task = tasks[i];
                 const sectionGid = task.memberships?.[0]?.section?.gid;
                 const sectionId = sectionGid ? sectionMap.get(sectionGid) : defaultSectionId;
-
                 const assigneeId = task.assignee?.gid ? userMap.get(task.assignee.gid) : null;
 
-                // Map custom_fields by NAME (not GID) to normalize across projects
                 const cfMap = new Map<string, string>();
                 for (const cf of (task.custom_fields || [])) {
                   const val = cf.enum_value?.name || cf.display_value || null;
                   if (cf.name && val) cfMap.set(cf.name.toLowerCase().trim(), val);
                 }
 
-                // Status mapping from custom_fields or completion
                 const asanaStatus = cfMap.get("status") || cfMap.get("estágio") || null;
                 const status = task.completed ? "concluida" : mapAsanaStatus(asanaStatus);
-
-                // Priority mapping from custom_fields
-                const asanaPriority = cfMap.get("prioridade") || cfMap.get("priority") || null;
-                const prioridade = mapAsanaPriority(asanaPriority);
-
-                // Stage mapping
+                const prioridade = mapAsanaPriority(cfMap.get("prioridade") || cfMap.get("priority") || null);
                 const estagio = cfMap.get("estágio") || cfMap.get("stage") || null;
 
-                // Build campos_customizados JSONB from all custom_fields
                 const camposCustomizados: Record<string, any> = {};
                 for (const cf of (task.custom_fields || [])) {
                   if (cf.name) {
@@ -287,7 +306,7 @@ Deno.serve(async (req) => {
                   estagio,
                   codigo_acom: cfMap.get("acom") || null,
                   campos_customizados: camposCustomizados,
-                  asana_json_raw: task, // Full Asana object for audit
+                  asana_json_raw: task,
                   data_prazo: task.due_on || null,
                   data_inicio: task.start_on || null,
                   data_conclusao: task.completed_at || null,
@@ -296,15 +315,11 @@ Deno.serve(async (req) => {
                   asana_gid: task.gid,
                 };
 
-                const { data: existingTask } = await adminClient
-                  .from("projeto_tarefas")
-                  .select("id")
-                  .eq("asana_gid", task.gid)
-                  .maybeSingle();
-
+                const existingId = existingTaskMap.get(task.gid);
                 let localTaskId: string;
-                if (existingTask) {
-                  localTaskId = existingTask.id;
+
+                if (existingId) {
+                  localTaskId = existingId;
                   taskMap.set(task.gid, localTaskId);
                   await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                 } else {
@@ -315,8 +330,7 @@ Deno.serve(async (req) => {
                     criador_id: userId,
                   }).select().single();
                   if (insertErr || !newTask) {
-                    console.error("Task insert error:", insertErr?.message, "task:", task.gid, "data:", JSON.stringify(taskData));
-                    errors.push({ task: task.gid, error: `Insert falhou: ${insertErr?.message || 'null result'}` });
+                    errors.push({ task: task.gid, error: `Insert falhou: ${insertErr?.message}` });
                     continue;
                   }
                   localTaskId = newTask.id;
@@ -324,56 +338,30 @@ Deno.serve(async (req) => {
                 }
                 tasksSynced++;
 
-                // Sync followers → projeto_tarefa_colaboradores
-                let followers = task.followers || [];
-                // Fallback: if bulk didn't return followers, fetch individually
-                if (followers.length === 0) {
-                  try {
-                    const detail = await asanaGet(`/tasks/${task.gid}`, asanaPat, {
-                      opt_fields: "followers,followers.gid,followers.email,followers.name",
-                    });
-                    followers = detail?.followers || [];
-                  } catch (e) {
-                    console.warn(`[followers-fallback] Falha ao buscar followers da tarefa ${task.gid}:`, e);
-                  }
+                // Inline: sync followers (no fallback - bulk already works per logs)
+                const followers = task.followers || [];
+                for (const follower of followers) {
+                  const localUserId = follower.gid ? userMap.get(follower.gid) : null;
+                  if (!localUserId) continue;
+                  await adminClient
+                    .from("projeto_tarefa_colaboradores")
+                    .upsert(
+                      { tarefa_id: localTaskId, user_id: localUserId },
+                      { onConflict: "tarefa_id,user_id", ignoreDuplicates: true }
+                    );
+                  collaboratorsSynced++;
                 }
-                let collabsLinked = 0;
-                if (followers.length) {
-                  for (const follower of followers) {
-                    const localUserId = follower.gid ? userMap.get(follower.gid) : null;
-                    if (!localUserId) {
-                      console.log(`[followers] Follower sem mapeamento: gid=${follower.gid}, email=${follower.email}`);
-                      continue;
-                    }
-                    const { data: existingCollab } = await adminClient
-                      .from("projeto_tarefa_colaboradores")
-                      .select("id")
-                      .eq("tarefa_id", localTaskId)
-                      .eq("user_id", localUserId)
-                      .maybeSingle();
-                    if (!existingCollab) {
-                      await adminClient.from("projeto_tarefa_colaboradores").insert({
-                        tarefa_id: localTaskId,
-                        user_id: localUserId,
-                      });
-                    }
-                    collabsLinked++;
-                  }
-                }
-                console.log(`[followers] Tarefa ${task.gid}: ${followers.length} followers encontrados, ${collabsLinked} vinculados`);
-                collaboratorsSynced += collabsLinked;
 
-                // Sync tags → projeto_tags + projeto_tarefa_tags
+                // Inline: sync tags
                 if (task.tags?.length) {
                   for (const tag of task.tags) {
                     if (!tag.gid) continue;
-                    // Upsert tag
-                    let tagId: string;
                     const { data: existingTag } = await adminClient
                       .from("projeto_tags")
                       .select("id")
                       .eq("asana_gid", tag.gid)
                       .maybeSingle();
+                    let tagId: string;
                     if (existingTag) {
                       tagId = existingTag.id;
                     } else {
@@ -385,14 +373,13 @@ Deno.serve(async (req) => {
                       if (!newTag) continue;
                       tagId = newTag.id;
                     }
-                    // Link tag to task
                     await adminClient
                       .from("projeto_tarefa_tags")
                       .upsert({ tarefa_id: localTaskId, tag_id: tagId }, { onConflict: "tarefa_id,tag_id" });
                   }
                 }
 
-                // Sync dependencies → projeto_tarefa_dependencias
+                // Inline: sync dependencies
                 if (task.dependencies?.length) {
                   for (const dep of task.dependencies) {
                     const depLocalId = taskMap.get(dep.gid);
@@ -417,7 +404,128 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // Subtask pass: fetch subtasks recursively (up to 3 levels)
+              console.log(`[tasks] ${tasksSynced} tarefas sincronizadas. Iniciando subtarefas/anexos/comentários em paralelo...`);
+
+              // ===== PARALLEL: Subtasks + Attachments + Comments =====
+              // Process each task's secondary data with concurrency limit
+              const secondaryOps: Promise<void>[] = [];
+
+              for (const task of tasks) {
+                const localTaskId = taskMap.get(task.gid);
+                if (!localTaskId) continue;
+
+                // Subtasks (recursive, depth 1-3)
+                secondaryOps.push(limit(async () => {
+                  await syncSubtasks(task.gid, localTaskId, 1);
+                }));
+
+                // Attachments
+                secondaryOps.push(limit(async () => {
+                  try {
+                    const attachments = await asanaGetAll(`/tasks/${task.gid}/attachments`, asanaPat, {
+                      opt_fields: "name,download_url,host,view_url,size,created_at",
+                    });
+                    for (const att of attachments) {
+                      if (!att.gid) continue;
+                      const { data: ea } = await adminClient.from("projeto_tarefa_anexos").select("id").eq("asana_gid", att.gid).maybeSingle();
+                      if (!ea) {
+                        const { error: aErr } = await adminClient.from("projeto_tarefa_anexos").insert({
+                          tarefa_id: localTaskId,
+                          nome: att.name || "attachment",
+                          storage_path: att.download_url || att.view_url || "",
+                          tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
+                          tamanho: att.size || null,
+                          asana_gid: att.gid,
+                          user_id: userId,
+                        });
+                        if (!aErr) attachmentsSynced++;
+                      }
+                    }
+                  } catch (e: any) {
+                    errors.push({ task: task.gid, error: `Anexos: ${e.message}` });
+                  }
+                }));
+
+                // Comments + System Stories
+                secondaryOps.push(limit(async () => {
+                  try {
+                    const stories = await asanaGetAll(`/tasks/${task.gid}/stories`, asanaPat, {
+                      opt_fields: "gid,text,html_text,type,resource_subtype,created_by,created_at",
+                    });
+
+                    for (const story of stories) {
+                      const isComment = story.type === "comment" || story.resource_subtype === "comment_added";
+                      if (isComment && story.text) {
+                        const authorId = story.created_by?.gid ? userMap.get(story.created_by.gid) || userId : userId;
+                        const { data: existing } = await adminClient
+                          .from("asana_sync_mappings")
+                          .select("local_id")
+                          .eq("asana_gid", story.gid)
+                          .eq("entity_type", "comment")
+                          .maybeSingle();
+
+                        if (!existing) {
+                          const { data: newComment } = await adminClient
+                            .from("projeto_tarefa_comentarios")
+                            .insert({ tarefa_id: localTaskId, user_id: authorId, conteudo: story.text })
+                            .select()
+                            .single();
+                          if (newComment) {
+                            await adminClient.from("asana_sync_mappings").insert({
+                              asana_gid: story.gid, entity_type: "comment", local_id: newComment.id, workspace_gid,
+                            });
+                            commentsSynced++;
+                          }
+                        }
+                      } else if ((story.type === "system" || story.resource_subtype) && story.text) {
+                        // System activity
+                        const { data: existingAct } = await adminClient
+                          .from("asana_sync_mappings")
+                          .select("local_id")
+                          .eq("asana_gid", story.gid)
+                          .eq("entity_type", "activity")
+                          .maybeSingle();
+                        if (existingAct) continue;
+
+                        const actAuthorId = story.created_by?.gid ? userMap.get(story.created_by.gid) || userId : userId;
+                        const mapping = subtypeToLocal(story.resource_subtype);
+                        let valorNovo: string | null = null;
+                        const paraMatch = story.text.match(/(?:para|to)\s+["""]?(.+?)["""]?\s*$/i);
+                        if (paraMatch) valorNovo = paraMatch[1].trim();
+
+                        const { data: newAct } = await adminClient
+                          .from("projeto_tarefa_atividades")
+                          .insert({
+                            tarefa_id: localTaskId,
+                            projeto_id: localProjectId,
+                            user_id: actAuthorId,
+                            tipo: mapping.tipo,
+                            campo: mapping.campo,
+                            valor_novo: valorNovo,
+                            descricao: story.text,
+                            created_at: story.created_at || new Date().toISOString(),
+                          })
+                          .select("id")
+                          .single();
+
+                        if (newAct) {
+                          await adminClient.from("asana_sync_mappings").insert({
+                            asana_gid: story.gid, entity_type: "activity", local_id: newAct.id, workspace_gid,
+                          });
+                        }
+                      }
+                    }
+                  } catch (e: any) {
+                    errors.push({ task: task.gid, error: `Stories: ${e.message}` });
+                  }
+                }));
+              }
+
+              // Wait for all secondary operations with a safety timeout
+              await Promise.all(secondaryOps);
+              console.log(`[done] Subtarefas: ${subtasksSynced}, Anexos: ${attachmentsSynced}, Comentários: ${commentsSynced}`);
+
+              // ===== SUBTASK HELPER (closure) =====
               async function syncSubtasks(parentAsanaGid: string, parentLocalId: string, depth: number) {
                 if (depth > 3) return;
                 try {
@@ -470,7 +578,7 @@ Deno.serve(async (req) => {
                         criador_id: userId,
                       }).select().single();
                       if (subErr || !newSub) {
-                        errors.push({ subtask: sub.gid, error: `Subtask insert falhou: ${subErr?.message}` });
+                        errors.push({ subtask: sub.gid, error: `Subtask: ${subErr?.message}` });
                         continue;
                       }
                       localSubId = newSub.id;
@@ -478,7 +586,7 @@ Deno.serve(async (req) => {
                     taskMap.set(sub.gid, localSubId);
                     subtasksSynced++;
 
-                    // Fetch attachments for subtask
+                    // Subtask attachments
                     try {
                       const subAtts = await asanaGetAll(`/tasks/${sub.gid}/attachments`, asanaPat, {
                         opt_fields: "name,download_url,host,view_url,size,created_at",
@@ -499,184 +607,16 @@ Deno.serve(async (req) => {
                           if (!aErr) attachmentsSynced++;
                         }
                       }
-                    } catch (_) { /* skip subtask attachment errors */ }
+                    } catch (_) { /* skip */ }
 
-                    // Recurse deeper
                     await syncSubtasks(sub.gid, localSubId, depth + 1);
                   }
                 } catch (e: any) {
-                  console.warn(`[subtasks] Erro ao buscar subtarefas de ${parentAsanaGid} (depth=${depth}):`, e.message);
+                  console.warn(`[subtasks] Erro depth=${depth} parent=${parentAsanaGid}:`, e.message);
                 }
               }
 
-              // Trigger subtask sync for all top-level tasks
-              for (const task of tasks) {
-                const localId = taskMap.get(task.gid);
-                if (localId) {
-                  await syncSubtasks(task.gid, localId, 1);
-                }
-              }
-
-
-              for (const task of tasks) {
-                const localTaskId = taskMap.get(task.gid);
-                if (!localTaskId) continue;
-                try {
-                  const attachments = await asanaGetAll(`/tasks/${task.gid}/attachments`, asanaPat, {
-                    opt_fields: "name,download_url,host,view_url,size,created_at",
-                  });
-                  for (const att of attachments) {
-                    if (!att.gid) continue;
-                    const { data: existingAtt } = await adminClient
-                      .from("projeto_tarefa_anexos")
-                      .select("id")
-                      .eq("asana_gid", att.gid)
-                      .maybeSingle();
-                    if (!existingAtt) {
-                      const { error: attErr } = await adminClient.from("projeto_tarefa_anexos").insert({
-                        tarefa_id: localTaskId,
-                        nome: att.name || "attachment",
-                        storage_path: att.download_url || att.view_url || "",
-                        tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
-                        tamanho: att.size || null,
-                        asana_gid: att.gid,
-                        user_id: userId,
-                      });
-                      if (!attErr) attachmentsSynced++;
-                    }
-                  }
-                } catch (e) {
-                  errors.push({ task: task.gid, error: `Erro ao sync anexos: ${e.message}` });
-                }
-              }
-
-              // Sync comments (stories) for each task
-              for (const task of tasks) {
-                const localTaskId = taskMap.get(task.gid);
-                if (!localTaskId) continue;
-
-                try {
-                  const stories = await asanaGetAll(`/tasks/${task.gid}/stories`, asanaPat, {
-                    opt_fields: "gid,text,html_text,type,resource_subtype,created_by,created_at",
-                  });
-
-                  console.log(`Task ${task.gid}: ${stories.length} stories fetched`);
-                  let storiesPassedFilter = 0;
-
-                  for (const story of stories) {
-                    const isComment = story.type === "comment" || story.resource_subtype === "comment_added";
-                    if (!isComment || !story.text) continue;
-                    storiesPassedFilter++;
-
-                    const authorId = story.created_by?.gid
-                      ? userMap.get(story.created_by.gid) || userId
-                      : userId;
-
-                    // Check if comment already exists via mapping
-                    const { data: existing } = await adminClient
-                      .from("asana_sync_mappings")
-                      .select("local_id")
-                      .eq("asana_gid", story.gid)
-                      .eq("entity_type", "comment")
-                      .maybeSingle();
-
-                    if (!existing) {
-                      const { data: newComment } = await adminClient
-                        .from("projeto_tarefa_comentarios")
-                        .insert({
-                          tarefa_id: localTaskId,
-                          user_id: authorId,
-                          conteudo: story.text,
-                        })
-                        .select()
-                        .single();
-
-                      if (newComment) {
-                        await adminClient.from("asana_sync_mappings").insert({
-                          asana_gid: story.gid,
-                          entity_type: "comment",
-                          local_id: newComment.id,
-                          workspace_gid,
-                        });
-                        commentsSynced++;
-                      }
-                    }
-                  }
-                  console.log(`Task ${task.gid}: ${storiesPassedFilter} comments passed filter`);
-
-                  // Import system stories as activities
-                  const systemStories = stories.filter((s: any) => {
-                    if (s.type === "comment" || s.resource_subtype === "comment_added") return false;
-                    return s.type === "system" || s.resource_subtype;
-                  });
-                  console.log(`Task ${task.gid}: ${systemStories.length} system stories to import`);
-
-                  for (const story of systemStories) {
-                    if (!story.text) continue;
-                    // Dedup via asana_sync_mappings
-                    const { data: existingAct } = await adminClient
-                      .from("asana_sync_mappings")
-                      .select("local_id")
-                      .eq("asana_gid", story.gid)
-                      .eq("entity_type", "activity")
-                      .maybeSingle();
-                    if (existingAct) continue;
-
-                    const actAuthorId = story.created_by?.gid
-                      ? userMap.get(story.created_by.gid) || userId
-                      : userId;
-
-                    // Map resource_subtype to local tipo
-                    const subtypeMap: Record<string, { tipo: string; campo: string | null }> = {
-                      "enum_custom_field_changed": { tipo: "estagio_change", campo: "campo_customizado" },
-                      "section_changed": { tipo: "secao_change", campo: "secao" },
-                      "added_to_project": { tipo: "secao_change", campo: "projeto" },
-                      "assigned": { tipo: "responsavel_change", campo: "responsavel" },
-                      "reassigned": { tipo: "responsavel_change", campo: "responsavel" },
-                      "due_date_changed": { tipo: "prazo_change", campo: "data_prazo" },
-                      "marked_duplicate": { tipo: "sistema", campo: null },
-                      "marked_complete": { tipo: "status_change", campo: "status" },
-                      "marked_incomplete": { tipo: "status_change", campo: "status" },
-                      "name_changed": { tipo: "titulo_change", campo: "titulo" },
-                      "notes_changed": { tipo: "descricao_change", campo: "descricao" },
-                    };
-
-                    const mapping = subtypeMap[story.resource_subtype] || { tipo: "sistema", campo: null };
-
-                    // Try to extract valor_novo from text (e.g. "Fulano mudou X para Y")
-                    let valorNovo: string | null = null;
-                    const paraMatch = story.text.match(/(?:para|to)\s+["""]?(.+?)["""]?\s*$/i);
-                    if (paraMatch) valorNovo = paraMatch[1].trim();
-
-                    const { data: newAct } = await adminClient
-                      .from("projeto_tarefa_atividades")
-                      .insert({
-                        tarefa_id: localTaskId,
-                        projeto_id: localProjectId,
-                        user_id: actAuthorId,
-                        tipo: mapping.tipo,
-                        campo: mapping.campo,
-                        valor_novo: valorNovo,
-                        descricao: story.text,
-                        created_at: story.created_at || new Date().toISOString(),
-                      })
-                      .select("id")
-                      .single();
-
-                    if (newAct) {
-                      await adminClient.from("asana_sync_mappings").insert({
-                        asana_gid: story.gid,
-                        entity_type: "activity",
-                        local_id: newAct.id,
-                        workspace_gid,
-                      });
-                    }
-                  }
-                } catch (e) {
-                  errors.push({ task: task.gid, error: `Erro ao sync comentários/atividades: ${e.message}` });
-                }
-              }
-            } catch (e) {
+            } catch (e: any) {
               errors.push({ project: projectGid, error: e.message });
             }
           }
@@ -705,7 +645,7 @@ Deno.serve(async (req) => {
             users_mapped: usersMapped,
             errors,
           });
-        } catch (e) {
+        } catch (e: any) {
           await adminClient.from("asana_sync_log").update({
             status: "failed",
             errors: [...errors, { fatal: e.message }],
@@ -722,12 +662,10 @@ Deno.serve(async (req) => {
         const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
         if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY não configurada" }, 500);
 
-        // 1. Fetch all projects with custom_fields
         const allProjects = await asanaGetAll(`/workspaces/${workspace_gid}/projects`, asanaPat, {
           opt_fields: "name,custom_field_settings,custom_field_settings.custom_field,custom_field_settings.custom_field.name,custom_field_settings.custom_field.type,custom_field_settings.custom_field.enum_options,custom_field_settings.custom_field.enum_options.name",
         });
 
-        // 2. Sample tasks from up to 3 projects for deep field analysis
         const sampleProjects = allProjects.filter((p: any) => !p.archived).slice(0, 3);
         const sampleTasks: any[] = [];
         const allCustomFields = new Map<string, any>();
@@ -737,47 +675,34 @@ Deno.serve(async (req) => {
         let hasFollowers = false;
 
         for (const proj of sampleProjects) {
-          // Collect custom_field_settings from project
           for (const cfs of (proj.custom_field_settings || [])) {
             const cf = cfs.custom_field;
             if (cf) {
               allCustomFields.set(cf.gid, {
-                gid: cf.gid,
-                name: cf.name,
-                type: cf.type,
+                gid: cf.gid, name: cf.name, type: cf.type,
                 enum_options: cf.enum_options?.map((o: any) => o.name) || [],
               });
             }
           }
 
-          // Sample tasks
           const tasks = await asanaGetAll(`/projects/${proj.gid}/tasks`, asanaPat, {
             opt_fields: "name,custom_fields,custom_fields.name,custom_fields.type,custom_fields.display_value,custom_fields.enum_value,tags,tags.name,dependencies,dependents,attachments,followers,start_on,due_on,due_at,completed,parent,num_subtasks",
           });
 
           for (const t of tasks.slice(0, 10)) {
             sampleTasks.push(t);
-            // Collect custom fields from tasks
             for (const cf of (t.custom_fields || [])) {
               if (!allCustomFields.has(cf.gid)) {
-                allCustomFields.set(cf.gid, {
-                  gid: cf.gid,
-                  name: cf.name,
-                  type: cf.type,
-                });
+                allCustomFields.set(cf.gid, { gid: cf.gid, name: cf.name, type: cf.type });
               }
             }
-            // Collect tags
-            for (const tag of (t.tags || [])) {
-              allTags.add(tag.name);
-            }
+            for (const tag of (t.tags || [])) allTags.add(tag.name);
             if (t.dependencies?.length > 0 || t.dependents?.length > 0) hasDependencies = true;
             if (t.attachments?.length > 0) hasAttachments = true;
             if (t.followers?.length > 0) hasFollowers = true;
           }
         }
 
-        // 3. Build analysis payload
         const asanaStructure = {
           total_projects: allProjects.filter((p: any) => !p.archived).length,
           sample_projects: sampleProjects.map((p: any) => p.name),
@@ -789,11 +714,7 @@ Deno.serve(async (req) => {
           sample_task_count: sampleTasks.length,
           sample_tasks: sampleTasks.slice(0, 5).map((t: any) => ({
             name: t.name,
-            custom_fields: t.custom_fields?.map((cf: any) => ({
-              name: cf.name,
-              type: cf.type,
-              display_value: cf.display_value,
-            })),
+            custom_fields: t.custom_fields?.map((cf: any) => ({ name: cf.name, type: cf.type, display_value: cf.display_value })),
             tags: t.tags?.map((tag: any) => tag.name),
             has_parent: !!t.parent,
             num_subtasks: t.num_subtasks,
@@ -801,18 +722,12 @@ Deno.serve(async (req) => {
         };
 
         const localSchema = {
-          projeto_tarefas: [
-            "id", "projeto_id", "secao_id", "titulo", "descricao", "status (pendente/em_andamento/concluida/cancelada)",
-            "prioridade (baixa/media/alta/urgente)", "data_prazo", "data_inicio", "data_conclusao",
-            "responsavel_id", "criador_id", "ordem", "estagio", "codigo", "cor_etiqueta",
-            "parent_tarefa_id", "asana_gid", "origem_projeto",
-          ],
+          projeto_tarefas: ["id", "projeto_id", "secao_id", "titulo", "descricao", "status", "prioridade", "data_prazo", "data_inicio", "data_conclusao", "responsavel_id", "criador_id", "ordem", "estagio", "codigo", "cor_etiqueta", "parent_tarefa_id", "asana_gid", "origem_projeto"],
           projeto_secoes: ["id", "projeto_id", "nome", "cor", "ordem", "asana_gid"],
           projetos: ["id", "nome", "descricao", "cor", "status", "tipo", "asana_gid", "origem_projeto"],
           projeto_tarefa_comentarios: ["id", "tarefa_id", "user_id", "conteudo"],
         };
 
-        // 4. Call AI for analysis
         const aiPrompt = `Você é um engenheiro de dados analisando uma migração do Asana para um sistema customizado.
 
 ## Estrutura encontrada no Asana:
@@ -823,43 +738,27 @@ ${JSON.stringify(localSchema, null, 2)}
 
 ## Tarefa:
 Analise os dados do Asana e produza um relatório detalhado em Markdown com:
+1. **📊 Resumo da Estrutura Asana**
+2. **🔄 Mapeamento Campo a Campo** — Tabela: Campo Asana | Campo Local | Status (✅/🆕/⏭️)
+3. **🆕 Campos que Precisam Ser Criados**
+4. **📋 SQL Sugerido**
+5. **🖥️ Sugestões de Frontend**
+6. **⚠️ Pontos de Atenção**
 
-1. **📊 Resumo da Estrutura Asana** — Quantos projetos, campos customizados, tags, dependências encontrados.
-
-2. **🔄 Mapeamento Campo a Campo** — Tabela com 3 colunas:
-   | Campo Asana | Campo Local Equivalente | Status |
-   Para cada campo do Asana, identifique se já existe no sistema local (✅ Existe), se precisa ser criado (🆕 Criar), ou se pode ser ignorado (⏭️ Ignorar).
-
-3. **🆕 Campos que Precisam Ser Criados** — Para cada campo que não existe localmente:
-   - Nome sugerido para a coluna
-   - Tipo de dado (text, boolean, jsonb, etc.)
-   - Justificativa
-
-4. **📋 SQL Sugerido** — Bloco SQL com ALTER TABLE e CREATE TABLE para adicionar os campos/tabelas faltantes.
-
-5. **🖥️ Sugestões de Frontend** — Quais componentes precisam ser criados/modificados na UI para exibir os novos campos.
-
-6. **⚠️ Pontos de Atenção** — Riscos, dados que podem ser perdidos, campos ambíguos.
-
-Seja específico com nomes de colunas, tipos e relações. Use o padrão snake_case em português para nomes de colunas.`;
+Seja específico com nomes de colunas, tipos e relações. Use snake_case em português.`;
 
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
+          headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
-            messages: [
-              { role: "user", content: aiPrompt },
-            ],
+            messages: [{ role: "user", content: aiPrompt }],
             temperature: 0.3,
           }),
         });
 
         if (!aiResponse.ok) {
-          if (aiResponse.status === 429) return json({ error: "Limite de requisições IA excedido, tente novamente em instantes" }, 429);
+          if (aiResponse.status === 429) return json({ error: "Limite de requisições IA excedido" }, 429);
           if (aiResponse.status === 402) return json({ error: "Créditos insuficientes para análise IA" }, 402);
           const errText = await aiResponse.text();
           console.error("AI Gateway error:", aiResponse.status, errText);
@@ -868,11 +767,7 @@ Seja específico com nomes de colunas, tipos e relações. Use o padrão snake_c
 
         const aiData = await aiResponse.json();
         const report = aiData.choices?.[0]?.message?.content || "Relatório não gerado";
-
-        return json({
-          report,
-          structure: asanaStructure,
-        });
+        return json({ report, structure: asanaStructure });
       }
 
       case "/status": {
@@ -882,14 +777,13 @@ Seja específico com nomes de colunas, tipos e relações. Use o padrão snake_c
           .eq("started_by", userId)
           .order("started_at", { ascending: false })
           .limit(10);
-
         return json({ logs: logs || [] });
       }
 
       default:
         return json({ error: `Rota desconhecida: ${path}` }, 400);
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("asana-sync error:", e);
     return json({ error: e.message }, 500);
   }
@@ -907,65 +801,59 @@ function json(data: any, status = 200) {
 async function asanaGet(path: string, pat: string, params?: Record<string, string>) {
   const url = new URL(`${ASANA_API}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${pat}` },
-  });
-
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
   if (!res.ok) {
     const errBody = await res.text();
     throw new Error(`Asana API ${res.status}: ${errBody}`);
   }
-
   return res.json();
 }
 
 async function asanaGetAll(path: string, pat: string, params?: Record<string, string>) {
   const all: any[] = [];
   let offset: string | null = null;
-
   do {
     const url = new URL(`${ASANA_API}${path}`);
     url.searchParams.set("limit", "100");
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     if (offset) url.searchParams.set("offset", offset);
-
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${pat}` },
-    });
-
+    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${pat}` } });
     if (!res.ok) {
       const errBody = await res.text();
       throw new Error(`Asana API ${res.status}: ${errBody}`);
     }
-
     const json = await res.json();
     all.push(...(json.data || []));
     offset = json.next_page?.offset || null;
   } while (offset);
-
   return all;
+}
+
+function subtypeToLocal(subtype: string): { tipo: string; campo: string | null } {
+  const map: Record<string, { tipo: string; campo: string | null }> = {
+    "enum_custom_field_changed": { tipo: "estagio_change", campo: "campo_customizado" },
+    "section_changed": { tipo: "secao_change", campo: "secao" },
+    "added_to_project": { tipo: "secao_change", campo: "projeto" },
+    "assigned": { tipo: "responsavel_change", campo: "responsavel" },
+    "reassigned": { tipo: "responsavel_change", campo: "responsavel" },
+    "due_date_changed": { tipo: "prazo_change", campo: "data_prazo" },
+    "marked_duplicate": { tipo: "sistema", campo: null },
+    "marked_complete": { tipo: "status_change", campo: "status" },
+    "marked_incomplete": { tipo: "status_change", campo: "status" },
+    "name_changed": { tipo: "titulo_change", campo: "titulo" },
+    "notes_changed": { tipo: "descricao_change", campo: "descricao" },
+  };
+  return map[subtype] || { tipo: "sistema", campo: null };
 }
 
 function mapAsanaColor(color: string | null): string {
   const colorMap: Record<string, string> = {
-    "dark-pink": "#E91E63",
-    "dark-green": "#4CAF50",
-    "dark-blue": "#2196F3",
-    "dark-red": "#F44336",
-    "dark-teal": "#009688",
-    "dark-brown": "#795548",
-    "dark-orange": "#FF9800",
-    "dark-purple": "#9C27B0",
-    "dark-warm-gray": "#9E9E9E",
-    "light-pink": "#FCE4EC",
-    "light-green": "#E8F5E9",
-    "light-blue": "#E3F2FD",
-    "light-red": "#FFEBEE",
-    "light-teal": "#E0F2F1",
-    "light-orange": "#FFF3E0",
-    "light-purple": "#F3E5F5",
-    "light-warm-gray": "#F5F5F5",
+    "dark-pink": "#E91E63", "dark-green": "#4CAF50", "dark-blue": "#2196F3",
+    "dark-red": "#F44336", "dark-teal": "#009688", "dark-brown": "#795548",
+    "dark-orange": "#FF9800", "dark-purple": "#9C27B0", "dark-warm-gray": "#9E9E9E",
+    "light-pink": "#FCE4EC", "light-green": "#E8F5E9", "light-blue": "#E3F2FD",
+    "light-red": "#FFEBEE", "light-teal": "#E0F2F1", "light-orange": "#FFF3E0",
+    "light-purple": "#F3E5F5", "light-warm-gray": "#F5F5F5",
   };
   return colorMap[color || ""] || "#6366f1";
 }
@@ -973,41 +861,24 @@ function mapAsanaColor(color: string | null): string {
 function mapAsanaStatus(asanaStatus: string | null): string {
   if (!asanaStatus) return "pendente";
   const s = asanaStatus.toLowerCase().trim();
-  const statusMap: Record<string, string> = {
-    "em andamento": "em_andamento",
-    "in progress": "em_andamento",
-    "aguardando terceiros": "em_andamento",
-    "aprovado com fiscal": "concluida",
-    "concluído": "concluida",
-    "concluido": "concluida",
-    "completed": "concluida",
-    "done": "concluida",
-    "cancelado": "cancelada",
-    "cancelled": "cancelada",
-    "não iniciado": "pendente",
-    "not started": "pendente",
-    "pendente": "pendente",
+  const map: Record<string, string> = {
+    "em andamento": "em_andamento", "in progress": "em_andamento", "aguardando terceiros": "em_andamento",
+    "aprovado com fiscal": "concluida", "concluído": "concluida", "concluido": "concluida",
+    "completed": "concluida", "done": "concluida",
+    "cancelado": "cancelada", "cancelled": "cancelada",
+    "não iniciado": "pendente", "not started": "pendente", "pendente": "pendente",
   };
-  return statusMap[s] || "pendente";
+  return map[s] || "pendente";
 }
 
 function mapAsanaPriority(asanaPriority: string | null): string | null {
   if (!asanaPriority) return null;
   const p = asanaPriority.toLowerCase().trim();
-  const priorityMap: Record<string, string> = {
-    "alto": "alta",
-    "alta": "alta",
-    "high": "alta",
-    "médio": "media",
-    "medio": "media",
-    "média": "media",
-    "media": "media",
-    "medium": "media",
-    "baixo": "baixa",
-    "baixa": "baixa",
-    "low": "baixa",
-    "urgente": "urgente",
-    "urgent": "urgente",
+  const map: Record<string, string> = {
+    "alto": "alta", "alta": "alta", "high": "alta",
+    "médio": "media", "medio": "media", "média": "media", "media": "media", "medium": "media",
+    "baixo": "baixa", "baixa": "baixa", "low": "baixa",
+    "urgente": "urgente", "urgent": "urgente",
   };
-  return priorityMap[p] || null;
+  return map[p] || null;
 }
