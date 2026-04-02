@@ -438,12 +438,14 @@ Deno.serve(async (req) => {
             }
 
             // All done
-            await adminClient.from("asana_sync_log").update({
+            const { error: completeErr } = await adminClient.from("asana_sync_log").update({
               status: "completed", comments_synced: commentsSynced,
               subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
               collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
+            if (completeErr) console.error("[secondary] Complete log update failed:", completeErr.message);
+            console.log(`[secondary] Done: ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments`);
 
             return json({
               success: true, phase: "secondary", complete: true, log_id: logId,
