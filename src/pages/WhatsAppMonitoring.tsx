@@ -7,7 +7,8 @@ import { WhatsAppCharts } from "@/components/whatsapp/WhatsAppCharts";
 import { WhatsAppSentimentDashboard } from "@/components/whatsapp/WhatsAppSentimentDashboard";
 import { WhatsAppAgentConfig } from "@/components/whatsapp/WhatsAppAgentConfig";
 import { WhatsAppAgentFlow } from "@/components/whatsapp/WhatsAppAgentFlow";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 
