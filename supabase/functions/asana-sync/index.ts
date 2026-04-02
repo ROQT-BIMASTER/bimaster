@@ -498,8 +498,7 @@ Seja específico com nomes de colunas, tipos e relações. Use o padrão snake_c
           .limit(10);
 
         return json({ logs: logs || [] });
-
-
+      }
 
       default:
         return json({ error: `Rota desconhecida: ${path}` }, 400);
