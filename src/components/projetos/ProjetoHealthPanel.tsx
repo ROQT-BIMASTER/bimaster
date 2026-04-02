@@ -28,6 +28,14 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
     return { onTrack, atRisk, overdue, completed, noDeadline, total: tarefas.filter(t => !t.parent_tarefa_id).length };
   }, [tarefas]);
 
+  // Count open tasks without deadline
+  const openWithoutDeadline = useMemo(() => {
+    const open = tarefas.filter(t => !t.parent_tarefa_id && t.status !== "concluida");
+    return open.filter(t => !t.data_prazo).length;
+  }, [tarefas]);
+  const openTotal = useMemo(() => tarefas.filter(t => !t.parent_tarefa_id && t.status !== "concluida").length, [tarefas]);
+  const showDeadlineWarning = openTotal > 0 && (openWithoutDeadline / openTotal) > 0.5;
+
   const retrabalhoCount = useMemo(() => {
     return tarefas.filter(t => !t.parent_tarefa_id && (t as any).tipo_tarefa === "retrabalho").length;
   }, [tarefas]);
