@@ -121,7 +121,8 @@ export function VincularChinaTable({
   const filtered = useMemo(() => {
     let result = data.filter(r => {
       if (!r.produto_codigo || r.produto_codigo === "null") return false;
-      if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (statusFilter === "vinculados") { if (!r.isLinked) return false; }
+      else if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (vinculoFilter === "vinculados" && !r.isLinked) return false;
       if (vinculoFilter === "nao_vinculados" && r.isLinked) return false;
       if (filterProjeto && filterProjeto !== "todos" && r.projetoNome !== projetos.find(p => p.id === filterProjeto)?.nome) return false;

@@ -74,11 +74,21 @@ export function VincularChinaBulkActions({ open, onOpenChange, selectedIds, subm
           <p className="text-sm text-muted-foreground">
             Confirma o despacho de <span className="font-semibold text-foreground">{selected.length}</span> submissão(ões)?
           </p>
+          {unlinked.length > 0 && (
+            <div className="flex items-center gap-2 p-2 rounded border border-warning/30 bg-warning/5 text-xs text-warning">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{unlinked.length} submissão(ões) <strong>sem vínculo</strong> com projeto. Serão ignoradas no despacho.</span>
+            </div>
+          )}
           <div className="max-h-48 overflow-y-auto space-y-1">
             {selected.map(s => (
-              <div key={s.id} className="flex items-center gap-2 text-xs px-2 py-1.5 rounded border">
+              <div key={s.id} className={cn(
+                "flex items-center gap-2 text-xs px-2 py-1.5 rounded border",
+                !s.isLinked && "opacity-50 border-dashed"
+              )}>
                 <span className="font-mono font-bold text-primary">{s.produto_codigo}</span>
                 <span className="truncate">{s.produto_nome}</span>
+                {!s.isLinked && <Badge variant="outline" className="text-[9px] ml-auto">Sem vínculo</Badge>}
               </div>
             ))}
           </div>
