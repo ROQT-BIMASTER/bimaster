@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
 
               // Sync tasks
               const tasks = await asanaGetAll(`/projects/${projectGid}/tasks`, asanaPat, {
-                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.email",
+                opt_fields: "name,notes,completed,completed_at,due_on,start_on,assignee,assignee.email,memberships.section,parent,created_at,modified_at,custom_fields,custom_fields.name,custom_fields.display_value,custom_fields.enum_value,custom_fields.enum_value.name,followers,followers.email,tags,tags.name,tags.color,dependencies,dependencies.gid",
               });
 
               const taskMap = new Map<string, string>(); // asana task gid -> local id
@@ -217,8 +217,13 @@ Deno.serve(async (req) => {
                 // Stage mapping
                 const estagio = cfMap.get("estágio") || cfMap.get("stage") || null;
 
-                // ACOM code
-                const codigoAcom = cfMap.get("acom") || null;
+                // Build campos_customizados JSONB from all custom_fields
+                const camposCustomizados: Record<string, any> = {};
+                for (const cf of (task.custom_fields || [])) {
+                  if (cf.name) {
+                    camposCustomizados[cf.name] = cf.enum_value?.name || cf.display_value || null;
+                  }
+                }
 
                 const taskData: Record<string, any> = {
                   titulo: task.name || "(Sem título)",
@@ -227,6 +232,8 @@ Deno.serve(async (req) => {
                   prioridade,
                   estagio,
                   codigo_acom: codigoAcom,
+                  campos_customizados: camposCustomizados,
+                  asana_json_raw: task, // Full Asana object for audit
                   data_prazo: task.due_on || null,
                   data_inicio: task.start_on || null,
                   data_conclusao: task.completed_at || null,
@@ -279,6 +286,50 @@ Deno.serve(async (req) => {
                         tarefa_id: localTaskId,
                         user_id: localUserId,
                       });
+                    }
+                  }
+                }
+
+                // Sync tags → projeto_tags + projeto_tarefa_tags
+                if (task.tags?.length) {
+                  for (const tag of task.tags) {
+                    if (!tag.gid) continue;
+                    // Upsert tag
+                    let tagId: string;
+                    const { data: existingTag } = await adminClient
+                      .from("projeto_tags")
+                      .select("id")
+                      .eq("asana_gid", tag.gid)
+                      .maybeSingle();
+                    if (existingTag) {
+                      tagId = existingTag.id;
+                    } else {
+                      const { data: newTag } = await adminClient
+                        .from("projeto_tags")
+                        .insert({ nome: tag.name || "tag", cor: tag.color || null, asana_gid: tag.gid })
+                        .select("id")
+                        .single();
+                      if (!newTag) continue;
+                      tagId = newTag.id;
+                    }
+                    // Link tag to task
+                    await adminClient
+                      .from("projeto_tarefa_tags")
+                      .upsert({ tarefa_id: localTaskId, tag_id: tagId }, { onConflict: "tarefa_id,tag_id" });
+                  }
+                }
+
+                // Sync dependencies → projeto_tarefa_dependencias
+                if (task.dependencies?.length) {
+                  for (const dep of task.dependencies) {
+                    const depLocalId = taskMap.get(dep.gid);
+                    if (depLocalId) {
+                      await adminClient
+                        .from("projeto_tarefa_dependencias")
+                        .upsert(
+                          { tarefa_id: localTaskId, depende_de_id: depLocalId, tipo: "blocked_by" },
+                          { onConflict: "tarefa_id,depende_de_id" }
+                        );
                     }
                   }
                 }
