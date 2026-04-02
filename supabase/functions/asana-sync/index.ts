@@ -247,13 +247,18 @@ Deno.serve(async (req) => {
                   taskMap.set(task.gid, localTaskId);
                   await adminClient.from("projeto_tarefas").update(taskData).eq("id", localTaskId);
                 } else {
-                  const { data: newTask } = await adminClient.from("projeto_tarefas").insert({
+                  const { data: newTask, error: insertErr } = await adminClient.from("projeto_tarefas").insert({
                     ...taskData,
                     projeto_id: localProjectId,
                     secao_id: sectionId || defaultSectionId,
                     criador_id: userId,
                   }).select().single();
-                  localTaskId = newTask!.id;
+                  if (insertErr || !newTask) {
+                    console.error("Task insert error:", insertErr?.message, "task:", task.gid, "data:", JSON.stringify(taskData));
+                    errors.push({ task: task.gid, error: `Insert falhou: ${insertErr?.message || 'null result'}` });
+                    continue;
+                  }
+                  localTaskId = newTask.id;
                   taskMap.set(task.gid, localTaskId);
                 }
                 tasksSynced++;
