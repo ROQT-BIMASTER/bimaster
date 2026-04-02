@@ -501,7 +501,6 @@ export default function ProjetoVincularChina() {
             statusFilter={kpiStatusFilter}
             onStatusFilterChange={setKpiStatusFilter}
           />
-          />
         )}
       </div>
 
