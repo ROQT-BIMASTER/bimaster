@@ -120,5 +120,25 @@ export function useAsanaSync() {
     }
   }
 
-  return { testConnection, listProjects, syncProjects, getSyncLogs, loading };
+  async function analyzeStructure(
+    pat: string,
+    workspaceGid: string
+  ): Promise<{ report: string; structure: any }> {
+    setLoading(true);
+    try {
+      const result = await callAsana("/analyze-structure", {
+        pat,
+        workspace_gid: workspaceGid,
+      });
+      toast.success("Análise concluída!");
+      return result;
+    } catch (e: any) {
+      toast.error(`Erro na análise: ${e.message}`);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading };
 }
