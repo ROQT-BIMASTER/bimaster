@@ -8,11 +8,14 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAsanaSync } from "@/hooks/useAsanaSync";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Link2, FolderKanban, ListTodo, MessageSquare, Users, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Link2, FolderKanban, ListTodo, MessageSquare, Users, RefreshCw, Sparkles, Copy, Check, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 export default function AsanaIntegracao() {
   const navigate = useNavigate();
