@@ -217,8 +217,13 @@ Deno.serve(async (req) => {
                 // Stage mapping
                 const estagio = cfMap.get("estágio") || cfMap.get("stage") || null;
 
-                // ACOM code
-                const codigoAcom = cfMap.get("acom") || null;
+                // Build campos_customizados JSONB from all custom_fields
+                const camposCustomizados: Record<string, any> = {};
+                for (const cf of (task.custom_fields || [])) {
+                  if (cf.name) {
+                    camposCustomizados[cf.name] = cf.enum_value?.name || cf.display_value || null;
+                  }
+                }
 
                 const taskData: Record<string, any> = {
                   titulo: task.name || "(Sem título)",
@@ -227,6 +232,8 @@ Deno.serve(async (req) => {
                   prioridade,
                   estagio,
                   codigo_acom: codigoAcom,
+                  campos_customizados: camposCustomizados,
+                  asana_json_raw: task, // Full Asana object for audit
                   data_prazo: task.due_on || null,
                   data_inicio: task.start_on || null,
                   data_conclusao: task.completed_at || null,
