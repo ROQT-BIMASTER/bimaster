@@ -97,7 +97,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
     ? allSecoes.filter(s => allowedSecaoIds.includes(s.id))
     : allSecoes;
 
-  const { data: tarefas = [], isLoading: tarefasLoading } = useQuery({
+  const { data: allTarefas = [], isLoading: tarefasLoading } = useQuery({
     queryKey: ["projeto-tarefas", projetoId],
     queryFn: async () => {
       const { data, error } = await supabase
