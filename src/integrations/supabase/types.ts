@@ -32673,6 +32673,10 @@ export type Database = {
         Args: { _projeto_id: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_projeto_via_tarefa: {
+        Args: { _tarefa_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_secao: {
         Args: { _secao_id: string; _user_id: string }
         Returns: boolean

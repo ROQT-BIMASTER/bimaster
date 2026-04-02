@@ -68,8 +68,11 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
     enabled: !!projetoId && !!user?.id,
   });
 
+  const secaoIdsResolved = allowedSecaoIds !== undefined;
+
   const { data: anexos = [], isLoading } = useQuery({
-    queryKey: ["projeto-arquivos", projetoId],
+    queryKey: ["projeto-arquivos", projetoId, allowedSecaoIds],
+    enabled: secaoIdsResolved,
     queryFn: async () => {
       // Get all task IDs for this project
       const { data: tarefas } = await supabase
