@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Link2, Package, Loader2, ArrowLeft, Maximize2, Gavel, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,7 @@ function getStatusBadgeVariant(status: string): "secondary" | "default" | "warni
     case "enviado": return "default";
     case "em_revisao": return "warning";
     case "aprovado": return "success";
+    case "enviado_brasil": return "default";
     case "arte_enviada": return "outline";
     case "rejeitado": return "destructive";
     default: return "secondary";
@@ -72,6 +75,7 @@ function getStatusLabel(status: string): string {
     case "enviado": return "Enviado";
     case "em_revisao": return "Em Revisão";
     case "aprovado": return "Aprovado";
+    case "enviado_brasil": return "Enviado ao Brasil";
     case "arte_enviada": return "Docs Enviados";
     case "rejeitado": return "Rejeitado";
     default: return status;
@@ -99,6 +103,7 @@ export default function ProjetoVincularChina() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [desvincularTarget, setDesvincularTarget] = useState<string | null>(null);
   const [vinculando, setVinculando] = useState(false);
+  const [kpiStatusFilter, setKpiStatusFilter] = useState<string>("todos");
 
   // Data queries
   const { data: submissoes = [], isLoading: loadingSub } = useSubmissoesChina("");
@@ -120,6 +125,23 @@ export default function ProjetoVincularChina() {
   // Real pendências from DB
   const submissaoIds = useMemo(() => submissoes.map((s: any) => s.id), [submissoes]);
   const { data: pendenciasMap } = useSubmissaoPendencias(submissaoIds);
+
+  // Doc counts per submissao
+  const { data: docCountsRaw } = useQuery({
+    queryKey: ["china-doc-counts", submissaoIds],
+    enabled: submissaoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("china_produto_documentos")
+        .select("submissao_id")
+        .in("submissao_id", submissaoIds);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      (data || []).forEach((d: any) => map.set(d.submissao_id, (map.get(d.submissao_id) || 0) + 1));
+      return map;
+    },
+  });
+  const docCounts = docCountsRaw ?? new Map<string, number>();
 
   const submissaoVinculadas = useMemo(() => {
     const set = new Set<string>();
@@ -144,9 +166,10 @@ export default function ProjetoVincularChina() {
           projetoCor: projeto?.cor || undefined,
           pendencias: pend?.pendentes ?? 0,
           totalChecklist: pend?.total ?? 0,
+          docCount: docCounts.get(s.id) ?? 0,
         };
       });
-  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap]);
+  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap, docCounts]);
 
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
@@ -170,6 +193,7 @@ export default function ProjetoVincularChina() {
     emRevisao: tableData.filter(r => r.status === "em_revisao").length,
     aprovados: tableData.filter(r => r.status === "aprovado").length,
     rejeitados: tableData.filter(r => r.status === "rejeitado").length,
+    enviadosBrasil: tableData.filter(r => r.status === "enviado_brasil").length,
     vinculados: vinculadasCount,
   }), [tableData, vinculadasCount]);
 
@@ -240,15 +264,26 @@ export default function ProjetoVincularChina() {
         try {
           toast.info("Criando produto Brasil...");
           const { supabase } = await import("@/integrations/supabase/client");
-          await (supabase.from("produtos_brasil" as any).insert({
-            submissao_china_id: selectedSubmissaoId,
-            projeto_id: selectedProjetoId,
-            china_nome: selectedSubmissao.produto_nome,
-            china_codigo: selectedSubmissao.produto_codigo,
-            china_ean: selectedSubmissao.ean_unidade || null,
-            china_descricao: selectedSubmissao.observacoes_brasil || null,
-            status: "aguardando_precadastro",
-          }) as any);
+          
+          // Check if produto_brasil already exists for this submissao
+          const { data: existingProduto } = await (supabase
+            .from("produtos_brasil" as any)
+            .select("id")
+            .eq("submissao_china_id", selectedSubmissaoId)
+            .maybeSingle() as any);
+          
+          if (!existingProduto) {
+            await (supabase.from("produtos_brasil" as any).insert({
+              submissao_china_id: selectedSubmissaoId,
+              projeto_id: selectedProjetoId,
+              china_nome: selectedSubmissao.produto_nome,
+              china_codigo: selectedSubmissao.produto_codigo,
+              china_ean: selectedSubmissao.ean_unidade || null,
+              china_descricao: selectedSubmissao.observacoes_brasil || null,
+              status: "aguardando_precadastro",
+            }) as any);
+          }
+
           const { data: prodBrasil } = await (supabase
             .from("produtos_brasil" as any)
             .select("id")
@@ -420,7 +455,11 @@ export default function ProjetoVincularChina() {
       </div>
 
       {/* KPIs */}
-      <VincularChinaKpis data={kpiData} />
+      <VincularChinaKpis
+        data={kpiData}
+        activeFilter={kpiStatusFilter}
+        onFilterClick={(status) => setKpiStatusFilter(status)}
+      />
 
       {/* Split panel: Table + Side Panel */}
       <div style={{ minHeight: "calc(100vh - 320px)" }}>
@@ -438,6 +477,8 @@ export default function ProjetoVincularChina() {
                 onDespacharClick={(ids) => setBulkOpen(true)}
                 filterProjeto={filterProjeto}
                 onFilterProjetoChange={setFilterProjeto}
+                statusFilter={kpiStatusFilter}
+                onStatusFilterChange={setKpiStatusFilter}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
@@ -477,6 +518,8 @@ export default function ProjetoVincularChina() {
             onDespacharClick={(ids) => setBulkOpen(true)}
             filterProjeto={filterProjeto}
             onFilterProjetoChange={setFilterProjeto}
+            statusFilter={kpiStatusFilter}
+            onStatusFilterChange={setKpiStatusFilter}
           />
         )}
       </div>

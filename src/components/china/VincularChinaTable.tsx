@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
-  AlertTriangle, Package, Filter, X
+  AlertTriangle, Package, Filter, X, FileText, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { exportToExcel } from "@/utils/excelExport";
 
 export interface SubmissaoRow {
   id: string;
@@ -37,6 +38,7 @@ export interface SubmissaoRow {
   projetoCor?: string;
   pendencias?: number;
   totalChecklist?: number;
+  docCount?: number;
 }
 
 type SortKey = "produto_codigo" | "produto_nome" | "status" | "numero_ordem" | "pendencias" | "projetoNome" | "updated_at";
@@ -48,6 +50,7 @@ const STATUS_OPTIONS = [
   { value: "enviado", label: "Enviado" },
   { value: "em_revisao", label: "Em Revisão" },
   { value: "aprovado", label: "Aprovado" },
+  { value: "enviado_brasil", label: "Enviado ao Brasil" },
   { value: "arte_enviada", label: "Docs Enviados" },
   { value: "rejeitado", label: "Rejeitado" },
 ];
@@ -64,6 +67,7 @@ function getStatusBadge(status: string) {
     enviado: { label: "Enviado", variant: "default" },
     em_revisao: { label: "Em Revisão", variant: "warning" },
     aprovado: { label: "Aprovado", variant: "success" },
+    enviado_brasil: { label: "Enviado Brasil", variant: "default" },
     arte_enviada: { label: "Docs Enviados", variant: "outline" },
     rejeitado: { label: "Rejeitado", variant: "destructive" },
   };
@@ -95,14 +99,19 @@ interface Props {
   onDespacharClick?: (ids: string[]) => void;
   filterProjeto: string;
   onFilterProjetoChange: (v: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (v: string) => void;
 }
 
 export function VincularChinaTable({
   data, loading, projetos, selectedIds, onSelectionChange,
   onRowClick, onFocusClick, onDespacharClick, filterProjeto, onFilterProjetoChange,
+  statusFilter: externalStatusFilter, onStatusFilterChange,
 }: Props) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  const [internalStatusFilter, setInternalStatusFilter] = useState("todos");
+  const statusFilter = externalStatusFilter ?? internalStatusFilter;
+  const setStatusFilter = onStatusFilterChange ?? setInternalStatusFilter;
   const [vinculoFilter, setVinculoFilter] = useState("todos");
   const [pendenciaFilter, setPendenciaFilter] = useState<"todos" | "com" | "sem">("todos");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
@@ -112,7 +121,8 @@ export function VincularChinaTable({
   const filtered = useMemo(() => {
     let result = data.filter(r => {
       if (!r.produto_codigo || r.produto_codigo === "null") return false;
-      if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (statusFilter === "vinculados") { if (!r.isLinked) return false; }
+      else if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (vinculoFilter === "vinculados" && !r.isLinked) return false;
       if (vinculoFilter === "nao_vinculados" && r.isLinked) return false;
       if (filterProjeto && filterProjeto !== "todos" && r.projetoNome !== projetos.find(p => p.id === filterProjeto)?.nome) return false;
@@ -221,6 +231,27 @@ export function VincularChinaTable({
           </Button>
         )}
 
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => {
+            exportToExcel(filtered.map(r => ({
+              Código: r.produto_codigo,
+              Produto: r.produto_nome,
+              Status: r.status,
+              OC: r.numero_ordem || "",
+              Projeto: r.projetoNome || "",
+              Vinculado: r.isLinked ? "Sim" : "Não",
+              Pendências: r.pendencias ?? 0,
+              Docs: r.docCount ?? 0,
+            })), { filename: "vincular_china", sheetName: "Submissões", includeTimestamp: true });
+          }}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Excel
+        </Button>
+
         <span className="text-xs text-muted-foreground ml-auto">
           {filtered.length} de {data.length} registros
         </span>
@@ -312,6 +343,7 @@ export function VincularChinaTable({
                 <TableHead className="w-[100px] cursor-pointer select-none" onClick={() => toggleSort("pendencias")}>
                   <span className="flex items-center">Pendências <SortIcon col="pendencias" /></span>
                 </TableHead>
+                <TableHead className="w-[60px] text-center">Docs</TableHead>
                 <TableHead className="w-[150px] cursor-pointer select-none" onClick={() => toggleSort("projetoNome")}>
                   <span className="flex items-center">Projeto <SortIcon col="projetoNome" /></span>
                 </TableHead>
@@ -325,14 +357,14 @@ export function VincularChinaTable({
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 10 }).map((_, j) => (
                       <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     Nenhuma submissão encontrada
                   </TableCell>
@@ -341,13 +373,16 @@ export function VincularChinaTable({
                 paginatedData.map(row => {
                   const isSelected = selectedIds.has(row.id);
                   const dateStr = row.updated_at || row.created_at;
+                  const daysSinceUpdate = dateStr ? differenceInDays(new Date(), new Date(dateStr)) : 0;
+                  const isStale = daysSinceUpdate > 7;
                   return (
                     <TableRow
                       key={row.id}
                       className={cn(
                         "cursor-pointer transition-colors",
                         isSelected && "bg-primary/5",
-                        row.isLinked && "border-l-2 border-l-success"
+                        row.isLinked && "border-l-2 border-l-success",
+                        isStale && "bg-destructive/3"
                       )}
                       onClick={() => onRowClick(row)}
                     >
@@ -379,6 +414,15 @@ export function VincularChinaTable({
                       </TableCell>
                       <TableCell>{getStatusBadge(row.status)}</TableCell>
                       <TableCell>{getPendenciaBadge(row.pendencias ?? 0, row.totalChecklist ?? 0)}</TableCell>
+                      <TableCell className="text-center">
+                        {(row.docCount ?? 0) > 0 ? (
+                          <Badge variant="secondary" className="text-[10px] gap-1">
+                            <FileText className="h-3 w-3" />{row.docCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {row.projetoNome ? (
                           <div className="flex items-center gap-1.5">
@@ -390,8 +434,9 @@ export function VincularChinaTable({
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">
+                        <span className={cn("text-xs", isStale ? "text-destructive font-semibold" : "text-muted-foreground")}>
                           {dateStr ? format(new Date(dateStr), "dd/MM/yy") : "—"}
+                          {isStale && <span className="ml-1">({daysSinceUpdate}d)</span>}
                         </span>
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
