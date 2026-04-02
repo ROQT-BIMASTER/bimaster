@@ -173,6 +173,7 @@ export default function ProjetoVincularChina() {
     emRevisao: tableData.filter(r => r.status === "em_revisao").length,
     aprovados: tableData.filter(r => r.status === "aprovado").length,
     rejeitados: tableData.filter(r => r.status === "rejeitado").length,
+    enviadosBrasil: tableData.filter(r => r.status === "enviado_brasil").length,
     vinculados: vinculadasCount,
   }), [tableData, vinculadasCount]);
 
