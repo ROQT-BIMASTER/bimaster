@@ -286,30 +286,6 @@ export function ProjetoTarefaDetalhe({
     setProdutoSearch("");
   };
 
-  const toggleAnexoSelection = (id: string) => {
-    setSelectedAnexoIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleSendToCofre = () => {
-    const prodId = (tarefa as any).produto_id;
-    if (!prodId) return;
-    // Check all selected have a category
-    const allHaveCategory = selectedAnexoIds.every(id => categoriasPorAnexo[id]);
-    if (!allHaveCategory) {
-      toast.error("Selecione uma categoria para cada documento.");
-      return;
-    }
-    sendToCofre.mutate({
-      anexoIds: selectedAnexoIds,
-      produtoId: prodId,
-      categoriasPorAnexo,
-    });
-    setCofreDialogOpen(false);
-    setSelectedAnexoIds([]);
-    setCategoriasPorAnexo({});
-  };
 
   // linkedProduto now comes from the hook
 
