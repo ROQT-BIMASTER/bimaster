@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
         const logId = logRow!.id;
         const errors: any[] = [];
-        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0;
+        let projectsSynced = 0, sectionsSynced = 0, tasksSynced = 0, commentsSynced = 0, usersMapped = 0, collaboratorsSynced = 0;
 
         try {
           // Map Asana users to local profiles
