@@ -1,25 +1,37 @@
 
 
-# Vincular colaboradores do Asana à equipe da Luana
+# Corrigir filtro de membros, scroll e tamanho do dialog
 
-## Situação atual
+## Problemas identificados
 
-18 colaboradores importados do Asana estão ativos nos projetos, mas **nenhum** tem `supervisor_id` definido (exceto Ahmad, que aponta para outro usuário). Ou seja, não aparecem na hierarquia da Luana.
+1. **Filtro com erro**: O campo de busca só filtra candidatos para adicionar, mas não filtra a lista de membros já existentes. O usuário digita "c.na" esperando filtrar membros, mas todos continuam aparecendo.
+2. **Sem barra de rolagem**: O `ScrollArea` não funciona corretamente porque não tem altura fixa definida.
+3. **Dialog pequeno**: `max-w-lg` (~512px) é insuficiente para o grid de seções com 2 colunas.
 
-## Plano
+## Solução
 
-### 1. Atualizar `supervisor_id` dos 18 colaboradores
+### 1. Arquivo: `src/components/projetos/ProjetoMembrosDialog.tsx`
 
-Criar uma migration que defina `supervisor_id = '2f3df7bd-7db9-404a-8093-d80168ceab70'` (Luana) para todos os 18 perfis importados do Asana.
+- **Aumentar tamanho do dialog**: Mudar `max-w-lg` para `max-w-2xl` (~672px)
+- **Filtro dual**: O campo de busca passa a filtrar tanto candidatos (para adicionar) quanto a lista de membros existentes por nome ou email
+- **Scroll funcional**: Dar ao `ScrollArea` uma altura máxima explícita (ex: `max-h-[55vh]`) para que a barra de rolagem apareça
+- **Manter busca de novos membros**: Quando o texto tem 2+ chars e existem resultados não-membros, continua mostrando a lista de candidatos acima
 
-Isso fará com que:
-- Apareçam como subordinados da Luana no módulo de equipe
-- Sejam visíveis para supervisores/admins na hierarquia
-- O hook `useProjetosTeamData` os inclua automaticamente via `get_subordinados`
+### Lógica do filtro de membros existentes
+```
+const filteredMembros = search.length >= 2
+  ? membros.filter(m => 
+      m.profile?.nome?.toLowerCase().includes(search.toLowerCase()) ||
+      m.profile?.email?.toLowerCase().includes(search.toLowerCase())
+    )
+  : membros;
+```
 
-### 2. Arquivo alterado
+Renderizar `filteredMembros` em vez de `membros` na lista.
 
-| Arquivo | Alteração |
-|---|---|
-| Migration SQL | `UPDATE profiles SET supervisor_id = '...' WHERE id IN (...)` para os 18 IDs |
+## Resultado esperado
+
+- Buscar "c.na" mostra apenas Claudia Tiemi Nakano na lista de membros
+- Barra de rolagem visível quando há muitos membros
+- Dialog mais largo para acomodar o grid de seções confortavelmente
 
