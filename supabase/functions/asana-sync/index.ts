@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
                   status,
                   prioridade,
                   estagio,
-                  codigo_acom: codigoAcom,
+                  codigo_acom: cfMap.get("acom") || null,
                   campos_customizados: camposCustomizados,
                   asana_json_raw: task, // Full Asana object for audit
                   data_prazo: task.due_on || null,
