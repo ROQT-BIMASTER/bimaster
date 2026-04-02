@@ -15,79 +15,11 @@ import ProductThumbnail from "@/components/fabrica/ProductThumbnail";
 import { GRID_COLS } from "./ProjetoListView";
 import { ColumnConfig, buildGridCols } from "./ColumnConfigPopover";
 
-const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-gray-400 text-white",
-  nao_iniciado: "bg-gray-400 text-white",
-  em_andamento: "bg-amber-500 text-white",
-  concluida: "bg-emerald-500 text-white",
-  bloqueada: "bg-red-500 text-white",
-};
-
-const STATUS_COLORS_DARK: Record<string, string> = {
-  pendente: "bg-gray-500 text-white",
-  nao_iniciado: "bg-gray-500 text-white",
-  em_andamento: "bg-amber-500 text-white",
-  concluida: "bg-emerald-500 text-white",
-  bloqueada: "bg-red-500 text-white",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Não iniciado",
-  nao_iniciado: "Não iniciado",
-  em_andamento: "Em andamento",
-  concluida: "Concluído",
-  bloqueada: "Bloqueada",
-};
-
-const STATUS_OPTIONS = [
-  { value: "pendente", label: "Não iniciado" },
-  { value: "em_andamento", label: "Em andamento" },
-  { value: "concluida", label: "Concluído" },
-  { value: "bloqueada", label: "Bloqueada" },
-];
-
-const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500 text-white",
-  em_criacao: "bg-blue-500 text-white",
-  revisao: "bg-amber-500 text-white",
-  aprovado: "bg-emerald-500 text-white",
-  producao: "bg-pink-500 text-white",
-  lancamento: "bg-rose-500 text-white",
-};
-
-const ESTAGIO_COLORS_DARK: Record<string, string> = {
-  briefing: "bg-purple-500 text-white",
-  em_criacao: "bg-blue-500 text-white",
-  revisao: "bg-amber-500 text-white",
-  aprovado: "bg-emerald-500 text-white",
-  producao: "bg-pink-500 text-white",
-  lancamento: "bg-rose-500 text-white",
-};
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
-
-const ESTAGIO_OPTIONS = [
-  { value: "briefing", label: "Briefing" },
-  { value: "em_criacao", label: "Em Criação" },
-  { value: "revisao", label: "Revisão" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "producao", label: "Produção" },
-  { value: "lancamento", label: "Lançamento" },
-];
-
-const PRIORITY_MAP: Record<string, number> = {
-  baixa: 1, media: 2, normal: 3, alta: 4, urgente: 5,
-};
-
-const PRIORITY_REVERSE: Record<number, string> = {
-  1: "baixa", 2: "media", 3: "normal", 4: "alta", 5: "urgente",
+import {
+  STATUS_LABELS, STATUS_OPTIONS, STATUS_COLORS_LIST as STATUS_COLORS, STATUS_COLORS_LIST_DARK as STATUS_COLORS_DARK,
+  ESTAGIO_LABELS, ESTAGIO_OPTIONS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS, ESTAGIO_COLORS_LIST as ESTAGIO_COLORS_DARK,
+  PRIORITY_MAP, PRIORITY_REVERSE,
+} from "@/lib/projetoConstants";
 };
 
 export type TeamMember = { id: string; nome: string; avatar_url: string | null };

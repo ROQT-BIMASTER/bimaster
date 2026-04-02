@@ -19,29 +19,9 @@ import {
   Loader2, User, Diamond,
 } from "lucide-react";
 
-// ─── Stage colors (for bar fill) ───
-const ESTAGIO_COLORS: Record<string, string> = {
-  briefing: "hsl(270, 60%, 55%)",
-  em_criacao: "hsl(210, 70%, 55%)",
-  revisao: "hsl(40, 80%, 50%)",
-  aprovado: "hsl(150, 60%, 45%)",
-  producao: "hsl(330, 60%, 55%)",
-  lancamento: "hsl(330, 60%, 55%)",
-};
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
-const STATUS_LABELS: Record<string, string> = {
-  pendente: "Pendente",
-  em_andamento: "Em andamento",
-  concluida: "Concluída",
-  bloqueada: "Bloqueada",
-};
+import {
+  STATUS_LABELS, ESTAGIO_LABELS, ESTAGIO_COLORS_CRONOGRAMA as ESTAGIO_COLORS,
+} from "@/lib/projetoConstants";
 
 type ZoomLevel = "week" | "month" | "quarter";
 

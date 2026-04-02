@@ -17,32 +17,9 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// ─── Stage colors for pills ───
-const ESTAGIO_PILL_COLORS: Record<string, string> = {
-  briefing: "bg-purple-500",
-  em_criacao: "bg-blue-500",
-  revisao: "bg-amber-500",
-  aprovado: "bg-emerald-500",
-  producao: "bg-pink-500",
-  lancamento: "bg-pink-500",
-};
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  briefing: "Briefing",
-  em_criacao: "Em Criação",
-  revisao: "Revisão",
-  aprovado: "Aprovado",
-  producao: "Produção",
-  lancamento: "Lançamento",
-};
-
-const STATUS_ICONS: Record<string, { icon: typeof Circle; className: string }> = {
-  pendente: { icon: Circle, className: "text-muted-foreground" },
-  nao_iniciado: { icon: Circle, className: "text-pink-500" },
-  em_andamento: { icon: Circle, className: "text-amber-500" },
-  concluida: { icon: CheckCircle2, className: "text-emerald-500" },
-  bloqueada: { icon: Circle, className: "text-red-500" },
-};
+import {
+  ESTAGIO_LABELS, ESTAGIO_PILL_COLORS, STATUS_ICON_CONFIG,
+} from "@/lib/projetoConstants";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
