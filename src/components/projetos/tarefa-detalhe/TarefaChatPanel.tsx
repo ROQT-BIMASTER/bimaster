@@ -19,7 +19,7 @@ interface Message {
 interface TeamMember {
   id: string;
   nome: string;
-  avatar_url?: string | null;
+  avatar_url: string | null;
 }
 
 function renderMentionText(text: string) {
