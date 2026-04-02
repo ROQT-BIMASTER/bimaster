@@ -86,6 +86,15 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
   const membroUserIds = useMemo(() => new Set(membros.map((m) => m.user_id)), [membros]);
   const filteredResults = searchResults.filter((p: any) => !membroUserIds.has(p.id));
 
+  const filteredMembros = useMemo(() => {
+    if (search.length < 2) return membros;
+    const q = search.toLowerCase();
+    return membros.filter(m =>
+      m.profile?.nome?.toLowerCase().includes(q) ||
+      m.profile?.email?.toLowerCase().includes(q)
+    );
+  }, [membros, search]);
+
   const handleToggleSecao = (membro: ProjetoMembro, secaoId: string) => {
     const currentIds = membro.secoes_ids || [];
     const newIds = currentIds.includes(secaoId)
@@ -108,7 +117,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" /> Membros do Projeto
@@ -163,9 +172,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           <Separator />
 
-          <ScrollArea className="flex-1">
-            <div className="space-y-3">
-              {membros.map((membro) => {
+          <ScrollArea className="flex-1 max-h-[55vh]">
+            <div className="space-y-3 pr-3">
+              {filteredMembros.map((membro) => {
                 const papel = membro.papel || "membro";
                 const isManager = ["coordenador", "gestor_produto"].includes(papel);
 
