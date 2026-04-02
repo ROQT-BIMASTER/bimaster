@@ -38,6 +38,7 @@ export interface SubmissaoRow {
   projetoCor?: string;
   pendencias?: number;
   totalChecklist?: number;
+  docCount?: number;
 }
 
 type SortKey = "produto_codigo" | "produto_nome" | "status" | "numero_ordem" | "pendencias" | "projetoNome" | "updated_at";
