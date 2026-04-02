@@ -422,6 +422,7 @@ Deno.serve(async (req) => {
                         tamanho: att.size || null,
                         asana_gid: att.gid,
                         uploaded_by: userId,
+                        user_id: userId,
                       });
                     }
                   }
