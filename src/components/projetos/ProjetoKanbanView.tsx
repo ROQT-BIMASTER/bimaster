@@ -73,21 +73,25 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
 
   // Apply external filters/sort
   const filtersActive = hasActiveFilters(filters);
+  const filteredIds = useMemo(() => {
+    if (!filtersActive) return null;
+    const filtered = applyProjetoFilters(rawTarefas, filters);
+    return new Set(filtered.map(t => t.id));
+  }, [rawTarefas, filters, filtersActive]);
+
   const tarefas = useMemo(() => {
     let t = rawTarefas;
-    if (filtersActive) t = applyProjetoFilters(t, filters);
+    if (filtersActive && filteredIds) t = t.filter(x => filteredIds.has(x.id));
     return applyProjetoSort(t, sort);
-  }, [rawTarefas, filters, sort, filtersActive]);
+  }, [rawTarefas, sort, filtersActive, filteredIds]);
 
   const tarefasPorSecao = useMemo(() => {
-    if (!filtersActive) return rawTarefasPorSecao;
-    const filteredIds = new Set(tarefas.map(t => t.id));
-    const result: Record<string, ProjetoTarefa[]> = {};
-    for (const [secId, tasks] of Object.entries(rawTarefasPorSecao)) {
-      result[secId] = tasks.filter(t => filteredIds.has(t.id));
-    }
-    return result;
-  }, [rawTarefasPorSecao, tarefas, filtersActive]);
+    return (secaoId: string) => {
+      const base = rawTarefasPorSecao(secaoId);
+      if (!filtersActive || !filteredIds) return base;
+      return base.filter(t => filteredIds.has(t.id));
+    };
+  }, [rawTarefasPorSecao, filtersActive, filteredIds]);
 
   const [selectedTarefa, setSelectedTarefa] = useState<ProjetoTarefa | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
