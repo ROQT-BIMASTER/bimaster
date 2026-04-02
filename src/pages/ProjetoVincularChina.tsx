@@ -498,6 +498,9 @@ export default function ProjetoVincularChina() {
             onDespacharClick={(ids) => setBulkOpen(true)}
             filterProjeto={filterProjeto}
             onFilterProjetoChange={setFilterProjeto}
+            statusFilter={kpiStatusFilter}
+            onStatusFilterChange={setKpiStatusFilter}
+          />
           />
         )}
       </div>
