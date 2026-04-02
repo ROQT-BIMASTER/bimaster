@@ -43,6 +43,30 @@ function formatSize(bytes: number | null) {
 
 export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquivosViewProps) {
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
+
+  // Fetch allowed section IDs for current user
+  const { data: allowedSecaoIds } = useQuery({
+    queryKey: ["membro-secoes-permitidas", projetoId, user?.id],
+    queryFn: async () => {
+      if (!projetoId || !user?.id) return null;
+      const { data: membro } = await supabase
+        .from("projeto_membros")
+        .select("id, papel")
+        .eq("projeto_id", projetoId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!membro) return null;
+      if (["coordenador", "gestor_produto"].includes(membro.papel)) return null;
+      const { data: secAssignments } = await supabase
+        .from("projeto_membro_secoes")
+        .select("secao_id")
+        .eq("membro_id", membro.id);
+      if (!secAssignments || secAssignments.length === 0) return null;
+      return secAssignments.map(s => s.secao_id);
+    },
+    enabled: !!projetoId && !!user?.id,
+  });
 
   const { data: anexos = [], isLoading } = useQuery({
     queryKey: ["projeto-arquivos", projetoId],
@@ -50,12 +74,18 @@ export function ProjetoArquivosView({ projetoId, darkBg = false }: ProjetoArquiv
       // Get all task IDs for this project
       const { data: tarefas } = await supabase
         .from("projeto_tarefas")
-        .select("id, titulo")
+        .select("id, titulo, secao_id")
         .eq("projeto_id", projetoId);
       if (!tarefas || tarefas.length === 0) return [];
 
-      const tarefaMap = Object.fromEntries(tarefas.map(t => [t.id, t.titulo]));
-      const tarefaIds = tarefas.map(t => t.id);
+      // Filter tasks by allowed sections
+      const filteredTarefas = allowedSecaoIds
+        ? tarefas.filter(t => allowedSecaoIds.includes(t.secao_id))
+        : tarefas;
+
+      const tarefaMap = Object.fromEntries(filteredTarefas.map(t => [t.id, t.titulo]));
+      const tarefaIds = filteredTarefas.map(t => t.id);
+      if (tarefaIds.length === 0) return [];
 
       // Get all anexos for those tasks
       const { data: anexosData } = await supabase
