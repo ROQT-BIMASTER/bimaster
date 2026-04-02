@@ -67,7 +67,7 @@ function ProjectDropdown({ projeto, isFinalizado, onFinalize, onDelete }: { proj
 }
 
 export default function Projetos() {
-  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros } = useProjetos();
+  const { projetos, isLoading, deleteProjeto, finalizarProjeto, projetoMetrics, projetoMembros, projetoColaboradores } = useProjetos();
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
 
