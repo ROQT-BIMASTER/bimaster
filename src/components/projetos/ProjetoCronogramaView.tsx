@@ -271,14 +271,23 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   }
 
   if (filteredTarefas.length === 0) {
+    const totalParent = tarefas.filter(t => !t.parent_tarefa_id).length;
+    const withoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
     return (
       <div className={`flex flex-col items-center justify-center py-20 gap-2 ${darkBg ? "text-white/60" : "text-muted-foreground"}`}>
         <Calendar className="h-10 w-10 opacity-40" />
         <p className="text-sm">Nenhuma tarefa encontrada para exibir no cronograma.</p>
-        <p className="text-xs">Crie tarefas com prazos para visualizá-las aqui.</p>
+        {withoutDeadline > 0 && (
+          <p className="text-xs text-warning">{withoutDeadline} de {totalParent} tarefas sem prazo definido — defina prazos para visualizá-las aqui.</p>
+        )}
       </div>
     );
   }
+
+  // Deadline warning banner
+  const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
+  const tasksWithoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
+  const showDeadlineBanner = totalParentTasks > 0 && (tasksWithoutDeadline / totalParentTasks) > 0.5;
 
   const LANE_LABEL_WIDTH = 260;
   const ROW_HEIGHT = 48;
