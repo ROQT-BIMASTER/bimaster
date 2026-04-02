@@ -10,7 +10,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedIds: string[];
-  submissoes: Array<{ id: string; produto_codigo: string; produto_nome: string }>;
+  submissoes: Array<{ id: string; produto_codigo: string; produto_nome: string; isLinked?: boolean }>;
   onComplete: () => void;
 }
 
