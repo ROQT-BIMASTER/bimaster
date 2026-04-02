@@ -18,18 +18,18 @@ import {
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  pendente: { label: "Pendente", color: "bg-amber-500/20 text-amber-400", icon: Clock },
-  em_analise: { label: "Em Análise", color: "bg-blue-500/20 text-blue-400", icon: Eye },
-  aprovado: { label: "Aprovado", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle2 },
-  rejeitado: { label: "Rejeitado", color: "bg-red-500/20 text-red-400", icon: XCircle },
+  pendente: { label: "Pendente", color: "bg-warning/20 text-warning", icon: Clock },
+  em_analise: { label: "Em Análise", color: "bg-primary/20 text-primary", icon: Eye },
+  aprovado: { label: "Aprovado", color: "bg-success/20 text-success", icon: CheckCircle2 },
+  rejeitado: { label: "Rejeitado", color: "bg-destructive/20 text-destructive", icon: XCircle },
 };
 
 const RESP_COLORS: Record<string, string> = {
-  D: "bg-blue-500/20 text-blue-400",
-  C: "bg-purple-500/20 text-purple-400",
-  R: "bg-red-500/20 text-red-400",
-  E: "bg-amber-500/20 text-amber-400",
-  COMP: "bg-emerald-500/20 text-emerald-400",
+  D: "bg-primary/20 text-primary",
+  C: "bg-accent/20 text-accent-foreground",
+  R: "bg-destructive/20 text-destructive",
+  E: "bg-warning/20 text-warning",
+  COMP: "bg-success/20 text-success",
 };
 
 interface ProjetoBriefingPanelProps {
