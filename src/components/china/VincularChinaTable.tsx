@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Send, Maximize2, Link2, Link2Off,
-  AlertTriangle, Package, Filter, X
+  AlertTriangle, Package, Filter, X, FileText, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { exportToExcel } from "@/utils/excelExport";
 
 export interface SubmissaoRow {
   id: string;
