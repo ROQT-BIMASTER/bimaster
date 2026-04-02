@@ -232,7 +232,7 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
 
                 <CollapsibleContent>
                   {b.observacao_aprovacao && (
-                    <div className={cn("mx-4 mb-3 p-2 rounded text-xs", darkBg ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600")}>
+                   <div className={cn("mx-4 mb-3 p-2 rounded text-xs", darkBg ? "bg-destructive/10 text-destructive" : "bg-destructive/5 text-destructive")}>
                       <strong>Observação:</strong> {b.observacao_aprovacao}
                     </div>
                   )}
