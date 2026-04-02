@@ -166,9 +166,10 @@ export default function ProjetoVincularChina() {
           projetoCor: projeto?.cor || undefined,
           pendencias: pend?.pendentes ?? 0,
           totalChecklist: pend?.total ?? 0,
+          docCount: docCounts.get(s.id) ?? 0,
         };
       });
-  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap]);
+  }, [submissoes, submissaoVinculadas, allVinculos, projetos, pendenciasMap, docCounts]);
 
   const selectedSubmissao = useMemo(
     () => submissoes.find((s: any) => s.id === selectedSubmissaoId),
