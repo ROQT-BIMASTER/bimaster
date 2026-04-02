@@ -481,7 +481,10 @@ export default function AsanaIntegracao() {
                     </TableCell>
                     <TableCell>{log.projects_synced}</TableCell>
                     <TableCell>{log.tasks_synced}</TableCell>
+                    <TableCell>{log.subtasks_synced || 0}</TableCell>
+                    <TableCell>{log.attachments_synced || 0}</TableCell>
                     <TableCell>{log.comments_synced}</TableCell>
+                    <TableCell>{log.collaborators_synced || 0}</TableCell>
                     <TableCell>
                       {(log.errors as any[])?.length || 0}
                     </TableCell>

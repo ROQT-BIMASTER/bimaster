@@ -436,8 +436,10 @@ Deno.serve(async (req) => {
 
             // All done
             await adminClient.from("asana_sync_log").update({
-              status: "completed", comments_synced: commentsSynced, errors,
-              completed_at: new Date().toISOString(),
+              status: "completed", comments_synced: commentsSynced,
+              subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
+              collaborators_synced: collaboratorsSynced,
+              errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
 
             return json({
