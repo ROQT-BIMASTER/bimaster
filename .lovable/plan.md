@@ -1,33 +1,42 @@
 
 
-# Exibir Colaboradores de Tarefas na Lista de Projetos
+# Adicionar Colaboradores como Membros e Corrigir Fotos
 
-## Problema
+## Situação Atual
 
-A coluna MEMBROS na lista de projetos mostra apenas os membros formais (`projeto_membros`), que são 1-2 por projeto. Porém, cada projeto tem 6-18 colaboradores reais importados do Asana (tabela `projeto_tarefa_colaboradores`), que não aparecem.
+- **17 colaboradores** ativos em tarefas dos projetos (K, Sazonais, Institucional, BiMaster) que **não são membros formais** (`projeto_membros`)
+- **8 colaboradores sem foto**: Ahmad, Gabriela Rocha, Giulia Honda, Ingrid Rodrigues Lima, Isabella Moraes, Natasha Figueredo de Lima, Nathalia Freitas Piovani, Saynara dos Santos de Freitas
+- **9 colaboradores com foto** já salva (signed URLs do storage)
+- As fotos ausentes precisam ser re-importadas do Asana via re-sync
 
-## Solução
+## Plano
 
-### 1. Incluir colaboradores de tarefas no hook `useProjetos`
+### 1. Inserir colaboradores como membros formais dos projetos
 
-No `useProjetos.ts`, adicionar uma query que busca colaboradores únicos por projeto via `projeto_tarefa_colaboradores` + `projeto_tarefas` + `profiles`. Combinar com os membros formais, deduplicando por `user_id`.
+Usar a ferramenta de inserção para adicionar os 32 registros (17 usuários x seus respectivos projetos) na tabela `projeto_membros` com papel `membro`.
 
-### 2. Atualizar `membrosMap` em `Projetos.tsx`
+Mapeamento:
+- **BiMaster**: Ahmad + Luana (2 inserções)
+- **Institucional**: Daniele, Saynara, Nathalia, Isabella, Gabriela (5)
+- **K | Ruby Rose**: 16 colaboradores
+- **Sazonais**: Daniele, Saynara, Nathalia, Claudia, Mayara, Isabella, Gabriela, Patrícia (8)
 
-Mesclar os dois conjuntos (membros formais + colaboradores de tarefas) no `membrosMap`, priorizando membros formais mas incluindo todos os colaboradores únicos com seus avatares.
+### 2. Atualizar Edge Function para forçar atualização de fotos
 
-### 3. Aumentar limite de avatares visíveis
+Atualmente, a linha 111 do `asana-sync/index.ts` só atualiza o avatar se `!prof.avatar_url`. Alterar para **sempre atualizar** quando o Asana retorna foto e o avatar local está vazio, garantindo que os 8 usuários sem foto recebam a imagem na próxima sincronização.
 
-Atualmente mostra no máximo 4 avatares + indicador "+N". Com mais colaboradores, pode ser útil aumentar para 6.
+### 3. Garantir exibição de fotos em todos os ambientes
+
+Verificar e ajustar o componente de avatar para tratar corretamente URLs externas do Asana (que são diretas, não signed URLs). O hook `useResolvedAvatarUrl` já trata URLs externas corretamente (linha 22: se não contém `/storage/v1/object/public/avatars/`, retorna como está).
 
 ## Arquivos a alterar
 
 | Arquivo | Alteração |
 |---|---|
-| `src/hooks/useProjetos.ts` | Adicionar query de colaboradores por projeto |
-| `src/pages/Projetos.tsx` | Mesclar colaboradores no `membrosMap` |
+| Dados (INSERT) | 32 registros em `projeto_membros` |
+| `supabase/functions/asana-sync/index.ts` | Forçar update de avatar quando Asana tem foto e perfil não tem |
 
 ## Resultado esperado
 
-A coluna MEMBROS mostrará os avatares de todos os colaboradores (com fotos do Asana) de cada projeto, não apenas os membros formais.
+Todos os 17 colaboradores aparecerão como membros formais dos projetos, com acesso restrito às tarefas onde estão marcados. Na próxima sincronização, as 8 fotos faltantes serão importadas.
 
