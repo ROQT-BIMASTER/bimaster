@@ -172,8 +172,20 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
     );
   }
 
+  // Deadline warning
+  const totalParentTasks = tarefas.filter(t => !t.parent_tarefa_id).length;
+  const tasksWithoutDeadline = tarefas.filter(t => !t.parent_tarefa_id && !t.data_prazo).length;
+  const showDeadlineBanner = totalParentTasks > 0 && (tasksWithoutDeadline / totalParentTasks) > 0.5;
+
   return (
     <div className="space-y-4">
+      {/* Deadline warning banner */}
+      {showDeadlineBanner && (
+        <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-xs", "bg-warning/10 text-warning")}>
+          <CalendarDays className="h-4 w-4 flex-shrink-0" />
+          <span>{tasksWithoutDeadline} de {totalParentTasks} tarefas sem prazo — defina prazos para visualizá-las no calendário.</span>
+        </div>
+      )}
       {/* Toolbar */}
       <div className={cn("flex items-center justify-between flex-wrap gap-3")}>
         <div className="flex items-center gap-2">
