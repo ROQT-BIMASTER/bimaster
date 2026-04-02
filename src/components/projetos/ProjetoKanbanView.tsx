@@ -177,7 +177,7 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       : [...columnTasks];
 
     if (changedColumn) {
-      reordered.splice(newIndex, 0, tarefa);
+      reordered.splice(newIndex, 0, tarefa as typeof columnTasks[number]);
     } else if (oldIndex !== -1 && oldIndex !== newIndex) {
       const moved = arrayMove(reordered, oldIndex, newIndex);
       moved.forEach((t, i) => {
