@@ -280,9 +280,9 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false }: Props) {
 // ─── Task Pill ───
 function TaskPill({ tarefa, darkBg, onClick }: { tarefa: ProjetoTarefa; darkBg: boolean; onClick: () => void }) {
   const stageColor = ESTAGIO_PILL_COLORS[tarefa.estagio || ""] || "bg-muted-foreground/50";
-  const statusEntry = STATUS_ICONS[tarefa.status] || STATUS_ICONS.pendente;
-  const StatusIcon = statusEntry.icon;
-  const isCompleted = tarefa.status === "concluida";
+  const cfg = STATUS_ICON_CONFIG[tarefa.status] || STATUS_ICON_CONFIG.pendente;
+  const StatusIcon = cfg.completed ? CheckCircle2 : Circle;
+  const isCompleted = cfg.completed;
 
   return (
     <button
