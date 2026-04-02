@@ -172,9 +172,9 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           <Separator />
 
-          <ScrollArea className="flex-1">
-            <div className="space-y-3">
-              {membros.map((membro) => {
+          <ScrollArea className="flex-1 max-h-[55vh]">
+            <div className="space-y-3 pr-3">
+              {filteredMembros.map((membro) => {
                 const papel = membro.papel || "membro";
                 const isManager = ["coordenador", "gestor_produto"].includes(papel);
 
