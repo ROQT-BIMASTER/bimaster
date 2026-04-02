@@ -325,10 +325,26 @@ Deno.serve(async (req) => {
                 tasksSynced++;
 
                 // Sync followers → projeto_tarefa_colaboradores
-                if (task.followers?.length) {
-                  for (const follower of task.followers) {
+                let followers = task.followers || [];
+                // Fallback: if bulk didn't return followers, fetch individually
+                if (followers.length === 0) {
+                  try {
+                    const detail = await asanaGet(`/tasks/${task.gid}`, asanaPat, {
+                      opt_fields: "followers,followers.gid,followers.email,followers.name",
+                    });
+                    followers = detail?.followers || [];
+                  } catch (e) {
+                    console.warn(`[followers-fallback] Falha ao buscar followers da tarefa ${task.gid}:`, e);
+                  }
+                }
+                let collabsLinked = 0;
+                if (followers.length) {
+                  for (const follower of followers) {
                     const localUserId = follower.gid ? userMap.get(follower.gid) : null;
-                    if (!localUserId) continue;
+                    if (!localUserId) {
+                      console.log(`[followers] Follower sem mapeamento: gid=${follower.gid}, email=${follower.email}`);
+                      continue;
+                    }
                     const { data: existingCollab } = await adminClient
                       .from("projeto_tarefa_colaboradores")
                       .select("id")
@@ -341,8 +357,11 @@ Deno.serve(async (req) => {
                         user_id: localUserId,
                       });
                     }
+                    collabsLinked++;
                   }
                 }
+                console.log(`[followers] Tarefa ${task.gid}: ${followers.length} followers encontrados, ${collabsLinked} vinculados`);
+                collaboratorsSynced += collabsLinked;
 
                 // Sync tags → projeto_tags + projeto_tarefa_tags
                 if (task.tags?.length) {
