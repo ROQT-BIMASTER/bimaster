@@ -47,10 +47,12 @@ const fetchUserRoleWithTimeout = async (userId: string): Promise<string | null> 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lockout, setLockout] = useState<{ locked: boolean; remaining_seconds?: number; remaining_attempts?: number } | null>(null);
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -150,6 +152,23 @@ export const LoginForm = () => {
     }
 
     try {
+      // Honeypot check — bots fill hidden fields
+      if (honeypot) {
+        console.warn("Bot detected via honeypot");
+        // Simulate delay to not reveal detection
+        await new Promise(r => setTimeout(r, 1500));
+        toast({ title: "Erro ao fazer login", description: "Email ou senha incorretos", variant: "destructive" });
+        return;
+      }
+
+      // Client-side rate limit — min 2s between submissions
+      const now = Date.now();
+      if (now - lastSubmitTime < 2000) {
+        toast({ title: "Aguarde", description: "Muitas tentativas. Aguarde alguns segundos.", variant: "destructive" });
+        return;
+      }
+      setLastSubmitTime(now);
+
       const validated = loginSchema.parse({ email, password });
 
       // Check lockout before attempting login
@@ -271,6 +290,19 @@ export const LoginForm = () => {
                 required
                 maxLength={100}
                 disabled={!!isLockedOut}
+              />
+            </div>
+            {/* Honeypot — invisible to users, bots auto-fill */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+              <label htmlFor="website">Website</label>
+              <input
+                id="website"
+                name="website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading || !isOnline || !!isLockedOut}>
