@@ -16,7 +16,7 @@ export function applyProjetoFilters(
     if (filters.prioridade.length > 0 && !filters.prioridade.includes(t.prioridade || "")) return false;
     if (filters.estagio.length > 0 && !filters.estagio.includes(t.estagio || "")) return false;
     if (filters.tipo.length > 0) {
-      const tipo = t.is_retrabalho ? "retrabalho" : "padrao";
+      const tipo = (t as any).is_retrabalho ? "retrabalho" : "padrao";
       if (!filters.tipo.includes(tipo)) return false;
     }
     if (filters.responsavelId && t.responsavel_id !== filters.responsavelId) return false;
