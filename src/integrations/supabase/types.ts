@@ -993,6 +993,8 @@ export type Database = {
       }
       asana_sync_log: {
         Row: {
+          attachments_synced: number | null
+          collaborators_synced: number | null
           comments_synced: number | null
           completed_at: string | null
           created_at: string
@@ -1004,11 +1006,14 @@ export type Database = {
           started_at: string
           started_by: string | null
           status: string
+          subtasks_synced: number | null
           tasks_synced: number | null
           users_mapped: number | null
           workspace_gid: string | null
         }
         Insert: {
+          attachments_synced?: number | null
+          collaborators_synced?: number | null
           comments_synced?: number | null
           completed_at?: string | null
           created_at?: string
@@ -1020,11 +1025,14 @@ export type Database = {
           started_at?: string
           started_by?: string | null
           status?: string
+          subtasks_synced?: number | null
           tasks_synced?: number | null
           users_mapped?: number | null
           workspace_gid?: string | null
         }
         Update: {
+          attachments_synced?: number | null
+          collaborators_synced?: number | null
           comments_synced?: number | null
           completed_at?: string | null
           created_at?: string
@@ -1036,6 +1044,7 @@ export type Database = {
           started_at?: string
           started_by?: string | null
           status?: string
+          subtasks_synced?: number | null
           tasks_synced?: number | null
           users_mapped?: number | null
           workspace_gid?: string | null

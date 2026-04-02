@@ -397,11 +397,14 @@ export default function AsanaIntegracao() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
               <StatCard icon={FolderKanban} label="Projetos" value={syncResult.projects_synced} />
               <StatCard icon={ListTodo} label="Seções" value={syncResult.sections_synced} />
               <StatCard icon={ListTodo} label="Tarefas" value={syncResult.tasks_synced} />
+              <StatCard icon={ListTodo} label="Subtarefas" value={syncResult.subtasks_synced} />
+              <StatCard icon={Link2} label="Anexos" value={syncResult.attachments_synced} />
               <StatCard icon={MessageSquare} label="Comentários" value={syncResult.comments_synced} />
+              <StatCard icon={Users} label="Colaboradores" value={syncResult.collaborators_synced} />
               <StatCard icon={Users} label="Usuários" value={syncResult.users_mapped} />
             </div>
 
@@ -450,7 +453,10 @@ export default function AsanaIntegracao() {
                   <TableHead>Status</TableHead>
                   <TableHead>Projetos</TableHead>
                   <TableHead>Tarefas</TableHead>
+                  <TableHead>Subtarefas</TableHead>
+                  <TableHead>Anexos</TableHead>
                   <TableHead>Comentários</TableHead>
+                  <TableHead>Colaboradores</TableHead>
                   <TableHead>Erros</TableHead>
                 </TableRow>
               </TableHeader>
@@ -475,7 +481,10 @@ export default function AsanaIntegracao() {
                     </TableCell>
                     <TableCell>{log.projects_synced}</TableCell>
                     <TableCell>{log.tasks_synced}</TableCell>
+                    <TableCell>{log.subtasks_synced || 0}</TableCell>
+                    <TableCell>{log.attachments_synced || 0}</TableCell>
                     <TableCell>{log.comments_synced}</TableCell>
+                    <TableCell>{log.collaborators_synced || 0}</TableCell>
                     <TableCell>
                       {(log.errors as any[])?.length || 0}
                     </TableCell>

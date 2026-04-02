@@ -40,7 +40,10 @@ interface SyncLog {
   projects_synced: number;
   sections_synced: number;
   tasks_synced: number;
+  subtasks_synced: number;
+  attachments_synced: number;
   comments_synced: number;
+  collaborators_synced: number;
   users_mapped: number;
   errors: any[];
   started_at: string;

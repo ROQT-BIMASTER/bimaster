@@ -299,6 +299,7 @@ Deno.serve(async (req) => {
               status: "core_done",
               projects_synced: projectsSynced, sections_synced: sectionsSynced,
               tasks_synced: tasksSynced, users_mapped: usersMapped,
+              collaborators_synced: collaboratorsSynced,
               errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
 
@@ -333,7 +334,9 @@ Deno.serve(async (req) => {
                   console.log(`[time] Budget exhausted. Processed ${subtasksSynced} subtasks, ${attachmentsSynced} attachments, ${commentsSynced} comments so far.`);
                   // Return partial — client should call again
                   await adminClient.from("asana_sync_log").update({
-                    status: "secondary_partial", comments_synced: commentsSynced, errors,
+                    status: "secondary_partial", comments_synced: commentsSynced,
+                    subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
+                    errors,
                   }).eq("id", logId);
 
                   return json({
@@ -433,8 +436,10 @@ Deno.serve(async (req) => {
 
             // All done
             await adminClient.from("asana_sync_log").update({
-              status: "completed", comments_synced: commentsSynced, errors,
-              completed_at: new Date().toISOString(),
+              status: "completed", comments_synced: commentsSynced,
+              subtasks_synced: subtasksSynced, attachments_synced: attachmentsSynced,
+              collaborators_synced: collaboratorsSynced,
+              errors, completed_at: new Date().toISOString(),
             }).eq("id", logId);
 
             return json({
