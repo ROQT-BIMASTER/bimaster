@@ -67,6 +67,7 @@ function getStatusBadge(status: string) {
     enviado: { label: "Enviado", variant: "default" },
     em_revisao: { label: "Em Revisão", variant: "warning" },
     aprovado: { label: "Aprovado", variant: "success" },
+    enviado_brasil: { label: "Enviado Brasil", variant: "default" },
     arte_enviada: { label: "Docs Enviados", variant: "outline" },
     rejeitado: { label: "Rejeitado", variant: "destructive" },
   };
