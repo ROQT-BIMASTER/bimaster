@@ -112,9 +112,9 @@ export function ProjetoBriefingPanel({ projetoId, darkBg = false }: ProjetoBrief
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: "Total", value: total, icon: FileSpreadsheet, color: "text-primary" },
-          { label: "Aprovados", value: aprovados, icon: CheckCircle2, color: "text-emerald-400" },
-          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-amber-400" },
-          { label: "Rejeitados", value: rejeitados, icon: XCircle, color: "text-red-400" },
+          { label: "Aprovados", value: aprovados, icon: CheckCircle2, color: "text-success" },
+          { label: "Pendentes", value: pendentes, icon: Clock, color: "text-warning" },
+          { label: "Rejeitados", value: rejeitados, icon: XCircle, color: "text-destructive" },
           { label: "Cumprimento", value: `${cumprimento}%`, icon: AlertCircle, color: "text-primary" },
         ].map(kpi => (
           <div key={kpi.label} className={cn("rounded-lg border p-3", cardBg)}>
