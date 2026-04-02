@@ -22,7 +22,17 @@ export default function AsanaIntegracao() {
   const { testConnection, listProjects, syncProjects, getSyncLogs, analyzeStructure, loading } = useAsanaSync();
 
   const [step, setStep] = useState(1);
-  const [pat, setPat] = useState("");
+  const [pat, setPat] = useState(() => localStorage.getItem("asana_pat") || "");
+
+  // Persist PAT to localStorage
+  const handlePatChange = (value: string) => {
+    setPat(value);
+    if (value) {
+      localStorage.setItem("asana_pat", value);
+    } else {
+      localStorage.removeItem("asana_pat");
+    }
+  };
   const [userName, setUserName] = useState("");
   const [workspaces, setWorkspaces] = useState<{ gid: string; name: string }[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState("");
