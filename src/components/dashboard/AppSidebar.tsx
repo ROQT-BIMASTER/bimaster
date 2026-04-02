@@ -1385,6 +1385,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
                   {hasModulePermission("integracao_erp") && (
                     <MenuItemLink to="/dashboard/integracao-erp" icon={Key} title="Portal ERP" />
                   )}
+                  <MenuItemLink to="/dashboard/integracoes/asana" icon={RefreshCw} title="Asana Sync" />
                   <MenuItemLink to="/dashboard/configuracoes/acesso" icon={UserCheck} title="Config. Acesso" />
                 </SidebarMenu>
               </CollapsibleContent>

@@ -259,6 +259,7 @@ const RelatorioAPIs = lazyWithRetry(() => import("./pages/RelatorioAPIs"));
 const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
 const RelatorioAPModule = lazyWithRetry(() => import("./pages/RelatorioAPModule"));
 const IntegracaoERP = lazyWithRetry(() => import("./pages/IntegracaoERP"));
+const AsanaIntegracao = lazyWithRetry(() => import("./pages/AsanaIntegracao"));
 const EstoqueModule = lazyWithRetry(() => import("./pages/modules/EstoqueModule"));
 const EstoqueDistribuidoras = lazyWithRetry(() => import("./pages/EstoqueDistribuidoras"));
 const EstoqueProdutosMaster = lazyWithRetry(() => import("./pages/EstoqueProdutosMaster"));
@@ -657,6 +658,7 @@ function AppContent() {
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-ap-module" element={<ScreenRoute screenCode="admin"><RelatorioAPModule /></ScreenRoute>} />
             <Route path="/dashboard/integracao-erp" element={<ModuleRoute moduleCode="integracao_erp"><ScreenRoute screenCode="admin"><IntegracaoERP /></ScreenRoute></ModuleRoute>} />
+            <Route path="/dashboard/integracoes/asana" element={<ScreenRoute screenCode="admin"><AsanaIntegracao /></ScreenRoute>} />
             <Route path="/dashboard/financeiro/fornecedores" element={<ScreenRoute screenCode="financeiro_fornecedores"><Fornecedores /></ScreenRoute>} />
             <Route path="/dashboard/fornecedores" element={<Navigate to="/dashboard/financeiro/fornecedores" replace />} />
             <Route path="/dashboard/configuracoes/fornecedores-visibilidade" element={<ScreenRoute screenCode="admin"><ConfigFornecedorVisibilidade /></ScreenRoute>} />
