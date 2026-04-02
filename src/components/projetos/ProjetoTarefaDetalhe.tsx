@@ -170,9 +170,6 @@ export function ProjetoTarefaDetalhe({
     }
   }, [tarefa?.id]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   if (!tarefa) return null;
 
