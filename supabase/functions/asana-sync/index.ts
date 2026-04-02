@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         try {
           // ===== MAP ASANA USERS (both phases need this) =====
           const asanaUsers = await asanaGetAll(`/workspaces/${workspace_gid}/users`, asanaPat, {
-            opt_fields: "name,email",
+            opt_fields: "name,email,photo",
           });
           const { data: profiles } = await adminClient.from("profiles").select("id, email, nome");
           const userMap = new Map<string, string>();
