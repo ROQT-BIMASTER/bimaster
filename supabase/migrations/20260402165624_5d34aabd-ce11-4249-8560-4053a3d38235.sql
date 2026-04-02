@@ -1,0 +1,2 @@
+ALTER TABLE public.asana_sync_log DROP CONSTRAINT asana_sync_log_status_check;
+ALTER TABLE public.asana_sync_log ADD CONSTRAINT asana_sync_log_status_check CHECK (status = ANY (ARRAY['running'::text, 'core_done'::text, 'secondary_partial'::text, 'completed'::text, 'failed'::text]));
