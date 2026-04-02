@@ -433,16 +433,16 @@ Deno.serve(async (req) => {
                       .eq("asana_gid", att.gid)
                       .maybeSingle();
                     if (!existingAtt) {
-                      await adminClient.from("projeto_tarefa_anexos").insert({
+                      const { error: attErr } = await adminClient.from("projeto_tarefa_anexos").insert({
                         tarefa_id: localTaskId,
                         nome: att.name || "attachment",
                         storage_path: att.download_url || att.view_url || "",
                         tipo_arquivo: att.host === "asana" ? "asana_hosted" : "external_link",
                         tamanho: att.size || null,
                         asana_gid: att.gid,
-                        uploaded_by: userId,
                         user_id: userId,
                       });
+                      if (!attErr) attachmentsSynced++;
                     }
                   }
                 } catch (e) {
