@@ -62,9 +62,9 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
 
   // Apply external filters
   const tarefas = useMemo(() => {
-    let t = rawTarefas;
-    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters);
-    return applyProjetoSort(t, sort);
+    let t: typeof rawTarefas = rawTarefas;
+    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters) as typeof rawTarefas;
+    return applyProjetoSort(t, sort) as typeof rawTarefas;
   }, [rawTarefas, filters, sort]);
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [filterSecao, setFilterSecao] = useState<string>("all");

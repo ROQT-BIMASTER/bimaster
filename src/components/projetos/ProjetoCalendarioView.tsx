@@ -37,9 +37,9 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
 
   // Apply external filters
   const tarefas = useMemo(() => {
-    let t = rawTarefas;
-    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters);
-    return applyProjetoSort(t, sort);
+    let t: typeof rawTarefas = rawTarefas;
+    if (hasActiveFilters(filters)) t = applyProjetoFilters(t, filters) as typeof rawTarefas;
+    return applyProjetoSort(t, sort) as typeof rawTarefas;
   }, [rawTarefas, filters, sort]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
