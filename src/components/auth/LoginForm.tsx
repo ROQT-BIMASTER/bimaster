@@ -47,10 +47,12 @@ const fetchUserRoleWithTimeout = async (userId: string): Promise<string | null> 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lockout, setLockout] = useState<{ locked: boolean; remaining_seconds?: number; remaining_attempts?: number } | null>(null);
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
