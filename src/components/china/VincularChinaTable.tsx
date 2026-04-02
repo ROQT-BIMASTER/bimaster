@@ -230,6 +230,27 @@ export function VincularChinaTable({
           </Button>
         )}
 
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => {
+            exportToExcel(filtered.map(r => ({
+              Código: r.produto_codigo,
+              Produto: r.produto_nome,
+              Status: r.status,
+              OC: r.numero_ordem || "",
+              Projeto: r.projetoNome || "",
+              Vinculado: r.isLinked ? "Sim" : "Não",
+              Pendências: r.pendencias ?? 0,
+              Docs: r.docCount ?? 0,
+            })), { filename: "vincular_china", sheetName: "Submissões", includeTimestamp: true });
+          }}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Excel
+        </Button>
+
         <span className="text-xs text-muted-foreground ml-auto">
           {filtered.length} de {data.length} registros
         </span>
