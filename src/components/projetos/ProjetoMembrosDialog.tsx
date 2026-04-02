@@ -117,7 +117,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" /> Membros do Projeto
@@ -172,7 +172,7 @@ export function ProjetoMembrosDialog({ open, onOpenChange, projetoId, projetoTip
 
           <Separator />
 
-          <ScrollArea className="flex-1 max-h-[55vh]">
+          <ScrollArea className="flex-1 h-[60vh]">
             <div className="space-y-3 pr-3">
               {filteredMembros.map((membro) => {
                 const papel = membro.papel || "membro";
