@@ -165,7 +165,7 @@ export default function AsanaIntegracao() {
                   type="password"
                   placeholder="1/1234567890:abcdef..."
                   value={pat}
-                  onChange={(e) => setPat(e.target.value)}
+                  onChange={(e) => handlePatChange(e.target.value)}
                   disabled={step > 1}
                 />
                 {step === 1 ? (
