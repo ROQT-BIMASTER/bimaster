@@ -8,6 +8,7 @@ import { MultiAccountDashboard } from "./social/MultiAccountDashboard";
 import { EditorialCalendar } from "./EditorialCalendar";
 import { SchedulePostDialog } from "./SchedulePostDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 
 interface SocialAccount {
   id: string;
