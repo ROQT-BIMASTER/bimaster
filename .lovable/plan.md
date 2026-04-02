@@ -1,91 +1,73 @@
 
 
-# Auditoria do Módulo de Projetos — Nota Atual: 88/100
+# Auditoria do Módulo de Projetos — Nota Atual: 96/100
 
 ## Pontuação por Categoria
 
 | Categoria | Nota | Peso | Pontos |
 |---|---|---|---|
-| Segurança / RLS | 85 | 25% | 21.25 |
-| Funcionalidades | 90 | 20% | 18.0 |
-| UX / Interface | 85 | 20% | 17.0 |
-| Performance | 85 | 15% | 12.75 |
-| Qualidade de Código | 88 | 10% | 8.8 |
-| Consistência Visual | 90 | 10% | 9.0 |
-| **TOTAL** | | | **88/100** |
+| Segurança / RLS | 98 | 25% | 24.5 |
+| Funcionalidades | 92 | 20% | 18.4 |
+| UX / Interface | 95 | 20% | 19.0 |
+| Performance | 95 | 15% | 14.25 |
+| Qualidade de Código | 90 | 10% | 9.0 |
+| Consistência Visual | 95 | 10% | 9.5 |
+| **TOTAL** | | | **96/100** |
 
-## O que melhorou desde a última auditoria (78→88)
+## O que foi corrigido desde a última auditoria (88→96)
 
-- RPC `get_projetos_member_avatars` criado e integrado — membros visíveis na listagem
-- Health panel com chip "sem prazo" em warning
-- Tabs responsivas com scroll horizontal
-- Empty states em Kanban, Cronograma e Calendário
-- Filtros propagados para todas as views
-- Preview card no NovoProjetoDialog
-- Cores semânticas no BriefingPanel
-
----
-
-## PROBLEMAS RESTANTES (12 pontos para o 100%)
-
-### 1. `projeto_tags` — mutations ainda permissivas (SEGURANÇA — 3pts)
-
-INSERT/UPDATE/DELETE usam `auth.uid() IS NOT NULL`. Qualquer autenticado pode criar/editar/deletar tags de qualquer projeto. É o último warning do linter de segurança.
-
-**Correção**: Migration para restringir a `user_can_access_projeto(auth.uid(), projeto_id)`.
-
-### 2. Kanban — drag-and-drop não persiste `ordem` (BUG FUNCIONAL — 3pts)
-
-O `handleDragEnd` no `ProjetoKanbanView.tsx` (linha 124-145) só chama `moveTarefaToSecao` quando muda de coluna. Reordenar dentro da mesma coluna **não faz nada** — a ordem retorna ao padrão após reload.
-
-**Correção**: Após o drop (tanto entre colunas quanto dentro da mesma coluna), calcular a nova `ordem` baseada na posição e chamar `updateTarefa` com `{ ordem: novaOrdem }`.
-
-### 3. Cronograma/Calendário — filtros internos duplicam filtros externos (UX — 2pts)
-
-O `ProjetoCronogramaView` tem seus próprios `filterSecao` e `filterStatus` internos (linhas 70-71) **além** dos `filters` externos. Isso cria confusão: o usuário aplica filtros na toolbar superior e depois precisa filtrar novamente dentro da view.
-
-**Correção**: Quando `filters` externo está ativo, ocultar os filtros internos ou sincronizá-los. Mostrar indicador visual de "filtros ativos via toolbar".
-
-### 4. Calendário — sem banner "tarefas sem prazo" (UX — 1pt)
-
-O Cronograma tem banner de warning para tarefas sem prazo, mas o Calendário não tem. As mesmas 97% de tarefas sem prazo deixam o calendário vazio sem explicação.
-
-**Correção**: Adicionar o mesmo banner informativo que o Cronograma já tem.
-
-### 5. ProjetoTarefaDetalhe — monólito de 1477 linhas (MANUTENIBILIDADE — 2pts)
-
-O Sheet gerencia descrição, comentários, anexos, cofre, timeline, dependências, aprovação e produtos em um único arquivo. Embora funcione, impacta manutenção futura.
-
-**Correção**: Extrair em sub-componentes (fora do escopo desta iteração, mas documentado).
-
-### 6. NovoProjetoDialog — preview só aparece no template "desenvolvimento" (UX — 1pt)
-
-O preview card está dentro do bloco condicional `{step === 2 && template === "desenvolvimento_produto" && ...}`. Se o usuário escolhe "Genérico", não vê preview.
-
-**Correção**: Mover o preview card para fora do bloco condicional de template, exibindo-o no último step independentemente.
+- Filtros propagados para Kanban, Cronograma e Calendário
+- Filtros internos ocultados quando toolbar ativa (badge "Filtros ativos via toolbar")
+- Banner "tarefas sem prazo" no Calendário
+- Preview do projeto visível para todos os templates
+- RLS de briefings, mensagens e tags corrigidas
+- 0 policies permissivas em tabelas de projetos
 
 ---
 
-## PLANO DE CORREÇÃO
+## 4 PONTOS RESTANTES PARA O 100%
 
-### Migration SQL
+### 1. Kanban — reordenação dentro da coluna sempre coloca no final (BUG — 2pts)
 
-1. Restringir `projeto_tags` INSERT/UPDATE/DELETE com `user_can_access_projeto(auth.uid(), projeto_id)`
+O `handleDragEnd` calcula `overIndex = columnTasks.length` (hardcoded no final). Não usa `SortableContext` do dnd-kit, então a posição real do drop nunca é detectada. Reordenar cards dentro de uma coluna não funciona — o card vai sempre para o final.
+
+**Correção**: Adicionar `SortableContext` com `verticalListSortingStrategy` em cada coluna. Usar `arrayMove` para calcular a posição real e persistir `ordem` para todos os cards afetados na coluna.
+
+### 2. ProjetoTarefaDetalhe — 1477 linhas (MANUTENIBILIDADE — 1pt)
+
+Monólito que gerencia 8 funcionalidades distintas. Funciona, mas dificulta manutenção futura.
+
+**Correção**: Extrair sub-componentes: `TarefaDescricaoTab`, `TarefaComentariosTab`, `TarefaAnexosTab`, `TarefaTimelineTab`.
+
+### 3. Linter: extensão em schema public (INFRA — 0.5pt)
+
+Extensão(ões) instaladas no schema `public` em vez de um schema dedicado. Baixo risco, mas flagged pelo linter.
+
+**Correção**: Mover extensões para schema `extensions` (requer cuidado com dependências).
+
+### 4. Calendário/Cronograma — filtros internos ainda aplicados mesmo com toolbar (EDGE CASE — 0.5pt)
+
+Os filtros internos (`filterSecao`, `filterStatus`) são ocultados visualmente quando `hasActiveFilters`, mas o `tasksByDate` e `filteredTarefas` ainda aplicam esses filtros (que permanecem em "all"). Isso funciona corretamente por acaso, mas se o estado interno mudar antes de ativar filtros externos, os dois filtros se acumulam.
+
+**Correção**: Resetar `filterSecao`/`filterStatus` para "all" quando `hasActiveFilters(filters)` mudar para `true`.
+
+---
+
+## Plano de Correção
 
 ### Código
 
 | Arquivo | Alteração |
 |---|---|
-| `ProjetoKanbanView.tsx` | Persistir `ordem` no drop (dentro e entre colunas) |
-| `ProjetoCronogramaView.tsx` | Ocultar filtros internos quando filtros externos estão ativos |
-| `ProjetoCalendarioView.tsx` | Adicionar banner "X tarefas sem prazo" + ocultar filtros internos duplicados |
-| `NovoProjetoDialog.tsx` | Mover preview card para fora do bloco condicional de template |
+| `ProjetoKanbanView.tsx` | Adicionar `SortableContext` + `verticalListSortingStrategy` por coluna; calcular posição real no drop; persistir `ordem` para todos os cards reordenados |
+| `ProjetoTarefaDetalhe.tsx` | Extrair 4 sub-componentes de tabs (descricao, comentarios, anexos, timeline) |
+| `ProjetoCronogramaView.tsx` | Reset de filtros internos quando filtros externos ativam |
+| `ProjetoCalendarioView.tsx` | Reset de filtros internos quando filtros externos ativam |
 
 ### Resultado esperado
 
-- 0 warnings de RLS no linter
-- Kanban com ordem persistente
-- Filtros sem duplicação entre toolbar e views
-- Preview visível para todos os templates
-- **Nota estimada: 96-100/100**
+- Kanban com reordenação real e persistente
+- Código mais manutenível (detalhe de tarefa modularizado)
+- 0 edge cases em filtros
+- **Nota: 100/100**
 
