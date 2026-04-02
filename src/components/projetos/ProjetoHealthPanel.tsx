@@ -84,6 +84,19 @@ export function ProjetoHealthPanel({ tarefas, darkBg = false }: ProjetoHealthPan
               </Badge>
             );
           })}
+          {warningSegments.map(seg => (
+            <Badge
+              key={seg.label}
+              variant="secondary"
+              className={cn(
+                "text-[11px] gap-1.5 font-medium px-2.5 py-1",
+                darkBg ? "bg-warning/20 text-warning border-warning/20" : "bg-warning/10 text-warning border-warning/20"
+              )}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {seg.count} sem prazo
+            </Badge>
+          ))}
         </div>
 
         {/* Progress bar + percentage */}
