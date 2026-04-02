@@ -31,6 +31,9 @@ export default function AsanaIntegracao() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisReport, setAnalysisReport] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
 
   useEffect(() => {
     getSyncLogs().then(setLogs);
