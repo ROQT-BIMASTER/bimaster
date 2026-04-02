@@ -44,7 +44,7 @@ const ConfiguracoesAcesso = () => {
             <Table className="h-4 w-4" />
             Tabelas
           </TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
 
         <TabsContent value="vendedores" className="mt-6">
           <VincularVendedor />
