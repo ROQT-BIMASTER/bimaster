@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
 import { ProjetoFilters, ProjetoSort, EMPTY_FILTERS, DEFAULT_SORT } from "./ProjetoFilterSort";
 import { applyProjetoFilters, applyProjetoSort, hasActiveFilters } from "@/lib/projetoFilterUtils";
@@ -47,6 +47,15 @@ export function ProjetoCalendarioView({ projetoId, darkBg = false, filters = EMP
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [showAnalisePanel, setShowAnalisePanel] = useState(false);
+
+  // Reset internal filters when external filters become active
+  const externalFiltersActive = hasActiveFilters(filters);
+  useEffect(() => {
+    if (externalFiltersActive) {
+      setFilterSecao("all");
+      setFilterStatus("all");
+    }
+  }, [externalFiltersActive]);
 
   // Period boundaries for analysis
   const periodoInfo = useMemo(() => {

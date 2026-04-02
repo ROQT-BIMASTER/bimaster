@@ -34,7 +34,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { useSortable } from "@dnd-kit/sortable";
+import { useSortable, SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 import {
@@ -132,7 +132,23 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
     const tarefa = tarefas.find(t => t.id === tarefaId);
     if (!tarefa) return;
 
-    const targetSecao = secoes.find(s => s.id === overId);
+    // Determine target column: overId can be a secao id or another tarefa id
+    let targetSecaoId: string | null = null;
+    let overTarefaId: string | null = null;
+
+    if (secoes.some(s => s.id === overId)) {
+      targetSecaoId = overId;
+    } else {
+      // overId is a tarefa — find which column it belongs to
+      const overTarefa = tarefas.find(t => t.id === overId);
+      if (overTarefa) {
+        targetSecaoId = overTarefa.secao_id;
+        overTarefaId = overId;
+      }
+    }
+
+    if (!targetSecaoId) return;
+    const targetSecao = secoes.find(s => s.id === targetSecaoId);
     if (!targetSecao) return;
 
     const changedColumn = tarefa.secao_id !== targetSecao.id;
@@ -145,14 +161,41 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
       });
     }
 
-    // Persist ordem: calculate new position based on drop index
-    const columnTasks = tarefasPorSecao(targetSecao.id).filter(t => t.id !== tarefaId);
-    // Find the drop index (default to end)
-    const overIndex = columnTasks.length; // dropped at end
-    const newOrdem = overIndex;
+    // Calculate real drop position
+    const columnTasks = tarefasPorSecao(targetSecao.id);
+    const oldIndex = columnTasks.findIndex(t => t.id === tarefaId);
+    let newIndex = columnTasks.length; // default: end
 
-    // Always persist ordem when dropping (handles both same-column reorder and cross-column)
-    updateTarefa.mutate({ id: tarefaId, ordem: newOrdem });
+    if (overTarefaId) {
+      const overIdx = columnTasks.findIndex(t => t.id === overTarefaId);
+      if (overIdx !== -1) newIndex = overIdx;
+    }
+
+    // Persist ordem for all affected cards in the column
+    const reordered = changedColumn
+      ? [...columnTasks.filter(t => t.id !== tarefaId)]
+      : [...columnTasks];
+
+    if (changedColumn) {
+      reordered.splice(newIndex, 0, tarefa as typeof columnTasks[number]);
+    } else if (oldIndex !== -1 && oldIndex !== newIndex) {
+      const moved = arrayMove(reordered, oldIndex, newIndex);
+      moved.forEach((t, i) => {
+        if (t.ordem !== i) {
+          updateTarefa.mutate({ id: t.id, ordem: i });
+        }
+      });
+      return;
+    } else {
+      return; // no change
+    }
+
+    // Cross-column: persist ordem for all cards in destination
+    reordered.forEach((t, i) => {
+      if (t.ordem !== i) {
+        updateTarefa.mutate({ id: t.id, ordem: i });
+      }
+    });
   };
 
   const handleDragCancel = () => {
@@ -214,29 +257,31 @@ export function ProjetoKanbanView({ projetoId, darkBg = false, filters = EMPTY_F
                 {/* Cards */}
                 <ScrollArea className="flex-1 p-2">
                   <DroppableSecao id={secao.id} isOver={overColumnId === secao.id}>
-                    <div className="space-y-2">
-                      {secaoTarefas.map((tarefa) => (
-                        <DraggableKanbanCard
-                          key={tarefa.id}
-                          tarefa={tarefa}
-                          onSelect={() => setSelectedTarefa(tarefa)}
-                          onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
-                          darkBg={darkBg}
-                          isDragActive={activeId === tarefa.id}
-                          metasProgress={metasProgress[tarefa.id]}
-                        />
-                      ))}
-                      {secaoTarefas.length === 0 && (
-                        <div className={cn(
-                          "text-center py-8 text-xs border-2 border-dashed rounded-lg transition-all",
-                          overColumnId === secao.id
-                            ? "border-primary/40 bg-primary/5 text-primary"
-                            : darkBg ? "border-white/10 text-white/40" : "border-border/30 text-muted-foreground"
-                        )}>
-                          {overColumnId === secao.id ? "Solte aqui ↓" : "Sem tarefas"}
-                        </div>
-                      )}
-                    </div>
+                    <SortableContext items={secaoTarefas.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {secaoTarefas.map((tarefa) => (
+                          <DraggableKanbanCard
+                            key={tarefa.id}
+                            tarefa={tarefa}
+                            onSelect={() => setSelectedTarefa(tarefa)}
+                            onToggle={() => toggleTarefaCompleta.mutate(tarefa)}
+                            darkBg={darkBg}
+                            isDragActive={activeId === tarefa.id}
+                            metasProgress={metasProgress[tarefa.id]}
+                          />
+                        ))}
+                        {secaoTarefas.length === 0 && (
+                          <div className={cn(
+                            "text-center py-8 text-xs border-2 border-dashed rounded-lg transition-all",
+                            overColumnId === secao.id
+                              ? "border-primary/40 bg-primary/5 text-primary"
+                              : darkBg ? "border-white/10 text-white/40" : "border-border/30 text-muted-foreground"
+                          )}>
+                            {overColumnId === secao.id ? "Solte aqui ↓" : "Sem tarefas"}
+                          </div>
+                        )}
+                      </div>
+                    </SortableContext>
                   </DroppableSecao>
                 </ScrollArea>
 

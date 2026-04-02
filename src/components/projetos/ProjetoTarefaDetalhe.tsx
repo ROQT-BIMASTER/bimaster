@@ -46,6 +46,9 @@ import { BriefingToTasksDialog } from "./BriefingToTasksDialog";
 import { useProjetoChinaVinculo } from "@/hooks/useChinaProjeto";
 import { ChinaProdutoWidget } from "@/components/china/ChinaProdutoWidget";
 import { ModulosVinculadosWidget } from "@/components/shared/ModulosVinculadosWidget";
+import { TarefaAnexosSection } from "./tarefa-detalhe/TarefaAnexosSection";
+import { TarefaComentariosSection } from "./tarefa-detalhe/TarefaComentariosSection";
+import { TarefaChatPanel } from "./tarefa-detalhe/TarefaChatPanel";
 
 const ESTAGIO_OPTIONS = [
   { value: "briefing", label: "Briefing", color: "bg-purple-500/20 text-purple-400" },
@@ -123,21 +126,14 @@ export function ProjetoTarefaDetalhe({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [descValue, setDescValue] = useState("");
-  const [commentValue, setCommentValue] = useState("");
   const [subtarefaValue, setSubtarefaValue] = useState("");
   const [datePicker, setDatePicker] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatValue, setChatValue] = useState("");
-  const [cofreDialogOpen, setCofreDialogOpen] = useState(false);
-  const [selectedAnexoIds, setSelectedAnexoIds] = useState<string[]>([]);
-  const [categoriasPorAnexo, setCategoriasPorAnexo] = useState<Record<string, string>>({});
   const [validacaoDialogOpen, setValidacaoDialogOpen] = useState(false);
   const [produtoSearch, setProdutoSearch] = useState("");
   const [produtoResults, setProdutoResults] = useState<ProdutoAcabado[]>([]);
   const [showProdutoSearch, setShowProdutoSearch] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedSubtarefa, setSelectedSubtarefa] = useState<ProjetoTarefa | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const { suggestFields, generateChecklist, loading: iaLoading } = useProjetoIA();
   const [pendingAISubtarefas, setPendingAISubtarefas] = useState<{ titulo: string; selected: boolean }[]>([]);
   const [focusMode, setFocusMode] = useState(false);
@@ -174,9 +170,6 @@ export function ProjetoTarefaDetalhe({
     }
   }, [tarefa?.id]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   if (!tarefa) return null;
 
@@ -261,21 +254,6 @@ export function ProjetoTarefaDetalhe({
     }
   };
 
-  const handleCommentSubmit = (text: string, mentionIds: string[]) => {
-    addComentario.mutate({ conteudo: text, mentions: mentionIds });
-  };
-
-  const handleChatSubmit = (text: string, mentionIds: string[]) => {
-    sendMessage.mutate({ conteudo: text, mentions: mentionIds });
-    setChatValue("");
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(f => uploadAnexo.mutate(f));
-    e.target.value = "";
-  };
 
   const handleDownload = async (anexo: any) => {
     const url = await getAnexoUrl(anexo.storage_path);
@@ -308,30 +286,6 @@ export function ProjetoTarefaDetalhe({
     setProdutoSearch("");
   };
 
-  const toggleAnexoSelection = (id: string) => {
-    setSelectedAnexoIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleSendToCofre = () => {
-    const prodId = (tarefa as any).produto_id;
-    if (!prodId) return;
-    // Check all selected have a category
-    const allHaveCategory = selectedAnexoIds.every(id => categoriasPorAnexo[id]);
-    if (!allHaveCategory) {
-      toast.error("Selecione uma categoria para cada documento.");
-      return;
-    }
-    sendToCofre.mutate({
-      anexoIds: selectedAnexoIds,
-      produtoId: prodId,
-      categoriasPorAnexo,
-    });
-    setCofreDialogOpen(false);
-    setSelectedAnexoIds([]);
-    setCategoriasPorAnexo({});
-  };
 
   // linkedProduto now comes from the hook
 
@@ -1115,205 +1069,42 @@ export function ProjetoTarefaDetalhe({
                 <Separator />
 
                 {/* Anexos */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium flex items-center gap-1.5">
-                      <Paperclip className="h-4 w-4" /> Anexos ({anexos.length})
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      {selectedAnexoIds.length > 0 && (tarefa as any).produto_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 text-emerald-400 border-emerald-500/30"
-                          onClick={() => setCofreDialogOpen(true)}
-                        >
-                          <FolderOpen className="h-3.5 w-3.5" /> Enviar ao Cofre ({selectedAnexoIds.length})
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="h-3.5 w-3.5" /> Upload
-                      </Button>
-                    </div>
-                    <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
-                  </div>
-                  {anexos.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {anexos.map(a => (
-                        <div key={a.id} className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/30">
-                          <Checkbox
-                            checked={selectedAnexoIds.includes(a.id)}
-                            onCheckedChange={() => toggleAnexoSelection(a.id)}
-                            className="flex-shrink-0"
-                          />
-                          {getFileIcon(a.tipo_arquivo)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{a.nome}</p>
-                            <p className="text-[10px] text-muted-foreground">{formatFileSize(a.tamanho)}</p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(a)}>
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAnexo.mutate(a)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
-                  )}
-                  {!(tarefa as any).produto_id && selectedAnexoIds.length > 0 && (
-                    <p className="text-[10px] text-amber-400 mt-1">
-                      ⚠ Vincule um produto à tarefa para enviar ao Cofre
-                    </p>
-                  )}
-                </div>
+                <TarefaAnexosSection
+                  anexos={anexos}
+                  produtoId={(tarefa as any).produto_id || null}
+                  uploadAnexo={uploadAnexo}
+                  deleteAnexo={deleteAnexo}
+                  getAnexoUrl={getAnexoUrl}
+                  sendToCofre={sendToCofre}
+                />
 
                 <Separator />
 
                 {/* Comentários com @menções */}
-                <div>
-                  <h3 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                    <MessageSquare className="h-4 w-4" /> Comentários ({comentarios.length})
-                  </h3>
-                  <div className="space-y-3 mb-3">
-                    {comentarios.map(c => (
-                      <div key={c.id} className="flex gap-2">
-                        <Avatar className="h-7 w-7 flex-shrink-0">
-                          <AvatarImage src={c.autor?.avatar_url || undefined} />
-                          <AvatarFallback className="text-[9px] bg-primary/20 text-primary">
-                            {c.autor?.nome?.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium">{c.autor?.nome}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {format(new Date(c.created_at), "dd MMM, HH:mm", { locale: ptBR })}
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground/90 mt-0.5 whitespace-pre-wrap">
-                            {renderMentionText(c.conteudo)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <MentionInput
-                    value={commentValue}
-                    onChange={setCommentValue}
-                    onSubmit={handleCommentSubmit}
-                    users={teamMembers}
-                    placeholder="Escreva um comentário..."
-                  />
-                </div>
+                <TarefaComentariosSection
+                  comentarios={comentarios}
+                  addComentario={addComentario}
+                  teamMembers={teamMembers}
+                />
               </div>
             </ScrollArea>
 
             {/* Lateral Chat */}
             {chatOpen && (
-              <div className="w-[260px] flex flex-col bg-muted/10">
-                <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between">
-                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                    <MessageCircle className="h-3.5 w-3.5" /> Chat
-                  </h4>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setChatOpen(false)}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-                <ScrollArea className="flex-1 px-3 py-2">
-                  <div className="space-y-3">
-                    {messages.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-8">Nenhuma mensagem ainda.</p>
-                    )}
-                    {messages.map(m => {
-                      const isMe = m.user_id === (tarefa as any).criador_id;
-                      return (
-                        <div key={m.id} className={cn("flex gap-1.5", isMe ? "flex-row-reverse" : "flex-row")}>
-                          <Avatar className="h-5 w-5 flex-shrink-0">
-                            <AvatarImage src={m.autor?.avatar_url || undefined} />
-                            <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                              {m.autor?.nome?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className={cn(
-                            "max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs",
-                            isMe ? "bg-primary/20 text-primary-foreground" : "bg-muted text-foreground"
-                          )}>
-                            <p className="font-medium text-[10px] mb-0.5">{m.autor?.nome?.split(" ")[0]}</p>
-                            <p className="whitespace-pre-wrap">{renderMentionText(m.conteudo)}</p>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">
-                              {format(new Date(m.created_at), "HH:mm", { locale: ptBR })}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div ref={chatEndRef} />
-                  </div>
-                </ScrollArea>
-                <div className="p-2 border-t border-border/50">
-                  <MentionInput
-                    value={chatValue}
-                    onChange={setChatValue}
-                    onSubmit={handleChatSubmit}
-                    users={teamMembers}
-                    placeholder="Mensagem..."
-                    minRows={1}
-                  />
-                </div>
-              </div>
+              <TarefaChatPanel
+                messages={messages}
+                sendMessage={sendMessage}
+                teamMembers={teamMembers}
+                criadorId={(tarefa as any).criador_id || null}
+                onClose={() => setChatOpen(false)}
+              />
             )}
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Cofre Dialog - Per-attachment category */}
-      <Dialog open={cofreDialogOpen} onOpenChange={setCofreDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-emerald-500" />
-              Enviar ao Cofre de Documentos
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm">Documentos selecionados — selecione a categoria de cada um</Label>
-              <div className="mt-2 space-y-2">
-                {anexos.filter(a => selectedAnexoIds.includes(a.id)).map(a => (
-                  <div key={a.id} className="flex items-center gap-2 text-xs p-2 bg-muted/30 rounded-md">
-                    {getFileIcon(a.tipo_arquivo)}
-                    <span className="truncate flex-1 min-w-0">{a.nome}</span>
-                    <Select
-                      value={categoriasPorAnexo[a.id] || ""}
-                      onValueChange={v => setCategoriasPorAnexo(prev => ({ ...prev, [a.id]: v }))}
-                    >
-                      <SelectTrigger className="h-7 w-[130px] text-[11px]">
-                        <SelectValue placeholder="Categoria..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COFRE_CATEGORIAS.map(c => (
-                          <SelectItem key={c} value={c}>{COFRE_CATEGORIA_LABELS[c]}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCofreDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSendToCofre} disabled={sendToCofre.isPending} className="gap-1.5">
-              <FolderOpen className="h-4 w-4" />
-              {sendToCofre.isPending ? "Enviando..." : "Enviar ao Cofre"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Validação Final Dialog */}
       {(tarefa as any).produto_id && (

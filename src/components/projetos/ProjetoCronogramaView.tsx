@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjetoTarefas, ProjetoTarefa } from "@/hooks/useProjetoTarefas";
@@ -70,6 +70,15 @@ export function ProjetoCronogramaView({ projetoId, onSelectTarefa, darkBg = fals
   const [filterSecao, setFilterSecao] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Reset internal filters when external filters become active
+  const externalFiltersActive = hasActiveFilters(filters);
+  useEffect(() => {
+    if (externalFiltersActive) {
+      setFilterSecao("all");
+      setFilterStatus("all");
+    }
+  }, [externalFiltersActive]);
 
   // Fetch product links
   const { data: produtoLinks = [] } = useQuery({
