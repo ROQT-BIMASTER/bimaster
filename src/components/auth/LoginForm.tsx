@@ -152,6 +152,23 @@ export const LoginForm = () => {
     }
 
     try {
+      // Honeypot check — bots fill hidden fields
+      if (honeypot) {
+        console.warn("Bot detected via honeypot");
+        // Simulate delay to not reveal detection
+        await new Promise(r => setTimeout(r, 1500));
+        toast({ title: "Erro ao fazer login", description: "Email ou senha incorretos", variant: "destructive" });
+        return;
+      }
+
+      // Client-side rate limit — min 2s between submissions
+      const now = Date.now();
+      if (now - lastSubmitTime < 2000) {
+        toast({ title: "Aguarde", description: "Muitas tentativas. Aguarde alguns segundos.", variant: "destructive" });
+        return;
+      }
+      setLastSubmitTime(now);
+
       const validated = loginSchema.parse({ email, password });
 
       // Check lockout before attempting login
