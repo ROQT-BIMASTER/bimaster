@@ -50,6 +50,7 @@ const STATUS_OPTIONS = [
   { value: "enviado", label: "Enviado" },
   { value: "em_revisao", label: "Em Revisão" },
   { value: "aprovado", label: "Aprovado" },
+  { value: "enviado_brasil", label: "Enviado ao Brasil" },
   { value: "arte_enviada", label: "Docs Enviados" },
   { value: "rejeitado", label: "Rejeitado" },
 ];
