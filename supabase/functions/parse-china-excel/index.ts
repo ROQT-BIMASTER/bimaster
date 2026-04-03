@@ -1,8 +1,4 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `You are an expert data extractor for Chinese cosmetics manufacturing spreadsheets and product images.
 Your job is to extract structured product data from Excel spreadsheet content or product photos/screenshots.
@@ -60,7 +56,7 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -69,7 +65,7 @@ Deno.serve(async (req) => {
       console.error("LOVABLE_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -111,7 +107,7 @@ Deno.serve(async (req) => {
           console.error("Excel parse error:", e);
           return new Response(
             JSON.stringify({ error: "Erro ao ler planilha Excel. Verifique o formato do arquivo. Excel文件读取错误" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
           );
         }
       }
@@ -136,7 +132,7 @@ Deno.serve(async (req) => {
     if (!excelText && !imageBase64) {
       return new Response(
         JSON.stringify({ error: "Nenhum arquivo fornecido. Envie uma planilha ou imagem. 未提供文件" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -247,19 +243,19 @@ Deno.serve(async (req) => {
       if (status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos. 请求限制已超过" }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       if (status === 402) {
         return new Response(
           JSON.stringify({ error: "Créditos de IA esgotados. AI积分已用完" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 402, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
         JSON.stringify({ error: `Erro no serviço de IA (${status}). Tente novamente. AI服务错误` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -272,7 +268,7 @@ Deno.serve(async (req) => {
       console.error("No tool call in AI response:", JSON.stringify(aiData).substring(0, 500));
       return new Response(
         JSON.stringify({ error: "IA não retornou dados estruturados. Tente novamente. AI未返回结构化数据" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -285,13 +281,13 @@ Deno.serve(async (req) => {
         _ai_extracted: true,
         _model: model,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error in parse-china-excel:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Erro interno. Tente novamente. 内部错误" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

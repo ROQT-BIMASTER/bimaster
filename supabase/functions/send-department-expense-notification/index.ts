@@ -1,14 +1,10 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { Resend } from "npm:resend@4.0.0";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import React from "npm:react@18.3.1";
 import { ExpenseStatusEmail } from "./_templates/expense-status.tsx";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface NotificationPayload {
   expenseId: string;
@@ -16,9 +12,9 @@ interface NotificationPayload {
   rejectionReason?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -37,7 +33,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Authorization required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }, status: 401 }
       );
     }
 
@@ -47,7 +43,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }, status: 401 }
       );
     }
 
@@ -67,7 +63,7 @@ serve(async (req) => {
       console.error("Error fetching expense:", expenseError);
       return new Response(
         JSON.stringify({ error: "Expense not found" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }, status: 404 }
       );
     }
 
@@ -98,7 +94,7 @@ serve(async (req) => {
       console.log("Creator has no email, skipping notification");
       return new Response(
         JSON.stringify({ message: "Creator has no email configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -164,7 +160,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, emailId: emailResult?.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in send-department-expense-notification:", error);
@@ -172,7 +168,7 @@ serve(async (req) => {
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   }

@@ -1,19 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
 
 // Rate limiting: Track last request time per IP (simple in-memory cache)
 const requestLog = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
 const MAX_REQUESTS_PER_HOUR = 10;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const requestStartTime = Date.now();
@@ -79,7 +75,7 @@ serve(async (req) => {
           error: 'Rate limit exceeded. Maximum 10 requests per hour.' 
         }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
           status: 429 
         }
       );
@@ -303,7 +299,7 @@ serve(async (req) => {
       const csv = convertToCSV(result);
       return new Response(csv, {
         headers: {
-          ...corsHeaders,
+          ...getCorsHeaders(req),
           'Content-Type': 'text/csv',
           'Content-Disposition': `attachment; filename="export_all_${new Date().toISOString()}.csv"`,
         },
@@ -314,7 +310,7 @@ serve(async (req) => {
       JSON.stringify(result),
       { 
         headers: { 
-          ...corsHeaders, 
+          ...getCorsHeaders(req), 
           'Content-Type': 'application/json' 
         } 
       }
@@ -346,7 +342,7 @@ serve(async (req) => {
       }),
       { 
         headers: { 
-          ...corsHeaders, 
+          ...getCorsHeaders(req), 
           'Content-Type': 'application/json' 
         }, 
         status: error instanceof Error && error.message === 'Invalid API key' ? 401 : 500

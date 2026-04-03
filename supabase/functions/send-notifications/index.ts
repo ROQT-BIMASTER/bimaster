@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface NotificationPayload {
   userId: string;
@@ -14,9 +10,9 @@ interface NotificationPayload {
   actionUrl?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -29,7 +25,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -39,7 +35,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -59,7 +55,7 @@ serve(async (req) => {
       if (!hasPrivilegedRole) {
         return new Response(
           JSON.stringify({ error: 'Only admin/supervisor can send notifications to other users' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
         );
       }
     }
@@ -89,7 +85,7 @@ serve(async (req) => {
     if (!shouldSend) {
       return new Response(
         JSON.stringify({ message: 'Notification disabled by user preferences' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -113,7 +109,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, notification }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -121,7 +117,7 @@ serve(async (req) => {
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       }
     );
   }

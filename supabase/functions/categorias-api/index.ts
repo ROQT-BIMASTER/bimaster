@@ -4,6 +4,26 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateApiKey, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const IncluirCategoriaSchema = z.object({
+  descricao: z.string().min(1, "Campo 'descricao' é obrigatório").max(255),
+  codigo: z.string().max(50).optional(),
+  tipo_categoria: z.enum(["R", "D"]).optional(),
+  natureza: z.string().max(255).optional(),
+  codigo_dre: z.string().max(50).optional(),
+  categoria_superior: z.string().max(50).optional(),
+}).passthrough();
+
+const AlterarCategoriaSchema = z.object({
+  codigo: z.string().min(1, "Campo 'codigo' é obrigatório").max(50),
+  descricao: z.string().max(255).optional(),
+  natureza: z.string().max(255).optional(),
+  tipo_categoria: z.enum(["R", "D"]).optional(),
+  codigo_dre: z.string().max(50).optional(),
+  conta_inativa: z.enum(["S", "N"]).optional(),
+}).passthrough();
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
@@ -81,10 +101,8 @@ Deno.serve(async (req) => {
   try {
     // ==================== POST /incluir ====================
     if (req.method === "POST" && path === "/incluir") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), IncluirCategoriaSchema);
       const { descricao, tipo_categoria, natureza, codigo_dre, categoria_superior } = body;
-
-      if (!descricao) return errorResp(400, "VALIDATION", "Campo 'descricao' é obrigatório", req, startMs);
 
       // Resolve parent
       let parentId: string | null = null;
@@ -158,10 +176,8 @@ Deno.serve(async (req) => {
 
     // ==================== POST /alterar ====================
     if (req.method === "POST" && path === "/alterar") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), AlterarCategoriaSchema);
       const { codigo, descricao, natureza, tipo_categoria, codigo_dre, conta_inativa } = body;
-
-      if (!codigo) return errorResp(400, "VALIDATION", "Campo 'codigo' é obrigatório", req, startMs);
 
       const updates: Record<string, unknown> = {};
       if (descricao !== undefined) updates.name = descricao;
@@ -291,6 +307,9 @@ Deno.serve(async (req) => {
     // ==================== 404 ====================
     return errorResp(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);
   } catch (err: any) {
+    if (err instanceof ValidationError) {
+      return errorResp(400, "VALIDATION", err.message, req, startMs);
+    }
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
 });

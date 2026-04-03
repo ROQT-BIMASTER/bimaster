@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 // In-memory rate limiter (resets on cold start, which is acceptable for edge functions)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -25,7 +21,7 @@ function isRateLimited(ip: string): boolean {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -38,7 +34,7 @@ Deno.serve(async (req) => {
       console.warn(`⚠️ Rate limited IP: ${clientIp}`);
       return new Response(
         JSON.stringify({ error: "Muitas requisições. Tente novamente em 1 minuto." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -48,7 +44,7 @@ Deno.serve(async (req) => {
     if (!token) {
       return new Response(
         JSON.stringify({ error: "Token não fornecido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -67,7 +63,7 @@ Deno.serve(async (req) => {
       console.log(`🔒 Invalid token attempt from IP: ${clientIp}, UA: ${req.headers.get("user-agent")}`);
       return new Response(
         JSON.stringify({ error: "Token inválido ou não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -75,7 +71,7 @@ Deno.serve(async (req) => {
     if (new Date(shareToken.expires_at) < new Date()) {
       return new Response(
         JSON.stringify({ error: "Token expirado" }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 410, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -83,7 +79,7 @@ Deno.serve(async (req) => {
     if (shareToken.is_revoked) {
       return new Response(
         JSON.stringify({ error: "Token revogado" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -91,7 +87,7 @@ Deno.serve(async (req) => {
     if (shareToken.access_count >= shareToken.max_access) {
       return new Response(
         JSON.stringify({ error: "Limite de acessos atingido" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -135,7 +131,7 @@ Deno.serve(async (req) => {
     if (docsError || !docs) {
       return new Response(
         JSON.stringify({ error: "Erro ao buscar documentos" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -167,13 +163,13 @@ Deno.serve(async (req) => {
         expires_at: shareToken.expires_at,
         documentos: results,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("cofre-share error:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

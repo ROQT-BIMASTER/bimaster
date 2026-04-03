@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
 
 const N8N_WEBHOOK_URL = 'https://huggs.app.n8n.cloud/webhook/contas-receber-mcp';
 
@@ -481,9 +477,9 @@ async function fetchN8nWithFallback(
   return { response, method: 'POST' };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const url = new URL(req.url);
@@ -544,13 +540,13 @@ serve(async (req) => {
             } else {
               return new Response(
                 JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
-                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
               );
             }
           } catch {
             return new Response(
               JSON.stringify({ error: 'Invalid token or API key', hint: 'Use x-api-key header with N8N_API_KEY or valid Supabase JWT' }),
-              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
             );
           }
         } else {
@@ -561,7 +557,7 @@ serve(async (req) => {
     } else {
       return new Response(
         JSON.stringify({ error: 'Authentication required', hint: 'Use x-api-key header with N8N_API_KEY or Authorization header with JWT' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -576,7 +572,7 @@ serve(async (req) => {
             message: rateLimitCheck.message,
             retryAfter: rateLimitCheck.retryAfter,
           }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitCheck.retryAfter) } }
+          { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': String(rateLimitCheck.retryAfter) } }
         );
       }
     }
@@ -621,7 +617,7 @@ serve(async (req) => {
             error: 'Unknown endpoint', 
             availableEndpoints: ['status', 'query', 'sync-start', 'sync-page', 'sync-finish', 'preview', 'health', 'sync-auto', 'sync-incremental'] 
           }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
     }
   } catch (error: unknown) {
@@ -629,7 +625,7 @@ serve(async (req) => {
     console.error('❌ Error:', err);
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 });
@@ -663,7 +659,7 @@ async function handleHealthCheck(supabase: any) {
         circuitBreakerWaitMs: CIRCUIT_BREAKER_WAIT_MS,
       },
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -822,7 +818,7 @@ async function handleStatus(supabase: any) {
         circuitBreakerMs: CIRCUIT_BREAKER_THRESHOLD_MS,
       },
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -851,7 +847,7 @@ async function handleQuery(req: Request) {
 
   return new Response(
     JSON.stringify(data),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -875,7 +871,7 @@ async function handlePreview(req: Request) {
 
   return new Response(
     JSON.stringify({ success: true, preview: transformedRecords, metadata: data.metadata, method }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -908,7 +904,7 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
         shouldWait: dbHealth.shouldWait,
         waitMs: dbHealth.waitMs,
       }),
-      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -927,7 +923,7 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
         activeSyncs: activeSyncs.size,
         maxConcurrentSyncs: MAX_CONCURRENT_SYNCS,
       }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -1004,7 +1000,7 @@ async function handleSyncStart(req: Request, supabase: any, userId: string) {
       },
       message: `Sync iniciado (scope: ${scope}). Use sync-page para processar cada página. OBRIGATÓRIO: delay de 3s entre páginas no N8N!`,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -1056,7 +1052,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
           waitMs: dbHealth.waitMs || CIRCUIT_BREAKER_WAIT_MS,
           dbResponseTime: dbHealth.responseTime,
         }),
-        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
   }
@@ -1103,7 +1099,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
           syncSessionId,
           message: 'Sync completo - sem mais registros',
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -1152,7 +1148,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
               shouldWait: true,
               waitMs: 60000, // Esperar 1 minuto
             }),
-            { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
           );
         }
       } else {
@@ -1227,7 +1223,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         requiredDelay: PAGE_DELAY_MS,
         message: hasMore ? `Page ${pageNumber} complete. ⚠️ WAIT ${PAGE_DELAY_MS}ms before next page.` : 'Processing complete.',
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
@@ -1248,7 +1244,7 @@ async function handleSyncPage(req: Request, supabase: any, userId: string) {
         shouldWait: true,
         waitMs: 10000, // Esperar 10s antes de retry
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 }
@@ -1324,7 +1320,7 @@ async function handleSyncFinish(req: Request, supabase: any) {
       },
       activeSyncsRemaining: activeSyncs.size,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
   );
 }
 
@@ -1359,7 +1355,7 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
     console.warn(`🚫 Incremental sync blocked: ${concurrentCheck.message}`);
     return new Response(
       JSON.stringify({ success: false, error: 'Sync in progress', message: concurrentCheck.message }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -1629,7 +1625,7 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
           syncSessionId,
         },
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
@@ -1668,7 +1664,7 @@ async function handleSyncIncremental(req: Request, supabase: any, userId: string
         pagesProcessed, 
         duration_ms: duration 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 }
@@ -1704,7 +1700,7 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
         console.error(`❌ Database unavailable, aborting auto-sync`);
         return new Response(
           JSON.stringify({ success: false, error: 'Database unavailable', message: dbHealth.message }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
     }
@@ -1718,7 +1714,7 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
     console.warn(`🚫 Auto-sync blocked: ${concurrentCheck.message}`);
     return new Response(
       JSON.stringify({ success: false, error: 'Sync in progress', message: concurrentCheck.message }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -1935,7 +1931,7 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
           syncSessionId,
         },
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (error: unknown) {
@@ -1969,7 +1965,7 @@ async function handleSyncAuto(req: Request, supabase: any, userId: string) {
 
     return new Response(
       JSON.stringify({ success: false, error: err.message, totalProcessed, pagesProcessed, duration_ms: duration }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 }

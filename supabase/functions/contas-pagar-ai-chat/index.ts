@@ -1,11 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -698,8 +693,8 @@ NÃO use listas com bullet points para dados financeiros — use TABELAS.
 Responda em PT-BR. Valores em R$. Acesso a TODO o histórico.`;
 
 // ────────── MAIN HANDLER ──────────
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
     const { message, history = [], generateAudio = false } = await req.json();
@@ -735,11 +730,11 @@ serve(async (req) => {
       console.error("AI error:", firstRes.status, t);
       if (firstRes.status === 429) {
         return new Response(JSON.stringify({ success: false, error: "Muitas solicitações. Aguarde um momento." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
       if (firstRes.status === 402) {
         return new Response(JSON.stringify({ success: false, error: "Créditos de IA esgotados." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          { status: 402, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
       throw new Error(`AI error: ${firstRes.status}`);
     }
@@ -863,7 +858,7 @@ serve(async (req) => {
         toolsUsed,
         charts,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Sofia error:", error);
@@ -872,7 +867,7 @@ serve(async (req) => {
         success: false,
         error: error instanceof Error ? error.message : "Erro desconhecido",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

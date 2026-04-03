@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
@@ -10,7 +9,7 @@ const SentimentSchema = z.object({
   conversationId: z.string().min(1).max(200),
 });
 
-Deno.serve(async (req) => {
+Deno.Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -38,7 +37,7 @@ Deno.serve(async (req) => {
     if (!messages || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Nenhuma mensagem encontrada para esta conversa' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -100,13 +99,13 @@ Considere o contexto geral e a evolução da conversa.`
       if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Limite de requisições excedido.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+          { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } }
         );
       }
       if (aiResponse.status === 402) {
         return new Response(
           JSON.stringify({ error: 'Créditos insuficientes.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
       throw new Error(`Erro na API: ${aiResponse.status}`);
@@ -136,7 +135,7 @@ Considere o contexto geral e a evolução da conversa.`
         score: analysis.score,
         reason: analysis.reason,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     return handleError(error, getCorsHeaders(req));

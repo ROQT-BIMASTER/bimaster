@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface Inconsistencia {
   id: string;
@@ -19,9 +15,9 @@ interface Inconsistencia {
   recomendacao: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -388,7 +384,7 @@ serve(async (req) => {
           error: "LOVABLE_API_KEY não configurada"
         }), {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
         });
       }
 
@@ -513,7 +509,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
             error: "Rate limit excedido. Tente novamente em alguns minutos."
           }), {
             status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
           });
         }
         
@@ -523,7 +519,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
             error: "Créditos de IA insuficientes. Entre em contato com o administrador."
           }), {
             status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
           });
         }
 
@@ -540,7 +536,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
         analise_ia: analiseIA,
         data_analise: new Date().toISOString()
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
 
@@ -551,7 +547,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
       estatisticas,
       data_analise: new Date().toISOString()
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
 
   } catch (err) {
@@ -562,7 +558,7 @@ Gere o relatório de auditoria completo seguindo a estrutura definida.`
       error: error.message 
     }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 });

@@ -1,9 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface VideoRequest {
   type: 'text-to-video' | 'image-to-video' | 'ugc-style' | 'mockup-3d' | 'multi-scene';
@@ -24,9 +20,9 @@ interface VideoRequest {
   style?: 'professional' | 'ugc' | 'cinematic' | 'minimal' | 'energetic';
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -46,7 +42,7 @@ serve(async (req) => {
     if (!prompt) {
       return new Response(
         JSON.stringify({ error: 'Prompt é obrigatório' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -81,7 +77,7 @@ serve(async (req) => {
         },
         startingFrame: imageUrl || null
       }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
@@ -89,7 +85,7 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Erro ao processar solicitação';
     return new Response(
       JSON.stringify({ error: errorMessage }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 });

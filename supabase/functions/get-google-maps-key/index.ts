@@ -1,19 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const GOOGLE_MAPS_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -24,7 +20,7 @@ serve(async (req) => {
       console.error('❌ Authorization header ausente');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -39,7 +35,7 @@ serve(async (req) => {
       console.error('❌ Token inválido:', userError?.message);
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -59,7 +55,7 @@ serve(async (req) => {
     if (!profile?.aprovado) {
       return new Response(
         JSON.stringify({ error: 'User not approved' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
       );
     }
 
@@ -85,7 +81,7 @@ serve(async (req) => {
       console.warn('⚠️ Usuário sem permissão para acessar Google Maps key:', user.id);
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 403 }
       );
     }
 
@@ -93,20 +89,20 @@ serve(async (req) => {
       console.error('❌ GOOGLE_PLACES_API_KEY não configurado');
       return new Response(
         JSON.stringify({ error: 'Google Maps key not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
     console.log('✅ Google Maps key retornada');
     return new Response(
       JSON.stringify({ key: GOOGLE_MAPS_KEY }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('❌ Erro na função:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

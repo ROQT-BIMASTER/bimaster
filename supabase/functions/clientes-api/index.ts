@@ -5,6 +5,37 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const IncluirClienteSchema = z.object({
+  codigo_cliente_integracao: z.string().min(1).max(100),
+  razao_social: z.string().min(1).max(255),
+  cnpj_cpf: z.string().max(20).optional(),
+  nome_fantasia: z.string().max(255).optional(),
+  endereco: z.string().max(500).optional(),
+  endereco_numero: z.string().max(20).optional(),
+  complemento: z.string().max(100).optional(),
+  bairro: z.string().max(100).optional(),
+  cidade: z.string().max(100).optional(),
+  estado: z.string().max(2).optional(),
+  cep: z.string().max(10).optional(),
+  telefone1_numero: z.string().max(20).optional(),
+  email: z.string().email().max(255).optional().or(z.literal("")),
+  inscricao_estadual: z.string().max(20).optional(),
+  inscricao_municipal: z.string().max(20).optional(),
+  pessoa_fisica: z.string().max(1).optional(),
+  contribuinte: z.string().max(1).optional(),
+  observacao: z.string().max(2000).optional(),
+  inativo: z.string().max(1).optional(),
+}).passthrough();
+
+const AlterarClienteSchema = z.object({
+  codigo_cliente_integracao: z.string().max(100).optional(),
+  codigo_cliente_huggs: z.string().max(100).optional(),
+}).passthrough().refine(d => d.codigo_cliente_integracao || d.codigo_cliente_huggs, {
+  message: "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório",
+});
 
 // ── Mapping helpers ──────────────────────────────────────────────
 
@@ -139,10 +170,7 @@ Deno.serve(async (req) => {
 
     // ── POST /incluir ────────────────────────────────────────────
     if (req.method === "POST" && path === "/incluir") {
-      const body = await req.json();
-      if (!body.codigo_cliente_integracao || !body.razao_social) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao e razao_social são obrigatórios", req, startMs);
-      }
+      const body = validateBody(await req.json(), IncluirClienteSchema);
 
       const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
@@ -166,11 +194,8 @@ Deno.serve(async (req) => {
 
     // ── POST /alterar ────────────────────────────────────────────
     if (req.method === "POST" && path === "/alterar") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), AlterarClienteSchema);
       const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_huggs) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório", req, startMs);
-      }
 
       const dbData = mapApiToDb(body);
       delete dbData.codigo; // Don't update the key
@@ -553,6 +578,9 @@ Deno.serve(async (req) => {
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
   } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      return errorResponse(400, "VALIDATION_ERROR", err.message, req, startMs);
+    }
     const e = err as { status?: number; message?: string; name?: string };
     if (e.name === "RateLimitError" || (e as any) instanceof RateLimitError) {
       return errorResponse(429, "RATE_LIMIT", e.message || "Rate limit excedido", req, startMs);

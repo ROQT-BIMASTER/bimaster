@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
@@ -10,7 +9,7 @@ const LeadInsightSchema = z.object({
   prospect_id: z.string().uuid(),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -91,7 +90,7 @@ Gere um resumo prático: qual é o momento do lead, quais riscos e oportunidades
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit atingido" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+          status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Retry-After": "60" },
         });
       }
       throw new Error("Erro ao chamar IA");
@@ -101,7 +100,7 @@ Gere um resumo prático: qual é o momento do lead, quais riscos e oportunidades
     const insight = aiData.choices?.[0]?.message?.content || "Não foi possível gerar o insight.";
 
     return new Response(JSON.stringify({ insight }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (e) {
     return handleError(e, getCorsHeaders(req));

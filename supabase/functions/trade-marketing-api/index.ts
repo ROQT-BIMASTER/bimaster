@@ -1,19 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
 
 // Rate limiting
 const requestLog = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hora
 const MAX_REQUESTS_PER_HOUR = 100; // Mais generoso para integrações
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const requestStartTime = Date.now();
@@ -47,7 +43,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid API key' }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
           status: 401 
         }
       );
@@ -74,7 +70,7 @@ serve(async (req) => {
           error: 'Rate limit exceeded. Maximum 100 requests per hour.' 
         }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
           status: 429 
         }
       );
@@ -156,7 +152,7 @@ serve(async (req) => {
       const csv = convertToCSV(response.data);
       return new Response(csv, {
         headers: {
-          ...corsHeaders,
+          ...getCorsHeaders(req),
           'Content-Type': 'text/csv',
           'Content-Disposition': `attachment; filename="trade_${endpoint}_${new Date().toISOString()}.csv"`,
         },
@@ -170,7 +166,7 @@ serve(async (req) => {
         ...response
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } 
       }
     );
 
@@ -199,7 +195,7 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, 
         status: 500
       }
     );

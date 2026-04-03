@@ -4,6 +4,34 @@ import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const GerarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+  codigo_barras: z.string().max(60).optional(),
+  numero_bancario: z.string().max(30).optional(),
+  nPerJuros: z.number().min(0).max(100).optional(),
+  nPerMulta: z.number().min(0).max(100).optional(),
+  dDescontoCond1: z.string().max(10).optional(),
+  vDescontoCond1: z.number().min(0).optional(),
+  dDescontoCond2: z.string().max(10).optional(),
+  vDescontoCond2: z.number().min(0).optional(),
+  dDescontoCond3: z.string().max(10).optional(),
+  vDescontoCond3: z.number().min(0).optional(),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+
+const CancelarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+
+const ProrrogarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+  dDtVenc: z.string().min(1, "dDtVenc obrigatório").max(10),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
 
 function getSupabase() {
   return createClient(
@@ -21,12 +49,8 @@ async function authenticate(req: Request) {
 
 async function handleGerar(req: Request, auth: any): Promise<Response> {
   const startMs = Date.now();
-  const body = await req.json();
-  const { nCodTitulo, cCodIntTitulo } = body;
-
-  if (!nCodTitulo && !cCodIntTitulo) {
-    return errorResponse(400, "VAL-001", "nCodTitulo ou cCodIntTitulo obrigatório", req, startMs);
-  }
+  const rawBody = await req.json();
+  const body = validateBody(rawBody, GerarSchema);
 
   const supabase = getSupabase();
 
@@ -141,12 +165,8 @@ async function handleObter(req: Request, _auth: any): Promise<Response> {
 
 async function handleCancelar(req: Request, _auth: any): Promise<Response> {
   const startMs = Date.now();
-  const body = await req.json();
-  const { nCodTitulo, cCodIntTitulo } = body;
-
-  if (!nCodTitulo && !cCodIntTitulo) {
-    return errorResponse(400, "VAL-001", "nCodTitulo ou cCodIntTitulo obrigatório", req, startMs);
-  }
+  const rawBody = await req.json();
+  const body = validateBody(rawBody, CancelarSchema);
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").update({ status: "cancelado" }).eq("status", "gerado");
@@ -171,15 +191,9 @@ async function handleCancelar(req: Request, _auth: any): Promise<Response> {
 
 async function handleProrrogar(req: Request, _auth: any): Promise<Response> {
   const startMs = Date.now();
-  const body = await req.json();
+  const rawBody = await req.json();
+  const body = validateBody(rawBody, ProrrogarSchema);
   const { nCodTitulo, cCodIntTitulo, dDtVenc } = body;
-
-  if (!dDtVenc) {
-    return errorResponse(400, "VAL-001", "dDtVenc (nova data de vencimento) obrigatório", req, startMs);
-  }
-  if (!nCodTitulo && !cCodIntTitulo) {
-    return errorResponse(400, "VAL-002", "nCodTitulo ou cCodIntTitulo obrigatório", req, startMs);
-  }
 
   // Parse date dd/mm/yyyy to yyyy-mm-dd
   let dataVenc = dDtVenc;
@@ -300,6 +314,9 @@ Deno.serve(async (req) => {
         return errorResponse(404, "NOT-001", `Rota não encontrada: /${route}. Rotas: /gerar, /obter, /cancelar, /prorrogar, /listar, /status`, req);
     }
   } catch (err) {
+    if (err instanceof ValidationError) {
+      return errorResponse(400, "VAL-001", err.message, req);
+    }
     if (err instanceof RateLimitError) {
       return errorResponse(429, "RATE_LIMIT", err.message, req);
     }

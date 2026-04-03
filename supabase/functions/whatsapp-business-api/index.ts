@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
-};
 
 interface WhatsAppMessage {
   to: string;
@@ -17,9 +13,9 @@ interface WhatsAppMessage {
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const supabase = createClient(
@@ -51,7 +47,7 @@ serve(async (req) => {
       service: "whatsapp-business-api",
       endpoints: ["/send", "/send-template", "/webhook", "/templates"]
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 
@@ -136,14 +132,14 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[WhatsApp Business] Erro no webhook:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -233,14 +229,14 @@ serve(async (req) => {
         success: true, 
         message_id: messageId 
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[WhatsApp Business] Erro ao enviar:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -327,14 +323,14 @@ serve(async (req) => {
         success: true, 
         message_id: messageId 
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[WhatsApp Business] Erro ao enviar template:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -366,14 +362,14 @@ serve(async (req) => {
         success: true, 
         templates: result.data || []
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[WhatsApp Business] Erro ao listar templates:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -389,12 +385,12 @@ serve(async (req) => {
       has_phone_id: !!whatsappPhoneId,
       timestamp: new Date().toISOString()
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 
   return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), {
     status: 404,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
   });
 });

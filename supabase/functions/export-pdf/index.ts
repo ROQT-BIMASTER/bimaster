@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
@@ -12,7 +11,7 @@ const ExportPdfSchema = z.object({
   fileName: z.string().max(200).optional(),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -121,9 +120,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ pdf: pdfBase64, fileName: `${title}.pdf` }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    return handleError(error, corsHeaders);
+    return handleError(error, getCorsHeaders(req));
   }
 });

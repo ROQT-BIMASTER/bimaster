@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface ContaPagar {
   id: string;
@@ -25,9 +21,9 @@ interface ClassificationResult {
   justificativa: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -79,7 +75,7 @@ serve(async (req) => {
           confianca: existingRule.confidence_score || 0.95,
           justificativa: `Regra aprendida aplicada (${existingRule.times_used + 1}x usada)`,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -192,7 +188,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
             error: "rate_limit", 
             message: "Limite de requisições excedido. Aguarde um momento." 
           }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       
@@ -259,7 +255,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
 
     return new Response(
       JSON.stringify(result),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
@@ -269,7 +265,7 @@ ${planoContas?.map(p => `- ${p.code} ${p.name} (${p.account_type})`).join("\n") 
         error: error?.message || "Erro desconhecido",
         details: error?.toString() || "Erro ao processar requisição"
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

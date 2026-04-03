@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
 
 // =====================================================
 // ALLOWLIST DE TABELAS PERMITIDAS
@@ -66,9 +62,9 @@ interface QueryParams {
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -178,7 +174,7 @@ serve(async (req) => {
       JSON.stringify({ error: errorMessage }),
       { 
         status: errorMessage === 'Unauthorized' ? 401 : 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       }
     );
   }
@@ -215,7 +211,7 @@ async function handleGetSchema(supabase: any) {
   };
 
   return new Response(JSON.stringify(schema), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -253,7 +249,7 @@ async function handleGetDimension(supabase: any, table: string, params: URLSearc
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -299,7 +295,7 @@ async function handleGetFacts(supabase: any, table: string, params: URLSearchPar
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -338,7 +334,7 @@ async function handleGetAggregations(supabase: any, params: URLSearchParams) {
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -375,7 +371,7 @@ async function handleGetChangelog(supabase: any, params: URLSearchParams) {
       totalPages: Math.ceil((count || 0) / pageSize),
     },
   }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -408,7 +404,7 @@ async function handleCustomQuery(supabase: any, params: QueryParams) {
   if (error) throw error;
 
   return new Response(JSON.stringify({ data }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -429,7 +425,7 @@ async function handleRefresh(supabase: any, target?: string) {
       message: 'Refresh completed successfully',
       timestamp: new Date().toISOString(),
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error) {
     throw error;

@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface Inconsistencia {
   id: string;
@@ -17,9 +13,9 @@ interface Inconsistencia {
   dados: Record<string, any>;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -334,7 +330,7 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
             estatisticas,
             analise_ia: analiseIA
           }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
           });
         }
       }
@@ -345,7 +341,7 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
       inconsistencias,
       estatisticas
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
 
   } catch (err) {
@@ -356,7 +352,7 @@ ${JSON.stringify(topInconsistencias, null, 2)}`
       error: error.message 
     }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 });

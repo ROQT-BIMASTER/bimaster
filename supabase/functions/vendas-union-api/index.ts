@@ -1,9 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-};
 
 const API_VERSION = '1.0.0';
 const INSERT_BATCH_SIZE = 2000;
@@ -166,7 +163,7 @@ function transformRecord(raw: Record<string, unknown>): Record<string, unknown> 
 // =====================================================
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const url = new URL(req.url);
@@ -179,7 +176,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Use POST /sync', api_version: API_VERSION }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -190,7 +187,7 @@ Deno.serve(async (req) => {
   if (!apiKey || !validKey || apiKey !== validKey) {
     return new Response(
       JSON.stringify({ error: 'API key inválida' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -205,7 +202,7 @@ Deno.serve(async (req) => {
     if (records.length === 0) {
       return new Response(
         JSON.stringify({ success: true, received: 0, inserted: 0, message: 'Nenhum registro enviado', api_version: API_VERSION }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -258,13 +255,13 @@ Deno.serve(async (req) => {
         rate_per_second: duration > 0 ? Math.round((totalInserted / duration) * 1000) : 0,
         api_version: API_VERSION,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
     console.error('[vendas-union-api] Erro:', error);
     return new Response(
       JSON.stringify({ error: error.message, api_version: API_VERSION }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 });
