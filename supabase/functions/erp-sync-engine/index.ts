@@ -290,86 +290,88 @@ async function handlePreviewTable(req: Request, startMs: number) {
   }
 }
 
-async function handleSyncContasReceber(req: Request, startMs: number) {
+async function handleSyncPaginated(
+  req: Request,
+  startMs: number,
+  viewName: string,
+  tableName: string,
+  entityName: string,
+  transformFn: (row: SqlRow) => Record<string, unknown>,
+  conflictCol: string
+) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  let connection: Connection | null = null;
+  let totalRows = 0;
+  let totalUpserted = 0;
+  const allErrors: string[] = [];
+  let page = 0;
+
   try {
-    connection = await connectToSqlServer();
-    console.log("📥 Fetching ConsultaPowerBIReceber...");
-    const rows = await executeSqlQuery(connection, "SELECT * FROM ConsultaPowerBIReceber");
-    console.log(`📊 Got ${rows.length} rows from SQL Server`);
+    while (true) {
+      // Each page gets its own connection to avoid memory buildup
+      let connection: Connection | null = null;
+      try {
+        connection = await connectToSqlServer();
+        const offset = page * SQL_PAGE_SIZE;
+        // Use ORDER BY (SELECT NULL) for views without a natural key
+        const query = `SELECT * FROM [${viewName}] ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${SQL_PAGE_SIZE} ROWS ONLY`;
+        console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})...`);
+        const rows = await executeSqlQuery(connection, query);
+        console.log(`📊 Got ${rows.length} rows`);
 
-    const transformed = rows.map(transformContasReceber);
-    const { inserted, errors } = await batchUpsert(supabase, "contas_receber", transformed, "erp_id");
+        if (rows.length === 0) break;
+
+        totalRows += rows.length;
+        const transformed = rows.map(transformFn);
+        const { inserted, errors } = await batchUpsert(supabase, tableName, transformed, conflictCol);
+        totalUpserted += inserted;
+        if (errors.length > 0) allErrors.push(...errors);
+
+        // If less than page size, we're done
+        if (rows.length < SQL_PAGE_SIZE) break;
+        page++;
+      } finally {
+        if (connection) try { connection.close(); } catch (_) {}
+      }
+
+      // Small delay between pages
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
     const duration = Date.now() - startMs;
-
-    await recordSync(supabase, "contas_receber", {
-      status: errors.length > 0 ? "partial" : "success",
-      totalRegistros: rows.length,
-      registrosInseridos: inserted,
+    await recordSync(supabase, entityName, {
+      status: allErrors.length > 0 ? "partial" : "success",
+      totalRegistros: totalRows,
+      registrosInseridos: totalUpserted,
       duracaoMs: duration,
-      erroMensagem: errors.length > 0 ? errors.join("; ") : undefined,
+      erroMensagem: allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : undefined,
     });
 
     return jsonResponse({
       success: true,
-      entity: "contas_receber",
-      source: "ConsultaPowerBIReceber",
-      totalRows: rows.length,
-      upserted: inserted,
-      errors: errors.length > 0 ? errors : undefined,
+      entity: entityName,
+      source: viewName,
+      totalRows,
+      upserted: totalUpserted,
+      pages: page + 1,
+      errors: allErrors.length > 0 ? allErrors.slice(0, 5) : undefined,
     }, 200, req, { startMs });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro";
-    await recordSync(supabase, "contas_receber", { status: "error", totalRegistros: 0, registrosInseridos: 0, duracaoMs: Date.now() - startMs, erroMensagem: msg });
+    const supabase2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await recordSync(supabase2, entityName, { status: "error", totalRegistros: totalRows, registrosInseridos: totalUpserted, duracaoMs: Date.now() - startMs, erroMensagem: msg });
     return errorResponse(500, "sync_failed", msg, req, startMs);
-  } finally {
-    if (connection) try { connection.close(); } catch (_) {}
   }
 }
 
+async function handleSyncContasReceber(req: Request, startMs: number) {
+  return handleSyncPaginated(req, startMs, "ConsultaPowerBIReceber", "contas_receber", "contas_receber", transformContasReceber, "erp_id");
+}
+
 async function handleSyncContasPagar(req: Request, startMs: number) {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceKey);
-
-  let connection: Connection | null = null;
-  try {
-    connection = await connectToSqlServer();
-    console.log("📥 Fetching ConsultaPowerBIPagar...");
-    const rows = await executeSqlQuery(connection, "SELECT * FROM ConsultaPowerBIPagar");
-    console.log(`📊 Got ${rows.length} rows from SQL Server`);
-
-    const transformed = rows.map(transformContasPagar);
-    const { inserted, errors } = await batchUpsert(supabase, "contas_pagar", transformed, "erp_id");
-    const duration = Date.now() - startMs;
-
-    await recordSync(supabase, "contas_pagar", {
-      status: errors.length > 0 ? "partial" : "success",
-      totalRegistros: rows.length,
-      registrosInseridos: inserted,
-      duracaoMs: duration,
-      erroMensagem: errors.length > 0 ? errors.join("; ") : undefined,
-    });
-
-    return jsonResponse({
-      success: true,
-      entity: "contas_pagar",
-      source: "ConsultaPowerBIPagar",
-      totalRows: rows.length,
-      upserted: inserted,
-      errors: errors.length > 0 ? errors : undefined,
-    }, 200, req, { startMs });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "Erro";
-    await recordSync(supabase, "contas_pagar", { status: "error", totalRegistros: 0, registrosInseridos: 0, duracaoMs: Date.now() - startMs, erroMensagem: msg });
-    return errorResponse(500, "sync_failed", msg, req, startMs);
-  } finally {
-    if (connection) try { connection.close(); } catch (_) {}
-  }
+  return handleSyncPaginated(req, startMs, "ConsultaPowerBIPagar", "contas_pagar", "contas_pagar", transformContasPagar, "erp_id");
 }
 
 async function handleSyncAll(req: Request, startMs: number) {
