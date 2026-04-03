@@ -659,6 +659,7 @@ function AppContent() {
             <Route path="/dashboard/configuracoes/lgpd" element={<ScreenRoute screenCode="admin"><LGPDAdmin /></ScreenRoute>} />
             <Route path="/dashboard/configuracoes/acesso" element={<ScreenRoute screenCode="admin"><ConfiguracoesAcesso /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-seguranca" element={<ScreenRoute screenCode="admin"><RelatorioSeguranca /></ScreenRoute>} />
+            <Route path="/dashboard/seguranca-dashboard" element={<ScreenRoute screenCode="admin"><SecurityDashboard /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-apis" element={<ScreenRoute screenCode="admin"><RelatorioAPIs /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-desenvolvimento" element={<ScreenRoute screenCode="admin"><RelatorioDesenvolvimento /></ScreenRoute>} />
             <Route path="/dashboard/relatorio-ap-module" element={<ScreenRoute screenCode="admin"><RelatorioAPModule /></ScreenRoute>} />
