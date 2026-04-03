@@ -20,10 +20,14 @@ export default function ContasReceberSyncPage() {
         </div>
 
         <Tabs defaultValue="engine" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4">
+          <TabsList className="grid w-full max-w-4xl grid-cols-5">
             <TabsTrigger value="engine" className="flex items-center gap-2">
               <Server className="h-4 w-4" />
               ERP Engine
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Métricas
             </TabsTrigger>
             <TabsTrigger value="monitor" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
@@ -41,6 +45,10 @@ export default function ContasReceberSyncPage() {
 
           <TabsContent value="engine" className="mt-6">
             <ContasReceberSyncPanel />
+          </TabsContent>
+
+          <TabsContent value="metrics" className="mt-6">
+            <SyncMetricsDashboard />
           </TabsContent>
 
           <TabsContent value="monitor" className="mt-6">
