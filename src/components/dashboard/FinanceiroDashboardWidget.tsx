@@ -139,7 +139,7 @@ export const FinanceiroDashboardWidget = memo(() => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stat.format === "currency" ? `R$ ${stat.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : stat.value.toLocaleString("pt-BR")}
+                  {stat.format === "currency" ? formatCurrency(stat.value) : stat.value.toLocaleString("pt-BR")}
                 </div>
                 <p className="text-xs text-muted-foreground">{stat.description}</p>
               </CardContent>

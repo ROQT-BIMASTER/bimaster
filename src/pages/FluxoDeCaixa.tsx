@@ -18,6 +18,7 @@ import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfM
 import { ptBR } from "date-fns/locale";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 // Custom hooks and components
 import { useFluxoCaixaData } from "@/hooks/useFluxoCaixaData";
