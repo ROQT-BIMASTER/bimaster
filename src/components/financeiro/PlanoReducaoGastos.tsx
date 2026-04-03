@@ -466,10 +466,34 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         </CardHeader>
         <CardContent>
           {/* Filtros */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
             <div className="space-y-1">
               <Label className="text-xs">Buscar</Label>
               <Input placeholder="Fornecedor, nome, documento..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Empresa</Label>
+              <Select value={filterEmpresaNome} onValueChange={setFilterEmpresaNome}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {uniqueEmpresas.map((emp) => (
+                    <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={filterDepartamento} onValueChange={setFilterDepartamento}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {uniqueDepartamentos.map((dep) => (
+                    <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
