@@ -1,35 +1,45 @@
 
 
-# Gráfico Único Full-Width com Tabs de Análise
+# Itens em Revisão — Layout Tabela Desktop
 
-## Conceito
+## Problema
+A listagem atual usa cards empilhados verticalmente, ocupando muito espaço e dificultando a varredura rápida de dados. Para desktop, um formato de tabela/planilha é mais eficiente e profissional.
 
-Substituir o grid de 3 cards separados por **1 único Card full-width** com botões de alternância no topo. Cada botão troca a visualização dentro do mesmo container, mantendo o layout limpo e aproveitando toda a largura.
+## Proposta
 
-## Layout
+Substituir a lista de `RevisaoGastosCard` no modo "Lista" por uma **tabela de alta densidade** com todas as informações e ações inline, mantendo os cards apenas para mobile.
+
+### Layout da Tabela
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│  [Por Tipo de Ação]  [Por Status]  [Por Prioridade]  │  ← ChartTabs buttons
-│                                                      │
-│  ┌──────────────────────────────────────────────────┐│
-│  │                                                  ││
-│  │         Gráfico ativo (full-width, h=300)        ││
-│  │                                                  ││
-│  └──────────────────────────────────────────────────┘│
-└──────────────────────────────────────────────────────┘
+| Tipo     | Fornecedor / Item       | Prioridade | Status       | Valor Atual    | Meta Redução   | Prazo      | Ações          |
+|----------|-------------------------|------------|--------------|----------------|----------------|------------|----------------|
+| Reduzir  | ROYALTIES               | Média      | Em Andamento | R$ 121.325,82  | 20% / R$ 24k   | 30/03 (4d) | ✓  ✎  🗑      |
+| Monitorar| FABULOUS COSMETICOS     | Média      | Em Andamento | R$ 934.860,69  | —              | 29/01      | ✓  +  ✎  🗑   |
 ```
 
-## Alterações
+### Detalhes da Implementação
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/financeiro/MetasReducaoChart.tsx` | Envolver os 3 gráficos no componente `ChartTabs` existente (`src/components/ui/chart-tabs.tsx`). Remover o grid de cards. Um único `Card` full-width contém os tabs + o gráfico ativo. Altura do gráfico aumenta para 320px (mais espaço horizontal). |
+| `src/components/financeiro/PlanoReducaoGastos.tsx` | No modo "lista", renderizar tabela no desktop (`hidden md:block`) e manter cards no mobile (`md:hidden`). Remover seletor "Visualização" (os 3 modos ficam como tabs ou se simplifica para tabela única). |
 
-### Tabs definidos:
-1. **Por Tipo de Ação** — BarChart vertical (Meta vs Realizado), ícone `BarChart3`
-2. **Por Status** — PieChart donut (distribuição), ícone `PieChart` (lucide)
-3. **Por Prioridade** — BarChart horizontal (Meta vs Realizado), ícone `Layers`
+### Colunas da tabela:
+1. **Tipo** — badge colorido com ícone (Reduzir, Eliminar, etc.)
+2. **Fornecedor / Item** — nome principal + fornecedor em subtitle
+3. **Prioridade** — dot colorido + label
+4. **Status** — badge com ícone
+5. **Valor Atual** — formatado BRL
+6. **Meta Redução** — percentual + valor absoluto (quando aplicável)
+7. **Prazo** — data + indicador de dias restantes/vencido
+8. **Ações** — botões icon-only: Concluir, Editar, Eventos (+), Deletar
 
-Reutiliza `ChartTabs` do design system — zero componentes novos.
+### Interações:
+- Clicar na linha expande detalhes inline (fornecedor, documento, empresa) em uma sub-row
+- Ações mantêm a mesma lógica atual (`onUpdateStatus`, `onDelete`)
+- Sorting nativo nas colunas Valor, Prazo, Prioridade
+- Reutilizar `Table`, `TableHead`, `TableBody`, `TableRow`, `TableCell` do design system
+
+### Mobile:
+- Abaixo de `md`, exibir os `RevisaoGastosCard` compactos existentes (já funcionam bem em tela pequena)
 
