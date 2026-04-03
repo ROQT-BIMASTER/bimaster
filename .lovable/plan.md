@@ -1,85 +1,42 @@
 
 
-# Contas a Receber — Resync, Validação e Painel de Monitoramento
+# Ativação do Sync Automático — Contas a Receber
 
-## Diagnóstico Completo
+## Situação Atual
 
-### Problema 1: Status incorretos no `erp-sync-engine`
-A function `deriveStatus()` no sync direto usa `"pago"` e `"aberto"`, enquanto todo o frontend e as RPCs esperam `"recebido"`, `"pendente"`, `"vencido"` e `"parcial"`. Se rodarmos o sync direto agora, **todos os status serão sobrescritos com valores errados**.
+- O motor `erp-sync-engine` está funcional e com lógica de status correta
+- Os 351k registros estão no banco com status corretos
+- **Porém não existe agendamento automático** — a sync só roda quando disparada manualmente
+- Existe um cron antigo do N8N (`sync-contas-receber-6h`) que chama uma edge function diferente (`n8n-contas-receber`) e pode estar desatualizada
 
-Além disso, falta a lógica de `vencido` (data_vencimento < hoje) que existe na `contas-receber-api` (N8N).
+## Plano
 
-**Correção**: Alinhar `deriveStatus()` no `erp-sync-engine/index.ts`:
-```typescript
-function deriveStatus(valorAberto: number, valorPago: number, dataVencimento: string | null): string {
-  if (valorAberto === 0 && valorPago > 0) return "recebido";
-  if (valorPago > 0 && valorAberto > 0) return "parcial";
-  if (valorAberto > 0 && dataVencimento) {
-    const venc = new Date(dataVencimento + 'T00:00:00');
-    if (venc < new Date(new Date().toISOString().split('T')[0] + 'T00:00:00')) return "vencido";
-  }
-  return "pendente";
-}
-```
+### 1. Criar pg_cron para erp-sync-engine (a cada 40 min)
 
-### Problema 2: Lógica de `valor_recebido` incompleta
-A `contas-receber-api` tem lógica extra para derivar `valor_recebido` quando o campo vem zerado (ex: título quitado via ajustes). O `erp-sync-engine` pega `Valor Pago` direto, sem fallback. Isso pode causar títulos marcados como "pendente" quando deveriam ser "recebido".
+Inserir via SQL um job `pg_cron` que chama `POST /erp-sync-engine` com `path: "sync-contas-receber"` a cada 40 minutos. Isso garante que:
+- Pagamentos novos do dia são refletidos em até 40 min
+- Títulos vencidos são recalculados automaticamente (a `deriveStatus` compara com `now()`)
+- Pagamentos atrasados realizados no ERP atualizam o status para "recebido" ou "parcial"
 
-**Correção**: Copiar a lógica de derivação da `contas-receber-api` para o `erp-sync-engine`.
+### 2. Desativar cron antigo do N8N
 
-### Problema 3: Calendário — campo de ano não abre
-O filtro de data usa `<Input type="date">`, que depende do navegador nativo. Não tem um seletor de ano dedicado. Precisa ser trocado por um DatePicker customizado com `Popover + Calendar` do shadcn.
+O job `sync-contas-receber-6h` (jobid 1) chama `n8n-contas-receber/sync-auto`, que é o fluxo legado. Com o `erp-sync-engine` ativo a cada 40 min, este job se torna redundante e pode causar conflitos de dados.
 
-### Problema 4: Limite de 1000 linhas no PostgREST
-Já resolvido na implementação atual — a tabela usa paginação backend (`range(from, to)`) e os totais vêm via RPCs agregadoras.
+### 3. (Opcional futuro) Sync incremental
 
-### Problema 5: Painel de Monitoramento de Sync para Admin
-Não existe tela mostrando histórico de sincronizações. A tabela `sync_control` já armazena os dados necessários.
+Hoje toda sync relê os 351k registros (~3 min). Uma melhoria futura seria adicionar uma rota `sync-contas-receber-incremental` que filtra a view SQL Server por `data_modificacao >= DATEADD(MINUTE, -45, GETDATE())`, processando apenas registros alterados (~500-2000 por ciclo).
 
----
+## Resultado Esperado
 
-## Plano de Execução
+- Sync automática a cada 40 min sem intervenção manual
+- Pagamentos do dia refletidos em até 40 min
+- Status "vencido" atualizado automaticamente para títulos que passam da data
+- Cron legado desativado para evitar conflitos
 
-### Fase 1 — Corrigir `erp-sync-engine`
+## Alterações
 
-**Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
-
-1. Corrigir `deriveStatus()` para `recebido/pendente/vencido/parcial` + lógica de data de vencimento
-2. Adicionar fallback de `valor_recebido` (quando valorPago=0 mas título quitado)
-3. Aumentar `SQL_PAGE_SIZE` de 500 para 2000
-
-### Fase 2 — Executar resync completa
-
-Após deploy, chamar `POST /erp-sync-engine` com `path: "sync-contas-receber"` para resincronizar os ~343k registros com status corretos.
-
-### Fase 3 — Corrigir DatePicker do calendário
-
-**Arquivo**: `src/pages/ContasAReceber.tsx`
-
-Substituir os 3 `<Input type="date">` por `Popover + Calendar` do shadcn/ui com navegação de ano via `captionLayout="dropdown-buttons"`.
-
-### Fase 4 — Painel de Monitoramento Admin
-
-**Arquivo novo**: `src/components/financeiro/SyncMonitorPanel.tsx`
-
-Componente que consulta `sync_control` e exibe:
-- Card com última sync (horário, status, registros)
-- Tabela com histórico das últimas 20 syncs
-- Badge de status (sucesso/erro/parcial)
-- Botão para forçar sync manual
-
-**Arquivo**: `src/pages/ContasAReceber.tsx` — Adicionar drawer para o painel (admin only).
-
-### Fase 5 — Validação cruzada banco vs frontend
-
-Comparar via SQL os totais por status no banco vs valores exibidos nos KPIs do dashboard.
-
----
-
-## Arquivos Alterados
-
-| Arquivo | Alteração |
+| Item | Tipo |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Corrigir deriveStatus, fallback valor_recebido, aumentar page size |
-| `src/pages/ContasAReceber.tsx` | Trocar Input date por Calendar/Popover com seleção de ano |
-| `src/components/financeiro/SyncMonitorPanel.tsx` | **NOVO** — Painel admin de monitoramento de sync |
+| `pg_cron` job para `erp-sync-engine` | SQL INSERT (não migration) |
+| Desativar job `sync-contas-receber-6h` | SQL `cron.unschedule` |
+
