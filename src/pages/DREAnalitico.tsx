@@ -1407,7 +1407,7 @@ export default function DREAnalitico() {
     
     // Estatísticas do relatório
     const totalLancamentos = lancamentos?.length || 0;
-    const totalReceitas = contasReceberAgregadas?.length || 0;
+    const totalReceitas = contasReceberTotais?.length || 0;
     const contasClassificadas = lancamentos?.filter(l => l.plano_contas_id)?.length || 0;
     const contasNaoClassificadas = totalLancamentos - contasClassificadas;
     
