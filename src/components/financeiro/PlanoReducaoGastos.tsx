@@ -503,7 +503,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <div className="hidden md:block">
                 {renderDesktopTable()}
               </div>
-                        <TableHead className="w-[90px]">Prioridade</TableHead>
                         <TableHead className="w-[120px]">Status</TableHead>
                         <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
                         <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
