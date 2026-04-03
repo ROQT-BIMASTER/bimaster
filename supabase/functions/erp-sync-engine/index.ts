@@ -134,13 +134,13 @@ function transformContasReceber(row: SqlRow) {
 }
 
 function transformContasPagar(row: SqlRow) {
-  const valorAberto = parseAmount(row["Valor em Aberto"] ?? row["ValorAberto"]);
-  const valorPago = parseAmount(row["Valor Pago"] ?? row["ValorPago"]);
-  const empresaId = row["ID Empresa"] ?? row["IDEmpresa"] ?? 1;
+  const valorAberto = parseAmount(row["Valor em Aberto"]);
+  const valorPago = parseAmount(row["Valor Pago"]);
+  const empresaId = row["ID Empresa"] || 1;
   const tipo = row["Tipo"] || "";
   const nota = row["Nota"] || "";
-  const seq = row["Seq"] ?? row["Parcela"] ?? 1;
-  const erpId = `${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
+  const seq = row["Seq"] || 1;
+  const erpId = `CP-${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
 
   return {
     erp_id: erpId,
@@ -149,15 +149,15 @@ function transformContasPagar(row: SqlRow) {
     tipo_documento: String(tipo),
     numero_documento: String(nota),
     parcela: parseInt(String(seq)) || 1,
-    fornecedor_codigo: String(row["Código"] || row["Codigo"] || row["CodFornecedor"] || ""),
-    fornecedor_nome: row["Fornecedor"] || row["Cliente"] || null,
-    valor_original: parseAmount(row["Valor_Trc"] ?? row["ValorOriginal"]),
+    fornecedor_codigo: String(row["Código"] || row["Codigo"] || ""),
+    fornecedor_nome: row["Cliente"] || null,
+    valor_original: parseAmount(row["Valor_Trc"]),
     valor_aberto: valorAberto,
     valor_pago: valorPago,
-    valor_juros: parseAmount(row["Valor Juros"] ?? row["ValorJuros"]),
-    valor_desconto: parseAmount(row["Valor Desconto"] ?? row["ValorDesconto"]),
-    valor_ajustes: parseAmount(row["Valor Ajustes"] ?? row["ValorAjustes"]),
-    data_emissao: parseDate(row["Emissão"] || row["Emissao"]),
+    valor_juros: parseAmount(row["Valor Juros"]),
+    valor_desconto: parseAmount(row["Valor Desconto"]),
+    valor_ajustes: parseAmount(row["Valor Ajustes"]),
+    data_emissao: parseDate(row["Emissão"]),
     data_vencimento: parseDate(row["Vencimento"]),
     data_pagamento: parseDate(row["Data Pgto"] || row["DataPgto"]),
     categoria_codigo: row["Categoria"] || row["CodCategoria"] || null,
