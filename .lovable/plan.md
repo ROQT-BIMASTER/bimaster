@@ -1,82 +1,78 @@
 
 
-# Diagnóstico: Sync Continua Falhando — Timeout em Todas as Rotas
+# Eliminar N8N — Sync 100% via erp-sync-engine
 
-## Evidências Concretas
+## Situação Atual
 
-### 1. Incremental (a cada 40 min) — TIMEOUT 504
-Os logs confirmam: a rota `sync-contas-receber-incremental` atingiu **504 após 151 segundos**, processando 18.000+ registros antes de morrer. O filtro `WHERE [Vencimento] >= DATEADD(DAY, -2, GETDATE())` é muito amplo — captura milhares de títulos com vencimento recente, não apenas os alterados.
+### Problema 1: N8N ainda está ativo e enviando dados
+Os logs confirmam que `contas-receber-api` continua recebendo batches de 3000 registros do N8N a cada poucos segundos. Isso causa:
+- Conflito com o `erp-sync-engine` (ambos fazendo upsert na mesma tabela simultaneamente)
+- Deadlocks detectados nos logs (`❌ Upsert error batch 600: deadlock detected`)
+- Desperdício de recursos e risco de status inconsistentes (N8N usa lógica de status diferente)
 
-### 2. Full diária (3:30 AM) — IMPOSSÍVEL DE COMPLETAR
-A rota `sync-contas-receber-full` tenta processar todas as empresas **sequencialmente dentro de uma única invocação**. Com a empresa 4 tendo 62k registros (31 páginas × ~5s = ~155s só para ela), o timeout ocorre antes de completar a primeira empresa grande.
+### Problema 2: erp-sync-engine ainda tem gargalo de performance
+Cada página abre uma **nova conexão SQL Server** (linhas 357-386). Com overhead de ~5-10s por conexão × 30 páginas = tempo impossível. Empresas grandes (4, 11, 6, 3) sempre dão `partial` com time guard.
 
-### 3. sync_control confirma: apenas 3.000 registros por execução
-Todas as entradas mostram `total_registros: 3000` — evidência de que a function morre após processar 1-2 páginas do SQL Server por invocação.
-
-```text
-Empresa 4  → 62.384 registros (31 páginas)  → precisa ~155s — TIMEOUT
-Empresa 11 → 53.911 registros (27 páginas)  → precisa ~135s — TIMEOUT
-Empresa 6  → 48.844 registros (24 páginas)  → precisa ~120s — LIMITE
-Empresa 3  → 44.891 registros (22 páginas)  → precisa ~110s — LIMITE
-Empresa 10 → 39.920 registros (20 páginas)  → precisa ~100s — OK se sozinha
-Empresa 8  → 12.645 registros (6 páginas)   → precisa ~30s  — OK
-Empresas 1,5,7,9 → <1.000 registros         → OK
-```
-
-## Solução: 3 Correções no `erp-sync-engine/index.ts`
-
-### Correção 1: Full Sync via HTTP externo (não interno)
-
-A rota `sync-contas-receber-full` atualmente chama `handleSyncPaginated()` internamente para cada empresa. Isso compartilha o mesmo timeout de 150s.
-
-**Correção**: Usar `fetch()` para chamar a própria edge function externamente com `path: "sync-contas-receber-por-empresa"` para cada empresa. Cada `fetch()` dispara uma invocação separada com seu próprio timeout de 150s. O orquestrador apenas faz os fetches em paralelo (2-3 de cada vez) e coleta os resultados.
-
-### Correção 2: Estreitar filtro incremental
-
-Remover a cláusula de vencimento do filtro incremental. A derivação de status (`deriveStatus`) já recalcula "vencido" vs "pendente" em cada sync — não precisa buscar títulos só porque venceram:
-
-```sql
--- ANTES (retorna 18k+):
-WHERE [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) 
-   OR ([Vencimento] >= DATEADD(DAY, -2, GETDATE()) AND [Vencimento] <= GETDATE())
-
--- DEPOIS (retorna ~500-2000):
-WHERE [Data Pgto] >= DATEADD(HOUR, -2, GETDATE())
-```
-
-### Correção 3: pg_cron — Separar full em jobs por empresa
-
-Em vez de um único job `sync-cr-full-diaria` que chama `sync-contas-receber-full` (que ainda pode dar timeout no orquestrador), criar jobs individuais escalonados:
-
-```text
-03:00 → empresa 8, 9, 5, 7, 1 (pequenas, ~30s cada)
-03:10 → empresa 10 (~100s)
-03:15 → empresa 3 (~110s)
-03:20 → empresa 6 (~120s)
-03:25 → empresa 11 (~135s)
-03:30 → empresa 4 (~155s) — limite, mas é uma invocação isolada
-```
+### Problema 3: Frontend ainda referencia funções legadas
+- `useContasReceberSync.ts` chama `n8n-contas-receber/sync-auto` e `contas-receber-api`
+- `useN8NSync.ts` inteiro é dedicado ao fluxo N8N
+- `ContasReceberSyncPanel.tsx` oferece modo `n8n` vs `direct`
 
 ## Plano de Execução
 
-| Passo | Descrição |
-|---|---|
-| 1 | Refatorar `handleSyncContasReceberFull` para usar `fetch()` externo em paralelo (2 empresas por vez) |
-| 2 | Estreitar WHERE do incremental para apenas `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())` |
-| 3 | Remover job `sync-cr-full-diaria` e criar jobs individuais por empresa escalonados na madrugada |
-| 4 | Manter job `sync-cr-incremental-40min` (agora com filtro estreito, ~500 registros) |
-| 5 | Disparar sync full manual para validação |
+### Passo 1: Corrigir performance do erp-sync-engine (conexão reutilizada)
+
+Refatorar `handleSyncPaginated` para abrir **uma única conexão SQL** e reutilizá-la em todas as páginas. Isso elimina o overhead de 5-10s por página, permitindo processar ~20k registros em ~60s em vez de 8k.
+
+```text
+ANTES: conectar → query → fechar → conectar → query → fechar (×30)
+DEPOIS: conectar → query → query → query (×30) → fechar
+```
+
+### Passo 2: Remover edge functions legadas do N8N
+
+Deletar os arquivos:
+- `supabase/functions/n8n-contas-receber/index.ts`
+- `supabase/functions/contas-receber-api/index.ts`
+
+Isso mata imediatamente o endpoint que o N8N usa para enviar dados, forçando o uso exclusivo do `erp-sync-engine`.
+
+### Passo 3: Atualizar hooks do frontend
+
+**`useContasReceberSync.ts`**: Remover `SyncMode` (n8n/direct), remover `syncN8n()`, e atualizar `syncDirect()` e `testErpConnection()` para chamar `erp-sync-engine` em vez de `contas-receber-api`. Manter `fetchStats()` e `fetchSyncHistory()` (já consultam banco direto).
+
+**`useN8NSync.ts`**: Marcar como deprecated ou remover se nenhum componente crítico depende dele.
+
+### Passo 4: Atualizar ContasReceberSyncPanel
+
+Remover toggle N8N/Direct. O painel mostra apenas o modo direto (erp-sync-engine) com botões:
+- "Sync Full" → chama `sync-contas-receber-full`
+- "Sync Incremental" → chama `sync-contas-receber-incremental`
+- "Sync Empresa X" → chama `sync-contas-receber-por-empresa`
+
+### Passo 5: Limpar pg_cron jobs legados
+
+Verificar e remover qualquer job que ainda chame `n8n-contas-receber` ou `contas-receber-api`.
 
 ## Arquivos Alterados
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Refatorar full sync (fetch externo) + estreitar filtro incremental |
-| pg_cron (SQL) | Substituir job full único por jobs por empresa escalonados |
+| `supabase/functions/erp-sync-engine/index.ts` | Reutilizar conexão SQL dentro de `handleSyncPaginated` |
+| `supabase/functions/n8n-contas-receber/index.ts` | **DELETAR** |
+| `supabase/functions/contas-receber-api/index.ts` | **DELETAR** |
+| `src/hooks/useContasReceberSync.ts` | Remover modo N8N, apontar para erp-sync-engine |
+| `src/hooks/useN8NSync.ts` | **DELETAR** ou esvaziar |
+| `src/components/financeiro/ContasReceberSyncPanel.tsx` | Remover toggle N8N, simplificar |
+| `src/pages/financeiro/ContasReceberSyncPage.tsx` | Remover import de useN8NSync |
+| `src/components/financeiro/SyncMonitorPanel.tsx` | Atualizar botão para usar erp-sync-engine |
+| pg_cron (SQL) | Remover jobs legados |
 
 ## Resultado Esperado
 
-- Incremental processa ~500-2000 registros em <30s (sem timeout)
-- Full sync processa 100% dos 351k registros (cada empresa isolada com seu próprio timeout)
-- Monitoramento via `sync_control` reflete registros reais por empresa
+- Zero dependência do N8N para Contas a Receber
+- Sync full diário processa 100% dos 351k registros (via jobs por empresa)
+- Incremental a cada 40 min processa apenas pagamentos recentes (~500-2000 registros)
+- Sem deadlocks (uma única engine fazendo upserts)
+- Frontend unificado sem opção N8N
 
