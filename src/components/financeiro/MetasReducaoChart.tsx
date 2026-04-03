@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrencyCompact } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { chartColors } from "@/lib/chart-colors";
 import { ChartTabs, type ChartTabItem } from "@/components/ui/chart-tabs";
-import { BarChart3, PieChart as PieChartIcon, Layers } from "lucide-react";
+import { BarChart3, PieChart as PieChartIcon, Layers, ChevronDown, ChevronUp } from "lucide-react";
 
 interface MetasReducaoChartProps {
   revisoes: any[];
@@ -65,6 +66,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
   }, [revisoes]);
 
   const formatCurrency = (value: number) => formatCurrencyCompact(value);
+  const [visible, setVisible] = useState(true);
 
   if (revisoes.length === 0) return null;
 
@@ -74,7 +76,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       label: "Por Tipo de Ação",
       icon: <BarChart3 className="h-4 w-4" />,
       content: (
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={240}>
           <BarChart data={dadosPorTipo} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="gradMeta" x1="0" y1="0" x2="0" y2="1">
@@ -102,7 +104,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       label: "Por Status",
       icon: <PieChartIcon className="h-4 w-4" />,
       content: (
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={240}>
           <PieChart>
             <Pie
               data={dadosPorStatus}
@@ -133,7 +135,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
             label: "Por Prioridade",
             icon: <Layers className="h-4 w-4" />,
             content: (
-              <ResponsiveContainer width="100%" height={320}>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={dadosPorPrioridade} layout="vertical" margin={{ top: 10, right: 30, left: 60, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradMetaH" x1="0" y1="0" x2="1" y2="0">
@@ -160,14 +162,28 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       : []),
   ];
 
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Análise de Metas de Redução</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Análise de Metas de Redução</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVisible(v => !v)}
+            className="gap-1.5 text-xs text-muted-foreground"
+          >
+            {visible ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {visible ? "Ocultar" : "Exibir"}
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent>
-        <ChartTabs tabs={tabs} defaultTab="tipo" />
-      </CardContent>
+      {visible && (
+        <CardContent>
+          <ChartTabs tabs={tabs} defaultTab="tipo" />
+        </CardContent>
+      )}
     </Card>
   );
 }
