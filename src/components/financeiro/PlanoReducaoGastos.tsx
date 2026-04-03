@@ -503,7 +503,51 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               <div className="hidden md:block">
                 {renderDesktopTable()}
               </div>
-                        <TableHead className="w-[120px]">Status</TableHead>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden">
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-3">
+                    {filteredRevisoes?.map((revisao) => (
+                      <RevisaoGastosCard
+                        key={revisao.id}
+                        revisao={revisao}
+                        onUpdateStatus={handleUpdateStatus}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Focus Mode Dialog */}
+      <Dialog open={focusMode} onOpenChange={setFocusMode}>
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-full p-0 flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold">Itens em Revisão — Modo Foco</h2>
+            <div className="flex items-center gap-2">
+              <Button onClick={exportarExcel} variant="outline" size="sm" className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Exportar
+              </Button>
+              <Button onClick={() => setFocusMode(false)} variant="ghost" size="sm" className="gap-2">
+                <Minimize2 className="h-4 w-4" />
+                Sair
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            {renderDesktopTable("max-h-[calc(95vh-120px)]")}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
                         <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
                         <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
                         <TableHead className="w-[100px]">Prazo</TableHead>
