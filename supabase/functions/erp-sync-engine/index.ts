@@ -320,6 +320,98 @@ async function recordSync(
     }
   }
 }
+
+// ─── Check consecutive failures and send email alert ───
+const ALERT_THRESHOLD = 2; // Send alert after 2+ consecutive non-success cycles
+
+async function checkAndSendSyncAlert(
+  supabase: ReturnType<typeof createClient>,
+  entidade: string,
+  data: { status: string; duracaoMs: number; erroMensagem?: string; empresaId?: number }
+) {
+  // Get last N sync_control entries for this entity (most recent first)
+  const { data: recentSyncs } = await supabase
+    .from("sync_control")
+    .select("status, erro_mensagem, created_at")
+    .eq("entidade", entidade)
+    .order("created_at", { ascending: false })
+    .limit(ALERT_THRESHOLD + 1);
+
+  if (!recentSyncs || recentSyncs.length < ALERT_THRESHOLD) return;
+
+  // Count consecutive non-success from the top
+  let consecutiveCount = 0;
+  for (const sync of recentSyncs) {
+    if (sync.status === "error" || sync.status === "partial") {
+      consecutiveCount++;
+    } else {
+      break;
+    }
+  }
+
+  if (consecutiveCount < ALERT_THRESHOLD) return;
+
+  // Check if we already sent an alert recently (within 2 hours) to avoid spam
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  const { data: recentAlerts } = await supabase
+    .from("email_send_log")
+    .select("id")
+    .eq("template_name", "sync-alert")
+    .gte("created_at", twoHoursAgo)
+    .limit(1);
+
+  if (recentAlerts && recentAlerts.length > 0) {
+    console.log(`📧 Sync alert already sent within 2h, skipping`);
+    return;
+  }
+
+  // Get admin emails
+  const { data: admins } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin");
+
+  if (!admins || admins.length === 0) return;
+
+  const adminIds = admins.map((a: any) => a.user_id);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("email")
+    .in("id", adminIds);
+
+  if (!profiles || profiles.length === 0) return;
+
+  const durationStr = data.duracaoMs > 1000
+    ? `${(data.duracaoMs / 1000).toFixed(1)}s`
+    : `${data.duracaoMs}ms`;
+
+  // Send alert to each admin
+  for (const profile of profiles) {
+    if (!profile.email) continue;
+    try {
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "sync-alert",
+          recipientEmail: profile.email,
+          idempotencyKey: `sync-alert-${entidade}-${data.empresaId || 0}-${new Date().toISOString().slice(0, 13)}`,
+          templateData: {
+            alertType: data.status,
+            entity: entidade,
+            empresaId: data.empresaId,
+            consecutiveCount,
+            lastError: data.erroMensagem || undefined,
+            lastDuration: durationStr,
+            timestamp: new Date().toISOString().replace("T", " ").slice(0, 19),
+          },
+        },
+      });
+      console.log(`📧 Sync alert sent to ${profile.email.slice(0, 3)}***`);
+    } catch (emailErr) {
+      console.error(`📧 Failed to send sync alert:`, emailErr);
+    }
+  }
+}
+
 // ─── Get last successful sync timestamp ───
 
 async function getLastSyncTimestamp(
