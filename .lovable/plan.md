@@ -1,99 +1,60 @@
 
 
-# Pipeline de Integração Direta com SQL Server — Dados Confirmados
+# Fase 2 — Pipeline Completo de Sync Direto com ERP
 
-## Dados de Conexão Identificados (do screenshot)
+## Tabelas SQL Server Confirmadas (do screenshot)
 
-| Parâmetro | Valor |
-|---|---|
-| Host | `rubysp.ddns.net` |
-| Porta | `1010` |
-| Database | `Ruby_sp` |
-| Usuário | `leandrosp` |
-| Senha | *(preciso que informe — estava cortada no screenshot)* |
-| Autenticação | SQL Auth (usuário/senha) |
+| View SQL Server | Destino Supabase | Status |
+|---|---|---|
+| `ConsultaPowerBIReceber` | `contas_receber` | ✅ Já testado na Fase 1 |
+| `ConsultaPowerBIPagar` | `contas_pagar` | 🆕 Novo |
+| `ConsultaPowerBI` | Possivelmente vendas/geral | 🔍 Investigar |
 
-## Secrets a Configurar
+Nota: Vendedores não aparece como view separada — pode estar em `ConsultaPowerBI` ou em outra tabela. Vamos adicionar uma rota de descoberta para listar todas as tabelas.
 
-Serão 5 secrets novos no backend (nenhum existe ainda):
+## Implementação
 
-| Secret | Valor |
-|---|---|
-| `ERP_SQL_HOST` | `rubysp.ddns.net` |
-| `ERP_SQL_PORT` | `1010` |
-| `ERP_SQL_USER` | `leandrosp` |
-| `ERP_SQL_PASSWORD` | *(você informa)* |
-| `ERP_SQL_DATABASE` | `Ruby_sp` |
+### 1. Adicionar rota `/list-tables` (descoberta temporária)
 
-## Arquitetura do Pipeline
+Query `INFORMATION_SCHEMA.TABLES` para listar todas as views/tabelas com "PowerBI", "Vend", "Pagar", "Receber" no nome. Isso confirma se vendedores está em alguma view específica.
 
-```text
-┌──────────────────────┐          ┌─────────────────────────┐
-│  SQL Server ERP      │◄─ TDS ──│  Edge Function           │
-│  rubysp.ddns.net:1010│          │  erp-sync-engine         │
-│  DB: Ruby_sp         │          │  (npm:tedious)           │
-└──────────────────────┘          └──────────┬──────────────┘
-                                             │ upsert batches
-                                   ┌─────────▼──────────────┐
-                                   │  Supabase Tables       │
-                                   │  contas_receber        │
-                                   │  contas_pagar          │
-                                   │  dimensao_vendedores   │
-                                   └────────────────────────┘
-```
+### 2. Adicionar rota `/sync-contas-receber`
 
-## Fluxo Atual vs Proposta
+Replica a lógica de `n8n-contas-receber`:
+- Query paginada: `SELECT * FROM ConsultaPowerBIReceber` (com filtro `WHERE` por data se fornecido)
+- Transforma usando `transformErpData()` (formato antigo com campos em português: `Valor em Aberto`, `ID Empresa`, etc.)
+- Upsert em batches de 100 na tabela `contas_receber` (conflict on `erp_id`)
+- Registra em `sync_control` e `sync_logs`
 
-```text
-HOJE:   Edge Function → N8N webhook (huggs.app.n8n.cloud) → SQL Server → N8N transforma → devolve → upsert
-DEPOIS: Edge Function → SQL Server direto (tedious) → transforma internamente → upsert
-```
+### 3. Adicionar rota `/sync-contas-pagar`
 
-## Implementação em 2 Fases
+- Query: `SELECT * FROM ConsultaPowerBIPagar`
+- Transformação similar, mapeando campos do SQL Server para `contas_pagar`
+- Upsert com conflict on chave única
 
-### Fase 1 — Teste de Conectividade
+### 4. Adicionar rota `/sync-all`
 
-Criar Edge Function `erp-sync-engine` mínima com rota `/test-connection`:
-- Importa `npm:tedious`
-- Conecta em `rubysp.ddns.net:1010` com SQL Auth
-- Executa `SELECT TOP 5 * FROM ConsultaPowerBIReceber` (ou tabela que confirmar)
-- Retorna resultado como JSON para validar driver + rede
+Executa as 3 syncs em sequência, retornando resultado consolidado.
+
+### 5. Adicionar rota `/status` (já existe parcial)
+
+Expandir para mostrar última sync de cada entidade.
+
+## Arquivos Alterados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Criar — função de teste |
+| `supabase/functions/erp-sync-engine/index.ts` | Expandir com rotas list-tables, sync-contas-receber, sync-contas-pagar, sync-all |
 
-### Fase 2 — Pipeline Completo (após teste OK)
+## Estratégia de Execução
 
-Expandir para rotas de sync completas, replicando a lógica do N8N:
+1. Primeiro deploy com `/list-tables` para confirmar estrutura das views
+2. Chamar `/list-tables` via curl para ver todas as tabelas disponíveis
+3. Com base nos resultados, implementar os mapeamentos corretos para cada sync
+4. Testar cada sync individualmente antes de ativar `/sync-all`
 
-| Rota | Query SQL Server | Destino Supabase |
-|---|---|---|
-| `/sync-contas-receber` | `ConsultaPowerBIReceber` | `contas_receber` |
-| `/sync-contas-pagar` | *(confirmar nome da tabela)* | `contas_pagar` |
-| `/sync-vendedores` | *(confirmar nome da tabela)* | `dimensao_vendedores` |
-| `/sync-all` | Todas em sequência | — |
-| `/status` | Testa conexão + última sync | — |
+## Próximo Passo (após pipeline pronto)
 
-Agendamento via `pg_cron` a cada 40 minutos (mesmo intervalo atual).
-
-## Informações que Ainda Faltam
-
-Antes de criar o pipeline, preciso confirmar:
-
-1. **Senha do SQL Server** — cortada no screenshot
-2. **Nomes exatos das tabelas/views** no SQL Server para cada entidade:
-   - Contas a Receber → `ConsultaPowerBIReceber`? (aparece no código N8N)
-   - Contas a Pagar → qual nome?
-   - Vendedores → qual nome?
-3. **TLS/Encrypt** — o SQL Server exige conexão criptografada? (geralmente `encrypt: false` para servidores on-premise com DDNS)
-
-## Ordem de Execução
-
-1. Você fornece a senha e confirma nomes das tabelas
-2. Configuro os 5 secrets no backend
-3. Crio a Fase 1 (teste de conectividade)
-4. Testamos juntos
-5. Se OK, implemento Fase 2 (pipeline completo + pg_cron)
-6. Atualizo UI: "N8N" → "Sync Direto ERP"
+- Criar job `pg_cron` para chamar `/sync-all` a cada 40 minutos
+- Desativar webhooks N8N gradualmente
 
