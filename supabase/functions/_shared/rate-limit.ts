@@ -29,6 +29,20 @@ export async function checkRateLimit(opts: RateLimitOptions): Promise<void> {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Check IP blocklist first
+  if (ip !== "unknown") {
+    const { data: blocked } = await supabase.rpc("is_ip_blocked", { p_ip: ip });
+    if (blocked === true) {
+      // Log blocked attempt
+      await supabase.from("security_audit_log").insert({
+        action: "blocked_by_blocklist",
+        severity: "high",
+        metadata: { ip, prefix, user_id: userId },
+      }).catch(() => {});
+      throw new RateLimitError();
+    }
+  }
+
   const { data: allowed } = await supabase.rpc("check_and_increment_rate_limit", {
     p_chave: key,
     p_limite: limit,
