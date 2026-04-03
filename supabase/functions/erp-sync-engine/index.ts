@@ -288,19 +288,28 @@ async function recordSync(
   });
 
   // Record in sync_metrics for observability
-  const rowsPerSecond = data.duracaoMs > 0 ? Math.round((data.totalRegistros / data.duracaoMs) * 1000) : 0;
-  await supabase.from("sync_metrics" as any).insert({
-    entity: entidade,
-    empresa_id: data.empresaId || 1,
-    pages: data.pagesProcessed || 0,
-    rows: data.totalRegistros,
-    rows_inserted: data.registrosInseridos,
-    duration_ms: data.duracaoMs,
-    errors: data.erroMensagem ? 1 : 0,
-    deadlock_retries: data.deadlockRetries || 0,
-    rows_per_second: rowsPerSecond,
-    status: data.status,
-  });
+  try {
+    const rowsPerSecond = data.duracaoMs > 0 ? Math.round((data.totalRegistros / data.duracaoMs) * 1000) : 0;
+    const { error: metricsError } = await supabase.from("sync_metrics" as any).insert({
+      entity: entidade,
+      empresa_id: data.empresaId || 1,
+      pages: data.pagesProcessed || 0,
+      rows: data.totalRegistros,
+      rows_inserted: data.registrosInseridos,
+      duration_ms: data.duracaoMs,
+      errors: data.erroMensagem ? 1 : 0,
+      deadlock_retries: data.deadlockRetries || 0,
+      rows_per_second: rowsPerSecond,
+      status: data.status,
+    });
+    if (metricsError) {
+      console.error(`⚠️ sync_metrics insert failed: ${metricsError.message}`, metricsError);
+    } else {
+      console.log(`📊 sync_metrics recorded: ${entidade} | ${data.totalRegistros} rows | ${rowsPerSecond} r/s`);
+    }
+  } catch (metricsErr) {
+    console.error(`⚠️ sync_metrics exception:`, metricsErr);
+  }
 }
 
 // ─── Get last successful sync timestamp ───
