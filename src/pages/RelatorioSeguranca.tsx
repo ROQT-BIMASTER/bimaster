@@ -1,9 +1,55 @@
 import { Button } from "@/components/ui/button";
-import { Printer, Shield, ArrowLeft } from "lucide-react";
+import { Printer, Shield, ArrowLeft, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+function useLiveSecuritySummary() {
+  return useQuery({
+    queryKey: ["security-report-live"],
+    queryFn: async () => {
+      const now = new Date();
+      const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [failedLogins, rateBlocks, criticalEvents, recentAudit] = await Promise.all([
+        supabase
+          .from("access_audit_log")
+          .select("*", { count: "exact", head: true })
+          .eq("action", "login_failed")
+          .gte("created_at", last24h),
+        supabase
+          .from("api_rate_limit")
+          .select("*", { count: "exact", head: true }),
+        supabase
+          .from("security_audit_log" as any)
+          .select("*", { count: "exact", head: true })
+          .eq("severity", "critical")
+          .gte("created_at", last7d),
+        supabase
+          .from("audit_logs")
+          .select("action, entity_type, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
+
+      return {
+        failedLogins24h: failedLogins.count ?? 0,
+        activeRateLimits: rateBlocks.count ?? 0,
+        criticalEvents7d: criticalEvents.count ?? 0,
+        recentActions: (recentAudit.data ?? []) as { action: string; entity_type: string; created_at: string }[],
+        fetchedAt: new Date().toISOString(),
+      };
+    },
+    staleTime: 60000,
+  });
+}
 
 const RelatorioSeguranca = () => {
   const navigate = useNavigate();
+  const { data: liveData, isLoading: liveLoading } = useLiveSecuritySummary();
 
   return (
     <>
