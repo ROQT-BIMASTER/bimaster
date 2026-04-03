@@ -1,11 +1,8 @@
-import { useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SyncControlPanel } from '@/components/financeiro/SyncControlPanel';
 import { ContasReceberSyncPanel } from '@/components/financeiro/ContasReceberSyncPanel';
 import { SyncMonitorPanel } from '@/components/financeiro/SyncMonitorPanel';
-import { PowerQueryInstructions } from '@/components/financeiro/PowerQueryInstructions';
-import { Server, Shield, FileSpreadsheet, Activity, BarChart3 } from 'lucide-react';
+import { Server, Activity, BarChart3 } from 'lucide-react';
 import { SyncMetricsDashboard } from '@/components/financeiro/SyncMetricsDashboard';
 
 export default function ContasReceberSyncPage() {
@@ -20,7 +17,7 @@ export default function ContasReceberSyncPage() {
         </div>
 
         <Tabs defaultValue="engine" className="w-full">
-          <TabsList className="grid w-full max-w-4xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-3">
             <TabsTrigger value="engine" className="flex items-center gap-2">
               <Server className="h-4 w-4" />
               ERP Engine
@@ -32,14 +29,6 @@ export default function ContasReceberSyncPage() {
             <TabsTrigger value="monitor" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Monitor
-            </TabsTrigger>
-            <TabsTrigger value="control-panel" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Painel Seguro
-            </TabsTrigger>
-            <TabsTrigger value="powerquery" className="flex items-center gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              Power Query
             </TabsTrigger>
           </TabsList>
 
@@ -53,14 +42,6 @@ export default function ContasReceberSyncPage() {
 
           <TabsContent value="monitor" className="mt-6">
             <SyncMonitorPanel />
-          </TabsContent>
-
-          <TabsContent value="control-panel" className="mt-6">
-            <SyncControlPanel />
-          </TabsContent>
-
-          <TabsContent value="powerquery" className="mt-6">
-            <PowerQueryInstructions />
           </TabsContent>
         </Tabs>
       </div>
