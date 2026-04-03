@@ -18834,6 +18834,62 @@ export type Database = {
           },
         ]
       }
+      plano_contas_mapeamento_categorias: {
+        Row: {
+          categoria_nome: string
+          confianca: number | null
+          created_at: string | null
+          id: string
+          justificativa: string | null
+          plano_contas_codigo: string | null
+          plano_contas_id: string | null
+          plano_contas_nome: string | null
+          qtd_titulos: number | null
+          revisado_manualmente: boolean | null
+          top_fornecedores: string[] | null
+          updated_at: string | null
+          valor_medio: number | null
+        }
+        Insert: {
+          categoria_nome: string
+          confianca?: number | null
+          created_at?: string | null
+          id?: string
+          justificativa?: string | null
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+          qtd_titulos?: number | null
+          revisado_manualmente?: boolean | null
+          top_fornecedores?: string[] | null
+          updated_at?: string | null
+          valor_medio?: number | null
+        }
+        Update: {
+          categoria_nome?: string
+          confianca?: number | null
+          created_at?: string | null
+          id?: string
+          justificativa?: string | null
+          plano_contas_codigo?: string | null
+          plano_contas_id?: string | null
+          plano_contas_nome?: string | null
+          qtd_titulos?: number | null
+          revisado_manualmente?: boolean | null
+          top_fornecedores?: string[] | null
+          updated_at?: string | null
+          valor_medio?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_contas_mapeamento_categorias_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "trade_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plano_contas_migracao: {
         Row: {
           confianca: string | null
@@ -32016,6 +32072,7 @@ export type Database = {
       }
     }
     Functions: {
+      aplicar_mapeamento_plano_contas: { Args: never; Returns: Json }
       archive_old_audit_logs: { Args: never; Returns: undefined }
       atualizar_perfil_credito_cliente:
         | {
