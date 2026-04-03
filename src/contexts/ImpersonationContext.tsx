@@ -201,7 +201,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
       return impersonatedPermissions.modules.includes(moduleCode);
     }
     return realPermissions.hasModulePermission(moduleCode);
-  }, [impersonatedPermissions, realPermissions]);
+  }, [impersonatedPermissions, realPermissions.isAdmin, realPermissions.hasModulePermission]);
 
   // Check screen permission - impersonation is valid only for admins
   const hasScreenPermission = useCallback((screenCode: string): boolean => {
@@ -210,7 +210,7 @@ export const ImpersonationProvider = ({ children }: { children: ReactNode }) => 
       return impersonatedPermissions.screens.includes(screenCode);
     }
     return realPermissions.hasScreenPermission(screenCode);
-  }, [impersonatedPermissions, realPermissions]);
+  }, [impersonatedPermissions, realPermissions.isAdmin, realPermissions.hasScreenPermission]);
 
   const value = useMemo(() => ({
     isImpersonating: realPermissions.isAdmin && !!impersonatedUser,

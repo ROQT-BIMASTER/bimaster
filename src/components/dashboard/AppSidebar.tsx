@@ -445,9 +445,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     fetchUserName();
   }, [user?.id]);
 
+  // Ref estável para hasModulePermission (evita loop infinito por mudança de identidade)
+  const hasModulePermRef = useRef(hasModulePermission);
+  hasModulePermRef.current = hasModulePermission;
+
   // Buscar tabelas pendentes
   useEffect(() => {
-    if (loading || !hasModulePermission("precos")) {
+    if (loading || !hasModulePermRef.current("precos")) {
       setTabelasPendentes(0);
       return;
     }
@@ -464,7 +468,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fabrica_tabelas_preco' }, () => fetchPendentes())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [loading, hasModulePermission]);
+  }, [loading]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
