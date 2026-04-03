@@ -385,6 +385,8 @@ function AppContent() {
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Auth />} />
             <Route path="/auth/signup" element={<Navigate to="/auth/login" replace />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
             
