@@ -250,8 +250,7 @@ export default function SaldosBancarios() {
     return 0;
   };
 
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  // formatCurrency importado de @/lib/formatters
 
   if (isLoadingAccounts) {
     return (

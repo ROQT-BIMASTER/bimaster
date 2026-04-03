@@ -1099,14 +1099,8 @@ export default function DREAnalitico() {
   };
 
   const formatarValor = (valor: number, compacto = false) => {
-    if (compacto && Math.abs(valor) >= 1000) {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1
-      }).format(Math.abs(valor));
-    }
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2
-    }).format(Math.abs(valor));
+    if (compacto) return formatCurrencyCompact(Math.abs(valor));
+    return formatCurrency(Math.abs(valor));
   };
 
   const formatarPercentual = (valor: number | null) => {
