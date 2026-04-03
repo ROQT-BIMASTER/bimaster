@@ -1,86 +1,169 @@
 
 
-# Dicionário de Referência para Classificação 100% Precisa
+# Classificação Direta via SQL — Todas as 248 Categorias
 
-## Problema
+## Situação Atual
 
-A IA classifica as 248 categorias do ERP com base em "intuição semântica" — ela lê o nome e tenta adivinhar. Isso gera erros como classificar "CAMERAS" em Segurança quando deveria ser Investimento, ou "DIVERSOS" sem critério.
+- **47.566 títulos** em `contas_pagar`, apenas **65 classificados**
+- **248 categorias** distintas do ERP
+- **100+ contas analíticas** no plano de contas v2
 
-## Solução: Dicionário Hardcoded DE→PARA
+## Solução
 
-Criar um **dicionário fixo** com o mapeamento exato de cada categoria ERP para o código do plano de contas. A IA só será usada para categorias que **não estejam no dicionário** (casos novos futuros).
+Executar uma **migração SQL direta** com UPDATE em massa usando CASE WHEN para mapear cada categoria ao plano de contas correto. Sem dependência de IA — mapeamento 100% determinístico feito por mim analisando o contexto do negócio (Ruby Rose, distribuidora de cosméticos).
 
-### Fluxo Atualizado
+## Mapeamento Completo (248 categorias → plano v2)
 
-```text
-1. Categoria ERP chega → Consulta dicionário hardcoded
-2. Se encontrou → usa mapeamento direto (confiança 100%)
-3. Se NÃO encontrou → chama IA (apenas para categorias novas/desconhecidas)
-```
+Vou agrupar por área para clareza:
 
-### O Dicionário (exemplos do mapeamento completo)
+### FORNECEDORES / PRODUTOS (→ 2.1.x)
+- COMPRA DE MERCADORIA PARA REVENDA → 2.1.1
+- PAGAMENTOS DE DEVOLUÇÃO, FRETE DEVOLUÇÃO DE VENDAS, FRETE PARA DEVOLUÇÃO, FRETE REENTREGA DE VENDAS, DESCONTOS COMERCIAIS → 2.1.2
+- DESPESAS PAGAS C/DINHEIRO (COFRE)CHEQUES, PRODUTOS, PRODUTOS/ACESSORIOS, PRODUTOS P/ UTILIZAÇÃO DOS TECNICOS → 2.1.3
+- RUBY ROSE - MARCA → 2.1.1
 
-Vou construir o mapeamento completo das 248 categorias analisando o contexto do negócio. Exemplos:
+### EMBALAGENS (→ 2.2)
+- EMBALAGENS, CAIXAS TERCIARIA, ETIQUETAS DIVERSAS → 2.2
 
-| Categoria ERP | Código | Conta |
-|---|---|---|
-| COMPRA DE MERCADORIA PARA REVENDA | 2.1.1 | Compras Ruby Rose |
-| SALARIOS | 3.2.1 | Salários CLT |
-| 13º SALARIO | 3.2.7 | 13º salário |
-| FÉRIAS | 3.2.8 | Férias |
-| ALUGUEL DE DEPÓSITO | 3.1.1.1 | Depósito |
-| ALUGUEL DE ESCRITÓRIO | 3.1.1.2 | Escritório |
-| AGUA DEPOSITO / AGUA ESCRITORIO | 3.1.3 | Conta de Água |
-| ELETRICIDADE DEPOSITO / ESCRITORIO | 3.1.2 | Conta de Luz |
-| FRETES AGREGADOS | 2.4.2 | Agregados / Freelances |
-| ESCOLTA | 2.4.4 | Escoltas |
-| ICMS / IMPOSTO ESTADUAL | 2.5.2 | ICMS/GNRE |
-| IMPOSTO FEDERAL | 2.5.1 | Simples Nacional |
-| CONTABILIDADE EXTERNA | 3.1.8.3 | Contabilidade |
-| COMISSAO | 2.6.1 | Comissões |
-| DISTRIBUIÇÃO DE LUCRO | 4.4.2 | Retirada de Lucros |
-| EMPRESTIMOS | 4.3.1 | Empréstimos bancos - Amortizações |
-| ... (todas as 248) | ... | ... |
+### FRETES (→ 2.4.x)
+- TRANSPORTADORA/VENDAS ONLINE, FRETE TRANSF. FORNECEDOR, FRETE TRANSF. TERCEIRISTA, LOGÍSTICA, CARGA E DESCARGA, FRETE PARA REPRESENTANTES → 2.4.1
+- FRETES AGREGADOS → 2.4.2
+- CORREIOS/VENDAS ONLINE → 2.4.3
+- ESCOLTA → 2.4.4
+- SEGURO DE TRANSPORTE / OUTROS → 2.4.5
+
+### IMPOSTOS (→ 2.5.x)
+- SIMPLES NACIONAL, IMPOSTO FEDERAL, TRIBUTOS FEDERAIS, IMPOSTOS/TAXAS, SISTEMA FISCAL TRIBUTÁRIO → 2.5.1
+- TRIBUTOS ESTADUAIS, IMPOSTO ESTADUAL, ICMS → 2.5.2
+- PIS → 2.5.3 / COFINS → 2.5.4 / IRPJ → 2.5.5 / CSLL → 2.5.6
+- IMPOSTO MUNICIPAL, TRIBUTOS MUNICIPAIS → 3.1.6.2
+- IMPOSTOS- APLICA FINANCEIRA → 2.5.1
+
+### COMERCIAL (→ 2.6.x)
+- COMISSAO → 2.6.1
+- REPRESENTANTES, REPRESENTANTE, COORDENADORES, GERENTES, SUPERVISORES, PROMOTORAS, PROMOTOR → 2.6.1
+- DISPLAY, PRODUTOS PARA DISPLAY, BRINDES/PRODUTOS, TABLOIDS/NEGOCIAÇÕES → 2.6.2
+- PREMIOS/ GUELTAS → 2.6.2
+
+### TARIFAS (→ 2.7.1)
+- TARIFAS BANCARIAS, TAXAS ADMINISTRATIVAS, TAXAS REF. SERVIÇOS DE TERCEIROS, TAXA DE CUSTO → 2.7.1
+
+### ALUGUÉIS (→ 3.1.1.x)
+- ALUGUEL DE DEPÓSITO, CUSTO DEPÓSITO → 3.1.1.1
+- ALUGUEL DE ESCRITÓRIO, CUSTO ESCRITÓRIO → 3.1.1.2
+
+### UTILIDADES (→ 3.1.x)
+- ELETRICIDADE DEPOSITO, ELETRICIDADE ESCRITORIO, ELETRICIDADE RESIDENCIAL, REDE ELETRICA → 3.1.2
+- AGUA DEPOSITO, AGUA ESCRITORIO, GARRAFAS DE ÁGUA → 3.1.3
+- INTERNET/MANUTENÇÃO SERVIDOR, PROVEDOR → 3.1.4
+- TELEFONIA FIXA, EQUIPAMENTO TELEFONICO (PABX) → 3.1.5.1
+- TELEFONIA MOVEL, CONSERTO TELEFONE E OUTROS, TELEFONIA - ASSISTENCIA E EQUIPAMENTOS → 3.1.5.2
+- IPTU, TFS- TX FISC. SANITARIA, TFLF- TX. FISC. LOCALIZ. E FUNCIONAMENTO, VIGILANCIA SANITARIA → 3.1.6.1
+- TAXAS EM GERAL / MULTAS → 3.1.6.2
+- MATERIAIS DE ESCRITÓRIO, MATERIAL ELETRICO → 3.1.7
+- MONITORAMENTO, CUSTO EQUIPAMENTO DE ALARME, SEGURANÇA, SEGURANÇA - SERVIÇOS → 3.1.8.1
+- SERVIÇOS DE TERCEIROS, SERVIÇOS PRESTADOS/TERCEIROS, MÃO DE OBRA, PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO → 3.1.8.2 (Limpeza? Não — Outros Serviços 3.1.8.9)
+- CONTABILIDADE EXTERNA, CONTABILIDADE INTERNA → 3.1.8.3
+- SERVIÇOS DE FREELANCER, CONTRATADO PJ, PRESTADOR PESSOA JURIDICA, PRESTAÇÃO DE SERVIÇOS/ESTAGIOS / MOTOBOY → 3.1.8.4
+- DEDETIZAÇÃO, RECICLAGEM → 3.1.8.5
+- IMPRESSORAS - MANUTENÇÃO, IMPRESSORAS - COMPRA, MATERIAIS GRAFICOS/PASTAS, MATERIAL GRAFICO/EQUIPAMENTOS → 3.1.8.6
+- CONSULTA DE CREDITO, SERASA → 3.1.8.7
+- LEGAL - GERAL/HONORARIOS ADVOCATICIO, LEGAL - TRADEMARK ETC, PROCESSO TRABALHISTAS → 3.1.8.8
+- DIVERSOS, DIVERSOS , OUTROS, SISTEMA DE TERCEIROS, ANUIDADE DE ENTIDADES DE CLASSE, ASSINATURA REVISTA → 3.1.8.9
+- MANUTENÇÃO EQUIPAMENTO ESCRITÓRIO/DEPÓSITO, MANUTENÇÃO / ACESSORIOS, MANUTENÇÃO MAQUINA DE ANALISE → 3.1.9.1
+- FERRAMENTAS E ACEESSORIOS, EQUIPAMENTOS DIVERSOS, EQUIPAMENTO - NÃO COMPUTADOR, EQUIPAMENTO DE EMPILHAR - PEQUENO, EMPILHADEIRA, PALETERA, PALETES, PORTA PALETES, PRATELEIRA PARA DEPÓSITO → 3.1.9.2
+- DISPESAS DE COMBUSTIVEL → 3.1.10.3
+- SEGURO DEPOSITO, SEGUROESCRITORIO, SEGURO BENS → 3.1.11
+- CUSTAS CARTORIO, DESPESAS CARTORIO → 3.1.12
+- DESPESAS CORREIO (ADM) → 3.1.13
+- MATERIAL DE COPA E COZINHA, MATERIAL PARA SEGURANÇA NO TRABALHO, MATERIAIS DE VITRINE, MATERIAL PARA REFORMA → 3.1.14
+- PASSAGENS/TAXI, ESTACIONAMENTO / OUTROS, KM/PEDAGIOS/OUTROS → 3.1.15
+- LANCHES E REFEIÇÕES, ALIMENTAÇÃO, ALIMENTAÇÃO/BEBIDAS, Coffe Break, BUFFE → 3.1.16
+- REEMBOLSO, REEMBOLSOS DIVERSOS → 3.1.17
+- DESPESAS DE VIAGEM, HOSPEDAGEM/HOTEL, HOTEL, PASSAGENS, PASSAGENS/TRANSPORTES, DESPESAS DE DESLOCAMENTO / ALIMENTAÇÃO → 3.1.18
+- LOCAÇÃO, LOCAÇÃO PALHETEIRA ELETRICA, ALUGUEL EQUIPAMENTO DE ESCRITÓRIO → 3.1.19
+- CARTÃO DE CRÉDITO, Anuidade cartao credito → 3.1.20
+- COMPUTADORES, HARDWARE, INFORMATICA/REDE → 3.1.21
+- SOFTWARE, SITES / DOMINIO, REGISTRO DOMINIOS, DESENVOLVIMENTO SITES/REDE SOCIAIS → 3.1.22
+- EQUIPAMENTO DE SEGURANÇA / INCENDIO, EQUIPAMENTOS DE INCENDIOS, CAMERAS → 3.1.23
+- ARMAZENAGEM MERCADORIA → 3.1.19
+
+### PESSOAL (→ 3.2.x)
+- SALARIOS, ADIANTAMENTO DE SALARIOS, Horas Extras → 3.2.1 (Salários CLT — need the right ID)
+- AJUDA DE CUSTO → 3.2.1.1.2
+- CONTRATADO PJ already mapped above to 3.1.8.4
+- TECNICO DE QUIMICA/FARMACIA → 3.2.2.1
+- VALE TRANSPORTE, TRANSPORTE/PASSAGEM → 3.2.3.1
+- PENSÃO ALIMENTICIA → 3.2.4.1
+- MEDICINA E SEGURANÇA OCUPACIONAL, FARMACIA → 3.2.5
+- REGISTRO DE PONTO → 3.2.6
+- 13º SALARIO, Pagamento 13º → 3.2.7
+- FÉRIAS → 3.2.8
+- RESCISÃO, GUIA RESCISORIO, CUSTO DE DEMISOES → 3.2.9
+- MATERIAL DE COPA E COZINHA already → 3.1.14
+- RECRUTAMENTO SELEÇÃO/TREINAMENTO, CONSULTORIA RH, TREINADORES/CONSULTORIA, PALESTRAS/TERCEIROS → 3.2.11
+- BENEFICIOS/CESTAS → 3.2.12.1
+- PLANO DE SAUDE, SEGURO DE PESSOAL, PREVIDENCIA PRIVADA → 3.2.12.2
+- VALE REFEIÇÃO/ALIMENTAÇÃO → 3.2.12.3
+- Ação comemorativa, AÇÕES PARA FUNCIONÁRIOS, CONFRATERNIZAÇÃO, UNIFORMES, UNIFORMES , UNIFORMES PARA FUNCIONARIOS → 3.2.13.1
+- BONIFICAÇÃO FUNCIONARIO, GRATIFICAÇÃO 2024 PR → 3.2.13.2
+- DESPESA COM FUNCIONARIO, ANUNCIOS PARA CONTRATAÇÃO DE FUNCIONARIOS, SINDICATO → 3.2.14
+
+### MARKETING (→ 3.3.x)
+- AGÊNCIAS DE PUBLICIDADE E MKT, VEICULAÇÃO DE MÍDIA OFFLINE → 3.3.1
+- PRODUÇÃO DE EVENTOS, PRODUTORA AUDIOVISUAL → 3.3.2
+- PREMIOS/ GUELTAS already → 2.6.2, but BRINDES stay here: → 3.3.3
+- CENOGRAFIA → 3.3.2
+- CONTRUÇÃO DE STAND → 3.3.7
+- CONSULTORIA MARKETING, CONSULTORIA COMERCIAL, CONSULTORIA → 3.3.6
+- ROYALTIES → 3.3.8
+- MODELOS/MANEQUINS/INFLUENCER, RECEPCIONISTA/PROMOTORAS/MAQUIADORAS, PROMOTORAS/REPOSITORES/FREE E BICOS → 3.3.9/3.3.10
+- MIDIA SOCIAL, LAY-OUT/CRIAÇÃO → 3.3.11
+- COMUNICAÇÃO VISUAL → 3.3.12
+- FOTOS/IMAGENS/TRATAMENTOS → 3.3.13
+- MATERIAIS DE VITRINE → 3.3.5
+
+### FINANCEIRO (→ 3.4.x)
+- JUROS/MULTAS/CORREÇÕES, ENCARGOS FINANCEIROS → 3.4.1
+- RENDIMENTO APLIC AUTOM, RECEBIVEIS → 3.4.2
+
+### SÓCIOS (→ 3.5.1 / 4.4.x)
+- PRO LABORE → 3.5.1
+- DISTRIBUIÇÃO DE LUCRO, Pagamento de Dividendos → 4.4.2
+
+### PATRIMÔNIO (→ 4.x)
+- EMPRESTIMOS → 4.3.1
+- Parcelamento → 4.3.7
+- ESTORNO DE PAGAMENTO → 4.1.1
+- REFORMA NOVO BARRACÃO, MOVEIS → 4.2.4
+- CHEQUE, CHEQUE DEVOLVIDO (+), DEPOSITO CHEQUE DEVOLVIDO → 4.1.1
+- TRANSFERENCIA (-) → 4.1.2
+- TRANSFERENCIA (+) → 4.1.1
+
+### REGIONAIS (regiões de frete/venda → 2.4.1)
+- SUL: RS/SC/PR, SÃO PAULO: CAPITAL, SÃO PAULO: INTERIOR, SUDESTE: RJ/MG/ES, CENTROESTE: MT/MS/GO/DF → 2.4.1
+
+### ESPECIAIS
+- event_expense - EV-2026-003 → 3.3.2
+- AGENCIAS, AGENDAMENTO/TDE → 3.3.1
+- CLIENTES, CONSUMIDOR, VENDAS DIRETO → 2.1.2
 
 ## Implementação
 
-### 1. Edge Function `classificar-contas-lote`
+### Migração SQL
 
-Adicionar o dicionário como constante no código. No action `classify`:
-- Primeiro tenta resolver via dicionário (match exato ou fuzzy por similaridade)
-- Só envia para IA as categorias que não foram resolvidas
-- Resultado: maioria resolvida instantaneamente com 100% de confiança
+Uma única migração com:
 
-### 2. Interface — Indicador Visual
+1. **INSERT** na tabela `plano_contas_mapeamento_categorias` — registra o mapeamento permanente das 248 categorias
+2. **UPDATE em massa** no `contas_pagar` usando JOIN com a tabela de mapeamento para setar `plano_contas_id`, `plano_contas_codigo`, `plano_contas_nome` nos 47.566 registros
 
-Na fase de revisão, mostrar:
-- Badge verde "Dicionário" para mapeamentos diretos (100%)
-- Badge azul "IA" para mapeamentos por inteligência artificial
-- Usuário pode corrigir e o sistema **aprende** (salva correção no dicionário para próximas vezes)
+Nota: Preciso verificar se existe conta `3.2.1` (Salários CLT) no banco. Se não existir, usarei a conta mais próxima disponível.
 
-### 3. Aprendizado Contínuo
+### Observação sobre contas ausentes
 
-Quando o usuário corrigir manualmente um mapeamento na fase de revisão, salvar na tabela `plano_contas_mapeamento_categorias` com `revisado_manualmente = true`. Na próxima execução, consultar essa tabela ANTES do dicionário hardcoded — assim correções manuais têm prioridade máxima.
+Algumas contas como `3.2.1` (Salários CLT — nível 3) podem ser grupo e não analítica. Se for grupo, os salários irão para `3.2.14` (Outras despesas com pessoal) ou criaremos a conta analítica.
 
-```text
-Prioridade de resolução:
-1º → Correções manuais do usuário (tabela DB)
-2º → Dicionário hardcoded (248 categorias)
-3º → IA (apenas categorias totalmente novas)
-```
-
-## Resultado
-
-| Antes | Depois |
+| Ação | Detalhe |
 |---|---|
-| 100% via IA (~95% precisão) | ~98% via dicionário (100% precisão) + ~2% via IA |
-| 9 chamadas de IA | 0-1 chamadas de IA |
-| Pode errar em categorias ambíguas | Mapeamento determinístico |
-
-## Arquivos
-
-| Arquivo | Mudança |
-|---|---|
-| `supabase/functions/classificar-contas-lote/index.ts` | Adicionar dicionário DE→PARA + lógica de fallback para IA |
-| `src/components/configuracoes/ClassificarContasEmLoteDialog.tsx` | Badge "Dicionário" vs "IA" na revisão |
+| Migração SQL | INSERT 248 mapeamentos + UPDATE 47.566 registros em massa |
 
