@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Receipt, AlertCircle, Clock, TrendingDown, TrendingUp, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/formatters";
 
 interface FinanceiroStats {
   contasPagarPendentes: number;
