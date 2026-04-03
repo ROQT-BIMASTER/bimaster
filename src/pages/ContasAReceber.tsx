@@ -34,7 +34,7 @@ import { CalendarioRecebimentosAggregated } from "@/components/financeiro/Calend
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
-import { SyncMonitorPanel } from "@/components/financeiro/SyncMonitorPanel";
+
 
 interface ContaReceber {
   id: string;
@@ -95,7 +95,7 @@ export default function ContasAReceber() {
   const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
   const [filterDiaEmissao, setFilterDiaEmissao] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showSyncMonitor, setShowSyncMonitor] = useState(false);
+  
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -831,18 +831,12 @@ export default function ContasAReceber() {
               Importar CSV
             </Button>
             {isAdmin && (
-              <>
-                <Button onClick={() => setShowSyncMonitor(true)} variant="outline" className="gap-2">
-                  <FileBarChart className="h-4 w-4" />
-                  Monitor Sync
-                </Button>
-                <Button asChild variant="default" className="gap-2">
-                  <Link to="/dashboard/financeiro/contas-a-receber/sync">
-                    <RefreshCw className="h-4 w-4" />
-                    Sincronizar ERP
-                  </Link>
-                </Button>
-              </>
+              <Button asChild variant="default" className="gap-2">
+                <Link to="/dashboard/financeiro/contas-a-receber/sync">
+                  <RefreshCw className="h-4 w-4" />
+                  ERP Sync
+                </Link>
+              </Button>
             )}
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
@@ -867,16 +861,6 @@ export default function ContasAReceber() {
           }}
         />
 
-        {/* Sync Monitor Drawer */}
-        <Drawer open={showSyncMonitor} onOpenChange={setShowSyncMonitor}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Monitor de Sincronização</DrawerTitle>
-              <DrawerDescription>Histórico e status das sincronizações com o ERP</DrawerDescription>
-            </DrawerHeader>
-            <SyncMonitorPanel />
-          </DrawerContent>
-        </Drawer>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
