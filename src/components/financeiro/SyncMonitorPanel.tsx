@@ -177,8 +177,8 @@ export function SyncMonitorPanel() {
                 <p className="text-sm font-medium">{formatDuration(lastSync.duracao_ms || 0)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1"><Shield className="h-3 w-3" />SSL</p>
-                <Badge variant="default" className="gap-1 text-xs"><CheckCircle className="h-3 w-3" />Ativo</Badge>
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><Shield className="h-3 w-3" />Conexão</p>
+                <Badge variant="outline" className="gap-1 text-xs"><Shield className="h-3 w-3" />Rede Interna</Badge>
               </div>
             </div>
           ) : (

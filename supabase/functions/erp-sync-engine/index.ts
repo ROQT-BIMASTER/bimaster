@@ -669,7 +669,7 @@ async function handleStatus(req: Request, startMs: number) {
     success: true,
     sqlServerConnected: sqlOk,
     sqlServerError: sqlError || undefined,
-    sslEnabled: true,
+    sslEnabled: false,
     lastSync: {
       contas_receber: lastCR || null,
       contas_pagar: lastCP || null,
