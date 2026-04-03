@@ -95,7 +95,7 @@ export default function ContasAReceber() {
   const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
   const [filterDiaEmissao, setFilterDiaEmissao] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showSyncMonitor, setShowSyncMonitor] = useState(false);
+  
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
