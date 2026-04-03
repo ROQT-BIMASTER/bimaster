@@ -1,45 +1,55 @@
 
 
-# Contas a Receber no DRE — Usar Sempre Data de Recebimento
+# Fix: Contas a Receber Truncadas no DRE (Limite 1000 linhas)
 
-## Problema
+## Diagnóstico Confirmado
 
-A RPC `get_contas_receber_dre` usa `data_emissao` (faturamento) no regime de competência, mas o usuário ainda não conectou os dados de faturamento por NF. Portanto, **ambos os regimes** devem usar `data_recebimento` como referência de data, filtrando apenas registros com status `recebido`.
+A RPC `get_contas_receber_dre` retorna **45.118 linhas** (cliente × mês), mas o PostgREST **limita a 1.000 linhas** na resposta. Resultado: DRE mostra ~R$3,9M em vez de ~R$231M.
 
-## Alteração
+Valores reais no banco (2025):
+- Janeiro: R$17M | Fevereiro: R$14,9M | ... | Novembro: R$30,2M | Dezembro: R$21M
+- **Total anual: R$231M**
 
-### 1. Migração: Atualizar RPC `get_contas_receber_dre`
+## Solução
 
-Modificar a função para que **tanto caixa quanto competência** usem `data_recebimento` e filtrem por `status = 'recebido'`:
+Criar **2 RPCs** substituindo a atual:
+
+### 1. `get_contas_receber_dre_totais` — Totais por mês (12 linhas max)
+
+Agrega tudo por mês, sem detalhe de cliente. Usada para os **valores do DRE** (cálculos de receita bruta).
 
 ```sql
-CREATE OR REPLACE FUNCTION public.get_contas_receber_dre(...)
-AS $$
-  SELECT 
-    COALESCE(cr.cliente_codigo::text, 'sem-cliente'),
-    COALESCE(cr.cliente_nome, 'Cliente não identificado'),
-    to_char(cr.data_recebimento, 'YYYY-MM'),
-    SUM(cr.valor_original),
-    SUM(COALESCE(cr.valor_recebido, 0)),
-    COUNT(*)
-  FROM contas_receber cr
-  WHERE 
-    cr.status = 'recebido'
-    AND cr.data_recebimento >= p_data_inicio 
-    AND cr.data_recebimento <= p_data_fim
-    AND (p_empresa_nome IS NULL OR cr.empresa_nome = p_empresa_nome)
-  GROUP BY 1, 2, 3
-$$;
+RETURNS TABLE(mes text, valor_original numeric, valor_recebido numeric, qtd_documentos bigint)
+-- Retorna no máximo 12-13 linhas por ano = nunca atinge limite
 ```
 
-O parâmetro `p_regime` será mantido na assinatura para compatibilidade futura (quando NF for integrada), mas por ora ambos os regimes usam a mesma lógica.
+### 2. `get_contas_receber_dre_clientes` — Top clientes para drill-down (limitada)
 
-### 2. Frontend (`DREAnalitico.tsx`)
+Agrega por cliente (total do período, sem mês), limitada aos **top 50 clientes** por valor. Usada apenas para expandir a árvore.
 
-O valor usado no regime de competência também passa a ser `valor_recebido` (já é o comportamento do caixa). Ajustar a linha 576-578 para usar `valor_recebido` em ambos os casos.
+```sql
+RETURNS TABLE(cliente_codigo text, cliente_nome text, valor_recebido numeric, qtd_documentos bigint)
+LIMIT 50
+```
+
+### 3. Frontend (`DREAnalitico.tsx`)
+
+- Usar `get_contas_receber_dre_totais` para popular `receitaBruta.valoresMensais` — garante totais corretos
+- Usar `get_contas_receber_dre_clientes` apenas para os nós filhos da árvore (drill-down visual)
+- Remover chamada atual à RPC `get_contas_receber_dre`
+
+## Resultado
+
+| Antes | Depois |
+|---|---|
+| 45.118 linhas → truncado em 1.000 | 12 linhas (totais) + 50 linhas (clientes) |
+| R$3,9M exibido | R$231M exibido (valor real) |
+| 1 RPC | 2 RPCs paralelas, ambas sub-segundo |
+
+## Arquivos
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migração SQL | Recriar RPC sem CASE por regime — sempre `data_recebimento` + `status = 'recebido'` |
-| `src/pages/DREAnalitico.tsx` | Linha ~576: usar `valor_recebido` para ambos os regimes |
+| Nova migração SQL | Criar 2 RPCs novas, dropar a antiga |
+| `src/pages/DREAnalitico.tsx` | Substituir chamada RPC por 2 queries paralelas, ajustar construção da hierarquia |
 
