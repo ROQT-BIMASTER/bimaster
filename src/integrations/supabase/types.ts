@@ -24541,6 +24541,140 @@ export type Database = {
         }
         Relationships: []
       }
+      security_incidents: {
+        Row: {
+          auto_action_taken: string | null
+          created_at: string
+          description: string | null
+          empresa_id: number | null
+          id: string
+          incident_type: string
+          notes: string | null
+          related_events: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          risk_score: number | null
+          severity: string
+          source_ip: unknown
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          auto_action_taken?: string | null
+          created_at?: string
+          description?: string | null
+          empresa_id?: number | null
+          id?: string
+          incident_type: string
+          notes?: string | null
+          related_events?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_score?: number | null
+          severity?: string
+          source_ip?: unknown
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          auto_action_taken?: string | null
+          created_at?: string
+          description?: string | null
+          empresa_id?: number | null
+          id?: string
+          incident_type?: string
+          notes?: string | null
+          related_events?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_score?: number | null
+          severity?: string
+          source_ip?: unknown
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_ip_blocklist: {
+        Row: {
+          blocked_by: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          incident_id: string | null
+          ip_address: unknown
+          is_active: boolean
+          reason: string
+        }
+        Insert: {
+          blocked_by?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          incident_id?: string | null
+          ip_address: unknown
+          is_active?: boolean
+          reason: string
+        }
+        Update: {
+          blocked_by?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          incident_id?: string | null
+          ip_address?: unknown
+          is_active?: boolean
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_ip_blocklist_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_user_risk_score: {
+        Row: {
+          created_at: string
+          factors: Json | null
+          id: string
+          last_calculated_at: string
+          risk_level: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          factors?: Json | null
+          id?: string
+          last_calculated_at?: string
+          risk_level?: string
+          score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          factors?: Json | null
+          id?: string
+          last_calculated_at?: string
+          risk_level?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sensitive_access_log: {
         Row: {
           accessed_at: string | null
@@ -32567,6 +32701,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_ip_blacklisted: { Args: { p_ip: unknown }; Returns: boolean }
+      is_ip_blocked: { Args: { p_ip: unknown }; Returns: boolean }
       is_participant_of_conversa: {
         Args: { conversa_id_param: string; user_id_param: string }
         Returns: boolean
