@@ -691,32 +691,77 @@ export default function ContasAReceber() {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Emissão</label>
-            <Input 
-              type="date" 
-              value={filterDiaEmissao} 
-              onChange={(e) => { setFilterDiaEmissao(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaEmissao ? formatLocalDate(filterDiaEmissao) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaEmissao ? new Date(filterDiaEmissao + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaEmissao(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Vencimento</label>
-            <Input 
-              type="date" 
-              value={filterDiaVencimento} 
-              onChange={(e) => { setFilterDiaVencimento(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaVencimento ? formatLocalDate(filterDiaVencimento) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaVencimento ? new Date(filterDiaVencimento + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaVencimento(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Recebimento</label>
-            <Input 
-              type="date" 
-              value={filterDiaRecebimento} 
-              onChange={(e) => { setFilterDiaRecebimento(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaRecebimento ? formatLocalDate(filterDiaRecebimento) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaRecebimento ? new Date(filterDiaRecebimento + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaRecebimento(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
