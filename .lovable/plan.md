@@ -1,51 +1,55 @@
 
 
-# Migração: Manter Descrição Original e Seguir Sequência do Cliente
+# Reorganizar Impostos no Plano de Contas v2 — Federal, Estadual, Municipal
 
-## Problema
+## Situação Atual
 
-Na tabela de migração, as contas novas (v2) estão com nomes diferentes das contas antigas. Exemplo:
-- `3.4.04 IRPJ` → `2.5.3 COFINS/CSLL/PIS/IRPJ` (nome mudou)
-- `1100 Material POP` → `2.6.2 Despesas de Trade Comercial` (nome genérico)
+O grupo **2.4 IMPOSTOS E TRIBUTOS** está desativado e os impostos ativos estão "soltos":
+- `2.4.2.1` Tributos Estaduais (ativo)
+- `2.4.4` IRPJ, `2.4.5` CSLL, `2.4.6` COFINS, `2.4.7` PIS (ativos — todos federais)
+- Não existe nenhuma conta para **impostos municipais** (ISS, IPTU, taxas)
 
-O correto é manter a **mesma descrição da conta antiga** e apenas trocar o código numérico para a sequência do novo plano (v2).
+Faltam também: Simples Nacional (inativo), ICMS sobre Vendas (inativo).
 
-## Solução
+## Proposta — Nova estrutura do grupo 2.4
 
-### 1. Migração SQL — Atualizar `plano_contas_migracao`
-
-Atualizar todos os registros para que `new_name = old_name`:
-
-```sql
-UPDATE plano_contas_migracao
-SET new_name = old_name
-WHERE new_name != old_name;
+```text
+2.4   IMPOSTOS E TRIBUTOS (grupo, reativar)
+├── 2.4.1  Impostos Federais (grupo novo)
+│   ├── 2.4.1.1  IRPJ
+│   ├── 2.4.1.2  CSLL
+│   ├── 2.4.1.3  COFINS
+│   ├── 2.4.1.4  PIS
+│   ├── 2.4.1.5  IOF  (mover de 3.1.30)
+│   └── 2.4.1.6  Simples Nacional
+├── 2.4.2  Impostos Estaduais (grupo novo)
+│   ├── 2.4.2.1  ICMS sobre Vendas
+│   └── 2.4.2.2  Outros Tributos Estaduais
+└── 2.4.3  Impostos Municipais (grupo novo)
+    ├── 2.4.3.1  ISS
+    └── 2.4.3.2  Outros Tributos Municipais
 ```
 
-### 2. Migração SQL — Atualizar contas v2 em `trade_chart_of_accounts`
+## Mudanças
 
-Para cada mapeamento, atualizar o nome da conta v2 correspondente para refletir o nome original:
+### Migração SQL
 
-```sql
-UPDATE trade_chart_of_accounts t
-SET name = m.old_name
-FROM plano_contas_migracao m
-WHERE t.id = m.new_account_id
-  AND t.name != m.old_name;
-```
-
-> Nota: Contas v2 que são mapeadas por múltiplas contas antigas (ex: `2.6.2` recebe tanto `Material POP` quanto `Promotores`) terão o nome da última atualização. Se houver conflitos, o dropdown na interface permite ajustar manualmente.
-
-### Resultado
-
-| Antes | Depois |
-|---|---|
-| `3.4.04 IRPJ → 2.5.3 COFINS/CSLL/PIS/IRPJ` | `3.4.04 IRPJ → 2.5.3 IRPJ` |
-| `1100 Material POP → 2.6.2 Despesas de Trade Comercial` | `1100 Material POP → 2.6.2 Material POP` |
-
-## Arquivo
+1. **Reativar** `2.4 IMPOSTOS E TRIBUTOS` como grupo
+2. **Criar** 3 sub-grupos: `2.4.1 Impostos Federais`, `2.4.2 Impostos Estaduais`, `2.4.3 Impostos Municipais`
+3. **Renumerar** contas ativas para encaixar na hierarquia:
+   - `2.4.4 IRPJ` → `2.4.1.1`
+   - `2.4.5 CSLL` → `2.4.1.2`
+   - `2.4.6 COFINS` → `2.4.1.3`
+   - `2.4.7 PIS` → `2.4.1.4`
+   - `3.1.30 IOF` → `2.4.1.5` (mover do grupo de despesas fixas para federais)
+   - Reativar Simples Nacional como `2.4.1.6`
+   - `2.4.2.1 Tributos Estaduais` renomear para "Outros Tributos Estaduais" (`2.4.2.2`)
+   - Reativar ICMS sobre Vendas como `2.4.2.1`
+4. **Criar** contas municipais: `2.4.3.1 ISS`, `2.4.3.2 Outros Tributos Municipais`
+5. **Atualizar** `plano_contas_migracao` com os novos códigos
+6. **Desativar** códigos antigos que foram movidos
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migração SQL | UPDATE em `plano_contas_migracao` e `trade_chart_of_accounts` |
+| Nova migração SQL | Reorganizar grupo 2.4 com sub-classificação federal/estadual/municipal |
 
