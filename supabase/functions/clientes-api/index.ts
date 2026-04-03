@@ -170,10 +170,7 @@ Deno.serve(async (req) => {
 
     // ── POST /incluir ────────────────────────────────────────────
     if (req.method === "POST" && path === "/incluir") {
-      const body = await req.json();
-      if (!body.codigo_cliente_integracao || !body.razao_social) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao e razao_social são obrigatórios", req, startMs);
-      }
+      const body = validateBody(await req.json(), IncluirClienteSchema);
 
       const dbData = mapApiToDb(body);
       dbData.updated_at = new Date().toISOString();
