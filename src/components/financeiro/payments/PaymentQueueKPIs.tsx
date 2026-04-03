@@ -1,6 +1,7 @@
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Clock, CheckCircle2, XCircle, Wallet, DollarSign } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/formatters";
 
 interface PaymentQueueKPIsProps {
   kpis: {
