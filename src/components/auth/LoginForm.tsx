@@ -55,6 +55,7 @@ export const LoginForm = () => {
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
