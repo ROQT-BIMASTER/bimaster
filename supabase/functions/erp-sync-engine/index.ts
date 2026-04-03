@@ -88,10 +88,15 @@ function parseAmount(value: unknown): number {
   return parseFloat(s) || 0;
 }
 
-function deriveStatus(valorAberto: number, valorPago: number): string {
-  if (valorAberto === 0 && valorPago > 0) return "pago";
+function deriveStatus(valorAberto: number, valorPago: number, dataVencimento: string | null): string {
+  if (valorAberto === 0 && valorPago > 0) return "recebido";
   if (valorPago > 0 && valorAberto > 0) return "parcial";
-  return "aberto";
+  if (valorAberto > 0 && dataVencimento) {
+    const venc = new Date(dataVencimento + 'T00:00:00');
+    const hoje = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+    if (venc < hoje) return "vencido";
+  }
+  return "pendente";
 }
 
 // ─── Transformers ───
