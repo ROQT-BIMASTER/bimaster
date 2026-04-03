@@ -54,6 +54,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [filterTipo, setFilterTipo] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   const { data: revisoes, isLoading, refetch } = useQuery({
     queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
