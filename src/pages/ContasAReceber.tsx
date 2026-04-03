@@ -212,7 +212,7 @@ export default function ContasAReceber() {
       // Query para dados paginados
       let query = supabase
         .from('contas_receber' as any)
-        .select('*', { count: 'exact' });
+        .select('*');
 
       if (searchCliente) {
         query = query.ilike('cliente_nome', `%${searchCliente}%`);
