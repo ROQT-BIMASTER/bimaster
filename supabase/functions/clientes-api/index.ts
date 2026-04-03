@@ -578,6 +578,9 @@ Deno.serve(async (req) => {
 
     return errorResponse(404, "NOT_FOUND", `Rota não encontrada: ${req.method} ${path}`, req, startMs);
   } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      return errorResponse(400, "VALIDATION_ERROR", err.message, req, startMs);
+    }
     const e = err as { status?: number; message?: string; name?: string };
     if (e.name === "RateLimitError" || (e as any) instanceof RateLimitError) {
       return errorResponse(429, "RATE_LIMIT", e.message || "Rate limit excedido", req, startMs);
