@@ -396,6 +396,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               </>
             );
           })}
+              </>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
