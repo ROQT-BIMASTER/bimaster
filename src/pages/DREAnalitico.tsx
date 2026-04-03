@@ -271,18 +271,33 @@ export default function DREAnalitico() {
     return registro.data_vencimento;
   };
   
-  // Buscar contas a receber (receitas) via RPC agregada server-side
-  const { data: contasReceberAgregadas } = useSupabaseQuery(
-    ['contas-receber-dre-rpc', dataInicio, dataFim, filterEmpresa, regimeAnalise],
+  // Buscar totais de contas a receber por mês via RPC (max ~12 linhas)
+  const empresaParam = filterEmpresa !== 'todas' ? filterEmpresa : null;
+  const { data: contasReceberTotais } = useSupabaseQuery(
+    ['contas-receber-dre-totais', dataInicio, dataFim, filterEmpresa],
     async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_dre', {
+      const { data, error } = await supabase.rpc('get_contas_receber_dre_totais', {
         p_data_inicio: dataInicio,
         p_data_fim: dataFim,
-        p_regime: regimeAnalise,
-        p_empresa_nome: filterEmpresa !== 'todas' ? filterEmpresa : null,
+        p_empresa_nome: empresaParam,
       });
       if (error) throw error;
-      return data as { cliente_codigo: string; cliente_nome: string; mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
+      return data as { mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
+    },
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
+  );
+
+  // Buscar top 50 clientes para drill-down
+  const { data: contasReceberClientes } = useSupabaseQuery(
+    ['contas-receber-dre-clientes', dataInicio, dataFim, filterEmpresa],
+    async () => {
+      const { data, error } = await supabase.rpc('get_contas_receber_dre_clientes', {
+        p_data_inicio: dataInicio,
+        p_data_fim: dataFim,
+        p_empresa_nome: empresaParam,
+      });
+      if (error) throw error;
+      return data as { cliente_codigo: string; cliente_nome: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
     },
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
@@ -568,40 +583,19 @@ export default function DREAnalitico() {
       children: []
     };
 
-    // Processar contas a receber agregadas (RECEITAS) via RPC
-    if (contasReceberAgregadas && contasReceberAgregadas.length > 0) {
-      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; qtdDocumentos: number }>();
-      
-      contasReceberAgregadas.forEach(row => {
+    // Processar totais mensais de contas a receber (RECEITAS) — dados precisos
+    if (contasReceberTotais && contasReceberTotais.length > 0) {
+      contasReceberTotais.forEach(row => {
         const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
-        
         const mesKey = row.mes;
-        const clienteKey = row.cliente_codigo || 'sem-cliente';
-        const clienteNome = row.cliente_nome || 'Cliente não identificado';
         
         receitaBruta.valor += valor;
         if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
           receitaBruta.valoresMensais![mesKey] += valor;
         }
-        
-        if (!receitasPorCliente.has(clienteKey)) {
-          receitasPorCliente.set(clienteKey, {
-            nome: clienteNome,
-            valor: 0,
-            valoresMensais: initValoresMensais(),
-            qtdDocumentos: 0
-          });
-        }
-        
-        const clienteData = receitasPorCliente.get(clienteKey)!;
-        clienteData.valor += valor;
-        clienteData.qtdDocumentos += Number(row.qtd_documentos || 0);
-        if (mesKey && clienteData.valoresMensais[mesKey] !== undefined) {
-          clienteData.valoresMensais[mesKey] += valor;
-        }
       });
       
-      // Criar subconta "Vendas / Faturamento"
+      // Criar subconta "Vendas / Faturamento" com drill-down por cliente (top 50)
       const vendasSubconta: DRENode = {
         id: 'vendas-faturamento',
         codigo: '01.01',
@@ -615,20 +609,23 @@ export default function DREAnalitico() {
         children: []
       };
       
-      receitasPorCliente.forEach((clienteData, clienteKey) => {
-        const nodoCliente: DRENode = {
-          id: `cliente-${clienteKey}`,
-          codigo: '',
-          nome: `${clienteData.nome} (${clienteData.qtdDocumentos} docs)`,
-          tipo: 'fornecedor',
-          nivel: 2,
-          valor: clienteData.valor,
-          valoresMensais: clienteData.valoresMensais,
-          natureza: 'C',
-          accountType: 'revenue',
-        };
-        vendasSubconta.children?.push(nodoCliente);
-      });
+      if (contasReceberClientes && contasReceberClientes.length > 0) {
+        contasReceberClientes.forEach(row => {
+          const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
+          const nodoCliente: DRENode = {
+            id: `cliente-${row.cliente_codigo}`,
+            codigo: '',
+            nome: `${row.cliente_nome} (${row.qtd_documentos} docs)`,
+            tipo: 'fornecedor',
+            nivel: 2,
+            valor: valor,
+            valoresMensais: initValoresMensais(),
+            natureza: 'C',
+            accountType: 'revenue',
+          };
+          vendasSubconta.children?.push(nodoCliente);
+        });
+      }
       
       vendasSubconta.children?.sort((a, b) => b.valor - a.valor);
       receitaBruta.children?.push(vendasSubconta);
@@ -1410,7 +1407,7 @@ export default function DREAnalitico() {
     
     // Estatísticas do relatório
     const totalLancamentos = lancamentos?.length || 0;
-    const totalReceitas = contasReceberAgregadas?.length || 0;
+    const totalReceitas = contasReceberTotais?.length || 0;
     const contasClassificadas = lancamentos?.filter(l => l.plano_contas_id)?.length || 0;
     const contasNaoClassificadas = totalLancamentos - contasClassificadas;
     
