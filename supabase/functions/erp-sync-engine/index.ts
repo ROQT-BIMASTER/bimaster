@@ -323,7 +323,8 @@ async function handleSyncPaginated(
   tableName: string,
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
-  conflictCol: string
+  conflictCol: string,
+  options?: { whereClause?: string; empresaId?: number }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -333,23 +334,23 @@ async function handleSyncPaginated(
   let totalUpserted = 0;
   const allErrors: string[] = [];
   let page = 0;
+  const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
 
   try {
     while (true) {
-      // Each page gets its own connection to avoid memory buildup
       let connection: Connection | null = null;
       try {
         connection = await connectToSqlServer();
         const offset = page * SQL_PAGE_SIZE;
-        // Use ROW_NUMBER for pagination since OFFSET/FETCH may not work on all views
         const query = `
           SELECT * FROM (
             SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
             FROM [${viewName}]
+            ${whereFilter}
           ) AS _paged
           WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
         `;
-        console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})...`);
+        console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
         const rows = await executeSqlQuery(connection, query);
         console.log(`📊 Got ${rows.length} rows`);
 
@@ -361,14 +362,12 @@ async function handleSyncPaginated(
         totalUpserted += inserted;
         if (errors.length > 0) allErrors.push(...errors);
 
-        // If less than page size, we're done
         if (rows.length < SQL_PAGE_SIZE) break;
         page++;
       } finally {
         if (connection) try { connection.close(); } catch (_) {}
       }
 
-      // Small delay between pages
       await new Promise((r) => setTimeout(r, 100));
     }
 
@@ -379,12 +378,14 @@ async function handleSyncPaginated(
       registrosInseridos: totalUpserted,
       duracaoMs: duration,
       erroMensagem: allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : undefined,
+      empresaId: options?.empresaId,
     });
 
     return jsonResponse({
       success: true,
       entity: entityName,
       source: viewName,
+      empresaId: options?.empresaId,
       totalRows,
       upserted: totalUpserted,
       pages: page + 1,
@@ -393,9 +394,91 @@ async function handleSyncPaginated(
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro";
     const supabase2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    await recordSync(supabase2, entityName, { status: "error", totalRegistros: totalRows, registrosInseridos: totalUpserted, duracaoMs: Date.now() - startMs, erroMensagem: msg });
+    await recordSync(supabase2, entityName, { status: "error", totalRegistros: totalRows, registrosInseridos: totalUpserted, duracaoMs: Date.now() - startMs, erroMensagem: msg, empresaId: options?.empresaId });
     return errorResponse(500, "sync_failed", msg, req, startMs);
   }
+}
+
+// ─── Sync por empresa (segmentado) ───
+
+async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) {
+  const body = await req.clone().json();
+  const empresaId = body.empresa_id;
+  if (!empresaId || isNaN(Number(empresaId))) {
+    return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
+  }
+  return handleSyncPaginated(
+    req, startMs,
+    "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
+    transformContasReceber, "erp_id",
+    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId) }
+  );
+}
+
+// ─── Sync full orquestrando por empresa ───
+
+async function handleSyncContasReceberFull(req: Request, startMs: number) {
+  // Discover all empresa_ids from SQL Server
+  let connection: Connection | null = null;
+  let empresaIds: number[] = [];
+  try {
+    connection = await connectToSqlServer();
+    const rows = await executeSqlQuery(connection, "SELECT DISTINCT [ID Empresa] FROM [ConsultaPowerBIReceber]");
+    empresaIds = rows.map((r) => Number(r["ID Empresa"])).filter((id) => !isNaN(id)).sort((a, b) => a - b);
+  } finally {
+    if (connection) try { connection.close(); } catch (_) {}
+  }
+
+  if (empresaIds.length === 0) {
+    return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
+  }
+
+  console.log(`🏢 Full sync: ${empresaIds.length} empresas encontradas: ${empresaIds.join(", ")}`);
+
+  const results: Record<string, unknown> = {};
+  let totalAll = 0;
+  let upsertedAll = 0;
+
+  for (const empId of empresaIds) {
+    const empStartMs = Date.now();
+    try {
+      const fakeReq = new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ empresa_id: empId }) });
+      const resp = await handleSyncPaginated(
+        fakeReq, empStartMs,
+        "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
+        transformContasReceber, "erp_id",
+        { whereClause: `[ID Empresa] = ${empId}`, empresaId: empId }
+      );
+      const data = await resp.json();
+      results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted };
+      totalAll += data.totalRows || 0;
+      upsertedAll += data.upserted || 0;
+    } catch (e) {
+      results[`empresa_${empId}`] = { success: false, error: e instanceof Error ? e.message : "Erro" };
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    entity: "contas_receber_full",
+    empresas: empresaIds.length,
+    totalRows: totalAll,
+    upserted: upsertedAll,
+    results,
+  }, 200, req, { startMs });
+}
+
+// ─── Sync incremental (últimas 2 horas) ───
+
+async function handleSyncContasReceberIncremental(req: Request, startMs: number) {
+  // Only records with recent payments OR titles that just became overdue (vencimento = yesterday/today)
+  const whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -2, GETDATE()) AND [Vencimento] <= GETDATE())`;
+  return handleSyncPaginated(
+    req, startMs,
+    "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
+    transformContasReceber, "erp_id",
+    { whereClause }
+  );
 }
 
 async function handleSyncContasReceber(req: Request, startMs: number) {
@@ -500,6 +583,12 @@ Deno.serve(async (req: Request) => {
         return await handlePreviewTable(req, startMs);
       case "sync-contas-receber":
         return await handleSyncContasReceber(req, startMs);
+      case "sync-contas-receber-por-empresa":
+        return await handleSyncContasReceberPorEmpresa(req, startMs);
+      case "sync-contas-receber-full":
+        return await handleSyncContasReceberFull(req, startMs);
+      case "sync-contas-receber-incremental":
+        return await handleSyncContasReceberIncremental(req, startMs);
       case "sync-contas-pagar":
         return await handleSyncContasPagar(req, startMs);
       case "sync-all":
@@ -514,7 +603,10 @@ Deno.serve(async (req: Request) => {
             "POST /test-connection — Testa conexão SQL Server",
             "POST /list-tables — Lista tabelas/views disponíveis",
             "POST /preview-table — Preview de 10 rows de uma tabela (body: { table })",
-            "POST /sync-contas-receber — Sync ConsultaPowerBIReceber → contas_receber",
+            "POST /sync-contas-receber — Sync legado (sem filtro)",
+            "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
+            "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
+            "POST /sync-contas-receber-incremental — Sync últimas 2h (pagamentos recentes)",
             "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
