@@ -606,8 +606,8 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     connection = await connectToSqlServer();
     console.log(`🔗 Incremental: SQL connection opened`);
 
-    const query = `SELECT TOP 15000 * FROM [ConsultaPowerBIReceber] WHERE ${dateFilter} ORDER BY [Data Pgto] DESC`;
-    console.log(`📥 Incremental query: TOP 15000 with filter`);
+    const query = `SELECT TOP 3000 * FROM [ConsultaPowerBIReceber] WHERE ${dateFilter} ORDER BY [Data Pgto] DESC`;
+    console.log(`📥 Incremental query: TOP 3000 with filter`);
     const rows = await executeSqlQuery(connection, query);
     console.log(`📊 Incremental got ${rows.length} rows in ${Date.now() - startMs}ms`);
 
