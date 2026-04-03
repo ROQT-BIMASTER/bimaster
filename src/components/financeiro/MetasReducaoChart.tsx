@@ -162,7 +162,6 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       : []),
   ];
 
-  const [visible, setVisible] = useState(true);
 
   return (
     <Card className="w-full">
