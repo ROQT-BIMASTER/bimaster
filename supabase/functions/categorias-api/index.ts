@@ -307,6 +307,9 @@ Deno.serve(async (req) => {
     // ==================== 404 ====================
     return errorResp(404, "NOT_FOUND", `Rota ${req.method} ${path} não encontrada`, req, startMs);
   } catch (err: any) {
+    if (err instanceof ValidationError) {
+      return errorResp(400, "VALIDATION", err.message, req, startMs);
+    }
     return errorResp(500, "INTERNAL_ERROR", err.message || "Erro interno", req, startMs);
   }
 });
