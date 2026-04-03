@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrencyCompact } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { chartColors } from "@/lib/chart-colors";
 import { ChartTabs, type ChartTabItem } from "@/components/ui/chart-tabs";
-import { BarChart3, PieChart as PieChartIcon, Layers } from "lucide-react";
+import { BarChart3, PieChart as PieChartIcon, Layers, ChevronDown, ChevronUp } from "lucide-react";
 
 interface MetasReducaoChartProps {
   revisoes: any[];
