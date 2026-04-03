@@ -1,9 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { handleCors } from "../_shared/cors.ts";
-import { jsonResponse as json, errorResponse as errorResp } from "../_shared/response.ts";
+import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateApiKey, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+
+function json(body: unknown, status: number, req: Request, startMs: number) {
+  return jsonResponse(body, status, req, { startMs });
+}
+function errorResp(status: number, code: string, message: string, req: Request, startMs: number) {
+  return errorResponse(status, code, message, req, startMs);
+}
 
 // Map DB row to Huggs-style response
 function rowToHuggs(row: any, parentCode?: string): any {
