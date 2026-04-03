@@ -14,6 +14,8 @@ export const ImpersonationBanner = () => {
     switch (role) {
       case "admin":
         return <Badge variant="destructive">Admin</Badge>;
+      case "gerente":
+        return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Gerente</Badge>;
       case "supervisor":
         return <Badge className="bg-purple-500 hover:bg-purple-600">Supervisor</Badge>;
       case "vendedor":
