@@ -12,7 +12,7 @@ interface SqlRow {
 
 // ─── Config ───
 const UPSERT_BATCH_SIZE = 500;
-const SQL_PAGE_SIZE = 5000;
+const SQL_PAGE_SIZE = 3000;
 
 function connectToSqlServer(): Promise<Connection> {
   return new Promise((resolve, reject) => {
