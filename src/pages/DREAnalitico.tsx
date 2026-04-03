@@ -255,13 +255,10 @@ export default function DREAnalitico() {
   });
 
   // Funções para obter a data de referência baseado no regime de análise
-  // Isso garante que tanto o filtro da query quanto o agrupamento mensal usem a mesma data
   const getDataRefReceber = (registro: any): string | null => {
     if (regimeAnalise === 'caixa') {
-      // Regime de caixa usa data_vencimento como proxy (data_recebimento geralmente é NULL)
-      return registro.data_vencimento || registro.data_emissao;
+      return registro.data_recebimento || registro.data_vencimento;
     }
-    // Regime de competência usa data de emissão
     return registro.data_emissao || registro.data_vencimento;
   };
 
@@ -274,36 +271,18 @@ export default function DREAnalitico() {
     return registro.data_vencimento;
   };
   
-  // Buscar contas a receber (receitas)
-  const { data: contasReceber } = useSupabaseQuery(
-    ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa, regimeAnalise],
+  // Buscar contas a receber (receitas) via RPC agregada server-side
+  const { data: contasReceberAgregadas } = useSupabaseQuery(
+    ['contas-receber-dre-rpc', dataInicio, dataFim, filterEmpresa, regimeAnalise],
     async () => {
-      const selectCols = 'id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome';
-      
-      const data = await fetchAllRows<any>(
-        'contas_receber',
-        selectCols,
-        (query: any) => {
-          if (regimeAnalise === 'caixa') {
-            query = query
-              .eq('status', 'recebido')
-              .gte('data_vencimento', dataInicio)
-              .lte('data_vencimento', dataFim);
-          } else {
-            query = query
-              .gte('data_emissao', dataInicio)
-              .lte('data_emissao', dataFim);
-          }
-          
-          if (filterEmpresa !== 'todas') {
-            query = query.eq('empresa_nome', filterEmpresa);
-          }
-          
-          return query;
-        }
-      );
-      
-      return data;
+      const { data, error } = await supabase.rpc('get_contas_receber_dre', {
+        p_data_inicio: dataInicio,
+        p_data_fim: dataFim,
+        p_regime: regimeAnalise,
+        p_empresa_nome: filterEmpresa !== 'todas' ? filterEmpresa : null,
+      });
+      if (error) throw error;
+      return data as { cliente_codigo: string; cliente_nome: string; mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
     },
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
@@ -589,21 +568,18 @@ export default function DREAnalitico() {
       children: []
     };
 
-    // Processar contas a receber (RECEITAS)
-    if (contasReceber && contasReceber.length > 0) {
-      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
+    // Processar contas a receber agregadas (RECEITAS) via RPC
+    if (contasReceberAgregadas && contasReceberAgregadas.length > 0) {
+      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; qtdDocumentos: number }>();
       
-      contasReceber.forEach(recebimento => {
-        // Para regime de caixa, usar valor_recebido; para competência, usar valor_original
+      contasReceberAgregadas.forEach(row => {
         const valor = regimeAnalise === 'caixa' 
-          ? parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0))
-          : parseFloat(String(recebimento.valor_original || 0));
+          ? parseFloat(String(row.valor_recebido || row.valor_original || 0))
+          : parseFloat(String(row.valor_original || 0));
         
-        // Usar a função getDataRefReceber para garantir consistência entre filtro e agrupamento
-        const dataRef = getDataRefReceber(recebimento);
-        const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
-        const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
-        const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
+        const mesKey = row.mes;
+        const clienteKey = row.cliente_codigo || 'sem-cliente';
+        const clienteNome = row.cliente_nome || 'Cliente não identificado';
         
         receitaBruta.valor += valor;
         if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
@@ -615,16 +591,16 @@ export default function DREAnalitico() {
             nome: clienteNome,
             valor: 0,
             valoresMensais: initValoresMensais(),
-            lancamentos: []
+            qtdDocumentos: 0
           });
         }
         
         const clienteData = receitasPorCliente.get(clienteKey)!;
         clienteData.valor += valor;
+        clienteData.qtdDocumentos += Number(row.qtd_documentos || 0);
         if (mesKey && clienteData.valoresMensais[mesKey] !== undefined) {
           clienteData.valoresMensais[mesKey] += valor;
         }
-        clienteData.lancamentos.push(recebimento);
       });
       
       // Criar subconta "Vendas / Faturamento"
@@ -645,38 +621,13 @@ export default function DREAnalitico() {
         const nodoCliente: DRENode = {
           id: `cliente-${clienteKey}`,
           codigo: '',
-          nome: clienteData.nome,
+          nome: `${clienteData.nome} (${clienteData.qtdDocumentos} docs)`,
           tipo: 'fornecedor',
           nivel: 2,
           valor: clienteData.valor,
           valoresMensais: clienteData.valoresMensais,
           natureza: 'C',
           accountType: 'revenue',
-          children: clienteData.lancamentos.map(lanc => {
-            // Usar mesmo critério de valor e data do agrupamento
-            const lancValor = regimeAnalise === 'caixa'
-              ? parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0))
-              : parseFloat(String(lanc.valor_original || 0));
-            const lancDataRef = getDataRefReceber(lanc);
-            const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
-            const lancValoresMensais = initValoresMensais();
-            if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
-              lancValoresMensais[lancMesKey] = lancValor;
-            }
-            
-            return {
-              id: lanc.id,
-              codigo: lanc.numero_documento || '',
-              nome: `Doc: ${lanc.numero_documento || 'S/N'} - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}`,
-              tipo: 'lancamento' as const,
-              nivel: 3,
-              valor: lancValor,
-              valoresMensais: lancValoresMensais,
-              natureza: 'C' as const,
-              accountType: 'revenue',
-              metadata: { ...lanc, tipo_lancamento: 'receita' }
-            };
-          })
         };
         vendasSubconta.children?.push(nodoCliente);
       });
@@ -1461,7 +1412,7 @@ export default function DREAnalitico() {
     
     // Estatísticas do relatório
     const totalLancamentos = lancamentos?.length || 0;
-    const totalReceitas = contasReceber?.length || 0;
+    const totalReceitas = contasReceberAgregadas?.length || 0;
     const contasClassificadas = lancamentos?.filter(l => l.plano_contas_id)?.length || 0;
     const contasNaoClassificadas = totalLancamentos - contasClassificadas;
     

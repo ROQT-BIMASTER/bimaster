@@ -32618,6 +32618,22 @@ export type Database = {
         }
         Returns: Json
       }
+      get_contas_receber_dre: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_empresa_nome?: string
+          p_regime?: string
+        }
+        Returns: {
+          cliente_codigo: string
+          cliente_nome: string
+          mes: string
+          qtd_documentos: number
+          valor_original: number
+          valor_recebido: number
+        }[]
+      }
       get_contas_receber_evolucao_mensal: {
         Args: {
           p_ano?: number
