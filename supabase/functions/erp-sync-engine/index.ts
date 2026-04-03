@@ -156,7 +156,8 @@ function transformContasPagar(row: SqlRow) {
   const tipo = row["Tipo"] || "";
   const nota = row["Nota"] || "";
   const seq = row["Seq"] || 1;
-  const erpId = `CP-${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
+  const codigo = row["Código"] || row["Codigo"] || "";
+  const erpId = `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, "");
 
   // Fallback para títulos quitados por ajustes
   if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
