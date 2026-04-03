@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
