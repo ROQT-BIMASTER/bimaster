@@ -254,17 +254,18 @@ export default function ContasAReceber() {
         }
       );
       
-      let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
+      let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0, totalRegistros: 0 };
       if (!totaisError && totaisRpc) {
         const t = totaisRpc as any;
         totais = {
           valorOriginal: t.valor_original || 0,
           valorAberto: t.valor_aberto || 0,
           valorRecebido: t.valor_recebido || 0,
+          totalRegistros: t.total_registros || 0,
         };
       }
 
-      return { data: data as unknown as ContaReceber[], count: count || 0, totais };
+      return { data: data as unknown as ContaReceber[], totais };
     }
   });
 
