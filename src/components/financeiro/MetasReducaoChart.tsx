@@ -161,14 +161,29 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       : []),
   ];
 
+  const [visible, setVisible] = useState(true);
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Análise de Metas de Redução</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">Análise de Metas de Redução</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setVisible(v => !v)}
+            className="gap-1.5 text-xs text-muted-foreground"
+          >
+            {visible ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {visible ? "Ocultar" : "Exibir"}
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent>
-        <ChartTabs tabs={tabs} defaultTab="tipo" />
-      </CardContent>
+      {visible && (
+        <CardContent>
+          <ChartTabs tabs={tabs} defaultTab="tipo" />
+        </CardContent>
+      )}
     </Card>
   );
 }
