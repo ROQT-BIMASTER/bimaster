@@ -360,12 +360,10 @@ async function handleSyncPaginated(
 
       const offset = page * SQL_PAGE_SIZE;
       const query = `
-        SELECT * FROM (
-          SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
-          FROM [${viewName}]
-          ${whereFilter}
-        ) AS _paged
-        WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
+        SELECT * FROM [${viewName}]
+        ${whereFilter}
+        ORDER BY [ID Empresa], [Nota], [Seq]
+        OFFSET ${offset} ROWS FETCH NEXT ${SQL_PAGE_SIZE} ROWS ONLY
       `;
       console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
       const rows = await executeSqlQuery(connection, query);
