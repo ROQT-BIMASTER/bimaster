@@ -26,40 +26,37 @@ export const FinanceiroDashboardWidget = memo(() => {
       try {
         const today = new Date().toISOString().split("T")[0];
 
+        // Contas a Pagar: queries com count (head:true) são OK — não retornam rows
+        // Valores: também usam head queries, volumes menores que CR
         const [
           pagarPendentesResult,
           pagarVencidasResult,
           totalPagarResult,
           totalPagarVencidoResult,
-          receberPendentesResult,
-          receberVencidasResult,
-          totalReceberResult,
-          totalReceberVencidoResult,
+          crTotais,
         ] = await Promise.all([
           supabase.from("contas_pagar").select("*", { count: "exact", head: true }).eq("status", "pendente").gte("data_vencimento", today),
           supabase.from("contas_pagar").select("*", { count: "exact", head: true }).eq("status", "pendente").lt("data_vencimento", today),
           supabase.from("contas_pagar").select("valor_aberto").eq("status", "pendente").gte("data_vencimento", today),
           supabase.from("contas_pagar").select("valor_aberto").eq("status", "pendente").lt("data_vencimento", today),
-          supabase.from("contas_receber").select("*", { count: "exact", head: true }).in("status", ["pendente", "parcial"]).gte("data_vencimento", today),
-          supabase.from("contas_receber").select("*", { count: "exact", head: true }).in("status", ["vencido", "pendente", "parcial"]).lt("data_vencimento", today),
-          supabase.from("contas_receber").select("valor_aberto").in("status", ["pendente", "parcial"]).gte("data_vencimento", today),
-          supabase.from("contas_receber").select("valor_aberto").in("status", ["vencido", "pendente", "parcial"]).lt("data_vencimento", today),
+          // Contas a Receber: usa RPC server-side para agregar 470k+ registros
+          supabase.rpc("get_financeiro_dashboard_totais"),
         ]);
 
         const totalPagar = totalPagarResult.data?.reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0;
         const totalPagarVencido = totalPagarVencidoResult.data?.reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0;
-        const totalReceber = totalReceberResult.data?.reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0;
-        const totalReceberVencido = totalReceberVencidoResult.data?.reduce((sum, c) => sum + (c.valor_aberto || 0), 0) || 0;
+
+        const cr = crTotais.data as Record<string, number> | null;
 
         setStats({
           contasPagarPendentes: pagarPendentesResult.count || 0,
           contasPagarVencidas: pagarVencidasResult.count || 0,
           totalAPagar: totalPagar,
           totalPagarVencido: totalPagarVencido,
-          contasReceberPendentes: receberPendentesResult.count || 0,
-          contasReceberVencidas: receberVencidasResult.count || 0,
-          totalAReceber: totalReceber,
-          totalReceberVencido: totalReceberVencido,
+          contasReceberPendentes: (cr?.count_pendente || 0) + (cr?.count_parcial || 0),
+          contasReceberVencidas: cr?.count_vencido || 0,
+          totalAReceber: (cr?.total_pendente || 0) + (cr?.total_parcial || 0),
+          totalReceberVencido: cr?.total_vencido || 0,
         });
       } catch (error) {
         console.error("Erro ao carregar stats financeiro:", error);
