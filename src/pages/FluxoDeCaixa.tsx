@@ -242,14 +242,7 @@ const FluxoDeCaixa = () => {
       }));
   }, [projections]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // formatCurrency importado de @/lib/formatters
 
   // Period label for display
   const getPeriodLabel = () => {
