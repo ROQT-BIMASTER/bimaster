@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle, Eye, Shield } from "lucide-react";
@@ -13,13 +12,6 @@ const statusColors: Record<string, string> = {
   investigating: "bg-warning/20 text-warning",
   mitigated: "bg-primary/20 text-primary",
   resolved: "bg-success/20 text-success",
-};
-
-const severityIcons: Record<string, typeof AlertTriangle> = {
-  critical: AlertTriangle,
-  high: AlertTriangle,
-  medium: Eye,
-  low: Shield,
 };
 
 export function SecurityIncidentPanel() {
@@ -73,6 +65,8 @@ export function SecurityIncidentPanel() {
               <TableHead>Tipo</TableHead>
               <TableHead>Severidade</TableHead>
               <TableHead>Título</TableHead>
+              <TableHead>Confiança</TableHead>
+              <TableHead>Detecção</TableHead>
               <TableHead>Ação Auto</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Ações</TableHead>
@@ -81,7 +75,7 @@ export function SecurityIncidentPanel() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell>
               </TableRow>
             ) : incidents && incidents.length > 0 ? (
               incidents.map((inc) => (
@@ -103,8 +97,20 @@ export function SecurityIncidentPanel() {
                       {inc.severity}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[250px] truncate text-sm">
+                  <TableCell className="max-w-[200px] truncate text-sm">
                     {inc.title || inc.description || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono">
+                    {inc.confidence_score != null ? `${Math.round(Number(inc.confidence_score) * 100)}%` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {inc.detection_method ? (
+                      <Badge variant="outline" className={
+                        inc.detection_method === "anomaly" ? "border-warning text-warning text-xs" : "text-xs"
+                      }>
+                        {inc.detection_method}
+                      </Badge>
+                    ) : "—"}
                   </TableCell>
                   <TableCell className="text-xs font-mono">
                     {inc.auto_action_taken !== "none" ? (
@@ -141,7 +147,7 @@ export function SecurityIncidentPanel() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Nenhum incidente registrado
                 </TableCell>
               </TableRow>

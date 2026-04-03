@@ -37,7 +37,6 @@ Deno.serve(async (req: Request) => {
 
       for (const [ip, count] of Object.entries(ipCounts)) {
         if (count >= 5 && ip !== "unknown") {
-          // Check if incident already exists for this IP in last hour
           const { data: existing } = await supabase
             .from("security_incidents")
             .select("id")
@@ -47,6 +46,7 @@ Deno.serve(async (req: Request) => {
             .limit(1);
 
           if (!existing || existing.length === 0) {
+            const confidence = count >= 20 ? 1.0 : count >= 10 ? 0.9 : 0.7;
             const { data: incident } = await supabase
               .from("security_incidents")
               .insert({
@@ -57,18 +57,20 @@ Deno.serve(async (req: Request) => {
                 source_ip: ip,
                 risk_score: Math.min(count * 10, 100),
                 auto_action_taken: "blocked_ip",
+                confidence_score: confidence,
+                detection_method: "rule_based",
               })
               .select("id")
               .single();
 
             if (incident) {
-              // Auto-block IP for 1 hour
               await supabase.from("security_ip_blocklist").insert({
                 ip_address: ip,
                 reason: `Brute force: ${count} failed logins in 5min`,
                 blocked_by: "auto",
                 incident_id: incident.id,
                 expires_at: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
+                block_level: count >= 20 ? "hard" : "soft",
               });
               results.push(`Blocked IP ${ip} (${count} failed logins)`);
             }
@@ -113,6 +115,8 @@ Deno.serve(async (req: Request) => {
               risk_score: Math.min(users.size * 20, 100),
               related_events: JSON.stringify([...users]),
               auto_action_taken: "none",
+              confidence_score: users.size >= 5 ? 0.95 : 0.75,
+              detection_method: "rule_based",
             });
             results.push(`Suspicious IP ${ip} (${users.size} users)`);
           }
@@ -153,6 +157,8 @@ Deno.serve(async (req: Request) => {
               user_id: userId,
               risk_score: Math.min(count * 5, 100),
               auto_action_taken: "none",
+              confidence_score: 0.8,
+              detection_method: "rule_based",
             });
             results.push(`Mass export alert: user ${userId} (${count} exports)`);
           }
@@ -160,8 +166,87 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // === RULE 4: Behavioral Anomaly (user from 3+ distinct IPs in 1h) ===
+    if (ipUsers && ipUsers.length > 0) {
+      const userToIps: Record<string, Set<string>> = {};
+      for (const row of ipUsers) {
+        const ip = String(row.ip_address || "unknown");
+        if (ip === "unknown" || !row.user_id) continue;
+        if (!userToIps[row.user_id]) userToIps[row.user_id] = new Set();
+        userToIps[row.user_id].add(ip);
+      }
+
+      for (const [userId, ips] of Object.entries(userToIps)) {
+        if (ips.size >= 3) {
+          const { data: existing } = await supabase
+            .from("security_incidents")
+            .select("id")
+            .eq("incident_type", "behavioral_anomaly")
+            .eq("user_id", userId)
+            .gte("created_at", last1h)
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from("security_incidents").insert({
+              incident_type: "behavioral_anomaly",
+              severity: "medium",
+              title: `Anomalia comportamental: ${ips.size} IPs distintos`,
+              description: `Usuário acessou de ${ips.size} IPs diferentes na última hora: ${[...ips].join(", ")}`,
+              user_id: userId,
+              risk_score: Math.min(ips.size * 15, 100),
+              auto_action_taken: "none",
+              confidence_score: 0.6,
+              detection_method: "anomaly",
+            });
+            results.push(`Behavioral anomaly: user ${userId} (${ips.size} IPs)`);
+          }
+        }
+      }
+    }
+
+    // === RULE 5: Privilege Abuse (admin with 15+ sensitive actions in 1h) ===
+    const { data: sensitiveActions } = await supabase
+      .from("audit_logs")
+      .select("user_id, action")
+      .in("action", ["export", "export_pdf", "export_excel", "export_csv", "delete", "permission_change", "user_create", "user_delete", "role_change"])
+      .gte("created_at", last1h);
+
+    if (sensitiveActions && sensitiveActions.length > 0) {
+      const userActions: Record<string, number> = {};
+      for (const row of sensitiveActions) {
+        if (!row.user_id) continue;
+        userActions[row.user_id] = (userActions[row.user_id] || 0) + 1;
+      }
+
+      for (const [userId, count] of Object.entries(userActions)) {
+        if (count >= 15) {
+          const { data: existing } = await supabase
+            .from("security_incidents")
+            .select("id")
+            .eq("incident_type", "privilege_abuse")
+            .eq("user_id", userId)
+            .gte("created_at", last1h)
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from("security_incidents").insert({
+              incident_type: "privilege_abuse",
+              severity: "high",
+              title: `Abuso de privilégio: ${count} ações sensíveis`,
+              description: `Usuário executou ${count} ações sensíveis (exports, deletes, mudanças de permissão) na última hora`,
+              user_id: userId,
+              risk_score: Math.min(count * 4, 100),
+              auto_action_taken: "none",
+              confidence_score: count >= 30 ? 0.95 : 0.7,
+              detection_method: "rule_based",
+            });
+            results.push(`Privilege abuse: user ${userId} (${count} sensitive actions)`);
+          }
+        }
+      }
+    }
+
     // === RISK SCORE CALCULATION ===
-    // Get all users with activity in the last hour
     const { data: activeUsers } = await supabase
       .from("access_audit_log")
       .select("user_id")
@@ -172,11 +257,9 @@ Deno.serve(async (req: Request) => {
       const uniqueUsers = [...new Set(activeUsers.map((r) => r.user_id!))];
 
       for (const userId of uniqueUsers.slice(0, 50)) {
-        // Limit to 50 users per run
         const factors: Record<string, number> = {};
         let score = 0;
 
-        // Failed logins (weight 3)
         const { count: failCount } = await supabase
           .from("access_audit_log")
           .select("*", { count: "exact", head: true })
@@ -187,7 +270,6 @@ Deno.serve(async (req: Request) => {
         factors.failed_logins = failCount ?? 0;
         score += failedWeight;
 
-        // Incidents (weight 5)
         const { count: incidentCount } = await supabase
           .from("security_incidents")
           .select("*", { count: "exact", head: true })
@@ -197,7 +279,6 @@ Deno.serve(async (req: Request) => {
         factors.recent_incidents = incidentCount ?? 0;
         score += incidentWeight;
 
-        // Multiple IPs (weight 2)
         const { data: userIps } = await supabase
           .from("access_audit_log")
           .select("ip_address")
@@ -208,6 +289,19 @@ Deno.serve(async (req: Request) => {
           const ipWeight = Math.min((uniqueIps.size - 3) * 2, 20);
           factors.multiple_ips = uniqueIps.size;
           score += ipWeight;
+        }
+
+        // Sensitive actions factor
+        const { count: sensitiveCount } = await supabase
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .in("action", ["export", "export_pdf", "export_excel", "delete", "permission_change"])
+          .gte("created_at", last1h);
+        if ((sensitiveCount ?? 0) > 5) {
+          const sensitiveWeight = Math.min(((sensitiveCount ?? 0) - 5) * 2, 20);
+          factors.sensitive_actions = sensitiveCount ?? 0;
+          score += sensitiveWeight;
         }
 
         score = Math.min(score, 100);
