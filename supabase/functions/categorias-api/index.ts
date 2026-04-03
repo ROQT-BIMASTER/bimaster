@@ -4,6 +4,26 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateApiKey, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const IncluirCategoriaSchema = z.object({
+  descricao: z.string().min(1, "Campo 'descricao' é obrigatório").max(255),
+  codigo: z.string().max(50).optional(),
+  tipo_categoria: z.enum(["R", "D"]).optional(),
+  natureza: z.string().max(255).optional(),
+  codigo_dre: z.string().max(50).optional(),
+  categoria_superior: z.string().max(50).optional(),
+}).passthrough();
+
+const AlterarCategoriaSchema = z.object({
+  codigo: z.string().min(1, "Campo 'codigo' é obrigatório").max(50),
+  descricao: z.string().max(255).optional(),
+  natureza: z.string().max(255).optional(),
+  tipo_categoria: z.enum(["R", "D"]).optional(),
+  codigo_dre: z.string().max(50).optional(),
+  conta_inativa: z.enum(["S", "N"]).optional(),
+}).passthrough();
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
