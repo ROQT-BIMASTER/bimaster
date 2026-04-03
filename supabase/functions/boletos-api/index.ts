@@ -191,15 +191,9 @@ async function handleCancelar(req: Request, _auth: any): Promise<Response> {
 
 async function handleProrrogar(req: Request, _auth: any): Promise<Response> {
   const startMs = Date.now();
-  const body = await req.json();
+  const rawBody = await req.json();
+  const body = validateBody(rawBody, ProrrogarSchema);
   const { nCodTitulo, cCodIntTitulo, dDtVenc } = body;
-
-  if (!dDtVenc) {
-    return errorResponse(400, "VAL-001", "dDtVenc (nova data de vencimento) obrigatório", req, startMs);
-  }
-  if (!nCodTitulo && !cCodIntTitulo) {
-    return errorResponse(400, "VAL-002", "nCodTitulo ou cCodIntTitulo obrigatório", req, startMs);
-  }
 
   // Parse date dd/mm/yyyy to yyyy-mm-dd
   let dataVenc = dDtVenc;
