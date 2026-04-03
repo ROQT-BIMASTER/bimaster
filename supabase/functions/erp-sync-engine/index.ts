@@ -11,8 +11,8 @@ interface SqlRow {
 }
 
 // ─── Config ───
-const UPSERT_BATCH_SIZE = 100;
-const SQL_PAGE_SIZE = 2000;
+const UPSERT_BATCH_SIZE = 500;
+const SQL_PAGE_SIZE = 5000;
 
 function connectToSqlServer(): Promise<Connection> {
   return new Promise((resolve, reject) => {
@@ -335,7 +335,7 @@ async function handleSyncPaginated(
   const allErrors: string[] = [];
   let page = options?.startPage || 0;
   const maxPages = options?.maxPages || 999;
-  const TIME_LIMIT_MS = 120_000;
+  const TIME_LIMIT_MS = 110_000; // 110s — leaves 40s margin for upsert + response
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
   let stoppedByTimeGuard = false;
   let pagesProcessed = 0;
