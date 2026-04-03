@@ -501,13 +501,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <>
               {/* Desktop Table */}
               <div className="hidden md:block">
-                <div className="max-h-[500px] overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[30px]" />
-                        <TableHead className="w-[100px]">Tipo</TableHead>
-                        <TableHead>Fornecedor / Item</TableHead>
+                {renderDesktopTable()}
+              </div>
                         <TableHead className="w-[90px]">Prioridade</TableHead>
                         <TableHead className="w-[120px]">Status</TableHead>
                         <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
