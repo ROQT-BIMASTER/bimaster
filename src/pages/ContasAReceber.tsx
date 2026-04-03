@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,6 +34,7 @@ import { CalendarioRecebimentosAggregated } from "@/components/financeiro/Calend
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { SyncMonitorPanel } from "@/components/financeiro/SyncMonitorPanel";
 
 interface ContaReceber {
   id: string;
@@ -93,6 +95,7 @@ export default function ContasAReceber() {
   const [filterDiaRecebimento, setFilterDiaRecebimento] = useState<string>("");
   const [filterDiaEmissao, setFilterDiaEmissao] = useState<string>("");
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showSyncMonitor, setShowSyncMonitor] = useState(false);
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -691,32 +694,77 @@ export default function ContasAReceber() {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Emissão</label>
-            <Input 
-              type="date" 
-              value={filterDiaEmissao} 
-              onChange={(e) => { setFilterDiaEmissao(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaEmissao ? formatLocalDate(filterDiaEmissao) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaEmissao ? new Date(filterDiaEmissao + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaEmissao(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Vencimento</label>
-            <Input 
-              type="date" 
-              value={filterDiaVencimento} 
-              onChange={(e) => { setFilterDiaVencimento(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaVencimento ? formatLocalDate(filterDiaVencimento) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaVencimento ? new Date(filterDiaVencimento + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaVencimento(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">Data Recebimento</label>
-            <Input 
-              type="date" 
-              value={filterDiaRecebimento} 
-              onChange={(e) => { setFilterDiaRecebimento(e.target.value); setCurrentPage(1); }}
-              className="h-10"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between h-10 text-sm font-normal">
+                  {filterDiaRecebimento ? formatLocalDate(filterDiaRecebimento) : "Selecionar"}
+                  <CalendarDays className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={filterDiaRecebimento ? new Date(filterDiaRecebimento + 'T00:00:00') : undefined}
+                  onSelect={(date) => { setFilterDiaRecebimento(date ? format(date, 'yyyy-MM-dd') : ''); setCurrentPage(1); }}
+                  captionLayout="dropdown-buttons"
+                  fromYear={2015}
+                  toYear={2030}
+                  locale={ptBR}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -783,12 +831,18 @@ export default function ContasAReceber() {
               Importar CSV
             </Button>
             {isAdmin && (
-              <Button asChild variant="default" className="gap-2">
-                <Link to="/dashboard/financeiro/contas-a-receber/sync">
-                  <RefreshCw className="h-4 w-4" />
-                  Sincronizar ERP
-                </Link>
-              </Button>
+              <>
+                <Button onClick={() => setShowSyncMonitor(true)} variant="outline" className="gap-2">
+                  <FileBarChart className="h-4 w-4" />
+                  Monitor Sync
+                </Button>
+                <Button asChild variant="default" className="gap-2">
+                  <Link to="/dashboard/financeiro/contas-a-receber/sync">
+                    <RefreshCw className="h-4 w-4" />
+                    Sincronizar ERP
+                  </Link>
+                </Button>
+              </>
             )}
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
@@ -812,6 +866,17 @@ export default function ContasAReceber() {
             setShowImportDialog(false);
           }}
         />
+
+        {/* Sync Monitor Drawer */}
+        <Drawer open={showSyncMonitor} onOpenChange={setShowSyncMonitor}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Monitor de Sincronização</DrawerTitle>
+              <DrawerDescription>Histórico e status das sincronizações com o ERP</DrawerDescription>
+            </DrawerHeader>
+            <SyncMonitorPanel />
+          </DrawerContent>
+        </Drawer>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
