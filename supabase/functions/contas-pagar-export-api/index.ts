@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
-import { timingSafeEqual } from "../_shared/timing-safe.ts";
+import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 function mapPaymentMethod(method: string | null): string {
@@ -92,40 +92,13 @@ Deno.serve(async (req) => {
     }
   }
 
-  let authenticated = false;
-
-  // 1. Try JWT auth (for frontend/portal users)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.replace("Bearer ", "");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseKey;
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: authError } = await userClient.auth.getUser(token);
-    if (!authError && userData?.user) {
-      authenticated = true;
+  // Unified auth: JWT or API Key
+  try {
+    await validateAnyAuth(req);
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return jsonResponse({ error: e.message }, e.status);
     }
-  }
-
-  // 2. Try x-api-key auth (for ERP/server-to-server)
-  if (!authenticated) {
-    const apiKey = req.headers.get("x-api-key");
-    const expectedKey = Deno.env.get("EXPORT_API_KEY");
-
-    if (apiKey && expectedKey && timingSafeEqual(apiKey, expectedKey)) {
-      authenticated = true;
-    }
-
-    // Fallback: check erp_api_keys table
-    if (!authenticated && apiKey) {
-      const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
-      const empresa = await validateErpApiKey(apiKey);
-      if (empresa) authenticated = true;
-    }
-  }
-
-  if (!authenticated) {
     return jsonResponse({ error: "API key inválida ou ausente" }, 401);
   }
 

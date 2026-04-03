@@ -1,44 +1,58 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
-import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { handleCors } from "../_shared/cors.ts";
+import { jsonResponse, errorResponse } from "../_shared/response.ts";
+import { validateAnyAuth } from "../_shared/auth.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const ExportSchema = z.object({
+  action: z.enum(["export", "retry", "status"]),
+  payment_queue_id: z.string().uuid().optional(),
+  export_queue_id: z.string().uuid().optional(),
+  channel: z.enum(["n8n", "rest_api", "sql_direct"]).optional(),
+  export_type: z.enum(["registration", "payment"]).optional(),
+}).refine(d => {
+  if (d.action === "export" && !d.payment_queue_id) return false;
+  if (d.action === "retry" && !d.export_queue_id) return false;
+  if (d.action === "status" && !d.payment_queue_id) return false;
+  return true;
+}, { message: "payment_queue_id ou export_queue_id obrigatório conforme action" });
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const cors = getCorsHeaders(req);
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return jsonResponse({ error: "Não autorizado" }, 401);
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) {
-    return jsonResponse({ error: "Token inválido" }, 401);
-  }
+  const startMs = Date.now();
 
   try {
-    const body = await req.json();
-    const { action, payment_queue_id, export_queue_id, channel, export_type } = body;
+    const auth = await validateAnyAuth(req);
 
-    if (action === "export") {
-      return await handleExport(supabase, payment_queue_id, channel, user.id, export_type);
-    } else if (action === "retry") {
-      return await handleRetry(supabase, export_queue_id, user.id);
-    } else if (action === "status") {
-      return await handleStatus(supabase, payment_queue_id);
-    } else {
-      return jsonResponse({ error: "Ação inválida" }, 400);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const raw = await req.json();
+    const body = validateBody(raw, ExportSchema);
+
+    if (body.action === "export") {
+      return await handleExport(supabase, body.payment_queue_id!, body.channel, auth.userId || "api", body.export_type, req, startMs);
+    } else if (body.action === "retry") {
+      return await handleRetry(supabase, body.export_queue_id!, req, startMs);
+    } else if (body.action === "status") {
+      return await handleStatus(supabase, body.payment_queue_id!, req, startMs);
     }
-  } catch (err) {
+
+    return errorResponse(400, "INVALID_ACTION", "Ação inválida", req, startMs);
+  } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      return errorResponse(400, "VALIDATION_ERROR", err.message, req, startMs);
+    }
+    const e = err as { status?: number; message?: string; name?: string };
+    if (e.status === 401 || e.status === 403) {
+      return errorResponse(e.status, "AUTH_ERROR", e.message || "Não autorizado", req, startMs);
+    }
     console.error("erp-export-payment error:", err);
-    return jsonResponse({ error: err.message }, 500);
+    return errorResponse(500, "INTERNAL_ERROR", (err as Error).message || "Erro interno", req, startMs);
   }
 });
 
@@ -59,11 +73,6 @@ function cleanDocument(doc: string | null): string | null {
   return doc.replace(/[^\d]/g, "");
 }
 
-/**
- * Build payload based on export_type:
- * - registration: provisão (Aguardando Pagamento), sem dados de pagamento
- * - payment: baixa (Pago), com dados completos de pagamento
- */
 function buildPayload(item: Record<string, unknown>, exportType: string) {
   const doc = item.supplier_document as string | null;
   const isRegistration = exportType === "registration";
@@ -88,7 +97,6 @@ function buildPayload(item: Record<string, unknown>, exportType: string) {
   };
 
   if (isRegistration) {
-    // Provisão: apenas dados do título, sem pagamento
     payload.pagamento = {
       valor: Number(item.amount) || 0,
       moeda: "BRL",
@@ -97,7 +105,6 @@ function buildPayload(item: Record<string, unknown>, exportType: string) {
     };
     payload.status = "Aguardando Pagamento";
   } else {
-    // Baixa: dados completos com método e data de pagamento
     payload.pagamento = {
       valor: Number(item.amount) || 0,
       moeda: "BRL",
@@ -113,11 +120,13 @@ function buildPayload(item: Record<string, unknown>, exportType: string) {
 }
 
 async function handleExport(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   paymentQueueId: string,
   channel: string | undefined,
   userId: string,
-  exportType: string | undefined
+  exportType: string | undefined,
+  req: Request,
+  startMs: number
 ) {
   const resolvedType = exportType || "payment";
 
@@ -128,13 +137,12 @@ async function handleExport(
     .single();
 
   if (fetchErr || !item) {
-    return jsonResponse({ error: "Item não encontrado" }, 404);
+    return errorResponse(404, "NOT_FOUND", "Item não encontrado", req, startMs);
   }
 
   const exportChannel = channel || "n8n";
   const payload = buildPayload(item, resolvedType);
 
-  // Create export queue record
   const { data: exportRecord, error: insertErr } = await supabase
     .from("erp_export_queue")
     .insert({
@@ -150,13 +158,11 @@ async function handleExport(
     .single();
 
   if (insertErr) {
-    return jsonResponse({ error: "Erro ao criar registro de exportação: " + insertErr.message }, 500);
+    return errorResponse(500, "DB_ERROR", "Erro ao criar registro de exportação: " + insertErr.message, req, startMs);
   }
 
-  // Attempt to send via the selected channel
   const result = await sendToChannel(exportChannel, payload);
 
-  // Update export record with result
   const updateData: Record<string, unknown> = {
     attempts: 1,
     last_attempt_at: new Date().toISOString(),
@@ -187,10 +193,10 @@ async function handleExport(
     message: result.success
       ? `${typeLabel} enviada ao ERP com sucesso`
       : result.error,
-  });
+  }, result.success ? 200 : 502, req, { startMs });
 }
 
-async function handleRetry(supabase: any, exportQueueId: string, userId: string) {
+async function handleRetry(supabase: ReturnType<typeof createClient>, exportQueueId: string, req: Request, startMs: number) {
   const { data: record, error } = await supabase
     .from("erp_export_queue")
     .select("*")
@@ -198,7 +204,7 @@ async function handleRetry(supabase: any, exportQueueId: string, userId: string)
     .single();
 
   if (error || !record) {
-    return jsonResponse({ error: "Registro não encontrado" }, 404);
+    return errorResponse(404, "NOT_FOUND", "Registro não encontrado", req, startMs);
   }
 
   const result = await sendToChannel(record.export_channel, record.payload);
@@ -224,22 +230,21 @@ async function handleRetry(supabase: any, exportQueueId: string, userId: string)
     success: result.success,
     attempts: updateData.attempts,
     message: result.success ? "Reenvio bem-sucedido" : result.error,
-  });
+  }, 200, req, { startMs });
 }
 
-async function handleStatus(supabase: any, paymentQueueId: string) {
-  const { data, error } = await supabase
+async function handleStatus(supabase: ReturnType<typeof createClient>, paymentQueueId: string, req: Request, startMs: number) {
+  const { data } = await supabase
     .from("erp_export_queue")
     .select("*")
     .eq("payment_queue_id", paymentQueueId)
     .order("created_at", { ascending: false });
 
-  // Return both registration and payment exports
   return jsonResponse({
     exports: data || [],
-    registration: (data || []).find((e: any) => e.export_type === "registration") || null,
-    payment: (data || []).find((e: any) => e.export_type === "payment") || null,
-  });
+    registration: (data || []).find((e: Record<string, unknown>) => e.export_type === "registration") || null,
+    payment: (data || []).find((e: Record<string, unknown>) => e.export_type === "payment") || null,
+  }, 200, req, { startMs });
 }
 
 async function sendToChannel(channel: string, payload: Record<string, unknown>): Promise<{ success: boolean; error?: string; response?: unknown }> {
@@ -281,7 +286,6 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
       return { success: true, response: body };
 
     } else if (channel === "sql_direct") {
-      // sql_direct: query the local Supabase database directly using service role
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const { createClient } = await import("npm:@supabase/supabase-js@2");
@@ -291,7 +295,6 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
       const exportType = payload.export_type;
 
       try {
-        // Build query for contas_pagar based on export type
         let query = directClient
           .from("contas_pagar")
           .select("*")
@@ -303,7 +306,6 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
           query = query.eq("status", "pago");
         }
 
-        // Apply date filters from payload if present
         const pagamento = payload.pagamento as Record<string, unknown> | undefined;
         if (pagamento?.data_vencimento) {
           query = query.eq("data_vencimento", pagamento.data_vencimento);
@@ -315,9 +317,6 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
           return { success: false, error: `Erro na consulta SQL Direct: ${queryError.message}` };
         }
 
-        // Log the export in erp_export_queue-compatible format
-        console.log(`SQL Direct: ${rows?.length || 0} registros encontrados para empresa ${empresaId}`);
-
         return {
           success: true,
           response: {
@@ -327,23 +326,14 @@ async function sendToChannel(channel: string, payload: Record<string, unknown>):
             exported_at: new Date().toISOString(),
           },
         };
-      } catch (sqlErr: any) {
-        return { success: false, error: `Erro SQL Direct: ${sqlErr.message}` };
+      } catch (sqlErr: unknown) {
+        return { success: false, error: `Erro SQL Direct: ${(sqlErr as Error).message}` };
       }
 
     } else {
       return { success: false, error: `Canal desconhecido: ${channel}` };
     }
-  } catch (err) {
-    return { success: false, error: `Erro de rede: ${err.message}` };
+  } catch (err: unknown) {
+    return { success: false, error: `Erro de rede: ${(err as Error).message}` };
   }
-}
-
-function jsonResponse(data: unknown, status = 200, req?: Request) {
-  const cors = req ? getCorsHeaders(req) : {};
-  const headers = withSecurityHeaders(
-    { ...cors, "Content-Type": "application/json" },
-    status === 401 || status === 403
-  );
-  return new Response(JSON.stringify(data), { status, headers });
 }
