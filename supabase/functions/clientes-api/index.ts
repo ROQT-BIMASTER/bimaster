@@ -395,6 +395,89 @@ Deno.serve(async (req) => {
       return jsonResponse(statusResponse(data.id, data.codigo, "0", "Código de integração associado com sucesso!"), 200, req, { startMs });
     }
 
+    // ── POST /upsert-lote ────────────────────────────────────────
+    if (req.method === "POST" && path === "/upsert-lote") {
+      const raw = await req.json();
+      const UpsertLoteSchema = z.object({
+        lote: z.number().optional().default(1),
+        clientes_cadastro: z.array(IncluirClienteSchema).min(1).max(500),
+      });
+      const body = validateBody(raw, UpsertLoteSchema);
+
+      let processados = 0;
+      let erros = 0;
+      const detalhesErros: string[] = [];
+
+      for (const cliente of body.clientes_cadastro) {
+        try {
+          const dbData = mapApiToDb(cliente);
+          dbData.updated_at = new Date().toISOString();
+
+          const { error } = await supabase
+            .from("clientes")
+            .upsert(dbData, { onConflict: "codigo" });
+
+          if (error) {
+            erros++;
+            detalhesErros.push(`${cliente.codigo_cliente_integracao}: ${error.message}`);
+          } else {
+            processados++;
+          }
+        } catch (e: unknown) {
+          erros++;
+          detalhesErros.push(`${cliente.codigo_cliente_integracao}: ${(e as Error).message}`);
+        }
+      }
+
+      return jsonResponse({
+        lote: body.lote,
+        codigo_status: erros === body.clientes_cadastro.length ? "1" : "0",
+        descricao_status: `${processados} processado(s), ${erros} erro(s)`,
+        processados,
+        erros,
+        detalhes_erros: detalhesErros.length > 0 ? detalhesErros : undefined,
+      }, erros === body.clientes_cadastro.length ? 400 : 200, req, { startMs });
+    }
+
+    // ── POST /sync ───────────────────────────────────────────────
+    if (req.method === "POST" && path === "/sync") {
+      const raw = await req.json().catch(() => ({}));
+      const SyncSchema = z.object({
+        atualizado_desde: z.string().optional(),
+        pagina: z.number().optional().default(1),
+        registros_por_pagina: z.number().optional().default(100),
+      });
+      const body = validateBody(raw, SyncSchema);
+
+      const pagina = Math.max(1, body.pagina);
+      const regPorPag = Math.min(500, Math.max(1, body.registros_por_pagina));
+      const from = (pagina - 1) * regPorPag;
+      const to = from + regPorPag - 1;
+
+      let query = supabase
+        .from("clientes")
+        .select("*", { count: "exact" })
+        .order("updated_at", { ascending: false })
+        .range(from, to);
+
+      if (body.atualizado_desde) {
+        query = query.gte("updated_at", body.atualizado_desde);
+      }
+
+      const { data, error, count } = await query;
+      if (error) return errorResponse(500, "DB_ERROR", error.message, req, startMs);
+
+      const total = count || 0;
+      return jsonResponse({
+        pagina,
+        total_de_paginas: Math.ceil(total / regPorPag),
+        registros: data?.length || 0,
+        total_de_registros: total,
+        atualizado_desde: body.atualizado_desde || null,
+        clientes_cadastro: (data || []).map(mapRowToApi),
+      }, 200, req, { startMs });
+    }
+
     // ── Helper: resolve cliente by huggs/integracao code ─────────
     async function resolveCliente(body: Record<string, unknown>): Promise<{ id: string; codigo: string } | null> {
       const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
