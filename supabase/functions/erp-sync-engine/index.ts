@@ -103,12 +103,19 @@ function deriveStatus(valorAberto: number, valorPago: number, dataVencimento: st
 
 function transformContasReceber(row: SqlRow) {
   const valorAberto = parseAmount(row["Valor em Aberto"]);
-  const valorPago = parseAmount(row["Valor Pago"]);
+  let valorPago = parseAmount(row["Valor Pago"]);
+  const valorOriginal = parseAmount(row["Valor_Trc"]);
+  const dataVencimento = parseDate(row["Vencimento"]);
   const empresaId = row["ID Empresa"] || 1;
   const tipo = row["Tipo"] || "";
   const nota = row["Nota"] || "";
   const seq = row["Seq"] || 1;
   const erpId = `${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
+
+  // Fallback: se valorPago=0 mas valorAberto=0 e valorOriginal>0, o título foi quitado por ajustes
+  if (valorPago === 0 && valorAberto === 0 && valorOriginal > 0) {
+    valorPago = valorOriginal;
+  }
 
   return {
     erp_id: erpId,
@@ -119,16 +126,16 @@ function transformContasReceber(row: SqlRow) {
     parcela: parseInt(String(row["Seq"])) || 1,
     cliente_codigo: String(row["Código"] || row["Codigo"] || ""),
     cliente_nome: row["Cliente"] || null,
-    valor_original: parseAmount(row["Valor_Trc"]),
+    valor_original: valorOriginal,
     valor_aberto: valorAberto,
     valor_recebido: valorPago,
     valor_juros: parseAmount(row["Valor Juros"]),
     valor_desconto: parseAmount(row["Valor Desconto"]),
     valor_ajustes: parseAmount(row["Valor Ajustes"]),
     data_emissao: parseDate(row["Emissão"] || row["Emissao"]),
-    data_vencimento: parseDate(row["Vencimento"]),
+    data_vencimento: dataVencimento,
     data_recebimento: parseDate(row["Data Pgto"]),
-    status: deriveStatus(valorAberto, valorPago),
+    status: deriveStatus(valorAberto, valorPago, dataVencimento),
     portador: row["Nome Portador"] || null,
     portador_id: row["ID Portador"] ? String(row["ID Portador"]) : null,
     vendedor: row["Vendedor"] || null,
