@@ -255,13 +255,10 @@ export default function DREAnalitico() {
   });
 
   // Funções para obter a data de referência baseado no regime de análise
-  // Isso garante que tanto o filtro da query quanto o agrupamento mensal usem a mesma data
   const getDataRefReceber = (registro: any): string | null => {
     if (regimeAnalise === 'caixa') {
-      // Regime de caixa usa data_vencimento como proxy (data_recebimento geralmente é NULL)
-      return registro.data_vencimento || registro.data_emissao;
+      return registro.data_recebimento || registro.data_vencimento;
     }
-    // Regime de competência usa data de emissão
     return registro.data_emissao || registro.data_vencimento;
   };
 
