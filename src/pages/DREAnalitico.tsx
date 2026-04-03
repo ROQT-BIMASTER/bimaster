@@ -573,9 +573,7 @@ export default function DREAnalitico() {
       const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; qtdDocumentos: number }>();
       
       contasReceberAgregadas.forEach(row => {
-        const valor = regimeAnalise === 'caixa' 
-          ? parseFloat(String(row.valor_recebido || row.valor_original || 0))
-          : parseFloat(String(row.valor_original || 0));
+        const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
         
         const mesKey = row.mes;
         const clienteKey = row.cliente_codigo || 'sem-cliente';
