@@ -1,111 +1,113 @@
+# Substituir N8N: Conexão Direta ao SQL Server via Edge Functions
 
+## Arquitetura
 
-# Revisao Completa do Projeto BiMaster/Huggs — Melhorias e Opcoes de Avanco
-
-## Diagnostico Atual
-
-| Metrica | Valor |
-|---|---|
-| Tabelas no banco | 531 |
-| Edge Functions | ~170 |
-| Paginas React | ~200 |
-| App.tsx | 774 linhas (296 lazy imports) |
-| AppSidebar.tsx | 1,409 linhas |
-| Usuarios | 124 |
-| Modulos | 15+ (CRM, Trade, Fabrica, Financeiro, OMS, Projetos, etc.) |
-| Seguranca | Todos os findings ignorados/mitigados |
-
-O sistema e maduro e completo. Os dois problemas prioritarios sao: **navegacao complexa** (sidebar de 1.400 linhas com ~130 itens) e **ausencia de features de produto que aumentem engajamento**.
-
----
-
-## Opcao A: Command Palette (Busca Global Inteligente) — ALTA PRIORIDADE
-
-O jeito mais rapido de resolver a navegacao complexa. O usuario aperta `Ctrl+K` (ou `Cmd+K`) e busca qualquer tela, modulo ou acao.
-
-### O que inclui:
-- Dialog de busca global estilo Spotlight/VS Code
-- Indexa todas as ~200 rotas com titulo, modulo e icone
-- Busca fuzzy (tolera erros de digitacao)
-- Secoes: "Paginas", "Acoes Rapidas" (criar prospect, novo pedido), "Recentes"
-- Atalho fixo no header (icone de busca + hint `Ctrl+K`)
-- Respeita permissoes — so mostra rotas que o usuario tem acesso
-
-### Arquivos:
-| Arquivo | Acao |
-|---|---|
-| `src/components/navigation/CommandPalette.tsx` | Criar — dialog com busca fuzzy |
-| `src/components/navigation/command-routes.ts` | Criar — indice de todas as rotas |
-| `src/components/dashboard/DashboardLayout.tsx` | Alterar — adicionar trigger no header |
-
----
-
-## Opcao B: Dashboard Customizavel (Drag-and-Drop Widgets)
-
-Cada usuario monta seu proprio dashboard arrastando widgets (KPIs, graficos, listas).
-
-### O que inclui:
-- Grid de widgets com drag-and-drop (react-grid-layout)
-- Catalogo de widgets: KPIs financeiros, pipeline prospects, tarefas pendentes, aprovacoes
-- Layout salvo no banco por usuario
-- Botao "Adicionar Widget" com preview
-- Reset para layout padrao
-
-### Arquivos:
-| Arquivo | Acao |
-|---|---|
-| `src/components/dashboard/CustomizableDashboard.tsx` | Criar |
-| `src/components/dashboard/WidgetCatalog.tsx` | Criar |
-| `src/components/dashboard/widgets/` | Criar pasta com widgets |
-| Migracao SQL | Tabela `user_dashboard_layouts` |
-| `src/pages/Dashboard.tsx` | Alterar |
-
----
-
-## Opcao C: Central de Notificacoes em Tempo Real
-
-O sistema ja tem `NotificationBell` basico. Falta:
-- Notificacoes push reais (Web Push API via Service Worker)
-- Canais por tipo (aprovacoes, tarefas, financeiro) com preferencias
-- Painel de historico com filtros
-- Badge global no header com contagem por modulo
-
-### Arquivos:
-| Arquivo | Acao |
-|---|---|
-| `src/components/notifications/NotificationCenter.tsx` | Criar |
-| `src/components/notifications/NotificationPreferences.tsx` | Criar |
-| `supabase/functions/send-push-notification/index.ts` | Criar |
-| Migracao SQL | Tabelas `notification_preferences`, `push_subscriptions` |
-
----
-
-## Opcao D: Refatorar AppSidebar (de 1,409 para ~300 linhas)
-
-Extrair para componentes menores:
-- `SidebarModuleGroup.tsx` — componente generico por modulo
-- `SidebarQuickActions.tsx` — acoes rapidas
-- `SidebarUserFooter.tsx` — area do usuario
-- `sidebar-module-configs.ts` — configuracoes de rotas
-- `SidebarSearch.tsx` — busca interna
-
----
-
-## Opcao E: Relatorios PDF Avancados com Templates
-
-Gerar PDFs profissionais (DRE, vendas, trade) com logo e cores do tema, agendamento de envio por email.
-
----
-
-## Recomendacao de Prioridade
+Como o SQL Server está acessível pela internet, podemos conectar **diretamente** das Edge Functions usando `npm:tedious` (driver TDS puro em JavaScript, compatível com Deno).
 
 ```text
-1. [URGENTE]  Opcao A — Command Palette (resolve navegacao imediata)
-2. [ALTO]     Opcao D — Refatorar Sidebar (manutencao + performance)
-3. [MEDIO]    Opcao B — Dashboard Customizavel (engajamento)
-4. [MEDIO]    Opcao C — Notificacoes Push (produtividade)
-5. [BAIXO]    Opcao E — Relatorios PDF (diferencial)
+┌─────────────────┐                    ┌─────────────────────┐
+│  SQL Server ERP │◄── TDS (1433) ────│  Edge Function      │
+│  (IP público)   │                    │  erp-sync-engine    │
+└─────────────────┘                    └─────────┬───────────┘
+                                                 │ upsert
+                                       ┌─────────▼───────────┐
+                                       │  Supabase Tables    │
+                                       │  (contas_receber,   │
+                                       │   contas_pagar, etc)│
+                                       └─────────────────────┘
+                                                 ▲
+                                       ┌─────────┴───────────┐
+                                       │  pg_cron Schedule   │
+                                       │  (a cada 40 min)    │
+                                       └─────────────────────┘
 ```
 
-A combinacao A + D resolve 90% do problema de navegacao. B e C sao features que aumentam retencao.
+**Zero dependência externa. Zero custo adicional.**
 
+---
+
+## Implementação
+
+### 1. Secrets necessários
+
+| Secret | Valor |
+|---|---|
+| `ERP_SQL_HOST` | IP ou hostname do SQL Server |
+| `ERP_SQL_PORT` | Porta (default 1433) |
+| `ERP_SQL_USER` | Usuário de leitura |
+| `ERP_SQL_PASSWORD` | Senha |
+| `ERP_SQL_DATABASE` | Nome do banco |
+
+### 2. Edge Function: `erp-sync-engine/index.ts`
+
+Uma única Edge Function com rotas internas para cada entidade:
+
+| Rota | Função |
+|---|---|
+| `POST /sync-contas-receber` | Consulta SQL Server → upsert em `contas_receber` |
+| `POST /sync-contas-pagar` | Consulta SQL Server → upsert em `contas_pagar` |
+| `POST /sync-vendedores` | Consulta SQL Server → upsert em `dimensao_vendedores` |
+| `POST /sync-estoque` | Consulta SQL Server → upsert em tabela estoque |
+| `GET /status` | Status de conexão e última sync |
+| `POST /sync-all` | Executa todas as syncs em sequência |
+
+**Lógica interna:**
+- Conecta ao SQL Server via `npm:tedious`
+- Executa as mesmas queries SQL que o N8N usa hoje (extraídas dos docs)
+- Transforma dados (mesma lógica do `transformErpData` existente)
+- Upsert em batches de 1000 no Supabase
+- Registra em `sync_logs` e `sync_control`
+
+### 3. Agendamento via pg_cron
+
+```sql
+-- A cada 40 minutos, dispara sync de todas as entidades
+SELECT cron.schedule('erp-sync-all', '*/40 * * * *', $$
+  SELECT net.http_post(
+    url := 'https://aokkyrgaqjarhlywhjju.supabase.co/functions/v1/erp-sync-engine',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer ANON_KEY"}'::jsonb,
+    body := '{"path":"sync-all"}'::jsonb
+  );
+$$);
+```
+
+### 4. Ajustes na UI
+
+| Arquivo | Alteração |
+|---|---|
+| `src/components/financeiro/N8NTabContent.tsx` | Renomear para "Sync Direto ERP". Trocar trigger de N8N webhook para `erp-sync-engine/sync-all` |
+| `src/components/financeiro/ContasPagarSyncPanel.tsx` | Atualizar labels e referências |
+
+### 5. Manter compatibilidade
+
+As Edge Functions existentes (`contas-receber-api/sync`, `contas-pagar-api/sync`) continuam funcionando para receber dados — caso queiram manter o N8N em paralelo durante a transição.
+
+---
+
+## Limitações e Mitigações
+
+| Risco | Mitigação |
+|---|---|
+| Edge Function timeout (60s default) | Processar em páginas menores (500 registros). Para volumes muito grandes, usar múltiplas chamadas encadeadas via pg_cron |
+| `tedious` no Deno | É puro JS, compatível. Testaremos na primeira iteração |
+| SQL Server firewall | Usuário precisa liberar IP do Supabase (ou range de IPs da região) |
+
+---
+
+## Economia
+
+| Item | N8N | Sync Direto |
+|---|---|---|
+| Custo mensal | Assinatura N8N | R$ 0 |
+| Dependências | N8N Cloud + workflows | Nenhuma |
+| Manutenção | N8N + código | Só código versionado |
+| Limite execuções | Plano N8N | Ilimitado |
+
+## Ordem de execução
+
+1. Configurar secrets do SQL Server
+2. Criar Edge Function `erp-sync-engine` com conexão tedious
+3. Testar conectividade e queries
+4. Configurar pg_cron
+5. Atualizar UI (renomear N8N → Sync Direto)
+6. Validar em produção com dados reais
