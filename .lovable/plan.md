@@ -1,3 +1,5 @@
+
+
 # Contas a Receber — Resync, Validação e Painel de Monitoramento
 
 ## Diagnóstico Completo
@@ -26,45 +28,35 @@ A `contas-receber-api` tem lógica extra para derivar `valor_recebido` quando o 
 **Correção**: Copiar a lógica de derivação da `contas-receber-api` para o `erp-sync-engine`.
 
 ### Problema 3: Calendário — campo de ano não abre
-O filtro de data usa `<Input type="date">`, que depende do navegador nativo. Não tem um seletor de ano dedicado. Precisa ser trocado por um DatePicker customizado ou, mais simples, usar o componente `Popover` com `Calendar` do shadcn.
-
-**Correção**: Substituir os 3 campos `<Input type="date">` (Emissão, Vencimento, Recebimento) por um `Popover + Calendar` do shadcn com seleção de mês/ano via dropdowns.
+O filtro de data usa `<Input type="date">`, que depende do navegador nativo. Não tem um seletor de ano dedicado. Precisa ser trocado por um DatePicker customizado com `Popover + Calendar` do shadcn.
 
 ### Problema 4: Limite de 1000 linhas no PostgREST
-A query da tabela já usa paginação backend (`range(from, to)`) com tamanho de página 25, portanto não atinge o limite de 1000. Os totais vêm via RPC `get_contas_receber_totais_filtrados`. O dashboard usa RPCs agregadoras. **Esse problema já está resolvido na implementação atual.** Vou validar se o export Excel (que busca todos os registros) respeita isso — atualmente faz fetch paginado de 1000 em 1000, correto.
+Já resolvido na implementação atual — a tabela usa paginação backend (`range(from, to)`) e os totais vêm via RPCs agregadoras.
 
 ### Problema 5: Painel de Monitoramento de Sync para Admin
-Não existe tela mostrando histórico de sincronizações, horários, volumes. A tabela `sync_control` já armazena esses dados.
-
-**Correção**: Criar componente `SyncMonitorPanel` acessível via botão na página de Contas a Receber (apenas admin), exibindo:
-- Última sincronização (data/hora)
-- Status (sucesso/erro/parcial)
-- Total de registros processados
-- Duração
-- Histórico das últimas 20 syncs
+Não existe tela mostrando histórico de sincronizações. A tabela `sync_control` já armazena os dados necessários.
 
 ---
 
 ## Plano de Execução
 
-### Fase 1 — Corrigir `erp-sync-engine` (Edge Function)
+### Fase 1 — Corrigir `erp-sync-engine`
 
 **Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
 
-1. Corrigir `deriveStatus()` para usar `recebido/pendente/vencido/parcial` + lógica de data
+1. Corrigir `deriveStatus()` para `recebido/pendente/vencido/parcial` + lógica de data de vencimento
 2. Adicionar fallback de `valor_recebido` (quando valorPago=0 mas título quitado)
-3. Passar `data_vencimento` para `deriveStatus()`
-4. Aumentar `SQL_PAGE_SIZE` de 500 para 2000 para performance
+3. Aumentar `SQL_PAGE_SIZE` de 500 para 2000
 
 ### Fase 2 — Executar resync completa
 
-Após deploy do fix, chamar `POST /erp-sync-engine` com `path: "sync-contas-receber"` para resincronizar todos os ~343k registros com status corretos.
+Após deploy, chamar `POST /erp-sync-engine` com `path: "sync-contas-receber"` para resincronizar os ~343k registros com status corretos.
 
 ### Fase 3 — Corrigir DatePicker do calendário
 
 **Arquivo**: `src/pages/ContasAReceber.tsx`
 
-Substituir os 3 `<Input type="date">` por componentes `Popover + Calendar` do shadcn/ui com navegação de ano habilitada (`captionLayout="dropdown-buttons"`, `fromYear`, `toYear`).
+Substituir os 3 `<Input type="date">` por `Popover + Calendar` do shadcn/ui com navegação de ano via `captionLayout="dropdown-buttons"`.
 
 ### Fase 4 — Painel de Monitoramento Admin
 
@@ -74,16 +66,13 @@ Componente que consulta `sync_control` e exibe:
 - Card com última sync (horário, status, registros)
 - Tabela com histórico das últimas 20 syncs
 - Badge de status (sucesso/erro/parcial)
-- Botão para forçar sync manual (chama `erp-sync-engine/sync-contas-receber`)
+- Botão para forçar sync manual
 
-**Arquivo**: `src/pages/ContasAReceber.tsx` — Adicionar botão/drawer para abrir o painel (visível apenas para admin).
+**Arquivo**: `src/pages/ContasAReceber.tsx` — Adicionar drawer para o painel (admin only).
 
 ### Fase 5 — Validação cruzada banco vs frontend
 
-Após resync, comparar via SQL:
-- Total por status no banco vs valores exibidos nos KPIs
-- Valores de `valor_aberto` e `valor_recebido` vs totais do dashboard
-- Conferir se `vencido` bate com `data_vencimento < hoje AND status IN (pendente, parcial)`
+Comparar via SQL os totais por status no banco vs valores exibidos nos KPIs do dashboard.
 
 ---
 
@@ -91,13 +80,6 @@ Após resync, comparar via SQL:
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Corrigir `deriveStatus`, fallback valor_recebido, aumentar page size |
+| `supabase/functions/erp-sync-engine/index.ts` | Corrigir deriveStatus, fallback valor_recebido, aumentar page size |
 | `src/pages/ContasAReceber.tsx` | Trocar Input date por Calendar/Popover com seleção de ano |
 | `src/components/financeiro/SyncMonitorPanel.tsx` | **NOVO** — Painel admin de monitoramento de sync |
-
-## Resultado Esperado
-
-- Status no banco alinhados com frontend (`recebido`, `pendente`, `vencido`, `parcial`)
-- Calendário permite selecionar qualquer ano via dropdown
-- Admin tem visibilidade completa sobre sincronizações
-- Valores do dashboard batem 100% com o banco
