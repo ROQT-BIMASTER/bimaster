@@ -1,76 +1,155 @@
 
 
-# Reflexão: Recomendações Externas vs. Realidade do Sistema
+# Seguranca Enterprise: De "Seguro" para "Inteligente"
 
-## Diagnóstico
+## Nota Atual: 85/100 — Meta: 98/100
 
-As 9 recomendações recebidas são **genéricas** e voltadas para sistemas em estágio inicial. O BiMaster/Huggs já implementa a **maioria delas** em nível superior ao sugerido. Abaixo, o mapeamento ponto a ponto.
-
----
-
-## Comparativo: Sugestão vs. Implementado
-
-| # | Recomendação | Status | O que já existe |
-|---|---|---|---|
-| 1 | Criar `tenant_id` em todas as tabelas | **JA IMPLEMENTADO** (como `empresa_id`) | Tabela `empresas` + `user_empresas` + `EmpresaContext` + RLS via `get_empresa_ids_do_usuario()` em todas as tabelas sensíveis. Filtro automático por empresa em todo o frontend. |
-| 2 | Controle de acesso (Admin/Financeiro/Operacional) | **SUPERADO** | RBAC+ABAC com 6+ roles (admin, supervisor, gerente, vendedor, promotor, cliente) + permissões por módulo, tela e componente (`ui_permissions`, `usuario_permissoes_*`) + `has_role()` + `ModuleScreenRoute` |
-| 3 | Blindagem dentro do Lovable | **IMPLEMENTADO** | 3 camadas de guards (Rota → Sidebar → RLS), 367+ tabelas com RLS, `ProtectedRoute` + `ModuleProtectedRoute` + `ScreenProtectedRoute`, validação server-side via Edge Functions |
-| 4 | Cloudflare/WAF/Rate Limiting/Bot | **IMPLEMENTADO** | Rate limiting via `api_rate_limit` + `check_and_increment_rate_limit()`, IP blacklisting (`ddos-shield`), honeypot no login, HSTS headers, CORS lockdown em 100+ funções |
-| 5 | Não expor chaves de API | **IMPLEMENTADO** | Chaves em secrets do Edge Functions, nunca no frontend. Auth via `validateAnyAuth()` com timing-safe comparison. Hashing SHA-256 de API keys no banco. |
-| 6 | Logs | **SUPERADO** | 5 tabelas de auditoria: `access_audit_log` (navegação), `audit_logs` (CRUD), `api_security_log` (Edge Functions), `expense_approval_audit` (financeiro), `security_audit_log` (segurança) + `usePageTracking` automático |
-| 7 | Teste de isolamento entre filiais | **IMPOSTO POR RLS** | `get_empresa_ids_do_usuario()` no banco impede acesso cross-tenant mesmo via manipulação de URL/ID. Impossível ver dados de outra filial sem vínculo em `user_empresas`. |
-| 8 | LGPD | **IMPLEMENTADO** | Framework LGPD completo: termos versionados, `profiles_safe`/`stores_safe` (mascaramento PII), ferramenta admin para anonimização Art. 18, exportação de dados pessoais |
-| 9 | Fases de evolução | **JA NA FASE 3** | Sistema em produção com 140+ Edge Functions, MFA, account lockout, SSRF protection, Zod validation em endpoints críticos |
+O sistema ja possui seguranca avancada (RLS, RBAC, rate limiting, SSRF protection). O que falta sao 4 pilares de maturidade enterprise que transformam seguranca passiva em seguranca ativa e inteligente.
 
 ---
 
-## O que REALMENTE falta (gaps genuínos)
+## Visao Geral da Arquitetura
 
-Apesar do sistema estar muito à frente das sugestões, identifico **3 melhorias reais** que agregariam valor sem interferir no que está em produção:
-
-### GAP 1: Dashboard de Saúde de Segurança (visibilidade executiva)
-
-Hoje os dados de auditoria existem mas não há um painel consolidado para o admin ver em tempo real:
-- Tentativas de login falhadas (últimas 24h)
-- Requisições bloqueadas por rate limiting
-- IPs no blacklist ativo
-- Últimas ações sensíveis (exclusões, alterações financeiras)
-
-**Solução**: Criar uma página `SecurityDashboard.tsx` que consulta `access_audit_log`, `api_rate_limit`, `security_audit_log` e apresenta KPIs + gráfico de tendência.
-
-### GAP 2: Alertas de Segurança por Email
-
-Quando ocorrem eventos críticos (5+ logins falhados, tentativa de acesso cross-tenant bloqueada, exportação em massa), ninguém é notificado em tempo real.
-
-**Solução**: Criar Edge Function `security-alerts` que é chamada por trigger no `security_audit_log` e envia email para admins via Supabase Auth email.
-
-### GAP 3: Relatório de Segurança Dinâmico
-
-O `RelatorioSeguranca.tsx` atual é estático (hardcoded). Deveria puxar dados reais do banco:
-- Contagem real de tabelas com RLS ativo
-- Últimas 10 ações auditadas
-- Score calculado dinamicamente
-
-**Solução**: Criar RPC `get_security_summary()` e atualizar o relatório para usar dados vivos.
+```text
+Eventos de Seguranca (5 tabelas de audit)
+         |
+    [Correlacao + Scoring]  ← NOVO
+         |
+    ┌────┴────────────────┐
+    |                     |
+[Auto-Resposta]     [Dashboard SIEM]  ← UPGRADE
+    |                     |
+[Bloqueio IP]        [Event Explorer]  ← NOVO
+[Lock User]          [Filtros Empresa/IP/User]
+[Revoke Session]     [Drill-down]
+[Force Password]     [Risk Score]
+```
 
 ---
 
-## Arquivos a criar/alterar
+## PILAR 1: Tabelas de Infraestrutura (Migracao)
 
-| Arquivo | Ação |
+Criar 3 novas tabelas para suportar a engine inteligente:
+
+### `security_incidents`
+Armazena incidentes correlacionados (nao eventos individuais):
+- `id`, `incident_type` (brute_force, cross_tenant, mass_export, suspicious_ip)
+- `severity` (critical/high/medium/low), `status` (open/investigating/mitigated/resolved)
+- `risk_score` (0-100), `source_ip`, `user_id`, `empresa_id`
+- `auto_action_taken` (blocked_ip, locked_user, revoked_session, forced_password_reset, none)
+- `related_events` (jsonb — array de IDs dos eventos correlacionados)
+- `resolved_at`, `resolved_by`, `notes`
+- RLS: apenas admins
+
+### `security_ip_blocklist`
+Controle de IPs bloqueados automatica ou manualmente:
+- `id`, `ip_address` (inet), `reason`, `blocked_by` (auto/manual)
+- `incident_id` (FK security_incidents), `expires_at`, `is_active`
+- RLS: apenas admins
+
+### `security_user_risk_score`
+Score de risco por usuario, recalculado pela engine:
+- `id`, `user_id`, `score` (0-100), `risk_level` (low/medium/high/critical)
+- `factors` (jsonb — detalhamento dos fatores), `last_calculated_at`
+- RLS: apenas admins
+
+---
+
+## PILAR 2: Edge Function `security-correlation-engine`
+
+Engine de correlacao e auto-resposta. Chamada via cron a cada 5 minutos.
+
+**Regras de correlacao:**
+1. **Brute Force**: 5+ login_failed do mesmo IP em 5min → incidente + bloqueia IP 1h
+2. **Cross-Tenant Probe**: Mesmo user_id acessando 3+ empresas sem vinculo → incidente critical
+3. **Mass Export**: 10+ exports do mesmo user em 1h → incidente + alerta
+4. **IP Anomalo**: Mesmo IP em 3+ contas diferentes em 1h → incidente high
+5. **Horario Anomalo**: Acesso entre 00h-05h com acao sensivel → incidente medium
+
+**Auto-respostas:**
+- `block_ip`: Insere em `security_ip_blocklist` com TTL
+- `lock_user`: Atualiza metadata do usuario (locked = true)
+- `revoke_sessions`: Chama `auth.admin.signOut(userId, 'global')`
+- `force_password_reset`: Envia email de reset + flag no perfil
+
+**Calculo de Risk Score por usuario:**
+- Failed logins (peso 3), Horarios anomalos (peso 2), IPs multiplos (peso 2), Acoes sensíveis sem MFA (peso 4), Incidentes anteriores (peso 5)
+
+---
+
+## PILAR 3: Upgrade do Security Dashboard
+
+Transformar o dashboard atual em mini-SIEM operacional.
+
+### 3a. `SecurityDashboard.tsx` — Upgrade
+- Adicionar **Security Score dinamico** (0-100) calculado em tempo real:
+  - % tabelas com RLS, eventos criticos recentes, cobertura MFA, incidentes abertos
+- Adicionar **Incidentes Abertos** como KPI card
+- Adicionar **Risk Score medio** dos usuarios
+- Adicionar filtros por empresa, periodo, tipo de evento
+- Adicionar botao "Investigar" que navega ao Event Explorer
+
+### 3b. `SecurityEventExplorer.tsx` — NOVO (Mini SIEM)
+Pagina de investigacao com:
+- **Tabela paginada** de todos os eventos (security_audit_log + access_audit_log)
+- **Filtros**: empresa, usuario, IP, tipo de evento, severidade, periodo
+- **Drill-down**: clicar em evento mostra metadata completa + eventos relacionados
+- **Correlacao visual**: Mesmo IP em multiplas empresas destacado em vermelho
+- **Timeline**: Visualizar sequencia de eventos por usuario/IP
+- **Acoes diretas**: Bloquear IP, Lockout usuario, Revogar sessoes
+
+### 3c. `SecurityIncidentPanel.tsx` — NOVO
+Painel de gestao de incidentes:
+- Lista de incidentes com status (open/investigating/mitigated/resolved)
+- Detalhes do incidente com eventos correlacionados
+- Workflow de resolucao (investigar → mitigar → resolver)
+- Notas/comentarios por incidente
+
+### 3d. `SecurityRiskScoreCard.tsx` — NOVO
+Widget de risk score:
+- Score geral do sistema (gauge chart)
+- Top 5 usuarios com maior risco
+- Breakdown dos fatores de risco
+
+---
+
+## PILAR 4: Integracao com Rate Limiting Existente
+
+Upgrade do `_shared/rate-limit.ts` para registrar bloqueios em `security_ip_blocklist` e verificar blocklist antes de processar requests.
+
+Criar `_shared/security-middleware.ts`:
+- Verifica `security_ip_blocklist` antes de processar qualquer request
+- Verifica se usuario esta locked
+- Registra em `security_audit_log` se bloqueado
+
+---
+
+## Arquivos a Criar/Alterar
+
+| Arquivo | Acao |
 |---|---|
-| `src/pages/SecurityDashboard.tsx` | Criar — painel de saúde de segurança |
-| `src/components/security/SecurityKPICards.tsx` | Criar — cards de métricas |
-| `src/components/security/SecurityActivityFeed.tsx` | Criar — feed de atividades recentes |
-| `src/components/security/SecurityTrendChart.tsx` | Criar — gráfico de tendência 7 dias |
-| `supabase/functions/security-alerts/index.ts` | Criar — alertas por email |
-| `src/pages/RelatorioSeguranca.tsx` | Alterar — dados dinâmicos |
-| `src/App.tsx` | Alterar — rota `/seguranca-dashboard` |
+| **Migracoes SQL** | 3 tabelas novas + RLS + indices |
+| `supabase/functions/security-correlation-engine/index.ts` | Criar — engine de correlacao + auto-resposta |
+| `supabase/functions/_shared/security-middleware.ts` | Criar — middleware de verificacao de blocklist |
+| `supabase/functions/_shared/rate-limit.ts` | Alterar — integrar com blocklist |
+| `supabase/functions/security-alerts/index.ts` | Alterar — usar dados da correlation engine |
+| `src/pages/SecurityDashboard.tsx` | Alterar — upgrade com score, filtros, incidentes |
+| `src/pages/SecurityEventExplorer.tsx` | Criar — mini SIEM |
+| `src/components/security/SecurityKPICards.tsx` | Alterar — novos KPIs |
+| `src/components/security/SecurityIncidentPanel.tsx` | Criar — gestao de incidentes |
+| `src/components/security/SecurityRiskScoreCard.tsx` | Criar — widget risk score |
+| `src/components/security/SecurityScoreGauge.tsx` | Criar — gauge visual do score |
+| `src/components/security/EventDetailDrawer.tsx` | Criar — drawer de drill-down |
+| `src/App.tsx` | Alterar — rota do Event Explorer |
 
-### Resultado esperado
+---
 
-- Admin tem visibilidade em tempo real de eventos de segurança
-- Alertas proativos para incidentes críticos
-- Relatório de segurança com dados vivos (não hardcoded)
-- Zero interferência em funcionalidades existentes
+## Resultado Esperado
+
+- **Deteccao**: Correlacao automatica de eventos suspeitos (brute force, cross-tenant, anomalias)
+- **Resposta**: Bloqueio automatico de IP, lockout de usuario, revogacao de sessoes
+- **Visibilidade**: Dashboard SIEM com drill-down, filtros por empresa/usuario/IP
+- **Risk Score**: Score dinamico por usuario e score geral do sistema
+- **Governanca**: Workflow de incidentes (open → investigate → mitigate → resolve)
+- **Nota estimada: 98/100**
 
