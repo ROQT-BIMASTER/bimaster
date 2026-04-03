@@ -105,14 +105,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <div className="flex items-center gap-1.5 sm:gap-3">
               <button
                 onClick={() => setCmdOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Busca global"
+                className="inline-flex items-center justify-center rounded-md border border-border bg-muted/50 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Busca global (⌘K)"
+                title="Busca global (⌘K)"
               >
-                <Search className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Buscar...</span>
-                <kbd className="hidden sm:inline-flex pointer-events-none h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1 font-mono text-[10px] font-medium text-muted-foreground">
-                  ⌘K
-                </kbd>
+                <Search className="h-4 w-4" />
               </button>
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
