@@ -471,8 +471,8 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
 // ─── Sync incremental (últimas 2 horas) ───
 
 async function handleSyncContasReceberIncremental(req: Request, startMs: number) {
-  // Fetch only records modified recently (payment date or due date in recent window)
-  const whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) OR [Vencimento] >= DATEADD(DAY, -1, GETDATE())`;
+  // Only records with recent payments OR titles that just became overdue (vencimento = yesterday/today)
+  const whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) OR ([Vencimento] >= DATEADD(DAY, -2, GETDATE()) AND [Vencimento] <= GETDATE())`;
   return handleSyncPaginated(
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
