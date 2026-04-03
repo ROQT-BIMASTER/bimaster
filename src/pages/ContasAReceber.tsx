@@ -831,12 +831,18 @@ export default function ContasAReceber() {
               Importar CSV
             </Button>
             {isAdmin && (
-              <Button asChild variant="default" className="gap-2">
-                <Link to="/dashboard/financeiro/contas-a-receber/sync">
-                  <RefreshCw className="h-4 w-4" />
-                  Sincronizar ERP
-                </Link>
-              </Button>
+              <>
+                <Button onClick={() => setShowSyncMonitor(true)} variant="outline" className="gap-2">
+                  <FileBarChart className="h-4 w-4" />
+                  Monitor Sync
+                </Button>
+                <Button asChild variant="default" className="gap-2">
+                  <Link to="/dashboard/financeiro/contas-a-receber/sync">
+                    <RefreshCw className="h-4 w-4" />
+                    Sincronizar ERP
+                  </Link>
+                </Button>
+              </>
             )}
             <Button asChild variant="outline" className="gap-2">
               <Link to="/dashboard/financeiro/contas-a-receber/auditoria">
