@@ -2,27 +2,30 @@ import { useMemo } from "react";
 import { formatCurrencyCompact } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { chartColors } from "@/lib/chart-colors";
 
 interface MetasReducaoChartProps {
   revisoes: any[];
 }
 
-const COLORS = {
-  eliminar: '#ef4444',
-  reduzir: '#f97316',
-  renegociar: '#3b82f6',
-  monitorar: '#a855f7',
+const STATUS_COLORS: Record<string, string> = {
+  pendente: chartColors.warning,
+  em_andamento: chartColors.accent,
+  concluido: chartColors.success,
+  cancelado: chartColors.destructive,
 };
 
-const STATUS_COLORS = {
-  pendente: '#eab308',
-  em_andamento: '#3b82f6',
-  concluido: '#22c55e',
-  cancelado: '#6b7280',
+const tooltipStyle = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: 8,
+  fontSize: 12,
+  color: 'hsl(var(--card-foreground))',
 };
+
+const axisTickStyle = { fontSize: 11, fill: 'hsl(var(--muted-foreground))' };
 
 export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
-  // Dados por tipo de ação
   const dadosPorTipo = useMemo(() => {
     const tipos = ['eliminar', 'reduzir', 'renegociar', 'monitorar'];
     return tipos.map(tipo => {
@@ -38,7 +41,6 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
     }).filter(d => d.quantidade > 0);
   }, [revisoes]);
 
-  // Dados por status
   const dadosPorStatus = useMemo(() => {
     const statusMap: Record<string, { name: string; value: number; color: string }> = {
       pendente: { name: 'Pendente', value: 0, color: STATUS_COLORS.pendente },
@@ -46,24 +48,18 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
       concluido: { name: 'Concluído', value: 0, color: STATUS_COLORS.concluido },
       cancelado: { name: 'Cancelado', value: 0, color: STATUS_COLORS.cancelado },
     };
-
     revisoes.forEach(r => {
-      if (statusMap[r.status]) {
-        statusMap[r.status].value++;
-      }
+      if (statusMap[r.status]) statusMap[r.status].value++;
     });
-
     return Object.values(statusMap).filter(s => s.value > 0);
   }, [revisoes]);
 
-  // Dados por prioridade
   const dadosPorPrioridade = useMemo(() => {
     const prioridadeMap: Record<string, { name: string; meta: number; realizado: number }> = {
       alta: { name: 'Alta', meta: 0, realizado: 0 },
       media: { name: 'Média', meta: 0, realizado: 0 },
       baixa: { name: 'Baixa', meta: 0, realizado: 0 },
     };
-
     revisoes.forEach(r => {
       if (prioridadeMap[r.prioridade]) {
         prioridadeMap[r.prioridade].meta += r.meta_reducao_valor || 0;
@@ -72,19 +68,16 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
         }
       }
     });
-
     return Object.values(prioridadeMap).filter(p => p.meta > 0 || p.realizado > 0);
   }, [revisoes]);
 
   const formatCurrency = (value: number) => formatCurrencyCompact(value);
 
-  if (revisoes.length === 0) {
-    return null;
-  }
+  if (revisoes.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Gráfico de Barras - Meta vs Realizado por Tipo */}
+      {/* Barras - Meta vs Realizado por Tipo */}
       <Card className="md:col-span-2">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Meta vs Realizado por Tipo de Ação</CardTitle>
@@ -92,26 +85,29 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={dadosPorTipo} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="tipo" className="text-xs" />
-              <YAxis tickFormatter={formatCurrency} className="text-xs" />
-              <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="meta" name="Meta" fill="#f97316" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="realizado" name="Realizado" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <defs>
+                <linearGradient id="gradMeta" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.6} />
+                </linearGradient>
+                <linearGradient id="gradRealizado" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0.6} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="tipo" tick={axisTickStyle} />
+              <YAxis tickFormatter={formatCurrency} tick={axisTickStyle} />
+              <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="meta" name="Meta" fill="url(#gradMeta)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="realizado" name="Realizado" fill="url(#gradRealizado)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Gráfico de Pizza - Status */}
+      {/* Donut - Status */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Distribuição por Status</CardTitle>
@@ -122,31 +118,27 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
               <Pie
                 data={dadosPorStatus}
                 cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={2}
+                cy="45%"
+                innerRadius={45}
+                outerRadius={75}
+                paddingAngle={3}
                 dataKey="value"
                 label={({ name, value }) => `${name}: ${value}`}
-                labelLine={false}
+                labelLine={true}
+                style={{ fontSize: 11 }}
               >
                 {dadosPorStatus.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Gráfico de Barras - Por Prioridade */}
+      {/* Barras Horizontais - Por Prioridade */}
       {dadosPorPrioridade.length > 0 && (
         <Card className="md:col-span-3">
           <CardHeader className="pb-2">
@@ -155,20 +147,23 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={dadosPorPrioridade} layout="vertical" margin={{ top: 10, right: 30, left: 60, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis type="number" tickFormatter={formatCurrency} className="text-xs" />
-                <YAxis type="category" dataKey="name" className="text-xs" />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="meta" name="Meta" fill="#f97316" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="realizado" name="Realizado" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                <defs>
+                  <linearGradient id="gradMetaH" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0.9} />
+                  </linearGradient>
+                  <linearGradient id="gradRealizadoH" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0.9} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tickFormatter={formatCurrency} tick={axisTickStyle} />
+                <YAxis type="category" dataKey="name" tick={axisTickStyle} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="meta" name="Meta" fill="url(#gradMetaH)" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="realizado" name="Realizado" fill="url(#gradRealizadoH)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
