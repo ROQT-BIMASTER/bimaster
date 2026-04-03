@@ -173,10 +173,7 @@ export function ContasPagarDREView({
 
   // Format functions
   const formatCurrency = useCallback((value: number, showSign = false) => {
-    const formatted = new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(Math.abs(value));
+    const formatted = formatNumber(Math.abs(value), 2);
     if (showSign && value < 0) return `(${formatted})`;
     return formatted;
   }, []);
