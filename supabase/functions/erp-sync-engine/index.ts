@@ -424,6 +424,8 @@ async function handleSyncPaginated(
 async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) {
   const body = await req.clone().json();
   const empresaId = body.empresa_id;
+  const startPage = body.start_page || 0;
+  const maxPages = body.max_pages || 999;
   if (!empresaId || isNaN(Number(empresaId))) {
     return errorResponse(400, "invalid_empresa", "empresa_id é obrigatório (numérico)", req, startMs);
   }
@@ -431,7 +433,7 @@ async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) 
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
     transformContasReceber, "erp_id",
-    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId) }
+    { whereClause: `[ID Empresa] = ${Number(empresaId)}`, empresaId: Number(empresaId), startPage: Number(startPage), maxPages: Number(maxPages) }
   );
 }
 
