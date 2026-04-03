@@ -176,10 +176,8 @@ Deno.serve(async (req) => {
 
     // ==================== POST /alterar ====================
     if (req.method === "POST" && path === "/alterar") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), AlterarCategoriaSchema);
       const { codigo, descricao, natureza, tipo_categoria, codigo_dre, conta_inativa } = body;
-
-      if (!codigo) return errorResp(400, "VALIDATION", "Campo 'codigo' é obrigatório", req, startMs);
 
       const updates: Record<string, unknown> = {};
       if (descricao !== undefined) updates.name = descricao;
