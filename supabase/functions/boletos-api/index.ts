@@ -314,6 +314,9 @@ Deno.serve(async (req) => {
         return errorResponse(404, "NOT-001", `Rota não encontrada: /${route}. Rotas: /gerar, /obter, /cancelar, /prorrogar, /listar, /status`, req);
     }
   } catch (err) {
+    if (err instanceof ValidationError) {
+      return errorResponse(400, "VAL-001", err.message, req);
+    }
     if (err instanceof RateLimitError) {
       return errorResponse(429, "RATE_LIMIT", err.message, req);
     }
