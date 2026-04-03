@@ -594,8 +594,9 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     // Convert ISO timestamp to SQL Server format for comparison
     const syncDate = new Date(lastSync);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
-    whereClause = `[Data Pgto] >= '${sqlDate}' OR [Vencimento] >= '${sqlDate}'`;
-    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate}`);
+    // Only capture recent payments — NOT all future due dates
+    whereClause = `[Data Pgto] >= '${sqlDate}'`;
+    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate} (payments only)`);
   } else {
     // Fallback: last 2 hours if no previous successful sync
     whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
@@ -606,7 +607,7 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
     transformContasReceber, "erp_id",
-    { whereClause }
+    { whereClause, maxPages: 5 }
   );
 }
 
