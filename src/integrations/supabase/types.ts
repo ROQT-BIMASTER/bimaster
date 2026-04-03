@@ -24544,8 +24544,10 @@ export type Database = {
       security_incidents: {
         Row: {
           auto_action_taken: string | null
+          confidence_score: number | null
           created_at: string
           description: string | null
+          detection_method: string | null
           empresa_id: number | null
           id: string
           incident_type: string
@@ -24563,8 +24565,10 @@ export type Database = {
         }
         Insert: {
           auto_action_taken?: string | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
+          detection_method?: string | null
           empresa_id?: number | null
           id?: string
           incident_type: string
@@ -24582,8 +24586,10 @@ export type Database = {
         }
         Update: {
           auto_action_taken?: string | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
+          detection_method?: string | null
           empresa_id?: number | null
           id?: string
           incident_type?: string
@@ -24603,6 +24609,7 @@ export type Database = {
       }
       security_ip_blocklist: {
         Row: {
+          block_level: string | null
           blocked_by: string
           created_at: string
           expires_at: string | null
@@ -24613,6 +24620,7 @@ export type Database = {
           reason: string
         }
         Insert: {
+          block_level?: string | null
           blocked_by?: string
           created_at?: string
           expires_at?: string | null
@@ -24623,6 +24631,7 @@ export type Database = {
           reason: string
         }
         Update: {
+          block_level?: string | null
           blocked_by?: string
           created_at?: string
           expires_at?: string | null
