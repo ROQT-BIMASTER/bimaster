@@ -1,46 +1,35 @@
 
-# Revisao: Visualizar como Usuario — Problemas e Correcoes
+# Correcao: Visualizar como Usuario — Desatualizado
 
-## Problemas Identificados
+## Problemas Encontrados
 
-| # | Problema | Impacto |
+| # | Problema | Detalhe |
 |---|---|---|
-| 1 | Role "gerente" nao tem badge (6 usuarios com essa role) | Gerentes aparecem como "vendedor" no seletor e no banner |
-| 2 | Usuarios inativos aparecem misturados (30 de 123) | Lista poluida, dificil encontrar usuarios ativos |
-| 3 | Sem filtro por role ou status | Admin precisa scroll manual em 123+ usuarios |
-| 4 | Sem indicacao de quantos modulos/telas o usuario tem | Admin nao sabe o que vai ver antes de selecionar |
-| 5 | Sem empresa vinculada visivel | Em multi-tenant, nao se sabe a qual empresa o usuario pertence |
-| 6 | Banner de impersonacao tambem ignora "gerente" | Mesma inconsistencia no topo da tela |
+| 1 | Role "gerente" sem badge | 6 usuarios com role gerente aparecem como "vendedor" (badge inexistente) |
+| 2 | Usuarios inativos misturados | 30 inativos entre 123, sem filtro — lista poluida |
+| 3 | Sem filtros de role ou status | Admin faz scroll manual em 120+ usuarios |
+| 4 | Sem info de empresa | Multi-tenant ativo mas sem mostrar empresas vinculadas |
+| 5 | Sem info de departamento inline | Departamento so aparece como badge lateral |
+| 6 | Admin aparece na lista dele mesmo | Pode selecionar a si proprio |
+| 7 | Banner tambem ignora "gerente" | Mesma inconsistencia na barra de impersonacao |
 
 ## Correcoes
 
 ### `ImpersonationSelector.tsx` — Reescrever
-- Adicionar badge para role "gerente" (cor laranja)
-- Filtro por **status** (ativo/inativo) — default: apenas ativos
-- Filtro por **role** (admin, gerente, supervisor, vendedor)
-- Mostrar contagem de modulos e telas por usuario (via `get_all_user_permissions` em batch ou exibir ao hover)
-- Buscar e exibir empresas vinculadas (`user_empresas` + `empresas`)
-- Separar visualmente ativos de inativos
-- Excluir o proprio admin logado da lista
+- Adicionar badge "Gerente" (cor laranja)
+- Filtro por status (ativo/inativo) — default: apenas ativos
+- Filtro por role (admin, gerente, supervisor, vendedor)
+- Mostrar departamento e empresas vinculadas por usuario
+- Excluir o admin logado da lista
+- Contagem de resultados filtrados
 
 ### `ImpersonationBanner.tsx` — Ajustar
-- Adicionar badge "Gerente" (laranja)
-- Mostrar empresa(s) do usuario impersonado
-- Mostrar departamento
+- Adicionar badge "Gerente" (laranja) no switch de roles
+- Consistencia com o seletor
 
-### `ImpersonationContext.tsx` — Ajustar
-- Armazenar empresas e departamento do usuario impersonado no estado persistido
-
-## Arquivos a Alterar
+## Arquivos
 
 | Arquivo | Acao |
 |---|---|
-| `src/components/admin/ImpersonationSelector.tsx` | Reescrever — filtros, gerente, empresas |
-| `src/components/admin/ImpersonationBanner.tsx` | Alterar — gerente badge, empresa, departamento |
-| `src/contexts/ImpersonationContext.tsx` | Alterar — armazenar empresa/departamento |
-
-## Resultado
-
-- Lista de usuarios reflete a realidade (roles corretas, filtros uteis)
-- Admin tem visibilidade completa antes de selecionar um usuario
-- Banner mostra contexto completo do usuario impersonado
+| `src/components/admin/ImpersonationSelector.tsx` | Reescrever |
+| `src/components/admin/ImpersonationBanner.tsx` | Ajustar getRoleBadge |
