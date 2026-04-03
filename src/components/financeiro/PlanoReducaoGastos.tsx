@@ -108,7 +108,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const itensPendentes = revisoes?.filter(r => r.status === 'pendente').length || 0;
   const itensVencidos = revisoes?.filter(r => r.prazo_revisao && new Date(r.prazo_revisao) < new Date() && r.status !== 'concluido' && r.status !== 'cancelado').length || 0;
 
+  // Extract unique departments and empresas for filters
+  const uniqueDepartamentos = [...new Set(revisoes?.map(r => (r as any).departamento?.nome).filter(Boolean) || [])].sort();
+  const uniqueEmpresas = [...new Set(revisoes?.map(r => r.empresa_nome).filter(Boolean) || [])].sort();
+
   const filteredRevisoes = revisoes?.filter(r => {
+    if (filterDepartamento !== 'todos') {
+      const deptoNome = (r as any).departamento?.nome || '';
+      if (deptoNome !== filterDepartamento) return false;
+    }
+    if (filterEmpresaNome !== 'todas') {
+      if ((r.empresa_nome || '') !== filterEmpresaNome) return false;
+    }
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       const nome = r.plano_contas?.name?.toLowerCase() || r.categoria_nome?.toLowerCase() || '';
@@ -119,6 +130,14 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
     return true;
   });
+
+  // Group by departamento
+  const groupedByDepartamento = filteredRevisoes?.reduce((acc, r) => {
+    const key = (r as any).departamento?.nome || 'Sem Departamento';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {} as Record<string, typeof filteredRevisoes>) || {};
 
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
