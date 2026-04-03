@@ -415,7 +415,7 @@ async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) 
   );
 }
 
-// ─── Sync full orquestrando por empresa ───
+// ─── Sync full orquestrando por empresa (via fetch externo — cada empresa tem seu próprio timeout) ───
 
 async function handleSyncContasReceberFull(req: Request, startMs: number) {
   // Discover all empresa_ids from SQL Server
@@ -433,29 +433,41 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
     return errorResponse(500, "no_empresas", "Nenhuma empresa encontrada na view", req, startMs);
   }
 
-  console.log(`🏢 Full sync: ${empresaIds.length} empresas encontradas: ${empresaIds.join(", ")}`);
+  console.log(`🏢 Full sync (external fetch): ${empresaIds.length} empresas: ${empresaIds.join(", ")}`);
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const results: Record<string, unknown> = {};
   let totalAll = 0;
   let upsertedAll = 0;
 
-  for (const empId of empresaIds) {
-    const empStartMs = Date.now();
-    try {
-      const fakeReq = new Request(req.url, { method: "POST", headers: req.headers, body: JSON.stringify({ empresa_id: empId }) });
-      const resp = await handleSyncPaginated(
-        fakeReq, empStartMs,
-        "ConsultaPowerBIReceber", "contas_receber", "contas_receber",
-        transformContasReceber, "erp_id",
-        { whereClause: `[ID Empresa] = ${empId}`, empresaId: empId }
-      );
-      const data = await resp.json();
-      results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted };
-      totalAll += data.totalRows || 0;
-      upsertedAll += data.upserted || 0;
-    } catch (e) {
-      results[`empresa_${empId}`] = { success: false, error: e instanceof Error ? e.message : "Erro" };
-    }
+  // Process in parallel batches of 2 to avoid overwhelming the system
+  const CONCURRENCY = 2;
+  for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
+    const batch = empresaIds.slice(i, i + CONCURRENCY);
+    const promises = batch.map(async (empId) => {
+      try {
+        console.log(`🚀 Dispatching external sync for empresa ${empId}...`);
+        const resp = await fetch(`${supabaseUrl}/functions/v1/erp-sync-engine`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ path: "sync-contas-receber-por-empresa", empresa_id: empId }),
+        });
+        const data = await resp.json();
+        results[`empresa_${empId}`] = { success: data.success, totalRows: data.totalRows, upserted: data.upserted, status: resp.status };
+        totalAll += data.totalRows || 0;
+        upsertedAll += data.upserted || 0;
+        console.log(`✅ Empresa ${empId}: ${data.totalRows || 0} rows, ${data.upserted || 0} upserted`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro";
+        results[`empresa_${empId}`] = { success: false, error: msg };
+        console.error(`❌ Empresa ${empId} failed: ${msg}`);
+      }
+    });
+    await Promise.all(promises);
   }
 
   return jsonResponse({
