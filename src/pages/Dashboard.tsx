@@ -19,6 +19,7 @@ import { MetricasDistribuicao } from "@/components/admin/MetricasDistribuicao";
 import { AIInsightsChat } from "@/components/chat/AIInsightsChat";
 import { ProspectsDashboardWidget } from "@/components/dashboard/ProspectsDashboardWidget";
 import { TradeDashboardWidget } from "@/components/dashboard/TradeDashboardWidget";
+import { DashboardKPICards } from "@/components/dashboard/DashboardKPICards";
 import { FinanceiroDashboardWidget } from "@/components/dashboard/FinanceiroDashboardWidget";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
