@@ -63,6 +63,7 @@ const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const UnsubscribePage = lazyWithRetry(() => import("./pages/UnsubscribePage"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ProspectsModule = lazyWithRetry(() => import("./pages/modules/ProspectsModule"));
 const MarketingModule = lazyWithRetry(() => import("./pages/modules/MarketingModule"));
@@ -393,6 +394,7 @@ function AppContent() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
             <Route path="/usuario-bloqueado" element={<UsuarioBloqueado />} />
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
