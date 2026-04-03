@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function Financeiro() {
   const { user } = useAuth();
@@ -107,8 +108,7 @@ export default function Financeiro() {
     },
   });
 
-  const formatCurrency = (v: number) =>
-    `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  // formatCurrency importado de @/lib/formatters
 
   const statusColor: Record<string, string> = {
     pendente: "bg-yellow-100 text-yellow-800",

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Receipt, CheckCircle, Clock, Store, Calendar, Building2 } from "lucide-react";
@@ -21,13 +22,7 @@ const origemIconConfig = {
   departamentos: Building2,
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+const formatCurrencyNoDecimals = (value: number) => formatCurrency(value, false);
 
 export function ConsolidadoDespesasCard({ metrics, despesasPorOrigem }: ConsolidadoDespesasCardProps) {
   return (

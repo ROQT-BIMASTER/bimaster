@@ -1,6 +1,7 @@
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Clock, CheckCircle2, XCircle, Wallet, DollarSign } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/formatters";
 
 interface PaymentQueueKPIsProps {
   kpis: {
@@ -17,23 +18,17 @@ interface PaymentQueueKPIsProps {
   };
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+const formatCurrencyNoDecimals = (value: number) => formatCurrency(value, false);
 
 export function PaymentQueueKPIs({ kpis }: PaymentQueueKPIsProps) {
   const { t } = useLanguage();
 
   const cards = [
-    { title: t("pq.pending"), value: kpis.pendingCount, subtitle: formatCurrency(kpis.pendingAmount), icon: Clock, variant: "warning" as const },
-    { title: t("pq.accepted"), value: kpis.acceptedCount, subtitle: formatCurrency(kpis.acceptedAmount), icon: CheckCircle2, variant: "success" as const },
-    { title: t("pq.rejected"), value: kpis.rejectedCount, subtitle: formatCurrency(kpis.rejectedAmount), icon: XCircle, variant: "destructive" as const },
-    { title: t("pq.paid"), value: kpis.paidCount, subtitle: formatCurrency(kpis.paidAmount), icon: Wallet, variant: "info" as const },
-    { title: t("pq.total"), value: formatCurrency(kpis.totalAmount), subtitle: `${kpis.totalCount} ${t("pq.requests")}`, icon: DollarSign, variant: "default" as const },
+    { title: t("pq.pending"), value: kpis.pendingCount, subtitle: formatCurrencyNoDecimals(kpis.pendingAmount), icon: Clock, variant: "warning" as const },
+    { title: t("pq.accepted"), value: kpis.acceptedCount, subtitle: formatCurrencyNoDecimals(kpis.acceptedAmount), icon: CheckCircle2, variant: "success" as const },
+    { title: t("pq.rejected"), value: kpis.rejectedCount, subtitle: formatCurrencyNoDecimals(kpis.rejectedAmount), icon: XCircle, variant: "destructive" as const },
+    { title: t("pq.paid"), value: kpis.paidCount, subtitle: formatCurrencyNoDecimals(kpis.paidAmount), icon: Wallet, variant: "info" as const },
+    { title: t("pq.total"), value: formatCurrencyNoDecimals(kpis.totalAmount), subtitle: `${kpis.totalCount} ${t("pq.requests")}`, icon: DollarSign, variant: "default" as const },
   ];
 
   return (

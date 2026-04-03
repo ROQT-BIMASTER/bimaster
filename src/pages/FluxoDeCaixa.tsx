@@ -18,6 +18,7 @@ import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfM
 import { ptBR } from "date-fns/locale";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell } from "recharts";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 // Custom hooks and components
 import { useFluxoCaixaData } from "@/hooks/useFluxoCaixaData";
@@ -242,14 +243,7 @@ const FluxoDeCaixa = () => {
       }));
   }, [projections]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // formatCurrency importado de @/lib/formatters
 
   // Period label for display
   const getPeriodLabel = () => {
@@ -572,13 +566,7 @@ const AgingReport = ({
   const total = data.reduce((sum, d) => sum + d.valor, 0);
   const totalCount = data.reduce((sum, d) => sum + d.count, 0);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0
-    }).format(value);
-  };
+  // formatCurrency importado de @/lib/formatters
 
   return (
     <div className="space-y-4">

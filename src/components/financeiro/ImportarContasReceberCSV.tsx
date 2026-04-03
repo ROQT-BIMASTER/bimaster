@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { formatCurrency as formatCurrencyBase } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -620,7 +621,7 @@ export default function ImportarContasReceberCSV({
 
   const formatCurrency = (value: number | null) => {
     if (value === null) return '-';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return formatCurrencyBase(value);
   };
 
   const resetState = () => {

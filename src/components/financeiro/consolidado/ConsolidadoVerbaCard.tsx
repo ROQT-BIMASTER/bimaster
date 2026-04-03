@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 import { Wallet, TrendingDown, TrendingUp, Store, Calendar, Building2 } from "lucide-react";
 import type { VerbaMetrics, VerbaConsolidada } from "@/hooks/useFinanceiroConsolidadoDashboard";
@@ -14,13 +15,7 @@ const origemConfig = {
   departamentos: { icon: Building2, label: "Dept", className: "text-emerald-500" },
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+const formatCurrencyNoDecimals = (value: number) => formatCurrency(value, false);
 
 const getStatusColor = (p: number) => {
   if (p >= 90) return "text-destructive";

@@ -39,6 +39,7 @@ import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
 import { Cliente360Drawer } from "@/components/financeiro/cliente360";
 import { CobrancaAutomaticaPanel } from "@/components/cobranca/CobrancaAutomaticaPanel";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { formatCurrency } from "@/lib/formatters";
 
 interface ContaVencida {
   id: string;
@@ -317,8 +318,7 @@ export default function CobrancaInadimplentes() {
     }
   };
 
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  // formatCurrency importado de @/lib/formatters
 
   return (
     <DashboardLayout>

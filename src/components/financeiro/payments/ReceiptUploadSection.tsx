@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -31,8 +32,7 @@ interface ReceiptUploadSectionProps {
   onReceiptUploaded: () => void;
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+// formatCurrency importado abaixo
 
 export function ReceiptUploadSection({
   paymentId,

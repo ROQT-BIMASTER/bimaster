@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +45,7 @@ const metodosPagamento = [
 
 const tiposChavePix = ["CPF/CNPJ", "E-mail", "Telefone", "Chave Aleatória"];
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+// formatCurrency importado abaixo
 
 export function MarcarPagoDialog({
   open,

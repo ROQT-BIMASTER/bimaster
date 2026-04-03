@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,11 +41,9 @@ interface ContaReceber {
   data_vencimento: string;
 }
 
-const formatCurrency = (value: number) => 
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+// formatCurrency importado de @/lib/formatters
 
-const formatCompact = (value: number) => 
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
+const formatCompact = (value: number) => formatCurrencyCompact(value);
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -324,12 +325,7 @@ export function ReclassificarContaDREDialog({
 
   if (!contaOrigem) return null;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(Math.abs(value));
-  };
+  const formatCurrencyAbs = (value: number) => formatCurrency(Math.abs(value));
 
   const categoriaAtual = contaOrigem.categoriaDre;
 

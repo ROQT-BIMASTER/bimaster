@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { formatCurrency } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MarcarPagoDialog } from "./MarcarPagoDialog";
@@ -47,12 +48,7 @@ interface PaymentReviewDialogProps {
   onRefresh?: () => void;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
+// formatCurrency importado de @/lib/formatters
 
 const sourceTypeLabels: Record<SourceType, string> = {
   trade_entry: "Trade Marketing - Lançamento Financeiro",

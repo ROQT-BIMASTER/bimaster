@@ -13,18 +13,13 @@ import {
 } from "recharts";
 import { TrendingUp, Calendar } from "lucide-react";
 import type { FluxoCaixaItem } from "@/hooks/useFinanceiroConsolidadoDashboard";
+import { formatCurrency } from "@/lib/formatters";
 
 interface ConsolidadoFluxoCaixaChartProps {
   data: FluxoCaixaItem[];
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+const formatCurrencyNoDecimals = (value: number) => formatCurrency(value, false);
 
 export function ConsolidadoFluxoCaixaChart({ data }: ConsolidadoFluxoCaixaChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -65,16 +60,16 @@ export function ConsolidadoFluxoCaixaChart({ data }: ConsolidadoFluxoCaixaChartP
         <div className="flex gap-4 text-sm">
           <div className="text-center">
             <p className="text-muted-foreground">Entradas</p>
-            <p className="font-bold text-emerald-500">{formatCurrency(totalEntradas)}</p>
+            <p className="font-bold text-emerald-500">{formatCurrencyNoDecimals(totalEntradas)}</p>
           </div>
           <div className="text-center">
             <p className="text-muted-foreground">Saídas</p>
-            <p className="font-bold text-destructive">{formatCurrency(totalSaidas)}</p>
+            <p className="font-bold text-destructive">{formatCurrencyNoDecimals(totalSaidas)}</p>
           </div>
           <div className="text-center">
             <p className="text-muted-foreground">Saldo</p>
             <p className={`font-bold ${saldoFinal >= 0 ? "text-primary" : "text-destructive"}`}>
-              {formatCurrency(saldoFinal)}
+              {formatCurrencyNoDecimals(saldoFinal)}
             </p>
           </div>
         </div>

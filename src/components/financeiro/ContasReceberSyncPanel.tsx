@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { formatCurrency } from "@/lib/formatters";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,8 +39,7 @@ export function ContasReceberSyncPanel() {
     toast({ title: 'Dados Atualizados', description: 'Estatísticas atualizadas' });
   }, [refreshAll, toast]);
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  // formatCurrency importado de @/lib/formatters
 
   const formatElapsedTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

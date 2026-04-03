@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Receipt, AlertCircle, Clock, TrendingDown, TrendingUp, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { formatCurrency } from "@/lib/formatters";
 
 interface FinanceiroStats {
   contasPagarPendentes: number;
@@ -115,7 +116,7 @@ export const FinanceiroDashboardWidget = memo(() => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stat.format === "currency" ? `R$ ${stat.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : stat.value.toLocaleString("pt-BR")}
+                  {stat.format === "currency" ? formatCurrency(stat.value) : stat.value.toLocaleString("pt-BR")}
                 </div>
                 <p className="text-xs text-muted-foreground">{stat.description}</p>
               </CardContent>
@@ -138,7 +139,7 @@ export const FinanceiroDashboardWidget = memo(() => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {stat.format === "currency" ? `R$ ${stat.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : stat.value.toLocaleString("pt-BR")}
+                  {stat.format === "currency" ? formatCurrency(stat.value) : stat.value.toLocaleString("pt-BR")}
                 </div>
                 <p className="text-xs text-muted-foreground">{stat.description}</p>
               </CardContent>
