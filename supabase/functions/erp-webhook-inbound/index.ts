@@ -1,9 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+// erp-webhook-inbound — Processa webhooks de retorno do ERP
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { z, validateBody } from "../_shared/validate.ts";
-import { handleError } from "../_shared/error-handler.ts";
 import { AuthError } from "../_shared/auth.ts";
+
+function json(body: unknown, status: number, req: Request) {
+  const cors = getCorsHeaders(req);
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    status === 401 || status === 403
+  );
+  return new Response(JSON.stringify(body), { status, headers });
+}
 
 const ErpWebhookSchema = z.object({
   evento: z.enum(["provisao_registrada", "baixa_confirmada", "estorno_processado", "erro_processamento"]),
@@ -17,12 +26,11 @@ const ErpWebhookSchema = z.object({
   valor_processado: z.number().optional().nullable(),
 });
 
-serve(async (req: Request) => {
-  const cors = handleCors(req);
-  if (cors) return cors;
-  const corsHeaders = getCorsHeaders(req);
+Deno.serve(async (req: Request) => {
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
-  if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405, corsHeaders);
+  if (req.method !== "POST") return json({ sucesso: false, mensagem: "Método não permitido" }, 405, req);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -31,7 +39,7 @@ serve(async (req: Request) => {
 
   // Auth: API Key validation with hash support (SEG-2)
   const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) return json({ sucesso: false, mensagem: "x-api-key obrigatório" }, 401, corsHeaders);
+  if (!apiKey) return json({ sucesso: false, mensagem: "x-api-key obrigatório" }, 401, req);
 
   // Hash the incoming key for comparison
   const keyData = new TextEncoder().encode(apiKey);
@@ -44,14 +52,14 @@ serve(async (req: Request) => {
     rawBody = await req.text();
     payload = JSON.parse(rawBody);
   } catch {
-    return json({ sucesso: false, mensagem: "Body inválido" }, 400, corsHeaders);
+    return json({ sucesso: false, mensagem: "Body inválido" }, 400, req);
   }
 
   // Validate payload with Zod (SEG-4)
   try {
     payload = validateBody(payload, ErpWebhookSchema);
   } catch (e: any) {
-    return json({ sucesso: false, mensagem: "Payload inválido", details: e.issues }, 400, corsHeaders);
+    return json({ sucesso: false, mensagem: "Payload inválido", details: e.issues }, 400, req);
   }
 
   // Validate API key: hash-based first, plaintext fallback during transition (SEG-2)
@@ -67,15 +75,13 @@ serve(async (req: Request) => {
   if (!erpConfigResult) {
     const { validateErpApiKey } = await import("../_shared/erp-key-validator.ts");
     const empresa = await validateErpApiKey(apiKey);
-    if (empresa) {
-      erpConfigResult = { id: "erp_api_keys", empresa_id: empresa };
-    }
+    if (empresa) erpConfigResult = { id: "erp_api_keys", empresa_id: empresa };
   }
 
-  if (!erpConfigResult) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401, corsHeaders);
+  if (!erpConfigResult) return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "Chave API inválida ou inativa" }, 401, req);
 
   if (erpConfigResult.empresa_id !== payload.empresa_id) {
-    return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403, corsHeaders);
+    return json({ sucesso: false, erro: "empresa nao autorizada", mensagem: "empresa_id não corresponde à chave API fornecida" }, 403, req);
   }
 
   // Rate limiting (SEG-5)
@@ -84,13 +90,12 @@ serve(async (req: Request) => {
     p_limite: 60,
   });
   if (permitido === false) {
-    return json({ sucesso: false, erro: "limite_excedido", mensagem: "Limite de 60 requisições/minuto excedido" }, 429, { ...corsHeaders, "Retry-After": "60" });
+    return json({ sucesso: false, erro: "limite_excedido", mensagem: "Limite de 60 requisições/minuto excedido" }, 429, req);
   }
 
   // Idempotency
   const headerIdempotencyKey = req.headers.get("x-idempotency-key");
-  const idempotencyKey = headerIdempotencyKey
-    ?? `${payload.empresa_id}-${payload.evento}-${payload.referencia_erp}-${payload.data_processamento}`;
+  const idempotencyKey = headerIdempotencyKey ?? `${payload.empresa_id}-${payload.evento}-${payload.referencia_erp}-${payload.data_processamento}`;
 
   const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: existe } = await supabase
@@ -100,7 +105,7 @@ serve(async (req: Request) => {
     .eq("idempotency_key", idempotencyKey)
     .gte("created_at", seteDiasAtras)
     .maybeSingle();
-  if (existe) return json({ sucesso: true, status: "ja_processado", id: existe.id, idempotente: true }, 200, corsHeaders);
+  if (existe) return json({ sucesso: true, status: "ja_processado", id: existe.id, idempotente: true }, 200, req);
 
   const statusMap: Record<string, string> = {
     provisao_registrada: "confirmado_erp",
@@ -138,11 +143,7 @@ serve(async (req: Request) => {
   } else if (contaPagarId) {
     const { error } = await supabase
       .from("erp_export_queue")
-      .update({
-        erp_sync_status: novoStatus,
-        erp_referencia: payload.referencia_erp,
-        erp_synced_at: payload.data_processamento,
-      })
+      .update({ erp_sync_status: novoStatus, erp_referencia: payload.referencia_erp, erp_synced_at: payload.data_processamento })
       .eq("conta_pagar_id", contaPagarId)
       .eq("empresa_id", payload.empresa_id)
       .in("erp_sync_status", ["pendente", "enviado", "confirmado_erp"]);
@@ -165,13 +166,7 @@ serve(async (req: Request) => {
       const valorPago = payload.valor_processado || contaAtual.valor_original || 0;
       const { error: updErr } = await supabase
         .from("contas_pagar")
-        .update({
-          valor_pago: valorPago,
-          valor_aberto: 0,
-          baixa_origem: "erp_webhook",
-          data_baixa: payload.data_processamento,
-          data_pagamento: payload.data_processamento,
-        })
+        .update({ valor_pago: valorPago, valor_aberto: 0, baixa_origem: "erp_webhook", data_baixa: payload.data_processamento, data_pagamento: payload.data_processamento })
         .eq("id", contaPagarId);
       contaAtualizada = !updErr;
     }
@@ -180,22 +175,12 @@ serve(async (req: Request) => {
   const { data: logEntry } = await supabase
     .from("erp_sync_log")
     .insert({
-      entity_type: "conta_pagar",
-      entity_id: contaPagarId || null,
-      action: payload.evento,
-      direction: "inbound",
-      empresa_id: payload.empresa_id,
-      tipo: "inbound_webhook",
-      evento: payload.evento,
-      referencia_erp: payload.referencia_erp,
-      conta_pagar_id: contaPagarId,
-      payload_entrada: payload,
-      fila_atualizada: filaAtualizada,
-      conta_atualizada: contaAtualizada,
-      conta_ja_paga: contaJaPaga,
-      idempotency_key: idempotencyKey || null,
-      data_processamento_erp: payload.data_processamento,
-      success: true,
+      entity_type: "conta_pagar", entity_id: contaPagarId || null, action: payload.evento,
+      direction: "inbound", empresa_id: payload.empresa_id, tipo: "inbound_webhook",
+      evento: payload.evento, referencia_erp: payload.referencia_erp, conta_pagar_id: contaPagarId,
+      payload_entrada: payload, fila_atualizada: filaAtualizada, conta_atualizada: contaAtualizada,
+      conta_ja_paga: contaJaPaga, idempotency_key: idempotencyKey || null,
+      data_processamento_erp: payload.data_processamento, success: true,
     })
     .select("id")
     .single();
@@ -205,12 +190,5 @@ serve(async (req: Request) => {
     mensagem: "Evento '" + payload.evento + "' processado com sucesso",
     evento_id: logEntry?.id ?? "sem-log",
     fila_atualizada: filaAtualizada,
-  }, 200, corsHeaders);
+  }, 200, req);
 });
-
-function json(body: unknown, status: number, headers: Record<string, string> = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...headers, "Content-Type": "application/json" },
-  });
-}
