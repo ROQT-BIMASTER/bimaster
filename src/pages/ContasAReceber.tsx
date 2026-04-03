@@ -234,7 +234,7 @@ export default function ContasAReceber() {
       const to = from + pageSize - 1;
       query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      const { data, error } = await query;
       if (error) throw error;
 
       // Query para totais via RPC (sem limite de linhas)
