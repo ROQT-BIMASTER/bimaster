@@ -41,11 +41,9 @@ interface ContaReceber {
   data_vencimento: string;
 }
 
-const formatCurrency = (value: number) => 
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+// formatCurrency importado de @/lib/formatters
 
-const formatCompact = (value: number) => 
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
+const formatCompact = (value: number) => formatCurrencyCompact(value);
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
