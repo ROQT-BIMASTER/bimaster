@@ -235,7 +235,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRevisoes?.map((revisao) => {
+          {Object.entries(groupedByDepartamento).sort(([a], [b]) => a.localeCompare(b)).map(([deptoName, items]) => {
+            const deptoTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+            return (
+              <>{/* Department group */}
+                <TableRow key={`dept-${deptoName}`} className="bg-muted/60 hover:bg-muted/60">
+                  <TableCell colSpan={5} className="py-2">
+                    <span className="font-semibold text-sm">{deptoName}</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">{items?.length || 0}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right py-2 font-semibold text-sm font-mono">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deptoTotal)}
+                  </TableCell>
+                  <TableCell colSpan={3} className="py-2" />
+                </TableRow>
+                {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
             const status = statusConfig[revisao.status as keyof typeof statusConfig];
             const prioridade = prioridadeConfig[revisao.prioridade as keyof typeof prioridadeConfig];
