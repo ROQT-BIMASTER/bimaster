@@ -519,6 +519,28 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           )}
         </CardContent>
       </Card>
+
+      {/* Focus Mode Dialog */}
+      <Dialog open={focusMode} onOpenChange={setFocusMode}>
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-full p-0 flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold">Itens em Revisão — Modo Foco</h2>
+            <div className="flex items-center gap-2">
+              <Button onClick={exportarExcel} variant="outline" size="sm" className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Exportar
+              </Button>
+              <Button onClick={() => setFocusMode(false)} variant="ghost" size="sm" className="gap-2">
+                <Minimize2 className="h-4 w-4" />
+                Sair
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            {renderDesktopTable("max-h-[calc(95vh-120px)]")}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
