@@ -861,16 +861,6 @@ export default function ContasAReceber() {
           }}
         />
 
-        {/* Sync Monitor Drawer */}
-        <Drawer open={showSyncMonitor} onOpenChange={setShowSyncMonitor}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Monitor de Sincronização</DrawerTitle>
-              <DrawerDescription>Histórico e status das sincronizações com o ERP</DrawerDescription>
-            </DrawerHeader>
-            <SyncMonitorPanel />
-          </DrawerContent>
-        </Drawer>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
