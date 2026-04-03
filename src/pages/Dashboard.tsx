@@ -211,6 +211,9 @@ const Dashboard = () => {
 
         {effectiveIsAdmin && <MetricasDistribuicao />}
 
+        {/* Real KPIs */}
+        <DashboardKPICards />
+
         <PushNotificationPrompt />
 
         {permissionsLoading && (
