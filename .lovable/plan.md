@@ -1,48 +1,42 @@
 
 
-# Redesign Visual da Página de Prospects
+# Redesign Profissional dos Gráficos de Metas de Redução
 
 ## Problema
 
-A página atual usa elementos básicos (h2 simples, cards genéricos em lista vertical, filtros dentro de Card) que não seguem o design system premium do projeto. Falta uso de `PageHeader`, `KpiCard`, e a listagem em cards empilhados verticalmente é pouco eficiente.
+O componente `MetasReducaoChart.tsx` usa cores hardcoded (`#f97316`, `#22c55e`, `#eab308`, etc.) que violam o design system e produzem um visual amador. Os gráficos carecem de polish (tooltips básicos, labels cortados no donut, sem gradientes).
 
-## Proposta
+## Alterações em `src/components/financeiro/MetasReducaoChart.tsx`
 
-Redesign completo do `ProspectsOptimized.tsx` seguindo os padrões visuais das melhores páginas do projeto (Dashboard, OMS, Fábrica):
+### 1. Cores — Migrar para design tokens
+- Substituir todas as cores hardcoded pelos tokens de `chartColors` (`src/lib/chart-colors.ts`)
+- Meta → `chartColors.primary` (azul), Realizado → `chartColors.success` (verde)
+- Status: pendente → `chartColors.warning`, em andamento → `chartColors.accent`, concluído → `chartColors.success`, cancelado → `chartColors.destructive`
+- Tipo de ação: usar `chartPalette` sequencial
 
-### 1. Header com PageHeader + Actions
-- Usar `PageHeader` com ícone `Users`, título, descrição dinâmica com contagem
-- Actions: botões "IA Insights", "Ver Kanban" (link), "Novo Prospect" (primário)
+### 2. Gráfico de Barras (Meta vs Realizado por Tipo)
+- Aplicar gradientes sutis via `<defs><linearGradient>`
+- Tooltip com `background: hsl(var(--card))`, `border: hsl(var(--border))`, border-radius 8
+- Eixos com `stroke: hsl(var(--muted-foreground))`
+- Grid com `stroke: hsl(var(--border))`
 
-### 2. KPI Cards Strip (4 cards)
-- **Total Prospects** — variant info, ícone Users
-- **Em Negociação** — variant warning, ícone TrendingUp
-- **Atividades Hoje** — variant success, ícone Activity
-- **Taxa Conversão** — variant accent, ícone Target (ganhos / total * 100)
-- Usar `KpiCard` do design system com loading state
+### 3. Donut (Distribuição por Status)
+- Labels externos com linhas conectoras (`labelLine={true}`)
+- Cores do design system em vez de hardcoded
+- Adicionar legenda abaixo do donut
 
-### 3. Filtros Inline (sem Card wrapper)
-- Barra de busca + select de status lado a lado, mais limpo
-- Remover o Card que envolve os filtros
+### 4. Barras Horizontais (Por Prioridade)
+- Mesma paleta Meta/Realizado (primary/success)
+- Gradientes consistentes com o gráfico vertical
 
-### 4. Tabela ao invés de Cards empilhados
-- Substituir `InfiniteScrollList` de cards por uma tabela responsiva estilo planilha (padrão desktop do projeto)
-- Colunas: Empresa, Contato, Status (badge), Vendedor, Último Contato
-- No mobile: manter cards compactos
-- Manter infinite scroll na tabela
+### 5. Estilo geral
+- `CartesianGrid` com `stroke="hsl(var(--border))"` em todos
+- Tick fontSize 11, stroke muted-foreground (padrão do projeto)
+- Tooltip contentStyle padronizado com card background
 
-### 5. Pipeline Mini-Chart
-- Adicionar um bar chart horizontal simples mostrando distribuição por status (similar ao screenshot original mas com visual premium)
-
-## Arquivos Alterados
+## Arquivo Alterado
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/ProspectsOptimized.tsx` | Redesign completo: PageHeader, KpiCard strip, filtros inline, tabela desktop, pipeline chart |
-
-## Componentes Reutilizados
-- `PageHeader` de `@/components/ui/page-header`
-- `KpiCard` de `@/components/ui/kpi-card`
-- Recharts `BarChart` para pipeline (já instalado)
-- `Badge` com `statusColors` existentes
+| `src/components/financeiro/MetasReducaoChart.tsx` | Substituir cores hardcoded por design tokens, melhorar tooltips, labels e gradientes |
 
