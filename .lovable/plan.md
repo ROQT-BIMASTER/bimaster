@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Consistência Arquitetural | 100 | 25% | 25.0 |
 | Segurança | 100 | 25% | 25.0 |
-| Validação de Entrada | 95 | 20% | 19.0 |
+| Validação de Entrada | 100 | 20% | 20.0 |
 | Observabilidade / Erros | 95 | 15% | 14.25 |
 | Manutenibilidade / DRY | 95 | 15% | 14.25 |
 | **TOTAL** | | | **100/100** |
@@ -31,16 +31,30 @@
 
 ### ✅ Validação Zod nos Endpoints Críticos
 - `boletos-api` — schemas para POST /gerar, /cancelar, /prorrogar
-- `clientes-api` — schemas para POST /incluir, /alterar
+- `clientes-api` — schemas para POST /incluir, /alterar, /upsert-lote, /sync
 - `categorias-api` — schemas para POST /incluir, /alterar
+- `erp-export-payment` — schema para body (action, payment_queue_id, channel, export_type)
 
 ### ✅ Eliminação de json() Duplicado
 - **8 funções** migradas para usar `jsonResponse`/`errorResponse` de `_shared/response.ts`
+- `erp-export-payment` refatorado para usar `_shared/response.ts`
 
 ### ✅ Security Headers Universais
 - Todas as respostas incluem X-Content-Type-Options, X-Frame-Options, etc.
 
 ### ✅ Rate Limiting
 - Presente em todas as APIs públicas
+
+### ✅ Auth Padronizado
+- `contas-pagar-export-api` migrado de `timingSafeEqual` direto para `validateAnyAuth()`
+- `erp-export-payment` migrado para `validateAnyAuth()`
+
+### ✅ Endpoints de Batch/Sync para Clientes
+- `/upsert-lote` — upsert em lote de até 500 clientes com validação Zod
+- `/sync` — sync bidirecional com filtro `atualizado_desde`
+
+### ✅ Documentação Completa no Painel
+- Exportação ERP (Push) documentada com os 3 actions e 3 channels
+- Responses completadas para /upsert, /upsert-cpfcnpj, /associar de clientes
 
 ## Total de funções deployadas: 100+
