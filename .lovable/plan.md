@@ -1,78 +1,79 @@
 
 
-# Eliminar N8N — Sync 100% via erp-sync-engine
+# Fix: Sync 100% Funcional — Eliminar "partial" para Todas as Empresas
 
-## Situação Atual
+## Diagnóstico
 
-### Problema 1: N8N ainda está ativo e enviando dados
-Os logs confirmam que `contas-receber-api` continua recebendo batches de 3000 registros do N8N a cada poucos segundos. Isso causa:
-- Conflito com o `erp-sync-engine` (ambos fazendo upsert na mesma tabela simultaneamente)
-- Deadlocks detectados nos logs (`❌ Upsert error batch 600: deadlock detected`)
-- Desperdício de recursos e risco de status inconsistentes (N8N usa lógica de status diferente)
+O time guard de 110s interrompe a sync antes de completar empresas grandes. Os logs confirmam:
 
-### Problema 2: erp-sync-engine ainda tem gargalo de performance
-Cada página abre uma **nova conexão SQL Server** (linhas 357-386). Com overhead de ~5-10s por conexão × 30 páginas = tempo impossível. Empresas grandes (4, 11, 6, 3) sempre dão `partial` com time guard.
+| Empresa | Registros no banco | Páginas necessárias (5k/pag) | Pages antes do timeout | Status |
+|---|---|---|---|---|
+| 6 | 110.938 | 23 | 5 (8k rows) | **partial** |
+| 4 | 92.443 | 19 | 3 (4k rows) | **partial** |
+| 3 | 73.192 | 15 | 5 (8k rows) | **partial** |
+| 11 | 69.913 | 14 | 5 (8k rows) | **partial** |
+| 10 | 55.729 | 12 | 9 (16k rows) | **partial** |
+| 1 | 35.183 | 7 | 13 (24k rows) | **partial** |
 
-### Problema 3: Frontend ainda referencia funções legadas
-- `useContasReceberSync.ts` chama `n8n-contas-receber/sync-auto` e `contas-receber-api`
-- `useN8NSync.ts` inteiro é dedicado ao fluxo N8N
-- `ContasReceberSyncPanel.tsx` oferece modo `n8n` vs `direct`
+**Causa raiz**: `ROW_NUMBER() OVER (ORDER BY ...)` recalcula o ranking inteiro a cada página, ficando mais lento em offsets altos. Cada página leva 20-30s (SQL + upsert de 5k rows em batches de 500).
 
-## Plano de Execução
+**O pg_cron atual tem max_pages=10-15** — impossível caber em 110s quando cada página leva 20-30s. Máximo realista: **3-4 páginas por invocação**.
 
-### Passo 1: Corrigir performance do erp-sync-engine (conexão reutilizada)
+## Solução: Duas Correções
 
-Refatorar `handleSyncPaginated` para abrir **uma única conexão SQL** e reutilizá-la em todas as páginas. Isso elimina o overhead de 5-10s por página, permitindo processar ~20k registros em ~60s em vez de 8k.
+### Correção 1: Reduzir max_pages nos pg_cron jobs
+
+Recalcular os cron jobs para usar `max_pages: 3` (seguro dentro de 110s). Cada empresa grande precisará de mais invocações escalonadas:
 
 ```text
-ANTES: conectar → query → fechar → conectar → query → fechar (×30)
-DEPOIS: conectar → query → query → query (×30) → fechar
+Empresa 6  (23 pgs): 8 invocações × 3 páginas = start_page 0,3,6,9,12,15,18,21
+Empresa 4  (19 pgs): 7 invocações × 3 páginas = start_page 0,3,6,9,12,15,18
+Empresa 3  (15 pgs): 5 invocações × 3 páginas = start_page 0,3,6,9,12
+Empresa 11 (14 pgs): 5 invocações × 3 páginas = start_page 0,3,6,9,12
+Empresa 10 (12 pgs): 4 invocações × 3 páginas = start_page 0,3,6,9
+Empresa 1  (7 pgs):  3 invocações × 3 páginas = start_page 0,3,6
 ```
 
-### Passo 2: Remover edge functions legadas do N8N
+Total: **32 invocações** escalonadas entre 03:00 e 04:05 (a cada 2 min).
 
-Deletar os arquivos:
-- `supabase/functions/n8n-contas-receber/index.ts`
-- `supabase/functions/contas-receber-api/index.ts`
+### Correção 2: Otimizar a query SQL com OFFSET/FETCH
 
-Isso mata imediatamente o endpoint que o N8N usa para enviar dados, forçando o uso exclusivo do `erp-sync-engine`.
+Trocar a subquery `ROW_NUMBER()` por `ORDER BY ... OFFSET X ROWS FETCH NEXT Y ROWS ONLY` (SQL Server 2012+). Embora ambos tenham custo similar em offsets altos, a sintaxe OFFSET é mais eficiente no plano de execução por evitar a materialização completa do subquery. Além disso, reduzir `SQL_PAGE_SIZE` de 5000 para 3000 para acelerar cada página individual (menos rows = upsert mais rápido).
 
-### Passo 3: Atualizar hooks do frontend
+```sql
+-- ANTES (lento em offsets altos):
+SELECT * FROM (
+  SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa],[Nota],[Seq]) AS _rn
+  FROM [ConsultaPowerBIReceber] WHERE [ID Empresa] = 6
+) AS _paged WHERE _rn > 15000 AND _rn <= 20000
 
-**`useContasReceberSync.ts`**: Remover `SyncMode` (n8n/direct), remover `syncN8n()`, e atualizar `syncDirect()` e `testErpConnection()` para chamar `erp-sync-engine` em vez de `contas-receber-api`. Manter `fetchStats()` e `fetchSyncHistory()` (já consultam banco direto).
+-- DEPOIS:
+SELECT * FROM [ConsultaPowerBIReceber]
+WHERE [ID Empresa] = 6
+ORDER BY [ID Empresa], [Nota], [Seq]
+OFFSET 15000 ROWS FETCH NEXT 3000 ROWS ONLY
+```
 
-**`useN8NSync.ts`**: Marcar como deprecated ou remover se nenhum componente crítico depende dele.
+## Execução
 
-### Passo 4: Atualizar ContasReceberSyncPanel
-
-Remover toggle N8N/Direct. O painel mostra apenas o modo direto (erp-sync-engine) com botões:
-- "Sync Full" → chama `sync-contas-receber-full`
-- "Sync Incremental" → chama `sync-contas-receber-incremental`
-- "Sync Empresa X" → chama `sync-contas-receber-por-empresa`
-
-### Passo 5: Limpar pg_cron jobs legados
-
-Verificar e remover qualquer job que ainda chame `n8n-contas-receber` ou `contas-receber-api`.
+| Passo | Descrição |
+|---|---|
+| 1 | Alterar `handleSyncPaginated`: trocar `ROW_NUMBER()` por `OFFSET/FETCH`, reduzir `SQL_PAGE_SIZE` para 3000 |
+| 2 | Remover **todos** os 15 jobs antigos (IDs 11, 19-30) |
+| 3 | Criar novos pg_cron jobs: pequenas (1 job cada) + grandes (3-8 jobs cada, max_pages=3, escalonados a cada 2 min) |
+| 4 | Manter job incremental a cada 40 min (job 11 — filtro temporal, poucos registros) |
+| 5 | Disparar sync manual de uma empresa grande para validar |
 
 ## Arquivos Alterados
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Reutilizar conexão SQL dentro de `handleSyncPaginated` |
-| `supabase/functions/n8n-contas-receber/index.ts` | **DELETAR** |
-| `supabase/functions/contas-receber-api/index.ts` | **DELETAR** |
-| `src/hooks/useContasReceberSync.ts` | Remover modo N8N, apontar para erp-sync-engine |
-| `src/hooks/useN8NSync.ts` | **DELETAR** ou esvaziar |
-| `src/components/financeiro/ContasReceberSyncPanel.tsx` | Remover toggle N8N, simplificar |
-| `src/pages/financeiro/ContasReceberSyncPage.tsx` | Remover import de useN8NSync |
-| `src/components/financeiro/SyncMonitorPanel.tsx` | Atualizar botão para usar erp-sync-engine |
-| pg_cron (SQL) | Remover jobs legados |
+| `supabase/functions/erp-sync-engine/index.ts` | Trocar ROW_NUMBER por OFFSET/FETCH, SQL_PAGE_SIZE=3000 |
+| pg_cron (SQL) | Recriar ~35 jobs com max_pages=3 |
 
 ## Resultado Esperado
 
-- Zero dependência do N8N para Contas a Receber
-- Sync full diário processa 100% dos 351k registros (via jobs por empresa)
-- Incremental a cada 40 min processa apenas pagamentos recentes (~500-2000 registros)
-- Sem deadlocks (uma única engine fazendo upserts)
-- Frontend unificado sem opção N8N
+- Zero "partial" — cada invocação completa suas 3 páginas dentro de 110s
+- 100% dos ~465k registros sincronizados diariamente via 35 jobs escalonados
+- Incremental mantido a cada 40 min para pagamentos do dia
 
