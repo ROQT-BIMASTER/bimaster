@@ -271,36 +271,18 @@ export default function DREAnalitico() {
     return registro.data_vencimento;
   };
   
-  // Buscar contas a receber (receitas)
-  const { data: contasReceber } = useSupabaseQuery(
-    ['contas-receber-dre-v2', dataInicio, dataFim, filterEmpresa, regimeAnalise],
+  // Buscar contas a receber (receitas) via RPC agregada server-side
+  const { data: contasReceberAgregadas } = useSupabaseQuery(
+    ['contas-receber-dre-rpc', dataInicio, dataFim, filterEmpresa, regimeAnalise],
     async () => {
-      const selectCols = 'id, empresa_id, empresa_nome, cliente_codigo, cliente_nome, numero_documento, parcela, data_emissao, data_vencimento, data_recebimento, valor_original, valor_recebido, valor_aberto, status, tipo_documento, vendedor_codigo, vendedor_nome';
-      
-      const data = await fetchAllRows<any>(
-        'contas_receber',
-        selectCols,
-        (query: any) => {
-          if (regimeAnalise === 'caixa') {
-            query = query
-              .eq('status', 'recebido')
-              .gte('data_vencimento', dataInicio)
-              .lte('data_vencimento', dataFim);
-          } else {
-            query = query
-              .gte('data_emissao', dataInicio)
-              .lte('data_emissao', dataFim);
-          }
-          
-          if (filterEmpresa !== 'todas') {
-            query = query.eq('empresa_nome', filterEmpresa);
-          }
-          
-          return query;
-        }
-      );
-      
-      return data;
+      const { data, error } = await supabase.rpc('get_contas_receber_dre', {
+        p_data_inicio: dataInicio,
+        p_data_fim: dataFim,
+        p_regime: regimeAnalise,
+        p_empresa_nome: filterEmpresa !== 'todas' ? filterEmpresa : null,
+      });
+      if (error) throw error;
+      return data as { cliente_codigo: string; cliente_nome: string; mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
     },
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
