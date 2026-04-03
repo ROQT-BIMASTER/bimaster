@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, CheckCircle, AlertCircle, Search, ArrowRight, Check } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle, Search, Check, BookOpen, Brain } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ interface Mapeamento extends Categoria {
   confianca: number;
   justificativa: string;
   revisado_manualmente?: boolean;
+  fonte?: "dicionario" | "manual" | "ia" | "erro";
 }
 
 export function ClassificarContasEmLoteDialog({
@@ -49,6 +50,7 @@ export function ClassificarContasEmLoteDialog({
   const [searchTerm, setSearchTerm] = useState("");
   const [contasDisponiveis, setContasDisponiveis] = useState<any[]>([]);
   const [applyResult, setApplyResult] = useState<any>(null);
+  const [stats, setStats] = useState<{ dicionario: number; manual: number; ia: number; erro: number } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -59,6 +61,7 @@ export function ClassificarContasEmLoteDialog({
       setCategorias([]);
       setMapeamentos([]);
       setProgress(0);
+      setStats(null);
     }
   }, [open]);
 
@@ -74,15 +77,11 @@ export function ClassificarContasEmLoteDialog({
   const loadCategorias = async () => {
     setPhase("loading");
     try {
-      // Use edge function with service role to get all categories
       const { data, error } = await supabase.functions.invoke("classificar-contas-lote", {
         body: { action: "load-categories" },
       });
-
       if (error) throw error;
-
       const result: Categoria[] = (data?.categorias || []) as Categoria[];
-
       result.sort((a, b) => b.qtd_titulos - a.qtd_titulos);
       setCategorias(result);
       setPhase("ready");
@@ -104,6 +103,7 @@ export function ClassificarContasEmLoteDialog({
     }
 
     const allMapeamentos: Mapeamento[] = [];
+    const aggregatedStats = { dicionario: 0, manual: 0, ia: 0, erro: 0 };
     let processed = 0;
 
     for (const batch of batches) {
@@ -111,12 +111,8 @@ export function ClassificarContasEmLoteDialog({
 
       try {
         const { data, error } = await supabase.functions.invoke("classificar-contas-lote", {
-          body: {
-            action: "classify",
-            categorias: batch,
-          },
+          body: { action: "classify", categorias: batch },
         });
-
         if (error) throw error;
 
         if (data?.mapeamentos) {
@@ -124,15 +120,20 @@ export function ClassificarContasEmLoteDialog({
             const cat = batch.find(c => c.categoria_nome === m.categoria_nome);
             allMapeamentos.push({
               ...m,
-              qtd_titulos: cat?.qtd_titulos || 0,
-              valor_medio: cat?.valor_medio || 0,
-              top_fornecedores: cat?.top_fornecedores || [],
+              qtd_titulos: m.qtd_titulos || cat?.qtd_titulos || 0,
+              valor_medio: m.valor_medio || cat?.valor_medio || 0,
+              top_fornecedores: m.top_fornecedores || cat?.top_fornecedores || [],
             });
           }
         }
+        if (data?.stats) {
+          aggregatedStats.dicionario += data.stats.dicionario || 0;
+          aggregatedStats.manual += data.stats.manual || 0;
+          aggregatedStats.ia += data.stats.ia || 0;
+          aggregatedStats.erro += data.stats.erro || 0;
+        }
       } catch (e: any) {
         console.error("Batch error:", e);
-        // Add failed categories as unmapped
         for (const cat of batch) {
           allMapeamentos.push({
             ...cat,
@@ -141,21 +142,23 @@ export function ClassificarContasEmLoteDialog({
             plano_contas_nome: "Erro na classificação",
             confianca: 0,
             justificativa: e.message || "Erro",
+            fonte: "erro",
           });
+          aggregatedStats.erro++;
         }
       }
 
       processed++;
       setProgress((processed / batches.length) * 100);
 
-      // Rate limit delay
       if (processed < batches.length) {
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 500));
       }
     }
 
     allMapeamentos.sort((a, b) => b.qtd_titulos - a.qtd_titulos);
     setMapeamentos(allMapeamentos);
+    setStats(aggregatedStats);
     setPhase("review");
     setCurrentBatch("");
   };
@@ -163,10 +166,9 @@ export function ClassificarContasEmLoteDialog({
   const handleContaChange = (index: number, contaId: string) => {
     const conta = contasDisponiveis.find(c => c.id === contaId);
     if (!conta) return;
-
     setMapeamentos(prev => prev.map((m, i) =>
       i === index
-        ? { ...m, plano_contas_id: conta.id, plano_contas_codigo: conta.code, plano_contas_nome: conta.name, revisado_manualmente: true, confianca: 1 }
+        ? { ...m, plano_contas_id: conta.id, plano_contas_codigo: conta.code, plano_contas_nome: conta.name, revisado_manualmente: true, confianca: 1, fonte: "manual" as const }
         : m
     ));
   };
@@ -174,14 +176,12 @@ export function ClassificarContasEmLoteDialog({
   const handleSaveAndApply = async () => {
     setPhase("applying");
     try {
-      // Save mappings
       const validMappings = mapeamentos.filter(m => m.plano_contas_id);
       const { error: saveError } = await supabase.functions.invoke("classificar-contas-lote", {
         body: { action: "save", categorias: validMappings },
       });
       if (saveError) throw saveError;
 
-      // Apply bulk update
       const { data: result, error: applyError } = await supabase.functions.invoke("classificar-contas-lote", {
         body: { action: "apply" },
       });
@@ -204,7 +204,13 @@ export function ClassificarContasEmLoteDialog({
   );
 
   const mappedCount = mapeamentos.filter(m => m.plano_contas_id).length;
-  const highConfCount = mapeamentos.filter(m => m.confianca >= 0.8).length;
+
+  const FonteBadge = ({ fonte }: { fonte?: string }) => {
+    if (fonte === "dicionario") return <Badge variant="default" className="text-[10px] bg-emerald-600 hover:bg-emerald-700"><BookOpen className="h-3 w-3 mr-0.5" />Dicionário</Badge>;
+    if (fonte === "manual") return <Badge variant="default" className="text-[10px] bg-amber-600 hover:bg-amber-700"><Check className="h-3 w-3 mr-0.5" />Manual</Badge>;
+    if (fonte === "ia") return <Badge variant="default" className="text-[10px] bg-blue-600 hover:bg-blue-700"><Brain className="h-3 w-3 mr-0.5" />IA</Badge>;
+    return <Badge variant="destructive" className="text-[10px]">Erro</Badge>;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,15 +218,16 @@ export function ClassificarContasEmLoteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Classificar Contas a Pagar com IA
+            Classificar Contas a Pagar — Dicionário + IA
           </DialogTitle>
           <DialogDescription>
-            A IA analisará as {categorias.length || "..."} categorias do ERP e mapeará para o novo plano de contas.
+            {categorias.length > 0
+              ? `${categorias.length} categorias serão mapeadas via dicionário profissional. Apenas categorias desconhecidas usarão IA.`
+              : "Carregando categorias..."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Phase: Loading */}
           {phase === "loading" && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -228,32 +235,34 @@ export function ClassificarContasEmLoteDialog({
             </div>
           )}
 
-          {/* Phase: Ready */}
           {phase === "ready" && (
             <div className="text-center py-8 space-y-4">
-              <Sparkles className="h-12 w-12 mx-auto text-primary" />
+              <div className="flex items-center justify-center gap-3">
+                <BookOpen className="h-10 w-10 text-emerald-600" />
+                <Sparkles className="h-8 w-8 text-blue-500" />
+              </div>
               <div>
                 <p className="text-lg font-semibold">{categorias.length} categorias encontradas</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Serão processadas em ~{Math.ceil(categorias.length / 25)} lotes de IA
+                  Dicionário profissional mapeia a maioria • IA classifica apenas categorias novas
                 </p>
               </div>
-              <div className="flex gap-3 justify-center text-xs text-muted-foreground">
+              <div className="flex gap-4 justify-center text-xs text-muted-foreground">
                 <span>📊 {categorias.reduce((a, c) => a + c.qtd_titulos, 0).toLocaleString()} títulos totais</span>
+                <span>📖 Dicionário com ~200+ mapeamentos</span>
               </div>
               <Button onClick={handleClassify} size="lg">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Iniciar Classificação com IA
+                <BookOpen className="h-4 w-4 mr-2" />
+                Iniciar Classificação
               </Button>
             </div>
           )}
 
-          {/* Phase: Classifying */}
           {phase === "classifying" && (
             <div className="space-y-4 py-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">Classificando com IA...</p>
+                  <p className="text-sm font-medium">Classificando...</p>
                   <p className="text-sm text-muted-foreground">{Math.round(progress)}%</p>
                 </div>
                 <Progress value={progress} className="h-2" />
@@ -267,13 +276,28 @@ export function ClassificarContasEmLoteDialog({
             </div>
           )}
 
-          {/* Phase: Review */}
           {phase === "review" && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Badge variant="secondary">{mappedCount}/{mapeamentos.length} mapeadas</Badge>
-                  <Badge variant="outline" className="text-green-600">{highConfCount} alta confiança</Badge>
+                  {stats && (
+                    <>
+                      <Badge variant="outline" className="text-emerald-600 border-emerald-300">
+                        <BookOpen className="h-3 w-3 mr-1" />{stats.dicionario} dicionário
+                      </Badge>
+                      {stats.ia > 0 && (
+                        <Badge variant="outline" className="text-blue-600 border-blue-300">
+                          <Brain className="h-3 w-3 mr-1" />{stats.ia} IA
+                        </Badge>
+                      )}
+                      {stats.manual > 0 && (
+                        <Badge variant="outline" className="text-amber-600 border-amber-300">
+                          <Check className="h-3 w-3 mr-1" />{stats.manual} manual
+                        </Badge>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="relative w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -290,10 +314,11 @@ export function ClassificarContasEmLoteDialog({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[250px]">Categoria ERP</TableHead>
-                      <TableHead className="w-[60px]">Qtd</TableHead>
+                      <TableHead className="w-[220px]">Categoria ERP</TableHead>
+                      <TableHead className="w-[50px]">Qtd</TableHead>
                       <TableHead>Conta Mapeada</TableHead>
-                      <TableHead className="w-[70px]">Conf.</TableHead>
+                      <TableHead className="w-[90px]">Fonte</TableHead>
+                      <TableHead className="w-[60px]">Conf.</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -323,6 +348,9 @@ export function ClassificarContasEmLoteDialog({
                             </Select>
                           </TableCell>
                           <TableCell>
+                            <FonteBadge fonte={m.fonte} />
+                          </TableCell>
+                          <TableCell>
                             <Badge
                               variant={m.confianca >= 0.8 ? "default" : m.confianca >= 0.5 ? "secondary" : "destructive"}
                               className="text-[10px]"
@@ -349,7 +377,6 @@ export function ClassificarContasEmLoteDialog({
             </div>
           )}
 
-          {/* Phase: Applying */}
           {phase === "applying" && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -357,10 +384,9 @@ export function ClassificarContasEmLoteDialog({
             </div>
           )}
 
-          {/* Phase: Done */}
           {phase === "done" && (
             <div className="text-center py-8 space-y-4">
-              <CheckCircle className="h-12 w-12 mx-auto text-green-600" />
+              <CheckCircle className="h-12 w-12 mx-auto text-emerald-600" />
               <div>
                 <p className="text-lg font-semibold">Classificação concluída!</p>
                 <p className="text-sm text-muted-foreground mt-1">
