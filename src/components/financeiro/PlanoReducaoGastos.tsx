@@ -52,6 +52,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterPrioridade, setFilterPrioridade] = useState<string>('todas');
   const [filterTipo, setFilterTipo] = useState<string>('todos');
+  const [filterDepartamento, setFilterDepartamento] = useState<string>('todos');
+  const [filterEmpresaNome, setFilterEmpresaNome] = useState<string>('todas');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
