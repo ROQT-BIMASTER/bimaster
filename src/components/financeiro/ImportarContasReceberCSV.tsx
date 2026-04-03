@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { formatCurrency as formatCurrencyBase } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
