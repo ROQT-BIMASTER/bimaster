@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         status: "ok",
         function: "clientes-api",
-        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
+        routes: ["/incluir", "/alterar", "/consultar", "/excluir", "/listar", "/listar-resumido", "/upsert", "/upsert-cpfcnpj", "/upsert-lote", "/sync", "/associar", "/caract/incluir", "/caract/alterar", "/caract/consultar", "/caract/excluir", "/caract/excluir-todas", "/tags/incluir", "/tags/listar", "/tags/excluir", "/tags/excluir-todas", "/status"],
       }, 200, req, { startMs });
     }
 
