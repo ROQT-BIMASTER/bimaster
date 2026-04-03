@@ -15,10 +15,10 @@ export function DashboardKPICards() {
     queryKey: ["dashboard-home-kpis"],
     queryFn: async () => {
       const [clientesRes, apRes, arRes, tarefasRes] = await Promise.all([
-        supabase.from("clientes").select("*", { count: "exact", head: true }),
-        supabase.from("contas_pagar").select("*", { count: "exact", head: true }).eq("status", "pendente"),
-        supabase.from("contas_receber").select("*", { count: "exact", head: true }).eq("status_recebimento", "pendente"),
-        supabase.from("projeto_tarefas").select("*", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
+        supabase.from("clientes" as any).select("*", { count: "exact", head: true }),
+        supabase.from("contas_pagar" as any).select("*", { count: "exact", head: true }).eq("status", "pendente"),
+        supabase.from("contas_receber" as any).select("*", { count: "exact", head: true }).eq("status_recebimento", "pendente"),
+        supabase.from("projeto_tarefas" as any).select("*", { count: "exact", head: true }).in("status", ["todo", "in_progress"]),
       ]);
 
       return {
