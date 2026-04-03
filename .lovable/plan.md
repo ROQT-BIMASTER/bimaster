@@ -1,123 +1,78 @@
 
-# Analise de Melhorias — Sugestoes Priorizadas
 
-## Nota Atual do Sistema: 85/100
+# Melhorias Identificadas — Plano de Implementacao
 
-O sistema e robusto, com seguranca bem implementada (MFA, lockout, honeypot, rate limiting), lazy loading com retry, ErrorBoundary, PWA, i18n, e offline support. Porem ha oportunidades claras de melhoria em 5 areas.
+## Nota Atual: 85/100
 
----
-
-## 1. UX / Interface (Impacto Alto)
-
-### 1a. Tela de Login — Melhorar Visual
-A tela de login esta funcional mas visualmente basica (Card simples sem branding forte). Sugestoes:
-- Adicionar **logo grande** no header do AuthLayout
-- Adicionar **ilustracao lateral** ou **background animado** sutil
-- Campo "Esqueci minha senha" — atualmente **nao existe** (nao ha fluxo de reset de senha)
-- Adicionar **toggle de visibilidade** no campo de senha (icone de olho)
-
-### 1b. Dashboard — Widgets Mais Ricos
-O dashboard principal mostra quick links + grafico de atividades. Sugestoes:
-- Adicionar **KPIs reais** (total de clientes, faturamento, pedidos pendentes) com dados do DB
-- **Grafico de comparacao** periodo anterior (vs mesmos 30 dias do mes passado)
-- Widget de **tarefas pendentes do usuario** com deadline
-- **Resumo de notificacoes** nao lidas inline
-
-### 1c. Sidebar — 1409 linhas (AppSidebar.tsx)
-O arquivo da sidebar tem 1409 linhas. Sugestoes:
-- Extrair `ModuleHeader`, `MenuItemLink`, `CategoryDivider` para arquivos separados
-- Extrair cada modulo (fabricaGroups, financeiroGroups) para configs separadas
-- Adicionar **favoritos** (usuario marca paginas frequentes, aparecem no topo)
-- Adicionar **recentes** (ultimas 5 paginas visitadas)
+O sistema e maduro e robusto. Abaixo estao as melhorias priorizadas para atingir 95-100/100.
 
 ---
 
-## 2. Performance (Impacto Medio-Alto)
+## Melhoria 1: Recuperacao de Senha (Alta Prioridade)
 
-### 2a. Prefetching de Rotas
-O lazy loading esta correto, mas nao ha **prefetch** de rotas provaveis. Sugestoes:
-- Prefetch do Dashboard ao montar a tela de Login
-- Prefetch dos modulos ao hover nos quick links
-- Usar `<link rel="prefetch">` para chunks dos modulos mais usados
+Atualmente NAO existe fluxo de "Esqueci minha senha". Implementar:
 
-### 2b. Query Caching mais agressivo
-Verificar se `staleTime` e `gcTime` do React Query estao otimizados para dados que mudam pouco (lista de departamentos, plano de contas, categorias).
+**Novos arquivos:**
+- `src/components/auth/ForgotPasswordForm.tsx` — formulario com campo de email, envia link via `supabase.auth.resetPasswordForEmail()` com `redirectTo` para `/reset-password`
+- `src/pages/ForgotPassword.tsx` — pagina wrapper com AuthLayout
+- `src/pages/ResetPassword.tsx` — pagina para definir nova senha, valida token `type=recovery` no URL hash, chama `supabase.auth.updateUser({ password })`, com validacao Zod (8+ chars, maiuscula, numero)
 
-### 2c. Virtualizacao de Listas Grandes
-Paginas como Prospects, ContasAPagar, ContasAReceber que listam centenas de registros devem usar **react-window** ou **tanstack-virtual** para renderizar apenas os itens visiveis.
-
----
-
-## 3. Qualidade de Codigo (Impacto Medio)
-
-### 3a. Console.log em Producao
-Ha **629 ocorrencias** de `console.log/warn/error` em 52 arquivos de paginas. Sugestoes:
-- Criar um `logger` wrapper que so emite em dev (ja existe `src/lib/logger.ts`)
-- Migrar os `console.error` das paginas para usar o `logger` existente
-- Em producao, logs devem ir para um servico (Sentry, Datadog)
-
-### 3b. AppSidebar.tsx — Refatoracao
-Com 1409 linhas, e o maior componente do sistema. Quebrar em:
-- `sidebar/ModuleHeader.tsx`
-- `sidebar/MenuItemLink.tsx`
-- `sidebar/CategoryDivider.tsx`
-- `sidebar/SidebarModuleFilter.tsx`
-- `sidebar/module-configs/` (fabricaGroups, etc.)
+**Alteracoes:**
+- `src/components/auth/LoginForm.tsx` — adicionar link "Esqueci minha senha" abaixo do campo de senha
+- `src/App.tsx` — adicionar rotas `/auth/forgot-password` e `/reset-password` (publica, fora de ProtectedRoute)
 
 ---
 
-## 4. Acessibilidade (Impacto Medio)
+## Melhoria 2: Visual do Login (Alta Prioridade)
 
-### 4a. Labels ARIA Faltantes
-- Formularios sem `aria-describedby` para mensagens de erro
-- Modais sem `aria-modal="true"` explicito
-- Tabelas sem `aria-label` descritivo
+**Alteracoes em `LoginForm.tsx`:**
+- Adicionar toggle de visibilidade de senha (icone olho/olho fechado)
+- Adicionar link "Esqueci minha senha" entre campo senha e botao Entrar
 
-### 4b. Contraste e Focus Rings
-- Verificar se todos os botoes tem `focus-visible` ring adequado
-- Verificar contraste de textos `text-muted-foreground` em temas escuros
-
-### 4c. Keyboard Navigation
-- Sidebar deve suportar navegacao por teclado (setas cima/baixo)
-- Modais devem prender o focus (focus trap)
+**Alteracoes em `AuthLayout.tsx`:**
+- Adicionar logo `logo-huugs.jpg` acima do titulo
+- Melhorar gradiente de fundo com pattern sutil
 
 ---
 
-## 5. Funcionalidades Novas (Impacto Alto)
+## Melhoria 3: Refatorar AppSidebar (Media Prioridade)
 
-### 5a. Recuperacao de Senha
-Nao existe fluxo de "Esqueci minha senha". Implementar:
-- Link na tela de login
-- Pagina de reset com email
-- Usar `supabase.auth.resetPasswordForEmail()`
+O arquivo tem 1409 linhas. Extrair em modulos:
+- `src/components/sidebar/ModuleHeader.tsx`
+- `src/components/sidebar/MenuItemLink.tsx`
+- `src/components/sidebar/CategoryDivider.tsx`
+- `src/components/sidebar/SidebarModuleFilter.tsx`
+- `src/components/sidebar/SidebarUserFooter.tsx`
+- `src/components/sidebar/module-configs.ts` (fabricaGroups, moduleColors, moduleSearchTitles)
 
-### 5b. Perfil do Usuario
-Nao ha pagina de perfil para o usuario:
-- Alterar nome, foto, telefone
-- Alterar senha
-- Ver sessoes ativas
-- Configurar preferencias (tema, idioma, notificacoes)
-
-### 5c. Changelog / Release Notes
-Sistema com 200+ paginas mas sem changelog visivel. Adicionar:
-- Drawer/modal com novidades ao logar apos update
-- Badge "Novo" em itens de menu recem-adicionados
+AppSidebar.tsx ficaria com ~400 linhas (composicao).
 
 ---
 
-## Plano de Implementacao Sugerido
+## Melhoria 4: Dashboard com KPIs Reais (Media Prioridade)
 
-| Prioridade | Item | Esforco |
-|---|---|---|
-| Alta | 5a. Recuperacao de Senha | Pequeno |
-| Alta | 1a. Melhoria visual Login (logo, toggle senha) | Pequeno |
-| Alta | 3b. Refatorar AppSidebar (1409 linhas) | Medio |
-| Media | 1b. KPIs reais no Dashboard | Medio |
-| Media | 2c. Virtualizacao de listas | Medio |
-| Media | 5b. Pagina de Perfil | Medio |
-| Baixa | 3a. Migrar console.log para logger | Pequeno |
-| Baixa | 4a-c. Acessibilidade | Medio |
-| Baixa | 2a. Prefetching | Pequeno |
-| Baixa | 5c. Changelog | Pequeno |
+Adicionar ao Dashboard:
+- KPI cards com dados reais (total clientes ativos, total contas a pagar pendentes, total contas a receber em aberto, tarefas do usuario)
+- Widget "Minhas Tarefas" mostrando proximas 5 tarefas com deadline
 
-Selecione quais itens deseja implementar e em qual ordem.
+---
+
+## Arquivos a criar/alterar
+
+| Arquivo | Acao |
+|---|---|
+| `src/components/auth/ForgotPasswordForm.tsx` | Criar |
+| `src/pages/ForgotPassword.tsx` | Criar |
+| `src/pages/ResetPassword.tsx` | Criar |
+| `src/components/auth/LoginForm.tsx` | Alterar (toggle senha, link esqueci) |
+| `src/components/auth/AuthLayout.tsx` | Alterar (logo, visual) |
+| `src/App.tsx` | Alterar (2 novas rotas) |
+| `src/components/sidebar/ModuleHeader.tsx` | Criar (extrair) |
+| `src/components/sidebar/MenuItemLink.tsx` | Criar (extrair) |
+| `src/components/sidebar/CategoryDivider.tsx` | Criar (extrair) |
+| `src/components/sidebar/SidebarModuleFilter.tsx` | Criar (extrair) |
+| `src/components/sidebar/SidebarUserFooter.tsx` | Criar (extrair) |
+| `src/components/sidebar/module-configs.ts` | Criar (extrair) |
+| `src/components/dashboard/AppSidebar.tsx` | Alterar (importar extraidos) |
+| `src/pages/Dashboard.tsx` | Alterar (KPIs reais) |
+
