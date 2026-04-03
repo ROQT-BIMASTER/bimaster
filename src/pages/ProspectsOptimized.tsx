@@ -158,7 +158,7 @@ const ProspectsOptimized = () => {
   // Load pipeline data
   useEffect(() => {
     const fetchPipeline = async () => {
-      const statusOrder = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho", "perdido"];
+      const statusOrder = ["novo", "em_contato", "proposta_enviada", "negociacao", "ganho", "perdido"] as const;
       const results = await Promise.all(
         statusOrder.map(s =>
           supabase.from("prospects").select("*", { count: "exact", head: true }).eq("status", s)
