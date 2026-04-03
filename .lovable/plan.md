@@ -1,154 +1,132 @@
 
 
-# Auditoria Completa das APIs (Edge Functions) — Nota: 72/100
+# Auditoria Atualizada das APIs — Nota Atual: 82/100
 
-## Pontuação por Categoria
+## O que foi corrigido desde a auditoria anterior (72→82)
 
-| Categoria | Nota | Peso | Pontos |
-|---|---|---|---|
-| Consistência Arquitetural | 55 | 25% | 13.75 |
-| Segurança | 80 | 25% | 20.0 |
-| Validação de Entrada | 45 | 20% | 9.0 |
-| Observabilidade / Erros | 70 | 15% | 10.5 |
-| Manutenibilidade / DRY | 60 | 15% | 9.0 |
-| **TOTAL** | | | **72/100** |
+- CORS lockdown em `api-sandbox`, `api-health-check`, `produtos-api`, `integration-router` — migrados para `_shared/cors.ts`
+- Auth padronizado em `produtos-api`, `integration-router` — migrados para `validateAnyAuth()`
+- `erp-webhook-inbound` migrado para `Deno.serve()` e `npm:` import
+- `categorias-api` e `lancamentos-cc-api` — `json()` local agora delega para `jsonResponse()`
+- `webhook-dispatcher` — migrado para `_shared/response.ts`
+
+## Problemas Restantes (18 pontos)
+
+### PROBLEMA 1: 94 funções ainda com `Access-Control-Allow-Origin: *` (–6pts)
+
+A correção anterior cobriu apenas as 4 funções do plano original. Restam **~90 funções** com CORS `*` hardcoded — incluindo funções sensíveis como `cobranca-automation-api`, `vendas-union-api`, `erp-export-payment`, `fiscal-iva-api`, `price-table-approval`, entre outras.
+
+**Funções de alto risco com CORS `*`:**
+- `erp-export-payment` (exportação financeira)
+- `vendas-union-api` (dados de vendas)
+- `cobranca-automation-api` (automação de cobrança)
+- `price-table-approval` (aprovação de preços)
+- `fiscal-iva-api` (dados fiscais)
+- `realtime-call-session` (sessões de chamada)
+
+### PROBLEMA 2: 85 funções ainda usando `serve()` deprecado (–3pts)
+
+A migração para `Deno.serve()` cobriu apenas `erp-webhook-inbound`. Restam ~85 funções usando `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"`.
+
+### PROBLEMA 3: 16 funções com imports `esm.sh` em vez de `npm:` (–2pts)
+
+Funções com imports divergentes de Supabase:
+- `vendas-union-api` (`esm.sh@2.38.4`)
+- `price-table-approval` (`esm.sh@2.58.0`)
+- `export-conversion-rates`, `export-all-data`, `export-prospects`, `trade-marketing-api` (`esm.sh@2.39.3`)
+- `realtime-call-session`, `process-call-result` (`esm.sh@2.38.4`)
+- `save-brand-analysis` (`esm.sh@2.7.1`)
+- `_shared/erp-key-validator.ts` (`esm.sh@2`)
+- E mais 6 funções com `esm.sh@2` genérico
+
+### PROBLEMA 4: 9 funções com `json()` local duplicado (–2pts)
+
+Funções que definem `json()` localmente em vez de usar `_shared/response.ts`:
+- `contas-correntes-api`, `erp-plano-contas-api`, `erp-fornecedores-sync`, `erp-fornecedores-query`, `erp-portadores-api`, `webhook-subscriptions-api`, `orcamentos-caixa-api`, `asana-sync`, `erp-webhook-inbound`
+
+### PROBLEMA 5: Zod ausente nos endpoints de escrita críticos (–3pts)
+
+`boletos-api`, `clientes-api`, `categorias-api` — nenhum deles implementou validação Zod nos POST endpoints (o plano anterior listou mas não implementou).
+
+### PROBLEMA 6: Import Zod inconsistente (–1pt)
+
+3 padrões coexistentes:
+- `https://esm.sh/zod@3.22.4` (_shared/validate.ts)
+- `https://deno.land/x/zod@v3.22.4/mod.ts` (analisar-planilha-ia, cnpjbiz-consulta, analyze-gondola-competition)
+- Nenhum Zod (maioria das APIs)
+
+### PROBLEMA 7: `contas-receber-api` usa `timingSafeEqual` direto (–1pt)
+
+Importa `timingSafeEqual` diretamente em vez de usar `validateAnyAuth()` ou `validateErpAuth()`.
 
 ---
 
-## PROBLEMAS IDENTIFICADOS
+## Plano de Correção (18 pontos para 100%)
 
-### CRÍTICO 1: Inconsistência massiva de imports e CORS (–15pts)
+### Fase 1: CORS lockdown em massa (–6pts → 0)
 
-Existem **3 padrões coexistentes** de imports e CORS:
+Migrar as ~90 funções restantes para usar `_shared/cors.ts`. Priorizar as 6 de alto risco primeiro, depois batch das demais.
 
-| Padrão | Funções que usam | Problema |
+**Padrão de migração:**
+```
+- Remover: const corsHeaders = { "Access-Control-Allow-Origin": "*", ... }
++ Adicionar: import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
++ Substituir: corsHeaders → getCorsHeaders(req)
+```
+
+### Fase 2: Zod nos 3 endpoints críticos (–3pts → 0)
+
+Adicionar schemas Zod em:
+- `boletos-api` — POST gerar/cancelar/prorrogar
+- `clientes-api` — POST incluir/alterar
+- `categorias-api` — POST incluir/alterar
+
+### Fase 3: `serve()` → `Deno.serve()` em massa (–3pts → 0)
+
+Migrar as ~85 funções restantes do padrão:
+```
+- import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+- serve(async (req) => { ... });
++ Deno.serve(async (req) => { ... });
+```
+
+### Fase 4: Imports `esm.sh` → `npm:` (–2pts → 0)
+
+Padronizar 16 funções + `_shared/erp-key-validator.ts` para `npm:@supabase/supabase-js@2`.
+
+### Fase 5: Eliminar `json()` duplicado restante (–2pts → 0)
+
+Migrar 9 funções para usar `jsonResponse` de `_shared/response.ts`.
+
+### Fase 6: Cleanup menor (–2pts → 0)
+
+- Padronizar import Zod para `https://esm.sh/zod@3.22.4`
+- `contas-receber-api` — usar `validateAnyAuth()` em vez de `timingSafeEqual` direto
+
+---
+
+## Arquivos a alterar
+
+| Prioridade | Arquivos | Alteração |
 |---|---|---|
-| `_shared/cors.ts` + `_shared/response.ts` | bancos-api, boletos-api, empresas-api | Correto — usa origin lockdown |
-| `corsHeaders` hardcoded com `*` | api-sandbox, produtos-api, integration-router, api-health-check | CORS aberto para qualquer origem |
-| `_shared/cors.ts` + `json()` local | categorias-api, lancamentos-cc-api, webhook-dispatcher | Duplica `jsonResponse` de `_shared/response.ts` |
+| Alta | ~6 funções financeiras/fiscais | CORS lockdown |
+| Alta | boletos-api, clientes-api, categorias-api | Zod schemas |
+| Média | ~84 funções restantes | CORS lockdown |
+| Média | ~85 funções | `serve()` → `Deno.serve()` |
+| Média | 16 funções + erp-key-validator | `esm.sh` → `npm:` |
+| Baixa | 9 funções | `json()` → `jsonResponse()` |
+| Baixa | contas-receber-api | Usar `validateAnyAuth()` |
 
-**Impacto**: APIs com `Access-Control-Allow-Origin: *` permitem chamadas de qualquer site, expondo endpoints sensíveis a ataques CSRF.
+**Total de arquivos afetados: ~100+ edge functions**
 
-**Funções afetadas**: `api-sandbox`, `produtos-api`, `integration-router`, `api-health-check` (~4 funções)
+Dado o volume, a implementação será em batches de ~15-20 funções por iteração.
 
-### CRÍTICO 2: Ausência de validação Zod na maioria das APIs (–12pts)
-
-Apenas `erp-webhook-inbound` usa Zod para validar o body. Todas as outras APIs (boletos-api, clientes-api, contas-pagar-api, categorias-api, etc.) aceitam `await req.json()` sem validação de schema — vulnerável a mass-assignment e injection.
-
-**Funções afetadas**: ~25+ funções de CRUD
-
-### CRÍTICO 3: Padrões de autenticação inconsistentes (–8pts)
-
-| Padrão | Funções |
-|---|---|
-| `validateAnyAuth()` (JWT + API Key) | bancos-api, boletos-api, empresas-api, departamentos-api |
-| `validateErpAuth()` (API Key + legacy env) | lancamentos-cc-api |
-| `validateApiKey()` (só API Key) | categorias-api |
-| Auth manual inline | produtos-api, integration-router, contas-receber-api |
-| Sem auth (só header check) | api-health-check |
-
-**Impacto**: Functions com auth manual não usam timing-safe comparison e não verificam `erp_api_keys`.
-
-### PROBLEMA 4: Import de Supabase client com versões divergentes (–5pts)
-
-| Import | Funções |
-|---|---|
-| `npm:@supabase/supabase-js@2` | bancos-api, boletos-api, departamentos-api (correto) |
-| `https://esm.sh/@supabase/supabase-js@2` | erp-webhook-inbound |
-| `https://esm.sh/@supabase/supabase-js@2.58.0` | produtos-api |
-
-Versões fixas em `esm.sh` ficam defasadas e podem causar bugs de incompatibilidade.
-
-### PROBLEMA 5: Funções sem rate limiting (–5pts)
-
-APIs sem `checkRateLimit`: `produtos-api`, `integration-router`, `api-health-check`, `contas-pagar-export-api` (usa check manual).
-
-### PROBLEMA 6: Funções sem security headers (–3pts)
-
-APIs que não incluem `X-Content-Type-Options`, `X-Frame-Options`, etc.: `api-sandbox`, `produtos-api`, `integration-router`, `api-health-check`.
-
-### PROBLEMA 7: Helper `json()` duplicado em ~8 funções (–3pts)
-
-`categorias-api`, `lancamentos-cc-api`, `webhook-dispatcher`, `erp-webhook-inbound`, `contas-pagar-api` — cada uma define sua própria função `json()` em vez de usar `_shared/response.ts`.
-
-### PROBLEMA 8: `serve()` deprecado vs `Deno.serve()` (–2pts)
-
-`erp-webhook-inbound` ainda usa `serve()` de `deno.land/std@0.168.0`, que é deprecado. Todas as outras funções modernas usam `Deno.serve()`.
-
----
-
-## PLANO DE CORREÇÃO (28 pontos para 100%)
-
-### Fase 1: Segurança — CORS + Auth (–23pts → 0)
-
-**1a. Migrar 4 funções com CORS `*` para `_shared/cors.ts`:**
-- `api-sandbox/index.ts`
-- `produtos-api/index.ts`
-- `integration-router/index.ts`
-- `api-health-check/index.ts`
-
-**1b. Migrar 3 funções com auth manual para `_shared/auth.ts`:**
-- `produtos-api` → usar `validateAnyAuth()`
-- `integration-router` → usar `validateAnyAuth()`
-- `contas-receber-api` → usar `validateAnyAuth()` ou `validateErpAuth()`
-
-**1c. Adicionar validação Zod nos 6 endpoints de escrita mais críticos:**
-- `boletos-api` (POST /gerar, /cancelar, /prorrogar)
-- `clientes-api` (POST /incluir, /alterar)
-- `categorias-api` (POST /incluir, /alterar)
-
-### Fase 2: Consistência — DRY + Imports (–10pts → 0)
-
-**2a. Eliminar `json()` duplicado em 5 funções**, substituindo por `import { jsonResponse, errorResponse } from "../_shared/response.ts"`:
-- `categorias-api`
-- `lancamentos-cc-api`
-- `webhook-dispatcher`
-- `erp-webhook-inbound`
-- `contas-pagar-api` (error handler final)
-
-**2b. Padronizar imports de Supabase para `npm:@supabase/supabase-js@2`:**
-- `erp-webhook-inbound` (de `esm.sh`)
-- `produtos-api` (de `esm.sh@2.58.0`)
-- `integration-router` (de `esm.sh`)
-
-**2c. Migrar `erp-webhook-inbound` de `serve()` para `Deno.serve()`.**
-
-### Fase 3: Rate Limiting + Security Headers (–5pts → 0)
-
-**3a. Adicionar `checkRateLimit` em:**
-- `produtos-api`
-- `integration-router`
-
-**3b. Adicionar `withSecurityHeaders` em:**
-- `api-sandbox`
-- `produtos-api`
-- `integration-router`
-- `api-health-check`
-
-### Arquivos a alterar
-
-| Arquivo | Alterações |
-|---|---|
-| `api-sandbox/index.ts` | CORS lockdown, security headers |
-| `produtos-api/index.ts` | CORS, auth, rate limit, security headers, import |
-| `integration-router/index.ts` | CORS, auth, rate limit, security headers, import |
-| `api-health-check/index.ts` | CORS lockdown, security headers |
-| `erp-webhook-inbound/index.ts` | `Deno.serve()`, import padronizado, usar `_shared/response.ts` |
-| `boletos-api/index.ts` | Zod schemas para POST endpoints |
-| `clientes-api/index.ts` | Zod schemas para POST endpoints |
-| `categorias-api/index.ts` | Usar `_shared/response.ts`, Zod schema |
-| `lancamentos-cc-api/index.ts` | Usar `_shared/response.ts` |
-| `webhook-dispatcher/index.ts` | Usar `_shared/response.ts` |
-| `contas-pagar-api/index.ts` | Usar `_shared/response.ts` no error handler |
-
-### Resultado esperado
+## Resultado esperado
 
 - 0 funções com CORS `*`
-- 0 funções com auth manual inline
-- 6 endpoints de escrita com validação Zod
+- 0 funções com `serve()` deprecado
+- 0 imports `esm.sh`
 - 0 helpers `json()` duplicados
-- Imports padronizados em `npm:`
-- Rate limiting em todas as APIs públicas
-- Security headers em todas as respostas
-- **Nota estimada: 95-100/100**
+- Zod em todos os endpoints de escrita críticos
+- **Nota: 100/100**
 
