@@ -621,7 +621,7 @@ export default function ImportarContasReceberCSV({
 
   const formatCurrency = (value: number | null) => {
     if (value === null) return '-';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return formatCurrencyBase(value);
   };
 
   const resetState = () => {

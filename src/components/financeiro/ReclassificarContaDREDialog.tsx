@@ -325,12 +325,7 @@ export function ReclassificarContaDREDialog({
 
   if (!contaOrigem) return null;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(Math.abs(value));
-  };
+  const formatCurrencyAbs = (value: number) => formatCurrency(Math.abs(value));
 
   const categoriaAtual = contaOrigem.categoriaDre;
 

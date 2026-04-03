@@ -135,12 +135,7 @@ export default function ClientePerfilCredito({ clienteCodigo, onClose }: Cliente
     return 'mau_pagador';
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value || 0);
-  };
+  // formatCurrency importado de @/lib/formatters
 
   const getClassificacaoStyle = (classificacao: string) => {
     switch (classificacao) {

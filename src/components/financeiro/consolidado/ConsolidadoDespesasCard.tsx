@@ -22,13 +22,7 @@ const origemIconConfig = {
   departamentos: Building2,
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+const formatCurrencyNoDecimals = (value: number) => formatCurrency(value, false);
 
 export function ConsolidadoDespesasCard({ metrics, despesasPorOrigem }: ConsolidadoDespesasCardProps) {
   return (

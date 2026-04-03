@@ -76,14 +76,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
     return Object.values(prioridadeMap).filter(p => p.meta > 0 || p.realizado > 0);
   }, [revisoes]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
-      currency: 'BRL',
-      notation: 'compact',
-      maximumFractionDigits: 1
-    }).format(value);
-  };
+  const formatCurrency = (value: number) => formatCurrencyCompact(value);
 
   if (revisoes.length === 0) {
     return null;
