@@ -273,11 +273,11 @@ export default function ContasAReceber() {
 
   // Dados paginados da tabela
   const sortedAndPaginatedData = useMemo(() => {
-    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0, totais: { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 } };
+    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0, totais: { valorOriginal: 0, valorAberto: 0, valorRecebido: 0, totalRegistros: 0 } };
     
-    const totalItems = contasTable.count;
+    const totalItems = contasTable.totais.totalRegistros;
     const totalPages = Math.ceil(totalItems / pageSize);
-    const totais = contasTable.totais || { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
+    const totais = contasTable.totais;
     
     return { data: contasTable.data, totalPages, totalItems, totais };
   }, [contasTable, pageSize]);
