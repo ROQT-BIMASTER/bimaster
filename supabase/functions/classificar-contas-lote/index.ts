@@ -17,36 +17,48 @@ serve(async (req) => {
 
     const { action, categorias } = await req.json();
 
-    // Action: load-categories — fetch distinct categories with stats
+    // Action: load-categories — fetch distinct categories with stats via raw SQL
     if (action === "load-categories") {
-      const { data, error } = await supabase.rpc("get_categorias_para_classificar");
-      if (error) {
-        // Fallback: direct query
-        const { data: fallback, error: fbErr } = await supabase
-          .from("contas_pagar")
-          .select("categoria_nome")
-          .not("categoria_nome", "is", null)
-          .limit(1000);
-        
-        if (fbErr) throw fbErr;
+      const { data, error } = await supabase.rpc("exec_sql_readonly", { sql_query: "" });
+      
+      // Use direct query approach
+      const { data: cats, error: catErr } = await supabase
+        .from("contas_pagar")
+        .select("categoria_nome, fornecedor_nome, valor_original")
+        .not("categoria_nome", "is", null);
 
-        // Aggregate manually
-        const catMap = new Map<string, number>();
-        for (const r of fallback || []) {
-          const cat = r.categoria_nome;
-          if (cat) catMap.set(cat, (catMap.get(cat) || 0) + 1);
+      if (catErr) throw catErr;
+
+      // Aggregate in memory (service role bypasses RLS, gets all rows)
+      const catMap = new Map<string, { qtd: number; valores: number[]; fornecedores: Map<string, number> }>();
+
+      for (const r of cats || []) {
+        const cat = r.categoria_nome;
+        if (!cat) continue;
+        if (!catMap.has(cat)) {
+          catMap.set(cat, { qtd: 0, valores: [], fornecedores: new Map() });
         }
-        
-        const result = Array.from(catMap.entries()).map(([nome, qtd]) => ({
-          categoria_nome: nome,
-          qtd_titulos: qtd,
-          valor_medio: 0,
-          top_fornecedores: [],
-        }));
-
-        return new Response(JSON.stringify({ success: true, categorias: result }), { headers });
+        const entry = catMap.get(cat)!;
+        entry.qtd++;
+        if (r.valor_original) entry.valores.push(Number(r.valor_original));
+        if (r.fornecedor_nome) {
+          entry.fornecedores.set(r.fornecedor_nome, (entry.fornecedores.get(r.fornecedor_nome) || 0) + 1);
+        }
       }
-      return new Response(JSON.stringify({ success: true, categorias: data }), { headers });
+
+      const result = Array.from(catMap.entries()).map(([nome, info]) => ({
+        categoria_nome: nome,
+        qtd_titulos: info.qtd,
+        valor_medio: info.valores.length > 0 ? info.valores.reduce((a, b) => a + b, 0) / info.valores.length : 0,
+        top_fornecedores: Array.from(info.fornecedores.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([f]) => f),
+      }));
+
+      result.sort((a, b) => b.qtd_titulos - a.qtd_titulos);
+
+      return new Response(JSON.stringify({ success: true, categorias: result }), { headers });
     }
 
     // Action: classify — classify a batch of categories using AI
