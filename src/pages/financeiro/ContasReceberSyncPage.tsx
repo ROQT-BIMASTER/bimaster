@@ -5,7 +5,8 @@ import { SyncControlPanel } from '@/components/financeiro/SyncControlPanel';
 import { ContasReceberSyncPanel } from '@/components/financeiro/ContasReceberSyncPanel';
 import { SyncMonitorPanel } from '@/components/financeiro/SyncMonitorPanel';
 import { PowerQueryInstructions } from '@/components/financeiro/PowerQueryInstructions';
-import { Server, Shield, FileSpreadsheet, Activity } from 'lucide-react';
+import { Server, Shield, FileSpreadsheet, Activity, BarChart3 } from 'lucide-react';
+import { SyncMetricsDashboard } from '@/components/financeiro/SyncMetricsDashboard';
 
 export default function ContasReceberSyncPage() {
   return (
