@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 import { Wallet, TrendingDown, TrendingUp, Store, Calendar, Building2 } from "lucide-react";
 import type { VerbaMetrics, VerbaConsolidada } from "@/hooks/useFinanceiroConsolidadoDashboard";
