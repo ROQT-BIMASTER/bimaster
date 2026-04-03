@@ -7,7 +7,7 @@ import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSidebarConfig } from "@/hooks/useSidebarConfig";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -445,9 +445,13 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
     fetchUserName();
   }, [user?.id]);
 
+  // Ref estável para hasModulePermission (evita loop infinito por mudança de identidade)
+  const hasModulePermRef = useRef(hasModulePermission);
+  hasModulePermRef.current = hasModulePermission;
+
   // Buscar tabelas pendentes
   useEffect(() => {
-    if (loading || !hasModulePermission("precos")) {
+    if (loading || !hasModulePermRef.current("precos")) {
       setTabelasPendentes(0);
       return;
     }
@@ -464,7 +468,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fabrica_tabelas_preco' }, () => fetchPendentes())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [loading, hasModulePermission]);
+  }, [loading]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
