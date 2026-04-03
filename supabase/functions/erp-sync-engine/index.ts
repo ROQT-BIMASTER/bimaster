@@ -335,14 +335,18 @@ async function handleSyncPaginated(
   const allErrors: string[] = [];
   let page = options?.startPage || 0;
   const maxPages = options?.maxPages || 999;
-  const TIME_LIMIT_MS = 120_000; // Stop after 120s to avoid 150s timeout
+  const TIME_LIMIT_MS = 120_000;
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
   let stoppedByTimeGuard = false;
   let pagesProcessed = 0;
 
+  // Single connection for ALL pages — eliminates 5-10s overhead per page
+  let connection: Connection | null = null;
   try {
+    connection = await connectToSqlServer();
+    console.log(`🔗 SQL connection opened (single for all pages)`);
+
     while (true) {
-      // Time guard: stop gracefully before timeout
       if (Date.now() - startMs > TIME_LIMIT_MS) {
         console.log(`⏱️ Time guard: stopping after ${pagesProcessed} pages (${totalRows} rows) — ${Date.now() - startMs}ms elapsed`);
         stoppedByTimeGuard = true;
@@ -354,38 +358,32 @@ async function handleSyncPaginated(
         break;
       }
 
-      let connection: Connection | null = null;
-      try {
-        connection = await connectToSqlServer();
-        const offset = page * SQL_PAGE_SIZE;
-        const query = `
-          SELECT * FROM (
-            SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
-            FROM [${viewName}]
-            ${whereFilter}
-          ) AS _paged
-          WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
-        `;
-        console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
-        const rows = await executeSqlQuery(connection, query);
-        console.log(`📊 Got ${rows.length} rows`);
+      const offset = page * SQL_PAGE_SIZE;
+      const query = `
+        SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
+          FROM [${viewName}]
+          ${whereFilter}
+        ) AS _paged
+        WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
+      `;
+      console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})${options?.empresaId ? ` empresa=${options.empresaId}` : ""}...`);
+      const rows = await executeSqlQuery(connection, query);
+      console.log(`📊 Got ${rows.length} rows`);
 
-        if (rows.length === 0) break;
+      if (rows.length === 0) break;
 
-        totalRows += rows.length;
-        const transformed = rows.map(transformFn);
-        const { inserted, errors } = await batchUpsert(supabase, tableName, transformed, conflictCol);
-        totalUpserted += inserted;
-        if (errors.length > 0) allErrors.push(...errors);
+      totalRows += rows.length;
+      const transformed = rows.map(transformFn);
+      const { inserted, errors } = await batchUpsert(supabase, tableName, transformed, conflictCol);
+      totalUpserted += inserted;
+      if (errors.length > 0) allErrors.push(...errors);
 
-        if (rows.length < SQL_PAGE_SIZE) break;
-        page++;
-        pagesProcessed++;
-      } finally {
-        if (connection) try { connection.close(); } catch (_) {}
-      }
+      if (rows.length < SQL_PAGE_SIZE) break;
+      page++;
+      pagesProcessed++;
 
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 50));
     }
 
     const duration = Date.now() - startMs;
