@@ -4,6 +4,34 @@ import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+
+// === Zod Schemas ===
+const GerarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+  codigo_barras: z.string().max(60).optional(),
+  numero_bancario: z.string().max(30).optional(),
+  nPerJuros: z.number().min(0).max(100).optional(),
+  nPerMulta: z.number().min(0).max(100).optional(),
+  dDescontoCond1: z.string().max(10).optional(),
+  vDescontoCond1: z.number().min(0).optional(),
+  dDescontoCond2: z.string().max(10).optional(),
+  vDescontoCond2: z.number().min(0).optional(),
+  dDescontoCond3: z.string().max(10).optional(),
+  vDescontoCond3: z.number().min(0).optional(),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+
+const CancelarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
+
+const ProrrogarSchema = z.object({
+  nCodTitulo: z.number().optional(),
+  cCodIntTitulo: z.string().max(100).optional(),
+  dDtVenc: z.string().min(1, "dDtVenc obrigatório").max(10),
+}).refine(d => d.nCodTitulo || d.cCodIntTitulo, { message: "nCodTitulo ou cCodIntTitulo obrigatório" });
 
 function getSupabase() {
   return createClient(
