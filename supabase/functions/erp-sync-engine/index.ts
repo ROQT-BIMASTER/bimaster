@@ -315,8 +315,14 @@ async function handleSyncPaginated(
       try {
         connection = await connectToSqlServer();
         const offset = page * SQL_PAGE_SIZE;
-        // Use ORDER BY (SELECT NULL) for views without a natural key
-        const query = `SELECT * FROM [${viewName}] ORDER BY (SELECT NULL) OFFSET ${offset} ROWS FETCH NEXT ${SQL_PAGE_SIZE} ROWS ONLY`;
+        // Use ROW_NUMBER for pagination since OFFSET/FETCH may not work on all views
+        const query = `
+          SELECT * FROM (
+            SELECT *, ROW_NUMBER() OVER (ORDER BY [ID Empresa], [Nota], [Seq]) AS _rn
+            FROM [${viewName}]
+          ) AS _paged
+          WHERE _rn > ${offset} AND _rn <= ${offset + SQL_PAGE_SIZE}
+        `;
         console.log(`📥 ${entityName} page ${page + 1} (offset ${offset})...`);
         const rows = await executeSqlQuery(connection, query);
         console.log(`📊 Got ${rows.length} rows`);
