@@ -40,6 +40,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   usePageTracking();
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
+  const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
 
   // Monitorar qualidade da conexão
   useEffect(() => {
