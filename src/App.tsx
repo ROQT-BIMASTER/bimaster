@@ -61,6 +61,8 @@ function lazyWithRetry<T extends ComponentType<any>>(
 // Lazy load das páginas com retry automático
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ProspectsModule = lazyWithRetry(() => import("./pages/modules/ProspectsModule"));
 const MarketingModule = lazyWithRetry(() => import("./pages/modules/MarketingModule"));
