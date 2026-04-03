@@ -63,6 +63,7 @@ const Index = lazyWithRetry(() => import("./pages/Index"));
 const Auth = lazyWithRetry(() => import("./pages/Auth"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const UnsubscribePage = lazyWithRetry(() => import("./pages/UnsubscribePage"));
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ProspectsModule = lazyWithRetry(() => import("./pages/modules/ProspectsModule"));
 const MarketingModule = lazyWithRetry(() => import("./pages/modules/MarketingModule"));
