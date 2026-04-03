@@ -271,18 +271,33 @@ export default function DREAnalitico() {
     return registro.data_vencimento;
   };
   
-  // Buscar contas a receber (receitas) via RPC agregada server-side
-  const { data: contasReceberAgregadas } = useSupabaseQuery(
-    ['contas-receber-dre-rpc', dataInicio, dataFim, filterEmpresa, regimeAnalise],
+  // Buscar totais de contas a receber por mês via RPC (max ~12 linhas)
+  const empresaParam = filterEmpresa !== 'todas' ? filterEmpresa : null;
+  const { data: contasReceberTotais } = useSupabaseQuery(
+    ['contas-receber-dre-totais', dataInicio, dataFim, filterEmpresa],
     async () => {
-      const { data, error } = await supabase.rpc('get_contas_receber_dre', {
+      const { data, error } = await supabase.rpc('get_contas_receber_dre_totais', {
         p_data_inicio: dataInicio,
         p_data_fim: dataFim,
-        p_regime: regimeAnalise,
-        p_empresa_nome: filterEmpresa !== 'todas' ? filterEmpresa : null,
+        p_empresa_nome: empresaParam,
       });
       if (error) throw error;
-      return data as { cliente_codigo: string; cliente_nome: string; mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
+      return data as { mes: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
+    },
+    { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
+  );
+
+  // Buscar top 50 clientes para drill-down
+  const { data: contasReceberClientes } = useSupabaseQuery(
+    ['contas-receber-dre-clientes', dataInicio, dataFim, filterEmpresa],
+    async () => {
+      const { data, error } = await supabase.rpc('get_contas_receber_dre_clientes', {
+        p_data_inicio: dataInicio,
+        p_data_fim: dataFim,
+        p_empresa_nome: empresaParam,
+      });
+      if (error) throw error;
+      return data as { cliente_codigo: string; cliente_nome: string; valor_original: number; valor_recebido: number; qtd_documentos: number }[];
     },
     { staleTime: 2 * 60 * 1000, gcTime: 5 * 60 * 1000 }
   );
