@@ -10,7 +10,7 @@ export function SecurityScoreGauge() {
       const now = new Date();
       const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [openIncidents, criticalEvents, riskScores] = await Promise.all([
+      const [openIncidents, criticalEvents, riskScores, avgConfidence] = await Promise.all([
         supabase
           .from("security_incidents")
           .select("*", { count: "exact", head: true })
@@ -24,20 +24,35 @@ export function SecurityScoreGauge() {
           .from("security_user_risk_score")
           .select("score")
           .gte("score", 50),
+        supabase
+          .from("security_incidents")
+          .select("confidence_score")
+          .in("status", ["open", "investigating"]),
       ]);
 
-      // Calculate system score (inverse of risk)
+      // Calculate average confidence of open incidents
+      let avgConf = 0;
+      if (avgConfidence.data && avgConfidence.data.length > 0) {
+        avgConf = avgConfidence.data.reduce((sum, r) => sum + (Number(r.confidence_score) || 0.8), 0) / avgConfidence.data.length;
+      }
+
+      // Calculate system score (inverse of risk), weighted by confidence
       let score = 100;
-      score -= Math.min((openIncidents.count ?? 0) * 5, 25); // -5 per open incident, max -25
-      score -= Math.min((criticalEvents.count ?? 0) * 3, 20); // -3 per critical event, max -20
-      score -= Math.min((riskScores.data?.length ?? 0) * 5, 15); // -5 per high-risk user, max -15
+      const openCount = openIncidents.count ?? 0;
+      const critCount = criticalEvents.count ?? 0;
+      const highRiskCount = riskScores.data?.length ?? 0;
+
+      score -= Math.min(Math.round(openCount * 5 * avgConf), 25);
+      score -= Math.min(critCount * 3, 20);
+      score -= Math.min(highRiskCount * 5, 15);
       score = Math.max(score, 0);
 
       return {
         score,
-        openIncidents: openIncidents.count ?? 0,
-        criticalEvents: criticalEvents.count ?? 0,
-        highRiskUsers: riskScores.data?.length ?? 0,
+        openIncidents: openCount,
+        criticalEvents: critCount,
+        highRiskUsers: highRiskCount,
+        avgConfidence: Math.round(avgConf * 100),
       };
     },
     refetchInterval: 30000,
@@ -83,7 +98,7 @@ export function SecurityScoreGauge() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 w-full text-center">
+        <div className="grid grid-cols-2 gap-3 w-full text-center">
           <div>
             <p className="text-lg font-bold text-destructive">{data?.openIncidents}</p>
             <p className="text-xs text-muted-foreground">Incidentes</p>
@@ -95,6 +110,10 @@ export function SecurityScoreGauge() {
           <div>
             <p className="text-lg font-bold text-primary">{data?.highRiskUsers}</p>
             <p className="text-xs text-muted-foreground">Risco Alto</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-muted-foreground">{data?.avgConfidence}%</p>
+            <p className="text-xs text-muted-foreground">Confiança</p>
           </div>
         </div>
       </CardContent>
