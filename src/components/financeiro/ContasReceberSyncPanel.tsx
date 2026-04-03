@@ -3,30 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { useContasReceberSync, SyncMode } from '@/hooks/useContasReceberSync';
+import { useContasReceberSync } from '@/hooks/useContasReceberSync';
 import { 
-  RefreshCw, 
-  Database, 
-  Clock, 
-  CheckCircle,
-  XCircle,
-  Loader2,
-  TrendingUp,
-  AlertTriangle,
-  Banknote,
-  Calendar,
-  FileText,
-  Activity,
-  Server,
-  Zap,
-  Play,
-  Settings,
-  Timer
+  RefreshCw, Database, Clock, CheckCircle, XCircle, Loader2,
+  TrendingUp, AlertTriangle, Banknote, Calendar, Activity,
+  Server, Play, Timer
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,85 +18,33 @@ import { ptBR } from 'date-fns/locale';
 export function ContasReceberSyncPanel() {
   const { toast } = useToast();
   const {
-    isLoading,
-    isSyncing,
-    stats,
-    syncHistory,
-    lastSyncResult,
-    syncMode,
-    setSyncMode,
-    erpConnectionStatus,
-    syncProgress,
-    fetchStats,
-    fetchSyncHistory,
-    testConnection,
-    testErpConnection,
-    syncDirect,
-    syncN8n,
-    refreshAll,
-    resetProgress
+    isLoading, isSyncing, stats, syncHistory, lastSyncResult,
+    erpConnectionStatus, syncProgress,
+    fetchStats, fetchSyncHistory, testConnection, testErpConnection,
+    syncFull, syncIncremental, syncByEmpresa, refreshAll, resetProgress
   } = useContasReceberSync();
 
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
-  const [anoMinimo, setAnoMinimo] = useState('2020');
+  const [empresaId, setEmpresaId] = useState('');
 
-  // Carregar dados iniciais
   useEffect(() => {
     fetchStats();
     fetchSyncHistory();
-    testConnection().then(result => {
-      setConnectionStatus(result.connected ? 'connected' : 'error');
-    });
+    testConnection().then(r => setConnectionStatus(r.connected ? 'connected' : 'error'));
   }, [fetchStats, fetchSyncHistory, testConnection]);
 
   const handleRefreshAll = useCallback(async () => {
     await refreshAll();
-    toast({
-      title: 'Dados Atualizados',
-      description: 'Estatísticas de Contas a Receber atualizadas',
-    });
+    toast({ title: 'Dados Atualizados', description: 'Estatísticas atualizadas' });
   }, [refreshAll, toast]);
 
-  const handleSyncDirect = async () => {
-    await syncDirect({ anoMinimo: parseInt(anoMinimo) });
-  };
-
-  const handleSyncN8n = async () => {
-    await syncN8n({ batchSize: 100 });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const formatElapsedTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'fetching': return 'text-blue-500';
-      case 'processing': return 'text-yellow-500';
-      case 'completed': return 'text-green-500';
-      case 'error': return 'text-red-500';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'idle': return 'Aguardando';
-      case 'fetching': return 'Buscando dados...';
-      case 'processing': return 'Processando...';
-      case 'completed': return 'Concluído';
-      case 'error': return 'Erro';
-      default: return status;
-    }
   };
 
   return (
@@ -122,514 +54,138 @@ export function ContasReceberSyncPanel() {
         <div>
           <h2 className="text-xl font-bold">Sincronização - Contas a Receber</h2>
           <p className="text-sm text-muted-foreground">
-            Monitore a integração com o ERP e visualize estatísticas
+            Engine direta SQL Server → Banco de dados (sem dependência N8N)
           </p>
         </div>
-        
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => testConnection().then(r => setConnectionStatus(r.connected ? 'connected' : 'error'))}
-            disabled={isLoading}
-          >
-            {connectionStatus === 'checking' ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : connectionStatus === 'connected' ? (
-              <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-            ) : (
-              <XCircle className="h-4 w-4 text-red-500 mr-2" />
-            )}
+          <Button variant="outline" size="sm" onClick={() => testConnection().then(r => setConnectionStatus(r.connected ? 'connected' : 'error'))} disabled={isLoading}>
+            {connectionStatus === 'connected' ? <CheckCircle className="h-4 w-4 text-green-500 mr-2" /> : connectionStatus === 'error' ? <XCircle className="h-4 w-4 text-red-500 mr-2" /> : <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Testar Conexão
           </Button>
-          
           <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Atualizar
           </Button>
         </div>
       </div>
 
-      {/* Cards de Estatísticas */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Database className="h-4 w-4 text-primary" />
-              Total de Registros
-            </CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Database className="h-4 w-4 text-primary" />Total de Registros</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">
-              {stats?.totalRecords.toLocaleString() || '0'}
-            </p>
+            <p className="text-3xl font-bold">{stats?.totalRecords.toLocaleString() || '0'}</p>
             <p className="text-sm text-muted-foreground">contas sincronizadas</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-500" />
-              Pendentes
-            </CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" />Vencidas</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-600">
-              {stats?.pendentes.toLocaleString() || '0'}
-            </p>
-            <p className="text-sm text-muted-foreground">a vencer</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              Vencidas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-destructive">
-              {stats?.vencidas.toLocaleString() || '0'}
-            </p>
+            <p className="text-3xl font-bold text-destructive">{stats?.vencidas.toLocaleString() || '0'}</p>
             <p className="text-sm text-muted-foreground">em atraso</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Última Sync
-            </CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Banknote className="h-4 w-4 text-green-500" />Total Recebido</CardTitle></CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(stats?.totalValorRecebido || 0)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4" />Última Sync</CardTitle></CardHeader>
           <CardContent>
             {stats?.lastSync ? (
               <div>
-                <p className="text-lg font-medium">
-                  {formatDistanceToNow(new Date(stats.lastSync), {
-                    addSuffix: true,
-                    locale: ptBR,
-                  })}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(stats.lastSync), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                </p>
+                <p className="text-lg font-medium">{formatDistanceToNow(new Date(stats.lastSync), { addSuffix: true, locale: ptBR })}</p>
+                <p className="text-xs text-muted-foreground">{format(new Date(stats.lastSync), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma sync registrada</p>
-            )}
+            ) : <p className="text-sm text-muted-foreground">Nenhuma sync registrada</p>}
           </CardContent>
         </Card>
       </div>
 
-      {/* Cards de Valores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-orange-500" />
-              Total em Aberto
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-orange-600">
-              {formatCurrency(stats?.totalValorAberto || 0)}
-            </p>
-            <p className="text-sm text-muted-foreground">valor a receber</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Banknote className="h-4 w-4 text-green-500" />
-              Total Recebido
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(stats?.totalValorRecebido || 0)}
-            </p>
-            <p className="text-sm text-muted-foreground">já recebido</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs de Modo de Sincronização */}
-      <Tabs value={syncMode} onValueChange={(v) => setSyncMode(v as SyncMode)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="n8n" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            N8N (Webhook)
-          </TabsTrigger>
-          <TabsTrigger value="direct" className="flex items-center gap-2">
-            <Server className="h-4 w-4" />
-            API Direta
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Tab N8N */}
-        <TabsContent value="n8n" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Configuração do N8N
-              </CardTitle>
-              <CardDescription>
-                O N8N envia dados automaticamente para este endpoint
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Endpoints Disponíveis</h4>
-                <div className="space-y-2">
-                  <div>
-                    <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
-                      POST /functions/v1/contas-receber-api/sync
-                    </code>
-                    <p className="text-xs text-muted-foreground mt-1">Sync padrão (recomendado)</p>
-                  </div>
-                  <div>
-                    <code className="text-sm bg-background px-2 py-1 rounded block overflow-x-auto">
-                      POST /functions/v1/contas-receber-api/bulk-sync
-                    </code>
-                    <p className="text-xs text-muted-foreground mt-1">Carga massiva (alta performance)</p>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-3">
-                  Header: <code className="bg-background px-1 rounded">x-api-key: [N8N_API_KEY]</code>
-                </p>
-              </div>
-              
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Payload Esperado</h4>
-                <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
-{`{
-  "contas": [
-    {
-      "ID Empresa": 1,
-      "Empresa": "Nome Empresa",
-      "Tipo": "NF",
-      "Nota": "12345",
-      "Seq": 1,
-      "Código": "CLI001",
-      "Cliente": "Nome Cliente",
-      "Valor_Trc": 1000.00,
-      "Valor em Aberto": 500.00,
-      "Emissão": "2025-01-01",
-      "Vencimento": "2025-02-01"
-    }
-  ]
-}`}
-                </pre>
-              </div>
-
-              <div className="p-4 border border-green-500/30 bg-green-500/10 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-green-700">Alta Performance</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      O endpoint <code className="text-xs">/bulk-sync</code> suporta até 500.000 registros por request,
-                      com processamento de até 10.000 registros/segundo.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Painel de Progresso da Sincronização */}
-              {(syncProgress.isActive || syncProgress.status === 'completed' || syncProgress.status === 'error') && (
-                <div className={`p-4 rounded-lg border ${
-                  syncProgress.status === 'error' ? 'bg-red-500/10 border-red-500/30' :
-                  syncProgress.status === 'completed' ? 'bg-green-500/10 border-green-500/30' :
-                  'bg-blue-500/10 border-blue-500/30'
-                }`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {syncProgress.isActive ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                      ) : syncProgress.status === 'completed' ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : syncProgress.status === 'error' ? (
-                        <XCircle className="h-5 w-5 text-red-500" />
-                      ) : (
-                        <Activity className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      <span className={`font-medium ${getStatusColor(syncProgress.status)}`}>
-                        {getStatusLabel(syncProgress.status)}
-                      </span>
-                    </div>
-                    {!syncProgress.isActive && (
-                      <Button variant="ghost" size="sm" onClick={resetProgress}>
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Barra de Progresso Animada */}
-                  {syncProgress.isActive && (
-                    <div className="space-y-2 mb-4">
-                      <Progress 
-                        value={undefined} 
-                        className="h-2 [&>div]:animate-pulse [&>div]:bg-blue-500"
-                      />
-                      <p className="text-xs text-muted-foreground text-center">
-                        Sincronização em andamento...
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Métricas */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Database className="h-3 w-3" />
-                        <span>Registros</span>
-                      </div>
-                      <p className="text-lg font-bold">
-                        {syncProgress.recordsProcessed.toLocaleString()}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Timer className="h-3 w-3" />
-                        <span>Tempo</span>
-                      </div>
-                      <p className="text-lg font-bold">
-                        {formatElapsedTime(syncProgress.elapsedSeconds)}
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Activity className="h-3 w-3" />
-                        <span>Taxa</span>
-                      </div>
-                      <p className="text-lg font-bold">
-                        {syncProgress.elapsedSeconds > 0 
-                          ? Math.round(syncProgress.recordsProcessed / syncProgress.elapsedSeconds)
-                          : 0
-                        } /s
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Zap className="h-3 w-3" />
-                        <span>Status</span>
-                      </div>
-                      <Badge variant={
-                        syncProgress.status === 'completed' ? 'default' :
-                        syncProgress.status === 'error' ? 'destructive' :
-                        'secondary'
-                      }>
-                        {syncProgress.isActive ? 'Ativo' : 
-                         syncProgress.status === 'completed' ? 'OK' : 
-                         syncProgress.status === 'error' ? 'Erro' : 'Parado'}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Mensagem */}
-                  {syncProgress.message && (
-                    <p className="text-sm mt-3 text-muted-foreground">
-                      {syncProgress.message}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Botão de Sincronização N8N Manual */}
-              <div className="border-t pt-4 mt-4">
-                <h4 className="font-medium mb-3 flex items-center gap-2">
-                  <Play className="h-4 w-4" />
-                  Sincronização Manual via N8N
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Dispara uma sincronização completa usando o webhook do N8N para buscar todos os dados do SQL Server.
-                </p>
-                <Button 
-                  className="w-full" 
-                  onClick={handleSyncN8n}
-                  disabled={isSyncing}
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Sincronizando via N8N...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Sincronizar via N8N
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab API Direta */}
-        <TabsContent value="direct" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Sincronização Direta com ERP
-              </CardTitle>
-              <CardDescription>
-                Conecte diretamente ao SQL Server do ERP para sincronizar dados
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Status da Conexão ERP */}
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Server className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Conexão SQL Server</p>
-                    <p className="text-sm text-muted-foreground">
-                      {erpConnectionStatus === 'connected' ? 'Conectado ao ERP' : 
-                       erpConnectionStatus === 'checking' ? 'Verificando...' :
-                       erpConnectionStatus === 'error' ? 'Erro na conexão' :
-                       'Não testado'}
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={testErpConnection}
-                  disabled={erpConnectionStatus === 'checking'}
-                >
-                  {erpConnectionStatus === 'checking' ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : erpConnectionStatus === 'connected' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  ) : erpConnectionStatus === 'error' ? (
-                    <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                  ) : (
-                    <Server className="h-4 w-4 mr-2" />
-                  )}
-                  Testar ERP
-                </Button>
-              </div>
-
-              {/* Configurações de Sync */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="anoMinimo">Ano Mínimo</Label>
-                  <Input
-                    id="anoMinimo"
-                    type="number"
-                    value={anoMinimo}
-                    onChange={(e) => setAnoMinimo(e.target.value)}
-                    placeholder="2020"
-                    min="2010"
-                    max={new Date().getFullYear()}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Sincroniza apenas dados a partir deste ano
-                  </p>
-                </div>
-              </div>
-
-              {/* Botão de Sincronização */}
-              <Button 
-                className="w-full" 
-                onClick={handleSyncDirect}
-                disabled={isSyncing || erpConnectionStatus !== 'connected'}
-              >
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Sincronizar Agora
-                  </>
-                )}
-              </Button>
-
-              {/* Resultado da Última Sync */}
-              {lastSyncResult && (
-                <div className={`p-4 rounded-lg ${lastSyncResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    {lastSyncResult.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                    <span className="font-medium">
-                      {lastSyncResult.success ? 'Sincronização Concluída' : 'Erro na Sincronização'}
-                    </span>
-                  </div>
-                  {lastSyncResult.statistics && (
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Processados:</span>
-                        <span className="ml-1 font-medium">{lastSyncResult.statistics.processed || lastSyncResult.statistics.inserted || 0}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Erros:</span>
-                        <span className="ml-1 font-medium">{lastSyncResult.statistics.errors}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Duração:</span>
-                        <span className="ml-1 font-medium">{((lastSyncResult.duration_ms || 0) / 1000).toFixed(1)}s</span>
-                      </div>
-                    </div>
-                  )}
-                  {lastSyncResult.error && (
-                    <p className="text-sm text-red-600 mt-2">{lastSyncResult.error}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Instruções */}
-              <div className="p-4 border border-blue-500/30 bg-blue-500/10 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <Settings className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-blue-700">Configuração Necessária</h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Para usar a API direta, configure os secrets do ERP no backend:
-                    </p>
-                    <ul className="text-xs text-muted-foreground mt-2 list-disc list-inside space-y-1">
-                      <li>ERP_SQL_SERVER (host:porta)</li>
-                      <li>ERP_SQL_DATABASE</li>
-                      <li>ERP_SQL_USER</li>
-                      <li>ERP_SQL_PASSWORD</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Histórico de Sincronizações */}
+      {/* Sync Controls */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Histórico de Sincronizações
-          </CardTitle>
-          <CardDescription>
-            Últimas sincronizações recebidas ({syncMode === 'n8n' ? 'N8N' : 'API Direta'})
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2"><Server className="h-5 w-5" />Motor de Sincronização (ERP → Banco)</CardTitle>
+          <CardDescription>Sync direta via SQL Server — conexão reutilizada para máxima performance</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* ERP Connection */}
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div className="flex items-center gap-3">
+              <Server className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">Conexão SQL Server</p>
+                <p className="text-sm text-muted-foreground">
+                  {erpConnectionStatus === 'connected' ? 'Conectado ao ERP' : erpConnectionStatus === 'checking' ? 'Verificando...' : erpConnectionStatus === 'error' ? 'Erro na conexão' : 'Não testado'}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={testErpConnection} disabled={erpConnectionStatus === 'checking'}>
+              {erpConnectionStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : erpConnectionStatus === 'connected' ? <CheckCircle className="h-4 w-4 text-green-500 mr-2" /> : <Server className="h-4 w-4 mr-2" />}
+              Testar ERP
+            </Button>
+          </div>
+
+          {/* Sync Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button onClick={() => syncFull()} disabled={isSyncing} className="w-full">
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Sync Full (Todas Empresas)
+            </Button>
+            <Button onClick={() => syncIncremental()} disabled={isSyncing} variant="secondary" className="w-full">
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Sync Incremental (2h)
+            </Button>
+            <div className="flex gap-2">
+              <Input placeholder="ID Empresa" value={empresaId} onChange={e => setEmpresaId(e.target.value)} className="w-28" />
+              <Button onClick={() => empresaId && syncByEmpresa(Number(empresaId))} disabled={isSyncing || !empresaId} variant="outline" className="flex-1">
+                <Play className="h-4 w-4 mr-2" />
+                Sync Empresa
+              </Button>
+            </div>
+          </div>
+
+          {/* Progress */}
+          {syncProgress.isActive && (
+            <div className="p-4 rounded-lg border bg-blue-500/10 border-blue-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                <span className="font-medium">{syncProgress.message}</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1"><Timer className="h-3 w-3" /><span>{formatElapsedTime(syncProgress.elapsedSeconds)}</span></div>
+              </div>
+            </div>
+          )}
+
+          {/* Last Result */}
+          {lastSyncResult && !syncProgress.isActive && (
+            <div className={`p-4 rounded-lg ${lastSyncResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {lastSyncResult.success ? <CheckCircle className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
+                <span className="font-medium">{lastSyncResult.success ? 'Sincronização Concluída' : 'Erro na Sincronização'}</span>
+                <Button variant="ghost" size="sm" onClick={resetProgress} className="ml-auto"><XCircle className="h-4 w-4" /></Button>
+              </div>
+              {lastSyncResult.success && (
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div><span className="text-muted-foreground">Total:</span> <span className="font-medium">{lastSyncResult.totalRows?.toLocaleString() || 0}</span></div>
+                  <div><span className="text-muted-foreground">Upserted:</span> <span className="font-medium">{lastSyncResult.upserted?.toLocaleString() || 0}</span></div>
+                  <div><span className="text-muted-foreground">Mensagem:</span> <span className="font-medium">{lastSyncResult.message}</span></div>
+                </div>
+              )}
+              {lastSyncResult.error && <p className="text-sm text-red-600 mt-2">{lastSyncResult.error}</p>}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sync History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Histórico de Sincronizações</CardTitle>
+          <CardDescription>Últimas sincronizações via ERP Sync Engine</CardDescription>
         </CardHeader>
         <CardContent>
           {syncHistory.length > 0 ? (
@@ -641,52 +197,26 @@ export function ContasReceberSyncPanel() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Inseridos</TableHead>
-                    <TableHead className="text-right">Atualizados</TableHead>
-                    <TableHead className="text-right">Ignorados</TableHead>
                     <TableHead className="text-right">Duração</TableHead>
+                    <TableHead>Erro</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {syncHistory.map((sync) => (
                     <TableRow key={sync.id}>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {format(new Date(sync.ultima_sync), "dd/MM/yyyy", { locale: ptBR })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(sync.ultima_sync), "HH:mm:ss", { locale: ptBR })}
-                          </p>
-                        </div>
+                        <p className="font-medium">{format(new Date(sync.ultima_sync), "dd/MM/yyyy", { locale: ptBR })}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(sync.ultima_sync), "HH:mm:ss", { locale: ptBR })}</p>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={
-                            sync.status === 'success' || sync.status === 'complete' ? 'default' : 
-                            sync.status === 'partial' ? 'secondary' : 
-                            'destructive'
-                          }
-                        >
-                          {sync.status === 'success' || sync.status === 'complete' ? 'Sucesso' : 
-                           sync.status === 'partial' ? 'Parcial' : 
-                           'Erro'}
+                        <Badge variant={sync.status === 'success' ? 'default' : sync.status === 'partial' ? 'secondary' : 'destructive'}>
+                          {sync.status === 'success' ? 'Sucesso' : sync.status === 'partial' ? 'Parcial' : 'Erro'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {sync.total_registros.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-green-600">
-                        +{sync.registros_inseridos.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-blue-600">
-                        ~{sync.registros_atualizados.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {sync.registros_ignorados.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {sync.duracao_ms ? `${(sync.duracao_ms / 1000).toFixed(1)}s` : '-'}
-                      </TableCell>
+                      <TableCell className="text-right font-medium">{sync.total_registros.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-green-600">+{sync.registros_inseridos.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{sync.duracao_ms ? `${(sync.duracao_ms / 1000).toFixed(1)}s` : '-'}</TableCell>
+                      <TableCell className="text-xs text-destructive max-w-[200px] truncate" title={sync.erro_mensagem || ''}>{sync.erro_mensagem || '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -696,7 +226,6 @@ export function ContasReceberSyncPanel() {
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
               <p>Nenhuma sincronização registrada ainda</p>
-              <p className="text-sm">Configure o workflow N8N ou use a API direta</p>
             </div>
           )}
         </CardContent>
