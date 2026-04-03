@@ -374,15 +374,22 @@ export default function DREAnalitico() {
   const anoAnteriorFim = format(subYears(parseISO(dataFim), 1), 'yyyy-MM-dd');
   
   const { data: lancamentosAnoAnterior } = useSupabaseQuery(
-    ['lancamentos-dre-yoy', anoAnteriorInicio, anoAnteriorFim, filterEmpresa],
+    ['lancamentos-dre-yoy', anoAnteriorInicio, anoAnteriorFim, filterEmpresa, regimeAnalise],
     async () => {
       const data = await fetchAllRows<any>(
         'contas_pagar',
         '*, plano_contas_id',
         (query: any) => {
-          query = query
-            .gte('data_vencimento', anoAnteriorInicio)
-            .lte('data_vencimento', anoAnteriorFim);
+          if (regimeAnalise === 'caixa') {
+            query = query
+              .eq('status', 'pago')
+              .gte('data_pagamento', anoAnteriorInicio)
+              .lte('data_pagamento', anoAnteriorFim);
+          } else {
+            query = query
+              .gte('data_vencimento', anoAnteriorInicio)
+              .lte('data_vencimento', anoAnteriorFim);
+          }
           
           if (filterEmpresa !== 'todas') {
             query = query.eq('empresa_nome', filterEmpresa);
