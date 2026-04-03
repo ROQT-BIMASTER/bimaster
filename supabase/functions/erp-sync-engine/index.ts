@@ -324,7 +324,7 @@ async function handleSyncPaginated(
   entityName: string,
   transformFn: (row: SqlRow) => Record<string, unknown>,
   conflictCol: string,
-  options?: { whereClause?: string; empresaId?: number }
+  options?: { whereClause?: string; empresaId?: number; startPage?: number; maxPages?: number }
 ) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -333,11 +333,27 @@ async function handleSyncPaginated(
   let totalRows = 0;
   let totalUpserted = 0;
   const allErrors: string[] = [];
-  let page = 0;
+  let page = options?.startPage || 0;
+  const maxPages = options?.maxPages || 999;
+  const TIME_LIMIT_MS = 120_000; // Stop after 120s to avoid 150s timeout
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
+  let stoppedByTimeGuard = false;
+  let pagesProcessed = 0;
 
   try {
     while (true) {
+      // Time guard: stop gracefully before timeout
+      if (Date.now() - startMs > TIME_LIMIT_MS) {
+        console.log(`⏱️ Time guard: stopping after ${pagesProcessed} pages (${totalRows} rows) — ${Date.now() - startMs}ms elapsed`);
+        stoppedByTimeGuard = true;
+        break;
+      }
+
+      if (pagesProcessed >= maxPages) {
+        console.log(`📄 Max pages reached: ${pagesProcessed}/${maxPages}`);
+        break;
+      }
+
       let connection: Connection | null = null;
       try {
         connection = await connectToSqlServer();
@@ -364,6 +380,7 @@ async function handleSyncPaginated(
 
         if (rows.length < SQL_PAGE_SIZE) break;
         page++;
+        pagesProcessed++;
       } finally {
         if (connection) try { connection.close(); } catch (_) {}
       }
@@ -372,12 +389,13 @@ async function handleSyncPaginated(
     }
 
     const duration = Date.now() - startMs;
+    const status = stoppedByTimeGuard ? "partial" : (allErrors.length > 0 ? "partial" : "success");
     await recordSync(supabase, entityName, {
-      status: allErrors.length > 0 ? "partial" : "success",
+      status,
       totalRegistros: totalRows,
       registrosInseridos: totalUpserted,
       duracaoMs: duration,
-      erroMensagem: allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : undefined,
+      erroMensagem: stoppedByTimeGuard ? `Time guard: stopped at page ${page + 1}, processed ${totalRows} rows` : (allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : undefined),
       empresaId: options?.empresaId,
     });
 
@@ -388,7 +406,9 @@ async function handleSyncPaginated(
       empresaId: options?.empresaId,
       totalRows,
       upserted: totalUpserted,
-      pages: page + 1,
+      pages: pagesProcessed + 1,
+      stoppedByTimeGuard,
+      lastPage: page,
       errors: allErrors.length > 0 ? allErrors.slice(0, 5) : undefined,
     }, 200, req, { startMs });
   } catch (error) {
