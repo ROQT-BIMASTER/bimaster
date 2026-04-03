@@ -1,69 +1,32 @@
 
 
-# Fix: Levar Sistema de Sync para 100% — 3 Problemas Restantes
+# Dashboard de Métricas de Performance da Sync
 
-## Diagnóstico
+## O que será criado
 
-| Problema | Causa Raiz | Impacto |
-|---|---|---|
-| Incremental sempre `partial` (176s, 6000 rows) | Filtro `OR [Vencimento] >= @lastSync` puxa TODOS os títulos futuros (pendentes) -- milhares de registros. Além disso, zero registros `success` para incremental, então `getLastSyncTimestamp` retorna null e cai no fallback de 2h | **Score: 8/20** |
-| sync_metrics vazio (0 registros) | Insert funciona via service role (bypassa RLS), mas o `as any` cast pode causar falha silenciosa. Precisa validar e garantir que a tabela está acessível | **Score: 9/15** |
-| SSL badge mostra "Ativo" no frontend, mas `encrypt: false` no código | Inconsistência visual — não é um bug funcional, mas engana o usuário | Cosmético |
+Uma nova página dedicada com dashboard completo de métricas, acessível via tab "Métricas" na página de sincronização. O dashboard terá:
 
-## Correções
+1. **KPI Cards** — Taxa de sucesso (%), média rows/s, total registros sincronizados, total execuções, deadlocks, erros
+2. **Gráfico de Tendência: Throughput** — Linha temporal de rows/s por execução
+3. **Gráfico de Tendência: Duração** — Área mostrando duração (s) por execução, com cores por status
+4. **Gráfico de Barras: Volume por Empresa** — Total de rows processados agrupados por empresa_id
+5. **Gráfico de Status** — Donut/pie com distribuição success/error/partial
+6. **Tabela Detalhada** — Todas as métricas com filtros por empresa e entity
 
-### 1. Fix Incremental (CRÍTICO)
+## Estrutura
 
-**Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
-
-Dois ajustes na função `handleSyncContasReceberIncremental`:
-
-**A)** Remover `OR [Vencimento] >= @lastSync` do WHERE clause. O incremental deve capturar apenas **pagamentos recentes** (títulos que foram pagos/alterados), não todos os títulos com vencimento futuro:
-```
-// ANTES:
-whereClause = `[Data Pgto] >= '${sqlDate}' OR [Vencimento] >= '${sqlDate}'`;
-
-// DEPOIS (só pagamentos):
-whereClause = `[Data Pgto] >= '${sqlDate}'`;
-```
-
-**B)** Adicionar `maxPages: 5` no options do `handleSyncPaginated` para limitar a execução a 15.000 rows max (5 x 3000), garantindo que nunca estoure o time guard:
-```typescript
-{ whereClause, maxPages: 5 }
-```
-
-**C)** Seed: Inserir um registro `success` no `sync_control` para `contas_receber_incremental` com timestamp de agora, quebrando o ciclo chicken-and-egg (sem success anterior -> fallback 2h -> timeout -> partial -> nunca gera success).
-
-### 2. Fix sync_metrics Population
-
-**Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
-
-Adicionar try/catch no insert de `sync_metrics` dentro de `recordSync` para capturar e logar erros silenciosos. O insert atual pode estar falhando sem notificação.
-
-### 3. Fix SSL Badge
-
-**Arquivo**: `src/components/financeiro/SyncMonitorPanel.tsx`
-
-Remover o badge "SSL Ativo" hardcoded (linha 181) e substituir por badge informativo "Rede Interna" que reflete a realidade (encrypt: false, rede DDNS interna).
-
-**Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
-
-Na rota `status`, corrigir `sslEnabled: true` para `sslEnabled: false`.
-
-## Resultado Esperado
-
-| Métrica | Antes | Depois |
-|---|---|---|
-| Incremental | 0% success (timeout 176s) | 100% success (max 5 pages, ~15s) |
-| sync_metrics | 0 registros | Populado a cada execução |
-| SSL badge | Incorreto ("Ativo") | Correto ("Rede Interna") |
-| **Score Geral** | 78/100 | 95+/100 |
-
-## Arquivos Alterados
-
-| Arquivo | Alteração |
+| Arquivo | Ação |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Fix WHERE incremental, add maxPages, try/catch sync_metrics, fix sslEnabled |
-| `src/components/financeiro/SyncMonitorPanel.tsx` | Badge SSL -> "Rede Interna" |
-| Banco (INSERT) | Seed de registro success para contas_receber_incremental |
+| `src/components/financeiro/SyncMetricsDashboard.tsx` | Novo componente principal |
+| `src/pages/financeiro/ContasReceberSyncPage.tsx` | Adicionar tab "Métricas" |
+
+## Implementação
+
+- Dados via `supabase.from("sync_metrics")` com limit 200, ordered by `created_at DESC`
+- Usa `ChartContainer` existente para wrapper dos gráficos
+- Recharts (já instalado) para Line, Area, Bar, Pie charts
+- `chartColors` do `src/lib/chart-colors.ts` para paleta consistente
+- KPIs calculados client-side a partir dos dados brutos
+- Filtro por período (últimas 24h, 7 dias, 30 dias) e por empresa
+- Auto-refresh a cada 60s via `refetchInterval`
 
