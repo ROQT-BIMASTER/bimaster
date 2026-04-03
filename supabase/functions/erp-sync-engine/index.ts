@@ -30,7 +30,7 @@ function connectToSqlServer(): Promise<Connection> {
       options: {
         database: Deno.env.get("ERP_SQL_DATABASE") || "",
         port: parseInt(Deno.env.get("ERP_SQL_PORT") || "1433"),
-        encrypt: true,
+        encrypt: false, // SQL Server does not support SSL — internal DDNS network
         trustServerCertificate: true,
         connectTimeout: 15000,
         requestTimeout: 120000,
