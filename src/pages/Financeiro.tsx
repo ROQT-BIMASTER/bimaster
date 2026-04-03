@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { fetchAllRows } from "@/lib/utils/fetchAllRows";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function Financeiro() {
   const { user } = useAuth();
