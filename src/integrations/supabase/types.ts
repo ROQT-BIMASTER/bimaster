@@ -32555,6 +32555,7 @@ export type Database = {
       get_faixas_ticket:
         | { Args: { p_empresa_id?: number }; Returns: Json }
         | { Args: { p_empresa_id?: number; p_ufs?: string[] }; Returns: Json }
+      get_financeiro_dashboard_totais: { Args: never; Returns: Json }
       get_financial_kpis: {
         Args: { p_ano?: number; p_empresa_ids?: number[] }
         Returns: Json
