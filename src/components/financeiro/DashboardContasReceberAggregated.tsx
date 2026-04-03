@@ -88,9 +88,12 @@ export function DashboardContasReceberAggregated(props: DashboardContasReceberAg
         p_data_recebimento: filterDiaRecebimento || null,
       };
 
+      // evolucao_mensal does NOT accept p_mes — strip it
+      const { p_mes: _pMes, ...evolucaoParams } = baseParams;
+
       const [kpisRes, evolucaoRes, topClientesRes, agingRes, statusDistRes] = await Promise.all([
         supabase.rpc('get_contas_receber_dashboard_kpis' as any, kpiParams),
-        supabase.rpc('get_contas_receber_evolucao_mensal' as any, baseParams),
+        supabase.rpc('get_contas_receber_evolucao_mensal' as any, evolucaoParams),
         supabase.rpc('get_contas_receber_top_clientes' as any, baseParams),
         supabase.rpc('get_contas_receber_aging' as any, baseParams),
         supabase.rpc('get_contas_receber_status_dist' as any, baseParams),

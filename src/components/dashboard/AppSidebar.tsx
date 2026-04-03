@@ -422,6 +422,7 @@ export function AppSidebar({ side }: { side?: "left" | "right" }) {
       for (const [sg, routes] of Object.entries(finSubgroupRoutes)) {
         if (routes.some(r => path.startsWith(r))) {
           setOpenFinSubgroups(prev => {
+            if (prev.has(sg)) return prev; // same ref — no re-render
             const next = new Set(prev);
             next.add(sg);
             return next;
