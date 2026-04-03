@@ -212,7 +212,7 @@ export default function ContasAReceber() {
       // Query para dados paginados
       let query = supabase
         .from('contas_receber' as any)
-        .select('*', { count: 'exact' });
+        .select('*');
 
       if (searchCliente) {
         query = query.ilike('cliente_nome', `%${searchCliente}%`);
@@ -234,7 +234,7 @@ export default function ContasAReceber() {
       const to = from + pageSize - 1;
       query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      const { data, error } = await query;
       if (error) throw error;
 
       // Query para totais via RPC (sem limite de linhas)
@@ -254,17 +254,18 @@ export default function ContasAReceber() {
         }
       );
       
-      let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
+      let totais = { valorOriginal: 0, valorAberto: 0, valorRecebido: 0, totalRegistros: 0 };
       if (!totaisError && totaisRpc) {
         const t = totaisRpc as any;
         totais = {
           valorOriginal: t.valor_original || 0,
           valorAberto: t.valor_aberto || 0,
           valorRecebido: t.valor_recebido || 0,
+          totalRegistros: t.total_registros || 0,
         };
       }
 
-      return { data: data as unknown as ContaReceber[], count: count || 0, totais };
+      return { data: data as unknown as ContaReceber[], totais };
     }
   });
 
@@ -272,11 +273,11 @@ export default function ContasAReceber() {
 
   // Dados paginados da tabela
   const sortedAndPaginatedData = useMemo(() => {
-    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0, totais: { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 } };
+    if (!contasTable) return { data: [], totalPages: 0, totalItems: 0, totais: { valorOriginal: 0, valorAberto: 0, valorRecebido: 0, totalRegistros: 0 } };
     
-    const totalItems = contasTable.count;
+    const totalItems = contasTable.totais.totalRegistros;
     const totalPages = Math.ceil(totalItems / pageSize);
-    const totais = contasTable.totais || { valorOriginal: 0, valorAberto: 0, valorRecebido: 0 };
+    const totais = contasTable.totais;
     
     return { data: contasTable.data, totalPages, totalItems, totais };
   }, [contasTable, pageSize]);
