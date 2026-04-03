@@ -1,26 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateErpAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 const MAX_SYNC_RECORDS = 5000;
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
-  const cors = getCorsHeaders(req);
-  const headers = withSecurityHeaders(
-    { ...cors, "Content-Type": "application/json" },
-    status === 401 || status === 403
-  );
-  const meta = { processed_at: new Date().toISOString(), duration_ms: Date.now() - startMs };
-  const responseBody = typeof body === "object" && body !== null && !Array.isArray(body)
-    ? { ...body as Record<string, unknown>, meta }
-    : { data: body, meta };
-  return new Response(JSON.stringify(responseBody), { status, headers });
+  return jsonResponse(body, status, req, { startMs });
 }
 
 function errorResp(status: number, code: string, message: string, req: Request, startMs: number) {
-  return json({ error: code, message }, status, req, startMs);
+  return errorResponse(status, code, message, req, startMs);
 }
 
 Deno.serve(async (req) => {
