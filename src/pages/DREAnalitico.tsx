@@ -568,21 +568,18 @@ export default function DREAnalitico() {
       children: []
     };
 
-    // Processar contas a receber (RECEITAS)
-    if (contasReceber && contasReceber.length > 0) {
-      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; lancamentos: any[] }>();
+    // Processar contas a receber agregadas (RECEITAS) via RPC
+    if (contasReceberAgregadas && contasReceberAgregadas.length > 0) {
+      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; qtdDocumentos: number }>();
       
-      contasReceber.forEach(recebimento => {
-        // Para regime de caixa, usar valor_recebido; para competência, usar valor_original
+      contasReceberAgregadas.forEach(row => {
         const valor = regimeAnalise === 'caixa' 
-          ? parseFloat(String(recebimento.valor_recebido || recebimento.valor_original || 0))
-          : parseFloat(String(recebimento.valor_original || 0));
+          ? parseFloat(String(row.valor_recebido || row.valor_original || 0))
+          : parseFloat(String(row.valor_original || 0));
         
-        // Usar a função getDataRefReceber para garantir consistência entre filtro e agrupamento
-        const dataRef = getDataRefReceber(recebimento);
-        const mesKey = dataRef ? format(parseISO(dataRef), 'yyyy-MM') : null;
-        const clienteKey = recebimento.cliente_codigo || recebimento.cliente_nome || 'sem-cliente';
-        const clienteNome = recebimento.cliente_nome || 'Cliente não identificado';
+        const mesKey = row.mes;
+        const clienteKey = row.cliente_codigo || 'sem-cliente';
+        const clienteNome = row.cliente_nome || 'Cliente não identificado';
         
         receitaBruta.valor += valor;
         if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
@@ -594,16 +591,16 @@ export default function DREAnalitico() {
             nome: clienteNome,
             valor: 0,
             valoresMensais: initValoresMensais(),
-            lancamentos: []
+            qtdDocumentos: 0
           });
         }
         
         const clienteData = receitasPorCliente.get(clienteKey)!;
         clienteData.valor += valor;
+        clienteData.qtdDocumentos += Number(row.qtd_documentos || 0);
         if (mesKey && clienteData.valoresMensais[mesKey] !== undefined) {
           clienteData.valoresMensais[mesKey] += valor;
         }
-        clienteData.lancamentos.push(recebimento);
       });
       
       // Criar subconta "Vendas / Faturamento"
@@ -624,38 +621,13 @@ export default function DREAnalitico() {
         const nodoCliente: DRENode = {
           id: `cliente-${clienteKey}`,
           codigo: '',
-          nome: clienteData.nome,
+          nome: `${clienteData.nome} (${clienteData.qtdDocumentos} docs)`,
           tipo: 'fornecedor',
           nivel: 2,
           valor: clienteData.valor,
           valoresMensais: clienteData.valoresMensais,
           natureza: 'C',
           accountType: 'revenue',
-          children: clienteData.lancamentos.map(lanc => {
-            // Usar mesmo critério de valor e data do agrupamento
-            const lancValor = regimeAnalise === 'caixa'
-              ? parseFloat(String(lanc.valor_recebido || lanc.valor_original || 0))
-              : parseFloat(String(lanc.valor_original || 0));
-            const lancDataRef = getDataRefReceber(lanc);
-            const lancMesKey = lancDataRef ? format(parseISO(lancDataRef), 'yyyy-MM') : null;
-            const lancValoresMensais = initValoresMensais();
-            if (lancMesKey && lancValoresMensais[lancMesKey] !== undefined) {
-              lancValoresMensais[lancMesKey] = lancValor;
-            }
-            
-            return {
-              id: lanc.id,
-              codigo: lanc.numero_documento || '',
-              nome: `Doc: ${lanc.numero_documento || 'S/N'} - ${format(new Date(lanc.data_vencimento), 'dd/MM/yyyy')}`,
-              tipo: 'lancamento' as const,
-              nivel: 3,
-              valor: lancValor,
-              valoresMensais: lancValoresMensais,
-              natureza: 'C' as const,
-              accountType: 'revenue',
-              metadata: { ...lanc, tipo_lancamento: 'receita' }
-            };
-          })
         };
         vendasSubconta.children?.push(nodoCliente);
       });
