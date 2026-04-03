@@ -1,91 +1,96 @@
 
 
-# Fix Crítico: erp_id Incorreto + 133k Duplicatas + pg_cron Nunca Executou
+# Melhorias Priorizadas — Análise da Engenharia
 
-## Diagnóstico Completo
+## Estado Atual (dados reais do banco)
 
-### Problema 1 (CRÍTICO): erp_id com formato errado — 133.861 duplicatas
+| Métrica | Valor |
+|---|---|
+| Total registros | 339.199 |
+| Tabela | 503 MB |
+| Índices | 22 (todos os recomendados já existem) |
+| pg_cron jobs | 61 ativos, apenas 1 execução registrada (jobs recém-criados) |
+| Deadlocks últimas 2h | Empresa 11 — 2 batches com deadlock |
+| Incremental | Timeout (176s, 6000 rows) — filtro `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())` muito amplo |
 
-O `erp-sync-engine` gera erp_id com **4 campos**: `empresa-tipo-nota-seq`
-Mas os dados originais (N8N) usam **5 campos**: `empresa-tipo-nota-seq-código`
+## O que JÁ está OK (não precisa mudar)
 
-```text
-CORRETO (N8N):   4-1-132710-2-20108  (5 campos, inclui código do cliente)
-ERRADO (Engine): 4-1-132710-2        (4 campos, sem código)
-```
+- **Índices**: Todos os 4 recomendados (`erp_id`, `empresa_id`, `status`, `data_vencimento`) já existem, incluindo compostos (`empresa_id, data_vencimento`, `empresa_id, cliente_codigo`)
+- **Chave erp_id**: 5 campos, determinística, zero duplicatas
+- **RPCs agregadoras**: Dashboard usa server-side aggregation
+- **Status mapping**: Lógica com fallback para títulos quitados por ajuste
 
-Resultado: o upsert **não encontra** o registro existente (erp_id diferente) e **insere duplicata**. Há 133.861 registros duplicados no banco:
+## Melhorias a Implementar
 
-| Formato | Registros |
-|---------|-----------|
-| 5 campos (correto) | 339.199 |
-| 4 campos (duplicatas) | 133.861 |
-| **Total inflado** | **473.060** |
+### 1. ALTA: Incremental baseado em estado (last_sync_timestamp)
 
-O total real deveria ser ~339k. Os dashboards mostram valores financeiros inflados.
+**Problema**: O filtro `DATEADD(HOUR, -2, GETDATE())` captura milhares de registros e estoura o time guard (176s para 6000 rows). Além disso, risco de perda de dados se houver atraso.
 
-### Problema 2: pg_cron jobs NUNCA executaram
-
-Os 59 jobs `sync-cr-*` (IDs 31-91) têm **zero registros** em `cron.job_run_details`. Foram criados após o horário de 03:00 UTC de hoje, então a primeira execução será amanhã. Porém, o job incremental (ID 91, `10,50 0-2,5-23 * * *`) também não executou — precisa ser verificado se vai funcionar na próxima janela (:10 ou :50).
-
-### Problema 3: N8N ainda chamando endpoint morto
-
-Logs mostram chamadas `POST /contas-receber-api/sync?force_update=true` retornando **404** a cada ~15 segundos. O workflow N8N externo ainda está ativo. Não há job pg_cron para isso (é externo), mas gera ruído nos logs.
-
-### Problema 4: contas_pagar com prefixo CP- no engine
-
-O engine gera `CP-empresa-tipo-nota-seq` (4 campos + prefixo), mas os dados existentes usam `empresa-tipo-nota-seq-código` (5 campos sem prefixo). Felizmente o engine nunca executou sync de contas_pagar via pg_cron, então não há duplicatas lá.
-
-## Plano de Correção
-
-### Correção 1: Corrigir erp_id no erp-sync-engine
+**Solução**: Salvar `last_sync_timestamp` no `sync_control` e usar `WHERE [Data Pgto] >= @lastSync OR [Vencimento] >= @lastSync` para capturar apenas mudanças reais desde a última execução bem-sucedida.
 
 **Arquivo**: `supabase/functions/erp-sync-engine/index.ts`
+- Na rota `sync-contas-receber-incremental`, buscar o último `ultima_sync` com `status = 'success'` da tabela `sync_control`
+- Usar esse timestamp como filtro em vez de `DATEADD(HOUR, -2, ...)`
+- Fallback para 2 horas caso não exista registro anterior
 
-Linha 113 (contas_receber):
-```typescript
-// ANTES:
-const erpId = `${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
+### 2. ALTA: Retry automático com backoff em falhas de upsert
 
-// DEPOIS:
-const codigo = row["Código"] || row["Codigo"] || "";
-const erpId = `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, "");
-```
+**Problema**: Deadlocks em emp11 causam `partial` sem re-tentativa. Batches perdidos ficam sem reprocessar.
 
-Linha 158 (contas_pagar) — remover prefixo CP e adicionar código:
-```typescript
-// ANTES:
-const erpId = `CP-${empresaId}-${tipo}-${nota}-${seq}`.replace(/\s+/g, "");
+**Solução**: Adicionar retry (máx 2 tentativas, delay 500ms → 1000ms) no `batchUpsert` quando o erro contiver "deadlock".
 
-// DEPOIS:
-const codigo = row["Código"] || row["Codigo"] || "";
-const erpId = `${empresaId}-${tipo}-${nota}-${seq}-${codigo}`.replace(/\s+/g, "");
-```
+**Arquivo**: `supabase/functions/erp-sync-engine/index.ts` — função `batchUpsert`
 
-### Correção 2: Limpar 133k duplicatas (4 campos)
+### 3. ALTA: SSL na conexão SQL Server
 
-Executar via SQL INSERT tool (não migration):
-```sql
-DELETE FROM contas_receber 
-WHERE array_length(string_to_array(erp_id, '-'), 1) = 4;
-```
+**Problema**: `encrypt: false` e `trustServerCertificate: true` — dados trafegam sem criptografia.
 
-### Correção 3: Validar contagem pós-limpeza
+**Solução**: Alterar para `encrypt: true` (manter `trustServerCertificate: true` se o certificado for auto-assinado). Validar que a conexão funciona antes de remover o fallback.
 
-Verificar que o total volta a ~339k e os totais financeiros estão corretos.
+**Arquivo**: `supabase/functions/erp-sync-engine/index.ts` — `connectToSqlServer()`
+
+### 4. MÉDIA: Materialized View para dashboard de KPIs
+
+**Problema**: RPCs calculam agregações em tempo real sobre 339k registros a cada request do dashboard.
+
+**Solução**: Criar uma materialized view `mv_financeiro_dashboard` com os KPIs pré-calculados. Refresh automático via pg_cron a cada 15 minutos.
+
+**Alterações**:
+- Migration SQL: criar MV + índice + job pg_cron `REFRESH MATERIALIZED VIEW CONCURRENTLY`
+- Atualizar RPC `get_financeiro_dashboard_totais` para ler da MV
+
+### 5. MÉDIA: Observabilidade — métricas estruturadas
+
+**Problema**: Logs são `console.log` dispersos. Não há visibilidade de tendências (duração média, taxa de erro, rows/s).
+
+**Solução**: Adicionar uma tabela `sync_metrics` com campos: `entity`, `empresa_id`, `pages`, `rows`, `duration_ms`, `errors`, `rows_per_second`, `timestamp`. Popular no final de cada sync. Criar um widget no SyncMonitorPanel com gráfico de tendência.
+
+**Alterações**:
+- Migration: tabela `sync_metrics`
+- `erp-sync-engine/index.ts`: inserir métricas no `recordSync`
+- `SyncMonitorPanel.tsx`: widget de tendência
+
+## Itens Descartados (com justificativa)
+
+| Sugestão | Motivo |
+|---|---|
+| Hash MD5 no erp_id | Índice btree em varchar(50) é eficiente o suficiente para 339k registros. MD5 perde legibilidade para debug |
+| Migrar pg_cron para fila/Redis | Complexidade desproporcional — pg_cron atende bem para 61 jobs com escalonamento fixo |
+| OFFSET/FETCH vs ROW_NUMBER | Testado anteriormente — performance similar, ROW_NUMBER é mais estável com o driver tedious |
+
+## Ordem de Execução
+
+1. Retry com backoff (deadlocks) — impacto imediato
+2. Incremental baseado em estado — elimina timeouts
+3. SSL na conexão — segurança
+4. Materialized View — performance de dashboard
+5. Observabilidade — visibilidade operacional
 
 ## Arquivos Alterados
 
 | Arquivo | Alteração |
 |---|---|
-| `supabase/functions/erp-sync-engine/index.ts` | Corrigir erp_id: adicionar código como 5º campo em ambos os transformers |
-| Banco de dados (DELETE) | Remover 133.861 registros duplicados com erp_id de 4 campos |
-
-## Resultado Esperado
-
-- Zero duplicatas — erp_id com 5 campos (igual ao formato original)
-- Total ~339k registros (correto)
-- Upserts futuros vão atualizar registros existentes (não criar novos)
-- pg_cron vai rodar amanhã às 03:00 UTC com o formato correto
-- Incremental vai rodar na próxima janela (:10 ou :50 da hora)
+| `supabase/functions/erp-sync-engine/index.ts` | Retry em batchUpsert, incremental com last_sync, SSL |
+| Migration SQL | MV `mv_financeiro_dashboard` + tabela `sync_metrics` + pg_cron refresh |
+| `src/components/financeiro/SyncMonitorPanel.tsx` | Widget de tendência de métricas |
 
