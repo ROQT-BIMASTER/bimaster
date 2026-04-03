@@ -7,7 +7,7 @@ import { ThemeSelectorPopover } from "@/components/theme/ThemeSelectorPopover";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSidebarConfig } from "@/hooks/useSidebarConfig";
 import logoHuugs from "@/assets/logo-huugs.jpg";
 import { Checkbox } from "@/components/ui/checkbox";
