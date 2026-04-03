@@ -1,31 +1,27 @@
 
 
-# Classificar Plano de Contas em Ordem Numérica pelo Código
+# Apagar Todo o Plano de Contas
 
-## Problema
+## Situação Atual
 
-A ordenação atual usa sort textual do PostgreSQL (`ORDER BY code ASC`), que ordena lexicograficamente:
-- `3.1.1` → `3.1.10` → `3.1.11` → `3.1.2` → `3.1.3` (errado)
-- Correto: `3.1.1` → `3.1.2` → `3.1.3` → ... → `3.1.10` → `3.1.11`
+- **391 contas** em `trade_chart_of_accounts`
+- **181 registros** em `plano_contas_migracao`
+- **47.497 contas a pagar** com `plano_contas_id` vinculado — esses vínculos serão removidos (setados para NULL)
+- **0 contas a receber** vinculadas
 
-## Solução
+## Ações
 
-Adicionar uma função de ordenação numérica no frontend que separa cada segmento do código por `.` e compara numericamente.
+### 1. Migração SQL
 
-### Arquivo: `src/pages/PlanoContas.tsx`
+Executar em sequência:
 
-1. Criar função `naturalSortCode(a, b)` que divide o código por `.`, converte cada parte em número e compara segmento a segmento
-2. Aplicar essa ordenação após buscar os dados e dentro de `buildHierarchy` para ordenar os filhos de cada nó
-3. Aplicar também na aba de contas inativas
+1. **Desvincular contas a pagar** — `UPDATE contas_pagar SET plano_contas_id = NULL, plano_contas_codigo = NULL, plano_contas_nome = NULL`
+2. **Limpar tabela de migração** — `DELETE FROM plano_contas_migracao`
+3. **Limpar plano de contas** — `DELETE FROM trade_chart_of_accounts`
 
-```text
-Exemplo da função:
-  "3.1.2"  → [3, 1, 2]
-  "3.1.10" → [3, 1, 10]
-  Comparação: 2 < 10 → "3.1.2" vem antes
-```
+Após isso, a tela do Plano de Contas ficará vazia, pronta para receber a nova estrutura.
 
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/PlanoContas.tsx` | Adicionar `naturalSortCode` e aplicar nos arrays de contas |
+| Nova migração SQL | Desvincular contas a pagar + deletar migração + deletar plano de contas |
 
