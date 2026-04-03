@@ -1,20 +1,11 @@
 // webhook-dispatcher — Processes webhook event queue and sends to ERP via REST
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
-import { withSecurityHeaders } from "../_shared/security-headers.ts";
+import { handleCors } from "../_shared/cors.ts";
+import { jsonResponse as json, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 
 const MAX_EVENTS_PER_RUN = 50;
-
-function json(body: unknown, status: number, req: Request) {
-  const cors = getCorsHeaders(req);
-  const headers = withSecurityHeaders(
-    { ...cors, "Content-Type": "application/json" },
-    status === 401 || status === 403
-  );
-  return new Response(JSON.stringify(body), { status, headers });
-}
 
 async function signPayload(payload: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(

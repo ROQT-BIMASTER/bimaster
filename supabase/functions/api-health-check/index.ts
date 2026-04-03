@@ -1,12 +1,30 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// api-health-check — Verifica status de Edge Functions
+import { handleCors, getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurityHeaders } from "../_shared/security-headers.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
+
+  const cors = getCorsHeaders(req);
+  const headers = withSecurityHeaders(
+    { ...cors, "Content-Type": "application/json" },
+    false
+  );
+
+  // Health check status
+  if (req.method === "GET") {
+    return new Response(
+      JSON.stringify({ status: "ok", service: "api-health-check" }),
+      { headers }
+    );
+  }
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers }
+    );
   }
 
   try {
@@ -14,10 +32,7 @@ Deno.serve(async (req) => {
     if (!Array.isArray(paths) || paths.length === 0) {
       return new Response(
         JSON.stringify({ error: "paths array required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers }
       );
     }
 
@@ -45,16 +60,11 @@ Deno.serve(async (req) => {
       })
     );
 
-    return new Response(JSON.stringify({ results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ results }), { headers });
   } catch (e) {
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers }
     );
   }
 });
