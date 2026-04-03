@@ -583,6 +583,12 @@ Deno.serve(async (req: Request) => {
         return await handlePreviewTable(req, startMs);
       case "sync-contas-receber":
         return await handleSyncContasReceber(req, startMs);
+      case "sync-contas-receber-por-empresa":
+        return await handleSyncContasReceberPorEmpresa(req, startMs);
+      case "sync-contas-receber-full":
+        return await handleSyncContasReceberFull(req, startMs);
+      case "sync-contas-receber-incremental":
+        return await handleSyncContasReceberIncremental(req, startMs);
       case "sync-contas-pagar":
         return await handleSyncContasPagar(req, startMs);
       case "sync-all":
@@ -597,7 +603,10 @@ Deno.serve(async (req: Request) => {
             "POST /test-connection — Testa conexão SQL Server",
             "POST /list-tables — Lista tabelas/views disponíveis",
             "POST /preview-table — Preview de 10 rows de uma tabela (body: { table })",
-            "POST /sync-contas-receber — Sync ConsultaPowerBIReceber → contas_receber",
+            "POST /sync-contas-receber — Sync legado (sem filtro)",
+            "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
+            "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
+            "POST /sync-contas-receber-incremental — Sync últimas 2h (pagamentos recentes)",
             "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
