@@ -1,33 +1,49 @@
 
 
+# Garantir 100% dos Dados Carregados — Diagnóstico e Correções
 
-# Eliminar N8N — Sync 100% via erp-sync-engine
+## Problemas Encontrados
 
-## Status: IMPLEMENTADO ✅
+### Problema 1 (CRÍTICO): Dashboard Widget soma apenas 1.000 linhas
+O `FinanceiroDashboardWidget` faz queries diretas sem paginação para somar `valor_aberto`:
+```
+supabase.from("contas_receber").select("valor_aberto").in("status", [...])
+```
+Com 43.813 registros pendentes e 11.171 vencidos, PostgREST retorna **apenas 1.000 linhas** — os totais financeiros exibidos no dashboard estão **severamente incorretos**.
 
-### Correções Aplicadas
+### Problema 2: Empresa 11 com cobertura insuficiente no pg_cron
+- Empresa 11 tem **77.913 registros** = 26 páginas (÷ 3000)
+- Tem apenas **8 jobs × 3 páginas = 24 páginas** de cobertura
+- **~6.000 registros ficam de fora** a cada sync noturna
 
-1. **SQL_PAGE_SIZE reduzido de 5000 para 3000** — cada página processa menos rows, mantendo dentro do limite de 110s
-2. **pg_cron jobs recriados com max_pages=3** — cada invocação processa no máximo 9000 rows (3 páginas × 3000)
-3. **~59 jobs escalonados entre 03:00 e 04:44** — empresas grandes divididas em múltiplas invocações
-4. **Incremental mantido a cada 40 min** — pagamentos recentes (~500-2000 registros)
-5. **N8N 100% eliminado** — edge functions legadas removidas, frontend unificado
+### Problema 3: Incremental sobrepõe sync noturna
+O job incremental roda `*/40 * * * *` (minutos 0, 40). Às 03:00 e 03:40 ele conflita com os jobs noturnos, causando **deadlocks** (confirmado nos logs: `emp11 deadlock detected`).
 
-### Cobertura por Empresa (pg_cron)
+### O que está OK
+- Listagem de Contas a Receber (`ContasAReceber.tsx`): usa paginação server-side + RPCs — correto
+- Dashboard agregado (`DashboardContasReceberAggregated.tsx`): usa RPCs — correto
+- Página Financeiro (`Financeiro.tsx`): usa paginação manual em loop — correto
+- Sync engine: conexão reutilizada, page size 3000, time guard 110s — funcionando
+- Total no banco: **473.060 registros** (todas as empresas)
 
-| Empresa | Registros | Páginas (3k/pg) | Jobs | Janela |
-|---|---|---|---|---|
-| 5, 7, 9 | 40-1568 | 1 | 1 cada | 03:00 |
-| 8 | 25.928 | 9 | 3 | 03:01-03:05 |
-| 1 | 35.183 | 12 | 4 | 03:02-03:08 |
-| 10 | 55.729 | 19 | 7 | 03:10-03:22 |
-| 3 | 73.192 | 25 | 9 | 03:24-03:40 |
-| 11 | 77.913 | 26 | 8 | 03:42-03:56 |
-| 4 | 92.443 | 31 | 11 | 03:58-04:18 |
-| 6 | 110.938 | 37 | 13 | 04:20-04:44 |
+## Plano de Correção
 
-### Resultado
+### Correção 1: Criar RPC para somas do Dashboard Widget
+Criar uma function SQL `get_financeiro_dashboard_totais()` que retorna os 4 valores agregados diretamente no banco, eliminando o problema do limite de 1.000 linhas.
 
-- Empresa 1 testada: 3 páginas × 3000 = 9000 rows em **18s** (status: success)
-- Zero deadlocks quando executado isoladamente (deadlocks só ocorrem em paralelo)
-- Cron escalonado garante que nunca há 2 empresas grandes em paralelo
+Atualizar `FinanceiroDashboardWidget.tsx` para chamar a RPC ao invés de queries diretas.
+
+### Correção 2: Adicionar 1 job para Empresa 11
+Criar `sync-cr-emp11-i` com `start_page=24, max_pages=3` para cobrir as últimas 2-3 páginas restantes.
+
+### Correção 3: Evitar overlap do incremental com sync noturna
+Alterar o schedule do incremental de `*/40 * * * *` para `10,50 0-2,5-23 * * *` — roda a cada ~40 min mas **pula a janela 03:00-04:59**.
+
+## Arquivos Alterados
+
+| Arquivo | Alteração |
+|---|---|
+| Nova RPC `get_financeiro_dashboard_totais` | Migration SQL |
+| `src/components/dashboard/FinanceiroDashboardWidget.tsx` | Trocar queries diretas por chamada RPC |
+| pg_cron (SQL INSERT) | Adicionar emp11-i, ajustar schedule incremental |
+
