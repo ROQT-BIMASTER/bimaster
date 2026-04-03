@@ -288,19 +288,28 @@ async function recordSync(
   });
 
   // Record in sync_metrics for observability
-  const rowsPerSecond = data.duracaoMs > 0 ? Math.round((data.totalRegistros / data.duracaoMs) * 1000) : 0;
-  await supabase.from("sync_metrics" as any).insert({
-    entity: entidade,
-    empresa_id: data.empresaId || 1,
-    pages: data.pagesProcessed || 0,
-    rows: data.totalRegistros,
-    rows_inserted: data.registrosInseridos,
-    duration_ms: data.duracaoMs,
-    errors: data.erroMensagem ? 1 : 0,
-    deadlock_retries: data.deadlockRetries || 0,
-    rows_per_second: rowsPerSecond,
-    status: data.status,
-  });
+  try {
+    const rowsPerSecond = data.duracaoMs > 0 ? Math.round((data.totalRegistros / data.duracaoMs) * 1000) : 0;
+    const { error: metricsError } = await supabase.from("sync_metrics" as any).insert({
+      entity: entidade,
+      empresa_id: data.empresaId || 1,
+      pages: data.pagesProcessed || 0,
+      rows: data.totalRegistros,
+      rows_inserted: data.registrosInseridos,
+      duration_ms: data.duracaoMs,
+      errors: data.erroMensagem ? 1 : 0,
+      deadlock_retries: data.deadlockRetries || 0,
+      rows_per_second: rowsPerSecond,
+      status: data.status,
+    });
+    if (metricsError) {
+      console.error(`⚠️ sync_metrics insert failed: ${metricsError.message}`, metricsError);
+    } else {
+      console.log(`📊 sync_metrics recorded: ${entidade} | ${data.totalRegistros} rows | ${rowsPerSecond} r/s`);
+    }
+  } catch (metricsErr) {
+    console.error(`⚠️ sync_metrics exception:`, metricsErr);
+  }
 }
 
 // ─── Get last successful sync timestamp ───
@@ -580,25 +589,65 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
   // Get last successful sync timestamp
   const lastSync = await getLastSyncTimestamp(supabase, "contas_receber_incremental");
   
-  let whereClause: string;
+  let dateFilter: string;
   if (lastSync) {
-    // Convert ISO timestamp to SQL Server format for comparison
     const syncDate = new Date(lastSync);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
-    whereClause = `[Data Pgto] >= '${sqlDate}' OR [Vencimento] >= '${sqlDate}'`;
-    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate}`);
+    dateFilter = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}'`;
+    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate} (payments only)`);
   } else {
-    // Fallback: last 2 hours if no previous successful sync
-    whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
+    dateFilter = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
     console.log(`📅 Incremental: fallback to DATEADD(HOUR, -2) — no previous successful sync found`);
   }
 
-  return handleSyncPaginated(
-    req, startMs,
-    "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
-    transformContasReceber, "erp_id",
-    { whereClause }
-  );
+  // Direct query without ROW_NUMBER() — much faster for filtered incremental
+  let connection: Connection | null = null;
+  try {
+    connection = await connectToSqlServer();
+    console.log(`🔗 Incremental: SQL connection opened`);
+
+    const query = `SELECT TOP 15000 * FROM [ConsultaPowerBIReceber] WHERE ${dateFilter} ORDER BY [Data Pgto] DESC`;
+    console.log(`📥 Incremental query: TOP 15000 with filter`);
+    const rows = await executeSqlQuery(connection, query);
+    console.log(`📊 Incremental got ${rows.length} rows in ${Date.now() - startMs}ms`);
+
+    const transformed = rows.map(transformContasReceber);
+    const { inserted, errors, deadlockRetries } = await batchUpsert(supabase, "contas_receber", transformed, "erp_id");
+
+    const duration = Date.now() - startMs;
+    const status = errors.length > 0 ? "partial" : "success";
+    await recordSync(supabase, "contas_receber_incremental", {
+      status,
+      totalRegistros: rows.length,
+      registrosInseridos: inserted,
+      duracaoMs: duration,
+      erroMensagem: errors.length > 0 ? errors.slice(0, 5).join("; ") : undefined,
+      pagesProcessed: 1,
+      deadlockRetries,
+    });
+
+    return jsonResponse({
+      success: true,
+      entity: "contas_receber_incremental",
+      totalRows: rows.length,
+      upserted: inserted,
+      durationMs: duration,
+      errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
+    }, 200, req, { startMs });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Erro";
+    console.error(`❌ Incremental failed: ${msg}`);
+    await recordSync(supabase, "contas_receber_incremental", {
+      status: "error",
+      totalRegistros: 0,
+      registrosInseridos: 0,
+      duracaoMs: Date.now() - startMs,
+      erroMensagem: msg,
+    });
+    return errorResponse(500, "sync_failed", msg, req, startMs);
+  } finally {
+    if (connection) try { connection.close(); console.log(`🔗 Incremental: SQL connection closed`); } catch (_) {}
+  }
 }
 
 async function handleSyncContasReceber(req: Request, startMs: number) {
@@ -659,7 +708,7 @@ async function handleStatus(req: Request, startMs: number) {
     success: true,
     sqlServerConnected: sqlOk,
     sqlServerError: sqlError || undefined,
-    sslEnabled: true,
+    sslEnabled: false,
     lastSync: {
       contas_receber: lastCR || null,
       contas_pagar: lastCP || null,
