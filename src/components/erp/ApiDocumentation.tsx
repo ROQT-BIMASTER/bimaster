@@ -507,6 +507,12 @@ const webhookDispatcherCrud: Endpoint[] = [
   { method: "GET", path: "/status", description: "Health check da API", flow: FLOW.status },
 ];
 
+const erpExportPushCrud: Endpoint[] = [
+  { method: "POST", path: "/", description: "Exportar pagamento para ERP (action: export)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Payment", "Build Payload", "Send to Channel", "Log Export", "Response 200"], body: `{ "action": "export", "payment_queue_id": "uuid", "channel": "n8n", "export_type": "payment" }`, response: `{ "success": true, "export_id": "uuid", "export_type": "payment", "channel": "n8n", "message": "Baixa enviada ao ERP com sucesso" }` },
+  { method: "POST", path: "/", description: "Reenviar exportação com erro (action: retry)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Find Export Record", "Resend to Channel", "Update Status", "Response 200"], body: `{ "action": "retry", "export_queue_id": "uuid" }`, response: `{ "success": true, "attempts": 2, "message": "Reenvio bem-sucedido" }` },
+  { method: "POST", path: "/", description: "Consultar status de exportação (action: status)", tag: "novo", flow: ["Request", "Auth (JWT/API Key)", "Validate Zod", "Query Export Queue", "Response 200"], body: `{ "action": "status", "payment_queue_id": "uuid" }`, response: `{ "exports": [...], "registration": { ... }, "payment": { ... } }` },
+];
+
 // ═══════════════════════════════════════
 // MODULE DEFINITIONS
 // ═══════════════════════════════════════
