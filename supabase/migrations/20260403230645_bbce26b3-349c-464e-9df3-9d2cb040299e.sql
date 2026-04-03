@@ -1,0 +1,1 @@
+ALTER TABLE trade_financial_entries ALTER COLUMN account_id DROP NOT NULL;
