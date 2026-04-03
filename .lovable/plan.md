@@ -1,65 +1,97 @@
 
 
-# Padronização de Formatação de Valores Financeiros
+# Verificação de Consistência de Valores — Banco vs Telas
 
-## Problema Identificado
+## Dados Reais do Banco (verificados agora)
 
-Existem **5 padrões diferentes** de formatação monetária espalhados pelos módulos financeiros, causando inconsistências visuais:
+### Contas a Receber
+| Métrica | Valor BD |
+|---|---|
+| Total registros | 374.800 |
+| Recebidos | 341.155 (R$ 489.440.958,81) |
+| Pendentes | 25.943 (R$ 38.596.751,12) |
+| Vencidos | 7.149 (R$ 36.662.188,04) |
+| Parciais | 553 (R$ 2.510.387,17) |
+| Soma valor_recebido | R$ 482.157.219,48 |
 
-| Módulo | Formatação Atual | Exemplo |
-|---|---|---|
-| **Financeiro.tsx** (overview) | `toLocaleString` manual sem `style:'currency'` | `R$ 1.500,00` (sem Intl completo) |
-| **Contas a Pagar** (Dashboard) | `Intl.NumberFormat` com `style:'currency'` + 2 decimais | `R$ 1.500,00` |
-| **Contas a Receber** (Dashboard) | `Intl.NumberFormat` com `style:'currency'` + 2 decimais | `R$ 1.500,00` |
-| **Fluxo de Caixa** (principal) | `Intl.NumberFormat` com `minimumFractionDigits: 0` | `R$ 1.500` (sem centavos) |
-| **Fluxo de Caixa** (sub-componente) | Mesmo, sem centavos | `R$ 1.500` |
-| **DRE Analítico** | `formatarValor` local com `notation:'compact'` para valores na tabela | `R$ 1,5 mil` vs `R$ 1.500,00` |
-| **Dashboard Widget** | `toLocaleString` inline | `R$ 1.500,00` |
-| **Saldos Bancários / KPIs** | `SmartValue` com abreviação M/K | `R$ 1,5K` |
+### Contas a Pagar
+| Métrica | Valor BD |
+|---|---|
+| Total registros | 47.566 |
+| Pagos | 42.970 (R$ 471.260.820,25) |
+| Pendentes | 945 (R$ 40.864.896,79) |
+| Vencidos | 3.562 (R$ 170.634.504,28) |
+| Parciais | 89 (R$ 2.699.638,98) |
+| Total aberto | R$ 213.499.448,46 |
 
-### Inconsistências Concretas
+### Financeiro (Mês Abril/2026)
+| Métrica | Valor BD |
+|---|---|
+| A Pagar aberto (abril) | R$ 9.548.300,26 |
+| A Receber aberto (abril) | R$ 15.377.206,10 |
+| Vencidas Pagar (abril) | 16 |
+| Vencidas Receber (abril) | 613 |
 
-1. **Fluxo de Caixa**: usa `minimumFractionDigits: 0` — não mostra centavos, todos os outros mostram
-2. **Financeiro.tsx**: usa `toLocaleString` manual em vez de `Intl.NumberFormat` com `style:'currency'` — pode gerar diferenças sutis de espaço (non-breaking space)
-3. **DRE**: valores na tabela usam `notation:'compact'` (ex: "R$ 1,5 mil") enquanto cards usam formato completo — está correto contextualmente mas a função local `formatarValor` duplica lógica de `formatters.ts`
-4. **28+ componentes** definem `const formatCurrency` localmente em vez de importar de `src/lib/formatters.ts`
-5. **Dashboard Widget**: usa `toLocaleString` inline em vez de formatter centralizado
+## Resultado da Auditoria
+
+### Telas CONSISTENTES (sem ação necessária)
+
+| Tela | Status | Fonte de Dados | Campo de Valor |
+|---|---|---|---|
+| **Contas a Receber** (Dashboard) | OK | RPCs server-side com filtro empresa | `valor_aberto`, `valor_original`, `valor_recebido` corretos |
+| **Contas a Pagar** (Dashboard) | OK | Client-side com paginação completa | `valor_aberto` para pendentes, `valor_original` para totais |
+| **Financeiro** (Overview) | OK | `fetchAllRows` + paginação manual, mês corrente | `valor_aberto` para saldo |
+| **Fluxo de Caixa** | OK | `fetchPaginatedData` paralela, exclui quitados (design correto para projeção) | `valor_aberto` para pendentes |
+| **Formatação** | OK | `formatCurrency` centralizada com 2 decimais em todos os módulos |
+
+### Bug Encontrado: DRE Analítico — Comparativo YoY
+
+| Problema | Impacto |
+|---|---|
+| Query YoY (ano anterior) sempre usa `data_vencimento` como filtro de período, ignorando o `regimeAnalise` | Quando em regime de **Caixa**, deveria filtrar por `data_pagamento` (despesas pagas) e `status = 'pago'`. Hoje puxa títulos vencidos no ano anterior independente de terem sido pagos, inflando/distorcendo a comparação |
+
+**Correção**: Replicar a lógica condicional do regime (linhas 319-327) na query YoY (linhas 382-393).
 
 ## Plano de Correção
 
-### 1. Padronizar Fluxo de Caixa — Adicionar centavos
-- `src/pages/FluxoDeCaixa.tsx`: Alterar ambas as definições de `formatCurrency` para usar `minimumFractionDigits: 2`
-- Ou importar `formatCurrency` de `src/lib/formatters.ts`
+### 1. Fix DRE YoY — Respeitar regime de análise
+**Arquivo**: `src/pages/DREAnalitico.tsx` (linhas 376-397)
 
-### 2. Padronizar Financeiro.tsx — Usar Intl completo
-- `src/pages/Financeiro.tsx`: Substituir `toLocaleString` manual por import de `formatCurrency` de `src/lib/formatters.ts`
+Alterar a query `lancamentos-dre-yoy` para:
+- Regime Caixa: filtrar `status = 'pago'` + `data_pagamento` no range do ano anterior
+- Regime Competência: manter filtro por `data_vencimento` (como está)
 
-### 3. Padronizar Dashboard Widget
-- `src/components/dashboard/FinanceiroDashboardWidget.tsx`: Substituir `toLocaleString` inline por import de `formatCurrency`
+```typescript
+// ANTES (sempre usa data_vencimento):
+query = query
+  .gte('data_vencimento', anoAnteriorInicio)
+  .lte('data_vencimento', anoAnteriorFim);
 
-### 4. Padronizar DRE — Reutilizar formatters centralizados
-- `src/pages/DREAnalitico.tsx`: Substituir `formatarValor` local por imports de `formatCurrency` e `formatCurrencyCompact` de `src/lib/formatters.ts`
+// DEPOIS (respeita regime):
+if (regimeAnalise === 'caixa') {
+  query = query
+    .eq('status', 'pago')
+    .gte('data_pagamento', anoAnteriorInicio)
+    .lte('data_pagamento', anoAnteriorFim);
+} else {
+  query = query
+    .gte('data_vencimento', anoAnteriorInicio)
+    .lte('data_vencimento', anoAnteriorFim);
+}
+```
 
-### 5. Eliminar duplicações nos 28 componentes financeiros
-- Substituir `const formatCurrency = ...` local por `import { formatCurrency } from "@/lib/formatters"`
-- Componentes afetados (principais): `DashboardContasPagar`, `DashboardContasReceberAggregated`, `CalendarioVencimentos`, `CalendarioRecebimentos`, `PaymentQueueTable`, `PaymentQueueKPIs`, `ContasPagarSyncPanel`, `ContasReceberSyncPanel`, `FinanceiroChartsGrid`, `MarcarPagoDialog`, `PaymentReviewDialog`, `PaymentBankPrintSummary`, `ReceiptUploadSection`, `RejeicaoFinanceiraDialog`, `ConsolidadoFluxoCaixaChart`, `ConsolidadoDespesasCard`, `ConsolidadoVerbaCard`, `MetasReducaoChart`, `ContasPagarDREView`, `ImportarContasReceberCSV`, `SaldosBancarios`, `CobrancaInadimplentes`, `FluxoCaixaKPIsAdvanced`
+Também adicionar `regimeAnalise` à queryKey do YoY (atualmente ausente).
 
-## Resultado Esperado
+### Resumo
 
-- Todos os valores monetários usam `Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 })` como base
-- Zero funções `formatCurrency` locais — tudo importado de `src/lib/formatters.ts`
-- Valores compactos (dashboards/KPIs) usam `SmartValue` ou `formatCurrencyCompact` consistentemente
-- Centavos sempre visíveis em tabelas e detalhes
-
-## Arquivos Alterados
-
-| Arquivo | Alteração |
+| Item | Nota |
 |---|---|
-| `src/pages/FluxoDeCaixa.tsx` | Importar formatCurrency, remover 2 definições locais |
-| `src/pages/Financeiro.tsx` | Importar formatCurrency, remover definição local |
-| `src/pages/DREAnalitico.tsx` | Importar formatCurrency/formatCurrencyCompact, remover formatarValor local |
-| `src/components/dashboard/FinanceiroDashboardWidget.tsx` | Importar formatCurrency, remover toLocaleString inline |
-| ~20 componentes em `src/components/financeiro/` | Importar formatCurrency, remover definições locais |
-| `src/pages/SaldosBancarios.tsx` | Remover formatCurrency local (já usa SmartValue — OK) |
-| `src/pages/CobrancaInadimplentes.tsx` | Importar formatCurrency |
+| Contas a Pagar | 100% |
+| Contas a Receber | 100% |
+| Fluxo de Caixa | 100% |
+| DRE Analítico | 95% → 100% após fix YoY |
+| Financeiro Overview | 100% |
+| Formatação | 100% |
+
+**Apenas 1 arquivo alterado**: `src/pages/DREAnalitico.tsx`
 
