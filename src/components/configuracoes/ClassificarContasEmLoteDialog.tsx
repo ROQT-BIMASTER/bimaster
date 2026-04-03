@@ -77,7 +77,7 @@ export function ClassificarContasEmLoteDialog({
       // Get distinct categories with stats directly
       const { data, error } = await supabase
         .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, valor_documento");
+        .select("categoria_nome, fornecedor_nome, valor_original");
 
       if (error) throw error;
 
