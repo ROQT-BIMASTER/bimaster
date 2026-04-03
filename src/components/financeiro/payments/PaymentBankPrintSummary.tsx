@@ -10,8 +10,7 @@ interface PaymentBankPrintSummaryProps {
   item: PaymentQueueItem;
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+// formatCurrency importado abaixo
 
 export function PaymentBankPrintSummary({ item }: PaymentBankPrintSummaryProps) {
   const [loading, setLoading] = useState(false);

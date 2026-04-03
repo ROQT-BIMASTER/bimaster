@@ -43,12 +43,7 @@ interface PaymentQueueTableProps {
 
 const PAGE_SIZE = 50;
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
+// formatCurrency importado de @/lib/formatters
 
 const statusConfig: Record<PaymentQueueStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pendente", variant: "secondary" },

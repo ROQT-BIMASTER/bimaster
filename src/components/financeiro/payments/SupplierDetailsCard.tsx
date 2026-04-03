@@ -83,10 +83,7 @@ const formatCnpj = (doc: string) => {
   return doc;
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    value
-  );
+// formatCurrency importado abaixo
 
 export function SupplierDetailsCard({
   supplierName,

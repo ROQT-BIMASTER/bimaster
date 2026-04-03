@@ -31,8 +31,7 @@ interface ReceiptUploadSectionProps {
   onReceiptUploaded: () => void;
 }
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+// formatCurrency importado abaixo
 
 export function ReceiptUploadSection({
   paymentId,

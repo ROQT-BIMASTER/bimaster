@@ -65,8 +65,7 @@ export const REJECTION_CATEGORY_LABELS: Record<string, string> = Object.fromEntr
   REJECTION_CATEGORIES.map((c) => [c.value, c.label])
 );
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+// formatCurrency importado abaixo
 
 export function RejeicaoFinanceiraDialog({
   open,
