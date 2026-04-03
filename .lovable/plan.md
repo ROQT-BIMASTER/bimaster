@@ -1,42 +1,35 @@
 
 
-# Redesign Profissional dos Gráficos de Metas de Redução
+# Gráfico Único Full-Width com Tabs de Análise
 
-## Problema
+## Conceito
 
-O componente `MetasReducaoChart.tsx` usa cores hardcoded (`#f97316`, `#22c55e`, `#eab308`, etc.) que violam o design system e produzem um visual amador. Os gráficos carecem de polish (tooltips básicos, labels cortados no donut, sem gradientes).
+Substituir o grid de 3 cards separados por **1 único Card full-width** com botões de alternância no topo. Cada botão troca a visualização dentro do mesmo container, mantendo o layout limpo e aproveitando toda a largura.
 
-## Alterações em `src/components/financeiro/MetasReducaoChart.tsx`
+## Layout
 
-### 1. Cores — Migrar para design tokens
-- Substituir todas as cores hardcoded pelos tokens de `chartColors` (`src/lib/chart-colors.ts`)
-- Meta → `chartColors.primary` (azul), Realizado → `chartColors.success` (verde)
-- Status: pendente → `chartColors.warning`, em andamento → `chartColors.accent`, concluído → `chartColors.success`, cancelado → `chartColors.destructive`
-- Tipo de ação: usar `chartPalette` sequencial
+```text
+┌──────────────────────────────────────────────────────┐
+│  [Por Tipo de Ação]  [Por Status]  [Por Prioridade]  │  ← ChartTabs buttons
+│                                                      │
+│  ┌──────────────────────────────────────────────────┐│
+│  │                                                  ││
+│  │         Gráfico ativo (full-width, h=300)        ││
+│  │                                                  ││
+│  └──────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────┘
+```
 
-### 2. Gráfico de Barras (Meta vs Realizado por Tipo)
-- Aplicar gradientes sutis via `<defs><linearGradient>`
-- Tooltip com `background: hsl(var(--card))`, `border: hsl(var(--border))`, border-radius 8
-- Eixos com `stroke: hsl(var(--muted-foreground))`
-- Grid com `stroke: hsl(var(--border))`
-
-### 3. Donut (Distribuição por Status)
-- Labels externos com linhas conectoras (`labelLine={true}`)
-- Cores do design system em vez de hardcoded
-- Adicionar legenda abaixo do donut
-
-### 4. Barras Horizontais (Por Prioridade)
-- Mesma paleta Meta/Realizado (primary/success)
-- Gradientes consistentes com o gráfico vertical
-
-### 5. Estilo geral
-- `CartesianGrid` com `stroke="hsl(var(--border))"` em todos
-- Tick fontSize 11, stroke muted-foreground (padrão do projeto)
-- Tooltip contentStyle padronizado com card background
-
-## Arquivo Alterado
+## Alterações
 
 | Arquivo | Mudança |
 |---|---|
-| `src/components/financeiro/MetasReducaoChart.tsx` | Substituir cores hardcoded por design tokens, melhorar tooltips, labels e gradientes |
+| `src/components/financeiro/MetasReducaoChart.tsx` | Envolver os 3 gráficos no componente `ChartTabs` existente (`src/components/ui/chart-tabs.tsx`). Remover o grid de cards. Um único `Card` full-width contém os tabs + o gráfico ativo. Altura do gráfico aumenta para 320px (mais espaço horizontal). |
+
+### Tabs definidos:
+1. **Por Tipo de Ação** — BarChart vertical (Meta vs Realizado), ícone `BarChart3`
+2. **Por Status** — PieChart donut (distribuição), ícone `PieChart` (lucide)
+3. **Por Prioridade** — BarChart horizontal (Meta vs Realizado), ícone `Layers`
+
+Reutiliza `ChartTabs` do design system — zero componentes novos.
 
