@@ -165,12 +165,8 @@ async function handleObter(req: Request, _auth: any): Promise<Response> {
 
 async function handleCancelar(req: Request, _auth: any): Promise<Response> {
   const startMs = Date.now();
-  const body = await req.json();
-  const { nCodTitulo, cCodIntTitulo } = body;
-
-  if (!nCodTitulo && !cCodIntTitulo) {
-    return errorResponse(400, "VAL-001", "nCodTitulo ou cCodIntTitulo obrigatório", req, startMs);
-  }
+  const rawBody = await req.json();
+  const body = validateBody(rawBody, CancelarSchema);
 
   const supabase = getSupabase();
   let query = supabase.from("boletos").update({ status: "cancelado" }).eq("status", "gerado");
