@@ -74,38 +74,14 @@ export function ClassificarContasEmLoteDialog({
   const loadCategorias = async () => {
     setPhase("loading");
     try {
-      // Get distinct categories with stats directly
-      const { data, error } = await supabase
-        .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, valor_original");
+      // Use edge function with service role to get all categories
+      const { data, error } = await supabase.functions.invoke("classificar-contas-lote", {
+        body: { action: "load-categories" },
+      });
 
       if (error) throw error;
 
-      const catMap = new Map<string, { qtd: number; valores: number[]; fornecedores: Map<string, number> }>();
-
-      for (const r of data || []) {
-        if (!r.categoria_nome) continue;
-        const cat = r.categoria_nome;
-        if (!catMap.has(cat)) {
-          catMap.set(cat, { qtd: 0, valores: [], fornecedores: new Map() });
-        }
-        const entry = catMap.get(cat)!;
-        entry.qtd++;
-        if (r.valor_original) entry.valores.push(Number(r.valor_original));
-        if (r.fornecedor_nome) {
-          entry.fornecedores.set(r.fornecedor_nome, (entry.fornecedores.get(r.fornecedor_nome) || 0) + 1);
-        }
-      }
-
-      const result: Categoria[] = Array.from(catMap.entries()).map(([nome, info]) => ({
-        categoria_nome: nome,
-        qtd_titulos: info.qtd,
-        valor_medio: info.valores.length > 0 ? info.valores.reduce((a, b) => a + b, 0) / info.valores.length : 0,
-        top_fornecedores: Array.from(info.fornecedores.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([f]) => f),
-      }));
+      const result: Categoria[] = (data?.categorias || []) as Categoria[];
 
       result.sort((a, b) => b.qtd_titulos - a.qtd_titulos);
       setCategorias(result);
