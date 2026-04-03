@@ -66,6 +66,7 @@ export function MetasReducaoChart({ revisoes }: MetasReducaoChartProps) {
   }, [revisoes]);
 
   const formatCurrency = (value: number) => formatCurrencyCompact(value);
+  const [visible, setVisible] = useState(true);
 
   if (revisoes.length === 0) return null;
 
