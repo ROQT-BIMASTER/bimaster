@@ -257,6 +257,7 @@ const LGPDAdmin = lazyWithRetry(() => import("./pages/LGPDAdmin"));
 const Reunioes = lazyWithRetry(() => import("./pages/Reunioes"));
 const ReuniaoDetalhe = lazyWithRetry(() => import("./pages/ReuniaoDetalhe"));
 const RelatorioSeguranca = lazyWithRetry(() => import("./pages/RelatorioSeguranca"));
+const SecurityDashboard = lazyWithRetry(() => import("./pages/SecurityDashboard"));
 const RelatorioAPIs = lazyWithRetry(() => import("./pages/RelatorioAPIs"));
 const RelatorioDesenvolvimento = lazyWithRetry(() => import("./pages/RelatorioDesenvolvimento"));
 const RelatorioAPModule = lazyWithRetry(() => import("./pages/RelatorioAPModule"));
