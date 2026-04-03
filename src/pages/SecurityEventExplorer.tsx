@@ -260,12 +260,12 @@ const SecurityEventExplorer = () => {
                       <p className="text-sm">{inc.title || inc.description}</p>
                       {inc.source_ip && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-muted-foreground">IP: {inc.source_ip}</span>
+                          <span className="text-xs font-mono text-muted-foreground">IP: {String(inc.source_ip)}</span>
                           <Button
                             size="sm"
                             variant="destructive"
                             className="h-6 text-xs"
-                            onClick={() => blockIp.mutate({ ip: inc.source_ip!, level: "hard" })}
+                            onClick={() => blockIp.mutate({ ip: String(inc.source_ip), level: "hard" })}
                           >
                             <Ban className="h-3 w-3 mr-1" /> Bloquear
                           </Button>
