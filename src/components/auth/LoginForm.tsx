@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Link } from "react-router-dom";
 import { MFAVerifyDialog } from "./MFAVerifyDialog";
 
 const loginSchema = z.object({
@@ -54,6 +55,7 @@ export const LoginForm = () => {
   const [lockoutCountdown, setLockoutCountdown] = useState(0);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [showMFA, setShowMFA] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -280,17 +282,37 @@ export const LoginForm = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                maxLength={100}
-                disabled={!!isLockedOut}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-xs text-primary hover:text-primary/80 hover:underline"
+                  tabIndex={-1}
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  maxLength={100}
+                  disabled={!!isLockedOut}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             {/* Honeypot — invisible to users, bots auto-fill */}
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
