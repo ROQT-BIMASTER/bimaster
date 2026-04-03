@@ -1,66 +1,60 @@
 
 
-# Contas a Receber — Correcao Completa
+# Contas a Receber — Dashboard e Calendario Zerados
 
-## Problemas Identificados
+## Causa Raiz
 
-### 1. Loop infinito no AppSidebar (CRITICO)
-O `useEffect` na linha 448-467 do `AppSidebar.tsx` tem `hasModulePermission` como dependencia. Essa funcao muda de identidade quando o `PermissionsContext` atualiza (loading → ready), disparando `setTabelasPendentes(0)` → re-render → nova identidade da funcao → loop infinito.
+A funcao `buildRpcParams()` em `DashboardContasReceberAggregated.tsx` inclui `p_mes` em todos os parametros RPC. Porem, a funcao SQL `get_contas_receber_evolucao_mensal` NAO aceita `p_mes` na sua assinatura.
 
-O console confirma: `Maximum update depth exceeded` apontando para `AppSidebar.tsx:733`.
-
-### 2. RLS e dados (JA CORRIGIDO)
-A migration anterior ja aplicou a policy otimizada, o GRANT e o indice. Nao ha statement timeouts nos logs recentes.
+Quando o frontend chama a RPC com `p_mes`, o PostgREST retorna **404 (PGRST202)** — "function not found with those parameters". Como todas as 5 RPCs sao chamadas em `Promise.all` e os erros verificados com `throw`, o erro da evolucao faz toda a query falhar, resultando em **todos os KPIs zerados**, mesmo que as outras RPCs retornem dados validos (confirmado: KPIs retornam R$ 119M+).
 
 ## Solucao
 
-### Arquivo: `src/components/dashboard/AppSidebar.tsx`
+### 1. Frontend: Separar parametros por funcao
 
-**Correcao 1** — Estabilizar a dependencia do useEffect (linha 448-467):
-Remover `hasModulePermission` da lista de dependencias e usar `useRef` para armazenar a funcao, evitando que mudancas de identidade da funcao disparem o effect.
+**Arquivo:** `src/components/financeiro/DashboardContasReceberAggregated.tsx`
 
-```tsx
-// Antes:
-useEffect(() => {
-  if (loading || !hasModulePermission("precos")) {
-    setTabelasPendentes(0);
-    return;
-  }
-  // ...
-}, [loading, hasModulePermission]);
+Na chamada `Promise.all` (linhas 91-97), remover `p_mes` dos params para `evolucao_mensal`:
 
-// Depois:
-const hasModulePermRef = useRef(hasModulePermission);
-hasModulePermRef.current = hasModulePermission;
+```typescript
+const { p_mes, ...baseParamsNoMes } = baseParams;
 
-useEffect(() => {
-  if (loading || !hasModulePermRef.current("precos")) {
-    setTabelasPendentes(0);
-    return;
-  }
-  // ... (mesmo codigo)
-}, [loading]);
+const [kpisRes, evolucaoRes, ...] = await Promise.all([
+  supabase.rpc('get_contas_receber_dashboard_kpis', kpiParams),
+  supabase.rpc('get_contas_receber_evolucao_mensal', baseParamsNoMes), // sem p_mes
+  supabase.rpc('get_contas_receber_top_clientes', baseParams),
+  supabase.rpc('get_contas_receber_aging', baseParams),
+  supabase.rpc('get_contas_receber_status_dist', baseParams),
+]);
 ```
 
-### Arquivo: `src/contexts/ImpersonationContext.tsx`
+### 2. Sidebar: Loop infinito residual
 
-**Correcao 2** — Estabilizar `hasModulePermission` e `hasScreenPermission` (linhas 198-213):
-Usar dependencias granulares em vez de `realPermissions` (objeto inteiro):
+O console ainda mostra "Maximum update depth exceeded" no `AppSidebar.tsx`. O `useEffect` de `setOpenFinSubgroups` (linha 412) sempre cria um novo `Set` mesmo quando o valor ja existe, porem isto nao deveria causar loop — preciso verificar se o `useRef` fix foi corretamente aplicado e se ha outro effect instavel. Vou revisar e estabilizar todos os useEffects que usam Set como state.
 
-```tsx
-// Antes:
-}, [impersonatedPermissions, realPermissions]);
+**Arquivo:** `src/components/dashboard/AppSidebar.tsx`
 
-// Depois:
-}, [impersonatedPermissions, realPermissions.isAdmin, realPermissions.hasModulePermission]);
+Na linha 424, retornar o Set anterior se o valor ja existe:
+```typescript
+setOpenFinSubgroups(prev => {
+  if (prev.has(sg)) return prev; // mesma referencia, sem re-render
+  const next = new Set(prev);
+  next.add(sg);
+  return next;
+});
 ```
 
-Mesma correcao para `hasScreenPermission`.
+## Arquivos Alterados
+
+| Arquivo | Alteracao |
+|---|---|
+| `src/components/financeiro/DashboardContasReceberAggregated.tsx` | Remover `p_mes` dos params de `evolucao_mensal` |
+| `src/components/dashboard/AppSidebar.tsx` | Estabilizar `setOpenFinSubgroups` para evitar re-renders desnecessarios |
 
 ## Resultado Esperado
 
-- Loop infinito eliminado — a pagina renderiza normalmente
-- Sidebar estavel sem re-renders excessivos
-- Dados do Contas a Receber carregam (RLS ja otimizada na migration anterior)
-- Dashboard, Calendario e Tabela funcionais
+- Dashboard carrega com valores reais (R$ 119M+ em titulos, 24k pendentes, etc.)
+- Evolucao mensal renderiza grafico
+- Loop infinito do sidebar eliminado
+- Calendario funciona (ja nao envia `p_mes`)
 
