@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 function arredondamentoFiscal(v: number): number {
   return Math.round(v * 100) / 100;
@@ -12,7 +8,7 @@ function arredondamentoFiscal(v: number): number {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -20,7 +16,7 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -35,7 +31,7 @@ Deno.serve(async (req) => {
     if (authErr || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -48,7 +44,7 @@ Deno.serve(async (req) => {
       const [ano, mes] = periodo.split("-").map(Number);
       if (!ano || !mes) {
         return new Response(JSON.stringify({ error: "Parâmetro periodo=YYYY-MM obrigatório" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -98,7 +94,7 @@ Deno.serve(async (req) => {
       };
 
       return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -115,7 +111,7 @@ Deno.serve(async (req) => {
         .lte("created_at", fimMes);
 
       return new Response(JSON.stringify({ debitos: data || [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -128,7 +124,7 @@ Deno.serve(async (req) => {
         .in("tipo_credito", ["CBS", "IBS"]);
 
       return new Response(JSON.stringify({ creditos: data || [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -141,7 +137,7 @@ Deno.serve(async (req) => {
         .limit(50);
 
       return new Response(JSON.stringify({ notas: data || [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -159,7 +155,7 @@ Deno.serve(async (req) => {
 
         if (base < 0) {
           return new Response(JSON.stringify({ error: "Base de cálculo não pode ser negativa" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
         }
 
@@ -192,16 +188,16 @@ Deno.serve(async (req) => {
           (total_debitos_cbs - total_creditos_cbs) + (total_debitos_ibs - total_creditos_ibs)
         ),
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), {
-      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

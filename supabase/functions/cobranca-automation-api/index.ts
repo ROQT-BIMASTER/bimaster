@@ -1,11 +1,7 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
-};
 
 // Authenticate request - supports both JWT and API key
 async function authenticateRequest(req: Request, supabase: any): Promise<{ authenticated: boolean; userId?: string; isN8N?: boolean }> {
@@ -58,10 +54,10 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('pt-BR');
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -78,7 +74,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -88,7 +84,7 @@ serve(async (req) => {
       if (!cliente_codigo || !canal) {
         return new Response(JSON.stringify({ error: "cliente_codigo e canal são obrigatórios" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -127,7 +123,7 @@ serve(async (req) => {
 
       console.log(`[Cobrança] Enfileirado: ${cliente_codigo} via ${canal}`);
       return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -137,7 +133,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -175,7 +171,7 @@ serve(async (req) => {
 
       console.log(`[Cobrança] Retornando ${data?.length || 0} pendentes`);
       return new Response(JSON.stringify({ success: true, data, count: data?.length || 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -185,7 +181,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -195,7 +191,7 @@ serve(async (req) => {
       if (!fila_id || !status) {
         return new Response(JSON.stringify({ error: "fila_id e status são obrigatórios" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -235,7 +231,7 @@ serve(async (req) => {
 
       console.log(`[Cobrança] Status atualizado: ${fila_id} -> ${status}`);
       return new Response(JSON.stringify({ success: true, data: filaItem }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -245,7 +241,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -253,7 +249,7 @@ serve(async (req) => {
       if (!resendApiKey) {
         return new Response(JSON.stringify({ error: "RESEND_API_KEY não configurada" }), {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -274,7 +270,7 @@ serve(async (req) => {
       if (!to || !subject || !html) {
         return new Response(JSON.stringify({ error: "to, subject e html são obrigatórios" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -321,7 +317,7 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true, id: emailId }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -331,7 +327,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -446,7 +442,7 @@ serve(async (req) => {
 
       console.log(`[Cobrança] Processados: ${results.enviados} enviados, ${results.erros} erros`);
       return new Response(JSON.stringify({ success: true, ...results }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -456,7 +452,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -504,7 +500,7 @@ serve(async (req) => {
           semana: enviadosSemana || 0,
         }
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -514,7 +510,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -533,7 +529,7 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -543,7 +539,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -558,7 +554,7 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -568,7 +564,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -578,7 +574,7 @@ serve(async (req) => {
       if (!clientes || !Array.isArray(clientes) || clientes.length === 0) {
         return new Response(JSON.stringify({ error: "Array de clientes é obrigatório" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -646,7 +642,7 @@ serve(async (req) => {
       };
 
       return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -656,7 +652,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -684,7 +680,7 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true, data, count: data?.length || 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -694,7 +690,7 @@ serve(async (req) => {
       if (!auth.authenticated) {
         return new Response(JSON.stringify({ error: "Não autorizado" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -702,7 +698,7 @@ serve(async (req) => {
       if (!codigo) {
         return new Response(JSON.stringify({ error: "codigo é obrigatório" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -753,7 +749,7 @@ serve(async (req) => {
           maior_atraso: titulos?.reduce((max, t) => Math.max(max, t.dias_atraso || 0), 0) || 0,
         }
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -775,14 +771,14 @@ serve(async (req) => {
       ]
     }), {
       status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
 
   } catch (error: any) {
     console.error("[Cobrança] Erro:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

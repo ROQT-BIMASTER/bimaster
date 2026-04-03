@@ -1,15 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 const CNPJBIZ_API_KEY = Deno.env.get('CNPJBIZ_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 // Validation schemas for API operations
 const cnpjSchema = z.object({
@@ -55,9 +51,9 @@ function getSafeErrorMessage(error: any): string {
   return "Erro ao processar consulta. Tente novamente";
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -65,7 +61,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Autorização necessária' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -78,7 +74,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
@@ -86,7 +82,7 @@ serve(async (req) => {
       console.error('❌ CNPJBIZ_API_KEY não configurado');
       return new Response(
         JSON.stringify({ error: 'API Key do CNPJ.BIZ não configurada' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
@@ -104,7 +100,7 @@ serve(async (req) => {
       console.error('❌ Validation error:', validationError);
       return new Response(
         JSON.stringify({ error: getSafeErrorMessage(validationError) }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
@@ -122,7 +118,7 @@ serve(async (req) => {
       console.log('✅ Dados do cache');
       return new Response(
         JSON.stringify({ ...cachedData.data, cached: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -142,7 +138,7 @@ serve(async (req) => {
     if (!endpoint) {
       return new Response(
         JSON.stringify({ error: 'Operação inválida' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
@@ -177,7 +173,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ error: safeMessage }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status >= 500 ? 500 : 400 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: response.status >= 500 ? 500 : 400 }
       );
     }
 
@@ -214,14 +210,14 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify(data),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('❌ Function error:', error);
     return new Response(
       JSON.stringify({ error: getSafeErrorMessage(error) }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

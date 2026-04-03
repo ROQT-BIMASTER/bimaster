@@ -1,14 +1,10 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key, x-hub-signature",
-};
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const supabase = createClient(
@@ -44,7 +40,7 @@ serve(async (req) => {
       service: "cobranca-whatsapp-webhook",
       endpoints: ["/status", "/enviar", "/pendentes-whatsapp"]
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 
@@ -92,14 +88,14 @@ serve(async (req) => {
       }
       
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao processar status:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -112,7 +108,7 @@ serve(async (req) => {
     if (!validKey || apiKey !== validKey) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
     
@@ -175,7 +171,7 @@ serve(async (req) => {
           provider: "twilio",
           provider_id: result.sid 
         }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
         });
       }
       
@@ -186,14 +182,14 @@ serve(async (req) => {
         message: "Twilio não configurado. Use /pendentes-whatsapp para buscar via N8N",
         data: { fila_id, telefone, mensagem, template_name }
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao enviar:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -206,7 +202,7 @@ serve(async (req) => {
     if (!validKey || apiKey !== validKey) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
     
@@ -242,14 +238,14 @@ serve(async (req) => {
         count: data?.length || 0,
         data 
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     } catch (err) {
       const error = err as Error;
       console.error("[Cobrança WhatsApp] Erro ao buscar pendentes:", error);
       return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
       });
     }
   }
@@ -261,12 +257,12 @@ serve(async (req) => {
       automacao_ativa: configData?.automacao_ativa || false,
       timestamp: new Date().toISOString()
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
     });
   }
 
   return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), {
     status: 404,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" }
   });
 });

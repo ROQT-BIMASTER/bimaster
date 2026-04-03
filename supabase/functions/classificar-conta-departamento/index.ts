@@ -1,14 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -255,7 +251,7 @@ Qual departamento é mais adequado para esta conta?`;
           }), 
           { 
             status: 429, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } 
           }
         );
       }
@@ -267,7 +263,7 @@ Qual departamento é mais adequado para esta conta?`;
           }), 
           { 
             status: 402, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } 
           }
         );
       }
@@ -318,7 +314,7 @@ Qual departamento é mais adequado para esta conta?`;
             justificativa: resultado.justificativa
           }
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -330,7 +326,7 @@ Qual departamento é mais adequado para esta conta?`;
         confianca: resultado.confianca,
         justificativa: resultado.justificativa
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
@@ -342,7 +338,7 @@ Qual departamento é mais adequado para esta conta?`;
       }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } 
       }
     );
   }

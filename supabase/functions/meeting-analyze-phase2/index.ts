@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-internal-call",
-};
 
 async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000, model = "google/gemini-2.5-flash", temperature?: number) {
   const controller = new AbortController();
@@ -154,8 +150,8 @@ async function assertNoError<T>(promise: PromiseLike<{ data: T; error: any }>, l
   return data;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -163,7 +159,7 @@ serve(async (req) => {
 
     if (!authHeader && !internalCall) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -182,7 +178,7 @@ serve(async (req) => {
       const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
       if (userError || !user) {
         return new Response(JSON.stringify({ error: "Usuário inválido" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
       userId = user.id;
@@ -191,7 +187,7 @@ serve(async (req) => {
     const { meetingId } = await req.json();
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -203,7 +199,7 @@ serve(async (req) => {
     const transcription = meetingData.transcription;
     if (!transcription) {
       return new Response(JSON.stringify({ error: "Nenhuma transcrição disponível." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -379,7 +375,7 @@ Departamentos disponíveis: ${deptNames}
         "marcar reunião como parcial"
       );
       return new Response(JSON.stringify({ success: true, partial: true, insights_count: 0, tasks_count: 0, risks_count: 0, high_risks_count: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -403,7 +399,7 @@ Departamentos disponíveis: ${deptNames}
           tasks_count: 0,
           risks_count: 0,
           high_risks_count: 0,
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
       throw new Error(`Phase 2 AI error: ${phase2Response.status}`);
     }
@@ -508,7 +504,7 @@ Departamentos disponíveis: ${deptNames}
       highlights_count: phase2Result.highlights.length,
       high_risks_count: highRisks.length,
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("[meeting-analyze-phase2] error:", error);
@@ -526,7 +522,7 @@ Departamentos disponíveis: ${deptNames}
 
     return new Response(JSON.stringify({ error: error.message || "Erro ao extrair insights" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

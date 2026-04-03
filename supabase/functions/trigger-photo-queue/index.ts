@@ -1,13 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -20,7 +16,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Function not fully configured" }),
         {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           status: 500,
         }
       );
@@ -53,7 +49,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Failed to process queue", details: errorText }),
           {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
             status: response.status,
           }
         );
@@ -63,7 +59,7 @@ serve(async (req) => {
       console.log("✅ Queue processing completed:", result);
 
       return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         status: 200,
       });
     } catch (fetchError: unknown) {
@@ -74,7 +70,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ message: "Processamento iniciado em background", processed: 0 }),
           {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
             status: 200,
           }
         );
@@ -86,7 +82,7 @@ serve(async (req) => {
     console.error("❌ Error triggering photo queue:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       status: 500,
     });
   }

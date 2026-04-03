@@ -1,10 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 // Simple in-memory rate limiting (resets on cold start)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -44,7 +40,7 @@ function isValidCPF(cpf: string): boolean {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -57,14 +53,14 @@ Deno.serve(async (req) => {
     if (isRateLimited(clientIP)) {
       return new Response(
         JSON.stringify({ error: "Muitas tentativas. Aguarde um momento." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (req.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Método não permitido" }),
-        { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 405, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -75,7 +71,7 @@ Deno.serve(async (req) => {
     if (!token || typeof token !== "string" || token.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Código de acesso é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -84,21 +80,21 @@ Deno.serve(async (req) => {
     if (!nome_completo || nome_completo.trim().length < 3) {
       return new Response(
         JSON.stringify({ error: "Nome completo deve ter pelo menos 3 caracteres" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (!cpf || !isValidCPF(cpf)) {
       return new Response(
         JSON.stringify({ error: "CPF inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (!whatsapp) {
       return new Response(
         JSON.stringify({ error: "WhatsApp é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -106,7 +102,7 @@ Deno.serve(async (req) => {
     if (!tamanho_camiseta || !validSizes.includes(tamanho_camiseta)) {
       return new Response(
         JSON.stringify({ error: "Tamanho de camiseta inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -134,7 +130,7 @@ Deno.serve(async (req) => {
     if (tokenError || !tokenRecord) {
       return new Response(
         JSON.stringify({ error: "Código de acesso inválido ou expirado" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -148,7 +144,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ error: "Código de acesso expirado" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -156,7 +152,7 @@ Deno.serve(async (req) => {
     if (tokenRecord.max_uses && tokenRecord.use_count >= tokenRecord.max_uses) {
       return new Response(
         JSON.stringify({ error: "Código de acesso atingiu o limite de usos" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -186,7 +182,7 @@ Deno.serve(async (req) => {
       console.error("Upsert error:", upsertError);
       return new Response(
         JSON.stringify({ error: "Erro ao salvar dados. Tente novamente." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -198,13 +194,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, message: "Dados enviados com sucesso!" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno do servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

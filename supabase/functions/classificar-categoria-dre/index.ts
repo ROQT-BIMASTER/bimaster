@@ -1,9 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const CATEGORIAS_DRE = [
   { value: 'receita_bruta', label: 'Receita Bruta', descricao: 'Receitas operacionais da empresa (vendas, serviços)' },
@@ -13,9 +9,9 @@ const CATEGORIAS_DRE = [
   { value: 'impostos_lucro', label: 'Impostos s/ Lucro', descricao: 'IRPJ, CSLL, impostos sobre o resultado' },
 ];
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -110,14 +106,14 @@ Qual categoria DRE é mais adequada?`;
       if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns instantes." }), 
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       
       if (aiResponse.status === 402) {
         return new Response(
           JSON.stringify({ error: "Créditos insuficientes. Adicione créditos na sua workspace." }), 
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 402, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       
@@ -147,7 +143,7 @@ Qual categoria DRE é mais adequada?`;
         confianca: resultado.confianca,
         justificativa: resultado.justificativa
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
@@ -157,7 +153,7 @@ Qual categoria DRE é mais adequada?`;
         error: error.message || "Erro ao classificar conta",
         details: error.toString()
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

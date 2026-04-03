@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
       version: API_VERSION,
       timestamp: new Date().toISOString(),
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
     if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
       recent_syncs: data || [],
       recommended_batch_size: UPSERT_BATCH_SIZE
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
     });
   }
 
@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
         continue_loop: true
       }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
         continue_loop: true
       }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
         continue_loop: true,
         api_version: API_VERSION
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -429,7 +429,7 @@ Deno.serve(async (req) => {
       api_version: API_VERSION
     }), {
       headers: { 
-        ...corsHeaders, 
+        ...getCorsHeaders(req), 
         'Content-Type': 'application/json',
         'X-API-Version': API_VERSION
       }
@@ -442,7 +442,7 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -489,7 +489,7 @@ Deno.serve(async (req) => {
         has_more: (count || 0) > offset + limit
       }
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
     });
   }
 
@@ -498,7 +498,7 @@ Deno.serve(async (req) => {
     if (!(await validateApiKey())) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -518,7 +518,7 @@ Deno.serve(async (req) => {
       cutoff_date: cutoffDate.toISOString().split('T')[0],
       error: error?.message
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
     });
   }
 
@@ -630,7 +630,7 @@ Deno.serve(async (req) => {
   function apiResponse(data: any, status = 200) {
     return new Response(JSON.stringify(data), {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -961,6 +961,6 @@ Deno.serve(async (req) => {
     endpoints: ['/sync', '/bulk-sync', '/sync-chunk', '/sync-status', '/delete-old', '/consultar', '/listar', '/incluir', '/alterar', '/excluir', '/upsert', '/upsert-lote', '/lancar-recebimento', '/cancelar-recebimento', '/conciliar', '/desconciliar', '/cancelar'],
     message: 'Contas a Receber API v5 — Huggs-style + Legacy sync'
   }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
   });
 });

@@ -1,19 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -28,7 +24,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Usuário inválido" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -37,13 +33,13 @@ serve(async (req) => {
 
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     if (!audioUrl && !storagePath) {
       return new Response(JSON.stringify({ error: "audioUrl ou storagePath é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -131,7 +127,7 @@ serve(async (req) => {
         progress_detail: "Timeout na transcrição. Tente novamente.",
       }).eq("id", meetingId);
       return new Response(JSON.stringify({ error: "Timeout na transcrição. Tente novamente." }), {
-        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 504, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
     clearTimeout(scribeTimeout);
@@ -145,7 +141,7 @@ serve(async (req) => {
 
       if (scribeResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente em alguns minutos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
       throw new Error(`Erro na transcrição Scribe: ${scribeResponse.status}`);
@@ -168,7 +164,7 @@ serve(async (req) => {
         progress_detail: "Não foi possível transcrever o áudio.",
       }).eq("id", meetingId);
       return new Response(JSON.stringify({ error: "Não foi possível transcrever o áudio." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -184,7 +180,7 @@ serve(async (req) => {
     }).eq("id", meetingId);
 
     return new Response(JSON.stringify({ transcription, success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("[meeting-transcribe] error:", error);
@@ -205,7 +201,7 @@ serve(async (req) => {
     } catch { /* ignore cleanup errors */ }
 
     return new Response(JSON.stringify({ error: error.message || "Erro ao transcrever" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

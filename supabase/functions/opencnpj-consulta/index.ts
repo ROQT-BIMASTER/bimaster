@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface OpenCNPJResponse {
   razao_social?: string;
@@ -36,10 +32,10 @@ interface OpenCNPJResponse {
   [key: string]: any; // Allow additional fields
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -48,7 +44,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Authorization header missing" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -66,7 +62,7 @@ serve(async (req) => {
       console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -76,7 +72,7 @@ serve(async (req) => {
     if (!cnpj) {
       return new Response(
         JSON.stringify({ error: "CNPJ é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -86,7 +82,7 @@ serve(async (req) => {
     if (cnpjLimpo.length !== 14) {
       return new Response(
         JSON.stringify({ error: "CNPJ deve ter 14 dígitos" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -106,7 +102,7 @@ serve(async (req) => {
       console.log(`[OpenCNPJ] Cache hit para CNPJ: ${cnpjLimpo}`);
       return new Response(
         JSON.stringify({ ...cacheData.data, cached: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -130,20 +126,20 @@ serve(async (req) => {
       if (apiResponse.status === 404) {
         return new Response(
           JSON.stringify({ error: "CNPJ não encontrado na base da Receita Federal" }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       
       if (apiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de consultas excedido. Tente novamente em alguns minutos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
       
       return new Response(
         JSON.stringify({ error: "Erro ao consultar CNPJ. Tente novamente." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -216,14 +212,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ ...responseData, cached: false }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
 
   } catch (error) {
     console.error("[OpenCNPJ] Erro interno:", error);
     return new Response(
       JSON.stringify({ error: "Erro interno ao processar requisição" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

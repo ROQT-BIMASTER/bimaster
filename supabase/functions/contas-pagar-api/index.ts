@@ -468,7 +468,7 @@ Deno.serve(async (req) => {
           rate_limiting: 'Controle de concorrência automático - máximo 2 syncs simultâneos'
         }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -479,7 +479,7 @@ Deno.serve(async (req) => {
       if (!await validateApiKey()) {
         logError('debug-payload', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -488,7 +488,7 @@ Deno.serve(async (req) => {
 
       if (!Array.isArray(contas)) {
         return new Response(JSON.stringify({ error: 'Invalid payload - array expected' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -561,7 +561,7 @@ Deno.serve(async (req) => {
         database_records: dbRecords || [],
         message: 'Use esses dados para comparar o que o N8N envia vs o que está no banco'
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -572,7 +572,7 @@ Deno.serve(async (req) => {
       if (!await validateApiKey()) {
         logError('bulk-sync', 'Unauthorized - API Key inválida');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -589,7 +589,7 @@ Deno.serve(async (req) => {
       if (!Array.isArray(contas) || contas.length === 0) {
         logError('bulk-sync', 'Payload inválido - array esperado');
         return new Response(JSON.stringify({ error: 'Invalid payload - array expected' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -598,7 +598,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ 
           error: `Payload too large. Max: ${MAX_PAYLOAD_SIZE}, received: ${contas.length}` 
         }), {
-          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 413, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -624,7 +624,7 @@ Deno.serve(async (req) => {
         }), {
           status: 429,
           headers: { 
-            ...corsHeaders, 
+            ...getCorsHeaders(req), 
             'Content-Type': 'application/json', 
             'Retry-After': '5',
             'X-RateLimit-Limit': MAX_CONCURRENT_SYNCS.toString(),
@@ -716,7 +716,7 @@ Deno.serve(async (req) => {
           warning: processError || undefined
         }), {
           headers: { 
-            ...corsHeaders, 
+            ...getCorsHeaders(req), 
             'Content-Type': 'application/json',
             'X-RateLimit-Limit': MAX_CONCURRENT_SYNCS.toString(),
             'X-RateLimit-Remaining': remainingSlots.toString(),
@@ -737,7 +737,7 @@ Deno.serve(async (req) => {
       if (!await validateApiKey()) {
         logError('sync-incremental', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -747,7 +747,7 @@ Deno.serve(async (req) => {
 
       if (!Array.isArray(contas) || contas.length === 0) {
         return new Response(JSON.stringify({ error: 'Invalid payload' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -792,13 +792,13 @@ Deno.serve(async (req) => {
             ? `${result.updated} registros atualizados (force_update ativado)`
             : `${result.skipped} registros ignorados (sem alterações)`
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
 
       } catch (error) {
         logError('sync-incremental', error);
         return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
     }
@@ -826,7 +826,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/sync-complete') && req.method === 'POST') {
       if (!await validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
 
       if (!sync_id) {
         return new Response(JSON.stringify({ error: 'sync_id required' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -865,7 +865,7 @@ Deno.serve(async (req) => {
         sync_id,
         summary: progress || { message: 'No chunks found for this sync_id' }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -875,7 +875,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/chunks-progress') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -897,7 +897,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -908,7 +908,7 @@ Deno.serve(async (req) => {
       if (!await validateApiKey()) {
         logError('sync', 'Unauthorized');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -931,7 +931,7 @@ Deno.serve(async (req) => {
           statistics: { total_received: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 },
           message: 'Nenhum registro recebido'
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1000,7 +1000,7 @@ Deno.serve(async (req) => {
           : `Processado com erro parcial: ${processError}`,
         warning: processError || undefined
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1010,7 +1010,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/contas-pagar-api') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1023,7 +1023,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1033,7 +1033,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/stats') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1047,7 +1047,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1060,7 +1060,7 @@ Deno.serve(async (req) => {
       
       if (apiKey !== expectedKey && !await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1091,7 +1091,7 @@ Deno.serve(async (req) => {
           ? `Última sync: ${lastSync.total_registros} registros` 
           : 'Nenhuma sync anterior encontrada, usando 7 dias como padrão'
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1101,7 +1101,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/trigger-n8n') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1112,7 +1112,7 @@ Deno.serve(async (req) => {
           error: 'N8N webhook não configurado',
           message: 'Configure o secret N8N_CONTAS_PAGAR_WEBHOOK no backend'
         }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1160,7 +1160,7 @@ Deno.serve(async (req) => {
           lastSyncDate,
           n8n_status: response.status
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
 
       } catch (n8nError) {
@@ -1170,7 +1170,7 @@ Deno.serve(async (req) => {
           error: n8nError instanceof Error ? n8nError.message : 'Erro ao disparar N8N',
           message: 'Verifique se o workflow N8N está ativo'
         }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
     }
@@ -1181,7 +1181,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/query') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1225,7 +1225,7 @@ Deno.serve(async (req) => {
         pagination: { total: count, limit, offset, has_more: (count || 0) > offset + limit },
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1235,7 +1235,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/update') && req.method === 'PUT') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1244,7 +1244,7 @@ Deno.serve(async (req) => {
 
       if (!id) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "id" é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1264,7 +1264,7 @@ Deno.serve(async (req) => {
 
       if (Object.keys(sanitizedUpdates).length === 0) {
         return new Response(JSON.stringify({ error: 'sem_alteracoes', message: 'Nenhum campo válido para atualização' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1280,7 +1280,7 @@ Deno.serve(async (req) => {
       if (error) {
         if (error.code === 'PGRST116') {
           return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }), {
-            status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
           });
         }
         throw error;
@@ -1294,7 +1294,7 @@ Deno.serve(async (req) => {
         data,
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1304,7 +1304,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/cancelar') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1314,12 +1314,12 @@ Deno.serve(async (req) => {
       const targetIds = ids || (id ? [id] : []);
       if (targetIds.length === 0) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "id" ou "ids" é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
       if (!motivo) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campo "motivo" é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1344,7 +1344,7 @@ Deno.serve(async (req) => {
         ids: data?.map((d: any) => d.id) || [],
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1354,7 +1354,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/registrar-pagamento') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1363,7 +1363,7 @@ Deno.serve(async (req) => {
 
       if (!conta_pagar_id || !valor_pago) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "conta_pagar_id" e "valor_pago" são obrigatórios' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1376,13 +1376,13 @@ Deno.serve(async (req) => {
 
       if (tituloErr || !titulo) {
         return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${conta_pagar_id} não encontrado` }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
       if (titulo.status === 'cancelado') {
         return new Response(JSON.stringify({ error: 'titulo_cancelado', message: 'Não é possível registrar pagamento em título cancelado' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1429,7 +1429,7 @@ Deno.serve(async (req) => {
         titulo_atualizado: { id: conta_pagar_id, status: novoStatus, valor_pago: novoValorPago, valor_aberto: novoValorAberto },
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1439,7 +1439,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/parcelas') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1463,7 +1463,7 @@ Deno.serve(async (req) => {
         pagination: { total: count, limit, offset },
         meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1473,7 +1473,7 @@ Deno.serve(async (req) => {
     if (path.includes('/parcelas/sync') && req.method === 'POST') {
       if (!await validateApiKey()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1482,13 +1482,13 @@ Deno.serve(async (req) => {
 
       if (!Array.isArray(parcelas) || parcelas.length === 0) {
         return new Response(JSON.stringify({ error: 'payload_invalido', message: 'Array de parcelas esperado' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
       if (parcelas.length > 5000) {
         return new Response(JSON.stringify({ error: 'payload_excedido', message: 'Máximo 5000 parcelas por request' }), {
-          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 413, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1507,7 +1507,7 @@ Deno.serve(async (req) => {
         processados: data?.length || 0,
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1517,7 +1517,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/pagamentos') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1541,7 +1541,7 @@ Deno.serve(async (req) => {
         pagination: { total: count, limit, offset },
         meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1551,7 +1551,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/estornar') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1560,7 +1560,7 @@ Deno.serve(async (req) => {
 
       if (!id || !motivo) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "id" (conta_pagar_id) e "motivo" são obrigatórios' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1573,13 +1573,13 @@ Deno.serve(async (req) => {
 
       if (tituloErr || !titulo) {
         return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${id} não encontrado` }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
       if (titulo.status !== 'pago' && titulo.status !== 'parcial') {
         return new Response(JSON.stringify({ error: 'status_invalido', message: `Estorno só é permitido para títulos com status "pago" ou "parcial". Status atual: ${titulo.status}` }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1615,7 +1615,7 @@ Deno.serve(async (req) => {
         titulo_atualizado: { id, status: novoStatus, valor_pago: novoValorPago, valor_aberto: novoValorAberto },
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1625,7 +1625,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/anexos') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1634,7 +1634,7 @@ Deno.serve(async (req) => {
 
       if (!conta_pagar_id || !nome_arquivo) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Campos "conta_pagar_id" e "nome_arquivo" são obrigatórios' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1647,7 +1647,7 @@ Deno.serve(async (req) => {
 
       if (!titulo) {
         return new Response(JSON.stringify({ error: 'nao_encontrado', message: `Título ${conta_pagar_id} não encontrado` }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1672,7 +1672,7 @@ Deno.serve(async (req) => {
         anexo,
         meta: { duration_ms: duration, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1682,14 +1682,14 @@ Deno.serve(async (req) => {
     if (path.endsWith('/anexos') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
       const contaPagarId = url.searchParams.get('conta_pagar_id');
       if (!contaPagarId) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Query param "conta_pagar_id" é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1705,7 +1705,7 @@ Deno.serve(async (req) => {
         data,
         meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1715,7 +1715,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/consultar') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1725,7 +1725,7 @@ Deno.serve(async (req) => {
 
       if (!id && !codIntegracao && !codHuggs) {
         return new Response(JSON.stringify({ error: 'campo_obrigatorio', message: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1738,7 +1738,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (!data) {
         return new Response(JSON.stringify({ error: 'nao_encontrado', message: 'Título não encontrado' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1746,7 +1746,7 @@ Deno.serve(async (req) => {
         conta_pagar_cadastro: data,
         meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
       });
     }
 
@@ -1756,7 +1756,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/incluir') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1769,7 +1769,7 @@ Deno.serve(async (req) => {
           codigo_status: '1',
           descricao_status: 'Campos obrigatórios: codigo_lancamento_integracao, data_vencimento, valor_documento'
         }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1795,7 +1795,7 @@ Deno.serve(async (req) => {
             codigo_lancamento_integracao,
             codigo_status: '2',
             descricao_status: 'Registro já existe com este código de integração. Use /upsert ou /alterar.'
-          }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }), { status: 409, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
         }
         throw error;
       }
@@ -1806,7 +1806,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Cadastro incluído com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { status: 201, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -1815,7 +1815,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/alterar') && req.method === 'PUT') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1826,7 +1826,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({
           codigo_status: '1',
           descricao_status: 'Informe codigo_lancamento_integracao ou codigo_lancamento_huggs'
-        }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // Map valor_documento -> valor_original
@@ -1849,7 +1849,7 @@ Deno.serve(async (req) => {
       if (!data) {
         return new Response(JSON.stringify({
           codigo_lancamento_integracao, codigo_status: '5', descricao_status: 'Registro não encontrado'
-        }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       return new Response(JSON.stringify({
@@ -1858,7 +1858,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Cadastro alterado com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -1867,7 +1867,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/excluir') && req.method === 'DELETE') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1877,7 +1877,7 @@ Deno.serve(async (req) => {
 
       if (!codIntegracao && !codHuggs && !id) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe id, codigo_lancamento_integracao ou codigo_lancamento_huggs' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1890,7 +1890,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       if (!data) {
         return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Registro não encontrado' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1900,7 +1900,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Registro excluído com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -1909,7 +1909,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/upsert') && !path.includes('upsert-lote') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1918,7 +1918,7 @@ Deno.serve(async (req) => {
 
       if (!codigo_lancamento_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo codigo_lancamento_integracao é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1948,7 +1948,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Upsert realizado com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -1957,7 +1957,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/upsert-lote') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -1967,13 +1967,13 @@ Deno.serve(async (req) => {
 
       if (!Array.isArray(registros) || registros.length === 0) {
         return new Response(JSON.stringify({ lote, codigo_status: '1', descricao_status: 'Array conta_pagar_cadastro vazio ou inválido' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
       if (registros.length > 500) {
         return new Response(JSON.stringify({ lote, codigo_status: '1', descricao_status: 'Máximo 500 registros por lote' }), {
-          status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 413, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2008,7 +2008,7 @@ Deno.serve(async (req) => {
         codigo_status: erros === 0 ? '0' : '1',
         descricao_status: `${processados} processado(s), ${erros} erro(s)`,
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -2017,7 +2017,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/lancar-pagamento') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2026,12 +2026,12 @@ Deno.serve(async (req) => {
 
       if (!codigo_lancamento && !codigo_lancamento_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_lancamento ou codigo_lancamento_integracao' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
       if (!valor) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Campo valor é obrigatório' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2044,12 +2044,12 @@ Deno.serve(async (req) => {
       if (tErr) throw tErr;
       if (!titulo) {
         return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Título não encontrado' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
       if (titulo.status === 'cancelado') {
         return new Response(JSON.stringify({ codigo_status: '3', descricao_status: 'Título cancelado, baixa não permitida' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2097,7 +2097,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Pagamento registrado com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -2106,7 +2106,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/cancelar-pagamento') && req.method === 'POST') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2115,7 +2115,7 @@ Deno.serve(async (req) => {
 
       if (!codigo_baixa && !codigo_baixa_integracao) {
         return new Response(JSON.stringify({ codigo_status: '1', descricao_status: 'Informe codigo_baixa ou codigo_baixa_integracao' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2127,7 +2127,7 @@ Deno.serve(async (req) => {
       if (pErr) throw pErr;
       if (!pagamento) {
         return new Response(JSON.stringify({ codigo_status: '5', descricao_status: 'Pagamento não encontrado' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2157,7 +2157,7 @@ Deno.serve(async (req) => {
         codigo_status: '0',
         descricao_status: 'Pagamento cancelado com sucesso!',
         meta: { duration_ms: Date.now() - startTime }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // =====================================================
@@ -2166,7 +2166,7 @@ Deno.serve(async (req) => {
     if (path.endsWith('/listar') && req.method === 'GET') {
       if (!await validateAuth()) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
         });
       }
 
@@ -2241,11 +2241,11 @@ Deno.serve(async (req) => {
         total_de_registros: totalRegistros,
         conta_pagar_cadastro: resultData || [],
         meta: { duration_ms: Date.now() - startTime, processed_at: new Date().toISOString() }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 404, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -2256,7 +2256,7 @@ Deno.serve(async (req) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       duration_ms: duration
     }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }
     });
   }
 });

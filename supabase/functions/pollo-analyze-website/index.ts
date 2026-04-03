@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -11,7 +10,7 @@ const AnalyzeWebsiteSchema = z.object({
   url: z.string().url().max(2000),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -49,7 +48,7 @@ Baseado neste site, crie conteúdo visual relevante e profissional.`;
 
     return new Response(
       JSON.stringify({ analysis, metadata: { title, description, h1, url } }),
-      { headers: withSecurityHeaders({ ...corsHeaders, 'Content-Type': 'application/json' }) }
+      { headers: withSecurityHeaders({ ...getCorsHeaders(req), 'Content-Type': 'application/json' }) }
     );
   } catch (error) {
     return handleError(error, getCorsHeaders(req));

@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { validateJWT } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
@@ -9,7 +8,7 @@ const GeocodeSchema = z.object({
   address: z.string().min(1).max(500),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
   const corsHeaders = getCorsHeaders(req);
@@ -38,7 +37,7 @@ serve(async (req) => {
     if (!data.features || data.features.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Address not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 404 }
       );
     }
 
@@ -47,7 +46,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ latitude, longitude, formatted_address: feature.place_name }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     return handleError(error, getCorsHeaders(req));

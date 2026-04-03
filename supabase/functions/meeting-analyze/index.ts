@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 async function callAI(lovableApiKey: string, messages: any[], tools: any[], toolName: string, timeoutMs = 120000, model = "google/gemini-2.5-pro", temperature?: number) {
   const controller = new AbortController();
@@ -57,14 +53,14 @@ function parseToolCallResult(aiData: any): any {
   throw new Error("IA não retornou dados estruturados");
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -81,14 +77,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Usuário inválido" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const { meetingId, transcription: providedTranscription, duration_seconds: providedDuration } = await req.json();
     if (!meetingId) {
       return new Response(JSON.stringify({ error: "meetingId é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -103,7 +99,7 @@ serve(async (req) => {
     if (!transcription) {
       await supabaseAdmin.from("meetings").update({ status: "draft" }).eq("id", meetingId);
       return new Response(JSON.stringify({ error: "Nenhuma transcrição disponível. Use a etapa de transcrição primeiro." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -252,7 +248,7 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       console.error("[meeting-analyze] Phase 1 timeout:", abortErr);
       await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
       return new Response(JSON.stringify({ error: "Timeout na Fase 1 da análise. Tente novamente." }), {
-        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 504, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -261,11 +257,11 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       console.error("[meeting-analyze] Phase 1 AI error:", phase1Response.status, errorText);
       if (phase1Response.status === 429) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido." }), { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
       if (phase1Response.status === 402) {
         await supabaseAdmin.from("meetings").update({ status: "error" }).eq("id", meetingId);
-        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), { status: 402, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
       throw new Error(`Phase 1 AI error: ${phase1Response.status}`);
     }
@@ -318,12 +314,12 @@ INSTRUÇÃO CRÍTICA: Releia a transcrição INTEIRA antes de finalizar. Verifiq
       summary: phase1Result.summary,
       estimatedMinutes,
     }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("[meeting-analyze] error:", error);
     return new Response(JSON.stringify({ error: error.message || "Erro ao analisar reunião" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
