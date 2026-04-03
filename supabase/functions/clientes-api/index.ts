@@ -194,11 +194,8 @@ Deno.serve(async (req) => {
 
     // ── POST /alterar ────────────────────────────────────────────
     if (req.method === "POST" && path === "/alterar") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), AlterarClienteSchema);
       const { codigo_cliente_integracao, codigo_cliente_huggs } = body;
-      if (!codigo_cliente_integracao && !codigo_cliente_huggs) {
-        return errorResponse(400, "VALIDATION_ERROR", "codigo_cliente_integracao ou codigo_cliente_huggs obrigatório", req, startMs);
-      }
 
       const dbData = mapApiToDb(body);
       delete dbData.codigo; // Don't update the key
