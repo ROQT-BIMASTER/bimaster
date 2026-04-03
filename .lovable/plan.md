@@ -1,55 +1,51 @@
 
 
-# Fix: Contas a Receber Truncadas no DRE (Limite 1000 linhas)
+# Migração: Manter Descrição Original e Seguir Sequência do Cliente
 
-## Diagnóstico Confirmado
+## Problema
 
-A RPC `get_contas_receber_dre` retorna **45.118 linhas** (cliente × mês), mas o PostgREST **limita a 1.000 linhas** na resposta. Resultado: DRE mostra ~R$3,9M em vez de ~R$231M.
+Na tabela de migração, as contas novas (v2) estão com nomes diferentes das contas antigas. Exemplo:
+- `3.4.04 IRPJ` → `2.5.3 COFINS/CSLL/PIS/IRPJ` (nome mudou)
+- `1100 Material POP` → `2.6.2 Despesas de Trade Comercial` (nome genérico)
 
-Valores reais no banco (2025):
-- Janeiro: R$17M | Fevereiro: R$14,9M | ... | Novembro: R$30,2M | Dezembro: R$21M
-- **Total anual: R$231M**
+O correto é manter a **mesma descrição da conta antiga** e apenas trocar o código numérico para a sequência do novo plano (v2).
 
 ## Solução
 
-Criar **2 RPCs** substituindo a atual:
+### 1. Migração SQL — Atualizar `plano_contas_migracao`
 
-### 1. `get_contas_receber_dre_totais` — Totais por mês (12 linhas max)
-
-Agrega tudo por mês, sem detalhe de cliente. Usada para os **valores do DRE** (cálculos de receita bruta).
+Atualizar todos os registros para que `new_name = old_name`:
 
 ```sql
-RETURNS TABLE(mes text, valor_original numeric, valor_recebido numeric, qtd_documentos bigint)
--- Retorna no máximo 12-13 linhas por ano = nunca atinge limite
+UPDATE plano_contas_migracao
+SET new_name = old_name
+WHERE new_name != old_name;
 ```
 
-### 2. `get_contas_receber_dre_clientes` — Top clientes para drill-down (limitada)
+### 2. Migração SQL — Atualizar contas v2 em `trade_chart_of_accounts`
 
-Agrega por cliente (total do período, sem mês), limitada aos **top 50 clientes** por valor. Usada apenas para expandir a árvore.
+Para cada mapeamento, atualizar o nome da conta v2 correspondente para refletir o nome original:
 
 ```sql
-RETURNS TABLE(cliente_codigo text, cliente_nome text, valor_recebido numeric, qtd_documentos bigint)
-LIMIT 50
+UPDATE trade_chart_of_accounts t
+SET name = m.old_name
+FROM plano_contas_migracao m
+WHERE t.id = m.new_account_id
+  AND t.name != m.old_name;
 ```
 
-### 3. Frontend (`DREAnalitico.tsx`)
+> Nota: Contas v2 que são mapeadas por múltiplas contas antigas (ex: `2.6.2` recebe tanto `Material POP` quanto `Promotores`) terão o nome da última atualização. Se houver conflitos, o dropdown na interface permite ajustar manualmente.
 
-- Usar `get_contas_receber_dre_totais` para popular `receitaBruta.valoresMensais` — garante totais corretos
-- Usar `get_contas_receber_dre_clientes` apenas para os nós filhos da árvore (drill-down visual)
-- Remover chamada atual à RPC `get_contas_receber_dre`
-
-## Resultado
+### Resultado
 
 | Antes | Depois |
 |---|---|
-| 45.118 linhas → truncado em 1.000 | 12 linhas (totais) + 50 linhas (clientes) |
-| R$3,9M exibido | R$231M exibido (valor real) |
-| 1 RPC | 2 RPCs paralelas, ambas sub-segundo |
+| `3.4.04 IRPJ → 2.5.3 COFINS/CSLL/PIS/IRPJ` | `3.4.04 IRPJ → 2.5.3 IRPJ` |
+| `1100 Material POP → 2.6.2 Despesas de Trade Comercial` | `1100 Material POP → 2.6.2 Material POP` |
 
-## Arquivos
+## Arquivo
 
 | Arquivo | Mudança |
 |---|---|
-| Nova migração SQL | Criar 2 RPCs novas, dropar a antiga |
-| `src/pages/DREAnalitico.tsx` | Substituir chamada RPC por 2 queries paralelas, ajustar construção da hierarquia |
+| Nova migração SQL | UPDATE em `plano_contas_migracao` e `trade_chart_of_accounts` |
 
