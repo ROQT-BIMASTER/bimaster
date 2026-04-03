@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
-  Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight
+  Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2
 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
