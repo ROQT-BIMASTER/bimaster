@@ -593,20 +593,20 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
   if (lastSync) {
     const syncDate = new Date(lastSync);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
-    // Only capture recent payments — NOT all future due dates
-    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}'`;
-    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate} (payments only)`);
+    // BETWEEN last sync and NOW — excludes future-dated records that inflated results
+    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}' AND [Data Pgto] <= GETDATE()`;
+    console.log(`📅 Incremental: BETWEEN ${sqlDate} AND GETDATE() (no future dates)`);
   } else {
-    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
-    console.log(`📅 Incremental: fallback to DATEADD(HOUR, -2) — no previous successful sync found`);
+    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE()) AND [Data Pgto] <= GETDATE()`;
+    console.log(`📅 Incremental: fallback last 2h window (no future dates)`);
   }
 
-  // Use paginated approach (ROW_NUMBER) with maxPages=1 — proven to work in ~60s per page
+  // maxPages=2 — with future dates excluded, result set should be small enough
   return handleSyncPaginated(
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
     transformContasReceber, "erp_id",
-    { whereClause, maxPages: 1 }
+    { whereClause, maxPages: 2 }
   );
 }
 
