@@ -39,6 +39,7 @@ import { FilaCobranca } from "@/components/cobranca/FilaCobranca";
 import { Cliente360Drawer } from "@/components/financeiro/cliente360";
 import { CobrancaAutomaticaPanel } from "@/components/cobranca/CobrancaAutomaticaPanel";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
+import { formatCurrency } from "@/lib/formatters";
 
 interface ContaVencida {
   id: string;
