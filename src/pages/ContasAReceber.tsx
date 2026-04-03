@@ -867,7 +867,16 @@ export default function ContasAReceber() {
           }}
         />
 
-        {/* Tabs */}
+        {/* Sync Monitor Drawer */}
+        <Drawer open={showSyncMonitor} onOpenChange={setShowSyncMonitor}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Monitor de Sincronização</DrawerTitle>
+              <DrawerDescription>Histórico e status das sincronizações com o ERP</DrawerDescription>
+            </DrawerHeader>
+            <SyncMonitorPanel />
+          </DrawerContent>
+        </Drawer>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
