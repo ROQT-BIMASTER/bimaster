@@ -599,7 +599,7 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate} (payments only)`);
   } else {
     // Fallback: last 2 hours if no previous successful sync
-    whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
+    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
     console.log(`📅 Incremental: fallback to DATEADD(HOUR, -2) — no previous successful sync found`);
   }
 
