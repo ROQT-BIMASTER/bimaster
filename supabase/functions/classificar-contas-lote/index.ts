@@ -19,25 +19,28 @@ serve(async (req) => {
 
     // Action: load-categories — fetch distinct categories with stats via raw SQL
     if (action === "load-categories") {
-      const { data, error } = await supabase.rpc("exec_sql_readonly", { sql_query: "" });
-      
-      // Use direct query approach
-      const { data: cats, error: catErr } = await supabase
-        .from("contas_pagar")
-        .select("categoria_nome, fornecedor_nome, valor_original")
-        .not("categoria_nome", "is", null);
+      // Fetch all rows with pagination (service role bypasses RLS)
+      let allRows: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: chunk, error: chunkErr } = await supabase
+          .from("contas_pagar")
+          .select("categoria_nome, fornecedor_nome, valor_original")
+          .not("categoria_nome", "is", null)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        if (chunkErr) throw chunkErr;
+        if (!chunk || chunk.length === 0) break;
+        allRows = allRows.concat(chunk);
+        if (chunk.length < pageSize) break;
+        page++;
+      }
 
-      if (catErr) throw catErr;
-
-      // Aggregate in memory (service role bypasses RLS, gets all rows)
       const catMap = new Map<string, { qtd: number; valores: number[]; fornecedores: Map<string, number> }>();
-
-      for (const r of cats || []) {
+      for (const r of allRows) {
         const cat = r.categoria_nome;
         if (!cat) continue;
-        if (!catMap.has(cat)) {
-          catMap.set(cat, { qtd: 0, valores: [], fornecedores: new Map() });
-        }
+        if (!catMap.has(cat)) catMap.set(cat, { qtd: 0, valores: [], fornecedores: new Map() });
         const entry = catMap.get(cat)!;
         entry.qtd++;
         if (r.valor_original) entry.valores.push(Number(r.valor_original));
@@ -55,7 +58,6 @@ serve(async (req) => {
           .slice(0, 3)
           .map(([f]) => f),
       }));
-
       result.sort((a, b) => b.qtd_titulos - a.qtd_titulos);
 
       return new Response(JSON.stringify({ success: true, categorias: result }), { headers });
