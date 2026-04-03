@@ -105,6 +105,16 @@ export default function PlanoContas() {
     }
   });
 
+  const naturalSortCode = (a: string, b: string): number => {
+    const partsA = a.split('.').map(Number);
+    const partsB = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+      const diff = (partsA[i] || 0) - (partsB[i] || 0);
+      if (diff !== 0) return diff;
+    }
+    return 0;
+  };
+
   const buildHierarchy = (accounts: Account[]): Account[] => {
     const accountMap = new Map<string, Account>();
     const rootAccounts: Account[] = [];
@@ -125,6 +135,15 @@ export default function PlanoContas() {
         rootAccounts.push(acc);
       }
     });
+
+    // Sort all levels by code numerically
+    const sortRecursive = (nodes: Account[]) => {
+      nodes.sort((a, b) => naturalSortCode(a.code, b.code));
+      nodes.forEach(n => {
+        if (n.children?.length) sortRecursive(n.children);
+      });
+    };
+    sortRecursive(rootAccounts);
 
     return rootAccounts;
   };
