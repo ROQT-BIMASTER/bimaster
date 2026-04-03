@@ -1,4 +1,5 @@
 
+
 # Revisao Completa do Projeto BiMaster/Huggs — Melhorias e Opcoes de Avanco
 
 ## Diagnostico Atual
@@ -33,7 +34,7 @@ O jeito mais rapido de resolver a navegacao complexa. O usuario aperta `Ctrl+K` 
 ### Arquivos:
 | Arquivo | Acao |
 |---|---|
-| `src/components/navigation/CommandPalette.tsx` | Criar — dialog com cmdk ou implementacao propria |
+| `src/components/navigation/CommandPalette.tsx` | Criar — dialog com busca fuzzy |
 | `src/components/navigation/command-routes.ts` | Criar — indice de todas as rotas |
 | `src/components/dashboard/DashboardLayout.tsx` | Alterar — adicionar trigger no header |
 
@@ -45,7 +46,7 @@ Cada usuario monta seu proprio dashboard arrastando widgets (KPIs, graficos, lis
 
 ### O que inclui:
 - Grid de widgets com drag-and-drop (react-grid-layout)
-- Catalogo de widgets: KPIs financeiros, pipeline prospects, tarefas pendentes, aprovacoes, etc.
+- Catalogo de widgets: KPIs financeiros, pipeline prospects, tarefas pendentes, aprovacoes
 - Layout salvo no banco por usuario
 - Botao "Adicionar Widget" com preview
 - Reset para layout padrao
@@ -53,17 +54,17 @@ Cada usuario monta seu proprio dashboard arrastando widgets (KPIs, graficos, lis
 ### Arquivos:
 | Arquivo | Acao |
 |---|---|
-| `src/components/dashboard/CustomizableDashboard.tsx` | Criar — grid com drag-and-drop |
-| `src/components/dashboard/WidgetCatalog.tsx` | Criar — catalogo de widgets disponiveis |
-| `src/components/dashboard/widgets/` | Criar — pasta com widgets individuais |
-| Migracao SQL | Criar tabela `user_dashboard_layouts` |
-| `src/pages/Dashboard.tsx` | Alterar — usar dashboard customizavel |
+| `src/components/dashboard/CustomizableDashboard.tsx` | Criar |
+| `src/components/dashboard/WidgetCatalog.tsx` | Criar |
+| `src/components/dashboard/widgets/` | Criar pasta com widgets |
+| Migracao SQL | Tabela `user_dashboard_layouts` |
+| `src/pages/Dashboard.tsx` | Alterar |
 
 ---
 
 ## Opcao C: Central de Notificacoes em Tempo Real
 
-O sistema ja tem `NotificationBell` e `useNotifications`, mas falta:
+O sistema ja tem `NotificationBell` basico. Falta:
 - Notificacoes push reais (Web Push API via Service Worker)
 - Canais por tipo (aprovacoes, tarefas, financeiro) com preferencias
 - Painel de historico com filtros
@@ -72,36 +73,27 @@ O sistema ja tem `NotificationBell` e `useNotifications`, mas falta:
 ### Arquivos:
 | Arquivo | Acao |
 |---|---|
-| `src/components/notifications/NotificationCenter.tsx` | Criar — painel lateral completo |
-| `src/components/notifications/NotificationPreferences.tsx` | Criar — preferencias por canal |
-| `supabase/functions/send-push-notification/index.ts` | Criar — envio de push via Web Push |
-| Migracao SQL | Tabela `notification_preferences`, `push_subscriptions` |
+| `src/components/notifications/NotificationCenter.tsx` | Criar |
+| `src/components/notifications/NotificationPreferences.tsx` | Criar |
+| `supabase/functions/send-push-notification/index.ts` | Criar |
+| Migracao SQL | Tabelas `notification_preferences`, `push_subscriptions` |
 
 ---
 
 ## Opcao D: Refatorar AppSidebar (de 1,409 para ~300 linhas)
 
-O sidebar atual tem toda a logica, configuracao e renderizacao em um unico arquivo. Extrair para componentes menores melhora manutenibilidade e performance.
-
-### Extracao:
-- `SidebarModuleGroup.tsx` — componente generico para cada modulo
-- `SidebarQuickActions.tsx` — acoes rapidas (novo prospect, nova tarefa)
-- `SidebarUserFooter.tsx` — area do usuario (avatar, logout, tema)
-- `sidebar-module-configs.ts` — todas as configuracoes de modulos/rotas
-- `SidebarSearch.tsx` — busca interna do sidebar
-
-### Resultado: AppSidebar.tsx de 1,409 → ~300 linhas (composicao de componentes)
+Extrair para componentes menores:
+- `SidebarModuleGroup.tsx` — componente generico por modulo
+- `SidebarQuickActions.tsx` — acoes rapidas
+- `SidebarUserFooter.tsx` — area do usuario
+- `sidebar-module-configs.ts` — configuracoes de rotas
+- `SidebarSearch.tsx` — busca interna
 
 ---
 
 ## Opcao E: Relatorios PDF Avancados com Templates
 
-Gerar relatorios PDF profissionais diretamente do sistema:
-- Template de relatorio financeiro (DRE, fluxo de caixa)
-- Template de relatorio de vendas (performance, ranking)
-- Template de relatorio de trade (visitas, fotos, share)
-- Logo da empresa + cores do tema
-- Agendamento de envio por email
+Gerar PDFs profissionais (DRE, vendas, trade) com logo e cores do tema, agendamento de envio por email.
 
 ---
 
@@ -115,4 +107,5 @@ Gerar relatorios PDF profissionais diretamente do sistema:
 5. [BAIXO]    Opcao E — Relatorios PDF (diferencial)
 ```
 
-A combinacao A + D resolve 90% do problema de navegacao. B e C sao features de produto que aumentam retenção.
+A combinacao A + D resolve 90% do problema de navegacao. B e C sao features que aumentam retencao.
+
