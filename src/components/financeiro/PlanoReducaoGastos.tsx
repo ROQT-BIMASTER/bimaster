@@ -261,12 +261,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       {/* Itens em Revisão */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-lg">Itens em Revisão</CardTitle>
-            <Button onClick={exportarExcel} variant="outline" className="gap-2">
-              <FileDown className="h-4 w-4" />
-              Exportar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
+                <Maximize2 className="h-4 w-4" />
+                Modo Foco
+              </Button>
+              <Button onClick={exportarExcel} variant="outline" size="sm" className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Exportar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
