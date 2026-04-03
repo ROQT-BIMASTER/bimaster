@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { TrendingUp, Calendar } from "lucide-react";
 import type { FluxoCaixaItem } from "@/hooks/useFinanceiroConsolidadoDashboard";
+import { formatCurrency } from "@/lib/formatters";
 
 interface ConsolidadoFluxoCaixaChartProps {
   data: FluxoCaixaItem[];
