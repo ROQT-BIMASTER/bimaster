@@ -34,6 +34,7 @@ import { CalendarioRecebimentosAggregated } from "@/components/financeiro/Calend
 import ImportarContasReceberCSV from "@/components/financeiro/ImportarContasReceberCSV";
 import { useEmpresaFilter } from "@/hooks/useEmpresaFilter";
 import { useUIPermissions } from "@/hooks/useUIPermissions";
+import { SyncMonitorPanel } from "@/components/financeiro/SyncMonitorPanel";
 
 interface ContaReceber {
   id: string;
