@@ -101,10 +101,8 @@ Deno.serve(async (req) => {
   try {
     // ==================== POST /incluir ====================
     if (req.method === "POST" && path === "/incluir") {
-      const body = await req.json();
+      const body = validateBody(await req.json(), IncluirCategoriaSchema);
       const { descricao, tipo_categoria, natureza, codigo_dre, categoria_superior } = body;
-
-      if (!descricao) return errorResp(400, "VALIDATION", "Campo 'descricao' é obrigatório", req, startMs);
 
       // Resolve parent
       let parentId: string | null = null;
