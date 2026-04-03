@@ -17,6 +17,8 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { CommandPalette, useCommandPalette } from "@/components/navigation/CommandPalette";
+import { Search } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
@@ -38,6 +40,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   usePageTracking();
   const { showWarning, secondsLeft, resetTimer } = useInactivityTimeout();
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'offline'>('good');
+  const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
 
   // Monitorar qualidade da conexão
   useEffect(() => {
@@ -100,6 +103,17 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <h1 className="hidden sm:block text-[20px] font-bold text-foreground">{t("system.title")}</h1>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3">
+              <button
+                onClick={() => setCmdOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Busca global"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Buscar...</span>
+                <kbd className="hidden sm:inline-flex pointer-events-none h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1 font-mono text-[10px] font-medium text-muted-foreground">
+                  ⌘K
+                </kbd>
+              </button>
               <EmpresaSelector compact />
               <span className="hidden sm:inline-flex"><LanguageSelector /></span>
               <span className="hidden sm:inline-flex"><ImpersonationSelector /></span>
@@ -107,6 +121,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <img src={logoHuugs} alt="Huugs MakeUp" className="h-8 sm:h-10" />
             </div>
           </header>
+          <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
           {connectionQuality === 'offline' && (
             <Alert className="m-4 border-destructive bg-destructive/10">
               <WifiOff className="h-4 w-4" />
