@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
   Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Maximize2, Minimize2
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
@@ -100,7 +100,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   });
 
-  // KPIs
   const totalMarcados = revisoes?.length || 0;
   const metaTotalEconomia = revisoes?.reduce((acc, r) => acc + (r.meta_reducao_valor || 0), 0) || 0;
   const economiaRealizada = revisoes?.filter(r => r.status === 'concluido').reduce((acc, r) => acc + (r.resultado_obtido || 0), 0) || 0;
@@ -430,7 +429,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       {/* Itens em Revisão */}
       <Card>
         <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-lg">Itens em Revisão</CardTitle>
             <div className="flex items-center gap-2">
               <Button onClick={() => setFocusMode(true)} variant="outline" size="sm" className="gap-2 hidden md:flex">
@@ -502,209 +501,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               {/* Desktop Table */}
               <div className="hidden md:block">
                 {renderDesktopTable()}
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="md:hidden">
-                <ScrollArea className="h-[500px]">
-                  <div className="space-y-3">
-                    {filteredRevisoes?.map((revisao) => (
-                      <RevisaoGastosCard
-                        key={revisao.id}
-                        revisao={revisao}
-                        onUpdateStatus={handleUpdateStatus}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Focus Mode Dialog */}
-      <Dialog open={focusMode} onOpenChange={setFocusMode}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] h-full p-0 flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">Itens em Revisão — Modo Foco</h2>
-            <div className="flex items-center gap-2">
-              <Button onClick={exportarExcel} variant="outline" size="sm" className="gap-2">
-                <FileDown className="h-4 w-4" />
-                Exportar
-              </Button>
-              <Button onClick={() => setFocusMode(false)} variant="ghost" size="sm" className="gap-2">
-                <Minimize2 className="h-4 w-4" />
-                Sair
-              </Button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-auto p-4">
-            {renderDesktopTable("max-h-[calc(95vh-120px)]")}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-                        <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
-                        <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
-                        <TableHead className="w-[100px]">Prazo</TableHead>
-                        <TableHead className="text-right w-[120px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRevisoes?.map((revisao) => {
-                        const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
-                        const status = statusConfig[revisao.status as keyof typeof statusConfig];
-                        const prioridade = prioridadeConfig[revisao.prioridade as keyof typeof prioridadeConfig];
-                        const TipoIcon = tipo?.icon;
-                        const StatusIcon = status?.icon;
-                        const isExpanded = expandedRow === revisao.id;
-                        const itemName = (revisao as any).plano_contas?.name || revisao.categoria_nome || 'N/A';
-                        const fornecedor = revisao.fornecedor_nome || '';
-                        const diasRestantes = revisao.prazo_revisao 
-                          ? differenceInDays(new Date(revisao.prazo_revisao), new Date()) 
-                          : null;
-                        const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
-
-                        return (
-                          <>{/* Fragment for row + expandable detail */}
-                            <TableRow 
-                              key={revisao.id} 
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => setExpandedRow(isExpanded ? null : revisao.id)}
-                            >
-                              <TableCell className="px-2">
-                                {isExpanded 
-                                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> 
-                                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                }
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                  {TipoIcon && <TipoIcon className={`h-3.5 w-3.5 ${tipo?.color}`} />}
-                                  <span className="text-xs font-medium">{tipo?.label || revisao.tipo_revisao}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <div className="font-medium text-sm truncate max-w-[250px]">{itemName}</div>
-                                  {fornecedor && <div className="text-xs text-muted-foreground truncate max-w-[250px]">{fornecedor}</div>}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`h-2 w-2 rounded-full ${
-                                    revisao.prioridade === 'alta' ? 'bg-destructive' :
-                                    revisao.prioridade === 'media' ? 'bg-warning' : 'bg-success'
-                                  }`} />
-                                  <span className="text-xs">{prioridade?.label || revisao.prioridade}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${status?.color || ''}`}>
-                                  {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
-                                  {status?.label || revisao.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-sm">
-                                {revisao.valor_atual 
-                                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.valor_atual)
-                                  : '—'
-                                }
-                              </TableCell>
-                              <TableCell className="text-right text-sm">
-                                {revisao.meta_reducao_percentual 
-                                  ? <span className="font-medium">{revisao.meta_reducao_percentual}%</span>
-                                  : '—'
-                                }
-                                {revisao.meta_reducao_valor ? (
-                                  <div className="text-xs text-muted-foreground">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(revisao.meta_reducao_valor)}
-                                  </div>
-                                ) : null}
-                              </TableCell>
-                              <TableCell>
-                                {revisao.prazo_revisao ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs">{format(parseISO(revisao.prazo_revisao), 'dd/MM')}</span>
-                                    {diasRestantes !== null && (
-                                      <span className={`text-xs font-medium ${
-                                        prazoVencido ? 'text-destructive' :
-                                        diasRestantes <= 7 ? 'text-warning' : 'text-muted-foreground'
-                                      }`}>
-                                        {diasRestantes < 0 ? `${Math.abs(diasRestantes)}d atrás` :
-                                         diasRestantes === 0 ? 'Hoje' : `${diasRestantes}d`}
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : <span className="text-xs text-muted-foreground">—</span>}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
-                                  {revisao.status !== 'concluido' && revisao.status !== 'cancelado' && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Concluir"
-                                      onClick={() => handleUpdateStatus(revisao.id, 'concluido')}>
-                                      <Check className="h-3.5 w-3.5 text-success" />
-                                    </Button>
-                                  )}
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar">
-                                    <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir"
-                                    onClick={() => handleDelete(revisao.id)}>
-                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            {isExpanded && (
-                              <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                                <TableCell colSpan={9} className="py-3">
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
-                                    <div>
-                                      <span className="text-xs text-muted-foreground block">Documento</span>
-                                      <span className="font-medium">{revisao.numero_documento || 'N/A'}</span>
-                                      {revisao.tipo_documento && <span className="text-xs text-muted-foreground ml-1">({revisao.tipo_documento})</span>}
-                                    </div>
-                                    <div>
-                                      <span className="text-xs text-muted-foreground block">Empresa</span>
-                                      <span className="font-medium">{revisao.empresa_nome || 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-xs text-muted-foreground block">Departamento</span>
-                                      <span className="font-medium">{(revisao as any).departamento?.nome || 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-xs text-muted-foreground block">Responsável</span>
-                                      <span className="font-medium">{(revisao as any).responsavel?.nome || (revisao as any).responsavel?.email || 'N/A'}</span>
-                                    </div>
-                                    {revisao.observacoes && (
-                                      <div className="col-span-full">
-                                        <span className="text-xs text-muted-foreground block">Observações</span>
-                                        <span className="text-sm">{revisao.observacoes}</span>
-                                      </div>
-                                    )}
-                                    {revisao.resultado_obtido ? (
-                                      <div>
-                                        <span className="text-xs text-muted-foreground block">Resultado Obtido</span>
-                                        <span className="font-medium text-success">
-                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.resultado_obtido)}
-                                        </span>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
               </div>
 
               {/* Mobile Cards */}
