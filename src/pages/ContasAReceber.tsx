@@ -877,6 +877,8 @@ export default function ContasAReceber() {
             <SyncMonitorPanel />
           </DrawerContent>
         </Drawer>
+
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
