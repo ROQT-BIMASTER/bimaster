@@ -17,6 +17,8 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { LanguageSelector } from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { CommandPalette, useCommandPalette } from "@/components/navigation/CommandPalette";
+import { Search } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import { InactivityModal } from "@/components/auth/InactivityModal";
