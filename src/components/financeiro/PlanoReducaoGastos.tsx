@@ -52,6 +52,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterPrioridade, setFilterPrioridade] = useState<string>('todas');
   const [filterTipo, setFilterTipo] = useState<string>('todos');
+  const [filterDepartamento, setFilterDepartamento] = useState<string>('todos');
+  const [filterEmpresaNome, setFilterEmpresaNome] = useState<string>('todas');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
@@ -106,7 +108,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const itensPendentes = revisoes?.filter(r => r.status === 'pendente').length || 0;
   const itensVencidos = revisoes?.filter(r => r.prazo_revisao && new Date(r.prazo_revisao) < new Date() && r.status !== 'concluido' && r.status !== 'cancelado').length || 0;
 
+  // Extract unique departments and empresas for filters
+  const uniqueDepartamentos = [...new Set(revisoes?.map(r => (r as any).departamento?.nome).filter(Boolean) || [])].sort();
+  const uniqueEmpresas = [...new Set(revisoes?.map(r => r.empresa_nome).filter(Boolean) || [])].sort();
+
   const filteredRevisoes = revisoes?.filter(r => {
+    if (filterDepartamento !== 'todos') {
+      const deptoNome = (r as any).departamento?.nome || '';
+      if (deptoNome !== filterDepartamento) return false;
+    }
+    if (filterEmpresaNome !== 'todas') {
+      if ((r.empresa_nome || '') !== filterEmpresaNome) return false;
+    }
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       const nome = r.plano_contas?.name?.toLowerCase() || r.categoria_nome?.toLowerCase() || '';
@@ -117,6 +130,14 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
     return true;
   });
+
+  // Group by departamento
+  const groupedByDepartamento = filteredRevisoes?.reduce((acc, r) => {
+    const key = (r as any).departamento?.nome || 'Sem Departamento';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {} as Record<string, typeof filteredRevisoes>) || {};
 
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
@@ -214,7 +235,21 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRevisoes?.map((revisao) => {
+          {Object.entries(groupedByDepartamento).sort(([a], [b]) => a.localeCompare(b)).map(([deptoName, items]) => {
+            const deptoTotal = items?.reduce((acc, r) => acc + (r.valor_atual || 0), 0) || 0;
+            return (
+              <>{/* Department group */}
+                <TableRow key={`dept-${deptoName}`} className="bg-muted/60 hover:bg-muted/60">
+                  <TableCell colSpan={5} className="py-2">
+                    <span className="font-semibold text-sm">{deptoName}</span>
+                    <Badge variant="secondary" className="ml-2 text-xs">{items?.length || 0}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right py-2 font-semibold text-sm font-mono">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deptoTotal)}
+                  </TableCell>
+                  <TableCell colSpan={3} className="py-2" />
+                </TableRow>
+                {items?.map((revisao) => {
             const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
             const status = statusConfig[revisao.status as keyof typeof statusConfig];
             const prioridade = prioridadeConfig[revisao.prioridade as keyof typeof prioridadeConfig];
@@ -361,6 +396,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
               </>
             );
           })}
+              </>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -445,10 +483,34 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         </CardHeader>
         <CardContent>
           {/* Filtros */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
             <div className="space-y-1">
               <Label className="text-xs">Buscar</Label>
               <Input placeholder="Fornecedor, nome, documento..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Empresa</Label>
+              <Select value={filterEmpresaNome} onValueChange={setFilterEmpresaNome}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {uniqueEmpresas.map((emp) => (
+                    <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Departamento</Label>
+              <Select value={filterDepartamento} onValueChange={setFilterDepartamento}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {uniqueDepartamentos.map((dep) => (
+                    <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
