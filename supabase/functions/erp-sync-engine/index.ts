@@ -414,6 +414,8 @@ async function handleSyncPaginated(
     const supabase2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await recordSync(supabase2, entityName, { status: "error", totalRegistros: totalRows, registrosInseridos: totalUpserted, duracaoMs: Date.now() - startMs, erroMensagem: msg, empresaId: options?.empresaId });
     return errorResponse(500, "sync_failed", msg, req, startMs);
+  } finally {
+    if (connection) try { connection.close(); console.log(`🔗 SQL connection closed`); } catch (_) {}
   }
 }
 
