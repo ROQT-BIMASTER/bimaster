@@ -8,14 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Target, TrendingDown, CheckCircle2, Clock, AlertTriangle,
-  Ban, RefreshCw, Eye, Users, Calendar, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight, Plus
+  Ban, RefreshCw, Eye, FileDown, Trash2, Edit, Check, ChevronDown, ChevronRight
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { MetasReducaoChart } from "./MetasReducaoChart";
 import { RevisaoGastosCard } from "./RevisaoGastosCard";
@@ -59,26 +57,18 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
   const { data: revisoes, isLoading, refetch } = useQuery({
     queryKey: ['contas-revisao', filterStatus, filterPrioridade, filterTipo],
     queryFn: async () => {
-      // Buscar revisões
       let query = supabase
         .from('contas_pagar_revisao')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (filterStatus !== 'todos') {
-        query = query.eq('status', filterStatus);
-      }
-      if (filterPrioridade !== 'todas') {
-        query = query.eq('prioridade', filterPrioridade);
-      }
-      if (filterTipo !== 'todos') {
-        query = query.eq('tipo_revisao', filterTipo);
-      }
+      if (filterStatus !== 'todos') query = query.eq('status', filterStatus);
+      if (filterPrioridade !== 'todas') query = query.eq('prioridade', filterPrioridade);
+      if (filterTipo !== 'todos') query = query.eq('tipo_revisao', filterTipo);
 
       const { data, error } = await query;
       if (error) throw error;
       
-      // Buscar dados relacionados separadamente
       const responsaveisIds = [...new Set(data?.filter(r => r.responsavel_id).map(r => r.responsavel_id))];
       const planoContasIds = [...new Set(data?.filter(r => r.plano_contas_id).map(r => r.plano_contas_id))];
       const departamentoIds = [...new Set(data?.filter(r => r.departamento_id).map(r => r.departamento_id))];
@@ -99,7 +89,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       const planoContasMap = new Map((planoContasRes.data || []).map(r => [r.id, r]));
       const departamentosMap = new Map((departamentosRes.data || []).map(r => [r.id, r]));
       
-      // Enriquecer dados
       return data?.map(r => ({
         ...r,
         responsavel: r.responsavel_id ? responsaveisMap.get(r.responsavel_id) : null,
@@ -109,22 +98,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     }
   });
 
-  const { data: usuarios } = useQuery({
-    queryKey: ['usuarios-responsaveis'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, nome, email');
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Calcular KPIs
+  // KPIs
   const totalMarcados = revisoes?.length || 0;
   const metaTotalEconomia = revisoes?.reduce((acc, r) => acc + (r.meta_reducao_valor || 0), 0) || 0;
   const economiaRealizada = revisoes?.filter(r => r.status === 'concluido').reduce((acc, r) => acc + (r.resultado_obtido || 0), 0) || 0;
-  const percentualAtingido = metaTotalEconomia > 0 ? (economiaRealizada / metaTotalEconomia) * 100 : 0;
   const itensPendentes = revisoes?.filter(r => r.status === 'pendente').length || 0;
   const itensVencidos = revisoes?.filter(r => r.prazo_revisao && new Date(r.prazo_revisao) < new Date() && r.status !== 'concluido' && r.status !== 'cancelado').length || 0;
 
@@ -140,26 +117,11 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
     return true;
   });
 
-  // Agrupar por responsável
-  const revisoesPorResponsavel = filteredRevisoes?.reduce((acc, r: any) => {
-    const key = r.responsavel?.nome || r.responsavel?.email || 'Sem Responsável';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(r);
-    return acc;
-  }, {} as Record<string, typeof revisoes>);
-
   const handleUpdateStatus = async (id: string, novoStatus: string, resultadoObtido?: number) => {
     try {
       const updateData: any = { status: novoStatus };
-      if (resultadoObtido !== undefined) {
-        updateData.resultado_obtido = resultadoObtido;
-      }
-
-      const { error } = await supabase
-        .from('contas_pagar_revisao')
-        .update(updateData)
-        .eq('id', id);
-
+      if (resultadoObtido !== undefined) updateData.resultado_obtido = resultadoObtido;
+      const { error } = await supabase.from('contas_pagar_revisao').update(updateData).eq('id', id);
       if (error) throw error;
       toast.success("Status atualizado!");
       refetch();
@@ -170,13 +132,8 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
 
   const handleDelete = async (id: string) => {
     if (!confirm("Deseja realmente excluir esta marcação?")) return;
-    
     try {
-      const { error } = await supabase
-        .from('contas_pagar_revisao')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('contas_pagar_revisao').delete().eq('id', id);
       if (error) throw error;
       toast.success("Marcação excluída!");
       refetch();
@@ -187,11 +144,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
 
   const exportarExcel = async () => {
     if (!revisoes) return;
-
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'BiMaster';
     const worksheet = workbook.addWorksheet('Plano Redução');
-
     worksheet.columns = [
       { header: 'Item', key: 'item', width: 30 },
       { header: 'Fornecedor', key: 'fornecedor', width: 25 },
@@ -211,7 +166,6 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       { header: 'Status', key: 'status', width: 12 },
       { header: 'Observações', key: 'observacoes', width: 40 },
     ];
-
     revisoes.forEach(r => {
       worksheet.addRow({
         item: r.plano_contas?.name || r.categoria_nome || 'N/A',
@@ -220,7 +174,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         tipo_documento: r.tipo_documento || 'N/A',
         vencimento: r.data_vencimento ? format(parseISO(r.data_vencimento), 'dd/MM/yyyy') : 'N/A',
         empresa: r.empresa_nome || 'N/A',
-        departamento: r.departamento?.nome || 'N/A',
+        departamento: (r as any).departamento?.nome || 'N/A',
         tipo: tipoConfig[r.tipo_revisao as keyof typeof tipoConfig]?.label || r.tipo_revisao,
         prioridade: prioridadeConfig[r.prioridade as keyof typeof prioridadeConfig]?.label || r.prioridade,
         valor_atual: r.valor_atual || 0,
@@ -233,11 +187,9 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         observacoes: r.observacoes || '',
       });
     });
-
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Plano_Reducao_Gastos_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
@@ -251,54 +203,50 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Target className="h-4 w-4 text-blue-500" />
+              <Target className="h-4 w-4 text-primary" />
               Itens Marcados
             </div>
             <div className="text-2xl font-bold">{totalMarcados}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <TrendingDown className="h-4 w-4 text-orange-500" />
+              <TrendingDown className="h-4 w-4 text-warning" />
               Meta de Economia
             </div>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-warning">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metaTotalEconomia)}
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Economia Realizada
             </div>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(economiaRealizada)}
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Clock className="h-4 w-4 text-yellow-500" />
+              <Clock className="h-4 w-4 text-warning" />
               Pendentes
             </div>
-            <div className="text-2xl font-bold text-yellow-600">{itensPendentes}</div>
+            <div className="text-2xl font-bold text-warning">{itensPendentes}</div>
           </CardContent>
         </Card>
-
-        <Card className={itensVencidos > 0 ? 'border-red-500' : ''}>
+        <Card className={itensVencidos > 0 ? 'border-destructive' : ''}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
               Vencidos
             </div>
-            <div className={`text-2xl font-bold ${itensVencidos > 0 ? 'text-red-600' : ''}`}>
+            <div className={`text-2xl font-bold ${itensVencidos > 0 ? 'text-destructive' : ''}`}>
               {itensVencidos}
             </div>
           </CardContent>
@@ -308,7 +256,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
       {/* Gráficos */}
       <MetasReducaoChart revisoes={revisoes || []} />
 
-      {/* Filtros e Ações */}
+      {/* Itens em Revisão */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -320,21 +268,16 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          {/* Filtros */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="space-y-1">
               <Label className="text-xs">Buscar</Label>
-              <Input
-                placeholder="Fornecedor, nome, documento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <Input placeholder="Fornecedor, nome, documento..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {Object.entries(statusConfig).map(([key, config]) => (
@@ -346,9 +289,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <div className="space-y-1">
               <Label className="text-xs">Prioridade</Label>
               <Select value={filterPrioridade} onValueChange={setFilterPrioridade}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   {Object.entries(prioridadeConfig).map(([key, config]) => (
@@ -360,9 +301,7 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
             <div className="space-y-1">
               <Label className="text-xs">Tipo</Label>
               <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {Object.entries(tipoConfig).map(([key, config]) => (
@@ -371,52 +310,193 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Visualização</Label>
-              <Select value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lista">Lista</SelectItem>
-                  <SelectItem value="responsavel">Por Responsável</SelectItem>
-                  <SelectItem value="timeline">Timeline</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
-          <ScrollArea className="h-[500px]">
-            {isLoading ? (
-              <div className="p-12 text-center text-muted-foreground">
-                <div className="animate-pulse">Carregando...</div>
+          {isLoading ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <div className="animate-pulse">Carregando...</div>
+            </div>
+          ) : filteredRevisoes?.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              Nenhum item marcado para revisão
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <div className="max-h-[500px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[30px]" />
+                        <TableHead className="w-[100px]">Tipo</TableHead>
+                        <TableHead>Fornecedor / Item</TableHead>
+                        <TableHead className="w-[90px]">Prioridade</TableHead>
+                        <TableHead className="w-[120px]">Status</TableHead>
+                        <TableHead className="text-right w-[130px]">Valor Atual</TableHead>
+                        <TableHead className="text-right w-[130px]">Meta Redução</TableHead>
+                        <TableHead className="w-[100px]">Prazo</TableHead>
+                        <TableHead className="text-right w-[120px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRevisoes?.map((revisao) => {
+                        const tipo = tipoConfig[revisao.tipo_revisao as keyof typeof tipoConfig];
+                        const status = statusConfig[revisao.status as keyof typeof statusConfig];
+                        const prioridade = prioridadeConfig[revisao.prioridade as keyof typeof prioridadeConfig];
+                        const TipoIcon = tipo?.icon;
+                        const StatusIcon = status?.icon;
+                        const isExpanded = expandedRow === revisao.id;
+                        const itemName = (revisao as any).plano_contas?.name || revisao.categoria_nome || 'N/A';
+                        const fornecedor = revisao.fornecedor_nome || '';
+                        const diasRestantes = revisao.prazo_revisao 
+                          ? differenceInDays(new Date(revisao.prazo_revisao), new Date()) 
+                          : null;
+                        const prazoVencido = diasRestantes !== null && diasRestantes < 0 && revisao.status !== 'concluido' && revisao.status !== 'cancelado';
+
+                        return (
+                          <>{/* Fragment for row + expandable detail */}
+                            <TableRow 
+                              key={revisao.id} 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => setExpandedRow(isExpanded ? null : revisao.id)}
+                            >
+                              <TableCell className="px-2">
+                                {isExpanded 
+                                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> 
+                                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  {TipoIcon && <TipoIcon className={`h-3.5 w-3.5 ${tipo?.color}`} />}
+                                  <span className="text-xs font-medium">{tipo?.label || revisao.tipo_revisao}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium text-sm truncate max-w-[250px]">{itemName}</div>
+                                  {fornecedor && <div className="text-xs text-muted-foreground truncate max-w-[250px]">{fornecedor}</div>}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`h-2 w-2 rounded-full ${
+                                    revisao.prioridade === 'alta' ? 'bg-destructive' :
+                                    revisao.prioridade === 'media' ? 'bg-warning' : 'bg-success'
+                                  }`} />
+                                  <span className="text-xs">{prioridade?.label || revisao.prioridade}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${status?.color || ''}`}>
+                                  {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
+                                  {status?.label || revisao.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm">
+                                {revisao.valor_atual 
+                                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.valor_atual)
+                                  : '—'
+                                }
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                {revisao.meta_reducao_percentual 
+                                  ? <span className="font-medium">{revisao.meta_reducao_percentual}%</span>
+                                  : '—'
+                                }
+                                {revisao.meta_reducao_valor ? (
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(revisao.meta_reducao_valor)}
+                                  </div>
+                                ) : null}
+                              </TableCell>
+                              <TableCell>
+                                {revisao.prazo_revisao ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs">{format(parseISO(revisao.prazo_revisao), 'dd/MM')}</span>
+                                    {diasRestantes !== null && (
+                                      <span className={`text-xs font-medium ${
+                                        prazoVencido ? 'text-destructive' :
+                                        diasRestantes <= 7 ? 'text-warning' : 'text-muted-foreground'
+                                      }`}>
+                                        {diasRestantes < 0 ? `${Math.abs(diasRestantes)}d atrás` :
+                                         diasRestantes === 0 ? 'Hoje' : `${diasRestantes}d`}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                  {revisao.status !== 'concluido' && revisao.status !== 'cancelado' && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Concluir"
+                                      onClick={() => handleUpdateStatus(revisao.id, 'concluido')}>
+                                      <Check className="h-3.5 w-3.5 text-success" />
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar">
+                                    <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir"
+                                    onClick={() => handleDelete(revisao.id)}>
+                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && (
+                              <TableRow key={`${revisao.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
+                                <TableCell colSpan={9} className="py-3">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm px-2">
+                                    <div>
+                                      <span className="text-xs text-muted-foreground block">Documento</span>
+                                      <span className="font-medium">{revisao.numero_documento || 'N/A'}</span>
+                                      {revisao.tipo_documento && <span className="text-xs text-muted-foreground ml-1">({revisao.tipo_documento})</span>}
+                                    </div>
+                                    <div>
+                                      <span className="text-xs text-muted-foreground block">Empresa</span>
+                                      <span className="font-medium">{revisao.empresa_nome || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs text-muted-foreground block">Departamento</span>
+                                      <span className="font-medium">{(revisao as any).departamento?.nome || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-xs text-muted-foreground block">Responsável</span>
+                                      <span className="font-medium">{(revisao as any).responsavel?.nome || (revisao as any).responsavel?.email || 'N/A'}</span>
+                                    </div>
+                                    {revisao.observacoes && (
+                                      <div className="col-span-full">
+                                        <span className="text-xs text-muted-foreground block">Observações</span>
+                                        <span className="text-sm">{revisao.observacoes}</span>
+                                      </div>
+                                    )}
+                                    {revisao.resultado_obtido ? (
+                                      <div>
+                                        <span className="text-xs text-muted-foreground block">Resultado Obtido</span>
+                                        <span className="font-medium text-success">
+                                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revisao.resultado_obtido)}
+                                        </span>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            ) : viewMode === 'lista' ? (
-              <div className="space-y-3">
-                {filteredRevisoes?.map((revisao) => (
-                  <RevisaoGastosCard
-                    key={revisao.id}
-                    revisao={revisao}
-                    onUpdateStatus={handleUpdateStatus}
-                    onDelete={handleDelete}
-                  />
-                ))}
-                {filteredRevisoes?.length === 0 && (
-                  <div className="p-12 text-center text-muted-foreground">
-                    Nenhum item marcado para revisão
-                  </div>
-                )}
-              </div>
-            ) : viewMode === 'responsavel' ? (
-              <div className="space-y-6">
-                {Object.entries(revisoesPorResponsavel || {}).map(([responsavel, items]) => (
-                  <div key={responsavel} className="space-y-3">
-                    <div className="flex items-center gap-2 sticky top-0 bg-background py-2 border-b">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">{responsavel}</span>
-                      <Badge variant="secondary">{items?.length || 0} itens</Badge>
-                    </div>
-                    {items?.map((revisao) => (
+
+              {/* Mobile Cards */}
+              <div className="md:hidden">
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-3">
+                    {filteredRevisoes?.map((revisao) => (
                       <RevisaoGastosCard
                         key={revisao.id}
                         revisao={revisao}
@@ -425,43 +505,10 @@ export function PlanoReducaoGastos({ dataInicio, dataFim, filterEmpresa }: Plano
                       />
                     ))}
                   </div>
-                ))}
+                </ScrollArea>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredRevisoes
-                  ?.filter(r => r.prazo_revisao)
-                  .sort((a, b) => new Date(a.prazo_revisao!).getTime() - new Date(b.prazo_revisao!).getTime())
-                  .map((revisao) => {
-                    const diasRestantes = differenceInDays(new Date(revisao.prazo_revisao!), new Date());
-                    return (
-                      <div key={revisao.id} className="flex items-center gap-4">
-                        <div className={`text-center p-2 rounded-lg min-w-[60px] ${
-                          diasRestantes < 0 ? 'bg-red-100 text-red-700' :
-                          diasRestantes <= 7 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          <div className="text-xs">
-                            {diasRestantes < 0 ? 'Vencido' : diasRestantes === 0 ? 'Hoje' : `${diasRestantes}d`}
-                          </div>
-                          <div className="text-sm font-medium">
-                            {format(parseISO(revisao.prazo_revisao!), 'dd/MM')}
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <RevisaoGastosCard
-                            revisao={revisao}
-                            onUpdateStatus={handleUpdateStatus}
-                            onDelete={handleDelete}
-                            compact
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </ScrollArea>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
