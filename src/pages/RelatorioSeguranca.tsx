@@ -95,6 +95,53 @@ const RelatorioSeguranca = () => {
           </p>
         </div>
 
+        {/* DADOS EM TEMPO REAL */}
+        <section className="no-print bg-muted/30 border border-border rounded-lg p-5">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
+            <Activity className="h-5 w-5 text-primary" />
+            Dados em Tempo Real
+          </h2>
+          {liveLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando dados ao vivo...</p>
+          ) : liveData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-card border border-border rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground">{liveData.failedLogins24h}</p>
+                  <p className="text-xs text-muted-foreground">Logins falhados (24h)</p>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground">{liveData.activeRateLimits}</p>
+                  <p className="text-xs text-muted-foreground">IPs em rate limit</p>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground">{liveData.criticalEvents7d}</p>
+                  <p className="text-xs text-muted-foreground">Eventos críticos (7d)</p>
+                </div>
+              </div>
+              {liveData.recentActions.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-2">Últimas 10 ações auditadas:</p>
+                  <div className="space-y-1">
+                    {liveData.recentActions.map((a, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs bg-card border border-border rounded px-3 py-1.5">
+                        <span className="text-foreground font-medium">{a.action}</span>
+                        <span className="text-muted-foreground">{a.entity_type}</span>
+                        <span className="text-muted-foreground">
+                          {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground text-right">
+                Atualizado: {new Date(liveData.fetchedAt).toLocaleString('pt-BR')}
+              </p>
+            </div>
+          ) : null}
+        </section>
+
         {/* 1. RESUMO EXECUTIVO */}
         <section>
           <h2 className="text-xl font-bold text-foreground border-b pb-2 flex items-center gap-2">
