@@ -310,8 +310,16 @@ async function recordSync(
   } catch (metricsErr) {
     console.error(`⚠️ sync_metrics exception:`, metricsErr);
   }
-}
 
+  // ─── Alert check: consecutive failures/partials ───
+  if (data.status === "error" || data.status === "partial") {
+    try {
+      await checkAndSendSyncAlert(supabase, entidade, data);
+    } catch (alertErr) {
+      console.error(`⚠️ sync alert check failed:`, alertErr);
+    }
+  }
+}
 // ─── Get last successful sync timestamp ───
 
 async function getLastSyncTimestamp(
