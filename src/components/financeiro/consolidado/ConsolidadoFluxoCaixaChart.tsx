@@ -60,16 +60,16 @@ export function ConsolidadoFluxoCaixaChart({ data }: ConsolidadoFluxoCaixaChartP
         <div className="flex gap-4 text-sm">
           <div className="text-center">
             <p className="text-muted-foreground">Entradas</p>
-            <p className="font-bold text-emerald-500">{formatCurrency(totalEntradas)}</p>
+            <p className="font-bold text-emerald-500">{formatCurrencyNoDecimals(totalEntradas)}</p>
           </div>
           <div className="text-center">
             <p className="text-muted-foreground">Saídas</p>
-            <p className="font-bold text-destructive">{formatCurrency(totalSaidas)}</p>
+            <p className="font-bold text-destructive">{formatCurrencyNoDecimals(totalSaidas)}</p>
           </div>
           <div className="text-center">
             <p className="text-muted-foreground">Saldo</p>
             <p className={`font-bold ${saldoFinal >= 0 ? "text-primary" : "text-destructive"}`}>
-              {formatCurrency(saldoFinal)}
+              {formatCurrencyNoDecimals(saldoFinal)}
             </p>
           </div>
         </div>
