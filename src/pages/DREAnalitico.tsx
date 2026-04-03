@@ -583,40 +583,19 @@ export default function DREAnalitico() {
       children: []
     };
 
-    // Processar contas a receber agregadas (RECEITAS) via RPC
-    if (contasReceberAgregadas && contasReceberAgregadas.length > 0) {
-      const receitasPorCliente = new Map<string, { nome: string; valor: number; valoresMensais: { [key: string]: number }; qtdDocumentos: number }>();
-      
-      contasReceberAgregadas.forEach(row => {
+    // Processar totais mensais de contas a receber (RECEITAS) — dados precisos
+    if (contasReceberTotais && contasReceberTotais.length > 0) {
+      contasReceberTotais.forEach(row => {
         const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
-        
         const mesKey = row.mes;
-        const clienteKey = row.cliente_codigo || 'sem-cliente';
-        const clienteNome = row.cliente_nome || 'Cliente não identificado';
         
         receitaBruta.valor += valor;
         if (mesKey && receitaBruta.valoresMensais![mesKey] !== undefined) {
           receitaBruta.valoresMensais![mesKey] += valor;
         }
-        
-        if (!receitasPorCliente.has(clienteKey)) {
-          receitasPorCliente.set(clienteKey, {
-            nome: clienteNome,
-            valor: 0,
-            valoresMensais: initValoresMensais(),
-            qtdDocumentos: 0
-          });
-        }
-        
-        const clienteData = receitasPorCliente.get(clienteKey)!;
-        clienteData.valor += valor;
-        clienteData.qtdDocumentos += Number(row.qtd_documentos || 0);
-        if (mesKey && clienteData.valoresMensais[mesKey] !== undefined) {
-          clienteData.valoresMensais[mesKey] += valor;
-        }
       });
       
-      // Criar subconta "Vendas / Faturamento"
+      // Criar subconta "Vendas / Faturamento" com drill-down por cliente (top 50)
       const vendasSubconta: DRENode = {
         id: 'vendas-faturamento',
         codigo: '01.01',
@@ -630,20 +609,23 @@ export default function DREAnalitico() {
         children: []
       };
       
-      receitasPorCliente.forEach((clienteData, clienteKey) => {
-        const nodoCliente: DRENode = {
-          id: `cliente-${clienteKey}`,
-          codigo: '',
-          nome: `${clienteData.nome} (${clienteData.qtdDocumentos} docs)`,
-          tipo: 'fornecedor',
-          nivel: 2,
-          valor: clienteData.valor,
-          valoresMensais: clienteData.valoresMensais,
-          natureza: 'C',
-          accountType: 'revenue',
-        };
-        vendasSubconta.children?.push(nodoCliente);
-      });
+      if (contasReceberClientes && contasReceberClientes.length > 0) {
+        contasReceberClientes.forEach(row => {
+          const valor = parseFloat(String(row.valor_recebido || row.valor_original || 0));
+          const nodoCliente: DRENode = {
+            id: `cliente-${row.cliente_codigo}`,
+            codigo: '',
+            nome: `${row.cliente_nome} (${row.qtd_documentos} docs)`,
+            tipo: 'fornecedor',
+            nivel: 2,
+            valor: valor,
+            valoresMensais: initValoresMensais(),
+            natureza: 'C',
+            accountType: 'revenue',
+          };
+          vendasSubconta.children?.push(nodoCliente);
+        });
+      }
       
       vendasSubconta.children?.sort((a, b) => b.valor - a.valor);
       receitaBruta.children?.push(vendasSubconta);
