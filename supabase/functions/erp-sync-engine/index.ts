@@ -180,8 +180,15 @@ async function batchUpsert(
   let inserted = 0;
   const errors: string[] = [];
 
-  for (let i = 0; i < records.length; i += UPSERT_BATCH_SIZE) {
-    const batch = records.slice(i, i + UPSERT_BATCH_SIZE);
+  // Deduplicate by conflict column (keep last occurrence)
+  const deduped = new Map<string, Record<string, unknown>>();
+  for (const r of records) {
+    deduped.set(String(r[conflictColumn] ?? ""), r);
+  }
+  const uniqueRecords = Array.from(deduped.values());
+
+  for (let i = 0; i < uniqueRecords.length; i += UPSERT_BATCH_SIZE) {
+    const batch = uniqueRecords.slice(i, i + UPSERT_BATCH_SIZE);
     const { error } = await supabase
       .from(table)
       .upsert(batch as any, { onConflict: conflictColumn, ignoreDuplicates: false });
