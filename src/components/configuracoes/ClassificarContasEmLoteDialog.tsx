@@ -91,7 +91,7 @@ export function ClassificarContasEmLoteDialog({
         }
         const entry = catMap.get(cat)!;
         entry.qtd++;
-        if (r.valor_documento) entry.valores.push(Number(r.valor_documento));
+        if (r.valor_original) entry.valores.push(Number(r.valor_original));
         if (r.fornecedor_nome) {
           entry.fornecedores.set(r.fornecedor_nome, (entry.fornecedores.get(r.fornecedor_nome) || 0) + 1);
         }
