@@ -565,13 +565,7 @@ const AgingReport = ({
   const total = data.reduce((sum, d) => sum + d.valor, 0);
   const totalCount = data.reduce((sum, d) => sum + d.count, 0);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0
-    }).format(value);
-  };
+  // formatCurrency importado de @/lib/formatters
 
   return (
     <div className="space-y-4">
