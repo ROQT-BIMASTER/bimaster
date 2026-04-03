@@ -595,7 +595,7 @@ async function handleSyncContasReceberIncremental(req: Request, startMs: number)
     const syncDate = new Date(lastSync);
     const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
     // Only capture recent payments — NOT all future due dates
-    whereClause = `[Data Pgto] >= '${sqlDate}'`;
+    whereClause = `[Data Pgto] IS NOT NULL AND [Data Pgto] >= '${sqlDate}'`;
     console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate} (payments only)`);
   } else {
     // Fallback: last 2 hours if no previous successful sync
