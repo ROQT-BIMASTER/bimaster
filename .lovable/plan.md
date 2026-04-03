@@ -1,74 +1,73 @@
 
 
-# Cadastrar Novo Plano de Contas (Planilha 2026)
+# Reclassificar Contas a Pagar com IA — Estratégia em Lote por Categoria
 
-## Resumo
+## Problema
 
-A tabela `trade_chart_of_accounts` está vazia (0 contas). Vamos inserir todas as ~130 contas da planilha enviada, respeitando hierarquia, grupos, níveis e categorias DRE.
+- **47.566 títulos** em `contas_pagar` com `plano_contas_id = NULL`
+- **248 categorias distintas** importadas do ERP (ex: "COMPRA DE MERCADORIA PARA REVENDA", "SALARIOS", "TRIBUTOS ESTADUAIS")
+- A abordagem atual classifica **1 conta por vez** via IA — inviável para 47k registros (custaria ~47k chamadas de IA)
 
-## Estrutura a Cadastrar
+## Solução: Classificar por Categoria (não por título)
+
+Em vez de classificar 47.566 títulos individualmente, classificar as **248 categorias únicas** do ERP. Depois, aplicar o mapeamento em massa via UPDATE SQL.
 
 ```text
-1     RECEITA BRUTA (grupo)
-├─ 1.1   Boletos - Banco
-├─ 1.2   Depósitos em Conta
-├─ 1.3   Cheque
-└─ 1.4   Mercado Pago
-
-2     CUSTOS VARIÁVEIS (grupo)
-├─ 2.1   Fornecedores de Produtos (grupo)
-│  ├─ 2.1.1  Compras Ruby Rose
-│  ├─ 2.1.2  Devolução (Clientes)
-│  └─ 2.1.3  Despesas Comerciais
-├─ 2.2   Embalagens e Materiais
-├─ 2.4   Fretes (grupo) → 5 sub-contas
-├─ 2.5   Despesas Tributárias (grupo) → 6 sub-contas
-├─ 2.6   Despesas Comerciais (grupo) → 2 sub-contas
-└─ 2.7   Tarifas (grupo) → 1 sub-conta
-
-3     DESPESAS FIXAS (grupo)
-├─ 3.1   Desp. Administrativas → ~24 sub-contas + sub-níveis
-├─ 3.2   Desp. com Pessoal → ~14 sub-contas + sub-níveis
-├─ 3.3   Desp. Marketing → 13 sub-contas
-├─ 3.4   Desp/Rec Financeiras → 2 sub-contas
-└─ 3.5   Retirada dos Sócios → 1 sub-conta
-
-4     CONTAS DE PATRIMÔNIO (grupo)
-├─ 4.1   Rec/Desp Não Operacionais → 2 sub-contas
-├─ 4.2   Atividades de Investimentos → 7 sub-contas
-├─ 4.3   Atividades Financeiras → 9 sub-contas
-└─ 4.4   Atividades com os Sócios → 2 sub-contas
+Etapa 1: IA classifica 248 categorias → plano de contas v2
+Etapa 2: UPDATE em massa vincula os 47.566 títulos
 ```
 
-## Detalhes Técnicos
+### Fluxo
 
-### Inserção via SQL (ferramenta de inserção de dados)
+1. **Edge Function `classificar-contas-lote`** (nova):
+   - Recebe um lote de categorias (até 30 por vez)
+   - Envia para IA com contexto completo: plano de contas v2, exemplos de fornecedores por categoria, valores médios
+   - IA retorna o mapeamento `categoria_nome → código do plano de contas`
+   - Salva resultado na tabela `plano_contas_mapeamento_categorias` (nova)
 
-- **Versão**: todas as contas com `versao = 'v2'`
-- **Hierarquia**: `parent_account_id` vinculando filhos aos grupos pai
-- **Níveis**: calculados pela profundidade do código (ex: `3.1.8.1` = nível 4)
-- **Grupos**: contas que têm filhos marcadas com `is_group = true`, `permite_lancamento = false`
-- **Contas analíticas**: `is_group = false`, `permite_lancamento = true`
-- **Categoria DRE**:
-  - Grupo 1.x → `receita_bruta`
-  - Grupo 2.5.x → `deducoes`
-  - Grupo 2.1/2.2/2.4/2.6/2.7 → `custo_vendas`
-  - Grupo 3.x → `despesas_fixas`
-  - Grupo 4.x → sem categoria DRE (patrimônio)
-- **Account type**: `revenue` (1.x), `expense` (2.x, 3.x), `asset` (4.x)
-- **Natureza**: `C` para receitas (1.x), `D` para despesas/custos (2.x, 3.x, 4.x)
-- **Ordem**: sequencial para manter a ordem da planilha
+2. **Tabela `plano_contas_mapeamento_categorias`** (nova):
+   - `categoria_nome` (unique) — nome da categoria do ERP
+   - `plano_contas_id` — conta v2 mapeada
+   - `confianca` — score da IA
+   - `justificativa` — explicação da IA
+   - `revisado_manualmente` — flag para correções do usuário
 
-### Inserção em etapas
+3. **Aplicação em massa** (via SQL/RPC):
+   - `UPDATE contas_pagar SET plano_contas_id, plano_contas_codigo, plano_contas_nome` com base no mapeamento
 
-1. Inserir grupos de nível 1 (1, 2, 3, 4)
-2. Inserir grupos de nível 2 (1.1-1.4 como analíticas, 2.1, 2.4, 2.5, etc.)
-3. Inserir contas de nível 3 (2.1.1, 3.1.1, etc.)
-4. Inserir contas de nível 4 e 5 (3.1.1.1, 3.2.1.1.2, etc.)
+4. **Interface atualizada** (`ClassificarContasEmLoteDialog`):
+   - Fase 1: Mostra "248 categorias a classificar", botão iniciar
+   - Fase 2: Progresso por lotes de 30 categorias (~9 chamadas de IA)
+   - Fase 3: Tabela de revisão — usuário vê o mapeamento proposto, pode corrigir antes de aplicar
+   - Fase 4: Botão "Aplicar classificação" executa o UPDATE em massa
 
-Cada etapa precisa dos IDs gerados na anterior para definir `parent_account_id`.
+### Detalhes Técnicos da IA
 
-| Ação | Detalhe |
+A edge function enviará para cada lote:
+- Lista completa do plano de contas v2 (110 contas analíticas)
+- Para cada categoria: nome, top 3 fornecedores, valor médio, quantidade de títulos
+- Exemplos de campos do ERP: `categoria_nome`, `fornecedor_nome`, `tipo_documento`, `operacao`
+
+Isso permite classificação profissional porque a IA verá o contexto completo, não apenas o nome da categoria.
+
+### Contas a Receber
+
+As 374.800 contas a receber não possuem categorias do ERP — serão classificadas automaticamente como grupo 1 (RECEITA BRUTA) com base no tipo de recebimento, sem necessidade de IA.
+
+## Resultado Esperado
+
+| Antes | Depois |
 |---|---|
-| Inserção SQL (4 etapas) | ~130 contas na `trade_chart_of_accounts` com hierarquia completa |
+| 47.566 títulos sem classificação | 47.566 classificados |
+| 248 categorias ERP soltas | 248 mapeadas para plano v2 |
+| ~47k chamadas IA | ~9 chamadas IA (lotes de 30) |
+| Classificação 1-a-1 lenta | Mapeamento em massa instantâneo |
+
+## Arquivos
+
+| Arquivo | Mudança |
+|---|---|
+| Nova migração SQL | Criar tabela `plano_contas_mapeamento_categorias` |
+| `supabase/functions/classificar-contas-lote/index.ts` | Nova edge function para classificação em lote |
+| `src/components/configuracoes/ClassificarContasEmLoteDialog.tsx` | Reescrever com fluxo por categorias + revisão + aplicação em massa |
 
