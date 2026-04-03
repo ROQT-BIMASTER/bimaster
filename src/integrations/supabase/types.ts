@@ -28733,7 +28733,7 @@ export type Database = {
       }
       trade_financial_entries: {
         Row: {
-          account_id: string
+          account_id: string | null
           amount: number
           approval_status: string | null
           approved_at: string | null
@@ -28777,7 +28777,7 @@ export type Database = {
           valor_previsto: number | null
         }
         Insert: {
-          account_id: string
+          account_id?: string | null
           amount: number
           approval_status?: string | null
           approved_at?: string | null
@@ -28821,7 +28821,7 @@ export type Database = {
           valor_previsto?: number | null
         }
         Update: {
-          account_id?: string
+          account_id?: string | null
           amount?: number
           approval_status?: string | null
           approved_at?: string | null
