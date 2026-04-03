@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield } from "lucide-react";
+import { ArrowLeft, Shield, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SecurityKPICards } from "@/components/security/SecurityKPICards";
 import { SecurityActivityFeed } from "@/components/security/SecurityActivityFeed";
 import { SecurityTrendChart } from "@/components/security/SecurityTrendChart";
+import { SecurityScoreGauge } from "@/components/security/SecurityScoreGauge";
+import { SecurityRiskScoreCard } from "@/components/security/SecurityRiskScoreCard";
 
 const SecurityDashboard = () => {
   const navigate = useNavigate();
@@ -25,16 +27,36 @@ const SecurityDashboard = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => navigate("/dashboard/relatorio-seguranca")}>
-          Relatório Completo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/dashboard/security-explorer")}>
+            <Search className="h-4 w-4 mr-2" />
+            Event Explorer
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/dashboard/relatorio-seguranca")}>
+            Relatório Completo
+          </Button>
+        </div>
       </div>
 
-      <SecurityKPICards />
+      {/* Score + KPIs */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-1">
+          <SecurityScoreGauge />
+        </div>
+        <div className="lg:col-span-4">
+          <SecurityKPICards />
+        </div>
+      </div>
 
+      {/* Charts + Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SecurityTrendChart />
         <SecurityActivityFeed />
+      </div>
+
+      {/* Risk Score */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SecurityRiskScoreCard />
       </div>
     </div>
   );
