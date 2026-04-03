@@ -1,73 +1,66 @@
 
 
-# Contas a Receber -- Dados nao carregam (Diagnostico e Correcao)
+# Contas a Receber — Correcao Completa
 
-## Causa Raiz Identificada
+## Problemas Identificados
 
-Os logs do banco mostram **statement timeouts** repetidos nas queries de `contas_receber`:
+### 1. Loop infinito no AppSidebar (CRITICO)
+O `useEffect` na linha 448-467 do `AppSidebar.tsx` tem `hasModulePermission` como dependencia. Essa funcao muda de identidade quando o `PermissionsContext` atualiza (loading → ready), disparando `setTabelasPendentes(0)` → re-render → nova identidade da funcao → loop infinito.
 
-```text
-ERROR: canceling statement due to statement timeout
-```
+O console confirma: `Maximum update depth exceeded` apontando para `AppSidebar.tsx:733`.
 
-A tabela tem **343.599 registros** e a policy RLS `cr_select_empresa` executa **2 funcoes complexas por linha**:
-
-1. `check_user_access(auth.uid(), 'financeiro')` — faz 4 sub-queries (user_roles, permissoes_modulos, departamento_permissoes, role_permissoes)
-2. `user_has_empresa_access(auth.uid(), empresa_id)` — consulta user_empresas + is_admin_or_supervisor
-
-Com 343k linhas, isso gera **milhoes de sub-queries** a cada request, causando timeout.
-
-Problema secundario: `permission denied for table user_roles` na query de `empresas`, bloqueando o carregamento das empresas do contexto.
+### 2. RLS e dados (JA CORRIGIDO)
+A migration anterior ja aplicou a policy otimizada, o GRANT e o indice. Nao ha statement timeouts nos logs recentes.
 
 ## Solucao
 
-### 1. Otimizar a RLS Policy de contas_receber
+### Arquivo: `src/components/dashboard/AppSidebar.tsx`
 
-Substituir as funcoes complexas por uma policy que usa `EXISTS` direto, evitando chamadas de funcao por linha:
+**Correcao 1** — Estabilizar a dependencia do useEffect (linha 448-467):
+Remover `hasModulePermission` da lista de dependencias e usar `useRef` para armazenar a funcao, evitando que mudancas de identidade da funcao disparem o effect.
 
-```sql
-DROP POLICY cr_select_empresa ON contas_receber;
-DROP POLICY cr_deny_anon ON contas_receber;
+```tsx
+// Antes:
+useEffect(() => {
+  if (loading || !hasModulePermission("precos")) {
+    setTabelasPendentes(0);
+    return;
+  }
+  // ...
+}, [loading, hasModulePermission]);
 
-CREATE POLICY cr_select_empresa ON contas_receber
-FOR SELECT TO authenticated
-USING (
-  empresa_id IN (SELECT empresa_id FROM public.user_empresas WHERE user_id = auth.uid())
-  OR public.has_role(auth.uid(), 'admin')
-);
+// Depois:
+const hasModulePermRef = useRef(hasModulePermission);
+hasModulePermRef.current = hasModulePermission;
+
+useEffect(() => {
+  if (loading || !hasModulePermRef.current("precos")) {
+    setTabelasPendentes(0);
+    return;
+  }
+  // ... (mesmo codigo)
+}, [loading]);
 ```
 
-Isso reduz de ~8 sub-queries/linha para 1 sub-query cacheavel (o planner do Postgres otimiza `IN (SELECT ...)` como semi-join).
+### Arquivo: `src/contexts/ImpersonationContext.tsx`
 
-### 2. Corrigir permissao na tabela user_roles
+**Correcao 2** — Estabilizar `hasModulePermission` e `hasScreenPermission` (linhas 198-213):
+Usar dependencias granulares em vez de `realPermissions` (objeto inteiro):
 
-Garantir que `authenticated` tenha SELECT na `user_roles` (necessario para `has_role` funcionar):
+```tsx
+// Antes:
+}, [impersonatedPermissions, realPermissions]);
 
-```sql
-GRANT SELECT ON public.user_roles TO authenticated;
+// Depois:
+}, [impersonatedPermissions, realPermissions.isAdmin, realPermissions.hasModulePermission]);
 ```
 
-### 3. Adicionar indice composto para a query principal
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_cr_empresa_vencimento 
-ON contas_receber (empresa_id, data_vencimento DESC);
-```
-
-### 4. Remover `count: 'exact'` da query da tabela
-
-No `ContasAReceber.tsx`, a query usa `{ count: 'exact' }` que forca um COUNT(*) completo com RLS — extremamente lento em 343k linhas. Substituir por usar o total retornado pela RPC `get_contas_receber_totais_filtrados` que ja e chamada.
-
-## Arquivos Alterados
-
-| Arquivo | Alteracao |
-|---|---|
-| Migration SQL | Nova RLS policy otimizada + GRANT + indice |
-| `src/pages/ContasAReceber.tsx` | Remover `count: 'exact'` da query da tabela, usar contagem da RPC |
+Mesma correcao para `hasScreenPermission`.
 
 ## Resultado Esperado
 
-- Queries que hoje fazem timeout (<8s) passam a executar em <500ms
-- Dashboard e tabela carregam normalmente
-- Empresas do contexto carregam sem erro de permissao
+- Loop infinito eliminado — a pagina renderiza normalmente
+- Sidebar estavel sem re-renders excessivos
+- Dados do Contas a Receber carregam (RLS ja otimizada na migration anterior)
+- Dashboard, Calendario e Tabela funcionais
 
