@@ -26484,6 +26484,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_metrics: {
+        Row: {
+          created_at: string
+          deadlock_retries: number
+          duration_ms: number
+          empresa_id: number
+          entity: string
+          errors: number
+          id: string
+          pages: number
+          rows: number
+          rows_inserted: number
+          rows_per_second: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          deadlock_retries?: number
+          duration_ms?: number
+          empresa_id?: number
+          entity: string
+          errors?: number
+          id?: string
+          pages?: number
+          rows?: number
+          rows_inserted?: number
+          rows_per_second?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          deadlock_retries?: number
+          duration_ms?: number
+          empresa_id?: number
+          entity?: string
+          errors?: number
+          id?: string
+          pages?: number
+          rows?: number
+          rows_inserted?: number
+          rows_per_second?: number
+          status?: string
+        }
+        Relationships: []
+      }
       sync_rate_limiter: {
         Row: {
           created_at: string | null
@@ -31029,6 +31074,24 @@ export type Database = {
           total_atividades: number | null
           total_prospects: number | null
           uf: string | null
+        }
+        Relationships: []
+      }
+      mv_financeiro_dashboard: {
+        Row: {
+          empresa_id: number | null
+          refreshed_at: string | null
+          status: string | null
+          total_titulos: number | null
+          total_valor_aberto: number | null
+          total_valor_original: number | null
+          total_valor_pendente: number | null
+          total_valor_recebido: number | null
+          total_valor_vencido: number | null
+          vencido_0_30: number | null
+          vencido_31_60: number | null
+          vencido_61_90: number | null
+          vencido_90_plus: number | null
         }
         Relationships: []
       }
