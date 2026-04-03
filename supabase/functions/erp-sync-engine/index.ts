@@ -13,6 +13,8 @@ interface SqlRow {
 // ─── Config ───
 const UPSERT_BATCH_SIZE = 500;
 const SQL_PAGE_SIZE = 3000;
+const DEADLOCK_MAX_RETRIES = 2;
+const DEADLOCK_INITIAL_DELAY_MS = 500;
 
 function connectToSqlServer(): Promise<Connection> {
   return new Promise((resolve, reject) => {
@@ -28,7 +30,7 @@ function connectToSqlServer(): Promise<Connection> {
       options: {
         database: Deno.env.get("ERP_SQL_DATABASE") || "",
         port: parseInt(Deno.env.get("ERP_SQL_PORT") || "1433"),
-        encrypt: false,
+        encrypt: true,
         trustServerCertificate: true,
         connectTimeout: 15000,
         requestTimeout: 120000,
@@ -97,6 +99,12 @@ function deriveStatus(valorAberto: number, valorPago: number, dataVencimento: st
     if (venc < hoje) return "vencido";
   }
   return "pendente";
+}
+
+function isDeadlockError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = (error as any)?.message?.toLowerCase() || "";
+  return msg.includes("deadlock") || msg.includes("lock request time out") || msg.includes("could not serialize");
 }
 
 // ─── Transformers ───
@@ -190,16 +198,17 @@ function transformContasPagar(row: SqlRow) {
   };
 }
 
-// ─── Batch upsert ───
+// ─── Batch upsert with deadlock retry ───
 
 async function batchUpsert(
   supabase: ReturnType<typeof createClient>,
   table: string,
   records: Record<string, unknown>[],
   conflictColumn: string
-): Promise<{ inserted: number; errors: string[] }> {
+): Promise<{ inserted: number; errors: string[]; deadlockRetries: number }> {
   let inserted = 0;
   const errors: string[] = [];
+  let deadlockRetries = 0;
 
   // Deduplicate by conflict column (keep last occurrence)
   const deduped = new Map<string, Record<string, unknown>>();
@@ -210,26 +219,45 @@ async function batchUpsert(
 
   for (let i = 0; i < uniqueRecords.length; i += UPSERT_BATCH_SIZE) {
     const batch = uniqueRecords.slice(i, i + UPSERT_BATCH_SIZE);
-    const { error } = await supabase
-      .from(table)
-      .upsert(batch as any, { onConflict: conflictColumn, ignoreDuplicates: false });
+    let success = false;
 
-    if (error) {
+    for (let attempt = 0; attempt <= DEADLOCK_MAX_RETRIES; attempt++) {
+      const { error } = await supabase
+        .from(table)
+        .upsert(batch as any, { onConflict: conflictColumn, ignoreDuplicates: false });
+
+      if (!error) {
+        inserted += batch.length;
+        success = true;
+        if (attempt > 0) {
+          console.log(`🔄 Batch ${Math.floor(i / UPSERT_BATCH_SIZE)} succeeded after ${attempt} retries`);
+        }
+        break;
+      }
+
+      if (isDeadlockError(error) && attempt < DEADLOCK_MAX_RETRIES) {
+        deadlockRetries++;
+        const delay = DEADLOCK_INITIAL_DELAY_MS * Math.pow(2, attempt);
+        console.warn(`🔒 Deadlock on batch ${Math.floor(i / UPSERT_BATCH_SIZE)}, retry ${attempt + 1}/${DEADLOCK_MAX_RETRIES} in ${delay}ms`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
       errors.push(`Batch ${Math.floor(i / UPSERT_BATCH_SIZE)}: ${error.message}`);
       console.error(`❌ Upsert error batch ${i}: ${error.message}`);
-    } else {
-      inserted += batch.length;
+      break;
     }
+
     // Small delay between batches
-    if (i + UPSERT_BATCH_SIZE < records.length) {
+    if (i + UPSERT_BATCH_SIZE < uniqueRecords.length) {
       await new Promise((r) => setTimeout(r, 50));
     }
   }
 
-  return { inserted, errors };
+  return { inserted, errors, deadlockRetries };
 }
 
-// ─── Record sync in sync_control ───
+// ─── Record sync in sync_control + sync_metrics ───
 
 async function recordSync(
   supabase: ReturnType<typeof createClient>,
@@ -241,8 +269,11 @@ async function recordSync(
     duracaoMs: number;
     erroMensagem?: string;
     empresaId?: number;
+    pagesProcessed?: number;
+    deadlockRetries?: number;
   }
 ) {
+  // Record in sync_control
   await supabase.from("sync_control").insert({
     entidade,
     empresa_id: data.empresaId || 1,
@@ -255,6 +286,38 @@ async function recordSync(
     status: data.status,
     erro_mensagem: data.erroMensagem || null,
   });
+
+  // Record in sync_metrics for observability
+  const rowsPerSecond = data.duracaoMs > 0 ? Math.round((data.totalRegistros / data.duracaoMs) * 1000) : 0;
+  await supabase.from("sync_metrics" as any).insert({
+    entity: entidade,
+    empresa_id: data.empresaId || 1,
+    pages: data.pagesProcessed || 0,
+    rows: data.totalRegistros,
+    rows_inserted: data.registrosInseridos,
+    duration_ms: data.duracaoMs,
+    errors: data.erroMensagem ? 1 : 0,
+    deadlock_retries: data.deadlockRetries || 0,
+    rows_per_second: rowsPerSecond,
+    status: data.status,
+  });
+}
+
+// ─── Get last successful sync timestamp ───
+
+async function getLastSyncTimestamp(
+  supabase: ReturnType<typeof createClient>,
+  entidade: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("sync_control")
+    .select("ultima_sync")
+    .eq("entidade", entidade)
+    .eq("status", "success")
+    .order("ultima_sync", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.ultima_sync || null;
 }
 
 // ─── Route handlers ───
@@ -265,7 +328,7 @@ async function handleTestConnection(req: Request, startMs: number) {
     connection = await connectToSqlServer();
     const rows = await executeSqlQuery(connection, "SELECT TOP 5 * FROM ConsultaPowerBIReceber");
     return jsonResponse(
-      { success: true, message: "Conexão com SQL Server OK", rowCount: rows.length, sampleData: rows },
+      { success: true, message: "Conexão com SQL Server OK (SSL)", rowCount: rows.length, sampleData: rows },
       200, req, { startMs }
     );
   } catch (error) {
@@ -341,12 +404,13 @@ async function handleSyncPaginated(
   const whereFilter = options?.whereClause ? `WHERE ${options.whereClause}` : "";
   let stoppedByTimeGuard = false;
   let pagesProcessed = 0;
+  let totalDeadlockRetries = 0;
 
   // Single connection for ALL pages — eliminates 5-10s overhead per page
   let connection: Connection | null = null;
   try {
     connection = await connectToSqlServer();
-    console.log(`🔗 SQL connection opened (single for all pages)`);
+    console.log(`🔗 SQL connection opened (SSL, single for all pages)`);
 
     while (true) {
       if (Date.now() - startMs > TIME_LIMIT_MS) {
@@ -377,8 +441,9 @@ async function handleSyncPaginated(
 
       totalRows += rows.length;
       const transformed = rows.map(transformFn);
-      const { inserted, errors } = await batchUpsert(supabase, tableName, transformed, conflictCol);
+      const { inserted, errors, deadlockRetries } = await batchUpsert(supabase, tableName, transformed, conflictCol);
       totalUpserted += inserted;
+      totalDeadlockRetries += deadlockRetries;
       if (errors.length > 0) allErrors.push(...errors);
 
       if (rows.length < SQL_PAGE_SIZE) break;
@@ -397,6 +462,8 @@ async function handleSyncPaginated(
       duracaoMs: duration,
       erroMensagem: stoppedByTimeGuard ? `Time guard: stopped at page ${page + 1}, processed ${totalRows} rows` : (allErrors.length > 0 ? allErrors.slice(0, 5).join("; ") : undefined),
       empresaId: options?.empresaId,
+      pagesProcessed: pagesProcessed + 1,
+      deadlockRetries: totalDeadlockRetries,
     });
 
     return jsonResponse({
@@ -409,6 +476,7 @@ async function handleSyncPaginated(
       pages: pagesProcessed + 1,
       stoppedByTimeGuard,
       lastPage: page,
+      deadlockRetries: totalDeadlockRetries > 0 ? totalDeadlockRetries : undefined,
       errors: allErrors.length > 0 ? allErrors.slice(0, 5) : undefined,
     }, 200, req, { startMs });
   } catch (error) {
@@ -439,10 +507,9 @@ async function handleSyncContasReceberPorEmpresa(req: Request, startMs: number) 
   );
 }
 
-// ─── Sync full orquestrando por empresa (via fetch externo — cada empresa tem seu próprio timeout) ───
+// ─── Sync full orquestrando por empresa ───
 
 async function handleSyncContasReceberFull(req: Request, startMs: number) {
-  // Discover all empresa_ids from SQL Server
   let connection: Connection | null = null;
   let empresaIds: number[] = [];
   try {
@@ -465,7 +532,6 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
   let totalAll = 0;
   let upsertedAll = 0;
 
-  // Process in parallel batches of 2 to avoid overwhelming the system
   const CONCURRENCY = 2;
   for (let i = 0; i < empresaIds.length; i += CONCURRENCY) {
     const batch = empresaIds.slice(i, i + CONCURRENCY);
@@ -504,11 +570,29 @@ async function handleSyncContasReceberFull(req: Request, startMs: number) {
   }, 200, req, { startMs });
 }
 
-// ─── Sync incremental (últimas 2 horas) ───
+// ─── Sync incremental (state-based — last successful sync timestamp) ───
 
 async function handleSyncContasReceberIncremental(req: Request, startMs: number) {
-  // Only records with recent payments — deriveStatus() already recalculates "vencido" vs "pendente"
-  const whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Get last successful sync timestamp
+  const lastSync = await getLastSyncTimestamp(supabase, "contas_receber_incremental");
+  
+  let whereClause: string;
+  if (lastSync) {
+    // Convert ISO timestamp to SQL Server format for comparison
+    const syncDate = new Date(lastSync);
+    const sqlDate = syncDate.toISOString().replace("T", " ").substring(0, 19);
+    whereClause = `[Data Pgto] >= '${sqlDate}' OR [Vencimento] >= '${sqlDate}'`;
+    console.log(`📅 Incremental: using last_sync_timestamp = ${sqlDate}`);
+  } else {
+    // Fallback: last 2 hours if no previous successful sync
+    whereClause = `[Data Pgto] >= DATEADD(HOUR, -2, GETDATE())`;
+    console.log(`📅 Incremental: fallback to DATEADD(HOUR, -2) — no previous successful sync found`);
+  }
+
   return handleSyncPaginated(
     req, startMs,
     "ConsultaPowerBIReceber", "contas_receber", "contas_receber_incremental",
@@ -528,7 +612,6 @@ async function handleSyncContasPagar(req: Request, startMs: number) {
 async function handleSyncAll(req: Request, startMs: number) {
   const results: Record<string, unknown> = {};
 
-  // Sync contas_receber
   try {
     const crResponse = await handleSyncContasReceber(req.clone(), startMs);
     results.contas_receber = await crResponse.json();
@@ -536,7 +619,6 @@ async function handleSyncAll(req: Request, startMs: number) {
     results.contas_receber = { success: false, error: e instanceof Error ? e.message : "Erro" };
   }
 
-  // Sync contas_pagar
   try {
     const cpResponse = await handleSyncContasPagar(req.clone(), startMs);
     results.contas_pagar = await cpResponse.json();
@@ -552,7 +634,6 @@ async function handleStatus(req: Request, startMs: number) {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Last sync per entity
   const { data: lastCR } = await supabase
     .from("sync_control").select("ultima_sync, status, total_registros, duracao_ms")
     .eq("entidade", "contas_receber").order("ultima_sync", { ascending: false }).limit(1).maybeSingle();
@@ -561,7 +642,6 @@ async function handleStatus(req: Request, startMs: number) {
     .from("sync_control").select("ultima_sync, status, total_registros, duracao_ms")
     .eq("entidade", "contas_pagar").order("ultima_sync", { ascending: false }).limit(1).maybeSingle();
 
-  // Quick SQL Server check
   let sqlOk = false;
   let sqlError = "";
   let connection: Connection | null = null;
@@ -579,6 +659,7 @@ async function handleStatus(req: Request, startMs: number) {
     success: true,
     sqlServerConnected: sqlOk,
     sqlServerError: sqlError || undefined,
+    sslEnabled: true,
     lastSync: {
       contas_receber: lastCR || null,
       contas_pagar: lastCP || null,
@@ -634,7 +715,7 @@ Deno.serve(async (req: Request) => {
       default:
         return jsonResponse({
           success: true,
-          message: "ERP Sync Engine — Pipeline Direto SQL Server",
+          message: "ERP Sync Engine — Pipeline Direto SQL Server (SSL)",
           availableRoutes: [
             "POST /test-connection — Testa conexão SQL Server",
             "POST /list-tables — Lista tabelas/views disponíveis",
@@ -642,7 +723,7 @@ Deno.serve(async (req: Request) => {
             "POST /sync-contas-receber — Sync legado (sem filtro)",
             "POST /sync-contas-receber-por-empresa — Sync filtrado por empresa (body: { empresa_id })",
             "POST /sync-contas-receber-full — Sync completo segmentado por empresa (auto)",
-            "POST /sync-contas-receber-incremental — Sync últimas 2h (pagamentos recentes)",
+            "POST /sync-contas-receber-incremental — Sync incremental baseado em estado",
             "POST /sync-contas-pagar — Sync ConsultaPowerBIPagar → contas_pagar",
             "POST /sync-all — Sync de todas as entidades",
             "POST /status — Status da conexão e última sync por entidade",
