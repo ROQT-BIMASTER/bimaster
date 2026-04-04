@@ -330,23 +330,12 @@ export function ClassificarContasEmLoteDialog({
                           <TableCell className="font-medium text-xs">{m.categoria_nome}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{m.qtd_titulos}</TableCell>
                           <TableCell>
-                            <Select
+                            <ContaSearchSelect
                               value={m.plano_contas_id || ""}
-                              onValueChange={(v) => handleContaChange(realIdx, v)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Selecionar conta...">
-                                  {m.plano_contas_id ? `${m.plano_contas_codigo} - ${m.plano_contas_nome}` : "Selecionar..."}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {contasDisponiveis.map(c => (
-                                  <SelectItem key={c.id} value={c.id} className="text-xs">
-                                    {c.code} - {c.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              label={m.plano_contas_id ? `${m.plano_contas_codigo} - ${m.plano_contas_nome}` : ""}
+                              contas={contasDisponiveis}
+                              onChange={(v) => handleContaChange(realIdx, v)}
+                            />
                           </TableCell>
                           <TableCell>
                             <FonteBadge fonte={m.fonte} />
