@@ -25662,7 +25662,7 @@ export type Database = {
       }
       social_media_accounts: {
         Row: {
-          access_token: string | null
+          access_token_encrypted: string | null
           account_group: string | null
           account_name: string | null
           created_at: string
@@ -25677,7 +25677,7 @@ export type Database = {
           username: string
         }
         Insert: {
-          access_token?: string | null
+          access_token_encrypted?: string | null
           account_group?: string | null
           account_name?: string | null
           created_at?: string
@@ -25692,7 +25692,7 @@ export type Database = {
           username: string
         }
         Update: {
-          access_token?: string | null
+          access_token_encrypted?: string | null
           account_group?: string | null
           account_name?: string | null
           created_at?: string
@@ -31519,36 +31519,45 @@ export type Database = {
       }
       social_media_accounts_safe: {
         Row: {
+          account_group: string | null
           account_name: string | null
           created_at: string | null
-          has_access_token: boolean | null
+          error_message: string | null
+          has_token: boolean | null
           id: string | null
           last_sync_at: string | null
           platform: string | null
+          region: string | null
           status: string | null
           updated_at: string | null
           user_id: string | null
           username: string | null
         }
         Insert: {
+          account_group?: string | null
           account_name?: string | null
           created_at?: string | null
-          has_access_token?: never
+          error_message?: string | null
+          has_token?: never
           id?: string | null
           last_sync_at?: string | null
           platform?: string | null
+          region?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
           username?: string | null
         }
         Update: {
+          account_group?: string | null
           account_name?: string | null
           created_at?: string | null
-          has_access_token?: never
+          error_message?: string | null
+          has_token?: never
           id?: string | null
           last_sync_at?: string | null
           platform?: string | null
+          region?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
