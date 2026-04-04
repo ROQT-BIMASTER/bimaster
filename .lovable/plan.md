@@ -1,89 +1,85 @@
 
 
-# Implementar Pentest Automatizado e WAF L7 no Edge Functions
+# Correção das 7 Fragilidades do Scanner de Segurança
 
-## Contexto
+## Findings Ativos
 
-Os dois últimos itens do checklist de produção em `docs/SECURITY.md` são de infraestrutura externa. Como o sistema roda em Lovable Cloud (sem acesso a Cloudflare ou ferramentas externas), a abordagem é implementar **equivalentes em código**:
+| # | Severidade | Problema | Correção |
+|---|---|---|---|
+| 1 | **ERROR** | Storage `fabrica-nfe-xmls`: SELECT/INSERT aberto a qualquer autenticado | Restringir a `can_access_fabrica(auth.uid())` |
+| 2 | **ERROR** | `trade_budget_documents`: CRUD aberto a qualquer autenticado | Restringir via join com `trade_budgets` + ownership |
+| 3 | **ERROR** | 15+ tabelas de processo/workflow com policy `ALL` usando `auth.uid() IS NOT NULL` | Substituir por `check_user_access(auth.uid(), 'fabrica_china')` ou ownership |
+| 4 | **WARN** | `usuario_permissoes_modulos`: SELECT `USING(true)` expõe permissões de todos | DROP policy permissiva, manter `usuario_id = auth.uid() OR admin` |
+| 5 | **WARN** | `usuario_permissoes_telas`: SELECT `USING(true)` expõe permissões de todos | DROP policy permissiva, manter a existente |
+| 6 | **WARN** | `marketing_campanhas`: 2 policies permissivas para `public` override as restritas | DROP as 2 policies broad |
+| 7 | **WARN** | `stores_select_blocked`: policy PERMISSIVE com `false` não bloqueia nada | DROP (inútil) |
 
-1. **Pentest automatizado** — Edge Function que executa testes de segurança contra o próprio sistema (SQL injection, auth bypass, XSS probes, RLS validation) e gera relatório
-2. **WAF L7 em código** — Middleware de proteção na camada de aplicação com detecção de payloads maliciosos, bot filtering e request fingerprinting
+## Detalhes Técnicos
 
-## O Que Já Existe
-
-- `_shared/security-middleware.ts` — IP blocklist com cache
-- `_shared/rate-limit.ts` — Rate limiting por IP/user com blocklist check
-- `_shared/security-headers.ts` — Headers de segurança (CSP, X-Frame-Options, etc.)
-- `_shared/cors.ts` — CORS lockdown por origem (sem `*`)
-- Tabelas: `security_ip_blocklist`, `security_audit_log`, `api_rate_limit`
-
-## Plano
-
-### 1. WAF L7 — `_shared/waf.ts` (novo)
-
-Middleware de Web Application Firewall que inspeciona **cada request** antes do processamento:
-
-- **Payload inspection**: Detecta padrões de SQL injection (`UNION SELECT`, `OR 1=1`, `DROP TABLE`), XSS (`<script>`, `onerror=`), path traversal (`../`, `%2e%2e`)
-- **Bot detection**: Verifica User-Agent contra lista de bots maliciosos conhecidos, rejeita requests sem User-Agent
-- **Request size limiting**: Bloqueia payloads acima de 1MB (configurável)
-- **Geo/header anomaly**: Flag requests com headers suspeitos (muitos headers, encoding incomum)
-- **Logging**: Registra tentativas bloqueadas em `security_audit_log` com classificação do ataque
-
-Resultado: `{ allowed: true }` ou `{ allowed: false, reason: "sql_injection_detected" }`
-
-### 2. Integrar WAF nas Edge Functions críticas
-
-Adicionar `wafCheck(req)` no início das 5-10 Edge Functions mais expostas (as que já usam `checkRateLimit`):
-- `integration-router`
-- `boletos-api`
-- `projetos-api`
-- `erp-fornecedores-sync`
-- `tipos-entrega-api`
-- `tipos-documento-api`
-
-### 3. Pentest Automatizado — `security-pentest/index.ts` (nova Edge Function)
-
-Edge Function protegida por API key que executa bateria de testes:
-
-- **Auth bypass**: Tenta acessar endpoints sem token, com token expirado, com token de outro user
-- **SQL injection probes**: Envia payloads maliciosos para endpoints e verifica se são rejeitados (pelo WAF)
-- **RLS validation**: Tenta ler dados de outro usuário via queries diretas
-- **XSS probes**: Envia payloads XSS e verifica se são sanitizados
-- **Rate limit validation**: Envia rajada de requests e verifica se o throttling funciona
-- **CORS validation**: Envia requests com origens não autorizadas
-
-Resultado: JSON com relatório `{ passed: 12, failed: 0, warnings: 1, details: [...] }`
-
-### 4. Tabela de relatórios — `security_pentest_reports` (migração)
-
+### Migração 1 — Storage `fabrica-nfe-xmls`
 ```sql
-CREATE TABLE security_pentest_reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  executed_at TIMESTAMPTZ DEFAULT now(),
-  executed_by UUID REFERENCES auth.users(id),
-  total_tests INT,
-  passed INT,
-  failed INT,
-  warnings INT,
-  details JSONB,
-  score NUMERIC(4,1)
+DROP POLICY "Authenticated users can read NF-e XMLs" ON storage.objects;
+DROP POLICY "Authenticated users can upload NF-e XMLs" ON storage.objects;
+
+CREATE POLICY "Fabrica users can read NF-e XMLs" ON storage.objects
+FOR SELECT USING (
+  bucket_id = 'fabrica-nfe-xmls' AND (
+    can_access_fabrica(auth.uid()) OR is_admin_or_supervisor(auth.uid())
+  )
+);
+
+CREATE POLICY "Fabrica users can upload NF-e XMLs" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'fabrica-nfe-xmls' AND (
+    can_access_fabrica(auth.uid()) OR is_admin_or_supervisor(auth.uid())
+  )
 );
 ```
 
-Com RLS restrito a admin.
+### Migração 2 — `trade_budget_documents`
+DROP as 3 policies abertas. Criar policies com join via `trade_budgets.created_by = auth.uid()` ou `check_user_access(auth.uid(), 'trade')`.
 
-### 5. Atualizar documentação
+### Migração 3 — 15+ tabelas de processo
+Para cada tabela, DROP a policy `ALL` com `auth.uid() IS NOT NULL` e criar policies separadas por operação:
+- **SELECT**: `check_user_access(auth.uid(), 'fabrica_china')` ou `is_admin_or_supervisor(auth.uid())`
+- **INSERT/UPDATE/DELETE**: membership check ou module access
 
-Marcar ambos itens como ✅ em `docs/SECURITY.md` e atualizar `SEGURANCA_PRODUCAO.md` com descrição das implementações.
+Tabelas afetadas: `product_process`, `process_despacho_documento`, `process_step_history`, `process_events`, `china_checklist_custom_categorias`, `china_checklist_custom_itens`, `china_embarque_documentos`, `process_doc_workflow_config`, `process_doc_workflow_etapas`, `process_doc_workflow_instancias`, `produto_brasil_checklist`, `produto_brasil_skus`, `produto_brasil_grade_itens`, `fluxo_aprovacao_anexos` (UPDATE/DELETE), `fluxo_aprovacao_instancias` (UPDATE), `fluxo_aprovacao_vinculos` (DELETE)
 
-## Arquivos
+### Migração 4 — Permissões e Marketing
+```sql
+-- usuario_permissoes_modulos: DROP USING(true)
+DROP POLICY "Acesso total permissoes_modulos - SELECT" ON usuario_permissoes_modulos;
+
+-- usuario_permissoes_telas: DROP USING(true)
+DROP POLICY "Acesso total permissoes_telas - SELECT" ON usuario_permissoes_telas;
+
+-- marketing_campanhas: DROP 2 policies broad
+DROP POLICY "Authenticated users can manage campaigns" ON marketing_campanhas;
+DROP POLICY "Authenticated users can view campaigns" ON marketing_campanhas;
+
+-- stores: DROP policy inútil
+DROP POLICY "stores_select_blocked" ON stores;
+```
+
+### Atualizar Security Findings
+Após aplicar as migrações, deletar os findings resolvidos no scanner.
+
+### Documentação
+Atualizar `docs/SECURITY.md` e `SEGURANCA_PRODUCAO.md` com as correções aplicadas.
+
+## Arquivos Alterados
 
 | Arquivo | Tipo |
 |---|---|
-| `supabase/functions/_shared/waf.ts` | Novo — WAF L7 middleware |
-| `supabase/functions/security-pentest/index.ts` | Nova Edge Function |
-| 6 Edge Functions existentes | Adicionar `wafCheck()` |
-| 1 migração SQL | Tabela `security_pentest_reports` + RLS |
-| `docs/SECURITY.md` | Atualizar checklist |
-| `SEGURANCA_PRODUCAO.md` | Atualizar checklist |
+| 2-3 migrações SQL | RLS hardening (20+ policies) |
+| `docs/SECURITY.md` | Documentação |
+| `SEGURANCA_PRODUCAO.md` | Documentação |
+
+## Impacto
+
+- Zero tabelas com policies permissivas desnecessárias
+- Storage restrito por módulo (não apenas autenticação)
+- Workflow tables protegidas por role/módulo
+- Scanner deve retornar 0 findings ativos (exceto pg_net - limitação plataforma)
 
