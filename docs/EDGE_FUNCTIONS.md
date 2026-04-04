@@ -23,12 +23,15 @@ Esta documentação descreve as Edge Functions disponíveis no projeto BiMaster/
 
 Coleta e armazena métricas de redes sociais (Instagram, Facebook, TikTok, LinkedIn, Twitter).
 
+> **⚠️ Criptografia OAuth:** Os tokens são armazenados criptografados via Vault (`access_token_encrypted`). As Edge Functions `social-media-cron` e `sync-all-accounts` decriptam via `supabase.rpc('decrypt_token')` antes de chamar esta função. Tokens plaintext nunca são persistidos.
+
 ### Request Body
 
 ```json
 {
   "accountId": "uuid",
-  "platform": "instagram" | "facebook" | "tiktok" | "linkedin" | "twitter"
+  "platform": "instagram" | "facebook" | "tiktok" | "linkedin" | "twitter",
+  "token": "decrypted-oauth-token"
 }
 ```
 
@@ -75,13 +78,15 @@ const { data, error } = await supabase.functions.invoke('social-media-metrics', 
 
 ### Descrição
 
-Sincroniza todas as contas de redes sociais do usuário autenticado.
+Sincroniza todas as contas de redes sociais ativas. Busca contas com `access_token_encrypted`, decripta via `decrypt_token` RPC e invoca `social-media-metrics` para cada conta.
+
+> **⚠️ Criptografia OAuth:** Tokens são decriptados sob demanda via `supabase.rpc('decrypt_token', { p_encrypted })`. A chave de criptografia é gerenciada pelo Supabase Vault (`oauth_encryption_key`).
 
 ### Request Body
 
 ```json
 {
-  "userId": "uuid" // Opcional, usa o usuário autenticado se não fornecido
+  "userId": "uuid" // Opcional
 }
 ```
 
@@ -89,16 +94,19 @@ Sincroniza todas as contas de redes sociais do usuário autenticado.
 
 ```json
 {
-  "success": true,
-  "synced": 5,
-  "failed": 1,
-  "results": [
-    {
-      "accountId": "uuid",
-      "platform": "instagram",
-      "status": "success"
-    }
-  ]
+  "message": "Sincronização concluída: 5 sucesso, 1 erro(s)",
+  "results": {
+    "total": 6,
+    "synced": 5,
+    "errors": 1,
+    "details": [
+      {
+        "account": "nome_conta",
+        "platform": "instagram",
+        "status": "success"
+      }
+    ]
+  }
 }
 ```
 
@@ -109,7 +117,7 @@ const { data, error } = await supabase.functions.invoke('sync-all-accounts', {
   body: {}
 });
 
-console.log(`Sincronizadas: ${data.synced} contas`);
+console.log(`Sincronizadas: ${data.results.synced} contas`);
 ```
 
 ---
@@ -136,65 +144,9 @@ Exporta dados de uma tabela específica.
 - `startDate`: Data inicial (opcional)
 - `endDate`: Data final (opcional)
 
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": [...],
-  "recordCount": 150,
-  "exportedAt": "2025-01-01T12:00:00Z"
-}
-```
-
 #### POST `/datawarehouse-api`
 
-Executa queries customizadas.
-
-**Request Body:**
-
-```json
-{
-  "query": {
-    "tables": ["prospects", "atividades"],
-    "filters": {
-      "status": "convertido",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-01-31"
-      }
-    },
-    "groupBy": ["regiao", "vendedor_id"],
-    "orderBy": "total_vendas DESC"
-  }
-}
-```
-
-### Exemplo de Uso
-
-```typescript
-// Exportar prospects
-const { data } = await supabase.functions.invoke('datawarehouse-api', {
-  body: {
-    method: 'GET',
-    params: {
-      table: 'prospects',
-      format: 'json',
-      startDate: '2025-01-01'
-    }
-  }
-});
-
-// Query customizada
-const { data: analytics } = await supabase.functions.invoke('datawarehouse-api', {
-  body: {
-    query: {
-      tables: ['prospects', 'atividades'],
-      filters: { status: 'convertido' }
-    }
-  }
-});
-```
+Executa queries customizadas (parametrizadas, sem SQL raw).
 
 ---
 
@@ -206,42 +158,7 @@ const { data: analytics } = await supabase.functions.invoke('datawarehouse-api',
 
 ### Descrição
 
-Processa fila de análise de fotos usando IA (Google Vision API).
-
-### Request Body
-
-```json
-{
-  "photoId": "uuid",
-  "analysisType": "shelf" | "competitor" | "gondola"
-}
-```
-
-### Response
-
-```json
-{
-  "success": true,
-  "analysis": {
-    "products": [...],
-    "facings": 5,
-    "compliance": 0.85,
-    "competitors": [...],
-    "recommendations": [...]
-  }
-}
-```
-
-### Exemplo de Uso
-
-```typescript
-const { data } = await supabase.functions.invoke('process-photo-analysis-queue', {
-  body: {
-    photoId: 'photo-uuid',
-    analysisType: 'shelf'
-  }
-});
-```
+Processa fila de análise de fotos usando IA.
 
 ---
 
@@ -255,158 +172,58 @@ const { data } = await supabase.functions.invoke('process-photo-analysis-queue',
 
 Gera insights de marketing usando IA baseado em dados históricos.
 
-### Request Body
-
-```json
-{
-  "analysisType": "campaign" | "performance" | "trends",
-  "dateRange": {
-    "start": "2025-01-01",
-    "end": "2025-01-31"
-  },
-  "platforms": ["instagram", "facebook"]
-}
-```
-
-### Response
-
-```json
-{
-  "success": true,
-  "insights": [
-    {
-      "type": "recommendation",
-      "priority": "high",
-      "title": "Aumentar posts no Instagram",
-      "description": "Análise mostra 45% mais engajamento às 18h",
-      "expectedImpact": "15-20% de aumento em engajamento"
-    }
-  ]
-}
-```
-
 ---
 
 ## Segurança e CORS
 
 ### Headers CORS
 
-Todas as Edge Functions incluem headers CORS:
+Todas as Edge Functions usam CORS restritivo por origem (sem `*`):
 
 ```javascript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// _shared/cors.ts — whitelist de origens Lovable + produção
+const allowedOrigins = [/lovable\.app$/, /bimaster\.lovable\.app$/];
 ```
 
-### Autenticação
-
-A maioria das funções requer autenticação JWT:
+### Criptografia de Tokens OAuth
 
 ```typescript
-// Verificação automática via Supabase
-const authHeader = req.headers.get('authorization');
-const token = authHeader?.replace('Bearer ', '');
+// Fluxo completo (usado em social-media-cron e sync-all-accounts):
+// 1. Buscar token encrypted do banco
+const { data } = await supabase.from('social_media_accounts')
+  .select('access_token_encrypted');
+
+// 2. Decriptar via RPC (chave gerenciada pelo Vault)
+const { data: token } = await supabase.rpc('decrypt_token', {
+  p_encrypted: account.access_token_encrypted
+});
+
+// 3. Usar token para chamar API externa
 ```
+
+### Security Headers
+
+Todas as respostas incluem:
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Content-Security-Policy`
+- `Permissions-Policy`
 
 ### Rate Limiting
 
-- **Limit:** 100 requests/minuto por usuário
-- **Response:** `429 Too Many Requests`
+- 20 req/min para endpoints de IA
+- 100 req/min para operacional
+- 60 req/min para webhooks
+- Customizável via `check_rate_limit()` SQL
 
 ### Secrets
 
-Secrets são gerenciados via Lovable Cloud Secrets:
-
-- `OPENAI_API_KEY`: Para análise de IA
-- `GOOGLE_VISION_API_KEY`: Para análise de fotos
-- Tokens de redes sociais: Armazenados em `social_media_accounts`
+Gerenciados via Lovable Cloud:
+- `oauth_encryption_key`: Chave dedicada no Vault para criptografia de tokens
+- Tokens OAuth: Armazenados criptografados em `social_media_accounts.access_token_encrypted`
 
 ---
 
-## Monitoramento e Logs
-
-### Acessar Logs
-
-```bash
-# Via Lovable Cloud UI
-Cloud → Functions → [Nome da Função] → Logs
-```
-
-### Log Structure
-
-```typescript
-console.log('✅ Success:', { operation, duration, metadata });
-console.error('❌ Error:', { operation, error, context });
-console.warn('⚠️ Warning:', { message, details });
-```
-
-### Métricas
-
-- **Response Time:** < 3s (target)
-- **Error Rate:** < 1%
-- **Timeout:** 55s (Supabase limit)
-
----
-
-## Troubleshooting
-
-### Problema: Timeout (55s)
-
-**Causa:** Processamento muito lento  
-**Solução:** 
-- Quebrar operações em chunks menores
-- Usar processamento em background
-- Otimizar queries
-
-### Problema: CORS Error
-
-**Causa:** Headers CORS faltando  
-**Solução:**
-- Verificar OPTIONS handler
-- Confirmar headers em todas as responses
-
-### Problema: 401 Unauthorized
-
-**Causa:** Token JWT inválido/expirado  
-**Solução:**
-- Verificar se usuário está autenticado
-- Refresh do token se necessário
-
----
-
-## Desenvolvimento Local
-
-### Testar Localmente
-
-```bash
-# Instalar Supabase CLI
-npm install -g supabase
-
-# Iniciar funções localmente
-supabase functions serve
-
-# Testar função
-curl -i --location --request POST 'http://localhost:54321/functions/v1/social-media-metrics' \
-  --header 'Authorization: Bearer YOUR_TOKEN' \
-  --header 'Content-Type: application/json' \
-  --data '{"accountId":"uuid","platform":"instagram"}'
-```
-
-### Deploy
-
-As Edge Functions são deployadas automaticamente quando o código é commitado.
-
----
-
-## Recursos Adicionais
-
-- [Supabase Edge Functions Docs](https://supabase.com/docs/guides/functions)
-- [Deno Deploy](https://deno.com/deploy)
-- [Lovable Cloud Documentation](https://docs.lovable.dev/features/cloud)
-
----
-
-**Última atualização:** 2025-01-19  
-**Versão:** 1.0.0
+**Última atualização:** 2026-04-04  
+**Versão:** 2.0.0
