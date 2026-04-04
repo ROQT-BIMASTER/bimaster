@@ -94,7 +94,7 @@ export const useSyncOfflineData = () => {
           // Limitar tentativas
           if (item.retries >= 3) {
             await offlineStorage.removePendingData(item.id);
-            logger.debug('Dado descartado após 3 tentativas:', item.id);
+            logger.debug(`Dado descartado após 3 tentativas: ${item.id}`);
           }
         }
       }
