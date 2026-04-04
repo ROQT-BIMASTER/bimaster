@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -63,7 +64,7 @@ export default function ClassificarTodoBanco() {
       setLogs([]);
 
       // Buscar apenas as contas AINDA NÃO CLASSIFICADAS com paginação
-      console.log("🔍 Buscando contas não classificadas para reclassificação com IA...");
+      logger.debug("🔍 Buscando contas não classificadas para reclassificação com IA...");
 
       const PAGE_SIZE = 1000;
       let from = 0;

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,7 +61,7 @@ export default function ReuniaoDetalhe() {
 
   const triggerPhase2 = useCallback(async (meetingId: string) => {
     try {
-      console.log("[ReuniaoDetalhe] Triggering Phase 2 for meeting:", meetingId);
+      logger.debug("[ReuniaoDetalhe] Triggering Phase 2 for meeting:", meetingId);
       const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
         body: { meetingId },
       });
