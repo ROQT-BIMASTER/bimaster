@@ -153,10 +153,10 @@ const DICIONARIO_CATEGORIAS: Record<string, { codigo: string; justificativa: str
   "KM/PEDAGIOS/OUTROS": { codigo: "3.1.10.2", justificativa: "Km/pedágios - veículos" },
 
   // ── DESPESAS FIXAS - Seguro (Grupo 3.1.11) ──
-  "SEGURO BENS": { codigo: "3.1.11", justificativa: "Seguro de bens" },
-  "SEGURO DE PESSOAL": { codigo: "3.1.11", justificativa: "Seguro de pessoal" },
-  "SEGURO DEPOSITO": { codigo: "3.1.11", justificativa: "Seguro do depósito" },
-  "SEGUROESCRITORIO": { codigo: "3.1.11", justificativa: "Seguro do escritório" },
+  "SEGURO BENS": { codigo: "3.1.11.3", justificativa: "Seguro de bens e equipamentos" },
+  "SEGURO DE PESSOAL": { codigo: "3.2.12.2", justificativa: "Seguro de pessoal → Plano de Saúde (RH)" },
+  "SEGURO DEPOSITO": { codigo: "3.1.11.1", justificativa: "Seguro do galpão/depósito" },
+  "SEGUROESCRITORIO": { codigo: "3.1.11.2", justificativa: "Seguro do escritório" },
 
   // ── DESPESAS FIXAS - Cartório (Grupo 3.1.12) ──
   "CUSTAS CARTORIO": { codigo: "3.1.12", justificativa: "Custas de cartório" },
