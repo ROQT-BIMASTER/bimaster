@@ -277,6 +277,10 @@ Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
+  // WAF L7 check
+  const waf = await wafCheck(req);
+  if (!waf.allowed) return wafBlockResponse(waf, { "Access-Control-Allow-Origin": "*" });
+
   const url = new URL(req.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
   const route = pathParts[pathParts.length - 1] || "";
