@@ -1,68 +1,129 @@
 
 
-# Revisao Completa do Fluxo de Caixa — Valores e Interatividade
+# Auditoria Completa de Seguranca — BiMaster/Union CRM
 
-## Diagnostico (dados reais do banco)
+## NOTA GERAL: 8.5 / 10
 
-### Problemas de Dados
-| Problema | Impacto |
-|---|---|
-| Contas a pagar com datas absurdas: 1973, 2050, 2089 | ~R$ 6M poluindo aging e projecoes |
-| 10 registros concentrados em UNION MEDIC SP, NELIDA, FABULOUS, DISPLAY GV | Distorcem saldo projetado e gaps |
+---
 
-### Problemas de Calculo (6 erros)
-| KPI | Erro | Correção |
+## Resumo Executivo
+
+O sistema possui **513 tabelas** com RLS habilitado em todas, CORS restritivo por origem, SECURITY DEFINER functions para hierarquia, audit logs abrangentes e validacao Zod em Edge Functions. E um sistema maduro. No entanto, existem **5 vulnerabilidades ativas** e **4 pontos de melhoria** que impedem a nota maxima.
+
+---
+
+## VULNERABILIDADES ATIVAS (encontradas pelo scan + analise manual)
+
+### CRITICO (2 itens) — impactam nota em -0.5 cada
+
+| # | Problema | Tabela | Risco |
+|---|---|---|---|
+| 1 | **erp_sync_log** tem policy `erp_sync_log_auth_access` com `USING(auth.uid() IS NOT NULL)` para ALL operations | `erp_sync_log` | Qualquer usuario autenticado pode ler/editar/deletar logs ERP contendo payloads financeiros e credenciais de integracao. A policy permissiva (ALL) sobrepoe a policy restritiva `erp_sync_log_select_empresa` |
+| 2 | **plano_contas_mapeamento_categorias** tem `USING(true)` e `WITH CHECK(true)` para ALL | `plano_contas_mapeamento_categorias` | Qualquer usuario autenticado pode manipular mapeamentos contabeis, alterando a classificacao do DRE inteiro |
+
+### ALTO (2 itens) — impactam nota em -0.25 cada
+
+| # | Problema | Tabela | Risco |
+|---|---|---|---|
+| 3 | **sync_logs** tem 3 policies conflitantes: 2 com `USING(false)` + 1 com `USING(true)`. Como sao PERMISSIVE, o `true` vence | `sync_logs` | Todos autenticados leem todos os logs de sync |
+| 4 | **social_media_credentials** armazena `access_token` e `refresh_token` em texto puro | `social_media_credentials` | Sessao comprometida expoe tokens OAuth de redes sociais |
+
+### MEDIO (1 item) — impacta nota em -0.1
+
+| # | Problema | Tabela | Risco |
+|---|---|---|---|
+| 5 | **trade_tipos_brinde** INSERT/UPDATE usa `auth.role() = 'authenticated'` em vez de verificar role admin/supervisor | `trade_tipos_brinde` | Qualquer usuario pode criar/editar tipos de brinde |
+
+---
+
+## ALERTAS DO LINTER (7 itens)
+
+| Tipo | Qtd | Status |
 |---|---|---|
-| **DSO** | Calcula media de dias ate vencimento a partir de hoje — nao e DSO real | DSO = (Recebíveis / Receita media mensal) x 30 |
-| **DPO** | Mesmo erro | DPO = (Pagáveis / Custo medio mensal) x 30 |
-| **Previsão 12m** | `saldoProjetado * 12` — sem sentido | Usar media movel dos ultimos 6 meses projetada |
-| **YoY** | Compara `valor_aberto` (saldo residual) entre anos | Deve usar `valor_original` para comparacao justa |
-| **Projecao diaria** | Usa `valor_aberto` de titulos filtrados | Correto, mas precisa excluir datas anomalas |
-| **Ciclo Financeiro** | DSO - DPO com valores errados | Correto apos corrigir DSO/DPO |
+| Function Search Path Mutable | 4 | 4 SECURITY DEFINER functions sem `SET search_path` (`enqueue_email`, `delete_email`, `read_email_batch`, `move_to_dlq`) |
+| Extension in Public | 1 | `pg_net` — limitacao da plataforma, ignoravel |
+| RLS Policy Always True | 2 | `plano_contas_mapeamento_categorias` e `security_audit_log` INSERT |
 
-### Problemas de UX (3 lacunas)
-| Card | Estado | Necessário |
+---
+
+## O QUE ESTA BEM FEITO (justificativa da nota alta)
+
+| Area | Nota | Detalhe |
 |---|---|---|
-| Maior Gap | Estatico, sem detalhe | Dialog clicavel com lista de gaps por data |
-| Previsao 12m | Estatico | Dialog com projecao mensal e premissas |
-| Aging Receber/Pagar | Nao expande por cliente/fornecedor | Clique na faixa expande top 10 devedores/credores |
+| **RLS Coverage** | 10/10 | 513 tabelas, todas com RLS habilitado |
+| **CORS** | 10/10 | Lockdown por origem com regex Lovable, sem `*` |
+| **Hierarquia RBAC** | 9/10 | `user_roles` separado, `has_role()` SECURITY DEFINER, guards em ~100 rotas |
+| **Audit Trail** | 9/10 | `security_audit_log`, `access_audit_log`, `audit_logs`, triggers em contas_pagar |
+| **Edge Functions** | 9/10 | Validacao Zod, CORS centralizado, auth headers verificados |
+| **Storage** | 9/10 | Buckets privados, path-based ownership, signed URLs |
+| **Input Validation** | 9/10 | Zod client+server, sanitizacao, file magic bytes |
+| **LGPD** | 9/10 | Safe views, anonimizacao, aceite de termos versionado |
 
-## Plano de Implementacao
+---
 
-### 1. Filtrar dados anomalos no hook (`useFluxoCaixaData.ts`)
-- Adicionar filtro de sanidade: excluir `data_vencimento < 2020-01-01` e `> 2030-12-31` nos dados de contas_pagar
-- Logar registros excluidos no console para auditoria
+## PLANO DE CORRECAO (6 migracoes)
 
-### 2. Corrigir calculos dos KPIs (`FluxoCaixaKPIsAdvanced.tsx`)
-- **DSO**: `(totalReceber / (receita6meses / 6)) * 30` usando soma de `valor_original` dos ultimos 6 meses de `contasReceberRaw` com status `recebido`
-- **DPO**: `(totalPagar / (custo6meses / 6)) * 30` usando `contasPagarRaw` com status `pago`
-- **Previsao 12m**: Media movel do saldo liquido dos ultimos 6 meses x 12
-- **YoY**: Trocar `valor_aberto` por `valor_original` na comparacao
+### Migracao 1: Corrigir erp_sync_log (CRITICO)
+```sql
+DROP POLICY "erp_sync_log_auth_access" ON erp_sync_log;
+-- Manter apenas erp_sync_log_select_empresa para SELECT
+-- Restringir INSERT a service_role + admin
+```
 
-### 3. Tornar "Maior Gap" clicavel (`FluxoCaixaKPIsAdvanced.tsx`)
-- Envolver card em Dialog com lista dos 10 maiores gaps por data
-- Mostrar: data, valor de entradas, valor de saidas, gap, top 3 fornecedores/clientes do dia
-- Icone ChevronRight no hover (mesmo padrao YoY/Inadimplencia)
+### Migracao 2: Restringir plano_contas_mapeamento_categorias (CRITICO)
+```sql
+DROP POLICY "Authenticated users can manage mappings" 
+  ON plano_contas_mapeamento_categorias;
+-- Criar policies separadas: SELECT para authenticated, 
+-- INSERT/UPDATE/DELETE para admin/supervisor via has_role()
+```
 
-### 4. Tornar "Previsao 12m" clicavel (`FluxoCaixaKPIsAdvanced.tsx`)
-- Dialog com tabela de 12 meses projetados
-- Mostrar: mes, entrada estimada, saida estimada, saldo, acumulado
-- Bloco explicativo: "Baseado na media dos ultimos 6 meses"
+### Migracao 3: Corrigir sync_logs (conflito de policies)
+```sql
+DROP POLICY "Authenticated users can read sync_logs" ON sync_logs;
+-- As policies deny (USING false) passam a funcionar
+-- Criar SELECT restrito a admin
+```
 
-### 5. Expandir faixas de Aging por clique (`FluxoDeCaixa.tsx`)
-- No componente AgingReport: ao clicar em uma faixa, expandir com top 10 clientes/fornecedores daquela faixa
-- Mostrar nome, valor, quantidade de titulos, % da faixa
-- Usar estado local com Collapsible para cada faixa
+### Migracao 4: Restringir trade_tipos_brinde
+```sql
+DROP POLICY "Admins podem atualizar tipos de brinde" ON trade_tipos_brinde;
+DROP POLICY "Admins podem criar tipos de brinde" ON trade_tipos_brinde;
+-- Recriar com has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'supervisor')
+```
 
-### 6. Adicionar tooltip explicativo em cada KPI
-- Todos os 10 cards devem ter icone `Info` com tooltip explicando a formula
-- Exemplo: "DSO = Recebiveis abertos / Receita media mensal x 30 dias"
+### Migracao 5: Corrigir search_path nas 4 functions
+```sql
+ALTER FUNCTION enqueue_email SET search_path = public;
+ALTER FUNCTION delete_email SET search_path = public;
+ALTER FUNCTION read_email_batch SET search_path = public;
+ALTER FUNCTION move_to_dlq SET search_path = public;
+```
 
-## Arquivos Alterados
+### Migracao 6: Endurecer security_audit_log INSERT
+```sql
+DROP POLICY "System can insert security logs" ON security_audit_log;
+CREATE POLICY "Authenticated or service can insert security logs"
+  ON security_audit_log FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL OR auth.role() = 'service_role');
+```
 
-| Arquivo | Mudanca |
-|---|---|
-| `src/hooks/useFluxoCaixaData.ts` | Filtro de datas anomalas, buscar dados de pagos/recebidos para calculo DSO/DPO |
-| `src/components/fluxocaixa/FluxoCaixaKPIsAdvanced.tsx` | Corrigir DSO/DPO/Previsao/YoY, adicionar Dialogs em Gap e Previsao, tooltips |
-| `src/pages/FluxoDeCaixa.tsx` | Expandir AgingReport com detalhes por faixa clicavel |
+---
+
+## SCORECARD FINAL
+
+| Categoria | Peso | Nota | Ponderado |
+|---|---|---|---|
+| RLS & Policies | 25% | 7.5 | 1.875 |
+| Autenticacao & RBAC | 20% | 9.0 | 1.800 |
+| Edge Functions & APIs | 15% | 9.0 | 1.350 |
+| Dados Sensiveis & Criptografia | 15% | 7.5 | 1.125 |
+| Audit & Compliance (LGPD) | 10% | 9.0 | 0.900 |
+| Storage & CORS | 10% | 9.5 | 0.950 |
+| Input Validation | 5% | 9.0 | 0.450 |
+| **TOTAL** | **100%** | | **8.45 → 8.5** |
+
+### Nota apos correcoes propostas: **9.3 / 10**
+
+Os 0.7 restantes requerem: criptografia de tokens OAuth (pgcrypto/Vault), rate limiting em APIs publicas, e rotacao automatica de secrets — itens de infraestrutura que dependem de configuracao na plataforma.
 
