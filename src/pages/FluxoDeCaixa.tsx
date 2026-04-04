@@ -528,6 +528,8 @@ const FluxoDeCaixa = () => {
               title="Aging de Contas a Receber" 
               data={agingReceber}
               icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
+              rawData={contasReceber}
+              entityKey="cliente_nome"
             />
           </TabsContent>
 
@@ -536,6 +538,8 @@ const FluxoDeCaixa = () => {
               title="Aging de Contas a Pagar" 
               data={agingPagar}
               icon={<TrendingDown className="h-5 w-5 text-rose-500" />}
+              rawData={contasPagar}
+              entityKey="fornecedor_nome"
             />
           </TabsContent>
 
