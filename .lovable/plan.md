@@ -1,169 +1,133 @@
 
 
-# Classificação Direta via SQL — Todas as 248 Categorias
+# Auditoria do Plano de Contas 2026 — Falhas e Correções Necessárias
 
-## Situação Atual
+## Resumo da Análise
 
-- **47.566 títulos** em `contas_pagar`, apenas **65 classificados**
-- **248 categorias** distintas do ERP
-- **100+ contas analíticas** no plano de contas v2
+Após revisar as **110 contas ativas** e os **47.566 títulos classificados**, identifiquei **12 problemas** organizados por gravidade.
 
-## Solução
+---
 
-Executar uma **migração SQL direta** com UPDATE em massa usando CASE WHEN para mapear cada categoria ao plano de contas correto. Sem dependência de IA — mapeamento 100% determinístico feito por mim analisando o contexto do negócio (Ruby Rose, distribuidora de cosméticos).
+## FALHAS CRÍTICAS (impactam DRE e relatórios)
 
-## Mapeamento Completo (248 categorias → plano v2)
+### 1. Conta 3.2.14 sobrecarregada — 4.770 títulos de SALÁRIOS
 
-Vou agrupar por área para clareza:
+A conta `3.2.1 Salários CLT` é **grupo** (não aceita lançamento), então SALÁRIOS (3.247 títulos), ADIANTAMENTO DE SALARIOS (1.350) e Horas Extras (49) foram jogados em `3.2.14 Outras despesas com pessoal`.
 
-### FORNECEDORES / PRODUTOS (→ 2.1.x)
-- COMPRA DE MERCADORIA PARA REVENDA → 2.1.1
-- PAGAMENTOS DE DEVOLUÇÃO, FRETE DEVOLUÇÃO DE VENDAS, FRETE PARA DEVOLUÇÃO, FRETE REENTREGA DE VENDAS, DESCONTOS COMERCIAIS → 2.1.2
-- DESPESAS PAGAS C/DINHEIRO (COFRE)CHEQUES, PRODUTOS, PRODUTOS/ACESSORIOS, PRODUTOS P/ UTILIZAÇÃO DOS TECNICOS → 2.1.3
-- RUBY ROSE - MARCA → 2.1.1
+**Correção**: Criar conta analítica `3.2.1.1.1 Salários` (nível 5, filha de `3.2.1.1 Hora Extra` ou criar `3.2.1.2 Salários`) e reclassificar os 4.646 títulos.
 
-### EMBALAGENS (→ 2.2)
-- EMBALAGENS, CAIXAS TERCIARIA, ETIQUETAS DIVERSAS → 2.2
+### 2. Grupo 4 inteiro sem `categoria_dre`
 
-### FRETES (→ 2.4.x)
-- TRANSPORTADORA/VENDAS ONLINE, FRETE TRANSF. FORNECEDOR, FRETE TRANSF. TERCEIRISTA, LOGÍSTICA, CARGA E DESCARGA, FRETE PARA REPRESENTANTES → 2.4.1
-- FRETES AGREGADOS → 2.4.2
-- CORREIOS/VENDAS ONLINE → 2.4.3
-- ESCOLTA → 2.4.4
-- SEGURO DE TRANSPORTE / OUTROS → 2.4.5
+Todas as 23 contas do grupo 4 (Receitas/Despesas Não Operacionais, Investimentos, Atividades Financeiras, Sócios) estão com `categoria_dre = NULL`. Isso significa que **nenhuma dessas contas aparece no DRE**.
 
-### IMPOSTOS (→ 2.5.x)
-- SIMPLES NACIONAL, IMPOSTO FEDERAL, TRIBUTOS FEDERAIS, IMPOSTOS/TAXAS, SISTEMA FISCAL TRIBUTÁRIO → 2.5.1
-- TRIBUTOS ESTADUAIS, IMPOSTO ESTADUAL, ICMS → 2.5.2
-- PIS → 2.5.3 / COFINS → 2.5.4 / IRPJ → 2.5.5 / CSLL → 2.5.6
-- IMPOSTO MUNICIPAL, TRIBUTOS MUNICIPAIS → 3.1.6.2
-- IMPOSTOS- APLICA FINANCEIRA → 2.5.1
+**Correção**: Definir `categoria_dre` para cada sub-grupo:
+- `4.1` → pode ser um novo tipo ou mapear para existente
+- `4.3` → despesas financeiras
+- `4.4` → distribuição de lucros
 
-### COMERCIAL (→ 2.6.x)
-- COMISSAO → 2.6.1
-- REPRESENTANTES, REPRESENTANTE, COORDENADORES, GERENTES, SUPERVISORES, PROMOTORAS, PROMOTOR → 2.6.1
-- DISPLAY, PRODUTOS PARA DISPLAY, BRINDES/PRODUTOS, TABLOIDS/NEGOCIAÇÕES → 2.6.2
-- PREMIOS/ GUELTAS → 2.6.2
+### 3. Código `2.3` ausente — salto na numeração
 
-### TARIFAS (→ 2.7.1)
-- TARIFAS BANCARIAS, TAXAS ADMINISTRATIVAS, TAXAS REF. SERVIÇOS DE TERCEIROS, TAXA DE CUSTO → 2.7.1
+A sequência vai de `2.2 Embalagens` direto para `2.4 Fretes`. O código `2.3` está vazio, quebrando a sequência numérica.
 
-### ALUGUÉIS (→ 3.1.1.x)
-- ALUGUEL DE DEPÓSITO, CUSTO DEPÓSITO → 3.1.1.1
-- ALUGUEL DE ESCRITÓRIO, CUSTO ESCRITÓRIO → 3.1.1.2
+**Correção**: Renumerar ou criar `2.3` como conta reserva/placeholder.
 
-### UTILIDADES (→ 3.1.x)
-- ELETRICIDADE DEPOSITO, ELETRICIDADE ESCRITORIO, ELETRICIDADE RESIDENCIAL, REDE ELETRICA → 3.1.2
-- AGUA DEPOSITO, AGUA ESCRITORIO, GARRAFAS DE ÁGUA → 3.1.3
-- INTERNET/MANUTENÇÃO SERVIDOR, PROVEDOR → 3.1.4
-- TELEFONIA FIXA, EQUIPAMENTO TELEFONICO (PABX) → 3.1.5.1
-- TELEFONIA MOVEL, CONSERTO TELEFONE E OUTROS, TELEFONIA - ASSISTENCIA E EQUIPAMENTOS → 3.1.5.2
-- IPTU, TFS- TX FISC. SANITARIA, TFLF- TX. FISC. LOCALIZ. E FUNCIONAMENTO, VIGILANCIA SANITARIA → 3.1.6.1
-- TAXAS EM GERAL / MULTAS → 3.1.6.2
-- MATERIAIS DE ESCRITÓRIO, MATERIAL ELETRICO → 3.1.7
-- MONITORAMENTO, CUSTO EQUIPAMENTO DE ALARME, SEGURANÇA, SEGURANÇA - SERVIÇOS → 3.1.8.1
-- SERVIÇOS DE TERCEIROS, SERVIÇOS PRESTADOS/TERCEIROS, MÃO DE OBRA, PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO → 3.1.8.2 (Limpeza? Não — Outros Serviços 3.1.8.9)
-- CONTABILIDADE EXTERNA, CONTABILIDADE INTERNA → 3.1.8.3
-- SERVIÇOS DE FREELANCER, CONTRATADO PJ, PRESTADOR PESSOA JURIDICA, PRESTAÇÃO DE SERVIÇOS/ESTAGIOS / MOTOBOY → 3.1.8.4
-- DEDETIZAÇÃO, RECICLAGEM → 3.1.8.5
-- IMPRESSORAS - MANUTENÇÃO, IMPRESSORAS - COMPRA, MATERIAIS GRAFICOS/PASTAS, MATERIAL GRAFICO/EQUIPAMENTOS → 3.1.8.6
-- CONSULTA DE CREDITO, SERASA → 3.1.8.7
-- LEGAL - GERAL/HONORARIOS ADVOCATICIO, LEGAL - TRADEMARK ETC, PROCESSO TRABALHISTAS → 3.1.8.8
-- DIVERSOS, DIVERSOS , OUTROS, SISTEMA DE TERCEIROS, ANUIDADE DE ENTIDADES DE CLASSE, ASSINATURA REVISTA → 3.1.8.9
-- MANUTENÇÃO EQUIPAMENTO ESCRITÓRIO/DEPÓSITO, MANUTENÇÃO / ACESSORIOS, MANUTENÇÃO MAQUINA DE ANALISE → 3.1.9.1
-- FERRAMENTAS E ACEESSORIOS, EQUIPAMENTOS DIVERSOS, EQUIPAMENTO - NÃO COMPUTADOR, EQUIPAMENTO DE EMPILHAR - PEQUENO, EMPILHADEIRA, PALETERA, PALETES, PORTA PALETES, PRATELEIRA PARA DEPÓSITO → 3.1.9.2
-- DISPESAS DE COMBUSTIVEL → 3.1.10.3
-- SEGURO DEPOSITO, SEGUROESCRITORIO, SEGURO BENS → 3.1.11
-- CUSTAS CARTORIO, DESPESAS CARTORIO → 3.1.12
-- DESPESAS CORREIO (ADM) → 3.1.13
-- MATERIAL DE COPA E COZINHA, MATERIAL PARA SEGURANÇA NO TRABALHO, MATERIAIS DE VITRINE, MATERIAL PARA REFORMA → 3.1.14
-- PASSAGENS/TAXI, ESTACIONAMENTO / OUTROS, KM/PEDAGIOS/OUTROS → 3.1.15
-- LANCHES E REFEIÇÕES, ALIMENTAÇÃO, ALIMENTAÇÃO/BEBIDAS, Coffe Break, BUFFE → 3.1.16
-- REEMBOLSO, REEMBOLSOS DIVERSOS → 3.1.17
-- DESPESAS DE VIAGEM, HOSPEDAGEM/HOTEL, HOTEL, PASSAGENS, PASSAGENS/TRANSPORTES, DESPESAS DE DESLOCAMENTO / ALIMENTAÇÃO → 3.1.18
-- LOCAÇÃO, LOCAÇÃO PALHETEIRA ELETRICA, ALUGUEL EQUIPAMENTO DE ESCRITÓRIO → 3.1.19
-- CARTÃO DE CRÉDITO, Anuidade cartao credito → 3.1.20
-- COMPUTADORES, HARDWARE, INFORMATICA/REDE → 3.1.21
-- SOFTWARE, SITES / DOMINIO, REGISTRO DOMINIOS, DESENVOLVIMENTO SITES/REDE SOCIAIS → 3.1.22
-- EQUIPAMENTO DE SEGURANÇA / INCENDIO, EQUIPAMENTOS DE INCENDIOS, CAMERAS → 3.1.23
-- ARMAZENAGEM MERCADORIA → 3.1.19
+### 4. `3.1.8.2 Limpeza` existe mas tem ZERO títulos
 
-### PESSOAL (→ 3.2.x)
-- SALARIOS, ADIANTAMENTO DE SALARIOS, Horas Extras → 3.2.1 (Salários CLT — need the right ID)
-- AJUDA DE CUSTO → 3.2.1.1.2
-- CONTRATADO PJ already mapped above to 3.1.8.4
-- TECNICO DE QUIMICA/FARMACIA → 3.2.2.1
-- VALE TRANSPORTE, TRANSPORTE/PASSAGEM → 3.2.3.1
-- PENSÃO ALIMENTICIA → 3.2.4.1
-- MEDICINA E SEGURANÇA OCUPACIONAL, FARMACIA → 3.2.5
-- REGISTRO DE PONTO → 3.2.6
-- 13º SALARIO, Pagamento 13º → 3.2.7
-- FÉRIAS → 3.2.8
-- RESCISÃO, GUIA RESCISORIO, CUSTO DE DEMISOES → 3.2.9
-- MATERIAL DE COPA E COZINHA already → 3.1.14
-- RECRUTAMENTO SELEÇÃO/TREINAMENTO, CONSULTORIA RH, TREINADORES/CONSULTORIA, PALESTRAS/TERCEIROS → 3.2.11
-- BENEFICIOS/CESTAS → 3.2.12.1
-- PLANO DE SAUDE, SEGURO DE PESSOAL, PREVIDENCIA PRIVADA → 3.2.12.2
-- VALE REFEIÇÃO/ALIMENTAÇÃO → 3.2.12.3
-- Ação comemorativa, AÇÕES PARA FUNCIONÁRIOS, CONFRATERNIZAÇÃO, UNIFORMES, UNIFORMES , UNIFORMES PARA FUNCIONARIOS → 3.2.13.1
-- BONIFICAÇÃO FUNCIONARIO, GRATIFICAÇÃO 2024 PR → 3.2.13.2
-- DESPESA COM FUNCIONARIO, ANUNCIOS PARA CONTRATAÇÃO DE FUNCIONARIOS, SINDICATO → 3.2.14
+A conta foi cadastrada mas nenhum título foi classificado nela. Categorias como "SERVIÇOS DE TERCEIROS" e "PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO" (765 títulos) foram para `3.1.8.9 Outros Serviços` — parte deles poderia ser Limpeza.
 
-### MARKETING (→ 3.3.x)
-- AGÊNCIAS DE PUBLICIDADE E MKT, VEICULAÇÃO DE MÍDIA OFFLINE → 3.3.1
-- PRODUÇÃO DE EVENTOS, PRODUTORA AUDIOVISUAL → 3.3.2
-- PREMIOS/ GUELTAS already → 2.6.2, but BRINDES stay here: → 3.3.3
-- CENOGRAFIA → 3.3.2
-- CONTRUÇÃO DE STAND → 3.3.7
-- CONSULTORIA MARKETING, CONSULTORIA COMERCIAL, CONSULTORIA → 3.3.6
-- ROYALTIES → 3.3.8
-- MODELOS/MANEQUINS/INFLUENCER, RECEPCIONISTA/PROMOTORAS/MAQUIADORAS, PROMOTORAS/REPOSITORES/FREE E BICOS → 3.3.9/3.3.10
-- MIDIA SOCIAL, LAY-OUT/CRIAÇÃO → 3.3.11
-- COMUNICAÇÃO VISUAL → 3.3.12
-- FOTOS/IMAGENS/TRATAMENTOS → 3.3.13
-- MATERIAIS DE VITRINE → 3.3.5
+**Correção**: Revisar se há títulos de limpeza dentro de `3.1.8.9` que deveriam ser reclassificados.
 
-### FINANCEIRO (→ 3.4.x)
-- JUROS/MULTAS/CORREÇÕES, ENCARGOS FINANCEIROS → 3.4.1
-- RENDIMENTO APLIC AUTOM, RECEBIVEIS → 3.4.2
+---
 
-### SÓCIOS (→ 3.5.1 / 4.4.x)
-- PRO LABORE → 3.5.1
-- DISTRIBUIÇÃO DE LUCRO, Pagamento de Dividendos → 4.4.2
+## FALHAS ESTRUTURAIS
 
-### PATRIMÔNIO (→ 4.x)
-- EMPRESTIMOS → 4.3.1
-- Parcelamento → 4.3.7
-- ESTORNO DE PAGAMENTO → 4.1.1
-- REFORMA NOVO BARRACÃO, MOVEIS → 4.2.4
-- CHEQUE, CHEQUE DEVOLVIDO (+), DEPOSITO CHEQUE DEVOLVIDO → 4.1.1
-- TRANSFERENCIA (-) → 4.1.2
-- TRANSFERENCIA (+) → 4.1.1
+### 5. Hierarquia `3.2.1` mal desenhada
 
-### REGIONAIS (regiões de frete/venda → 2.4.1)
-- SUL: RS/SC/PR, SÃO PAULO: CAPITAL, SÃO PAULO: INTERIOR, SUDESTE: RJ/MG/ES, CENTROESTE: MT/MS/GO/DF → 2.4.1
+```text
+3.2.1   Salários CLT (GRUPO)
+├─ 3.2.1.1   Hora Extra (GRUPO)  ← grupo dentro de grupo
+│  └─ 3.2.1.1.2   Ajuda de Custo ← código .2 sem .1 existir
+```
 
-### ESPECIAIS
-- event_expense - EV-2026-003 → 3.3.2
-- AGENCIAS, AGENDAMENTO/TDE → 3.3.1
-- CLIENTES, CONSUMIDOR, VENDAS DIRETO → 2.1.2
+Problemas:
+- `3.2.1.1.2` existe mas `3.2.1.1.1` não (salto)
+- "Ajuda de Custo" não é sub-tipo de "Hora Extra"
+- Não existe conta analítica para salários em si
 
-## Implementação
+**Correção**: Reestruturar:
+```text
+3.2.1   Salários CLT (GRUPO)
+├─ 3.2.1.1   Salários (analítica)
+├─ 3.2.1.2   Horas Extras (analítica)
+├─ 3.2.1.3   Adiantamentos (analítica)
+├─ 3.2.1.4   Ajuda de Custo (analítica)
+```
 
-### Migração SQL
+### 6. `3.2.4 Encargos` contém apenas `3.2.4.1 Empréstimos`
 
-Uma única migração com:
+"Empréstimos" não é encargo trabalhista. O nome do grupo e seu conteúdo são inconsistentes. Encargos deveria conter FGTS, INSS patronal, etc.
 
-1. **INSERT** na tabela `plano_contas_mapeamento_categorias` — registra o mapeamento permanente das 248 categorias
-2. **UPDATE em massa** no `contas_pagar` usando JOIN com a tabela de mapeamento para setar `plano_contas_id`, `plano_contas_codigo`, `plano_contas_nome` nos 47.566 registros
+**Correção**: Renomear `3.2.4` para "Pensão/Descontos" ou mover Empréstimos para outro local e adicionar encargos reais (FGTS, INSS).
 
-Nota: Preciso verificar se existe conta `3.2.1` (Salários CLT) no banco. Se não existir, usarei a conta mais próxima disponível.
+### 7. Conta `3.3.5 Exposittores` — erro de grafia
 
-### Observação sobre contas ausentes
+Nome com duplo "t": "Exposittores" em vez de "Expositores".
 
-Algumas contas como `3.2.1` (Salários CLT — nível 3) podem ser grupo e não analítica. Se for grupo, os salários irão para `3.2.14` (Outras despesas com pessoal) ou criaremos a conta analítica.
+**Correção**: Corrigir nome para "Expositores".
 
-| Ação | Detalhe |
+---
+
+## FALHAS DE CLASSIFICAÇÃO DRE
+
+### 8. Marketing (`3.3`) classificado como `despesas_fixas`
+
+Marketing geralmente é **despesa variável** pois varia com campanhas e sazonalidade. No plano do cliente, está como despesa fixa junto com aluguel e luz.
+
+**Decisão do cliente**: Manter como fixa (simplificação) ou criar categoria DRE `despesas_variaveis` para marketing?
+
+### 9. `2.5 Despesas Tributárias` com `categoria_dre = deducoes`
+
+PIS, COFINS, ICMS como "deduções" é correto contabilmente (deduções da receita bruta). Porém, Simples Nacional (`2.5.1`) engloba tudo e está na mesma categoria — verificar se o cliente quer separar.
+
+### 10. `2.7 Tarifas` contém apenas "Mercado Pago"
+
+Se Mercado Pago é tarifa de meio de pagamento, deveria estar nas deduções (`categoria_dre: deducoes`) junto com impostos sobre vendas, não em `custo_vendas`.
+
+---
+
+## DADOS AUSENTES
+
+### 11. Contas sem uso (0 títulos vinculados)
+
+Contas cadastradas mas nunca utilizadas:
+- `3.1.8.2 Limpeza`
+- `3.1.10.1 Manutenção e Conserto (Veículos)`
+- `3.1.10.2 IPVA/Licenciamento/Multas`
+- `3.2.10 Café Funcionários`
+- `3.3.4 Patrocínio`
+- `4.2.7 Investimento Imóvel`
+
+**Ação**: Verificar se realmente não há dados ou se faltou mapeamento no dicionário.
+
+### 12. `3.1.8.9 Outros Serviços` concentra 1.561 títulos
+
+Conta "genérica" com alta concentração. Categorias como "PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO" (408), "SERVIÇOS DE TERCEIROS" (242), "MÃO DE OBRA" (12) poderiam ser redistribuídas para contas mais específicas.
+
+---
+
+## Plano de Correção (se aprovado)
+
+| Prioridade | Ação | Impacto |
+|---|---|---|
+| Alta | Criar `3.2.1.1` a `3.2.1.4` analíticas e reclassificar 4.770 títulos | Salários visíveis no DRE |
+| Alta | Definir `categoria_dre` para grupo 4 inteiro | Grupo 4 aparece no DRE |
+| Média | Corrigir hierarquia `3.2.1.x` e `3.2.4` | Estrutura limpa |
+| Média | Corrigir grafia "Exposittores" → "Expositores" | Cosmético |
+| Baixa | Criar `2.3` placeholder ou renumerar | Sequência numérica |
+| Baixa | Revisar `3.1.8.9` para redistribuir | Precisão analítica |
+
+| Arquivo | Mudança |
 |---|---|
-| Migração SQL | INSERT 248 mapeamentos + UPDATE 47.566 registros em massa |
+| Migração SQL (1) | Criar contas analíticas `3.2.1.x`, definir `categoria_dre` grupo 4, corrigir nomes |
+| Migração SQL (2) | Reclassificar 4.770 títulos de `3.2.14` para novas contas `3.2.1.x` |
 
