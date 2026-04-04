@@ -4,6 +4,7 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateJWT, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
