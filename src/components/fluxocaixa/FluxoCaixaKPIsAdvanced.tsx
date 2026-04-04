@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -16,7 +17,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { SmartValue, ValueLegend } from "@/components/ui/smart-value";
 import { formatCurrencyCompact } from "@/lib/formatters";
 
@@ -24,24 +26,40 @@ interface FluxoCaixaKPIsAdvancedProps {
   contasReceber: any[];
   contasPagar: any[];
   contasReceberRaw: any[];
+  contasPagarRaw?: any[];
   filterAnos: number[];
 }
+
+const KpiTooltip = ({ text }: { text: string }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">
+        <p>{text}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
   contasReceber,
   contasPagar,
   contasReceberRaw,
+  contasPagarRaw = [],
   filterAnos
 }: FluxoCaixaKPIsAdvancedProps) {
   const [showYoYDialog, setShowYoYDialog] = useState(false);
   const [showInadimplenciaDialog, setShowInadimplenciaDialog] = useState(false);
+  const [showGapDialog, setShowGapDialog] = useState(false);
+  const [showPrevisaoDialog, setShowPrevisaoDialog] = useState(false);
 
-  // Dados detalhados para YoY - USA DADOS RAW PARA GARANTIR COMPLETUDE
+  // Dados detalhados para YoY - USA valor_original para comparação justa
   const yoyDetails = useMemo(() => {
     const anoAtual = filterAnos.length > 0 ? Math.max(...filterAnos) : new Date().getFullYear();
     const anoAnterior = anoAtual - 1;
     
-    // Usa contasReceberRaw para ter todos os dados
     const dadosAnoAtual = contasReceberRaw.filter(c => 
       c.data_vencimento && new Date(c.data_vencimento).getFullYear() === anoAtual
     );
@@ -49,20 +67,11 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       c.data_vencimento && new Date(c.data_vencimento).getFullYear() === anoAnterior
     );
     
-    const totalAnoAtual = dadosAnoAtual.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
-    const totalAnoAnterior = dadosAnoAnterior.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
+    // CORRIGIDO: usar valor_original em vez de valor_aberto
+    const totalAnoAtual = dadosAnoAtual.reduce((sum, c) => sum + (c.valor_original || 0), 0);
+    const totalAnoAnterior = dadosAnoAnterior.reduce((sum, c) => sum + (c.valor_original || 0), 0);
     const qtdAnoAtual = dadosAnoAtual.length;
     const qtdAnoAnterior = dadosAnoAnterior.length;
-    
-    console.log('[YoY] Dados RAW carregados:', {
-      totalRaw: contasReceberRaw.length,
-      anoAtual,
-      qtdAnoAtual,
-      totalAnoAtual,
-      anoAnterior,
-      qtdAnoAnterior,
-      totalAnoAnterior
-    });
     
     const variacao = totalAnoAnterior > 0 
       ? ((totalAnoAtual - totalAnoAnterior) / totalAnoAnterior) * 100 
@@ -70,18 +79,17 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     
     const diferencaAbsoluta = totalAnoAtual - totalAnoAnterior;
     
-    // Por mês
     const porMesAtual: Record<number, number> = {};
     const porMesAnterior: Record<number, number> = {};
     
     dadosAnoAtual.forEach(c => {
       const mes = new Date(c.data_vencimento).getMonth();
-      porMesAtual[mes] = (porMesAtual[mes] || 0) + (c.valor_aberto || 0);
+      porMesAtual[mes] = (porMesAtual[mes] || 0) + (c.valor_original || 0);
     });
     
     dadosAnoAnterior.forEach(c => {
       const mes = new Date(c.data_vencimento).getMonth();
-      porMesAnterior[mes] = (porMesAnterior[mes] || 0) + (c.valor_aberto || 0);
+      porMesAnterior[mes] = (porMesAnterior[mes] || 0) + (c.valor_original || 0);
     });
     
     const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -107,7 +115,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     };
   }, [contasReceberRaw, filterAnos]);
 
-  // Dados detalhados para Inadimplência - USA DADOS RAW PARA GARANTIR COMPLETUDE
+  // Dados detalhados para Inadimplência
   const inadimplenciaDetails = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -120,7 +128,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const vencidos: any[] = [];
     const aVencer: any[] = [];
     
-    // Usa contasReceberRaw para ter todos os dados
     contasReceberRaw.forEach(c => {
       if (!c.data_vencimento) return;
       const valorAberto = c.valor_aberto || 0;
@@ -140,16 +147,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     const totalGeral = totalVencido + totalAVencer;
     const percentual = totalGeral > 0 ? (totalVencido / totalGeral) * 100 : 0;
     
-    console.log('[Inadimplência] Dados RAW carregados:', {
-      totalRaw: contasReceberRaw.length,
-      vencidos: vencidos.length,
-      aVencer: aVencer.length,
-      totalVencido,
-      totalAVencer,
-      percentual: percentual.toFixed(2) + '%'
-    });
-    
-    // Faixas de atraso
     const faixas = {
       ate30: { valor: 0, qtd: 0 },
       de31a60: { valor: 0, qtd: 0 },
@@ -160,23 +157,12 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     vencidos.forEach(c => {
       const dias = c.diasAtraso;
       const valor = c.valor_aberto || 0;
-      
-      if (dias <= 30) {
-        faixas.ate30.valor += valor;
-        faixas.ate30.qtd++;
-      } else if (dias <= 60) {
-        faixas.de31a60.valor += valor;
-        faixas.de31a60.qtd++;
-      } else if (dias <= 90) {
-        faixas.de61a90.valor += valor;
-        faixas.de61a90.qtd++;
-      } else {
-        faixas.mais90.valor += valor;
-        faixas.mais90.qtd++;
-      }
+      if (dias <= 30) { faixas.ate30.valor += valor; faixas.ate30.qtd++; }
+      else if (dias <= 60) { faixas.de31a60.valor += valor; faixas.de31a60.qtd++; }
+      else if (dias <= 90) { faixas.de61a90.valor += valor; faixas.de61a90.qtd++; }
+      else { faixas.mais90.valor += valor; faixas.mais90.qtd++; }
     });
     
-    // Top 5 clientes inadimplentes
     const clientesMap: Record<string, { nome: string; valor: number; qtd: number }> = {};
     vencidos.forEach(c => {
       const key = c.cliente_codigo || 'N/A';
@@ -192,108 +178,155 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
     
-    return {
-      totalVencido,
-      totalAVencer,
-      totalGeral,
-      percentual,
-      qtdVencidos: vencidos.length,
-      qtdAVencer: aVencer.length,
-      faixas,
-      topClientes
-    };
+    return { totalVencido, totalAVencer, totalGeral, percentual, qtdVencidos: vencidos.length, qtdAVencer: aVencer.length, faixas, topClientes };
   }, [contasReceberRaw]);
 
+  // DSO/DPO real + Previsão 12m com média móvel
   const kpis = useMemo(() => {
     if (!contasReceber || !contasPagar) {
-      return {
-        totalReceber: 0,
-        totalPagar: 0,
-        saldoProjetado: 0,
-        dso: 0,
-        dpo: 0,
-        ciclo: 0,
-        variacaoYoY: null,
-        maiorGap: 0,
-        maiorGapData: null,
-        inadimplencia: 0,
-        previsao12m: 0
-      };
+      return { totalReceber: 0, totalPagar: 0, saldoProjetado: 0, dso: 0, dpo: 0, ciclo: 0, variacaoYoY: null, maiorGap: 0, maiorGapData: null, inadimplencia: 0, previsao12m: 0 };
     }
 
     const totalReceber = contasReceber.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const totalPagar = contasPagar.reduce((sum, c) => sum + (c.valor_aberto || 0), 0);
     const saldoProjetado = totalReceber - totalPagar;
 
+    // DSO REAL: (Recebíveis abertos / Receita média mensal) × 30
     const today = new Date();
-    const recebiveisComVencimento = contasReceber.filter(c => c.data_vencimento && c.valor_aberto > 0);
-    let dso = 0;
-    if (recebiveisComVencimento.length > 0) {
-      const totalDias = recebiveisComVencimento.reduce((sum, c) => {
-        const venc = new Date(c.data_vencimento);
-        return sum + Math.max(0, differenceInDays(venc, today));
-      }, 0);
-      dso = Math.round(totalDias / recebiveisComVencimento.length);
-    }
+    const sixMonthsAgo = subMonths(today, 6);
+    
+    const recebidosUlt6m = contasReceberRaw.filter(c => {
+      if (!c.data_recebimento || c.status !== 'recebido') return false;
+      const dt = new Date(c.data_recebimento);
+      return dt >= sixMonthsAgo && dt <= today;
+    });
+    const receita6m = recebidosUlt6m.reduce((sum, c) => sum + (c.valor_original || 0), 0);
+    const receitaMediaMensal = receita6m / 6;
+    const dso = receitaMediaMensal > 0 ? Math.round((totalReceber / receitaMediaMensal) * 30) : 0;
 
-    const pagaveisComVencimento = contasPagar.filter(c => c.data_vencimento && c.valor_aberto > 0);
-    let dpo = 0;
-    if (pagaveisComVencimento.length > 0) {
-      const totalDias = pagaveisComVencimento.reduce((sum, c) => {
-        const venc = new Date(c.data_vencimento);
-        return sum + Math.max(0, differenceInDays(venc, today));
-      }, 0);
-      dpo = Math.round(totalDias / pagaveisComVencimento.length);
-    }
+    // DPO REAL: (Pagáveis abertos / Custo médio mensal) × 30
+    const pagosUlt6m = contasPagarRaw.filter(c => {
+      if (!c.data_pagamento || c.status !== 'pago') return false;
+      const dt = new Date(c.data_pagamento);
+      return dt >= sixMonthsAgo && dt <= today;
+    });
+    const custo6m = pagosUlt6m.reduce((sum, c) => sum + (c.valor_original || 0), 0);
+    const custoMedioMensal = custo6m / 6;
+    const dpo = custoMedioMensal > 0 ? Math.round((totalPagar / custoMedioMensal) * 30) : 0;
 
     const ciclo = dso - dpo;
 
-    interface GapEntry { date: string; gap: number }
+    // Gaps por data
+    interface GapEntry { date: string; gap: number; entradas: number; saidas: number }
     const gapsPorData: Record<string, GapEntry> = {};
     
     contasReceber.forEach(c => {
       if (!c.data_vencimento) return;
       const date = c.data_vencimento.split('T')[0];
-      if (!gapsPorData[date]) gapsPorData[date] = { date, gap: 0 };
+      if (!gapsPorData[date]) gapsPorData[date] = { date, gap: 0, entradas: 0, saidas: 0 };
       gapsPorData[date].gap += (c.valor_aberto || 0);
+      gapsPorData[date].entradas += (c.valor_aberto || 0);
     });
     
     contasPagar.forEach(c => {
       if (!c.data_vencimento) return;
       const date = c.data_vencimento.split('T')[0];
-      if (!gapsPorData[date]) gapsPorData[date] = { date, gap: 0 };
+      if (!gapsPorData[date]) gapsPorData[date] = { date, gap: 0, entradas: 0, saidas: 0 };
       gapsPorData[date].gap -= (c.valor_aberto || 0);
+      gapsPorData[date].saidas += (c.valor_aberto || 0);
     });
 
     const gaps = Object.values(gapsPorData).filter(g => g.gap < 0).sort((a, b) => a.gap - b.gap);
     const maiorGap = gaps.length > 0 ? gaps[0].gap : 0;
     const maiorGapData = gaps.length > 0 ? gaps[0].date : null;
 
-    const previsao12m = saldoProjetado * 12;
+    // PREVISÃO 12M: média móvel dos últimos 6 meses (entradas - saídas realizadas) × 12
+    const saldoLiquidoMensal = receita6m - custo6m;
+    const mediaMensalLiquida = saldoLiquidoMensal / 6;
+    const previsao12m = mediaMensalLiquida * 12;
 
     return {
-      totalReceber,
-      totalPagar,
-      saldoProjetado,
-      dso,
-      dpo,
-      ciclo,
+      totalReceber, totalPagar, saldoProjetado, dso, dpo, ciclo,
       variacaoYoY: yoyDetails.variacao,
       maiorGap: Math.abs(maiorGap),
       maiorGapData,
       inadimplencia: inadimplenciaDetails.percentual,
       previsao12m
     };
-  }, [contasReceber, contasPagar, yoyDetails, inadimplenciaDetails]);
+  }, [contasReceber, contasPagar, contasReceberRaw, contasPagarRaw, yoyDetails, inadimplenciaDetails]);
 
-  // Usar formatCurrencyCompact para exibição resumida
+  // Dados para dialog de Gap: top 10 maiores gaps negativos
+  const gapDetails = useMemo(() => {
+    if (!contasReceber || !contasPagar) return [];
+    
+    interface GapDetail { date: string; entradas: number; saidas: number; gap: number; topFornecedores: string[] }
+    const gapsPorData: Record<string, { entradas: number; saidas: number; fornecedores: Record<string, number> }> = {};
+    
+    contasReceber.forEach(c => {
+      if (!c.data_vencimento) return;
+      const date = c.data_vencimento.split('T')[0];
+      if (!gapsPorData[date]) gapsPorData[date] = { entradas: 0, saidas: 0, fornecedores: {} };
+      gapsPorData[date].entradas += (c.valor_aberto || 0);
+    });
+    
+    contasPagar.forEach(c => {
+      if (!c.data_vencimento) return;
+      const date = c.data_vencimento.split('T')[0];
+      if (!gapsPorData[date]) gapsPorData[date] = { entradas: 0, saidas: 0, fornecedores: {} };
+      gapsPorData[date].saidas += (c.valor_aberto || 0);
+      const fn = c.fornecedor_nome || 'N/A';
+      gapsPorData[date].fornecedores[fn] = (gapsPorData[date].fornecedores[fn] || 0) + (c.valor_aberto || 0);
+    });
+
+    return Object.entries(gapsPorData)
+      .map(([date, d]) => ({
+        date,
+        entradas: d.entradas,
+        saidas: d.saidas,
+        gap: d.entradas - d.saidas,
+        topFornecedores: Object.entries(d.fornecedores).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n]) => n)
+      }))
+      .filter(g => g.gap < 0)
+      .sort((a, b) => a.gap - b.gap)
+      .slice(0, 10);
+  }, [contasReceber, contasPagar]);
+
+  // Dados para dialog de Previsão 12m
+  const previsaoMensal = useMemo(() => {
+    const today = new Date();
+    const sixMonthsAgo = subMonths(today, 6);
+    
+    // Calcular média mensal de entradas e saídas realizadas nos últimos 6 meses
+    const entradasRealizadas = contasReceberRaw.filter(c => 
+      c.data_recebimento && c.status === 'recebido' && new Date(c.data_recebimento) >= sixMonthsAgo && new Date(c.data_recebimento) <= today
+    ).reduce((sum, c) => sum + (c.valor_original || 0), 0);
+    
+    const saidasRealizadas = contasPagarRaw.filter(c => 
+      c.data_pagamento && c.status === 'pago' && new Date(c.data_pagamento) >= sixMonthsAgo && new Date(c.data_pagamento) <= today
+    ).reduce((sum, c) => sum + (c.valor_original || 0), 0);
+
+    const mediaEntrada = entradasRealizadas / 6;
+    const mediaSaida = saidasRealizadas / 6;
+
+    const meses: { mes: string; entrada: number; saida: number; saldo: number; acumulado: number }[] = [];
+    let acumulado = 0;
+    for (let i = 1; i <= 12; i++) {
+      const dt = subMonths(today, -i);
+      const saldo = mediaEntrada - mediaSaida;
+      acumulado += saldo;
+      meses.push({
+        mes: format(startOfMonth(dt), "MMM/yy", { locale: ptBR }),
+        entrada: mediaEntrada,
+        saida: mediaSaida,
+        saldo,
+        acumulado
+      });
+    }
+    return { meses, mediaEntrada, mediaSaida };
+  }, [contasReceberRaw, contasPagarRaw]);
+
   const formatCurrencyFull = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -302,54 +335,30 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
     return date.toLocaleDateString("pt-BR");
   };
 
+  const tooltips: Record<string, string> = {
+    receber: "Soma de todos os valores em aberto de contas a receber no período filtrado.",
+    pagar: "Soma de todos os valores em aberto de contas a pagar no período filtrado.",
+    saldo: "Diferença entre Total a Receber e Total a Pagar. Positivo indica superávit.",
+    dso: "DSO = (Recebíveis abertos ÷ Receita média mensal dos últimos 6 meses) × 30 dias. Indica em quantos dias, em média, a empresa recebe.",
+    dpo: "DPO = (Pagáveis abertos ÷ Custo médio mensal dos últimos 6 meses) × 30 dias. Indica em quantos dias, em média, a empresa paga.",
+    ciclo: "Ciclo Financeiro = DSO − DPO. Se negativo, a empresa recebe antes de pagar (favorável).",
+    yoy: "Variação Year-over-Year: compara o valor_original total do ano selecionado vs o ano anterior.",
+    gap: "Maior diferença negativa (saídas > entradas) em um único dia. Clique para ver os 10 maiores.",
+    inadimplencia: "Percentual de títulos vencidos sobre o total da carteira de recebíveis.",
+    previsao: "Projeção baseada na média móvel dos últimos 6 meses de receitas e custos realizados."
+  };
+
   const kpiCards = [
-    {
-      icon: <ArrowUpCircle className="h-4 w-4 text-emerald-500" />,
-      label: "Total a Receber",
-      rawValue: kpis.totalReceber,
-      color: "text-emerald-600",
-      isMonetary: true
-    },
-    {
-      icon: <ArrowDownCircle className="h-4 w-4 text-rose-500" />,
-      label: "Total a Pagar",
-      rawValue: kpis.totalPagar,
-      color: "text-rose-600",
-      isMonetary: true
-    },
-    {
-      icon: <DollarSign className="h-4 w-4 text-primary" />,
-      label: "Saldo Projetado",
-      rawValue: kpis.saldoProjetado,
-      color: kpis.saldoProjetado >= 0 ? "text-emerald-600" : "text-rose-600",
-      isMonetary: true
-    },
-    {
-      icon: <Clock className="h-4 w-4 text-blue-500" />,
-      label: "DSO (Receber)",
-      value: `${kpis.dso} dias`,
-      color: "",
-      isMonetary: false
-    },
-    {
-      icon: <Clock className="h-4 w-4 text-orange-500" />,
-      label: "DPO (Pagar)",
-      value: `${kpis.dpo} dias`,
-      color: "",
-      isMonetary: false
-    },
-    {
-      icon: <BarChart3 className="h-4 w-4 text-purple-500" />,
-      label: "Ciclo Financeiro",
-      value: `${kpis.ciclo} dias`,
-      color: kpis.ciclo <= 0 ? "text-emerald-600" : "text-amber-600",
-      isMonetary: false
-    }
+    { icon: <ArrowUpCircle className="h-4 w-4 text-emerald-500" />, label: "Total a Receber", rawValue: kpis.totalReceber, color: "text-emerald-600", isMonetary: true, tooltip: tooltips.receber },
+    { icon: <ArrowDownCircle className="h-4 w-4 text-rose-500" />, label: "Total a Pagar", rawValue: kpis.totalPagar, color: "text-rose-600", isMonetary: true, tooltip: tooltips.pagar },
+    { icon: <DollarSign className="h-4 w-4 text-primary" />, label: "Saldo Projetado", rawValue: kpis.saldoProjetado, color: kpis.saldoProjetado >= 0 ? "text-emerald-600" : "text-rose-600", isMonetary: true, tooltip: tooltips.saldo },
+    { icon: <Clock className="h-4 w-4 text-blue-500" />, label: "DSO (Receber)", value: `${kpis.dso} dias`, color: "", isMonetary: false, tooltip: tooltips.dso },
+    { icon: <Clock className="h-4 w-4 text-orange-500" />, label: "DPO (Pagar)", value: `${kpis.dpo} dias`, color: "", isMonetary: false, tooltip: tooltips.dpo },
+    { icon: <BarChart3 className="h-4 w-4 text-purple-500" />, label: "Ciclo Financeiro", value: `${kpis.ciclo} dias`, color: kpis.ciclo <= 0 ? "text-emerald-600" : "text-amber-600", isMonetary: false, tooltip: tooltips.ciclo },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Legenda M/K */}
       <div className="flex justify-end">
         <ValueLegend />
       </div>
@@ -362,6 +371,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               <div className="flex items-center gap-2 mb-2">
                 {kpi.icon}
                 <span className="text-xs text-muted-foreground">{kpi.label}</span>
+                <KpiTooltip text={kpi.tooltip} />
               </div>
               {kpi.isMonetary ? (
                 <SmartValue value={kpi.rawValue!} className={cn("text-lg font-bold", kpi.color)} />
@@ -386,18 +396,14 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                       ? <TrendingUp className="h-4 w-4 text-emerald-500" />
                       : <TrendingDown className="h-4 w-4 text-rose-500" />}
                     <span className="text-xs text-muted-foreground">Variação YoY</span>
+                    <KpiTooltip text={tooltips.yoy} />
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <p className={cn("text-lg font-bold", kpis.variacaoYoY !== null && kpis.variacaoYoY >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                  {kpis.variacaoYoY !== null 
-                    ? `${kpis.variacaoYoY >= 0 ? '+' : ''}${kpis.variacaoYoY.toFixed(1)}%`
-                    : "N/A"}
+                  {kpis.variacaoYoY !== null ? `${kpis.variacaoYoY >= 0 ? '+' : ''}${kpis.variacaoYoY.toFixed(1)}%` : "N/A"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  vs ano anterior
-                  <Info className="h-3 w-3" />
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">vs ano anterior</p>
               </CardContent>
             </Card>
           </DialogTrigger>
@@ -409,7 +415,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
-              {/* Resumo */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-muted/50">
                   <p className="text-sm text-muted-foreground">{yoyDetails.anoAnterior}</p>
@@ -423,7 +428,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               </div>
               
-              {/* Variação */}
               <div className="p-4 rounded-lg border-2 border-dashed">
                 <div className="flex items-center justify-between">
                   <div>
@@ -441,7 +445,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               </div>
               
-              {/* Comparativo Mensal */}
               <div>
                 <h4 className="text-sm font-semibold mb-3">Comparativo Mensal</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -458,31 +461,77 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               </div>
               
-              {/* Explicação */}
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-sm">
                 <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">Como é calculado?</p>
                 <p className="text-blue-600 dark:text-blue-300">
-                  A variação YoY compara o valor total de contas a receber do ano selecionado ({yoyDetails.anoAtual}) 
-                  com o mesmo período do ano anterior ({yoyDetails.anoAnterior}). Uma variação positiva indica crescimento.
+                  Compara o <strong>valor original</strong> dos títulos a receber do ano {yoyDetails.anoAtual} com {yoyDetails.anoAnterior}. 
+                  Usa valor_original (não valor_aberto) para comparação justa entre períodos.
                 </p>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Maior Gap */}
-        <Card className="bg-muted/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <span className="text-xs text-muted-foreground">Maior Gap</span>
+        {/* Maior Gap - AGORA CLICÁVEL */}
+        <Dialog open={showGapDialog} onOpenChange={setShowGapDialog}>
+          <DialogTrigger asChild>
+            <Card className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors group">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs text-muted-foreground">Maior Gap</span>
+                    <KpiTooltip text={tooltips.gap} />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <SmartValue value={kpis.maiorGap} className="text-lg font-bold text-amber-600" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {kpis.maiorGapData ? formatDate(kpis.maiorGapData) : "Sem gaps"}
+                </p>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Top 10 Maiores Gaps de Caixa
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {gapDetails.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum gap negativo identificado no período.</p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-5 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b">
+                    <span>Data</span>
+                    <span className="text-right">Entradas</span>
+                    <span className="text-right">Saídas</span>
+                    <span className="text-right">Gap</span>
+                    <span>Principais Fornecedores</span>
+                  </div>
+                  {gapDetails.map((g, i) => (
+                    <div key={i} className="grid grid-cols-5 gap-2 text-sm py-2 border-b last:border-0">
+                      <span className="font-medium">{formatDate(g.date)}</span>
+                      <span className="text-right text-emerald-600">{formatCurrencyCompact(g.entradas)}</span>
+                      <span className="text-right text-rose-600">{formatCurrencyCompact(g.saidas)}</span>
+                      <span className="text-right font-bold text-rose-600">{formatCurrencyCompact(g.gap)}</span>
+                      <span className="text-xs text-muted-foreground truncate">{g.topFornecedores.join(', ')}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-sm">
+                <p className="font-medium text-amber-700 dark:text-amber-400 mb-1">O que é o Gap?</p>
+                <p className="text-amber-600 dark:text-amber-300">
+                  Gap é a diferença entre entradas e saídas previstas para o mesmo dia. 
+                  Valores negativos indicam que as saídas superam as entradas, gerando necessidade de caixa.
+                </p>
+              </div>
             </div>
-            <SmartValue value={kpis.maiorGap} className="text-lg font-bold text-amber-600" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.maiorGapData ? formatDate(kpis.maiorGapData) : "Sem gaps"}
-            </p>
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
 
         {/* Inadimplência - Clicável */}
         <Dialog open={showInadimplenciaDialog} onOpenChange={setShowInadimplenciaDialog}>
@@ -493,16 +542,14 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                   <div className="flex items-center gap-2">
                     <Percent className="h-4 w-4 text-rose-500" />
                     <span className="text-xs text-muted-foreground">Inadimplência</span>
+                    <KpiTooltip text={tooltips.inadimplencia} />
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <p className={cn("text-lg font-bold", kpis.inadimplencia > 10 ? "text-rose-600" : kpis.inadimplencia > 5 ? "text-amber-600" : "text-emerald-600")}>
                   {kpis.inadimplencia.toFixed(1)}%
                 </p>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  do total a receber
-                  <Info className="h-3 w-3" />
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">do total a receber</p>
               </CardContent>
             </Card>
           </DialogTrigger>
@@ -514,7 +561,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
-              {/* Resumo */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
                   <p className="text-sm text-rose-600">Vencido</p>
@@ -535,7 +581,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               </div>
               
-              {/* Faixas de Atraso */}
               <div>
                 <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-rose-600">
                   <AlertTriangle className="h-4 w-4" />
@@ -548,9 +593,7 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                     { label: "61-90 dias", ...inadimplenciaDetails.faixas.de61a90, color: "bg-rose-600" },
                     { label: "+90 dias", ...inadimplenciaDetails.faixas.mais90, color: "bg-rose-700" }
                   ].map((f, i) => {
-                    const percentFaixa = inadimplenciaDetails.totalVencido > 0 
-                      ? (f.valor / inadimplenciaDetails.totalVencido) * 100 
-                      : 0;
+                    const percentFaixa = inadimplenciaDetails.totalVencido > 0 ? (f.valor / inadimplenciaDetails.totalVencido) * 100 : 0;
                     return (
                       <div key={i} className="flex items-center gap-3">
                         <div className={cn("w-3 h-3 rounded-full", f.color)} />
@@ -566,7 +609,6 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               </div>
               
-              {/* Top Clientes */}
               {inadimplenciaDetails.topClientes.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-3">Top 5 Clientes Inadimplentes</h4>
@@ -587,32 +629,85 @@ export const FluxoCaixaKPIsAdvanced = memo(function FluxoCaixaKPIsAdvanced({
                 </div>
               )}
               
-              {/* Explicação */}
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-sm">
                 <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">Como é calculado?</p>
                 <p className="text-blue-600 dark:text-blue-300">
-                  A taxa de inadimplência é calculada dividindo o valor total de títulos vencidos pelo valor total 
-                  da carteira de recebíveis (vencidos + a vencer). Uma taxa acima de 10% merece atenção especial.
+                  Taxa = Títulos vencidos ÷ Total da carteira (vencidos + a vencer). Acima de 10% merece atenção.
                 </p>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Previsão 12 meses */}
-        <Card className="bg-muted/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Previsão 12 meses</span>
+        {/* Previsão 12 meses - AGORA CLICÁVEL */}
+        <Dialog open={showPrevisaoDialog} onOpenChange={setShowPrevisaoDialog}>
+          <DialogTrigger asChild>
+            <Card className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors group">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-500" />
+                    <span className="text-xs text-muted-foreground">Previsão 12m</span>
+                    <KpiTooltip text={tooltips.previsao} />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <SmartValue 
+                  value={kpis.previsao12m} 
+                  className={cn("text-lg font-bold", kpis.previsao12m >= 0 ? "text-emerald-600" : "text-rose-600")} 
+                />
+                <p className="text-xs text-muted-foreground mt-1">saldo projetado</p>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                Projeção de Saldo — Próximos 12 Meses
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-xs text-emerald-600">Entrada Média/Mês</p>
+                  <p className="text-lg font-bold text-emerald-600">{formatCurrencyCompact(previsaoMensal.mediaEntrada)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800">
+                  <p className="text-xs text-rose-600">Saída Média/Mês</p>
+                  <p className="text-lg font-bold text-rose-600">{formatCurrencyCompact(previsaoMensal.mediaSaida)}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="grid grid-cols-5 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b">
+                  <span>Mês</span>
+                  <span className="text-right">Entrada Est.</span>
+                  <span className="text-right">Saída Est.</span>
+                  <span className="text-right">Saldo</span>
+                  <span className="text-right">Acumulado</span>
+                </div>
+                {previsaoMensal.meses.map((m, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-2 text-sm py-1.5 border-b last:border-0">
+                    <span className="font-medium capitalize">{m.mes}</span>
+                    <span className="text-right text-emerald-600">{formatCurrencyCompact(m.entrada)}</span>
+                    <span className="text-right text-rose-600">{formatCurrencyCompact(m.saida)}</span>
+                    <span className={cn("text-right font-medium", m.saldo >= 0 ? "text-emerald-600" : "text-rose-600")}>{formatCurrencyCompact(m.saldo)}</span>
+                    <span className={cn("text-right font-bold", m.acumulado >= 0 ? "text-emerald-600" : "text-rose-600")}>{formatCurrencyCompact(m.acumulado)}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-sm">
+                <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">Premissas da projeção</p>
+                <p className="text-blue-600 dark:text-blue-300">
+                  Baseado na <strong>média dos últimos 6 meses</strong> de receitas recebidas e custos pagos (dados realizados). 
+                  Não considera sazonalidade nem crescimento projetado.
+                </p>
+              </div>
             </div>
-            <SmartValue 
-              value={kpis.previsao12m} 
-              className={cn("text-lg font-bold", kpis.previsao12m >= 0 ? "text-emerald-600" : "text-rose-600")} 
-            />
-            <p className="text-xs text-muted-foreground mt-1">saldo projetado</p>
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

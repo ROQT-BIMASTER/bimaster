@@ -12,7 +12,8 @@ import {
   Calendar,
   RefreshCw,
   Filter,
-  Table as TableIcon
+  Table as TableIcon,
+  ChevronRight
 } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -333,6 +334,7 @@ const FluxoDeCaixa = () => {
           contasReceber={contasReceber}
           contasPagar={contasPagar}
           contasReceberRaw={contasReceberRaw}
+          contasPagarRaw={contasPagarRaw}
           filterAnos={filterAnos}
         />
 
@@ -527,6 +529,8 @@ const FluxoDeCaixa = () => {
               title="Aging de Contas a Receber" 
               data={agingReceber}
               icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
+              rawData={contasReceber}
+              entityKey="cliente_nome"
             />
           </TabsContent>
 
@@ -535,6 +539,8 @@ const FluxoDeCaixa = () => {
               title="Aging de Contas a Pagar" 
               data={agingPagar}
               icon={<TrendingDown className="h-5 w-5 text-rose-500" />}
+              rawData={contasPagar}
+              entityKey="fornecedor_nome"
             />
           </TabsContent>
 
@@ -553,20 +559,55 @@ const FluxoDeCaixa = () => {
   );
 };
 
-// Aging Report Component
+// Aging Report Component with expandable details
 const AgingReport = ({ 
   title, 
   data, 
-  icon 
+  icon,
+  rawData = [],
+  entityKey = "cliente_nome"
 }: { 
   title: string; 
   data: AgingBucket[]; 
   icon: React.ReactNode;
+  rawData?: any[];
+  entityKey?: string;
 }) => {
+  const [expandedBucket, setExpandedBucket] = useState<string | null>(null);
   const total = data.reduce((sum, d) => sum + d.valor, 0);
   const totalCount = data.reduce((sum, d) => sum + d.count, 0);
 
-  // formatCurrency importado de @/lib/formatters
+  const today = new Date();
+
+  // Get top 10 entities for expanded bucket
+  const getTopEntities = (bucketLabel: string) => {
+    const bucketConfig: Record<string, { min: number; max: number; future: boolean }> = {
+      "A Vencer": { min: 0, max: 30, future: true },
+      "Vencido 1-30": { min: 1, max: 30, future: false },
+      "Vencido 31-60": { min: 31, max: 60, future: false },
+      "Vencido 61-90": { min: 61, max: 90, future: false },
+      "Vencido 90+": { min: 91, max: 9999, future: false },
+    };
+    const cfg = bucketConfig[bucketLabel];
+    if (!cfg) return [];
+
+    const filtered = rawData.filter(c => {
+      if (!c.data_vencimento) return false;
+      const venc = new Date(c.data_vencimento);
+      const diff = differenceInDays(cfg.future ? venc : today, cfg.future ? today : venc);
+      return diff >= cfg.min && diff <= cfg.max;
+    });
+
+    const entityMap: Record<string, { nome: string; valor: number; qtd: number }> = {};
+    filtered.forEach(c => {
+      const nome = c[entityKey] || 'N/A';
+      if (!entityMap[nome]) entityMap[nome] = { nome, valor: 0, qtd: 0 };
+      entityMap[nome].valor += c.valor_aberto || 0;
+      entityMap[nome].qtd++;
+    });
+
+    return Object.values(entityMap).sort((a, b) => b.valor - a.valor).slice(0, 10);
+  };
 
   return (
     <div className="space-y-4">
@@ -603,7 +644,7 @@ const AgingReport = ({
               </ResponsiveContainer>
             </div>
 
-            {/* Table */}
+            {/* Table with expandable rows */}
             <div className="space-y-2">
               <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b">
                 <span>Faixa</span>
@@ -611,19 +652,48 @@ const AgingReport = ({
                 <span className="text-right">Valor</span>
                 <span className="text-right">%</span>
               </div>
-              {data.map((bucket, i) => (
-                <div key={i} className="grid grid-cols-4 gap-2 text-sm py-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: bucket.color }} />
-                    <span>{bucket.label}</span>
-                  </div>
-                  <span className="text-right text-muted-foreground">{bucket.count}</span>
-                  <span className="text-right font-medium">{formatCurrency(bucket.valor)}</span>
-                  <span className="text-right text-muted-foreground">
-                    {total > 0 ? ((bucket.valor / total) * 100).toFixed(1) : 0}%
-                  </span>
-                </div>
-              ))}
+              {data.map((bucket, i) => {
+                const isExpanded = expandedBucket === bucket.label;
+                const topEntities = isExpanded ? getTopEntities(bucket.label) : [];
+                return (
+                  <React.Fragment key={i}>
+                    <div 
+                      className={cn(
+                        "grid grid-cols-4 gap-2 text-sm py-1 cursor-pointer rounded hover:bg-muted/50 transition-colors",
+                        isExpanded && "bg-muted/30"
+                      )}
+                      onClick={() => setExpandedBucket(isExpanded ? null : bucket.label)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: bucket.color }} />
+                        <span>{bucket.label}</span>
+                        <ChevronRight className={cn("h-3 w-3 text-muted-foreground transition-transform", isExpanded && "rotate-90")} />
+                      </div>
+                      <span className="text-right text-muted-foreground">{bucket.count}</span>
+                      <span className="text-right font-medium">{formatCurrency(bucket.valor)}</span>
+                      <span className="text-right text-muted-foreground">
+                        {total > 0 ? ((bucket.valor / total) * 100).toFixed(1) : 0}%
+                      </span>
+                    </div>
+                    {isExpanded && topEntities.length > 0 && (
+                      <div className="ml-5 pl-3 border-l-2 border-muted space-y-1 py-1">
+                        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground font-medium pb-1">
+                          <span>{entityKey === 'cliente_nome' ? 'Cliente' : 'Fornecedor'}</span>
+                          <span className="text-right">Títulos</span>
+                          <span className="text-right">Valor</span>
+                        </div>
+                        {topEntities.map((e, j) => (
+                          <div key={j} className="grid grid-cols-3 gap-2 text-xs py-0.5">
+                            <span className="truncate">{e.nome}</span>
+                            <span className="text-right text-muted-foreground">{e.qtd}</span>
+                            <span className="text-right font-medium">{formatCurrency(e.valor)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
               <div className="grid grid-cols-4 gap-2 text-sm py-2 border-t font-medium">
                 <span>Total</span>
                 <span className="text-right">{totalCount}</span>

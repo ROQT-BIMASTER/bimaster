@@ -213,6 +213,28 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
     gcTime: 15 * 60 * 1000, // 15 minutos
   });
   
+  // Filtro de sanidade: excluir datas absurdas (antes de 2020 ou após 2030)
+  const sanitizedPagarRaw = useMemo(() => {
+    if (!contasPagarRaw) return [];
+    const MIN_DATE = '2020-01-01';
+    const MAX_DATE = '2030-12-31';
+    const clean: ContaPagar[] = [];
+    const excluded: ContaPagar[] = [];
+    contasPagarRaw.forEach(c => {
+      if (c.data_vencimento && (c.data_vencimento < MIN_DATE || c.data_vencimento > MAX_DATE)) {
+        excluded.push(c);
+      } else {
+        clean.push(c);
+      }
+    });
+    if (excluded.length > 0) {
+      console.warn(`[Fluxo] ⚠️ ${excluded.length} registros de contas_pagar excluídos por data anômala:`,
+        excluded.map(e => ({ id: e.id, fornecedor: e.fornecedor_nome, venc: e.data_vencimento, valor: e.valor_original }))
+      );
+    }
+    return clean;
+  }, [contasPagarRaw]);
+
   // Filter data by vendedor/cliente and month on frontend
   const contasReceber = useMemo(() => {
     if (!contasReceberRaw) return [];
@@ -252,8 +274,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   }, [contasReceberRaw, filterMeses, filterAnos, filterVendedor, filterCliente]);
   
   const contasPagar = useMemo(() => {
-    if (!contasPagarRaw) return [];
-    let filtered = [...contasPagarRaw];
+    if (!sanitizedPagarRaw) return [];
+    let filtered = [...sanitizedPagarRaw];
     
     // Month filter
     if (filterMeses.length > 0) {
@@ -282,7 +304,7 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
     }
     
     return filtered;
-  }, [contasPagarRaw, filterMeses, filterAnos, filterCliente]);
+  }, [sanitizedPagarRaw, filterMeses, filterAnos, filterCliente]);
   
   // Extract unique values
   const empresas = useMemo(() => {
