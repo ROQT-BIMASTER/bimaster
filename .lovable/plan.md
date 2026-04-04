@@ -1,133 +1,71 @@
 
 
-# Auditoria do Plano de Contas 2026 — Falhas e Correções Necessárias
+# Vincular Plano de Contas a Departamentos
 
-## Resumo da Análise
+## Contexto
 
-Após revisar as **110 contas ativas** e os **47.566 títulos classificados**, identifiquei **12 problemas** organizados por gravidade.
-
----
-
-## FALHAS CRÍTICAS (impactam DRE e relatórios)
-
-### 1. Conta 3.2.14 sobrecarregada — 4.770 títulos de SALÁRIOS
-
-A conta `3.2.1 Salários CLT` é **grupo** (não aceita lançamento), então SALÁRIOS (3.247 títulos), ADIANTAMENTO DE SALARIOS (1.350) e Horas Extras (49) foram jogados em `3.2.14 Outras despesas com pessoal`.
-
-**Correção**: Criar conta analítica `3.2.1.1.1 Salários` (nível 5, filha de `3.2.1.1 Hora Extra` ou criar `3.2.1.2 Salários`) e reclassificar os 4.646 títulos.
-
-### 2. Grupo 4 inteiro sem `categoria_dre`
-
-Todas as 23 contas do grupo 4 (Receitas/Despesas Não Operacionais, Investimentos, Atividades Financeiras, Sócios) estão com `categoria_dre = NULL`. Isso significa que **nenhuma dessas contas aparece no DRE**.
-
-**Correção**: Definir `categoria_dre` para cada sub-grupo:
-- `4.1` → pode ser um novo tipo ou mapear para existente
-- `4.3` → despesas financeiras
-- `4.4` → distribuição de lucros
-
-### 3. Código `2.3` ausente — salto na numeração
-
-A sequência vai de `2.2 Embalagens` direto para `2.4 Fretes`. O código `2.3` está vazio, quebrando a sequência numérica.
-
-**Correção**: Renumerar ou criar `2.3` como conta reserva/placeholder.
-
-### 4. `3.1.8.2 Limpeza` existe mas tem ZERO títulos
-
-A conta foi cadastrada mas nenhum título foi classificado nela. Categorias como "SERVIÇOS DE TERCEIROS" e "PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO" (765 títulos) foram para `3.1.8.9 Outros Serviços` — parte deles poderia ser Limpeza.
-
-**Correção**: Revisar se há títulos de limpeza dentro de `3.1.8.9` que deveriam ser reclassificados.
-
----
-
-## FALHAS ESTRUTURAIS
-
-### 5. Hierarquia `3.2.1` mal desenhada
+A tabela `trade_chart_of_accounts` já possui as colunas `departamento` (varchar) e `departamento_id` (uuid), mas ambas estão **100% vazias**. Os 9 departamentos ativos são:
 
 ```text
-3.2.1   Salários CLT (GRUPO)
-├─ 3.2.1.1   Hora Extra (GRUPO)  ← grupo dentro de grupo
-│  └─ 3.2.1.1.2   Ajuda de Custo ← código .2 sem .1 existir
+Administrativo | Compras e Faturamento | Fábrica China | Financeiro
+Logística | Operações | Projetos | Recursos Humanos | TI
 ```
 
-Problemas:
-- `3.2.1.1.2` existe mas `3.2.1.1.1` não (salto)
-- "Ajuda de Custo" não é sub-tipo de "Hora Extra"
-- Não existe conta analítica para salários em si
+## Departamento Faltante
 
-**Correção**: Reestruturar:
-```text
-3.2.1   Salários CLT (GRUPO)
-├─ 3.2.1.1   Salários (analítica)
-├─ 3.2.1.2   Horas Extras (analítica)
-├─ 3.2.1.3   Adiantamentos (analítica)
-├─ 3.2.1.4   Ajuda de Custo (analítica)
-```
+Analisando o plano de contas, falta o departamento **Marketing / Trade** — as contas `3.3.x` (Publicidade, Eventos, Influencers, etc.) e `2.6.x` (Comissões, Trade Comercial) não têm departamento correspondente.
 
-### 6. `3.2.4 Encargos` contém apenas `3.2.4.1 Empréstimos`
+**Ação**: Criar departamento "Marketing" ou "Comercial / Trade".
 
-"Empréstimos" não é encargo trabalhista. O nome do grupo e seu conteúdo são inconsistentes. Encargos deveria conter FGTS, INSS patronal, etc.
+## Mapeamento Proposto (Conta → Departamento)
 
-**Correção**: Renomear `3.2.4` para "Pensão/Descontos" ou mover Empréstimos para outro local e adicionar encargos reais (FGTS, INSS).
-
-### 7. Conta `3.3.5 Exposittores` — erro de grafia
-
-Nome com duplo "t": "Exposittores" em vez de "Expositores".
-
-**Correção**: Corrigir nome para "Expositores".
-
----
-
-## FALHAS DE CLASSIFICAÇÃO DRE
-
-### 8. Marketing (`3.3`) classificado como `despesas_fixas`
-
-Marketing geralmente é **despesa variável** pois varia com campanhas e sazonalidade. No plano do cliente, está como despesa fixa junto com aluguel e luz.
-
-**Decisão do cliente**: Manter como fixa (simplificação) ou criar categoria DRE `despesas_variaveis` para marketing?
-
-### 9. `2.5 Despesas Tributárias` com `categoria_dre = deducoes`
-
-PIS, COFINS, ICMS como "deduções" é correto contabilmente (deduções da receita bruta). Porém, Simples Nacional (`2.5.1`) engloba tudo e está na mesma categoria — verificar se o cliente quer separar.
-
-### 10. `2.7 Tarifas` contém apenas "Mercado Pago"
-
-Se Mercado Pago é tarifa de meio de pagamento, deveria estar nas deduções (`categoria_dre: deducoes`) junto com impostos sobre vendas, não em `custo_vendas`.
-
----
-
-## DADOS AUSENTES
-
-### 11. Contas sem uso (0 títulos vinculados)
-
-Contas cadastradas mas nunca utilizadas:
-- `3.1.8.2 Limpeza`
-- `3.1.10.1 Manutenção e Conserto (Veículos)`
-- `3.1.10.2 IPVA/Licenciamento/Multas`
-- `3.2.10 Café Funcionários`
-- `3.3.4 Patrocínio`
-- `4.2.7 Investimento Imóvel`
-
-**Ação**: Verificar se realmente não há dados ou se faltou mapeamento no dicionário.
-
-### 12. `3.1.8.9 Outros Serviços` concentra 1.561 títulos
-
-Conta "genérica" com alta concentração. Categorias como "PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO" (408), "SERVIÇOS DE TERCEIROS" (242), "MÃO DE OBRA" (12) poderiam ser redistribuídas para contas mais específicas.
-
----
-
-## Plano de Correção (se aprovado)
-
-| Prioridade | Ação | Impacto |
+| Grupo de Contas | Departamento | Justificativa |
 |---|---|---|
-| Alta | Criar `3.2.1.1` a `3.2.1.4` analíticas e reclassificar 4.770 títulos | Salários visíveis no DRE |
-| Alta | Definir `categoria_dre` para grupo 4 inteiro | Grupo 4 aparece no DRE |
-| Média | Corrigir hierarquia `3.2.1.x` e `3.2.4` | Estrutura limpa |
-| Média | Corrigir grafia "Exposittores" → "Expositores" | Cosmético |
-| Baixa | Criar `2.3` placeholder ou renumerar | Sequência numérica |
-| Baixa | Revisar `3.1.8.9` para redistribuir | Precisão analítica |
+| **1.x** Receita Bruta | **Financeiro** | Recebimentos e tesouraria |
+| **2.1.x** Fornecedores | **Compras e Faturamento** | Compras de mercadoria |
+| **2.2** Embalagens | **Logística** | Materiais de expedição |
+| **2.4.x** Fretes | **Logística** | Transporte e distribuição |
+| **2.5.x** Impostos de Vendas | **Financeiro** | Obrigações tributárias |
+| **2.6.x** Despesas Comerciais | **Comercial/Trade** (novo) | Comissões e trade |
+| **2.7.x** Tarifas | **Financeiro** | Taxas bancárias |
+| **3.1.1** Aluguel | **Administrativo** | Infraestrutura |
+| **3.1.2 a 3.1.7** Utilities | **Administrativo** | Luz, água, internet, telefone |
+| **3.1.8.x** Serviços terceiros | **Administrativo** | Limpeza, segurança, contabilidade |
+| **3.1.9** Manutenção | **Operações** | Manutenção predial e equipamentos |
+| **3.1.10** Veículos | **Logística** | Frota e combustível |
+| **3.1.21, 3.1.22, 3.1.24** TI | **TI** | Hardware, software, locação IT |
+| **3.1.18** Viagens | **Administrativo** | Despesas corporativas |
+| **3.2.x** Pessoal (todo) | **Recursos Humanos** | Salários, férias, benefícios, rescisões |
+| **3.3.x** Marketing (todo) | **Comercial/Trade** (novo) | Publicidade, eventos, influencers |
+| **3.4.x** Financeiro | **Financeiro** | Juros e rendimentos |
+| **3.5.x** Sócios | **Financeiro** | Pró-labore |
+| **4.1.x** Mov. Financeiras | **Financeiro** | Estornos, transferências |
+| **4.2.x** Investimentos | **Administrativo** | Ativos imobilizados |
+| **4.3.x** Empréstimos | **Financeiro** | Amortizações |
+| **4.4.x** Sócios/Lucros | **Financeiro** | Distribuição de lucros |
 
-| Arquivo | Mudança |
+## Lacunas Identificadas no Plano
+
+1. **Departamento "Marketing/Comercial" não existe** — precisa ser criado para comportar `3.3.x` e `2.6.x`
+2. **Contas de TI misturadas em Administrativo** — `3.1.21` (Hardware), `3.1.22` (Software), `3.1.24` (Locação IT) e `3.1.4` (Internet) poderiam ter sub-grupo próprio `3.1.IT` ou serem vinculadas ao depto TI
+3. **Operações sem contas específicas** — o departamento "Operações" existe mas não há contas claras para ele (apenas manutenção `3.1.9`); considerar vincular `2.2` (Embalagens) e `3.1.19` (Locações operacionais)
+4. **Fábrica China sem contas** — departamento existe mas nenhuma conta reflete custos de importação/produção China
+5. **Projetos sem contas** — departamento existe mas não há contas de "Despesas de Projeto" no plano
+
+## Implementação
+
+### 1. Criar departamento "Comercial / Trade"
+Inserir na tabela `departamentos`.
+
+### 2. UPDATE em massa no `trade_chart_of_accounts`
+Setar `departamento_id` e `departamento` (nome) para cada conta usando o mapeamento acima, via SQL direto com CASE WHEN por faixa de código.
+
+### 3. Interface (opcional, fase 2)
+Na tela do Plano de Contas, exibir badge com nome do departamento ao lado de cada conta e filtro por departamento.
+
+| Ação | Detalhe |
 |---|---|
-| Migração SQL (1) | Criar contas analíticas `3.2.1.x`, definir `categoria_dre` grupo 4, corrigir nomes |
-| Migração SQL (2) | Reclassificar 4.770 títulos de `3.2.14` para novas contas `3.2.1.x` |
+| INSERT departamento | Criar "Comercial / Trade" |
+| UPDATE ~110 contas | Setar `departamento_id` por faixa de código |
+| Sem alteração de schema | Colunas já existem na tabela |
 
