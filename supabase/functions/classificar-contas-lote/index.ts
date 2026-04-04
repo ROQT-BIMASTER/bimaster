@@ -31,9 +31,9 @@ const DICIONARIO_CATEGORIAS: Record<string, { codigo: string; justificativa: str
   "DESCONTOS COMERCIAIS ": { codigo: "2.1.3", justificativa: "Descontos comerciais concedidos" },
 
   // ── CUSTOS VARIÁVEIS - Embalagens (Grupo 2.2) ──
-  "EMBALAGENS": { codigo: "2.2", justificativa: "Embalagens para produtos" },
-  "CAIXAS TERCIARIA": { codigo: "2.2", justificativa: "Caixas terciárias - embalagem" },
-  "ETIQUETAS DIVERSAS": { codigo: "2.2", justificativa: "Etiquetas para embalagem/expedição" },
+  "EMBALAGENS": { codigo: "2.2.1", justificativa: "Embalagem primária (caixas, sacos, sacolas)" },
+  "CAIXAS TERCIARIA": { codigo: "2.2.3", justificativa: "Embalagem terciária (paletes, stretch)" },
+  "ETIQUETAS DIVERSAS": { codigo: "2.2.4", justificativa: "Materiais de postagem (etiquetas, lacres)" },
 
   // ── CUSTOS VARIÁVEIS - Frete/Logística (Grupo 2.4) ──
   "FRETES AGREGADOS": { codigo: "2.4.2", justificativa: "Fretes com agregados/freelances" },
