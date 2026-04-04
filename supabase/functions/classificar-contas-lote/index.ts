@@ -479,6 +479,9 @@ serve(async (req) => {
               top_fornecedores: cat.top_fornecedores,
             });
             continue;
+          } else {
+            // Dictionary points to a group or non-existent account — fall through to AI
+            console.warn(`DICT WARNING: "${nome}" mapped to code "${dictEntry.codigo}" but no analytic account found. Sending to AI.`);
           }
         }
 
