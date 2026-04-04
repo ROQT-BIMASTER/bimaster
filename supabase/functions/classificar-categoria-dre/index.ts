@@ -40,9 +40,12 @@ ${categoriasInfo}
 REGRAS DE CLASSIFICAÇÃO:
 1. Contas de RECEITA (vendas, serviços, faturamento) → receita_bruta
 2. Contas de IMPOSTOS SOBRE VENDAS (ICMS, PIS, COFINS sobre vendas, devoluções) → deducoes
-3. Contas de CUSTO (CMV, compras, produção, matéria-prima) → custo_vendas
-4. Contas de DESPESA (administrativas, comerciais, salários, aluguel, utilidades) → despesas_fixas
-5. Contas de IMPOSTOS SOBRE LUCRO (IRPJ, CSLL, provisão IR) → impostos_lucro
+3. Contas de CUSTO (CMV, compras, produção, matéria-prima, fretes, embalagens) → custo_vendas
+4. Contas de DESPESA FIXA (administrativas, pessoal, salários, aluguel, utilities) → despesas_fixas
+5. Contas de DESPESA VARIÁVEL (marketing, trade, comissões, campanhas) → despesas_variaveis
+6. Contas FINANCEIRAS (juros, tarifas bancárias, receitas financeiras) → resultado_financeiro
+7. Contas de IMPOSTOS SOBRE LUCRO (IRPJ, CSLL, provisão IR) → impostos_lucro
+8. Contas NÃO OPERACIONAIS (receitas/despesas extraordinárias) → resultado_nao_operacional
 
 Analise o código, nome e tipo da conta para determinar a categoria correta.
 Se a conta não se encaixar claramente em nenhuma categoria (ex: contas patrimoniais), retorne null.`;
