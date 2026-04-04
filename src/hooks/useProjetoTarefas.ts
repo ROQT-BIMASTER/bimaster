@@ -336,7 +336,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const toggleTarefaCompleta = useMutation({
     mutationFn: async (tarefa: ProjetoTarefa) => {
       const isCompleting = tarefa.status !== "concluida";
-      logger.debug("[toggleTarefaCompleta] tarefa:", tarefa.id, "isCompleting:", isCompleting, "current status:", tarefa.status);
+      logger.debug(`[toggleTarefaCompleta] tarefa: ${tarefa.id} isCompleting: ${isCompleting} current status: ${tarefa.status}`);
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({

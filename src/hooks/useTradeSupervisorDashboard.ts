@@ -215,7 +215,7 @@ export function useTradeSupervisorDashboard(
   const hasTeam = filterIds.length > 0;
   const filterIdsKey = filterIds.join(",");
   
-  logger.debug("[SupervisorDashboard] FilterIds:", filterIds.length, "membros (inclui supervisor)");
+  logger.debug(`[SupervisorDashboard] FilterIds: ${filterIds.length} membros (inclui supervisor)`);
 
   // Query para KPIs principais - usando .in() para eficiência
   const kpisQuery = useQuery({

@@ -57,7 +57,7 @@ export default function FabricaFormulas() {
   });
 
   // Log para debug
-  logger.debug("Formulas carregadas:", formulas, "Erro:", error);
+  logger.debug(`Formulas carregadas: ${formulas?.length ?? 0} registros`);
 
   const formulasFiltradas = formulas?.filter((formula) => {
     const produto = formula.fabrica_produtos;

@@ -154,7 +154,7 @@ export const useSyncOfflineData = () => {
           // Remover após 3 tentativas
           if (photo.retries >= 2) {
             await offlineStorage.removePendingPhoto(photo.id);
-            logger.debug('Foto descartada após 3 tentativas:', photo.id);
+            logger.debug(`Foto descartada após 3 tentativas: ${photo.id}`);
           }
         }
       }

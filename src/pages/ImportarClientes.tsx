@@ -642,12 +642,7 @@ const ImportarClientes = () => {
           detalhes
         });
 
-        logger.debug("✅ Importação concluída:", {
-          inseridos,
-          atualizados,
-          distribuidos,
-          nao_distribuidos
-        });
+        logger.debug(`Importação concluída: ${inseridos} inseridos, ${atualizados} atualizados, ${distribuidos} distribuídos`);
         
         toast({
           title: "Importação concluída",

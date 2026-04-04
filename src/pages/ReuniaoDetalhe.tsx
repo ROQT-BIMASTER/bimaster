@@ -61,7 +61,7 @@ export default function ReuniaoDetalhe() {
 
   const triggerPhase2 = useCallback(async (meetingId: string) => {
     try {
-      logger.debug("[ReuniaoDetalhe] Triggering Phase 2 for meeting:", meetingId);
+      logger.debug(`[ReuniaoDetalhe] Triggering Phase 2 for meeting: ${meetingId}`);
       const { data, error } = await supabase.functions.invoke("meeting-analyze-phase2", {
         body: { meetingId },
       });

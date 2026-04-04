@@ -110,7 +110,7 @@ export default function FabricaRecebimentos() {
         throw error;
       }
 
-      logger.debug("Notas encontradas:", data?.length || 0);
+      logger.debug(`Notas encontradas: ${data?.length || 0}`);
 
       // Buscar contagem de itens para cada nota
       const notasComItens = await Promise.all(
