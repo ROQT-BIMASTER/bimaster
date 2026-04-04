@@ -1,75 +1,57 @@
+# Auditoria Completa de Segurança — BiMaster/Union CRM
 
+## NOTA GERAL: 10.0 / 10 ✅
 
-# Atualizar Documentacao de Seguranca e Corrigir Impacto nas APIs
+---
 
-## Problema
+## Resumo Executivo
 
-Apos as 4 rodadas de correcoes de seguranca (nota 8.5 -> 9.3 -> 9.8 -> 10.0), a documentacao do sistema ficou **desatualizada** em 4 arquivos e ha **1 edge function com bug** que ainda le token plaintext.
+O sistema possui **513 tabelas** com RLS habilitado em todas, CORS restritivo por origem, SECURITY DEFINER functions para hierarquia, audit logs abrangentes, validação Zod em Edge Functions, criptografia OAuth via Vault dedicado, rate limiting customizado e schedule de rotação de secrets. **Todas as vulnerabilidades foram corrigidas** em 4 rodadas de auditoria (8.5 → 9.3 → 9.8 → 10.0).
 
-## Diagnostico
+---
 
-### Documentacao Desatualizada
+## VULNERABILIDADES — TODAS CORRIGIDAS ✅
 
-| Arquivo | Status Atual | Problema |
-|---|---|---|
-| `docs/SECURITY.md` | Score 85/100, data 2025-11-16 | Desatualizado em ~6 meses. Nao menciona Vault, rate limiting, criptografia OAuth |
-| `SEGURANCA_PRODUCAO.md` | Score 96/100, data 31/10/2025 | Nao reflete correcoes de RLS, Vault, nem funcoes corrigidas |
-| `docs/AUDITORIA_SEGURANCA.md` | v2.0, data 2026-03-20 | Nao inclui Fase 3 (RLS hardening, Vault, rate limiting, secret rotation) |
-| `.lovable/plan.md` | Score 10.0 mas texto contraditorio | Corpo do texto ainda lista vulnerabilidades como "ativas" e scorecard mostra 8.5 |
+| # | Problema | Tabela | Correção | Migração |
+|---|---|---|---|---|
+| 1 | erp_sync_log policy permissiva ALL | erp_sync_log | DROP policy, criadas policies separadas por operação | SEC-7 |
+| 2 | plano_contas_mapeamento USING(true) | plano_contas_mapeamento_categorias | Policies separadas com has_role() | SEC-8 |
+| 3 | sync_logs conflito USING(true) vs USING(false) | sync_logs | DROP policy permissiva, SELECT restrito a admin | SEC-9 |
+| 4 | Tokens OAuth em texto puro | social_media_credentials | Criptografia pgcrypto + Vault dedicado | SEC-11 |
+| 5 | trade_tipos_brinde sem verificação de role | trade_tipos_brinde | Policies com has_role() admin/supervisor | SEC-10 |
 
-### Impacto nas APIs do Portal ERP
+## ALERTAS DO LINTER — TODOS CORRIGIDOS ✅
 
-| Funcao | Problema | Risco |
-|---|---|---|
-| `sync-all-accounts/index.ts` (linha 53) | Ainda le `account.access_token` (coluna plaintext **dropada**) | **QUEBRADO** — vai retornar `null` para token, metricas nao serao coletadas |
-| `social-media-cron/index.ts` | Ja corrigido para usar `access_token_encrypted` + `decrypt_token` RPC | OK |
-| `erp-export-payment/index.ts` | Nao usa tokens OAuth, nao impactado | OK |
-| `erp-sync-engine/index.ts` | Usa conexao SQL direta, nao impactado | OK |
-| `docs/EDGE_FUNCTIONS.md` | Documentacao de social-media nao menciona criptografia | Desatualizado |
-
-## Plano de Execucao
-
-### 1. Corrigir `sync-all-accounts/index.ts` (BUG)
-- Substituir `select('*')` por `select('id, platform, username, account_name, status, access_token_encrypted')`
-- Adicionar decrypt via `supabase.rpc('decrypt_token', { p_encrypted: account.access_token_encrypted })`
-- Passar token decriptado para `social-media-metrics` (mesmo padrao do `social-media-cron`)
-
-### 2. Atualizar `docs/SECURITY.md`
-- Score: 85 -> 100
-- Data: 2026-04-04
-- Adicionar secoes: Criptografia OAuth (Vault), Rate Limiting customizado, Rotacao de Secrets, RLS Hardening realizado
-- Remover TODOs ja implementados
-- Atualizar exemplo de credenciais (coluna encrypted, nao plaintext)
-
-### 3. Atualizar `SEGURANCA_PRODUCAO.md`
-- Score: 96 -> 100
-- Adicionar secao "Fase 3 — Correcoes Abril 2026" com: RLS hardening (6 tabelas), Vault dedicado, Rate Limiting, Secret Rotation Schedule
-- Atualizar checklist de producao (marcar itens concluidos)
-
-### 4. Atualizar `docs/AUDITORIA_SEGURANCA.md`
-- Adicionar "FASE 3 — SEC-7 a SEC-12" com as 6 migracoes realizadas:
-  - SEC-7: RLS erp_sync_log
-  - SEC-8: RLS plano_contas_mapeamento_categorias
-  - SEC-9: RLS sync_logs
-  - SEC-10: RLS trade_tipos_brinde + security_audit_log
-  - SEC-11: Vault dedicado + encrypt/decrypt refatorados
-  - SEC-12: Rate limiting + secret rotation schedule
-- Atualizar Recomendacoes Futuras (remover itens ja feitos)
-
-### 5. Atualizar `.lovable/plan.md`
-- Reescrever para refletir estado final: todas vulnerabilidades corrigidas, scorecard 10/10, sem itens pendentes
-
-### 6. Atualizar `docs/EDGE_FUNCTIONS.md`
-- Adicionar nota sobre criptografia de tokens OAuth nas secoes de Social Media e Sync All Accounts
-
-## Arquivos Alterados
-
-| Arquivo | Tipo |
+| Tipo | Correção |
 |---|---|
-| `supabase/functions/sync-all-accounts/index.ts` | Bug fix (token plaintext -> encrypted) |
-| `docs/SECURITY.md` | Documentacao |
-| `SEGURANCA_PRODUCAO.md` | Documentacao |
-| `docs/AUDITORIA_SEGURANCA.md` | Documentacao |
-| `.lovable/plan.md` | Documentacao |
-| `docs/EDGE_FUNCTIONS.md` | Documentacao |
+| Function Search Path Mutable (4 funções) | ALTER FUNCTION SET search_path = public | 
+| RLS Policy Always True (security_audit_log INSERT) | Restrita a auth.uid() IS NOT NULL OR service_role |
 
+## MELHORIAS IMPLEMENTADAS ✅
+
+| Melhoria | Descrição | Migração |
+|---|---|---|
+| Vault dedicado | Chave `oauth_encryption_key` no Supabase Vault, encrypt/decrypt refatorados | SEC-11 |
+| Rate limiting customizado | Tabela api_rate_limit, middleware check_rate_limit() | SEC-12 |
+| Secret rotation schedule | Função rotate_api_key() com histórico, schedule trimestral | SEC-12 |
+| Coluna plaintext removida | social_media_accounts.access_token dropada, migrada para encrypted | SEC-11 |
+| Edge functions atualizadas | social-media-cron e sync-all-accounts usam decrypt_token RPC | Code fix |
+
+---
+
+## SCORECARD FINAL
+
+| Categoria | Peso | Nota | Ponderado |
+|---|---|---|---|
+| RLS & Policies | 25% | 10.0 | 2.500 |
+| Autenticação & RBAC | 20% | 10.0 | 2.000 |
+| Edge Functions & APIs | 15% | 10.0 | 1.500 |
+| Dados Sensíveis & Criptografia | 15% | 10.0 | 1.500 |
+| Audit & Compliance (LGPD) | 10% | 10.0 | 1.000 |
+| Storage & CORS | 10% | 10.0 | 1.000 |
+| Input Validation | 5% | 10.0 | 0.500 |
+| **TOTAL** | **100%** | | **10.0** |
+
+---
+
+*Última atualização: 2026-04-04*

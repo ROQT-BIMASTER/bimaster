@@ -12,10 +12,10 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Buscar todas as contas ativas
+    // Buscar todas as contas ativas (com token encrypted)
     const { data: accounts, error: fetchError } = await supabase
       .from('social_media_accounts')
-      .select('*')
+      .select('id, platform, username, account_name, status, access_token_encrypted')
       .eq('status', 'active');
 
     if (fetchError) throw fetchError;
@@ -43,6 +43,20 @@ Deno.serve(async (req) => {
           .update({ status: 'syncing' })
           .eq('id', account.id);
 
+        // Decriptar token via Vault RPC
+        let token: string | null = null;
+        if (account.access_token_encrypted) {
+          const { data: decrypted, error: decryptError } = await supabase.rpc(
+            'decrypt_token',
+            { p_encrypted: account.access_token_encrypted }
+          );
+          if (decryptError) {
+            console.error(`Erro ao decriptar token para ${account.username}:`, decryptError.message);
+          } else {
+            token = decrypted;
+          }
+        }
+
         // Invocar função de métricas
         const { data: metrics, error: metricsError } = await supabase.functions.invoke(
           'social-media-metrics',
@@ -50,7 +64,7 @@ Deno.serve(async (req) => {
             body: {
               platform: account.platform,
               username: account.username,
-              token: account.access_token,
+              token,
               accountId: account.id,
               saveToHistory: true,
             },
