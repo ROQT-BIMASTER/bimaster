@@ -333,6 +333,7 @@ const FluxoDeCaixa = () => {
           contasReceber={contasReceber}
           contasPagar={contasPagar}
           contasReceberRaw={contasReceberRaw}
+          contasPagarRaw={contasPagarRaw}
           filterAnos={filterAnos}
         />
 
