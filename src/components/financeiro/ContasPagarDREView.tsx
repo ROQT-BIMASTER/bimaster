@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -20,7 +22,9 @@ import {
   Maximize2,
   X,
   Printer,
-  FileDown
+  FileDown,
+  ArrowRightLeft,
+  Search
 } from "lucide-react";
 import { ReclassificarContaDREDialog } from "./ReclassificarContaDREDialog";
 import { EditarClassificacaoRapidaDialog } from "./EditarClassificacaoRapidaDialog";
