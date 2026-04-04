@@ -81,7 +81,7 @@ export default function Financeiro() {
         }
       }
 
-      logger.debug('[Financeiro] contas_pagar:', pagar.length, '| contas_receber:', receberAll.length);
+      logger.debug(`[Financeiro] contas_pagar: ${pagar.length} | contas_receber: ${receberAll.length}`);
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const totalReceber = receberAll.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
