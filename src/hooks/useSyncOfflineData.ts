@@ -49,7 +49,7 @@ export const useSyncOfflineData = () => {
       // Ensure user is set for decryption
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('🔒 No user authenticated, skipping offline sync');
+        logger.debug('🔒 No user authenticated, skipping offline sync');
         return;
       }
       
@@ -61,7 +61,7 @@ export const useSyncOfflineData = () => {
         return; // Nada para sincronizar
       }
 
-      console.log(`🔄 Sincronizando dados offline: ${photos} fotos, ${data} registros`);
+      logger.debug(`🔄 Sincronizando dados offline: ${photos} fotos, ${data} registros`);
       
       let successCount = 0;
       let failCount = 0;
@@ -94,7 +94,7 @@ export const useSyncOfflineData = () => {
           // Limitar tentativas
           if (item.retries >= 3) {
             await offlineStorage.removePendingData(item.id);
-            console.log('Dado descartado após 3 tentativas:', item.id);
+            logger.debug('Dado descartado após 3 tentativas:', item.id);
           }
         }
       }
@@ -154,7 +154,7 @@ export const useSyncOfflineData = () => {
           // Remover após 3 tentativas
           if (photo.retries >= 2) {
             await offlineStorage.removePendingPhoto(photo.id);
-            console.log('Foto descartada após 3 tentativas:', photo.id);
+            logger.debug('Foto descartada após 3 tentativas:', photo.id);
           }
         }
       }

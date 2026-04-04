@@ -73,7 +73,7 @@ async function fetchPaginatedData<T>(
   const PAGE_SIZE = 1000; // Supabase limita a 1000 registros por requisição
   const MAX_CONCURRENT = 8; // Aumentar concorrência para compensar batches menores
   
-  console.log(`[${tableName}] Iniciando busca paralela...`);
+  logger.debug(`[${tableName}] Iniciando busca paralela...`);
   
   try {
     // PASSO 1: Obter contagem total primeiro
@@ -99,7 +99,7 @@ async function fetchPaginatedData<T>(
     }
     
     const totalCount = count || 0;
-    console.log(`[${tableName}] Total de registros: ${totalCount}`);
+    logger.debug(`[${tableName}] Total de registros: ${totalCount}`);
     
     if (totalCount === 0) {
       return [];
@@ -107,7 +107,7 @@ async function fetchPaginatedData<T>(
     
     // PASSO 2: Calcular batches necessários
     const totalBatches = Math.ceil(totalCount / PAGE_SIZE);
-    console.log(`[${tableName}] Total de batches necessários: ${totalBatches}`);
+    logger.debug(`[${tableName}] Total de batches necessários: ${totalBatches}`);
     
     // PASSO 3: Criar função para buscar um batch
     const fetchBatch = async (batchIndex: number): Promise<T[]> => {
@@ -136,7 +136,7 @@ async function fetchPaginatedData<T>(
         return [];
       }
       
-      console.log(`[${tableName}] Batch ${batchIndex + 1}/${totalBatches}: ${data?.length || 0} registros`);
+      logger.debug(`[${tableName}] Batch ${batchIndex + 1}/${totalBatches}: ${data?.length || 0} registros`);
       return (data || []) as unknown as T[];
     };
     
@@ -150,7 +150,7 @@ async function fetchPaginatedData<T>(
         batchPromises.push(fetchBatch(i + j));
       }
       
-      console.log(`[${tableName}] Executando batches ${i + 1} a ${Math.min(i + MAX_CONCURRENT, totalBatches)}...`);
+      logger.debug(`[${tableName}] Executando batches ${i + 1} a ${Math.min(i + MAX_CONCURRENT, totalBatches)}...`);
       
       const results = await Promise.all(batchPromises);
       
@@ -158,7 +158,7 @@ async function fetchPaginatedData<T>(
         allData.push(...batch);
       });
       
-      console.log(`[${tableName}] Progresso: ${allData.length}/${totalCount} registros`);
+      logger.debug(`[${tableName}] Progresso: ${allData.length}/${totalCount} registros`);
     }
     
     // Validação: verificar se carregou todos os registros esperados
@@ -167,7 +167,7 @@ async function fetchPaginatedData<T>(
       console.warn(`[${tableName}] ⚠️ ALERTA: Apenas ${loadedPercentage.toFixed(1)}% dos registros carregados (${allData.length}/${totalCount})`);
     }
     
-    console.log(`[${tableName}] ✅ CONCLUÍDO: ${allData.length}/${totalCount} registros carregados (${loadedPercentage.toFixed(1)}%)`);
+    logger.debug(`[${tableName}] ✅ CONCLUÍDO: ${allData.length}/${totalCount} registros carregados (${loadedPercentage.toFixed(1)}%)`);
     return allData;
     
   } catch (error) {

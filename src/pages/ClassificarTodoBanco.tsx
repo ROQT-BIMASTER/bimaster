@@ -119,7 +119,7 @@ export default function ClassificarTodoBanco() {
       });
 
       const gruposUnicos = Array.from(gruposMap.values());
-      console.log(`✅ ${gruposUnicos.length} grupos únicos encontrados (${grupos.length} contas)`);
+      logger.debug(`✅ ${gruposUnicos.length} grupos únicos encontrados (${grupos.length} contas)`);
 
       setTotalGrupos(gruposUnicos.length);
       let _gruposClassificados = 0;
@@ -168,7 +168,7 @@ export default function ClassificarTodoBanco() {
 
             // Só atualizar se tiver classificação válida (departamento E conta)
             if (result.success && result.departamento_id && result.plano_contas_id) {
-              console.log(`✅ Atualizando ${contasAfetadas} contas: ${result.categoria_nome}`);
+              logger.debug(`✅ Atualizando ${contasAfetadas} contas: ${result.categoria_nome}`);
               
               // Atualizar TODAS as contas deste grupo
               let updateQuery = supabase

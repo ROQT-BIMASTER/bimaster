@@ -427,7 +427,7 @@ const ImportarClientes = () => {
 
             if (existente) {
               prospectExistenteId = existente.id;
-              console.log(`Prospect com CNPJ ${cnpjValidado} já existe, será atualizado`);
+              logger.debug(`Prospect com CNPJ ${cnpjValidado} já existe, será atualizado`);
             }
           }
 
@@ -473,7 +473,7 @@ const ImportarClientes = () => {
                 continue;
               } else {
                 municipio = novoMunicipio;
-                console.log(`Município criado: ${municipioFinal}/${ufFinal}`);
+                logger.debug(`Município criado: ${municipioFinal}/${ufFinal}`);
               }
             } catch (municipioException: any) {
               console.error("Exceção ao criar município:", municipioException);
@@ -501,7 +501,7 @@ const ImportarClientes = () => {
           // Classificar porte automaticamente
           const porteEmpresaClassificado = classificarPorteEmpresa(totalFuncionarios, faixaFuncionarios, faixaFaturamento);
           
-          console.log(`Linha ${i + 1}: Funcionários=${totalFuncionarios}, Faixa Func="${faixaFuncionarios}", Faixa Fat="${faixaFaturamento}" → Porte="${porteEmpresaClassificado}"`);
+          logger.debug(`Linha ${i + 1}: Funcionários=${totalFuncionarios}, Faixa Func="${faixaFuncionarios}", Faixa Fat="${faixaFaturamento}" → Porte="${porteEmpresaClassificado}"`);
 
           const prospectData = {
             nome_empresa,
@@ -599,11 +599,11 @@ const ImportarClientes = () => {
           }
         }
 
-        console.log(`📊 Total de prospects processados: ${prospects.length} novos, ${detalhes.filter(d => d.status === 'atualizado').length} atualizados`);
+        logger.debug(`📊 Total de prospects processados: ${prospects.length} novos, ${detalhes.filter(d => d.status === 'atualizado').length} atualizados`);
         
         // Só inserir se houver prospects novos
         if (prospects.length > 0) {
-          console.log(`📋 Validando dados antes da inserção...`);
+          logger.debug(`📋 Validando dados antes da inserção...`);
           
           // Validar que todos os porte_empresa são válidos
           prospects.forEach((p, idx) => {
@@ -613,7 +613,7 @@ const ImportarClientes = () => {
             }
           });
 
-          console.log(`✅ Todos os dados validados. Inserindo no banco...`);
+          logger.debug(`✅ Todos os dados validados. Inserindo no banco...`);
 
           const { data: inserted, error: insertError } = await supabase
             .from("prospects")
@@ -754,7 +754,7 @@ const ImportarClientes = () => {
 
           if (existente) {
             prospectExistenteId = existente.id;
-            console.log(`Prospect com CNPJ ${p.cnpj} já existe, será atualizado`);
+            logger.debug(`Prospect com CNPJ ${p.cnpj} já existe, será atualizado`);
           }
         }
 

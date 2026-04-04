@@ -81,7 +81,7 @@ export default function Financeiro() {
         }
       }
 
-      console.log('[Financeiro] contas_pagar:', pagar.length, '| contas_receber:', receberAll.length);
+      logger.debug('[Financeiro] contas_pagar:', pagar.length, '| contas_receber:', receberAll.length);
 
       const totalPagar = pagar.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
       const totalReceber = receberAll.reduce((s: number, r: any) => s + (parseFloat(r.valor_aberto) || 0), 0);
@@ -90,7 +90,7 @@ export default function Financeiro() {
       const vencidasReceber = receberAll.filter((r: any) => r.data_vencimento < today && r.status !== "recebido" && r.status !== "cancelado").length;
       const vencidas = vencidasPagar + vencidasReceber;
 
-      console.log('[Financeiro] totalPagar:', totalPagar, '| totalReceber:', totalReceber);
+      logger.debug('[Financeiro] totalPagar:', totalPagar, '| totalReceber:', totalReceber);
 
       return { totalPagar, totalReceber, saldo, vencidas };
     },
