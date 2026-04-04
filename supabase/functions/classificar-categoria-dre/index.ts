@@ -82,7 +82,7 @@ Qual categoria DRE é mais adequada?`;
                   categoria_dre: {
                     type: "string",
                     description: "Categoria DRE escolhida ou null se não aplicável",
-                    enum: ["receita_bruta", "deducoes", "custo_vendas", "despesas_fixas", "impostos_lucro", "null"]
+                    enum: ["receita_bruta", "deducoes", "custo_vendas", "despesas_fixas", "despesas_variaveis", "resultado_financeiro", "impostos_lucro", "resultado_nao_operacional", "null"]
                   },
                   confianca: {
                     type: "number",
