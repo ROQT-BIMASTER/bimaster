@@ -1,148 +1,118 @@
 
 
-# Auditoria Completa do Plano de Contas 2026 — Nota e Melhorias
+# Reclassificação Completa: 248 Categorias → Plano de Contas + Departamento + Centro de Custo
 
-## Referências Externas Consultadas
+## Situação Atual
 
-- **Vencru** — Chart of Accounts for Wholesale Distributors (abril 2024)
-- **HubiFi** — Chart of Accounts Best Practices (outubro 2025)
-- **Deloitte** — Strategic Chart of Accounts Design (ERP optimization)
-- **Conta Azul** — DRE na Contabilidade: como fazer e analisar
-
----
-
-## NOTA GERAL: **7.2 / 10**
-
-| Critério | Nota | Peso | Justificativa |
-|---|---|---|---|
-| Estrutura hierárquica | 8/10 | 20% | 5 níveis bem definidos, numeração sequencial |
-| Cobertura de contas | 6/10 | 20% | 28 contas analíticas sem movimento; faltam contas críticas |
-| Classificação DRE | 8/10 | 20% | Boa após reclassificação recente (8 categorias) |
-| Departamentos / CC | 7/10 | 15% | 100% preenchido, mas alguns mapeamentos questionáveis |
-| Precisão dos dados | 6/10 | 15% | Conta "3.1.8.9 Outros" concentra R$ 6.5M (1.561 títulos) |
-| Aderência a padrões | 8/10 | 10% | Segue CPC/IFRS para DRE gerencial |
+- **47.566 títulos** — 100% já possuem plano de contas e departamento
+- **248 categorias** ERP distintas mapeadas
+- Porém: **~45 categorias com erros** de classificação (departamento e/ou plano de contas incorretos)
+- Impacto: **~7.500 títulos** precisam de correção (16% da base)
 
 ---
 
-## PROBLEMAS IDENTIFICADOS (12 itens)
+## ERROS IDENTIFICADOS (com referência contábil)
 
-### CRÍTICOS (impactam DRE)
+### CRÍTICOS — Departamento completamente errado
 
-**1. "Lixeira" 3.1.8.9 — R$ 6,5 milhões em "Outros Serviços"**
-- 1.561 títulos de 11 categorias ERP diferentes jogados em uma conta genérica
-- Inclui "DIVERSOS" (485), "PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO" (408), "MÃO DE OBRA" (12), "ANUIDADE DE ENTIDADES" (15)
-- **Problema**: Impossível analisar despesas administrativas com 9,5% do valor total em "outros"
-- **Correção**: Desmembrar em contas específicas: `3.1.8.10 Anuidades/Associações`, `3.1.8.11 Serviços Diversos Identificados`; redistribuir categorias que têm destino claro
+| Categoria ERP | Qtd | Dept ATUAL (errado) | Dept CORRETO | Plano Contas | Justificativa |
+|---|---|---|---|---|---|
+| **COMISSAO** | 1.670 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de vendas é despesa comercial variável (CPC 47) |
+| **REPRESENTANTES** (com espaço) | 1.044 | Operações | **Comercial / Trade** | 2.6.1 ✓ | Representante comercial = comissão |
+| **REPRESENTANTES** (sem espaço) | 764 | Compras e Faturamento | **Comercial / Trade** | 2.6.1 ✓ | Idem |
+| **REPRESENTANTE** | 37 | Administrativo | **Comercial / Trade** | 2.6.1 ✓ | Idem |
+| **COORDENADORES** | 25 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de coordenadores comerciais |
+| **GERENTES** | 131 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de gerentes comerciais |
+| **PROMOTORAS** | 16 | Operações | **Comercial / Trade** | 2.6.2 | Promotora de vendas = trade |
+| **PROMOTOR** | 1 | Operações | **Comercial / Trade** | 2.6.2 | Idem |
+| **PREMIOS/ GUELTAS** | 34 | Recursos Humanos | **Comercial / Trade** | 2.6.2 ✓ | Gueltas são incentivos comerciais |
+| **TRANSPORTADORA/VENDAS ONLINE** | 1.201 | Recursos Humanos | **Logística** | 2.4.1 ✓ | Frete de vendas = logística |
+| **IMPOSTOS/TAXAS** | 666 | Recursos Humanos | **Financeiro** | 2.5.1 ✓ | Impostos são responsabilidade do Financeiro |
+| **SERVIÇOS DE TERCEIROS** | 242 | Recursos Humanos | **Operações** | 3.1.8.12 | Serviço terceirizado = Operações |
+| **DIVERSOS** (com/sem espaço) | 583 | TI | **Administrativo** | 3.1.8.9 ✓ | "Diversos" é despesa administrativa genérica |
+| **OUTROS** | 152 | Recursos Humanos | **Administrativo** | 3.1.8.9 ✓ | Idem |
+| **FERRAMENTAS E ACEESSORIOS** | 48 | Tecnologia da Informação | **Operações** | 3.1.9.2 ✓ | Ferramentas físicas = Operações |
+| **CAMERAS** | 52 | TI | **Operações** | 3.1.8.1 | Câmeras = Segurança/Monitoramento |
+| **PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO** | 408 | TI | **Operações** | 3.1.8.12 | Terceirização = Operações |
+| **SISTEMA DE TERCEIROS** | 42 | TI | **TI** ✓ | 3.1.8.11 | Plano errado: era 3.1.8.9, deve ser Sistemas |
 
-**2. Tarifas Bancárias (2.7) como `custo_vendas` — deveria ser `resultado_financeiro`**
-- R$ 591k em tarifas do Mercado Pago classificadas como custo de vendas
-- Padrão contábil: tarifas bancárias são despesa financeira, não CMV
-- **Correção**: Reclassificar `2.7.x` de `custo_vendas` para `resultado_financeiro`
+### ALTOS — Plano de Contas errado
 
-**3. Receitas (1.x) no Contas a PAGAR — 0 títulos vinculados**
-- As 4 contas de receita (Boletos, Depósitos, Cheque, Mercado Pago) estão no plano mas sem nenhum título
-- **Problema**: Se receitas estão em outra tabela, essas contas são vestigiais; se não estão em nenhuma, o DRE não tem receita
-- **Ação**: Verificar se existe tabela `contas_receber` e vincular; caso contrário, criar fluxo de receitas
+| Categoria ERP | Qtd | Plano ATUAL (errado) | Plano CORRETO | Justificativa |
+|---|---|---|---|---|
+| **COMPRA DE MERCADORIA PARA REVENDA** | 10.794 | 2.1.1 (grupo) | **2.1.1.1** (Compras Nacionais) | 2.1.1 virou grupo, títulos devem ir para analítica |
+| **PENSÃO ALIMENTICIA** | 54 | 3.2.4.1 Empréstimos | **3.2.14** Outras desp. pessoal | Pensão não é empréstimo, é obrigação trabalhista |
+| **IMPRESSORAS - COMPRA** | 47 | 3.1.8.6 Impressões | **3.1.21** Hardware e Acessórios | Compra de equipamento ≠ serviço de impressão |
+| **UNIFORMES** | 48+4 | 3.2.13.1 Ações/Brindes | **3.2.12.3** Uniforme específico ou **3.2.14** | Uniforme é benefício/EPI, não brinde |
+| **CONTRATADO PJ** | 262 | 3.1.8.4 Freelancers | **3.1.8.12** Mão de Obra Terceirizada | PJ contratado = terceirizado, não freelancer |
+| **PALETES** | 48 | 3.1.9.2 Máq/Equip | **2.2** Embalagens e Materiais | Palete é material de acondicionamento logístico |
+| **PORTA PALETES** | 26 | 3.1.9.2 Máq/Equip | **3.1.9.2** ✓ ou **4.2.5** | Rack é investimento/imobilizado |
+| **CONSULTORIA** | 34 | 3.3.6 Consultoria MKT | **3.1.8.4** Freelancers | Consultoria genérica não é marketing |
+| **CONSULTORIA COMERCIAL** | 3 | 3.3.6 Consultoria MKT | **2.6.2** Trade Comercial | Consultoria comercial é despesa variável |
+| **DESENVOLVIMENTO SITES/REDE SOCIAIS** | 46 | 3.1.22 Softwares | **3.3.11** Mídia Social | Redes sociais é marketing digital |
+| **AGENDAMENTO/TDE** | 2 | 3.3.1 Publicidade | **2.6.2** Trade Comercial | TDE = Trade Development Expense |
+| **TAXAS REF. SERVIÇOS DE TERCEIROS** | 29 | 2.7.1 Mercado Pago | **3.4.1** Despesas Bancárias | Taxa de serviço = despesa financeira |
+| **MATERIAL PARA REFORMA** | 59 | 3.1.14 Limpeza/Copa | **3.1.9.1** Predial | Reforma é manutenção predial |
+| **MATERIAL PARA SEGURANÇA NO TRABALHO** | 23 | 3.1.14 Limpeza/Copa | **3.2.5** Medicina do Trabalho | EPI = segurança ocupacional (RH) |
+| **MÃO DE OBRA** | 12 | 3.1.8.9 Outros | **3.1.8.12** Mão de Obra Terceirizada | Conta específica existe |
+| **ANUIDADE DE ENTIDADES DE CLASSE** | 15 | 3.1.8.9 Outros | **3.1.8.10** Anuidades e Associações | Conta específica existe |
+| **ASSINATURA REVISTA** | 3 | 3.1.8.9 Outros | **3.1.8.13** Publicações e Assinaturas | Conta específica existe |
+| **SISTEMA FISCAL TRIBUTÁRIO** | 16 | 2.5.1 Simples Nacional | **3.1.8.11** Sistemas e Software | Sistema fiscal é software, não imposto |
+| **IMPOSTOS- APLICA FINANCEIRA** | 1 | 2.5.1 Simples Nacional | **3.4.1** Despesas Bancárias | IOF s/ aplicação = resultado financeiro |
+| **FRETE TRANSF. FORNECEDOR** | 189 | 2.4.1 Transportadoras | **2.4.6** Frete de Fornecedor | Frete de entrada tem conta própria |
+| **ARMAZENAGEM MERCADORIA** | 9 | 3.1.19 Locações | **3.1.1.1** Depósito | Armazenagem = custo de depósito |
+| **KM/PEDAGIOS/OUTROS** | 5 | 3.1.15 Uber/Táxi | **3.1.10.3** Combustível | Pedágio = custo veicular |
+| **PROMOTORAS/REPOSITORES/FREE E BICOS** | 10 | 3.3.4 Influencers | **2.6.2** Trade Comercial | Repositores = trade marketing |
+| **RECEPCIONISTA/PROMOTORAS/MAQUIADORAS** | 9 | 3.3.4 Influencers | **3.3.2** Eventos | Recepcionistas de eventos |
+| **PREVIDENCIA PRIVADA** | 3 | 3.2.12.2 Plano de Saúde | **3.2.14** Outras desp. pessoal | Previdência ≠ saúde |
+| **FARMACIA** | 3 | 3.2.5 Medicina do Trabalho | **3.2.14** Outras desp. pessoal | Farmácia genérica ≠ medicina ocupacional |
+| **EQUIPAMENTOS DE INCENDIOS** | 3 | 3.1.23 Outras desp. admin | **3.1.8.1** Segurança/Monitoramento | Incêndio = segurança predial |
+| **CONSULTORIA LOGISTICA** | 1 | 2.4.1 Transportadoras | **3.1.8.4** Freelancers | Consultoria ≠ transporte |
+| **Ação comemorativa** | 50 | Administrativo → | **Recursos Humanos** | 3.2.13.1 ✓ Ações para funcionários = RH |
+| **CONFRATERNIZAÇÃO** | 6 | Administrativo → | **Recursos Humanos** | 3.2.13.1 ✓ Idem |
+| **ALIMENTAÇÃO** | 130 | Recursos Humanos | **Administrativo** | 3.1.16 ✓ R$ 3,3M em refeições corporativas |
+| **MIDIA SOCIAL** | 123 | TI | **Comercial / Trade** | 3.3.11 ✓ Marketing digital é MKT |
+| **CENTROESTE: MT/MS/GO/DF** | 5 | Marketing | **Logística** | 2.4.1 ✓ Frete regional = logística |
+| **ESTORNO DE PAGAMENTO** | 17 | Logística | **Financeiro** | 4.1.1 ✓ Estorno = resultado financeiro |
+| **CHEQUE** | 10 | Financeiro ✓ | **Financeiro** | 4.1.1 → **3.4.1** Despesas Bancárias (não é receita) |
+| **BRINDES/PRODUTOS** | 18 | Administrativo | **Comercial / Trade** | 2.6.2 ✓ Brindes comerciais = trade |
+| **DESPESAS PAGAS C/DINHEIRO** | 83 | Operações | **Financeiro** | **3.1.23** Outras desp. admin | Cofre = caixa do financeiro |
 
-**4. IRPJ e CSLL (2.5.5/2.5.6) — 0 títulos**
-- Impostos sobre lucro existem no plano mas não possuem nenhum título vinculado
-- Possível que o cliente pague via Simples Nacional (2.5.1) e essas contas sejam desnecessárias
-- **Ação**: Se a empresa é Simples Nacional, desativar essas contas; se não é, investigar por que não há lançamentos
+### MÉDIOS — Ajustes de Centro de Custo
 
-### ALTOS
-
-**5. Concentração extrema: 71% do valor em uma única conta**
-- `2.1.1 Compras Ruby Rose (Marca)` = R$ 487M (10.926 títulos)
-- Referência Vencru recomenda separar COGS por linha de produto ou fornecedor
-- **Correção**: Criar `2.1.1.1 Compras Nacionais`, `2.1.1.2 Importações China`, `2.1.1.3 Outros Fornecedores`
-
-**6. Refeições (3.1.16) com R$ 3,8M — departamento errado**
-- Classificada como CC-ADM/Administrativo, mas R$ 3,8M sugere que inclui refeições de TODOS os departamentos
-- Referência Deloitte: despesas de alimentação devem ser segregadas entre benefício de pessoal (RH) e despesa administrativa
-- **Correção**: Separar em `3.1.16.1 Refeições Corporativas` (ADM) e `3.2.12.4 Refeições Funcionários` (RH)
-
-**7. 28 contas analíticas sem nenhum título (contas mortas)**
-- Incluem: PIS, COFINS, IRPJ, CSLL, Limpeza, Café, Prêmios, Patrocínio, veículos
-- Referência HubiFi: "Review your CoA quarterly; remove accounts with zero activity for 12+ months"
-- **Ação**: Avaliar se são contas esperando dados futuros ou se devem ser desativadas
-
-### MÉDIOS
-
-**8. Falta conta de Depreciação/Amortização**
-- Referência Vencru lista "807 Depreciation Expenses" como essencial para distribuidores
-- O plano não possui conta de depreciação — importante para cálculo correto de EBITDA vs EBIT
-- **Correção**: Criar `3.1.25 Depreciação e Amortização` em Despesas Fixas
-
-**9. Falta separação de Frete de ENTRADA vs SAÍDA**
-- `2.4.1 Transportadoras` mistura frete de venda (2.436 títulos) com "FRETE TRANSF. FORNECEDOR" (189 títulos)
-- Frete de entrada = custo de aquisição (CMV); Frete de saída = despesa comercial
-- **Correção**: Criar `2.4.6 Frete de Fornecedor (Entrada)` separado
-
-**10. "Exposittores" com erro de grafia**
-- Conta `3.3.5` escrita como "Exposittores" com dois "t"
-- R$ 1,1M vinculado — aparece em relatórios com erro
-- **Correção**: Renomear para "Expositores"
-
-**11. Cartão de Crédito (3.1.20) como conta avulsa**
-- R$ 993k classificados como despesa fixa administrativa
-- Na prática, cartão de crédito é meio de pagamento, não tipo de despesa
-- As compras no cartão deveriam ser classificadas pela natureza (material, viagem, etc.)
-- **Ação**: Avaliar redistribuir ou manter como "transitória" com nota explicativa
-
-**12. Internet (3.1.4) no departamento TI**
-- Internet é infraestrutura que atende TODA a empresa, não apenas TI
-- Referência: utilities devem ficar em Administrativo ou rateados
-- **Correção menor**: Mover para CC-ADM ou criar rateio
-
----
-
-## O QUE FALTA vs REFERÊNCIAS PROFISSIONAIS
-
-| Conta Ausente | Referência | Impacto |
+| Categoria | CC ATUAL | CC CORRETO |
 |---|---|---|
-| **Depreciação / Amortização** | Vencru 807, IFRS/CPC | EBITDA vs EBIT incorreto |
-| **Provisões Trabalhistas** | CPC 25 | Férias e 13º provisionados |
-| **Perdas com Inadimplência (PDD)** | CPC 48 | Receita líquida superestimada |
-| **Frete de Entrada (CMV)** | Vencru 702 | CMV subestimado |
-| **Seguros de Mercadoria vs Predial** | Deloitte | Misturado em 3.1.11 |
-| **Custos de Importação (China)** | Operação do cliente | Dept "Fábrica China" sem contas |
+| COMISSAO, REPRESENTANTES*, GERENTES, COORDENADORES | CC-RH/CC-OPS | **CC-COM** |
+| TRANSPORTADORA/VENDAS ONLINE | CC-RH | **CC-LOG** |
+| IMPOSTOS/TAXAS | CC-RH | **CC-FIN** |
+| CAMERAS | CC-TI | **CC-OPR** |
+| DIVERSOS, OUTROS | CC-TI/CC-RH | **CC-ADM** |
+| MIDIA SOCIAL | CC-TI | **CC-MKT** |
 
 ---
 
-## PLANO DE CORREÇÕES SUGERIDO
+## RESUMO DE IMPACTO
 
-### Etapa 1: Correções Imediatas (migração SQL)
-1. Reclassificar `2.7.x` Tarifas → `resultado_financeiro`
-2. Corrigir grafia "Exposittores" → "Expositores"
-3. Criar contas: `3.1.25 Depreciação`, `2.4.6 Frete Entrada`, `2.1.1.1/2/3` subdivisões de compras
-
-### Etapa 2: Desmembrar "Outros Serviços" (3.1.8.9)
-1. Analisar as 11 categorias ERP que caem nessa conta
-2. Criar contas específicas para as maiores (Serviços de Terceiros, Sistemas)
-3. Redistribuir os 1.561 títulos
-
-### Etapa 3: Contas Mortas e Limpeza
-1. Avaliar as 28 contas sem movimento
-2. Desativar as que não serão usadas
-3. Criar contas faltantes (Depreciação, PDD, Importação)
-
-### Etapa 4: Refinamento de Departamentos
-1. Mover Refeições corporativas para RH (parcial)
-2. Avaliar Internet → Administrativo ou rateio
-3. Criar contas para dept "Fábrica China" e "Projetos"
-
-| Prioridade | Ação | Impacto |
+| Tipo de Correção | Títulos Afetados | Valor (R$) |
 |---|---|---|
-| Alta | Reclassificar tarifas bancárias | DRE financeiro correto |
-| Alta | Desmembrar 3.1.8.9 | Visibilidade de R$ 6,5M |
-| Alta | Subdividir Compras 2.1.1 | Análise de CMV por origem |
-| Média | Criar Depreciação | EBITDA profissional |
-| Média | Separar Frete Entrada/Saída | CMV preciso |
-| Baixa | Limpeza de contas mortas | Organização |
+| Departamento errado | ~5.800 | ~R$ 60M |
+| Plano de contas errado | ~1.400 | ~R$ 7M |
+| Ambos errados | ~300 | ~R$ 2M |
+| **TOTAL** | **~7.500** | **~R$ 69M** |
 
-| Arquivo | Mudança |
+---
+
+## IMPLEMENTAÇÃO
+
+### Migração SQL única com ~50 UPDATEs
+
+Cada UPDATE corrige `plano_contas_id`, `plano_contas_codigo`, `plano_contas_nome`, `departamento_id`, `departamento_nome` usando `CASE WHEN categoria_nome = 'X' THEN ...` para garantir 100% de precisão determinística.
+
+A migração também propaga o `centro_custo` correto baseado no plano de contas vinculado (herda da `trade_chart_of_accounts`).
+
+| Ação | Detalhe |
 |---|---|
-| Migração SQL (1) | Reclassificar 2.7.x, corrigir nomes, criar contas novas |
-| Migração SQL (2) | Redistribuir títulos de 3.1.8.9 |
-| Migração SQL (3) | Subdividir 2.1.1 em sub-contas |
+| UPDATE ~7.500 títulos | Corrigir plano + departamento por categoria_nome |
+| Sem alteração de schema | Apenas dados |
+| Referências: TOTVS, Conta Azul, CPC 47, Deloitte | Comissões = variável, impostos = financeiro, terceirizados = operações |
 
