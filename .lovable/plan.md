@@ -1,80 +1,42 @@
 
-# Detalhamento do Plano de Contas — 4 Categorias
+# Corrigir Dicionário e Melhorar IA da Classificação em Lote
 
-## Diagnóstico com Dados Reais
+## Problema Identificado
 
-### 1. Embalagens (`2.2` — conta única, R$ 2,1M, 761 títulos)
-- Hoje: tudo em "Embalagens e Materiais para postagem" (conta analítica única)
-- **Problema**: Não diferencia primária (caixa, saco), secundária (fita, proteção), terciária (palete, stretch) e materiais de postagem
-- **Ação**: Transformar `2.2` em **grupo** e criar sub-contas:
+O dicionário hardcoded em `classificar-contas-lote/index.ts` tem **entradas obsoletas** que apontam para contas que viraram **grupos** após a reestruturação:
 
-| Código | Nome | Descrição |
+| Categoria ERP | Mapeia para | Status Atual |
 |---|---|---|
-| 2.2 | Embalagens *(vira grupo)* | — |
-| 2.2.1 | Embalagem Primária | Caixas, sacos, sacolas, envelopes |
-| 2.2.2 | Embalagem Secundária | Fitas, plástico bolha, proteção interna |
-| 2.2.3 | Embalagem Terciária | Paletes, stretch film, cintas |
-| 2.2.4 | Materiais de Postagem | Etiquetas, lacres, materiais de envio |
+| EMBALAGENS | `2.2` | **GRUPO** (não permite lançamento) |
+| CAIXAS TERCIARIA | `2.2` | **GRUPO** |
+| ETIQUETAS DIVERSAS | `2.2` | **GRUPO** |
+| SEGURO BENS | `3.1.11` | **GRUPO** |
+| SEGURO DEPOSITO | `3.1.11` | **GRUPO** |
+| SEGUROESCRITORIO | `3.1.11` | **GRUPO** |
+| SEGURO DE PESSOAL | `3.1.11` | **GRUPO** |
 
-### 2. Aluguéis (`3.1.1` — já tem 2 sub-contas, falta 1)
-- `3.1.1.1 Depósito` → R$ 4,5M, 169 títulos ✓
-- `3.1.1.2 Escritório` → R$ 469k, 63 títulos ✓
-- `3.1.24 Locação de itens (informática)` → R$ 147k (equipamentos, já separado) ✓
-- **Faltante**: Aluguel de **espaços operacionais** (showroom, ponto de venda, espaço para eventos)
-- **Ação**: Criar 1 sub-conta:
+Quando o dicionário encontra o código mas a conta é grupo (`permite_lancamento=false`), a `contas.find()` retorna `undefined` e a categoria cai no fallback de IA — que pode falhar por truncamento de tokens.
 
-| Código | Nome | Descrição |
-|---|---|---|
-| 3.1.1.3 | Outros Espaços Operacionais | Showroom, PV, espaço temporário |
+## Correções
 
-### 3. Seguros (`3.1.11` — conta única, R$ 250k, 126 títulos em 5 categorias ERP)
-- Hoje: tudo em "Seguro" genérico (exceto `2.4.5 Seguro da Mercadoria` que já está separado ✓)
-- Categorias ERP identificadas: SEGURO DEPOSITO (34), SEGURO BENS (3), SEGUROESCRITORIO (2), SEGURO DE PESSOAL (21 → já em 3.2.12.2 ✓)
-- **Ação**: Transformar `3.1.11` em **grupo** e criar sub-contas:
+### 1. Atualizar dicionário com novos códigos (12 entradas)
+- `EMBALAGENS` → `2.2.1` (Embalagem Primária)
+- `CAIXAS TERCIARIA` → `2.2.3` (Embalagem Terciária)
+- `ETIQUETAS DIVERSAS` → `2.2.4` (Materiais de Postagem)
+- `SEGURO DEPOSITO` → `3.1.11.1` (Seguro de Galpão/Depósito)
+- `SEGUROESCRITORIO` → `3.1.11.2` (Seguro de Escritório)
+- `SEGURO BENS` → `3.1.11.3` (Seguro de Bens e Equipamentos)
+- `SEGURO DE PESSOAL` → `3.2.12.2` (Plano de Saúde — já estava correto no plano)
+- `TARIFAS BANCARIAS` → `3.4.1` (já correto, verificar existência)
 
-| Código | Nome | Dept | Mapeamento ERP |
-|---|---|---|---|
-| 3.1.11 | Seguros *(vira grupo)* | — | — |
-| 3.1.11.1 | Seguro de Galpão/Depósito | Logística | SEGURO DEPOSITO |
-| 3.1.11.2 | Seguro de Escritório | Administrativo | SEGUROESCRITORIO |
-| 3.1.11.3 | Seguro de Bens e Equipamentos | Operações | SEGURO BENS |
-| 3.1.11.4 | Seguro de Veículos | Logística | (futuro) |
+### 2. Melhorar o fallback de IA
+- Trocar modelo de `gemini-2.5-flash` para `google/gemini-2.5-pro` (melhor raciocínio)
+- Adicionar `max_tokens: 8192` para evitar truncamento
+- Adicionar validação: se o código retornado pela IA não existe no plano, marcar como `erro` em vez de aceitar silenciosamente
+- Reduzir batch de IA de 25 para 10 categorias por vez para melhor precisão
 
-*Nota: SEGURO DE PESSOAL já está corretamente em `3.2.12.2` (RH). SEGURO DE TRANSPORTE já está em `2.4.5`.*
+### 3. Adicionar validação no dicionário (runtime)
+- Ao resolver pelo dicionário, se a conta não for encontrada (grupo ou inexistente), logar warning e enviar para IA em vez de falhar silenciosamente
 
-### 4. Tarifas Bancárias (`2.7` — só tem Mercado Pago, R$ 321k, 1.388 títulos)
-- Fornecedores identificados: **Banco Itaú** (907 títulos, R$ 160k), **Banco Bradesco** (365 títulos, R$ 18k), **Mercado Pago** (49 títulos, R$ 2,4k), outros (67 títulos)
-- **Ação**: Criar sub-contas por banco principal + genérica:
-
-| Código | Nome | Mapeamento (fornecedor) |
-|---|---|---|
-| 2.7.1 | Mercado Pago *(já existe)* | MERCADO PAGO PR |
-| 2.7.2 | Banco Itaú | BANCO ITAÚ, ITAU SAO PAULO |
-| 2.7.3 | Banco Bradesco | BANCO BRADESCO, BRADESCO |
-| 2.7.4 | Tarifas Bancárias Diversas | Demais bancos e instituições |
-
----
-
-## Reclassificação de Títulos
-
-Após criar as sub-contas, os títulos existentes serão redistribuídos:
-- **1.388 TARIFAS BANCARIAS** → por fornecedor (Itaú, Bradesco, MP, Diversas)
-- **34 SEGURO DEPOSITO** → `3.1.11.1` + dept Logística
-- **2 SEGUROESCRITORIO** → `3.1.11.2` + dept Administrativo
-- **3 SEGURO BENS** → `3.1.11.3` + dept Operações
-- **761 EMBALAGENS** → default `2.2.1` até classificação manual
-
----
-
-## Implementação Técnica
-
-1. **Migração SQL**: Transformar `2.2` e `3.1.11` em grupos (`is_group = true, permite_lancamento = false`), criar 12 novas contas analíticas
-2. **UPDATE dados**: Reclassificar ~2.188 títulos em `contas_pagar` por `categoria_nome` e `fornecedor_nome`
-
-| Grupo | Contas Novas | Títulos Afetados |
-|---|---|---|
-| Embalagens (2.2) | 4 sub-contas | 761 |
-| Aluguéis (3.1.1) | 1 sub-conta | 0 |
-| Seguros (3.1.11) | 4 sub-contas | ~39 |
-| Tarifas (2.7) | 3 sub-contas | ~1.388 |
-| **TOTAL** | **12 contas** | **~2.188** |
+## Arquivo Alterado
+- `supabase/functions/classificar-contas-lote/index.ts`
