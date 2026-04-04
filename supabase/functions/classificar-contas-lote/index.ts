@@ -347,6 +347,62 @@ const DICIONARIO_CATEGORIAS: Record<string, { codigo: string; justificativa: str
   "Pagamento de Dividendos": { codigo: "4.4.2", justificativa: "Pagamento de dividendos" },
 };
 
+function dedupeMappings(categorias: any[] = []) {
+  const unique = new Map<string, any>();
+
+  for (const item of categorias) {
+    if (!item?.categoria_nome || !item?.plano_contas_id) continue;
+    unique.set(item.categoria_nome, {
+      categoria_nome: item.categoria_nome,
+      plano_contas_id: item.plano_contas_id,
+      plano_contas_codigo: item.plano_contas_codigo || "",
+      plano_contas_nome: item.plano_contas_nome || "",
+      confianca: item.confianca ?? 0,
+      justificativa: item.justificativa || "",
+      revisado_manualmente: item.revisado_manualmente || false,
+      qtd_titulos: item.qtd_titulos || 0,
+      valor_medio: item.valor_medio || 0,
+      top_fornecedores: Array.isArray(item.top_fornecedores) ? item.top_fornecedores : [],
+    });
+  }
+
+  return Array.from(unique.values());
+}
+
+async function applyMappingsToContasPagar(supabase: any, mappings: any[]) {
+  let updatedCount = 0;
+
+  for (const mapping of mappings) {
+    const payload = {
+      plano_contas_id: mapping.plano_contas_id,
+      plano_contas_codigo: mapping.plano_contas_codigo,
+      plano_contas_nome: mapping.plano_contas_nome,
+    };
+
+    const { data: nullRows, error: nullError } = await supabase
+      .from("contas_pagar")
+      .update(payload)
+      .eq("categoria_nome", mapping.categoria_nome)
+      .is("plano_contas_id", null)
+      .select("id");
+
+    if (nullError) throw nullError;
+    updatedCount += nullRows?.length || 0;
+
+    const { data: diffRows, error: diffError } = await supabase
+      .from("contas_pagar")
+      .update(payload)
+      .eq("categoria_nome", mapping.categoria_nome)
+      .neq("plano_contas_id", mapping.plano_contas_id)
+      .select("id");
+
+    if (diffError) throw diffError;
+    updatedCount += diffRows?.length || 0;
+  }
+
+  return updatedCount;
+}
+
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -693,34 +749,42 @@ REGRAS:
         return new Response(JSON.stringify({ error: "categorias array required" }), { status: 400, headers });
       }
 
-      for (const m of categorias) {
-        if (!m.plano_contas_id) continue;
-        const { error } = await supabase
-          .from("plano_contas_mapeamento_categorias")
-          .upsert({
-            categoria_nome: m.categoria_nome,
-            plano_contas_id: m.plano_contas_id,
-            plano_contas_codigo: m.plano_contas_codigo,
-            plano_contas_nome: m.plano_contas_nome,
-            confianca: m.confianca,
-            justificativa: m.justificativa,
-            revisado_manualmente: m.revisado_manualmente || false,
-            qtd_titulos: m.qtd_titulos || 0,
-            valor_medio: m.valor_medio || 0,
-            top_fornecedores: m.top_fornecedores || [],
-          }, { onConflict: "categoria_nome" });
+      const validMappings = dedupeMappings(categorias);
 
-        if (error) console.error("Upsert error:", error);
+      if (validMappings.length === 0) {
+        return new Response(JSON.stringify({ success: true, saved_count: 0 }), { headers });
       }
 
-      return new Response(JSON.stringify({ success: true }), { headers });
+      const { error } = await supabase
+        .from("plano_contas_mapeamento_categorias")
+        .upsert(validMappings, { onConflict: "categoria_nome" });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true, saved_count: validMappings.length }), { headers });
     }
 
     // Action: apply
     if (action === "apply") {
-      const { data, error } = await supabase.rpc("aplicar_mapeamento_plano_contas");
-      if (error) throw error;
-      return new Response(JSON.stringify(data), { headers });
+      let mappings = dedupeMappings(categorias);
+
+      if (mappings.length === 0) {
+        const { data, error } = await supabase
+          .from("plano_contas_mapeamento_categorias")
+          .select("categoria_nome, plano_contas_id, plano_contas_codigo, plano_contas_nome")
+          .not("plano_contas_id", "is", null);
+
+        if (error) throw error;
+        mappings = dedupeMappings(data || []);
+      }
+
+      const updatedCount = await applyMappingsToContasPagar(supabase, mappings);
+
+      return new Response(JSON.stringify({
+        success: true,
+        updated_count: updatedCount,
+        categories_updated: mappings.length,
+      }), { headers });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400, headers });
