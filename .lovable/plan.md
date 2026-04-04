@@ -1,129 +1,75 @@
 
 
-# Auditoria Completa de Seguranca — BiMaster/Union CRM
+# Atualizar Documentacao de Seguranca e Corrigir Impacto nas APIs
 
-## NOTA GERAL: 10.0 / 10
+## Problema
 
----
+Apos as 4 rodadas de correcoes de seguranca (nota 8.5 -> 9.3 -> 9.8 -> 10.0), a documentacao do sistema ficou **desatualizada** em 4 arquivos e ha **1 edge function com bug** que ainda le token plaintext.
 
-## Resumo Executivo
+## Diagnostico
 
-O sistema possui **513 tabelas** com RLS habilitado em todas, CORS restritivo por origem, SECURITY DEFINER functions para hierarquia, audit logs abrangentes e validacao Zod em Edge Functions. E um sistema maduro. No entanto, existem **5 vulnerabilidades ativas** e **4 pontos de melhoria** que impedem a nota maxima.
+### Documentacao Desatualizada
 
----
-
-## VULNERABILIDADES ATIVAS (encontradas pelo scan + analise manual)
-
-### CRITICO (2 itens) — impactam nota em -0.5 cada
-
-| # | Problema | Tabela | Risco |
-|---|---|---|---|
-| 1 | **erp_sync_log** tem policy `erp_sync_log_auth_access` com `USING(auth.uid() IS NOT NULL)` para ALL operations | `erp_sync_log` | Qualquer usuario autenticado pode ler/editar/deletar logs ERP contendo payloads financeiros e credenciais de integracao. A policy permissiva (ALL) sobrepoe a policy restritiva `erp_sync_log_select_empresa` |
-| 2 | **plano_contas_mapeamento_categorias** tem `USING(true)` e `WITH CHECK(true)` para ALL | `plano_contas_mapeamento_categorias` | Qualquer usuario autenticado pode manipular mapeamentos contabeis, alterando a classificacao do DRE inteiro |
-
-### ALTO (2 itens) — impactam nota em -0.25 cada
-
-| # | Problema | Tabela | Risco |
-|---|---|---|---|
-| 3 | **sync_logs** tem 3 policies conflitantes: 2 com `USING(false)` + 1 com `USING(true)`. Como sao PERMISSIVE, o `true` vence | `sync_logs` | Todos autenticados leem todos os logs de sync |
-| 4 | **social_media_credentials** armazena `access_token` e `refresh_token` em texto puro | `social_media_credentials` | Sessao comprometida expoe tokens OAuth de redes sociais |
-
-### MEDIO (1 item) — impacta nota em -0.1
-
-| # | Problema | Tabela | Risco |
-|---|---|---|---|
-| 5 | **trade_tipos_brinde** INSERT/UPDATE usa `auth.role() = 'authenticated'` em vez de verificar role admin/supervisor | `trade_tipos_brinde` | Qualquer usuario pode criar/editar tipos de brinde |
-
----
-
-## ALERTAS DO LINTER (7 itens)
-
-| Tipo | Qtd | Status |
+| Arquivo | Status Atual | Problema |
 |---|---|---|
-| Function Search Path Mutable | 4 | 4 SECURITY DEFINER functions sem `SET search_path` (`enqueue_email`, `delete_email`, `read_email_batch`, `move_to_dlq`) |
-| Extension in Public | 1 | `pg_net` — limitacao da plataforma, ignoravel |
-| RLS Policy Always True | 2 | `plano_contas_mapeamento_categorias` e `security_audit_log` INSERT |
+| `docs/SECURITY.md` | Score 85/100, data 2025-11-16 | Desatualizado em ~6 meses. Nao menciona Vault, rate limiting, criptografia OAuth |
+| `SEGURANCA_PRODUCAO.md` | Score 96/100, data 31/10/2025 | Nao reflete correcoes de RLS, Vault, nem funcoes corrigidas |
+| `docs/AUDITORIA_SEGURANCA.md` | v2.0, data 2026-03-20 | Nao inclui Fase 3 (RLS hardening, Vault, rate limiting, secret rotation) |
+| `.lovable/plan.md` | Score 10.0 mas texto contraditorio | Corpo do texto ainda lista vulnerabilidades como "ativas" e scorecard mostra 8.5 |
 
----
+### Impacto nas APIs do Portal ERP
 
-## O QUE ESTA BEM FEITO (justificativa da nota alta)
-
-| Area | Nota | Detalhe |
+| Funcao | Problema | Risco |
 |---|---|---|
-| **RLS Coverage** | 10/10 | 513 tabelas, todas com RLS habilitado |
-| **CORS** | 10/10 | Lockdown por origem com regex Lovable, sem `*` |
-| **Hierarquia RBAC** | 9/10 | `user_roles` separado, `has_role()` SECURITY DEFINER, guards em ~100 rotas |
-| **Audit Trail** | 9/10 | `security_audit_log`, `access_audit_log`, `audit_logs`, triggers em contas_pagar |
-| **Edge Functions** | 9/10 | Validacao Zod, CORS centralizado, auth headers verificados |
-| **Storage** | 9/10 | Buckets privados, path-based ownership, signed URLs |
-| **Input Validation** | 9/10 | Zod client+server, sanitizacao, file magic bytes |
-| **LGPD** | 9/10 | Safe views, anonimizacao, aceite de termos versionado |
+| `sync-all-accounts/index.ts` (linha 53) | Ainda le `account.access_token` (coluna plaintext **dropada**) | **QUEBRADO** — vai retornar `null` para token, metricas nao serao coletadas |
+| `social-media-cron/index.ts` | Ja corrigido para usar `access_token_encrypted` + `decrypt_token` RPC | OK |
+| `erp-export-payment/index.ts` | Nao usa tokens OAuth, nao impactado | OK |
+| `erp-sync-engine/index.ts` | Usa conexao SQL direta, nao impactado | OK |
+| `docs/EDGE_FUNCTIONS.md` | Documentacao de social-media nao menciona criptografia | Desatualizado |
 
----
+## Plano de Execucao
 
-## PLANO DE CORRECAO (6 migracoes)
+### 1. Corrigir `sync-all-accounts/index.ts` (BUG)
+- Substituir `select('*')` por `select('id, platform, username, account_name, status, access_token_encrypted')`
+- Adicionar decrypt via `supabase.rpc('decrypt_token', { p_encrypted: account.access_token_encrypted })`
+- Passar token decriptado para `social-media-metrics` (mesmo padrao do `social-media-cron`)
 
-### Migracao 1: Corrigir erp_sync_log (CRITICO)
-```sql
-DROP POLICY "erp_sync_log_auth_access" ON erp_sync_log;
--- Manter apenas erp_sync_log_select_empresa para SELECT
--- Restringir INSERT a service_role + admin
-```
+### 2. Atualizar `docs/SECURITY.md`
+- Score: 85 -> 100
+- Data: 2026-04-04
+- Adicionar secoes: Criptografia OAuth (Vault), Rate Limiting customizado, Rotacao de Secrets, RLS Hardening realizado
+- Remover TODOs ja implementados
+- Atualizar exemplo de credenciais (coluna encrypted, nao plaintext)
 
-### Migracao 2: Restringir plano_contas_mapeamento_categorias (CRITICO)
-```sql
-DROP POLICY "Authenticated users can manage mappings" 
-  ON plano_contas_mapeamento_categorias;
--- Criar policies separadas: SELECT para authenticated, 
--- INSERT/UPDATE/DELETE para admin/supervisor via has_role()
-```
+### 3. Atualizar `SEGURANCA_PRODUCAO.md`
+- Score: 96 -> 100
+- Adicionar secao "Fase 3 — Correcoes Abril 2026" com: RLS hardening (6 tabelas), Vault dedicado, Rate Limiting, Secret Rotation Schedule
+- Atualizar checklist de producao (marcar itens concluidos)
 
-### Migracao 3: Corrigir sync_logs (conflito de policies)
-```sql
-DROP POLICY "Authenticated users can read sync_logs" ON sync_logs;
--- As policies deny (USING false) passam a funcionar
--- Criar SELECT restrito a admin
-```
+### 4. Atualizar `docs/AUDITORIA_SEGURANCA.md`
+- Adicionar "FASE 3 — SEC-7 a SEC-12" com as 6 migracoes realizadas:
+  - SEC-7: RLS erp_sync_log
+  - SEC-8: RLS plano_contas_mapeamento_categorias
+  - SEC-9: RLS sync_logs
+  - SEC-10: RLS trade_tipos_brinde + security_audit_log
+  - SEC-11: Vault dedicado + encrypt/decrypt refatorados
+  - SEC-12: Rate limiting + secret rotation schedule
+- Atualizar Recomendacoes Futuras (remover itens ja feitos)
 
-### Migracao 4: Restringir trade_tipos_brinde
-```sql
-DROP POLICY "Admins podem atualizar tipos de brinde" ON trade_tipos_brinde;
-DROP POLICY "Admins podem criar tipos de brinde" ON trade_tipos_brinde;
--- Recriar com has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'supervisor')
-```
+### 5. Atualizar `.lovable/plan.md`
+- Reescrever para refletir estado final: todas vulnerabilidades corrigidas, scorecard 10/10, sem itens pendentes
 
-### Migracao 5: Corrigir search_path nas 4 functions
-```sql
-ALTER FUNCTION enqueue_email SET search_path = public;
-ALTER FUNCTION delete_email SET search_path = public;
-ALTER FUNCTION read_email_batch SET search_path = public;
-ALTER FUNCTION move_to_dlq SET search_path = public;
-```
+### 6. Atualizar `docs/EDGE_FUNCTIONS.md`
+- Adicionar nota sobre criptografia de tokens OAuth nas secoes de Social Media e Sync All Accounts
 
-### Migracao 6: Endurecer security_audit_log INSERT
-```sql
-DROP POLICY "System can insert security logs" ON security_audit_log;
-CREATE POLICY "Authenticated or service can insert security logs"
-  ON security_audit_log FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL OR auth.role() = 'service_role');
-```
+## Arquivos Alterados
 
----
-
-## SCORECARD FINAL
-
-| Categoria | Peso | Nota | Ponderado |
-|---|---|---|---|
-| RLS & Policies | 25% | 7.5 | 1.875 |
-| Autenticacao & RBAC | 20% | 9.0 | 1.800 |
-| Edge Functions & APIs | 15% | 9.0 | 1.350 |
-| Dados Sensiveis & Criptografia | 15% | 7.5 | 1.125 |
-| Audit & Compliance (LGPD) | 10% | 9.0 | 0.900 |
-| Storage & CORS | 10% | 9.5 | 0.950 |
-| Input Validation | 5% | 9.0 | 0.450 |
-| **TOTAL** | **100%** | | **8.45 → 8.5** |
-
-### Nota apos correcoes propostas: **9.3 / 10**
-
-Os 0.7 restantes requerem: criptografia de tokens OAuth (pgcrypto/Vault), rate limiting em APIs publicas, e rotacao automatica de secrets — itens de infraestrutura que dependem de configuracao na plataforma.
+| Arquivo | Tipo |
+|---|---|
+| `supabase/functions/sync-all-accounts/index.ts` | Bug fix (token plaintext -> encrypted) |
+| `docs/SECURITY.md` | Documentacao |
+| `SEGURANCA_PRODUCAO.md` | Documentacao |
+| `docs/AUDITORIA_SEGURANCA.md` | Documentacao |
+| `.lovable/plan.md` | Documentacao |
+| `docs/EDGE_FUNCTIONS.md` | Documentacao |
 
