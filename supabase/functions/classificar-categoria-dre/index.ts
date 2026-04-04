@@ -5,8 +5,11 @@ const CATEGORIAS_DRE = [
   { value: 'receita_bruta', label: 'Receita Bruta', descricao: 'Receitas operacionais da empresa (vendas, serviços)' },
   { value: 'deducoes', label: 'Deduções e Abatimentos', descricao: 'Impostos sobre vendas, devoluções, descontos concedidos' },
   { value: 'custo_vendas', label: 'Custo de Vendas', descricao: 'CMV, custos de produção, matéria-prima, mão de obra direta' },
-  { value: 'despesas_fixas', label: 'Despesas Fixas', descricao: 'Despesas operacionais, administrativas, comerciais, salários' },
+  { value: 'despesas_fixas', label: 'Despesas Fixas', descricao: 'Despesas administrativas, pessoal, aluguel, utilities' },
+  { value: 'despesas_variaveis', label: 'Despesas Variáveis', descricao: 'Marketing, trade marketing, comissões, campanhas' },
+  { value: 'resultado_financeiro', label: 'Resultado Financeiro', descricao: 'Receitas e despesas financeiras, juros, tarifas bancárias' },
   { value: 'impostos_lucro', label: 'Impostos s/ Lucro', descricao: 'IRPJ, CSLL, impostos sobre o resultado' },
+  { value: 'resultado_nao_operacional', label: 'Resultado Não Operacional', descricao: 'Receitas e despesas não relacionadas à operação principal' },
 ];
 
 Deno.serve(async (req) => {

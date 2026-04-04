@@ -29,7 +29,9 @@ export const chartOfAccountsSchema = z.object({
     "custo_vendas",
     "despesas_variaveis",
     "despesas_fixas",
-    "impostos_lucro"
+    "resultado_financeiro",
+    "impostos_lucro",
+    "resultado_nao_operacional"
   ]).optional().nullable(),
   
   nivel: z.number()
