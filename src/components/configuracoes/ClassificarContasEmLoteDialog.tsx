@@ -214,7 +214,7 @@ export function ClassificarContasEmLoteDialog({
       if (saveError) throw saveError;
 
       const { data: result, error: applyError } = await supabase.functions.invoke("classificar-contas-lote", {
-        body: { action: "apply" },
+        body: { action: "apply", categorias: validMappings },
       });
       if (applyError) throw applyError;
 
