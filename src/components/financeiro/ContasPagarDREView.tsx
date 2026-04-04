@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -20,7 +22,9 @@ import {
   Maximize2,
   X,
   Printer,
-  FileDown
+  FileDown,
+  ArrowRightLeft,
+  Search
 } from "lucide-react";
 import { ReclassificarContaDREDialog } from "./ReclassificarContaDREDialog";
 import { EditarClassificacaoRapidaDialog } from "./EditarClassificacaoRapidaDialog";
@@ -99,7 +103,7 @@ export function ContasPagarDREView({
   const [selectedConta, setSelectedConta] = useState<ContaPagar | null>(null);
   const [selectedFornecedor, setSelectedFornecedor] = useState<{ nome: string; lancamentosIds: string[] } | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
-
+  const [focusSearch, setFocusSearch] = useState("");
   // Format functions
   const formatCurrency = useCallback((value: number, showSign = false) => {
     const formatted = formatNumber(Math.abs(value), 2);
@@ -496,20 +500,7 @@ export function ContasPagarDREView({
     setExpandedNodes(new Set(['2', '3', '4']));
   };
 
-  const handleNodeClick = (node: DRENode, e: React.MouseEvent) => {
-    if (node.tipo === 'lancamento' && node.conta) {
-      e.stopPropagation();
-      setSelectedConta(node.conta);
-      setEditarOpen(true);
-    } else if (node.tipo === 'fornecedor' && node.contaOrigem) {
-      e.stopPropagation();
-      setSelectedFornecedor({
-        nome: node.nome,
-        lancamentosIds: node.lancamentosIds
-      });
-      setTransferirOpen(true);
-    }
-  };
+  // Click handlers are now inline on the action icons in renderRow
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
@@ -538,7 +529,15 @@ export function ContasPagarDREView({
     );
   }
 
-  const renderRow = (node: DRENode, depth: number = 0): React.ReactNode[] => {
+  const renderRow = (node: DRENode, depth: number = 0, searchFilter?: string): React.ReactNode[] => {
+    // If search filter is active, check if this node or any child matches
+    if (searchFilter) {
+      const term = searchFilter.toLowerCase();
+      const matchesSelf = node.nome.toLowerCase().includes(term) || node.codigo.toLowerCase().includes(term);
+      const hasMatchingChild = node.children.some(c => nodeMatchesSearch(c, term));
+      if (!matchesSelf && !hasMatchingChild) return [];
+    }
+
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children.length > 0;
     const paddingLeft = depth * 20 + 8;
@@ -571,10 +570,10 @@ export function ContasPagarDREView({
       <tr 
         key={node.id}
         className={cn(
-          'border-b border-border/50 transition-colors cursor-pointer',
+          'border-b border-border/50 transition-colors cursor-pointer group',
           getRowClasses()
         )}
-        onClick={() => hasChildren ? toggleNode(node.id) : handleNodeClick(node, {} as React.MouseEvent)}
+        onClick={() => hasChildren ? toggleNode(node.id) : undefined}
       >
         {/* Código */}
         <td className="px-2 py-1.5 text-left w-16 border-r border-border/30">
@@ -601,7 +600,7 @@ export function ContasPagarDREView({
             <span className="truncate">{node.nome}</span>
             
             {node.tipo === 'lancamento' && node.conta && (
-              <div className="flex items-center gap-1 ml-auto">
+              <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                 {node.conta.classificado_automaticamente && (
                   <span title="Classificado por IA">
                     <Bot className="h-3 w-3 text-primary" />
@@ -612,14 +611,52 @@ export function ContasPagarDREView({
                     <Lock className="h-3 w-3 text-muted-foreground" />
                   </span>
                 )}
-                <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedConta(node.conta!);
+                          setEditarOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top"><p>Editar classificação</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
             
             {node.tipo === 'fornecedor' && (
-              <Badge variant="outline" className="ml-auto text-[10px] px-1 py-0">
-                {node.children.length} lanç.
-              </Badge>
+              <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  {node.children.length} lanç.
+                </Badge>
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-accent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFornecedor({
+                            nome: node.nome,
+                            lancamentosIds: node.lancamentosIds
+                          });
+                          setTransferirOpen(true);
+                        }}
+                      >
+                        <ArrowRightLeft className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top"><p>Transferir fornecedor</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             )}
           </div>
         </td>
@@ -627,7 +664,6 @@ export function ContasPagarDREView({
         {/* Valores por mês */}
         {meses.map((m, idx) => {
           const valor = node.valores_mes[m.key] || 0;
-          // Calculate %H (horizontal) - change from previous month
           const prevKey = meses[idx - 1]?.key;
           const prevValor = prevKey ? (node.valores_mes[prevKey] || 0) : 0;
           const percentH = prevValor > 0 ? ((valor - prevValor) / prevValor) * 100 : 0;
@@ -676,17 +712,24 @@ export function ContasPagarDREView({
       </tr>
     );
 
-    // Render children if expanded
-    if (isExpanded && hasChildren) {
+    // Render children if expanded (or if search is active, auto-expand matching paths)
+    const shouldExpand = isExpanded || (searchFilter && searchFilter.length > 0);
+    if (shouldExpand && hasChildren) {
       node.children.forEach(child => {
-        rows.push(...renderRow(child, depth + 1));
+        rows.push(...renderRow(child, depth + 1, searchFilter));
       });
     }
 
     return rows;
   };
 
-  const tableContent = (isFocus = false) => (
+  // Helper to check if a node or its descendants match search
+  const nodeMatchesSearch = (node: DRENode, term: string): boolean => {
+    if (node.nome.toLowerCase().includes(term) || node.codigo.toLowerCase().includes(term)) return true;
+    return node.children.some(c => nodeMatchesSearch(c, term));
+  };
+
+  const tableContent = (isFocus = false, searchFilter?: string) => (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-background">
@@ -714,7 +757,7 @@ export function ContasPagarDREView({
           </tr>
         </thead>
         <tbody>
-          {hierarquia.map(node => renderRow(node, 0))}
+          {hierarquia.map(node => renderRow(node, 0, searchFilter))}
           
           {/* Total Row */}
           <tr className="border-t-2 border-border bg-primary/10 font-bold">
@@ -771,26 +814,6 @@ export function ContasPagarDREView({
             {tableContent()}
           </ScrollArea>
         </CardContent>
-
-        {/* Dialogs */}
-        {selectedConta && (
-          <EditarClassificacaoRapidaDialog
-            open={editarOpen}
-            onOpenChange={setEditarOpen}
-            conta={selectedConta}
-            onSuccess={handleSuccess}
-          />
-        )}
-
-        {selectedFornecedor && (
-          <TransferirFornecedorDialog
-            open={transferirOpen}
-            onOpenChange={setTransferirOpen}
-            fornecedorNome={selectedFornecedor.nome}
-            lancamentosIds={selectedFornecedor.lancamentosIds}
-            onSuccess={handleSuccess}
-          />
-        )}
       </Card>
 
       {/* Focus Mode Dialog */}
@@ -805,6 +828,23 @@ export function ContasPagarDREView({
               </Badge>
             </DialogTitle>
             <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar fornecedor ou conta..."
+                  value={focusSearch}
+                  onChange={(e) => setFocusSearch(e.target.value)}
+                  className="pl-9 w-[280px] h-9"
+                />
+                {focusSearch && (
+                  <button 
+                    className="absolute right-2 top-2.5" 
+                    onClick={() => setFocusSearch("")}
+                  >
+                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </div>
               <Button variant="outline" size="sm" onClick={expandAll} className="gap-1">
                 <ChevronsDown className="h-4 w-4" />
                 Expandir
@@ -823,10 +863,30 @@ export function ContasPagarDREView({
             </div>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-4 bg-background">
-            {tableContent(true)}
+            {tableContent(true, focusSearch || undefined)}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialogs at root level for correct z-index */}
+      {selectedConta && (
+        <EditarClassificacaoRapidaDialog
+          open={editarOpen}
+          onOpenChange={setEditarOpen}
+          conta={selectedConta}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {selectedFornecedor && (
+        <TransferirFornecedorDialog
+          open={transferirOpen}
+          onOpenChange={setTransferirOpen}
+          fornecedorNome={selectedFornecedor.nome}
+          lancamentosIds={selectedFornecedor.lancamentosIds}
+          onSuccess={handleSuccess}
+        />
+      )}
     </>
   );
 }
