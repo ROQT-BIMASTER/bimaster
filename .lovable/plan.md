@@ -1,56 +1,133 @@
 
 
-# Implementar Centros de Custo no Plano de Contas
+# Profissionalização do Plano de Contas e DRE — Análise e Melhorias
 
-## Situação Atual
+## Diagnóstico Atual
 
-- Coluna `centro_custo` existe em `trade_chart_of_accounts` mas está **100% vazia**
-- Já temos **10 departamentos** vinculados às contas
-- Centro de custo é um nível mais granular que departamento — permite rastrear custos por **unidade de negócio, projeto ou atividade**
+### Distribuição DRE (146 contas ativas)
 
-## Proposta de Estrutura de Centros de Custo
+| Categoria DRE | Analíticas | Grupos | % do total |
+|---|---|---|---|
+| `despesas_fixas` | 93 | 23 | **79%** |
+| `custo_vendas` | 12 | 5 | 12% |
+| `receita_bruta` | 5 | 1 | 4% |
+| `deducoes` | 4 | 1 | 3% |
+| `impostos_lucro` | 2 | 0 | 1% |
 
-Baseado na operação do cliente (distribuição de cosméticos com marca própria, logística, trade marketing), a estrutura recomendada:
+**Problema central**: 79% das contas estão em `despesas_fixas`. Isso "achata" o DRE — marketing, despesas financeiras, resultado não-operacional e retiradas de sócios aparecem todos na mesma linha.
+
+---
+
+## FALHAS IDENTIFICADAS (7 problemas)
+
+### 1. Falta categoria `despesas_variaveis`
+
+Marketing (`3.3.x`) e Trade (`2.6.x`) são despesas que variam com campanhas e sazonalidade. Estão classificadas como `despesas_fixas`, distorcendo a margem de contribuição.
+
+**Correção**: Criar `despesas_variaveis` no enum e reclassificar `3.3.x` e `2.6.x`.
+
+### 2. Falta categoria `despesas_financeiras`
+
+Contas `3.4.1` (Despesas Bancárias), `3.4.2` (Receitas Bancárias), `4.3.3` (Juros Antecipação), `4.3.6` (Juros pagos) estão como `despesas_fixas`. No DRE profissional, resultado financeiro é uma linha separada entre EBITDA e Lucro Antes do IR.
+
+**Correção**: Criar `resultado_financeiro` no enum e reclassificar.
+
+### 3. Falta categoria `resultado_nao_operacional`
+
+Contas `4.1.1` (Receitas não operacionais) e `4.1.2` (Despesas não operacionais) estão misturadas com despesas fixas. Profissionalmente, ficam **abaixo** do lucro operacional.
+
+**Correção**: Criar `resultado_nao_operacional` no enum.
+
+### 4. Grupo 4 inteiro classificado errado
+
+Investimentos (`4.2.x`), empréstimos (`4.3.x`) e atividades com sócios (`4.4.x`) **não pertencem ao DRE**. São movimentações patrimoniais/fluxo de caixa. Marcar como `despesas_fixas` infla artificialmente as despesas.
+
+**Correção**: Criar `nao_dre` ou setar `categoria_dre = NULL` para contas que não devem aparecer no DRE (investimentos, empréstimos, aportes, retiradas).
+
+### 5. Pró-labore (`3.5.1`) como `despesas_fixas`
+
+Pró-labore é despesa operacional, mas deveria ter uma sub-linha específica no DRE para transparência com os sócios. Está correto como `despesas_fixas`, porém sem distinção visual no DRE.
+
+### 6. Receitas Financeiras (`4.3.5`) como `despesas_fixas`
+
+Receita financeira é receita, não despesa fixa. Deveria ser `resultado_financeiro` com sinal positivo.
+
+### 7. `Devolução (Clientes)` em `custo_vendas`
+
+A conta `2.1.2 Devolução (Clientes)` deveria ser `deducoes` (abatimento da receita bruta), não custo de vendas.
+
+---
+
+## ESTRUTURA DRE PROFISSIONAL PROPOSTA
 
 ```text
-CC-ADM     Administrativo Geral
-CC-FIN     Financeiro e Tesouraria
-CC-RH      Recursos Humanos
-CC-LOG     Logística e Distribuição
-CC-TI      Tecnologia da Informação
-CC-MKT     Marketing e Trade
-CC-COM     Comercial / Vendas
-CC-FAB     Fábrica / Importação China
-CC-DEP     Depósito / Armazém
-CC-OPR     Operações
+(+) RECEITA BRUTA                          → receita_bruta
+(-) Deduções (impostos s/ vendas, devol.)  → deducoes
+(=) RECEITA LÍQUIDA
+
+(-) Custos Variáveis (CMV, fretes, embal.) → custo_vendas
+(=) LUCRO BRUTO
+
+(-) Despesas Fixas (admin, pessoal)        → despesas_fixas
+(-) Despesas Variáveis (marketing, trade)  → despesas_variaveis   ← NOVO
+(=) EBITDA
+
+(+/-) Resultado Financeiro                 → resultado_financeiro ← NOVO
+(=) LUCRO ANTES DO IR
+
+(-) Impostos sobre Lucro (IRPJ, CSLL)     → impostos_lucro
+(=) LUCRO LÍQUIDO
+
+(+/-) Resultado Não Operacional            → resultado_nao_operacional ← NOVO
+(=) RESULTADO FINAL
 ```
 
-## Mapeamento Centro de Custo → Contas
+Contas patrimoniais (investimentos, empréstimos, aportes, retiradas) ficam **fora do DRE** com `categoria_dre = NULL`.
 
-| Centro de Custo | Contas | Lógica |
+---
+
+## PLANO DE IMPLEMENTAÇÃO
+
+### Etapa 1: Migração SQL — Novas categorias e reclassificações
+
+1. **Adicionar 3 valores ao enum** `categoria_dre`:
+   - `despesas_variaveis`
+   - `resultado_financeiro`
+   - `resultado_nao_operacional`
+
+2. **Reclassificar contas**:
+   - `3.3.x` (Marketing) → `despesas_variaveis`
+   - `2.6.x` (Trade/Comissões) → `despesas_variaveis`
+   - `3.4.1`, `3.4.2` → `resultado_financeiro`
+   - `4.3.3`, `4.3.5`, `4.3.6` → `resultado_financeiro`
+   - `4.1.1`, `4.1.2` → `resultado_nao_operacional`
+   - `2.1.2` (Devoluções) → `deducoes`
+   - `4.2.x`, `4.3.1`, `4.3.2`, `4.3.4`, `4.3.7-9`, `4.4.x` → `NULL` (fora do DRE)
+
+### Etapa 2: Atualizar validação Zod
+
+Adicionar os 3 novos valores no enum `categoria_dre` em `chart-of-accounts.ts`.
+
+### Etapa 3: Atualizar DRE frontend
+
+Ajustar o componente DRE para renderizar as novas linhas (EBITDA, Resultado Financeiro, Resultado Não Operacional) na ordem correta.
+
+### Etapa 4: Atualizar edge functions
+
+Atualizar `classificar-categoria-dre` e `dre-cadastro-api` para reconhecer as novas categorias.
+
+| Prioridade | Ação | Impacto |
 |---|---|---|
-| **CC-ADM** | `3.1.1.x` a `3.1.7`, `3.1.8.x`, `3.1.11` a `3.1.20`, `3.1.23` | Aluguel, utilities, serviços, seguros |
-| **CC-FIN** | `1.x`, `2.5.x`, `2.7.x`, `3.4.x`, `4.1.x`, `4.3.x`, `4.4.x` | Receitas, impostos, tarifas, juros |
-| **CC-RH** | `3.2.x` (todo) | Salários, férias, benefícios, rescisões |
-| **CC-LOG** | `2.2`, `2.4.x`, `3.1.10.x` | Fretes, embalagens, veículos |
-| **CC-TI** | `3.1.4`, `3.1.21`, `3.1.22`, `3.1.24` | Internet, hardware, software |
-| **CC-MKT** | `3.3.x`, `2.6.x` | Marketing, trade, comissões |
-| **CC-COM** | `2.1.x` | Compras de mercadoria, devoluções |
-| **CC-DEP** | `3.1.1.1` (Aluguel Depósito) | Separar depósito do escritório |
-| **CC-OPR** | `3.1.9` (Manutenção) | Manutenção predial |
-| **CC-SOC** | `3.5.x` | Pró-labore e retiradas de sócios |
+| Alta | Adicionar 3 categorias ao enum + reclassificar | DRE profissional com EBITDA |
+| Alta | Remover grupo 4 patrimonial do DRE | Despesas deixam de ser infladas |
+| Média | Atualizar frontend DRE | Visualização com linhas corretas |
+| Média | Atualizar validações e edge functions | Consistência do sistema |
 
-## Implementação
-
-### Migração SQL única
-
-1. **UPDATE em massa** na `trade_chart_of_accounts` setando `centro_custo` com código padronizado (CC-XXX) por faixa de código contábil
-2. Sem necessidade de criar tabela nova — a coluna já existe
-
-O centro de custo fica como texto livre na conta, alinhado ao departamento já vinculado, porém com a granularidade de separar por exemplo "Depósito" de "Escritório" dentro do mesmo departamento Administrativo.
-
-| Ação | Detalhe |
+| Arquivo | Mudança |
 |---|---|
-| UPDATE ~100 contas | Setar `centro_custo` por faixa de código |
-| Sem alteração de schema | Coluna já existe |
+| Migração SQL | ALTER TYPE + UPDATE ~40 contas |
+| `src/lib/validations/chart-of-accounts.ts` | Adicionar 3 valores ao enum Zod |
+| Componente DRE (frontend) | Novas linhas de subtotal |
+| `supabase/functions/classificar-categoria-dre/index.ts` | Novas categorias no prompt |
+| `supabase/functions/dre-cadastro-api/index.ts` | Novo sinal para `resultado_financeiro` |
 
