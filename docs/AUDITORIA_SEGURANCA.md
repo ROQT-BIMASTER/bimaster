@@ -118,6 +118,33 @@ Expandidos para módulos financeiros e fichas de produto China.
 - Schedule trimestral configurado
 - search_path fixo nas 4 funções com alerta do linter (`enqueue_email`, `delete_email`, `read_email_batch`, `move_to_dlq`)
 
+### SEC-13 — RLS Hardening Final — 4 tabelas com SELECT público (ALTO)
+**Problema:** 4 tabelas com SELECT `USING(true)` para role `public`, expondo dados a anônimos:
+- `fabrica_ficha_custo_config`: Markup e custos acessíveis sem autenticação
+- `marketing_task_comments`: Comentários internos expostos
+- `user_rankings`: UUIDs de usuários expostos
+- `planos`: `stripe_product_id` e `stripe_price_id` expostos
+**Correção:**
+- Todas as policies SELECT migradas de `public` para `TO authenticated`
+- `fabrica_ficha_custo_config` INSERT/UPDATE/DELETE restritos a admin/supervisor via `is_admin_or_supervisor()`
+- `marketing_task_comments` INSERT/UPDATE restritos ao próprio usuário
+- `planos` SELECT restrito a planos ativos para authenticated
+
+### SEC-14 — Edge Function publish-scheduled-posts (ALTO)
+**Problema:** Interface `SocialAccount` ainda referenciava `access_token` (coluna plaintext dropada na SEC-11). Edge function usava `.select('*')`.
+**Correção:**
+- Interface refatorada para `access_token_encrypted`
+- Select explícito: `id, platform, username, access_token_encrypted`
+- Decrypt via `supabase.rpc('decrypt_token')` antes de usar
+- Console.log excessivos removidos
+
+### SEC-15 — Padronização de Logging (MÉDIO)
+**Problema:** 194+ `console.log` espalhados em 12 arquivos de produção (pages e hooks).
+**Correção:** Migrados para `logger.debug()` do sistema estruturado (`src/lib/logger.ts`), que:
+- Suprime debug em produção (apenas `info`+ é exibido)
+- Inclui timestamp ISO e contexto estruturado
+- Prepara para integração com Sentry
+
 ---
 
 ## Arquivos Criados/Modificados
