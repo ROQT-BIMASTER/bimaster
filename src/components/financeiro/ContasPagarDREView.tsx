@@ -500,20 +500,7 @@ export function ContasPagarDREView({
     setExpandedNodes(new Set(['2', '3', '4']));
   };
 
-  const handleNodeClick = (node: DRENode, e: React.MouseEvent) => {
-    if (node.tipo === 'lancamento' && node.conta) {
-      e.stopPropagation();
-      setSelectedConta(node.conta);
-      setEditarOpen(true);
-    } else if (node.tipo === 'fornecedor' && node.contaOrigem) {
-      e.stopPropagation();
-      setSelectedFornecedor({
-        nome: node.nome,
-        lancamentosIds: node.lancamentosIds
-      });
-      setTransferirOpen(true);
-    }
-  };
+  // Click handlers are now inline on the action icons in renderRow
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['contas-pagar-dre-view'] });
