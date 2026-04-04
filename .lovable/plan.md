@@ -1,3 +1,4 @@
+
 # Detalhamento do Plano de Contas — 4 Categorias
 
 ## Diagnóstico com Dados Reais
@@ -54,18 +55,26 @@
 
 ---
 
-## Reclassificação de Títulos Existentes
+## Reclassificação de Títulos
 
-Após criar as sub-contas, os ~1.388 títulos de TARIFAS BANCARIAS serão redistribuídos por fornecedor. Os 34 títulos de SEGURO DEPOSITO serão movidos para `3.1.11.1`. Os 761 títulos de EMBALAGENS permanecerão temporariamente em `2.2.1` (Primária) como default até classificação manual futura.
+Após criar as sub-contas, os títulos existentes serão redistribuídos:
+- **1.388 TARIFAS BANCARIAS** → por fornecedor (Itaú, Bradesco, MP, Diversas)
+- **34 SEGURO DEPOSITO** → `3.1.11.1` + dept Logística
+- **2 SEGUROESCRITORIO** → `3.1.11.2` + dept Administrativo
+- **3 SEGURO BENS** → `3.1.11.3` + dept Operações
+- **761 EMBALAGENS** → default `2.2.1` até classificação manual
 
 ---
 
-## Resumo
+## Implementação Técnica
+
+1. **Migração SQL**: Transformar `2.2` e `3.1.11` em grupos (`is_group = true, permite_lancamento = false`), criar 12 novas contas analíticas
+2. **UPDATE dados**: Reclassificar ~2.188 títulos em `contas_pagar` por `categoria_nome` e `fornecedor_nome`
 
 | Grupo | Contas Novas | Títulos Afetados |
 |---|---|---|
-| Embalagens (2.2) | 4 sub-contas | 761 (default → 2.2.1) |
-| Aluguéis (3.1.1) | 1 sub-conta | 0 (futuro) |
-| Seguros (3.1.11) | 4 sub-contas | ~39 reclassificados |
-| Tarifas (2.7) | 3 sub-contas | ~1.388 redistribuídos |
-| **TOTAL** | **12 contas** | **~2.188 títulos** |
+| Embalagens (2.2) | 4 sub-contas | 761 |
+| Aluguéis (3.1.1) | 1 sub-conta | 0 |
+| Seguros (3.1.11) | 4 sub-contas | ~39 |
+| Tarifas (2.7) | 3 sub-contas | ~1.388 |
+| **TOTAL** | **12 contas** | **~2.188** |
