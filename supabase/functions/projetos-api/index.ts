@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { enqueueWebhookEvent } from "../_shared/webhook-enqueue.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
