@@ -274,8 +274,8 @@ export function useFluxoCaixaData(options: UseFluxoCaixaDataOptions) {
   }, [contasReceberRaw, filterMeses, filterAnos, filterVendedor, filterCliente]);
   
   const contasPagar = useMemo(() => {
-    if (!contasPagarRaw) return [];
-    let filtered = [...contasPagarRaw];
+    if (!sanitizedPagarRaw) return [];
+    let filtered = [...sanitizedPagarRaw];
     
     // Month filter
     if (filterMeses.length > 0) {
