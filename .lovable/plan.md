@@ -1,42 +1,34 @@
 
-# Corrigir Dicionário e Melhorar IA da Classificação em Lote
 
-## Problema Identificado
+# Edição Interativa no Modo Foco do DRE
 
-O dicionário hardcoded em `classificar-contas-lote/index.ts` tem **entradas obsoletas** que apontam para contas que viraram **grupos** após a reestruturação:
+## Problema
 
-| Categoria ERP | Mapeia para | Status Atual |
-|---|---|---|
-| EMBALAGENS | `2.2` | **GRUPO** (não permite lançamento) |
-| CAIXAS TERCIARIA | `2.2` | **GRUPO** |
-| ETIQUETAS DIVERSAS | `2.2` | **GRUPO** |
-| SEGURO BENS | `3.1.11` | **GRUPO** |
-| SEGURO DEPOSITO | `3.1.11` | **GRUPO** |
-| SEGUROESCRITORIO | `3.1.11` | **GRUPO** |
-| SEGURO DE PESSOAL | `3.1.11` | **GRUPO** |
+Os dialogs de **Transferir Fornecedor** e **Editar Lançamento** já existem no componente `ContasPagarDREView`, mas:
+1. Estão renderizados **dentro do `<Card>`**, causando conflito de z-index com o Dialog do Modo Foco
+2. Não há indicadores visuais (ícones, tooltips) no Modo Foco para o usuário saber que pode clicar e editar
+3. Falta um menu de contexto ou botões de ação visíveis nas linhas de fornecedor/lançamento
 
-Quando o dicionário encontra o código mas a conta é grupo (`permite_lancamento=false`), a `contas.find()` retorna `undefined` e a categoria cai no fallback de IA — que pode falhar por truncamento de tokens.
+## Solução
 
-## Correções
+### 1. Mover dialogs para o nível raiz do componente
+Extrair `EditarClassificacaoRapidaDialog` e `TransferirFornecedorDialog` para fora do `<Card>` e do Dialog de foco, garantindo que fiquem sempre por cima (z-index correto via portal).
 
-### 1. Atualizar dicionário com novos códigos (12 entradas)
-- `EMBALAGENS` → `2.2.1` (Embalagem Primária)
-- `CAIXAS TERCIARIA` → `2.2.3` (Embalagem Terciária)
-- `ETIQUETAS DIVERSAS` → `2.2.4` (Materiais de Postagem)
-- `SEGURO DEPOSITO` → `3.1.11.1` (Seguro de Galpão/Depósito)
-- `SEGUROESCRITORIO` → `3.1.11.2` (Seguro de Escritório)
-- `SEGURO BENS` → `3.1.11.3` (Seguro de Bens e Equipamentos)
-- `SEGURO DE PESSOAL` → `3.2.12.2` (Plano de Saúde — já estava correto no plano)
-- `TARIFAS BANCARIAS` → `3.4.1` (já correto, verificar existência)
+### 2. Adicionar ícones de ação nas linhas
+- **Fornecedor**: Ícone de `ArrowRightLeft` (transferir) visível ao hover, com tooltip "Transferir fornecedor"
+- **Lançamento**: Ícone de `Pencil` (editar) visível ao hover, com tooltip "Editar classificação"
+- Aplicar classe `group` nas `<tr>` para ativar hover nos ícones filhos
 
-### 2. Melhorar o fallback de IA
-- Trocar modelo de `gemini-2.5-flash` para `google/gemini-2.5-pro` (melhor raciocínio)
-- Adicionar `max_tokens: 8192` para evitar truncamento
-- Adicionar validação: se o código retornado pela IA não existe no plano, marcar como `erro` em vez de aceitar silenciosamente
-- Reduzir batch de IA de 25 para 10 categorias por vez para melhor precisão
+### 3. Adicionar busca no Modo Foco
+Input de busca no header do Modo Foco para filtrar fornecedores/contas pelo nome, facilitando localizar itens específicos entre centenas de linhas.
 
-### 3. Adicionar validação no dicionário (runtime)
-- Ao resolver pelo dicionário, se a conta não for encontrada (grupo ou inexistente), logar warning e enviar para IA em vez de falhar silenciosamente
+### 4. Adicionar filtro de busca com Combobox no TransferirFornecedorDialog
+Substituir o `Select` de conta destino por um Combobox com busca (mesmo padrão já usado em `ClassificarContasEmLoteDialog`), pois são 200+ contas analíticas.
 
-## Arquivo Alterado
-- `supabase/functions/classificar-contas-lote/index.ts`
+## Arquivos Alterados
+
+| Arquivo | Alteração |
+|---|---|
+| `ContasPagarDREView.tsx` | Mover dialogs para raiz, adicionar ícones de ação com hover, adicionar input de busca no Modo Foco, classe `group` nas linhas |
+| `TransferirFornecedorDialog.tsx` | Substituir Select por Combobox com busca para conta destino |
+
