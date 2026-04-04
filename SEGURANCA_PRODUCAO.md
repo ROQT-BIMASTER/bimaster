@@ -45,6 +45,8 @@
 18. **Rotação de Secrets** — rotate_api_key() com histórico, schedule trimestral
 19. **Edge Functions** — social-media-cron, sync-all-accounts e publish-scheduled-posts usam decrypt_token RPC
 20. **Logging Estruturado** — 194+ console.log migrados para logger.debug() em 12 arquivos
+21. **WAF L7** — Middleware `_shared/waf.ts` com detecção de SQLi, XSS, path traversal e bots maliciosos em 6 Edge Functions críticas
+22. **Pentest Automatizado** — Edge Function `security-pentest` com 9 testes (auth bypass, SQLi, XSS, RLS, CORS, headers, bot detection, payload size)
 
 ---
 
@@ -104,6 +106,8 @@ rotate_api_key(config_id) → TEXT
 - [x] Colunas plaintext removidas
 - [x] Edge Functions usando decrypt RPC
 - [x] Logging estruturado (logger.ts)
+- [x] WAF L7 em código (SQLi, XSS, path traversal, bots)
+- [x] Pentest automatizado (Edge Function)
 
 ---
 

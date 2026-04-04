@@ -135,8 +135,8 @@ admin
 - [x] search_path fixo em todas SECURITY DEFINER functions
 - [x] Rotação de secrets configurada
 - [x] Logging estruturado em produção
-- [ ] Penetration testing profissional (recomendado anualmente)
-- [ ] WAF/CDN (Cloudflare) para proteção L7
+- [x] Penetration testing automatizado (Edge Function `security-pentest`)
+- [x] WAF L7 em código (`_shared/waf.ts`) — proteção contra SQLi, XSS, path traversal, bots
 
 ## Incident Response
 

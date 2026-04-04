@@ -4,6 +4,7 @@ import { withSecurityHeaders } from "../_shared/security-headers.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateJWT, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 
 function json(body: unknown, status: number, req: Request, startMs: number) {
   return jsonResponse(body, status, req, { startMs });
@@ -16,6 +17,10 @@ function errorResp(status: number, code: string, message: string, req: Request, 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
+
+  // WAF L7 check
+  const waf = await wafCheck(req);
+  if (!waf.allowed) return wafBlockResponse(waf, { "Access-Control-Allow-Origin": "*" });
 
   const startMs = Date.now();
   const url = new URL(req.url);

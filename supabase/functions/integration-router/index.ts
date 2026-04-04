@@ -4,6 +4,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { validateAnyAuth, AuthError } from "../_shared/auth.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -98,6 +99,10 @@ async function updateConfigStatus(supabase: any, configId: string, status: strin
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
+
+  // WAF L7 check
+  const waf = await wafCheck(req);
+  if (!waf.allowed) return wafBlockResponse(waf, { "Access-Control-Allow-Origin": "*" });
 
   const startMs = Date.now();
   const requestId = crypto.randomUUID();
