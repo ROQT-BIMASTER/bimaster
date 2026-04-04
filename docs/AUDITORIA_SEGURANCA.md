@@ -164,6 +164,9 @@ Expandidos para módulos financeiros e fichas de produto China.
 | `social-media-cron/index.ts` | Token encrypted + decrypt RPC |
 | `sync-all-accounts/index.ts` | Token encrypted + decrypt RPC |
 | 6 migrações SQL | RLS hardening + Vault + rate limiting |
+| `publish-scheduled-posts/index.ts` | Token encrypted + decrypt RPC |
+| 1 migração SQL (SEC-13) | RLS hardening 4 tabelas |
+| 12 arquivos src/ | console.log → logger.debug |
 
 ---
 
