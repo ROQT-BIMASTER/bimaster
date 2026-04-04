@@ -5,6 +5,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { checkRateLimit, RateLimitError } from "../_shared/rate-limit.ts";
 import { z, validateBody, ValidationError } from "../_shared/validate.ts";
+import { wafCheck, wafBlockResponse } from "../_shared/waf.ts";
 
 // === Zod Schemas ===
 const GerarSchema = z.object({
