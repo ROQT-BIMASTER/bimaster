@@ -5,11 +5,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, CheckCircle, Search, Check, BookOpen, Brain } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle, Search, Check, BookOpen, Brain, ChevronsUpDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface ClassificarContasEmLoteDialogProps {
   open: boolean;
@@ -35,6 +36,36 @@ interface Mapeamento extends Categoria {
   justificativa: string;
   revisado_manualmente?: boolean;
   fonte?: "dicionario" | "manual" | "ia" | "erro";
+}
+
+function ContaSearchSelect({ value, label, contas, onChange }: { value: string; label: string; contas: any[]; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="h-8 w-full justify-between text-xs font-normal">
+          <span className="truncate">{value ? label : "Selecionar conta..."}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar conta..." className="h-9" />
+          <CommandList>
+            <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+            <CommandGroup>
+              {contas.map(c => (
+                <CommandItem key={c.id} value={`${c.code} ${c.name}`} onSelect={() => { onChange(c.id); setOpen(false); }} className="text-xs">
+                  <Check className={`mr-2 h-3 w-3 ${value === c.id ? "opacity-100" : "opacity-0"}`} />
+                  {c.code} - {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export function ClassificarContasEmLoteDialog({
@@ -329,23 +360,12 @@ export function ClassificarContasEmLoteDialog({
                           <TableCell className="font-medium text-xs">{m.categoria_nome}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{m.qtd_titulos}</TableCell>
                           <TableCell>
-                            <Select
+                            <ContaSearchSelect
                               value={m.plano_contas_id || ""}
-                              onValueChange={(v) => handleContaChange(realIdx, v)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Selecionar conta...">
-                                  {m.plano_contas_id ? `${m.plano_contas_codigo} - ${m.plano_contas_nome}` : "Selecionar..."}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {contasDisponiveis.map(c => (
-                                  <SelectItem key={c.id} value={c.id} className="text-xs">
-                                    {c.code} - {c.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              label={m.plano_contas_id ? `${m.plano_contas_codigo} - ${m.plano_contas_nome}` : ""}
+                              contas={contasDisponiveis}
+                              onChange={(v) => handleContaChange(realIdx, v)}
+                            />
                           </TableCell>
                           <TableCell>
                             <FonteBadge fonte={m.fonte} />
