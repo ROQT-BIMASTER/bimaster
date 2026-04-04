@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -335,7 +336,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
   const toggleTarefaCompleta = useMutation({
     mutationFn: async (tarefa: ProjetoTarefa) => {
       const isCompleting = tarefa.status !== "concluida";
-      console.log("[toggleTarefaCompleta] tarefa:", tarefa.id, "isCompleting:", isCompleting, "current status:", tarefa.status);
+      logger.debug("[toggleTarefaCompleta] tarefa:", tarefa.id, "isCompleting:", isCompleting, "current status:", tarefa.status);
       const { error } = await supabase
         .from("projeto_tarefas")
         .update({
@@ -348,7 +349,7 @@ export function useProjetoTarefas(projetoId: string | undefined) {
         console.error("[toggleTarefaCompleta] error:", error);
         throw error;
       }
-      console.log("[toggleTarefaCompleta] success");
+      logger.debug("[toggleTarefaCompleta] success");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-tarefas", projetoId] });

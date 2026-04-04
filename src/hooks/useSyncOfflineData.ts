@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useEffect } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 import { offlineStorage } from '@/lib/utils/offline-storage';

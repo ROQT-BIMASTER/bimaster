@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -242,7 +243,7 @@ const ImportarClientes = () => {
   const handleImport = async () => {
     if (!file) return;
 
-    console.log("🚀 Iniciando importação do arquivo:", file.name);
+    logger.debug("🚀 Iniciando importação do arquivo:", file.name);
     setLoading(true);
     
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -259,7 +260,7 @@ const ImportarClientes = () => {
     };
     
     reader.onload = async (e) => {
-      console.log("📖 Arquivo lido com sucesso, processando...");
+      logger.debug("📖 Arquivo lido com sucesso, processando...");
       try {
         const data = e.target?.result;
         let rows: any[] = [];
@@ -641,7 +642,7 @@ const ImportarClientes = () => {
           detalhes
         });
 
-        console.log("✅ Importação concluída:", {
+        logger.debug("✅ Importação concluída:", {
           inseridos,
           atualizados,
           distribuidos,
@@ -664,7 +665,7 @@ const ImportarClientes = () => {
       }
     };
 
-    console.log("📂 Iniciando leitura do arquivo...");
+    logger.debug("📂 Iniciando leitura do arquivo...");
     reader.readAsArrayBuffer(file);
   };
 
@@ -679,7 +680,7 @@ const ImportarClientes = () => {
     }
 
     setLoadingIA(true);
-    console.log("🚀 Iniciando importação com IA...");
+    logger.debug("🚀 Iniciando importação com IA...");
 
     try {
       // Chamar edge function para análise
@@ -698,7 +699,7 @@ const ImportarClientes = () => {
         throw new Error(analiseError.message || "Erro ao analisar dados com IA");
       }
 
-      console.log("📊 Resultado da análise:", analiseData);
+      logger.debug("📊 Resultado da análise:", analiseData);
 
       if (!analiseData?.prospects || analiseData.prospects.length === 0) {
         toast({
