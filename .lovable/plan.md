@@ -1,117 +1,71 @@
+# Detalhamento do Plano de Contas — 4 Categorias
 
+## Diagnóstico com Dados Reais
 
-# O Que Falta Para Nota 10 — Diagnóstico Final
+### 1. Embalagens (`2.2` — conta única, R$ 2,1M, 761 títulos)
+- Hoje: tudo em "Embalagens e Materiais para postagem" (conta analítica única)
+- **Problema**: Não diferencia primária (caixa, saco), secundária (fita, proteção), terciária (palete, stretch) e materiais de postagem
+- **Ação**: Transformar `2.2` em **grupo** e criar sub-contas:
 
-## Nota Atual: 9.0 / 10
-
-Após todas as correções anteriores, restam **~800 títulos com inconsistências** e **6 lacunas estruturais**.
-
----
-
-## INCONSISTÊNCIAS DE DADOS (afetam ~800 títulos)
-
-### 1. Departamento "TI" duplicado — 262 títulos
-- Existem dois nomes: **"TI"** e **"Tecnologia da Informação"** para o mesmo departamento
-- 262 títulos de SOFTWARE usam "TI", 388 usam "Tecnologia da Informação"
-- 38 títulos de INTERNET também divididos entre "TI" e "Tecnologia da Informação"
-- **Correção**: Unificar todos os 300 títulos com "TI" → "Tecnologia da Informação"
-
-### 2. PRÓ-LABORE em RH — 60 títulos
-- Pró-labore é retirada de sócios, responsabilidade do **Financeiro** (ref. CPC/ITG 1000)
-- 60 títulos ainda em "Recursos Humanos"
-- **Correção**: dept → Financeiro
-
-### 3. MODELOS/INFLUENCER em Administrativo — 181 títulos
-- Conta `3.3.9` pertence a Marketing, mas 176 títulos estão em "Administrativo", 3 em "Projetos", 2 em "Operações"
-- **Correção**: Todos → dept **Marketing** (ou Comercial / Trade)
-
-### 4. CONTRATADO PJ disperso — 262 títulos
-- 160 em Administrativo, 71 em RH, 31 em Financeiro
-- PJ contratado com plano `3.1.8.12` (Mão de Obra Terceirizada) deveria ser **Operações**
-- **Correção**: Unificar em Operações
-
-### 5. Fretes regionais em depts errados — ~5 títulos
-- SUL em Administrativo/Comercial/Financeiro/Operações (4 títulos)
-- SÃO PAULO em RH (1 título)
-- **Correção**: Todos → Logística
-
-### 6. Menores (~50 títulos)
-- LANCHES E REFEIÇÕES: 19 em RH → Administrativo
-- REEMBOLSOS DIVERSOS: 51 em RH/Financeiro → Administrativo
-- ADIANTAMENTO DE SALÁRIOS: 1 em Administrativo → RH
-- FRETES AGREGADOS: 1 em Administrativo → Logística
-- SALÁRIOS: 1 em Administrativo → RH
-- TRANSFERÊNCIA: 5 em Administrativo/RH → Financeiro
-
----
-
-## LACUNAS ESTRUTURAIS (impedem nota 10)
-
-### 7. 31 contas analíticas sem movimento ("contas mortas")
-- Incluem: Boletos, Depósitos, Cheque, Mercado Pago (receitas), Importações China, PIS, COFINS, IRPJ, CSLL, Depreciação, Limpeza, Café, Empréstimos, Influencers, Prêmios, Patrocínio, veículos, Investimentos, Receitas Financeiras
-- **Ação**: Avaliar quais são "futuras" (manter) vs obsoletas (desativar). Sugestão:
-  - **Manter** (aguardando dados futuros): Importações China, IRPJ, CSLL, Depreciação, Receitas Financeiras, Investimentos
-  - **Desativar** (12+ meses sem uso): Boletos, Depósitos, Cheque (receitas vestigiais), Limpeza, Café, IPVA, Manutenção Veículos
-  - **Decisão do cliente**: PIS, COFINS, Patrocínio, Prêmios, Influencers, Empréstimos
-
-### 8. Falta conta de Provisões Trabalhistas
-- Ref. CPC 25: empresas devem provisionar férias e 13º mensalmente
-- Conta sugerida: `3.2.15 Provisão de Férias e 13º` em RH
-- Impacto: DRE mensal mais preciso (distribuição linear vs pico em dezembro)
-
-### 9. Falta conta de PDD (Provisão para Devedores Duvidosos)
-- Ref. CPC 48: empresas com contas a receber devem reconhecer perdas esperadas
-- Conta sugerida: `3.1.26 PDD - Provisão para Devedores Duvidosos` em Financeiro
-- Impacto: Receita líquida realista
-
-### 10. Receitas (grupo 1.x) sem nenhum título vinculado
-- As 4 contas de receita existem no plano mas com 0 títulos
-- Se receitas vêm de outra tabela (contas_receber), as contas estão corretas mas ociosas
-- Se não há tabela de receitas, o DRE não tem linha de receita bruta
-- **Ação**: Verificar se `contas_receber` existe e vincula ao plano, ou criar fluxo
-
-### 11. Depreciação criada mas sem lançamentos
-- Conta `3.1.25 Depreciação e Amortização` existe, porém sem dados
-- Para EBITDA vs EBIT correto, precisa de lançamentos mensais de depreciação
-- **Ação**: Definir política de depreciação e criar rotina de lançamento
-
-### 12. "Comercial" vs "Comercial / Trade" — inconsistência de nome
-- Frete SUL tem 1 título com dept "Comercial" (sem " / Trade")
-- Pode indicar dept legado ou digitação manual
-
----
-
-## SCORECARD DETALHADO
-
-| Critério | Nota Atual | Para 10 | O que falta |
-|---|---|---|---|
-| Estrutura hierárquica | 9.5 | 10 | Desativar contas mortas irrelevantes |
-| Cobertura de contas | 8.0 | 10 | Provisões (CPC 25), PDD (CPC 48) |
-| Classificação DRE | 9.5 | 10 | Já bem distribuída com 8 categorias |
-| Departamentos | 8.5 | 10 | Unificar "TI", corrigir ~800 títulos |
-| Precisão dos dados | 9.0 | 10 | Zero inconsistências de dept por categoria |
-| Aderência IFRS 18 | 9.0 | 10 | Provisões + Depreciação efetiva |
-
----
-
-## IMPLEMENTAÇÃO
-
-### Migração 1: Corrigir ~800 títulos restantes
-- UPDATE por `categoria_nome` + `departamento_nome` para unificar departamentos
-- Unificar "TI" → "Tecnologia da Informação"
-- Corrigir PRÓ-LABORE, INFLUENCER, CONTRATADO PJ, fretes regionais
-
-### Migração 2: Criar contas faltantes
-- `3.2.15 Provisão de Férias e 13º` (RH, despesas_fixas, CC-RH)
-- `3.1.26 PDD - Provisão para Devedores Duvidosos` (Financeiro, despesas_fixas, CC-FIN)
-
-### Migração 3: Desativar contas mortas irrelevantes
-- `is_active = false` para contas de receita vestigiais e outras sem perspectiva de uso
-
-| Ação | Títulos | Impacto |
+| Código | Nome | Descrição |
 |---|---|---|
-| Unificar "TI" → "Tecnologia da Informação" | 300 | Consistência departamental |
-| Corrigir Influencer/PJ/Pró-labore | ~500 | Departamentos 100% corretos |
-| Criar Provisões e PDD | 0 (novas contas) | Aderência CPC 25/48 |
-| Desativar contas mortas | 0 (schema) | Plano limpo e profissional |
+| 2.2 | Embalagens *(vira grupo)* | — |
+| 2.2.1 | Embalagem Primária | Caixas, sacos, sacolas, envelopes |
+| 2.2.2 | Embalagem Secundária | Fitas, plástico bolha, proteção interna |
+| 2.2.3 | Embalagem Terciária | Paletes, stretch film, cintas |
+| 2.2.4 | Materiais de Postagem | Etiquetas, lacres, materiais de envio |
 
+### 2. Aluguéis (`3.1.1` — já tem 2 sub-contas, falta 1)
+- `3.1.1.1 Depósito` → R$ 4,5M, 169 títulos ✓
+- `3.1.1.2 Escritório` → R$ 469k, 63 títulos ✓
+- `3.1.24 Locação de itens (informática)` → R$ 147k (equipamentos, já separado) ✓
+- **Faltante**: Aluguel de **espaços operacionais** (showroom, ponto de venda, espaço para eventos)
+- **Ação**: Criar 1 sub-conta:
+
+| Código | Nome | Descrição |
+|---|---|---|
+| 3.1.1.3 | Outros Espaços Operacionais | Showroom, PV, espaço temporário |
+
+### 3. Seguros (`3.1.11` — conta única, R$ 250k, 126 títulos em 5 categorias ERP)
+- Hoje: tudo em "Seguro" genérico (exceto `2.4.5 Seguro da Mercadoria` que já está separado ✓)
+- Categorias ERP identificadas: SEGURO DEPOSITO (34), SEGURO BENS (3), SEGUROESCRITORIO (2), SEGURO DE PESSOAL (21 → já em 3.2.12.2 ✓)
+- **Ação**: Transformar `3.1.11` em **grupo** e criar sub-contas:
+
+| Código | Nome | Dept | Mapeamento ERP |
+|---|---|---|---|
+| 3.1.11 | Seguros *(vira grupo)* | — | — |
+| 3.1.11.1 | Seguro de Galpão/Depósito | Logística | SEGURO DEPOSITO |
+| 3.1.11.2 | Seguro de Escritório | Administrativo | SEGUROESCRITORIO |
+| 3.1.11.3 | Seguro de Bens e Equipamentos | Operações | SEGURO BENS |
+| 3.1.11.4 | Seguro de Veículos | Logística | (futuro) |
+
+*Nota: SEGURO DE PESSOAL já está corretamente em `3.2.12.2` (RH). SEGURO DE TRANSPORTE já está em `2.4.5`.*
+
+### 4. Tarifas Bancárias (`2.7` — só tem Mercado Pago, R$ 321k, 1.388 títulos)
+- Fornecedores identificados: **Banco Itaú** (907 títulos, R$ 160k), **Banco Bradesco** (365 títulos, R$ 18k), **Mercado Pago** (49 títulos, R$ 2,4k), outros (67 títulos)
+- **Ação**: Criar sub-contas por banco principal + genérica:
+
+| Código | Nome | Mapeamento (fornecedor) |
+|---|---|---|
+| 2.7.1 | Mercado Pago *(já existe)* | MERCADO PAGO PR |
+| 2.7.2 | Banco Itaú | BANCO ITAÚ, ITAU SAO PAULO |
+| 2.7.3 | Banco Bradesco | BANCO BRADESCO, BRADESCO |
+| 2.7.4 | Tarifas Bancárias Diversas | Demais bancos e instituições |
+
+---
+
+## Reclassificação de Títulos Existentes
+
+Após criar as sub-contas, os ~1.388 títulos de TARIFAS BANCARIAS serão redistribuídos por fornecedor. Os 34 títulos de SEGURO DEPOSITO serão movidos para `3.1.11.1`. Os 761 títulos de EMBALAGENS permanecerão temporariamente em `2.2.1` (Primária) como default até classificação manual futura.
+
+---
+
+## Resumo
+
+| Grupo | Contas Novas | Títulos Afetados |
+|---|---|---|
+| Embalagens (2.2) | 4 sub-contas | 761 (default → 2.2.1) |
+| Aluguéis (3.1.1) | 1 sub-conta | 0 (futuro) |
+| Seguros (3.1.11) | 4 sub-contas | ~39 reclassificados |
+| Tarifas (2.7) | 3 sub-contas | ~1.388 redistribuídos |
+| **TOTAL** | **12 contas** | **~2.188 títulos** |
