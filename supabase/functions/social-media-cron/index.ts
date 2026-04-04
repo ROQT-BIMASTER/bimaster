@@ -58,13 +58,27 @@ Deno.serve(async (req) => {
       try {
         console.log(`Coletando métricas: ${account.platform} - ${account.username}`);
         
+        // Decrypt token via database function
+        let token = null;
+        if (account.access_token_encrypted) {
+          const { data: decrypted, error: decryptError } = await supabase.rpc('decrypt_token', {
+            p_encrypted: account.access_token_encrypted,
+          });
+          if (decryptError) {
+            console.error(`Erro ao decriptar token ${account.platform}:`, decryptError);
+            errorCount++;
+            continue;
+          }
+          token = decrypted;
+        }
+
         const { data: metrics, error: metricsError } = await supabase.functions.invoke(
           'social-media-metrics',
           {
             body: {
               platform: account.platform,
               username: account.username,
-              token: account.access_token,
+              token: token,
               saveToHistory: true,
             },
           }
