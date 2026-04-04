@@ -76,7 +76,7 @@ export function useTradeSupervisorDashboard(
       const isRealAdmin = !isImpersonating && effectiveRole === 'admin';
       const hasFullVisibility = effectiveRole === 'admin' || FULL_VISIBILITY_IDS.includes(effectiveUserId);
 
-      logger.debug("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, `(${effectiveRole})`, hasFullVisibility ? "- visão total" : "- hierarquia");
+      logger.debug(`[SupervisorDashboard] Buscando equipe para: ${effectiveUserId} (${effectiveRole}) ${hasFullVisibility ? "- visão total" : "- hierarquia"}`);
 
       let allProfiles: any[] = [];
 
