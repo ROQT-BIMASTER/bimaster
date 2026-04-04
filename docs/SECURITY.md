@@ -10,7 +10,7 @@
 ✅ **Autenticação e Autorização**
 - JWT com validação em todas Edge Functions
 - Hierarquia de roles (admin, supervisor, vendedor, promotor)
-- RLS em 513 tabelas
+- RLS em 513 tabelas — zero tabelas com acesso público/anônimo
 - Security Definer functions com SET search_path
 - Session invalidation via Realtime
 
@@ -43,6 +43,11 @@
 - Schedule trimestral configurado
 - Chaves antigas mantidas em histórico para auditoria
 
+✅ **Logging Estruturado**
+- Logger centralizado (`src/lib/logger.ts`) com níveis debug/info/warn/error
+- Suprime debug em produção (apenas info+ exibido)
+- 194+ console.log migrados para logger.debug()
+
 ## Row Level Security (RLS)
 
 513 tabelas com RLS habilitado. Políticas baseadas em hierarquia:
@@ -63,6 +68,10 @@ USING (
 - `sync_logs`: Policy permissiva removida, SELECT restrito a admin
 - `trade_tipos_brinde`: INSERT/UPDATE restritos a admin/supervisor via `has_role()`
 - `security_audit_log`: INSERT restrito a authenticated + service_role
+- `fabrica_ficha_custo_config`: SELECT migrado para authenticated, mutations admin/supervisor
+- `marketing_task_comments`: Todas policies migradas para authenticated
+- `user_rankings`: SELECT público removido
+- `planos`: SELECT restrito a authenticated (planos ativos)
 
 ## Criptografia OAuth
 
@@ -112,7 +121,8 @@ admin
 
 ## Checklist de Produção
 
-- [x] RLS em todas as tabelas
+- [x] RLS em todas as tabelas (513)
+- [x] Zero tabelas com SELECT público
 - [x] Criptografia OAuth via Vault
 - [x] Rate limiting em APIs
 - [x] CORS lockdown por origem
@@ -124,6 +134,7 @@ admin
 - [x] Audit logs abrangentes
 - [x] search_path fixo em todas SECURITY DEFINER functions
 - [x] Rotação de secrets configurada
+- [x] Logging estruturado em produção
 - [ ] Penetration testing profissional (recomendado anualmente)
 - [ ] WAF/CDN (Cloudflare) para proteção L7
 

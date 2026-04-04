@@ -6,6 +6,7 @@ Esta documentação descreve as Edge Functions disponíveis no projeto BiMaster/
 
 - [Social Media Metrics](#social-media-metrics)
 - [Sync All Accounts](#sync-all-accounts)
+- [Publish Scheduled Posts](#publish-scheduled-posts)
 - [Datawarehouse API](#datawarehouse-api)
 - [Photo Analysis Queue](#photo-analysis-queue)
 - [Marketing Insights](#marketing-insights)
@@ -23,7 +24,7 @@ Esta documentação descreve as Edge Functions disponíveis no projeto BiMaster/
 
 Coleta e armazena métricas de redes sociais (Instagram, Facebook, TikTok, LinkedIn, Twitter).
 
-> **⚠️ Criptografia OAuth:** Os tokens são armazenados criptografados via Vault (`access_token_encrypted`). As Edge Functions `social-media-cron` e `sync-all-accounts` decriptam via `supabase.rpc('decrypt_token')` antes de chamar esta função. Tokens plaintext nunca são persistidos.
+> **⚠️ Criptografia OAuth:** Os tokens são armazenados criptografados via Vault (`access_token_encrypted`). As Edge Functions `social-media-cron`, `sync-all-accounts` e `publish-scheduled-posts` decriptam via `supabase.rpc('decrypt_token')` antes de chamar esta função. Tokens plaintext nunca são persistidos.
 
 ### Request Body
 
@@ -82,14 +83,6 @@ Sincroniza todas as contas de redes sociais ativas. Busca contas com `access_tok
 
 > **⚠️ Criptografia OAuth:** Tokens são decriptados sob demanda via `supabase.rpc('decrypt_token', { p_encrypted })`. A chave de criptografia é gerenciada pelo Supabase Vault (`oauth_encryption_key`).
 
-### Request Body
-
-```json
-{
-  "userId": "uuid" // Opcional
-}
-```
-
 ### Response
 
 ```json
@@ -110,14 +103,44 @@ Sincroniza todas as contas de redes sociais ativas. Busca contas com `access_tok
 }
 ```
 
-### Exemplo de Uso
+---
 
-```typescript
-const { data, error } = await supabase.functions.invoke('sync-all-accounts', {
-  body: {}
-});
+## Publish Scheduled Posts
 
-console.log(`Sincronizadas: ${data.results.synced} contas`);
+**Path:** `supabase/functions/publish-scheduled-posts`  
+**Autenticação:** Cron Secret (`x-cron-secret` header)  
+**Método:** POST
+
+### Descrição
+
+Publica posts agendados em múltiplas plataformas. Executado via cron job.
+
+> **⚠️ Criptografia OAuth:** Busca `access_token_encrypted` das contas e decripta via `supabase.rpc('decrypt_token')` antes de publicar. Tokens nunca são logados.
+
+### Fluxo
+
+1. Verifica `CRON_SECRET` no header
+2. Busca posts com `status = 'scheduled'` e `scheduled_at <= now()`
+3. Para cada post, busca contas com `access_token_encrypted`
+4. Decripta tokens via RPC
+5. Publica em cada plataforma
+6. Atualiza status final (`published` ou `failed`)
+
+### Response
+
+```json
+{
+  "message": "Posts processados",
+  "processed": 3,
+  "results": [
+    {
+      "postId": "uuid",
+      "status": "published",
+      "publishedTo": ["instagram", "facebook"],
+      "errors": null
+    }
+  ]
+}
 ```
 
 ---
@@ -130,23 +153,7 @@ console.log(`Sincronizadas: ${data.results.synced} contas`);
 
 ### Descrição
 
-API para exportação e análise de dados do datawarehouse.
-
-### Endpoints
-
-#### GET `/datawarehouse-api?table={table}&format={format}`
-
-Exporta dados de uma tabela específica.
-
-**Parâmetros:**
-- `table`: Nome da tabela (prospects, atividades, visits, etc.)
-- `format`: Formato de exportação (json, csv, xlsx)
-- `startDate`: Data inicial (opcional)
-- `endDate`: Data final (opcional)
-
-#### POST `/datawarehouse-api`
-
-Executa queries customizadas (parametrizadas, sem SQL raw).
+API para exportação e análise de dados do datawarehouse. Utiliza allowlists para tabelas permitidas.
 
 ---
 
@@ -185,10 +192,18 @@ Todas as Edge Functions usam CORS restritivo por origem (sem `*`):
 const allowedOrigins = [/lovable\.app$/, /bimaster\.lovable\.app$/];
 ```
 
+### Padrões de Autenticação
+
+| Padrão | Uso | Exemplo |
+|--------|-----|---------|
+| `validateJWT` | Endpoints de usuário | social-media-metrics |
+| `validateAnyAuth` | Endpoints flexíveis (JWT ou API Key) | datawarehouse-api |
+| Cron Secret | Jobs agendados | publish-scheduled-posts |
+
 ### Criptografia de Tokens OAuth
 
 ```typescript
-// Fluxo completo (usado em social-media-cron e sync-all-accounts):
+// Fluxo completo (usado em social-media-cron, sync-all-accounts e publish-scheduled-posts):
 // 1. Buscar token encrypted do banco
 const { data } = await supabase.from('social_media_accounts')
   .select('access_token_encrypted');
@@ -226,4 +241,4 @@ Gerenciados via Lovable Cloud:
 ---
 
 **Última atualização:** 2026-04-04  
-**Versão:** 2.0.0
+**Versão:** 3.0.0

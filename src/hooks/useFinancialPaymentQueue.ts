@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -432,7 +433,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       if (variables.financial_status === 'paid' && data) {
         exportPaymentToErp(data.id, undefined, 'payment').then((result) => {
           if (result.success) {
-            console.log(`ERP payment export success for ${data.code}`);
+            logger.debug(`ERP payment export success for ${data.code}`);
           } else {
             console.warn(`ERP payment export failed for ${data.code}: ${result.message}`);
           }
@@ -565,7 +566,7 @@ export function useFinancialPaymentQueue(filters?: PaymentQueueFilters) {
       if (data?.id) {
         exportPaymentToErp(data.id, undefined, 'registration').then((result) => {
           if (result.success) {
-            console.log(`ERP registration export success for ${data.code}`);
+            logger.debug(`ERP registration export success for ${data.code}`);
           } else {
             console.warn(`ERP registration export failed for ${data.code}: ${result.message}`);
           }

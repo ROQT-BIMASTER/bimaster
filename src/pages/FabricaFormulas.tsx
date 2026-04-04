@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +57,7 @@ export default function FabricaFormulas() {
   });
 
   // Log para debug
-  console.log("Formulas carregadas:", formulas, "Erro:", error);
+  logger.debug(`Formulas carregadas: ${formulas?.length ?? 0} registros`);
 
   const formulasFiltradas = formulas?.filter((formula) => {
     const produto = formula.fabrica_produtos;

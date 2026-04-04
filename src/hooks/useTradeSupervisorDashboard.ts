@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
@@ -75,7 +76,7 @@ export function useTradeSupervisorDashboard(
       const isRealAdmin = !isImpersonating && effectiveRole === 'admin';
       const hasFullVisibility = effectiveRole === 'admin' || FULL_VISIBILITY_IDS.includes(effectiveUserId);
 
-      console.log("[SupervisorDashboard] Buscando equipe para:", effectiveUserId, `(${effectiveRole})`, hasFullVisibility ? "- visão total" : "- hierarquia");
+      logger.debug(`[SupervisorDashboard] Buscando equipe para: ${effectiveUserId} (${effectiveRole}) ${hasFullVisibility ? "- visão total" : "- hierarquia"}`);
 
       let allProfiles: any[] = [];
 
@@ -120,7 +121,7 @@ export function useTradeSupervisorDashboard(
         }
       }
 
-      console.log("[SupervisorDashboard] Membros encontrados:", allProfiles.length, allProfiles.slice(0, 5).map((p: any) => p.nome));
+      logger.debug(`[SupervisorDashboard] Membros encontrados: ${allProfiles.length}`);
       
       if (allProfiles.length === 0) return { flat: [], hierarchy: [], isAdmin: isRealAdmin, hasFullVisibility };
 
@@ -214,7 +215,7 @@ export function useTradeSupervisorDashboard(
   const hasTeam = filterIds.length > 0;
   const filterIdsKey = filterIds.join(",");
   
-  console.log("[SupervisorDashboard] FilterIds:", filterIds.length, "membros (inclui supervisor)");
+  logger.debug(`[SupervisorDashboard] FilterIds: ${filterIds.length} membros (inclui supervisor)`);
 
   // Query para KPIs principais - usando .in() para eficiência
   const kpisQuery = useQuery({

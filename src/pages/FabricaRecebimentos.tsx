@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,7 +110,7 @@ export default function FabricaRecebimentos() {
         throw error;
       }
 
-      console.log("Notas encontradas:", data?.length || 0);
+      logger.debug(`Notas encontradas: ${data?.length || 0}`);
 
       // Buscar contagem de itens para cada nota
       const notasComItens = await Promise.all(

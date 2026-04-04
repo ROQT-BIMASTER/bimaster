@@ -28,18 +28,23 @@
 
 ### Fase 3 — Hardening Final (Abr/2026)
 
-13. **RLS Hardening** — 6 tabelas com policies corrigidas:
+13. **RLS Hardening** — 10 tabelas com policies corrigidas:
     - `erp_sync_log`: Policy ALL removida, separadas por operação
     - `plano_contas_mapeamento_categorias`: USING(true) removido, has_role()
     - `sync_logs`: Conflito de policies resolvido
     - `trade_tipos_brinde`: INSERT/UPDATE restritos a admin/supervisor
     - `security_audit_log`: INSERT restrito a authenticated + service_role
+    - `fabrica_ficha_custo_config`: SELECT público removido, mutations admin/supervisor
+    - `marketing_task_comments`: SELECT/INSERT/UPDATE migrados para authenticated
+    - `user_rankings`: SELECT público removido
+    - `planos`: SELECT migrado para authenticated (planos ativos)
 14. **Vault Dedicado** — Chave `oauth_encryption_key` no Supabase Vault
 15. **Criptografia OAuth** — encrypt_token/decrypt_token refatorados para Vault
 16. **Coluna Plaintext Removida** — social_media_accounts.access_token dropada
 17. **Rate Limiting** — Tabela api_rate_limit, check_rate_limit() SQL
 18. **Rotação de Secrets** — rotate_api_key() com histórico, schedule trimestral
-19. **Edge Functions** — social-media-cron e sync-all-accounts usam decrypt_token RPC
+19. **Edge Functions** — social-media-cron, sync-all-accounts e publish-scheduled-posts usam decrypt_token RPC
+20. **Logging Estruturado** — 194+ console.log migrados para logger.debug() em 12 arquivos
 
 ---
 
@@ -84,6 +89,7 @@ rotate_api_key(config_id) → TEXT
 ## 🔐 Checklist de Produção
 
 - [x] RLS em todas as tabelas (513)
+- [x] Zero tabelas com SELECT público para anônimos
 - [x] Criptografia OAuth via Vault dedicado
 - [x] Rate limiting customizado
 - [x] CORS lockdown por origem
@@ -97,6 +103,7 @@ rotate_api_key(config_id) → TEXT
 - [x] Rotação de secrets configurada
 - [x] Colunas plaintext removidas
 - [x] Edge Functions usando decrypt RPC
+- [x] Logging estruturado (logger.ts)
 
 ---
 
