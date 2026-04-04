@@ -31,9 +31,9 @@ const DICIONARIO_CATEGORIAS: Record<string, { codigo: string; justificativa: str
   "DESCONTOS COMERCIAIS ": { codigo: "2.1.3", justificativa: "Descontos comerciais concedidos" },
 
   // ── CUSTOS VARIÁVEIS - Embalagens (Grupo 2.2) ──
-  "EMBALAGENS": { codigo: "2.2", justificativa: "Embalagens para produtos" },
-  "CAIXAS TERCIARIA": { codigo: "2.2", justificativa: "Caixas terciárias - embalagem" },
-  "ETIQUETAS DIVERSAS": { codigo: "2.2", justificativa: "Etiquetas para embalagem/expedição" },
+  "EMBALAGENS": { codigo: "2.2.1", justificativa: "Embalagem primária (caixas, sacos, sacolas)" },
+  "CAIXAS TERCIARIA": { codigo: "2.2.3", justificativa: "Embalagem terciária (paletes, stretch)" },
+  "ETIQUETAS DIVERSAS": { codigo: "2.2.4", justificativa: "Materiais de postagem (etiquetas, lacres)" },
 
   // ── CUSTOS VARIÁVEIS - Frete/Logística (Grupo 2.4) ──
   "FRETES AGREGADOS": { codigo: "2.4.2", justificativa: "Fretes com agregados/freelances" },
@@ -153,10 +153,10 @@ const DICIONARIO_CATEGORIAS: Record<string, { codigo: string; justificativa: str
   "KM/PEDAGIOS/OUTROS": { codigo: "3.1.10.2", justificativa: "Km/pedágios - veículos" },
 
   // ── DESPESAS FIXAS - Seguro (Grupo 3.1.11) ──
-  "SEGURO BENS": { codigo: "3.1.11", justificativa: "Seguro de bens" },
-  "SEGURO DE PESSOAL": { codigo: "3.1.11", justificativa: "Seguro de pessoal" },
-  "SEGURO DEPOSITO": { codigo: "3.1.11", justificativa: "Seguro do depósito" },
-  "SEGUROESCRITORIO": { codigo: "3.1.11", justificativa: "Seguro do escritório" },
+  "SEGURO BENS": { codigo: "3.1.11.3", justificativa: "Seguro de bens e equipamentos" },
+  "SEGURO DE PESSOAL": { codigo: "3.2.12.2", justificativa: "Seguro de pessoal → Plano de Saúde (RH)" },
+  "SEGURO DEPOSITO": { codigo: "3.1.11.1", justificativa: "Seguro do galpão/depósito" },
+  "SEGUROESCRITORIO": { codigo: "3.1.11.2", justificativa: "Seguro do escritório" },
 
   // ── DESPESAS FIXAS - Cartório (Grupo 3.1.12) ──
   "CUSTAS CARTORIO": { codigo: "3.1.12", justificativa: "Custas de cartório" },
@@ -479,6 +479,9 @@ serve(async (req) => {
               top_fornecedores: cat.top_fornecedores,
             });
             continue;
+          } else {
+            // Dictionary points to a group or non-existent account — fall through to AI
+            console.warn(`DICT WARNING: "${nome}" mapped to code "${dictEntry.codigo}" but no analytic account found. Sending to AI.`);
           }
         }
 
@@ -490,108 +493,181 @@ serve(async (req) => {
       let aiMapeamentos: any[] = [];
       if (needsAI.length > 0) {
         const planoText = contas.map(c => `${c.code} - ${c.name} (${c.categoria_dre || c.account_type})`).join("\n");
-        const categoriasText = needsAI.map((c: any) =>
-          `- "${c.categoria_nome}" (${c.qtd_titulos} títulos, valor médio R$${c.valor_medio?.toFixed(2) || '0'}, fornecedores: ${(c.top_fornecedores || []).join(', ') || 'N/A'})`
-        ).join("\n");
 
-        const systemPrompt = `Você é um contador profissional especializado em classificação contábil (plano de contas DRE).
+        // Process in batches of 10 for better AI precision
+        const AI_BATCH_SIZE = 10;
+        for (let batchStart = 0; batchStart < needsAI.length; batchStart += AI_BATCH_SIZE) {
+          const batch = needsAI.slice(batchStart, batchStart + AI_BATCH_SIZE);
+          const categoriasText = batch.map((c: any) =>
+            `- "${c.categoria_nome}" (${c.qtd_titulos} títulos, valor médio R$${c.valor_medio?.toFixed(2) || '0'}, fornecedores: ${(c.top_fornecedores || []).join(', ') || 'N/A'})`
+          ).join("\n");
+
+          const systemPrompt = `Você é um contador profissional especializado em classificação contábil (plano de contas DRE).
 Seu trabalho é mapear categorias vindas de um ERP para o plano de contas correto.
 
-PLANO DE CONTAS DISPONÍVEL:
+PLANO DE CONTAS DISPONÍVEL (SOMENTE contas analíticas que permitem lançamento):
 ${planoText}
 
 REGRAS:
-1. Cada categoria deve ser mapeada para EXATAMENTE uma conta analítica (que permite lançamento)
+1. Cada categoria deve ser mapeada para EXATAMENTE uma conta analítica listada acima
 2. Considere o nome da categoria, os fornecedores típicos e os valores médios
 3. Se a categoria é de RECEITA, use contas do grupo 1.x
 4. Se é CUSTO de mercadoria/frete/imposto sobre venda, use grupo 2.x
 5. Se é DESPESA fixa (admin/pessoal/marketing), use grupo 3.x
 6. Se é atividade financeira/investimento/sócios, use grupo 4.x
 7. Retorne um score de confiança de 0 a 1
-8. IMPORTANTE: Use os códigos EXATAMENTE como listados no plano`;
+8. IMPORTANTE: Use os códigos EXATAMENTE como listados no plano. NÃO invente códigos.
+9. Se não conseguir classificar com confiança, use confiança 0.3 ou menor`;
 
-        const userPrompt = `Classifique estas categorias do ERP para o plano de contas:\n\n${categoriasText}\n\nResponda usando a ferramenta fornecida.`;
+          const userPrompt = `Classifique estas ${batch.length} categorias do ERP para o plano de contas:\n\n${categoriasText}\n\nResponda usando a ferramenta fornecida.`;
 
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            tools: [{
-              type: "function",
-              function: {
-                name: "classificar_categorias",
-                description: "Mapeia categorias do ERP para o plano de contas",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    mapeamentos: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          categoria_nome: { type: "string" },
-                          plano_contas_codigo: { type: "string" },
-                          plano_contas_nome: { type: "string" },
-                          confianca: { type: "number" },
-                          justificativa: { type: "string" },
+          try {
+            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-pro",
+                max_tokens: 8192,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt },
+                ],
+                tools: [{
+                  type: "function",
+                  function: {
+                    name: "classificar_categorias",
+                    description: "Mapeia categorias do ERP para o plano de contas",
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        mapeamentos: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              categoria_nome: { type: "string" },
+                              plano_contas_codigo: { type: "string" },
+                              plano_contas_nome: { type: "string" },
+                              confianca: { type: "number" },
+                              justificativa: { type: "string" },
+                            },
+                            required: ["categoria_nome", "plano_contas_codigo", "plano_contas_nome", "confianca", "justificativa"],
+                          },
                         },
-                        required: ["categoria_nome", "plano_contas_codigo", "plano_contas_nome", "confianca", "justificativa"],
                       },
+                      required: ["mapeamentos"],
                     },
                   },
-                  required: ["mapeamentos"],
-                },
-              },
-            }],
-            tool_choice: { type: "function", function: { name: "classificar_categorias" } },
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          console.error("AI gateway error:", response.status, errText);
-          if (response.status === 429) {
-            return new Response(JSON.stringify({ error: "Rate limit exceeded. Aguarde e tente novamente." }), { status: 429, headers });
-          }
-          if (response.status === 402) {
-            return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), { status: 402, headers });
-          }
-          // Return what we have from dictionary + mark AI ones as failed
-          for (const cat of needsAI) {
-            resolved.push({
-              ...cat,
-              plano_contas_id: null,
-              plano_contas_codigo: "",
-              plano_contas_nome: "Erro na classificação IA",
-              confianca: 0,
-              justificativa: "Erro ao chamar IA",
-              fonte: "erro",
+                }],
+                tool_choice: { type: "function", function: { name: "classificar_categorias" } },
+              }),
             });
-          }
-        } else {
-          const aiData = await response.json();
-          const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-          if (toolCall) {
-            const parsed = JSON.parse(toolCall.function.arguments);
-            for (const m of (parsed.mapeamentos || [])) {
-              const conta = contas.find(c => c.code === m.plano_contas_codigo);
-              const cat = needsAI.find(c => c.categoria_nome === m.categoria_nome);
+
+            if (!response.ok) {
+              const errText = await response.text();
+              console.error("AI gateway error:", response.status, errText);
+              if (response.status === 429) {
+                return new Response(JSON.stringify({ error: "Rate limit exceeded. Aguarde e tente novamente." }), { status: 429, headers });
+              }
+              if (response.status === 402) {
+                return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), { status: 402, headers });
+              }
+              // Mark batch as failed
+              for (const cat of batch) {
+                resolved.push({
+                  ...cat,
+                  plano_contas_id: null,
+                  plano_contas_codigo: "",
+                  plano_contas_nome: "Erro na classificação IA",
+                  confianca: 0,
+                  justificativa: `Erro ao chamar IA: ${response.status}`,
+                  fonte: "erro",
+                });
+              }
+              continue;
+            }
+
+            const aiData = await response.json();
+            const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+            if (toolCall) {
+              const parsed = JSON.parse(toolCall.function.arguments);
+              for (const m of (parsed.mapeamentos || [])) {
+                const conta = contas.find(c => c.code === m.plano_contas_codigo);
+                const cat = batch.find(c => c.categoria_nome === m.categoria_nome);
+                
+                if (!conta) {
+                  // AI returned invalid code — mark as error instead of accepting silently
+                  console.warn(`AI VALIDATION: Code "${m.plano_contas_codigo}" for "${m.categoria_nome}" not found in analytic accounts`);
+                  resolved.push({
+                    categoria_nome: m.categoria_nome,
+                    plano_contas_id: null,
+                    plano_contas_codigo: m.plano_contas_codigo,
+                    plano_contas_nome: `⚠ Código inválido: ${m.plano_contas_codigo}`,
+                    confianca: 0,
+                    justificativa: `IA retornou código inexistente: ${m.plano_contas_codigo}`,
+                    fonte: "erro",
+                    qtd_titulos: cat?.qtd_titulos || 0,
+                    valor_medio: cat?.valor_medio || 0,
+                    top_fornecedores: cat?.top_fornecedores || [],
+                  });
+                } else {
+                  resolved.push({
+                    ...m,
+                    plano_contas_id: conta.id,
+                    plano_contas_nome: conta.name,
+                    fonte: "ia",
+                    qtd_titulos: cat?.qtd_titulos || 0,
+                    valor_medio: cat?.valor_medio || 0,
+                    top_fornecedores: cat?.top_fornecedores || [],
+                  });
+                }
+              }
+              // Check for categories that AI didn't return
+              for (const cat of batch) {
+                const found = (parsed.mapeamentos || []).some((m: any) => m.categoria_nome === cat.categoria_nome);
+                if (!found) {
+                  resolved.push({
+                    categoria_nome: cat.categoria_nome,
+                    plano_contas_id: null,
+                    plano_contas_codigo: "",
+                    plano_contas_nome: "IA não retornou classificação",
+                    confianca: 0,
+                    justificativa: "Categoria não classificada pela IA",
+                    fonte: "erro",
+                    qtd_titulos: cat.qtd_titulos,
+                    valor_medio: cat.valor_medio,
+                    top_fornecedores: cat.top_fornecedores,
+                  });
+                }
+              }
+            } else {
+              // No tool call in response
+              for (const cat of batch) {
+                resolved.push({
+                  ...cat,
+                  plano_contas_id: null,
+                  plano_contas_codigo: "",
+                  plano_contas_nome: "Resposta IA inválida",
+                  confianca: 0,
+                  justificativa: "IA não retornou tool_call",
+                  fonte: "erro",
+                });
+              }
+            }
+          } catch (batchErr) {
+            console.error("AI batch error:", batchErr);
+            for (const cat of batch) {
               resolved.push({
-                ...m,
-                plano_contas_id: conta?.id || null,
-                plano_contas_nome: conta?.name || m.plano_contas_nome,
-                fonte: "ia",
-                qtd_titulos: cat?.qtd_titulos || 0,
-                valor_medio: cat?.valor_medio || 0,
-                top_fornecedores: cat?.top_fornecedores || [],
+                ...cat,
+                plano_contas_id: null,
+                plano_contas_codigo: "",
+                plano_contas_nome: "Erro interno IA",
+                confianca: 0,
+                justificativa: `Erro: ${batchErr instanceof Error ? batchErr.message : 'unknown'}`,
+                fonte: "erro",
               });
             }
           }
