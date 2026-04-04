@@ -243,7 +243,7 @@ const ImportarClientes = () => {
   const handleImport = async () => {
     if (!file) return;
 
-    logger.debug("🚀 Iniciando importação do arquivo:", file.name);
+    logger.debug(`Iniciando importação do arquivo: ${file.name}`);
     setLoading(true);
     
     const extension = file.name.split('.').pop()?.toLowerCase();
