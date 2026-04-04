@@ -1,133 +1,71 @@
+# Detalhamento do Plano de Contas — 4 Categorias
 
+## Diagnóstico com Dados Reais
 
-# Profissionalização do Plano de Contas e DRE — Análise e Melhorias
+### 1. Embalagens (`2.2` — conta única, R$ 2,1M, 761 títulos)
+- Hoje: tudo em "Embalagens e Materiais para postagem" (conta analítica única)
+- **Problema**: Não diferencia primária (caixa, saco), secundária (fita, proteção), terciária (palete, stretch) e materiais de postagem
+- **Ação**: Transformar `2.2` em **grupo** e criar sub-contas:
 
-## Diagnóstico Atual
-
-### Distribuição DRE (146 contas ativas)
-
-| Categoria DRE | Analíticas | Grupos | % do total |
-|---|---|---|---|
-| `despesas_fixas` | 93 | 23 | **79%** |
-| `custo_vendas` | 12 | 5 | 12% |
-| `receita_bruta` | 5 | 1 | 4% |
-| `deducoes` | 4 | 1 | 3% |
-| `impostos_lucro` | 2 | 0 | 1% |
-
-**Problema central**: 79% das contas estão em `despesas_fixas`. Isso "achata" o DRE — marketing, despesas financeiras, resultado não-operacional e retiradas de sócios aparecem todos na mesma linha.
-
----
-
-## FALHAS IDENTIFICADAS (7 problemas)
-
-### 1. Falta categoria `despesas_variaveis`
-
-Marketing (`3.3.x`) e Trade (`2.6.x`) são despesas que variam com campanhas e sazonalidade. Estão classificadas como `despesas_fixas`, distorcendo a margem de contribuição.
-
-**Correção**: Criar `despesas_variaveis` no enum e reclassificar `3.3.x` e `2.6.x`.
-
-### 2. Falta categoria `despesas_financeiras`
-
-Contas `3.4.1` (Despesas Bancárias), `3.4.2` (Receitas Bancárias), `4.3.3` (Juros Antecipação), `4.3.6` (Juros pagos) estão como `despesas_fixas`. No DRE profissional, resultado financeiro é uma linha separada entre EBITDA e Lucro Antes do IR.
-
-**Correção**: Criar `resultado_financeiro` no enum e reclassificar.
-
-### 3. Falta categoria `resultado_nao_operacional`
-
-Contas `4.1.1` (Receitas não operacionais) e `4.1.2` (Despesas não operacionais) estão misturadas com despesas fixas. Profissionalmente, ficam **abaixo** do lucro operacional.
-
-**Correção**: Criar `resultado_nao_operacional` no enum.
-
-### 4. Grupo 4 inteiro classificado errado
-
-Investimentos (`4.2.x`), empréstimos (`4.3.x`) e atividades com sócios (`4.4.x`) **não pertencem ao DRE**. São movimentações patrimoniais/fluxo de caixa. Marcar como `despesas_fixas` infla artificialmente as despesas.
-
-**Correção**: Criar `nao_dre` ou setar `categoria_dre = NULL` para contas que não devem aparecer no DRE (investimentos, empréstimos, aportes, retiradas).
-
-### 5. Pró-labore (`3.5.1`) como `despesas_fixas`
-
-Pró-labore é despesa operacional, mas deveria ter uma sub-linha específica no DRE para transparência com os sócios. Está correto como `despesas_fixas`, porém sem distinção visual no DRE.
-
-### 6. Receitas Financeiras (`4.3.5`) como `despesas_fixas`
-
-Receita financeira é receita, não despesa fixa. Deveria ser `resultado_financeiro` com sinal positivo.
-
-### 7. `Devolução (Clientes)` em `custo_vendas`
-
-A conta `2.1.2 Devolução (Clientes)` deveria ser `deducoes` (abatimento da receita bruta), não custo de vendas.
-
----
-
-## ESTRUTURA DRE PROFISSIONAL PROPOSTA
-
-```text
-(+) RECEITA BRUTA                          → receita_bruta
-(-) Deduções (impostos s/ vendas, devol.)  → deducoes
-(=) RECEITA LÍQUIDA
-
-(-) Custos Variáveis (CMV, fretes, embal.) → custo_vendas
-(=) LUCRO BRUTO
-
-(-) Despesas Fixas (admin, pessoal)        → despesas_fixas
-(-) Despesas Variáveis (marketing, trade)  → despesas_variaveis   ← NOVO
-(=) EBITDA
-
-(+/-) Resultado Financeiro                 → resultado_financeiro ← NOVO
-(=) LUCRO ANTES DO IR
-
-(-) Impostos sobre Lucro (IRPJ, CSLL)     → impostos_lucro
-(=) LUCRO LÍQUIDO
-
-(+/-) Resultado Não Operacional            → resultado_nao_operacional ← NOVO
-(=) RESULTADO FINAL
-```
-
-Contas patrimoniais (investimentos, empréstimos, aportes, retiradas) ficam **fora do DRE** com `categoria_dre = NULL`.
-
----
-
-## PLANO DE IMPLEMENTAÇÃO
-
-### Etapa 1: Migração SQL — Novas categorias e reclassificações
-
-1. **Adicionar 3 valores ao enum** `categoria_dre`:
-   - `despesas_variaveis`
-   - `resultado_financeiro`
-   - `resultado_nao_operacional`
-
-2. **Reclassificar contas**:
-   - `3.3.x` (Marketing) → `despesas_variaveis`
-   - `2.6.x` (Trade/Comissões) → `despesas_variaveis`
-   - `3.4.1`, `3.4.2` → `resultado_financeiro`
-   - `4.3.3`, `4.3.5`, `4.3.6` → `resultado_financeiro`
-   - `4.1.1`, `4.1.2` → `resultado_nao_operacional`
-   - `2.1.2` (Devoluções) → `deducoes`
-   - `4.2.x`, `4.3.1`, `4.3.2`, `4.3.4`, `4.3.7-9`, `4.4.x` → `NULL` (fora do DRE)
-
-### Etapa 2: Atualizar validação Zod
-
-Adicionar os 3 novos valores no enum `categoria_dre` em `chart-of-accounts.ts`.
-
-### Etapa 3: Atualizar DRE frontend
-
-Ajustar o componente DRE para renderizar as novas linhas (EBITDA, Resultado Financeiro, Resultado Não Operacional) na ordem correta.
-
-### Etapa 4: Atualizar edge functions
-
-Atualizar `classificar-categoria-dre` e `dre-cadastro-api` para reconhecer as novas categorias.
-
-| Prioridade | Ação | Impacto |
+| Código | Nome | Descrição |
 |---|---|---|
-| Alta | Adicionar 3 categorias ao enum + reclassificar | DRE profissional com EBITDA |
-| Alta | Remover grupo 4 patrimonial do DRE | Despesas deixam de ser infladas |
-| Média | Atualizar frontend DRE | Visualização com linhas corretas |
-| Média | Atualizar validações e edge functions | Consistência do sistema |
+| 2.2 | Embalagens *(vira grupo)* | — |
+| 2.2.1 | Embalagem Primária | Caixas, sacos, sacolas, envelopes |
+| 2.2.2 | Embalagem Secundária | Fitas, plástico bolha, proteção interna |
+| 2.2.3 | Embalagem Terciária | Paletes, stretch film, cintas |
+| 2.2.4 | Materiais de Postagem | Etiquetas, lacres, materiais de envio |
 
-| Arquivo | Mudança |
-|---|---|
-| Migração SQL | ALTER TYPE + UPDATE ~40 contas |
-| `src/lib/validations/chart-of-accounts.ts` | Adicionar 3 valores ao enum Zod |
-| Componente DRE (frontend) | Novas linhas de subtotal |
-| `supabase/functions/classificar-categoria-dre/index.ts` | Novas categorias no prompt |
-| `supabase/functions/dre-cadastro-api/index.ts` | Novo sinal para `resultado_financeiro` |
+### 2. Aluguéis (`3.1.1` — já tem 2 sub-contas, falta 1)
+- `3.1.1.1 Depósito` → R$ 4,5M, 169 títulos ✓
+- `3.1.1.2 Escritório` → R$ 469k, 63 títulos ✓
+- `3.1.24 Locação de itens (informática)` → R$ 147k (equipamentos, já separado) ✓
+- **Faltante**: Aluguel de **espaços operacionais** (showroom, ponto de venda, espaço para eventos)
+- **Ação**: Criar 1 sub-conta:
 
+| Código | Nome | Descrição |
+|---|---|---|
+| 3.1.1.3 | Outros Espaços Operacionais | Showroom, PV, espaço temporário |
+
+### 3. Seguros (`3.1.11` — conta única, R$ 250k, 126 títulos em 5 categorias ERP)
+- Hoje: tudo em "Seguro" genérico (exceto `2.4.5 Seguro da Mercadoria` que já está separado ✓)
+- Categorias ERP identificadas: SEGURO DEPOSITO (34), SEGURO BENS (3), SEGUROESCRITORIO (2), SEGURO DE PESSOAL (21 → já em 3.2.12.2 ✓)
+- **Ação**: Transformar `3.1.11` em **grupo** e criar sub-contas:
+
+| Código | Nome | Dept | Mapeamento ERP |
+|---|---|---|---|
+| 3.1.11 | Seguros *(vira grupo)* | — | — |
+| 3.1.11.1 | Seguro de Galpão/Depósito | Logística | SEGURO DEPOSITO |
+| 3.1.11.2 | Seguro de Escritório | Administrativo | SEGUROESCRITORIO |
+| 3.1.11.3 | Seguro de Bens e Equipamentos | Operações | SEGURO BENS |
+| 3.1.11.4 | Seguro de Veículos | Logística | (futuro) |
+
+*Nota: SEGURO DE PESSOAL já está corretamente em `3.2.12.2` (RH). SEGURO DE TRANSPORTE já está em `2.4.5`.*
+
+### 4. Tarifas Bancárias (`2.7` — só tem Mercado Pago, R$ 321k, 1.388 títulos)
+- Fornecedores identificados: **Banco Itaú** (907 títulos, R$ 160k), **Banco Bradesco** (365 títulos, R$ 18k), **Mercado Pago** (49 títulos, R$ 2,4k), outros (67 títulos)
+- **Ação**: Criar sub-contas por banco principal + genérica:
+
+| Código | Nome | Mapeamento (fornecedor) |
+|---|---|---|
+| 2.7.1 | Mercado Pago *(já existe)* | MERCADO PAGO PR |
+| 2.7.2 | Banco Itaú | BANCO ITAÚ, ITAU SAO PAULO |
+| 2.7.3 | Banco Bradesco | BANCO BRADESCO, BRADESCO |
+| 2.7.4 | Tarifas Bancárias Diversas | Demais bancos e instituições |
+
+---
+
+## Reclassificação de Títulos Existentes
+
+Após criar as sub-contas, os ~1.388 títulos de TARIFAS BANCARIAS serão redistribuídos por fornecedor. Os 34 títulos de SEGURO DEPOSITO serão movidos para `3.1.11.1`. Os 761 títulos de EMBALAGENS permanecerão temporariamente em `2.2.1` (Primária) como default até classificação manual futura.
+
+---
+
+## Resumo
+
+| Grupo | Contas Novas | Títulos Afetados |
+|---|---|---|
+| Embalagens (2.2) | 4 sub-contas | 761 (default → 2.2.1) |
+| Aluguéis (3.1.1) | 1 sub-conta | 0 (futuro) |
+| Seguros (3.1.11) | 4 sub-contas | ~39 reclassificados |
+| Tarifas (2.7) | 3 sub-contas | ~1.388 redistribuídos |
+| **TOTAL** | **12 contas** | **~2.188 títulos** |
