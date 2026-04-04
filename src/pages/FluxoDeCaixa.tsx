@@ -12,7 +12,8 @@ import {
   Calendar,
   RefreshCw,
   Filter,
-  Table as TableIcon
+  Table as TableIcon,
+  ChevronRight
 } from "lucide-react";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
