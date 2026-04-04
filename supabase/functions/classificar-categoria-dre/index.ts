@@ -5,8 +5,11 @@ const CATEGORIAS_DRE = [
   { value: 'receita_bruta', label: 'Receita Bruta', descricao: 'Receitas operacionais da empresa (vendas, serviços)' },
   { value: 'deducoes', label: 'Deduções e Abatimentos', descricao: 'Impostos sobre vendas, devoluções, descontos concedidos' },
   { value: 'custo_vendas', label: 'Custo de Vendas', descricao: 'CMV, custos de produção, matéria-prima, mão de obra direta' },
-  { value: 'despesas_fixas', label: 'Despesas Fixas', descricao: 'Despesas operacionais, administrativas, comerciais, salários' },
+  { value: 'despesas_fixas', label: 'Despesas Fixas', descricao: 'Despesas administrativas, pessoal, aluguel, utilities' },
+  { value: 'despesas_variaveis', label: 'Despesas Variáveis', descricao: 'Marketing, trade marketing, comissões, campanhas' },
+  { value: 'resultado_financeiro', label: 'Resultado Financeiro', descricao: 'Receitas e despesas financeiras, juros, tarifas bancárias' },
   { value: 'impostos_lucro', label: 'Impostos s/ Lucro', descricao: 'IRPJ, CSLL, impostos sobre o resultado' },
+  { value: 'resultado_nao_operacional', label: 'Resultado Não Operacional', descricao: 'Receitas e despesas não relacionadas à operação principal' },
 ];
 
 Deno.serve(async (req) => {
@@ -37,9 +40,12 @@ ${categoriasInfo}
 REGRAS DE CLASSIFICAÇÃO:
 1. Contas de RECEITA (vendas, serviços, faturamento) → receita_bruta
 2. Contas de IMPOSTOS SOBRE VENDAS (ICMS, PIS, COFINS sobre vendas, devoluções) → deducoes
-3. Contas de CUSTO (CMV, compras, produção, matéria-prima) → custo_vendas
-4. Contas de DESPESA (administrativas, comerciais, salários, aluguel, utilidades) → despesas_fixas
-5. Contas de IMPOSTOS SOBRE LUCRO (IRPJ, CSLL, provisão IR) → impostos_lucro
+3. Contas de CUSTO (CMV, compras, produção, matéria-prima, fretes, embalagens) → custo_vendas
+4. Contas de DESPESA FIXA (administrativas, pessoal, salários, aluguel, utilities) → despesas_fixas
+5. Contas de DESPESA VARIÁVEL (marketing, trade, comissões, campanhas) → despesas_variaveis
+6. Contas FINANCEIRAS (juros, tarifas bancárias, receitas financeiras) → resultado_financeiro
+7. Contas de IMPOSTOS SOBRE LUCRO (IRPJ, CSLL, provisão IR) → impostos_lucro
+8. Contas NÃO OPERACIONAIS (receitas/despesas extraordinárias) → resultado_nao_operacional
 
 Analise o código, nome e tipo da conta para determinar a categoria correta.
 Se a conta não se encaixar claramente em nenhuma categoria (ex: contas patrimoniais), retorne null.`;
@@ -76,7 +82,7 @@ Qual categoria DRE é mais adequada?`;
                   categoria_dre: {
                     type: "string",
                     description: "Categoria DRE escolhida ou null se não aplicável",
-                    enum: ["receita_bruta", "deducoes", "custo_vendas", "despesas_fixas", "impostos_lucro", "null"]
+                    enum: ["receita_bruta", "deducoes", "custo_vendas", "despesas_fixas", "despesas_variaveis", "resultado_financeiro", "impostos_lucro", "resultado_nao_operacional", "null"]
                   },
                   confianca: {
                     type: "number",

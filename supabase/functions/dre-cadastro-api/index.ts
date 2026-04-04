@@ -13,7 +13,8 @@ function calcNivel(code: string): number {
 function calcSinal(categoriaDre: string | null): string {
   if (!categoriaDre) return "-";
   const lower = categoriaDre.toLowerCase();
-  if (lower.includes("receita") || lower === "r") return "+";
+  if (lower === "receita_bruta") return "+";
+  if (lower === "resultado_financeiro" || lower === "resultado_nao_operacional") return "+/-";
   return "-";
 }
 
