@@ -24836,6 +24836,42 @@ export type Database = {
           },
         ]
       }
+      security_pentest_reports: {
+        Row: {
+          details: Json | null
+          executed_at: string
+          executed_by: string | null
+          failed: number
+          id: string
+          passed: number
+          score: number | null
+          total_tests: number
+          warnings: number
+        }
+        Insert: {
+          details?: Json | null
+          executed_at?: string
+          executed_by?: string | null
+          failed?: number
+          id?: string
+          passed?: number
+          score?: number | null
+          total_tests?: number
+          warnings?: number
+        }
+        Update: {
+          details?: Json | null
+          executed_at?: string
+          executed_by?: string | null
+          failed?: number
+          id?: string
+          passed?: number
+          score?: number | null
+          total_tests?: number
+          warnings?: number
+        }
+        Relationships: []
+      }
       security_rate_limit_config: {
         Row: {
           created_at: string
