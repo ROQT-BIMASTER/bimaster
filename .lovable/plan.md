@@ -1,34 +1,68 @@
 
 
-# Edição Interativa no Modo Foco do DRE
+# Revisao Completa do Fluxo de Caixa — Valores e Interatividade
 
-## Problema
+## Diagnostico (dados reais do banco)
 
-Os dialogs de **Transferir Fornecedor** e **Editar Lançamento** já existem no componente `ContasPagarDREView`, mas:
-1. Estão renderizados **dentro do `<Card>`**, causando conflito de z-index com o Dialog do Modo Foco
-2. Não há indicadores visuais (ícones, tooltips) no Modo Foco para o usuário saber que pode clicar e editar
-3. Falta um menu de contexto ou botões de ação visíveis nas linhas de fornecedor/lançamento
+### Problemas de Dados
+| Problema | Impacto |
+|---|---|
+| Contas a pagar com datas absurdas: 1973, 2050, 2089 | ~R$ 6M poluindo aging e projecoes |
+| 10 registros concentrados em UNION MEDIC SP, NELIDA, FABULOUS, DISPLAY GV | Distorcem saldo projetado e gaps |
 
-## Solução
+### Problemas de Calculo (6 erros)
+| KPI | Erro | Correção |
+|---|---|---|
+| **DSO** | Calcula media de dias ate vencimento a partir de hoje — nao e DSO real | DSO = (Recebíveis / Receita media mensal) x 30 |
+| **DPO** | Mesmo erro | DPO = (Pagáveis / Custo medio mensal) x 30 |
+| **Previsão 12m** | `saldoProjetado * 12` — sem sentido | Usar media movel dos ultimos 6 meses projetada |
+| **YoY** | Compara `valor_aberto` (saldo residual) entre anos | Deve usar `valor_original` para comparacao justa |
+| **Projecao diaria** | Usa `valor_aberto` de titulos filtrados | Correto, mas precisa excluir datas anomalas |
+| **Ciclo Financeiro** | DSO - DPO com valores errados | Correto apos corrigir DSO/DPO |
 
-### 1. Mover dialogs para o nível raiz do componente
-Extrair `EditarClassificacaoRapidaDialog` e `TransferirFornecedorDialog` para fora do `<Card>` e do Dialog de foco, garantindo que fiquem sempre por cima (z-index correto via portal).
+### Problemas de UX (3 lacunas)
+| Card | Estado | Necessário |
+|---|---|---|
+| Maior Gap | Estatico, sem detalhe | Dialog clicavel com lista de gaps por data |
+| Previsao 12m | Estatico | Dialog com projecao mensal e premissas |
+| Aging Receber/Pagar | Nao expande por cliente/fornecedor | Clique na faixa expande top 10 devedores/credores |
 
-### 2. Adicionar ícones de ação nas linhas
-- **Fornecedor**: Ícone de `ArrowRightLeft` (transferir) visível ao hover, com tooltip "Transferir fornecedor"
-- **Lançamento**: Ícone de `Pencil` (editar) visível ao hover, com tooltip "Editar classificação"
-- Aplicar classe `group` nas `<tr>` para ativar hover nos ícones filhos
+## Plano de Implementacao
 
-### 3. Adicionar busca no Modo Foco
-Input de busca no header do Modo Foco para filtrar fornecedores/contas pelo nome, facilitando localizar itens específicos entre centenas de linhas.
+### 1. Filtrar dados anomalos no hook (`useFluxoCaixaData.ts`)
+- Adicionar filtro de sanidade: excluir `data_vencimento < 2020-01-01` e `> 2030-12-31` nos dados de contas_pagar
+- Logar registros excluidos no console para auditoria
 
-### 4. Adicionar filtro de busca com Combobox no TransferirFornecedorDialog
-Substituir o `Select` de conta destino por um Combobox com busca (mesmo padrão já usado em `ClassificarContasEmLoteDialog`), pois são 200+ contas analíticas.
+### 2. Corrigir calculos dos KPIs (`FluxoCaixaKPIsAdvanced.tsx`)
+- **DSO**: `(totalReceber / (receita6meses / 6)) * 30` usando soma de `valor_original` dos ultimos 6 meses de `contasReceberRaw` com status `recebido`
+- **DPO**: `(totalPagar / (custo6meses / 6)) * 30` usando `contasPagarRaw` com status `pago`
+- **Previsao 12m**: Media movel do saldo liquido dos ultimos 6 meses x 12
+- **YoY**: Trocar `valor_aberto` por `valor_original` na comparacao
+
+### 3. Tornar "Maior Gap" clicavel (`FluxoCaixaKPIsAdvanced.tsx`)
+- Envolver card em Dialog com lista dos 10 maiores gaps por data
+- Mostrar: data, valor de entradas, valor de saidas, gap, top 3 fornecedores/clientes do dia
+- Icone ChevronRight no hover (mesmo padrao YoY/Inadimplencia)
+
+### 4. Tornar "Previsao 12m" clicavel (`FluxoCaixaKPIsAdvanced.tsx`)
+- Dialog com tabela de 12 meses projetados
+- Mostrar: mes, entrada estimada, saida estimada, saldo, acumulado
+- Bloco explicativo: "Baseado na media dos ultimos 6 meses"
+
+### 5. Expandir faixas de Aging por clique (`FluxoDeCaixa.tsx`)
+- No componente AgingReport: ao clicar em uma faixa, expandir com top 10 clientes/fornecedores daquela faixa
+- Mostrar nome, valor, quantidade de titulos, % da faixa
+- Usar estado local com Collapsible para cada faixa
+
+### 6. Adicionar tooltip explicativo em cada KPI
+- Todos os 10 cards devem ter icone `Info` com tooltip explicando a formula
+- Exemplo: "DSO = Recebiveis abertos / Receita media mensal x 30 dias"
 
 ## Arquivos Alterados
 
-| Arquivo | Alteração |
+| Arquivo | Mudanca |
 |---|---|
-| `ContasPagarDREView.tsx` | Mover dialogs para raiz, adicionar ícones de ação com hover, adicionar input de busca no Modo Foco, classe `group` nas linhas |
-| `TransferirFornecedorDialog.tsx` | Substituir Select por Combobox com busca para conta destino |
+| `src/hooks/useFluxoCaixaData.ts` | Filtro de datas anomalas, buscar dados de pagos/recebidos para calculo DSO/DPO |
+| `src/components/fluxocaixa/FluxoCaixaKPIsAdvanced.tsx` | Corrigir DSO/DPO/Previsao/YoY, adicionar Dialogs em Gap e Previsao, tooltips |
+| `src/pages/FluxoDeCaixa.tsx` | Expandir AgingReport com detalhes por faixa clicavel |
 
