@@ -1,118 +1,152 @@
 
 
-# Reclassificação Completa: 248 Categorias → Plano de Contas + Departamento + Centro de Custo
+# Auditoria de Classificação de Despesas — Erros Remanescentes
 
-## Situação Atual
+## Referências Externas Consultadas
 
-- **47.566 títulos** — 100% já possuem plano de contas e departamento
-- **248 categorias** ERP distintas mapeadas
-- Porém: **~45 categorias com erros** de classificação (departamento e/ou plano de contas incorretos)
-- Impacto: **~7.500 títulos** precisam de correção (16% da base)
+- **IFRS 18 / CPC 51** — Nova estrutura DRE obrigatória a partir de 2027: 3 categorias (Operacional, Investimento, Financiamento) + Impostos sobre Lucro
+- **Analize.com.br** — Guia prático de categorias IFRS 18 na DRE
+- **CPC 47** — Receita de contrato com cliente (comissões como despesa variável)
+- **CPC 25** — Provisões, passivos contingentes (obrigações trabalhistas)
+- **CPC 27** — Ativo imobilizado (classificação de investimentos vs despesa)
 
 ---
 
-## ERROS IDENTIFICADOS (com referência contábil)
+## NOTA PÓS-CORREÇÕES: 8.4 / 10 (era 7.2)
 
-### CRÍTICOS — Departamento completamente errado
+As correções anteriores resolveram os problemas mais graves. Restam **18 erros** que afetam **~2.100 títulos (R$ 16M)**.
 
-| Categoria ERP | Qtd | Dept ATUAL (errado) | Dept CORRETO | Plano Contas | Justificativa |
-|---|---|---|---|---|---|
-| **COMISSAO** | 1.670 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de vendas é despesa comercial variável (CPC 47) |
-| **REPRESENTANTES** (com espaço) | 1.044 | Operações | **Comercial / Trade** | 2.6.1 ✓ | Representante comercial = comissão |
-| **REPRESENTANTES** (sem espaço) | 764 | Compras e Faturamento | **Comercial / Trade** | 2.6.1 ✓ | Idem |
-| **REPRESENTANTE** | 37 | Administrativo | **Comercial / Trade** | 2.6.1 ✓ | Idem |
-| **COORDENADORES** | 25 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de coordenadores comerciais |
-| **GERENTES** | 131 | Recursos Humanos | **Comercial / Trade** | 2.6.1 ✓ | Comissão de gerentes comerciais |
-| **PROMOTORAS** | 16 | Operações | **Comercial / Trade** | 2.6.2 | Promotora de vendas = trade |
-| **PROMOTOR** | 1 | Operações | **Comercial / Trade** | 2.6.2 | Idem |
-| **PREMIOS/ GUELTAS** | 34 | Recursos Humanos | **Comercial / Trade** | 2.6.2 ✓ | Gueltas são incentivos comerciais |
-| **TRANSPORTADORA/VENDAS ONLINE** | 1.201 | Recursos Humanos | **Logística** | 2.4.1 ✓ | Frete de vendas = logística |
-| **IMPOSTOS/TAXAS** | 666 | Recursos Humanos | **Financeiro** | 2.5.1 ✓ | Impostos são responsabilidade do Financeiro |
-| **SERVIÇOS DE TERCEIROS** | 242 | Recursos Humanos | **Operações** | 3.1.8.12 | Serviço terceirizado = Operações |
-| **DIVERSOS** (com/sem espaço) | 583 | TI | **Administrativo** | 3.1.8.9 ✓ | "Diversos" é despesa administrativa genérica |
-| **OUTROS** | 152 | Recursos Humanos | **Administrativo** | 3.1.8.9 ✓ | Idem |
-| **FERRAMENTAS E ACEESSORIOS** | 48 | Tecnologia da Informação | **Operações** | 3.1.9.2 ✓ | Ferramentas físicas = Operações |
-| **CAMERAS** | 52 | TI | **Operações** | 3.1.8.1 | Câmeras = Segurança/Monitoramento |
-| **PRESTAÇÃO DE SERVIÇOS/TERCEIRIZADO** | 408 | TI | **Operações** | 3.1.8.12 | Terceirização = Operações |
-| **SISTEMA DE TERCEIROS** | 42 | TI | **TI** ✓ | 3.1.8.11 | Plano errado: era 3.1.8.9, deve ser Sistemas |
+---
 
-### ALTOS — Plano de Contas errado
+## ERROS REMANESCENTES IDENTIFICADOS
 
-| Categoria ERP | Qtd | Plano ATUAL (errado) | Plano CORRETO | Justificativa |
-|---|---|---|---|---|
-| **COMPRA DE MERCADORIA PARA REVENDA** | 10.794 | 2.1.1 (grupo) | **2.1.1.1** (Compras Nacionais) | 2.1.1 virou grupo, títulos devem ir para analítica |
-| **PENSÃO ALIMENTICIA** | 54 | 3.2.4.1 Empréstimos | **3.2.14** Outras desp. pessoal | Pensão não é empréstimo, é obrigação trabalhista |
-| **IMPRESSORAS - COMPRA** | 47 | 3.1.8.6 Impressões | **3.1.21** Hardware e Acessórios | Compra de equipamento ≠ serviço de impressão |
-| **UNIFORMES** | 48+4 | 3.2.13.1 Ações/Brindes | **3.2.12.3** Uniforme específico ou **3.2.14** | Uniforme é benefício/EPI, não brinde |
-| **CONTRATADO PJ** | 262 | 3.1.8.4 Freelancers | **3.1.8.12** Mão de Obra Terceirizada | PJ contratado = terceirizado, não freelancer |
-| **PALETES** | 48 | 3.1.9.2 Máq/Equip | **2.2** Embalagens e Materiais | Palete é material de acondicionamento logístico |
-| **PORTA PALETES** | 26 | 3.1.9.2 Máq/Equip | **3.1.9.2** ✓ ou **4.2.5** | Rack é investimento/imobilizado |
-| **CONSULTORIA** | 34 | 3.3.6 Consultoria MKT | **3.1.8.4** Freelancers | Consultoria genérica não é marketing |
-| **CONSULTORIA COMERCIAL** | 3 | 3.3.6 Consultoria MKT | **2.6.2** Trade Comercial | Consultoria comercial é despesa variável |
-| **DESENVOLVIMENTO SITES/REDE SOCIAIS** | 46 | 3.1.22 Softwares | **3.3.11** Mídia Social | Redes sociais é marketing digital |
-| **AGENDAMENTO/TDE** | 2 | 3.3.1 Publicidade | **2.6.2** Trade Comercial | TDE = Trade Development Expense |
-| **TAXAS REF. SERVIÇOS DE TERCEIROS** | 29 | 2.7.1 Mercado Pago | **3.4.1** Despesas Bancárias | Taxa de serviço = despesa financeira |
-| **MATERIAL PARA REFORMA** | 59 | 3.1.14 Limpeza/Copa | **3.1.9.1** Predial | Reforma é manutenção predial |
-| **MATERIAL PARA SEGURANÇA NO TRABALHO** | 23 | 3.1.14 Limpeza/Copa | **3.2.5** Medicina do Trabalho | EPI = segurança ocupacional (RH) |
-| **MÃO DE OBRA** | 12 | 3.1.8.9 Outros | **3.1.8.12** Mão de Obra Terceirizada | Conta específica existe |
-| **ANUIDADE DE ENTIDADES DE CLASSE** | 15 | 3.1.8.9 Outros | **3.1.8.10** Anuidades e Associações | Conta específica existe |
-| **ASSINATURA REVISTA** | 3 | 3.1.8.9 Outros | **3.1.8.13** Publicações e Assinaturas | Conta específica existe |
-| **SISTEMA FISCAL TRIBUTÁRIO** | 16 | 2.5.1 Simples Nacional | **3.1.8.11** Sistemas e Software | Sistema fiscal é software, não imposto |
-| **IMPOSTOS- APLICA FINANCEIRA** | 1 | 2.5.1 Simples Nacional | **3.4.1** Despesas Bancárias | IOF s/ aplicação = resultado financeiro |
-| **FRETE TRANSF. FORNECEDOR** | 189 | 2.4.1 Transportadoras | **2.4.6** Frete de Fornecedor | Frete de entrada tem conta própria |
-| **ARMAZENAGEM MERCADORIA** | 9 | 3.1.19 Locações | **3.1.1.1** Depósito | Armazenagem = custo de depósito |
-| **KM/PEDAGIOS/OUTROS** | 5 | 3.1.15 Uber/Táxi | **3.1.10.3** Combustível | Pedágio = custo veicular |
-| **PROMOTORAS/REPOSITORES/FREE E BICOS** | 10 | 3.3.4 Influencers | **2.6.2** Trade Comercial | Repositores = trade marketing |
-| **RECEPCIONISTA/PROMOTORAS/MAQUIADORAS** | 9 | 3.3.4 Influencers | **3.3.2** Eventos | Recepcionistas de eventos |
-| **PREVIDENCIA PRIVADA** | 3 | 3.2.12.2 Plano de Saúde | **3.2.14** Outras desp. pessoal | Previdência ≠ saúde |
-| **FARMACIA** | 3 | 3.2.5 Medicina do Trabalho | **3.2.14** Outras desp. pessoal | Farmácia genérica ≠ medicina ocupacional |
-| **EQUIPAMENTOS DE INCENDIOS** | 3 | 3.1.23 Outras desp. admin | **3.1.8.1** Segurança/Monitoramento | Incêndio = segurança predial |
-| **CONSULTORIA LOGISTICA** | 1 | 2.4.1 Transportadoras | **3.1.8.4** Freelancers | Consultoria ≠ transporte |
-| **Ação comemorativa** | 50 | Administrativo → | **Recursos Humanos** | 3.2.13.1 ✓ Ações para funcionários = RH |
-| **CONFRATERNIZAÇÃO** | 6 | Administrativo → | **Recursos Humanos** | 3.2.13.1 ✓ Idem |
-| **ALIMENTAÇÃO** | 130 | Recursos Humanos | **Administrativo** | 3.1.16 ✓ R$ 3,3M em refeições corporativas |
-| **MIDIA SOCIAL** | 123 | TI | **Comercial / Trade** | 3.3.11 ✓ Marketing digital é MKT |
-| **CENTROESTE: MT/MS/GO/DF** | 5 | Marketing | **Logística** | 2.4.1 ✓ Frete regional = logística |
-| **ESTORNO DE PAGAMENTO** | 17 | Logística | **Financeiro** | 4.1.1 ✓ Estorno = resultado financeiro |
-| **CHEQUE** | 10 | Financeiro ✓ | **Financeiro** | 4.1.1 → **3.4.1** Despesas Bancárias (não é receita) |
-| **BRINDES/PRODUTOS** | 18 | Administrativo | **Comercial / Trade** | 2.6.2 ✓ Brindes comerciais = trade |
-| **DESPESAS PAGAS C/DINHEIRO** | 83 | Operações | **Financeiro** | **3.1.23** Outras desp. admin | Cofre = caixa do financeiro |
+### CRÍTICOS — Impactam DRE diretamente
 
-### MÉDIOS — Ajustes de Centro de Custo
+**1. COMPRA DE MERCADORIA — Departamento inconsistente (R$ 484M)**
+- 10.584 títulos → dept **Logística** ✗
+- 207 títulos → dept **Financeiro** ✗
+- 3 títulos → dept **Compras e Faturamento** ✓
+- Ref. IFRS 18: Custo das vendas é categoria operacional, responsabilidade de **Compras e Faturamento**
+- **Correção**: Todos os 10.794 títulos → dept **Compras e Faturamento** (o plano `2.1.1.1` já pertence a esse dept)
 
-| Categoria | CC ATUAL | CC CORRETO |
-|---|---|---|
-| COMISSAO, REPRESENTANTES*, GERENTES, COORDENADORES | CC-RH/CC-OPS | **CC-COM** |
-| TRANSPORTADORA/VENDAS ONLINE | CC-RH | **CC-LOG** |
-| IMPOSTOS/TAXAS | CC-RH | **CC-FIN** |
-| CAMERAS | CC-TI | **CC-OPR** |
-| DIVERSOS, OUTROS | CC-TI/CC-RH | **CC-ADM** |
-| MIDIA SOCIAL | CC-TI | **CC-MKT** |
+**2. RUBY ROSE - MARCA em conta GRUPO (R$ 2,5M)**
+- 104 títulos apontam para `2.1.1` (que é **grupo**, não analítica)
+- Conta correta: `2.1.1.3 Compras Marca Ruby Rose`
+- Dept atual: Operações ✗ → deveria ser **Compras e Faturamento**
+
+**3. DESPESAS PAGAS C/DINHEIRO — Conta errada (R$ 2,5M)**
+- 83 títulos em `2.1.3 Despesas Comerciais` (custo_vendas)
+- Despesa paga em dinheiro/cheque é meio de pagamento, não natureza da despesa
+- Ref. CPC 51: dinheiro é instrumento, a despesa deveria ser classificada pela **natureza**
+- **Correção**: Mover para `3.1.23 Outras despesas administrativas` (despesas_fixas) + dept **Financeiro**
+
+**4. SUPERVISORES em Recursos Humanos (R$ 1M)**
+- 83 títulos de comissão de supervisores em dept **RH**
+- Ref. CPC 47: Comissão de vendas = despesa variável comercial
+- **Correção**: dept → **Comercial / Trade**, CC → **CC-COM** (plano `2.6.1` já está correto)
+
+**5. TARIFAS BANCÁRIAS em `2.7.1 Mercado Pago` (R$ 527k)**
+- 1.431 títulos (TARIFAS BANCARIAS + TAXAS ADMINISTRATIVAS) todos apontam para `2.7.1 Mercado Pago`
+- `2.7.1` está com `categoria_dre = resultado_financeiro` ✓, mas o **nome da conta** sugere apenas Mercado Pago
+- Ref. IFRS 18 cat. Financiamento: tarifas bancárias genéricas deveriam ir para `3.4.1 Despesas Bancárias`
+- **Correção**: Apenas TAXAS ADMINISTRATIVAS (43 títulos, R$ 205k) → `3.4.1` (as tarifas bancárias do MP podem ficar em 2.7.1)
+
+### ALTOS — Departamento errado
+
+**6. MODELOS/MANEQUINS/INFLUENCER em Administrativo (R$ 363k)**
+- 176 títulos em dept **Administrativo**, conta `3.3.9 Modelos` (Marketing)
+- Ref: Influencers são despesa de marketing variável
+- **Correção**: dept → **Marketing**, CC → **CC-MKT**
+
+**7. CONSULTORIA MARKETING em múltiplos departamentos**
+- 53 títulos em **Administrativo** (R$ 380k), 2 em **Operações** (R$ 3,7k), 3 sem dept (R$ 75k)
+- Conta `3.3.6` é Marketing
+- **Correção**: Todos → dept **Marketing**, CC → **CC-MKT**
+
+**8. ROYALTIES em Financeiro + Administrativo (R$ 4,5M)**
+- 50 títulos em **Financeiro** (R$ 3,9M), 20 em **Administrativo** (R$ 534k)
+- Ref. IFRS 18: Royalties de marca = despesa operacional de Marketing
+- **Correção**: dept → **Marketing**, CC → **CC-MKT**
+
+**9. CONTABILIDADE EXTERNA em dois departamentos**
+- 388 títulos em **Financeiro**, 108 em **Administrativo**
+- Contabilidade é serviço **Financeiro** (ref. Deloitte: G&A → Finance)
+- **Correção**: Todos 108 do Administrativo → dept **Financeiro**
+
+**10. DISPLAY em 4 departamentos diferentes**
+- 16 sem dept, 9 em Compras, 5 em Trade MKT, 4 em Operações
+- Display/Expositores = Trade Marketing (conta `3.3.5`)
+- **Correção**: Todos → dept **Comercial / Trade**, CC → **CC-MKT**
+
+**11. PRODUÇÃO DE EVENTOS em Operações (R$ 55k)**
+- 13 títulos → conta `3.3.2 Eventos` (Marketing) mas dept **Operações**
+- **Correção**: dept → **Marketing**
+
+**12. UNIFORMES em Ações/Brindes (R$ 68k)**
+- 57 títulos em `3.2.13.1 Ações e Brindes para Colaboradores`
+- Uniforme é EPI/benefício, não brinde. Ref. NR-6: uniforme obrigatório = custo de pessoal
+- **Correção**: Mover para `3.2.14 Outras despesas com pessoal`
+
+### MÉDIOS — Inconsistências menores
+
+**13. GARRAFAS DE ÁGUA em `3.1.3 Conta de Água` (R$ 14k)**
+- 50 títulos — Garrafão de água mineral ≠ conta de água/saneamento
+- **Correção**: Mover para `3.1.14 Material Limpeza/Higiene/Copa`
+
+**14. MATERIAIS/FERRAMENTAS em `3.1.7 Material de Escritório` (R$ 730k)**
+- 236 títulos — Ferramentas industriais ≠ material de escritório
+- **Correção**: Mover para `3.1.9.2 Máquinas e Equipamentos`
+
+**15. MATERIAL ELÉTRICO em `3.1.7 Material de Escritório` (R$ 23k)**
+- 12 títulos — Material elétrico = manutenção predial
+- **Correção**: Mover para `3.1.9.1 Predial`
+
+**16. PRÓ-LABORE em dois departamentos**
+- 88 títulos em **Financeiro**, 60 em **Recursos Humanos**
+- Pró-labore é retirada de sócios, responsabilidade do **Financeiro**
+- **Correção**: 60 títulos de RH → dept **Financeiro**
+
+**17. ~312 títulos SEM departamento (R$ 934k)**
+- 15 categorias com `departamento_nome = NULL`
+- Incluem: SOFTWARE (164), PROVEDOR (43), DISPLAY (16), COMISSAO (2)
+- **Correção**: Atribuir departamento baseado no plano de contas vinculado
+
+**18. PALETERA em dept errado**
+- 14 títulos em **Logística**, 17 em **Operações**
+- Paleteira = equipamento de depósito = **Logística**
+- **Correção**: 17 títulos de Operações → **Logística**
+
+---
+
+## ALERTA IFRS 18 / CPC 51 (vigência 2027)
+
+A nova norma exige 3 categorias obrigatórias na DRE:
+1. **Operacional** (nosso `receita_bruta` + `deducoes` + `custo_vendas` + `despesas_fixas` + `despesas_variaveis`) ✓
+2. **Investimento** (nosso grupo 4.2.x — já está fora do DRE) ✓
+3. **Financiamento** (nosso `resultado_financeiro`) ✓
+
+Subtotais obrigatórios: **Lucro Operacional** e **Lucro antes de Financiamento e Impostos**. A estrutura atual já suporta isso com ajustes mínimos no frontend.
 
 ---
 
 ## RESUMO DE IMPACTO
 
-| Tipo de Correção | Títulos Afetados | Valor (R$) |
+| Tipo | Títulos | Valor (R$) |
 |---|---|---|
-| Departamento errado | ~5.800 | ~R$ 60M |
-| Plano de contas errado | ~1.400 | ~R$ 7M |
-| Ambos errados | ~300 | ~R$ 2M |
-| **TOTAL** | **~7.500** | **~R$ 69M** |
+| Departamento errado | ~1.500 | ~R$ 12M |
+| Plano de contas errado | ~290 | ~R$ 3,5M |
+| Sem departamento | ~312 | ~R$ 934k |
+| **TOTAL** | **~2.100** | **~R$ 16M** |
 
 ---
 
 ## IMPLEMENTAÇÃO
 
-### Migração SQL única com ~50 UPDATEs
-
-Cada UPDATE corrige `plano_contas_id`, `plano_contas_codigo`, `plano_contas_nome`, `departamento_id`, `departamento_nome` usando `CASE WHEN categoria_nome = 'X' THEN ...` para garantir 100% de precisão determinística.
-
-A migração também propaga o `centro_custo` correto baseado no plano de contas vinculado (herda da `trade_chart_of_accounts`).
+Migração SQL única com ~20 UPDATEs por `categoria_nome` + `departamento_nome` para corrigir os registros afetados. Sem alteração de schema.
 
 | Ação | Detalhe |
 |---|---|
-| UPDATE ~7.500 títulos | Corrigir plano + departamento por categoria_nome |
+| UPDATE ~2.100 títulos | Corrigir dept + plano por categoria_nome |
 | Sem alteração de schema | Apenas dados |
-| Referências: TOTVS, Conta Azul, CPC 47, Deloitte | Comissões = variável, impostos = financeiro, terceirizados = operações |
+| Referências | IFRS 18, CPC 51, CPC 47, CPC 27, Deloitte |
 
