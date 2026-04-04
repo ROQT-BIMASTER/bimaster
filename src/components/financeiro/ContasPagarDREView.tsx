@@ -742,7 +742,7 @@ export function ContasPagarDREView({
     return node.children.some(c => nodeMatchesSearch(c, term));
   };
 
-  const tableContent = (isFocus = false) => (
+  const tableContent = (isFocus = false, searchFilter?: string) => (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-background">
@@ -770,7 +770,7 @@ export function ContasPagarDREView({
           </tr>
         </thead>
         <tbody>
-          {hierarquia.map(node => renderRow(node, 0))}
+          {hierarquia.map(node => renderRow(node, 0, searchFilter))}
           
           {/* Total Row */}
           <tr className="border-t-2 border-border bg-primary/10 font-bold">
@@ -827,26 +827,6 @@ export function ContasPagarDREView({
             {tableContent()}
           </ScrollArea>
         </CardContent>
-
-        {/* Dialogs */}
-        {selectedConta && (
-          <EditarClassificacaoRapidaDialog
-            open={editarOpen}
-            onOpenChange={setEditarOpen}
-            conta={selectedConta}
-            onSuccess={handleSuccess}
-          />
-        )}
-
-        {selectedFornecedor && (
-          <TransferirFornecedorDialog
-            open={transferirOpen}
-            onOpenChange={setTransferirOpen}
-            fornecedorNome={selectedFornecedor.nome}
-            lancamentosIds={selectedFornecedor.lancamentosIds}
-            onSuccess={handleSuccess}
-          />
-        )}
       </Card>
 
       {/* Focus Mode Dialog */}
@@ -861,6 +841,23 @@ export function ContasPagarDREView({
               </Badge>
             </DialogTitle>
             <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar fornecedor ou conta..."
+                  value={focusSearch}
+                  onChange={(e) => setFocusSearch(e.target.value)}
+                  className="pl-9 w-[280px] h-9"
+                />
+                {focusSearch && (
+                  <button 
+                    className="absolute right-2 top-2.5" 
+                    onClick={() => setFocusSearch("")}
+                  >
+                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </div>
               <Button variant="outline" size="sm" onClick={expandAll} className="gap-1">
                 <ChevronsDown className="h-4 w-4" />
                 Expandir
@@ -879,10 +876,30 @@ export function ContasPagarDREView({
             </div>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-4 bg-background">
-            {tableContent(true)}
+            {tableContent(true, focusSearch || undefined)}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialogs at root level for correct z-index */}
+      {selectedConta && (
+        <EditarClassificacaoRapidaDialog
+          open={editarOpen}
+          onOpenChange={setEditarOpen}
+          conta={selectedConta}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {selectedFornecedor && (
+        <TransferirFornecedorDialog
+          open={transferirOpen}
+          onOpenChange={setTransferirOpen}
+          fornecedorNome={selectedFornecedor.nome}
+          lancamentosIds={selectedFornecedor.lancamentosIds}
+          onSuccess={handleSuccess}
+        />
+      )}
     </>
   );
 }
