@@ -73,6 +73,13 @@ USING (
 - `user_rankings`: SELECT público removido
 - `planos`: SELECT restrito a authenticated (planos ativos)
 
+### Storage Hardening (Abril 2026)
+- `fabrica-nfe-xmls`: SELECT/INSERT restrito a módulo fábrica + admin/supervisor
+- `amostras`, `embalagem-analise`, `etiqueta-bula`: DELETE com path ownership check
+- 7 buckets (campaign-evidence, amostras, embalagem-analise, etiqueta-bula, fluxo-artes, aprovacao-artes, fabrica-custo-evidencias): INSERT com path ownership `auth.uid()`
+- `configuracoes_cobranca`: INSERT/UPDATE restrito exclusivamente a admin (supervisor removido)
+- `usuario_permissoes_modulos`: SELECT USING(true) removido
+
 ## Criptografia OAuth
 
 ```sql

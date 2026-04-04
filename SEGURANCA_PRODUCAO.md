@@ -47,6 +47,8 @@
 20. **Logging Estruturado** — 194+ console.log migrados para logger.debug() em 12 arquivos
 21. **WAF L7** — Middleware `_shared/waf.ts` com detecção de SQLi, XSS, path traversal e bots maliciosos em 6 Edge Functions críticas
 22. **Pentest Automatizado** — Edge Function `security-pentest` com 9 testes (auth bypass, SQLi, XSS, RLS, CORS, headers, bot detection, payload size)
+23. **Storage Hardening** — `fabrica-nfe-xmls` restrito a módulo fábrica; path ownership em 7 buckets (INSERT) e 3 buckets (DELETE); `configuracoes_cobranca` restrito a admin
+24. **Permissões** — `usuario_permissoes_modulos` SELECT USING(true) removido
 
 ---
 
