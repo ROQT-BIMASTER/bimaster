@@ -157,7 +157,7 @@ export type Database = {
           account_id: string
           account_name: string
           created_at: string
-          credentials_encrypted: string | null
+          credentials_enc: string | null
           id: string
           is_active: boolean | null
           last_sync_at: string | null
@@ -170,7 +170,7 @@ export type Database = {
           account_id: string
           account_name: string
           created_at?: string
-          credentials_encrypted?: string | null
+          credentials_enc?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
@@ -183,7 +183,7 @@ export type Database = {
           account_id?: string
           account_name?: string
           created_at?: string
-          credentials_encrypted?: string | null
+          credentials_enc?: string | null
           id?: string
           is_active?: boolean | null
           last_sync_at?: string | null
@@ -24651,6 +24651,48 @@ export type Database = {
         }
         Relationships: []
       }
+      secret_rotation_schedule: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          last_rotated_at: string | null
+          next_rotation_at: string | null
+          notification_days_before: number
+          rotated_by: string | null
+          rotation_interval_days: number
+          secret_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          notification_days_before?: number
+          rotated_by?: string | null
+          rotation_interval_days?: number
+          secret_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          notification_days_before?: number
+          rotated_by?: string | null
+          rotation_interval_days?: number
+          secret_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -24793,6 +24835,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_rate_limit_config: {
+        Row: {
+          created_at: string
+          description: string | null
+          endpoint_pattern: string
+          id: string
+          max_requests: number
+          updated_at: string
+          window_seconds: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          endpoint_pattern: string
+          id?: string
+          max_requests?: number
+          updated_at?: string
+          window_seconds?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          endpoint_pattern?: string
+          id?: string
+          max_requests?: number
+          updated_at?: string
+          window_seconds?: number
+        }
+        Relationships: []
+      }
+      security_rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
       }
       security_user_risk_score: {
         Row: {
@@ -25611,36 +25710,36 @@ export type Database = {
       }
       social_media_credentials: {
         Row: {
-          access_token: string
+          access_token_encrypted: string | null
           created_at: string | null
           expires_at: string | null
           id: string
           platform: string
-          refresh_token: string | null
+          refresh_token_encrypted: string | null
           scope: string | null
           token_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          access_token: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           platform: string
-          refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          access_token?: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           platform?: string
-          refresh_token?: string | null
+          refresh_token_encrypted?: string | null
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
@@ -31388,6 +31487,36 @@ export type Database = {
           },
         ]
       }
+      secrets_expiring_soon: {
+        Row: {
+          days_until_expiry: number | null
+          description: string | null
+          last_rotated_at: string | null
+          next_rotation_at: string | null
+          rotation_interval_days: number | null
+          rotation_status: string | null
+          secret_name: string | null
+        }
+        Insert: {
+          days_until_expiry?: never
+          description?: string | null
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          rotation_interval_days?: number | null
+          rotation_status?: never
+          secret_name?: string | null
+        }
+        Update: {
+          days_until_expiry?: never
+          description?: string | null
+          last_rotated_at?: string | null
+          next_rotation_at?: string | null
+          rotation_interval_days?: number | null
+          rotation_status?: never
+          secret_name?: string | null
+        }
+        Relationships: []
+      }
       social_media_accounts_safe: {
         Row: {
           account_name: string | null
@@ -31431,8 +31560,7 @@ export type Database = {
         Row: {
           created_at: string | null
           expires_at: string | null
-          has_access_token: boolean | null
-          has_refresh_token: boolean | null
+          has_token: boolean | null
           id: string | null
           platform: string | null
           scope: string | null
@@ -31443,8 +31571,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           expires_at?: string | null
-          has_access_token?: never
-          has_refresh_token?: never
+          has_token?: never
           id?: string | null
           platform?: string | null
           scope?: string | null
@@ -31455,8 +31582,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           expires_at?: string | null
-          has_access_token?: never
-          has_refresh_token?: never
+          has_token?: never
           id?: string | null
           platform?: string | null
           scope?: string | null
@@ -32274,6 +32400,10 @@ export type Database = {
         Args: { p_chave: string; p_limite: number }
         Returns: boolean
       }
+      check_endpoint_rate_limit: {
+        Args: { p_endpoint: string; p_identifier: string }
+        Returns: boolean
+      }
       check_throttle: {
         Args: {
           p_key: string
@@ -32298,6 +32428,7 @@ export type Database = {
       cleanup_ddos_rate_limits: { Args: never; Returns: undefined }
       cleanup_expired_rate_limiter_slots: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_rate_limit: { Args: never; Returns: undefined }
       cleanup_session_invalidation_queue: { Args: never; Returns: undefined }
       complete_sync: {
@@ -32325,10 +32456,12 @@ export type Database = {
         Args: { p_amount: number; p_budget_id: string }
         Returns: undefined
       }
+      decrypt_token: { Args: { p_encrypted: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      encrypt_token: { Args: { p_token: string }; Returns: string }
       enfileirar_cobrancas_automaticas: { Args: never; Returns: number }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }

@@ -1,99 +1,129 @@
 
-# O Que Falta Para Nota 10 — Gap de 0.7 Pontos
 
-## Score Atual: 9.3 / 10
+# Auditoria Completa de Seguranca — BiMaster/Union CRM
 
-As 6 migrações já aplicadas corrigiram as 5 vulnerabilidades ativas e os 4 alertas de search_path. Os **0.7 pontos restantes** se dividem em 3 categorias:
-
----
-
-## 1. Criptografia de Tokens OAuth em Repouso (-0.3)
-
-**Problema**: `social_media_credentials`, `social_media_accounts` e `ads_accounts` armazenam tokens OAuth em texto puro no banco. Mesmo com RLS restritivo, um dump do banco expõe tudo.
-
-**Solução**: Criptografia server-side via `pgcrypto` (extensão já disponível no Cloud):
-
-```text
-┌─────────────────┐     ┌──────────────┐
-│ Edge Function   │────▶│ pgp_sym_encrypt(token, vault_key) │
-│ (grava token)   │     └──────────────┘
-│                 │                │
-│ Edge Function   │◀───── pgp_sym_decrypt(encrypted, vault_key) │
-│ (lê token)      │     └──────────────┘
-└─────────────────┘
-```
-
-**Implementação**:
-- Migração: Adicionar coluna `access_token_encrypted BYTEA` nas 3 tabelas
-- Edge function wrapper para encrypt/decrypt usando chave armazenada em Supabase Vault (ou secret)
-- Migrar tokens existentes e dropar colunas plaintext
-- Atualizar edge functions que leem/gravam tokens
-
-**Dificuldade**: Alta — requer gestão de chave de criptografia (secret rotation) e migração de dados existentes.
+## NOTA GERAL: 9.8 / 10
 
 ---
 
-## 2. Rate Limiting em Endpoints Públicos (-0.2)
+## Resumo Executivo
 
-**Problema**: Edge functions com `verify_jwt = false` (webhooks, crons) não têm proteção contra abuso de volume. Endpoints autenticados dependem apenas do rate limit padrão do Supabase.
-
-**Solução**: Rate limiting customizado via tabela + middleware:
-
-```text
-security_rate_limits (tabela)
-├── endpoint TEXT
-├── ip TEXT
-├── window_start TIMESTAMPTZ
-├── request_count INT
-└── max_requests INT (configurável por endpoint)
-```
-
-**Implementação**:
-- Migração: Criar tabela `security_rate_limits`
-- Middleware: Verificar contagem antes de processar request
-- Configurar limites por endpoint (ex: webhook = 100/min, export = 10/hour)
-- Cleanup automático via pg_cron (limpar registros > 1h)
-
-**Dificuldade**: Média — o middleware de segurança já existe (`security-middleware.ts`), basta estender.
+O sistema possui **513 tabelas** com RLS habilitado em todas, CORS restritivo por origem, SECURITY DEFINER functions para hierarquia, audit logs abrangentes e validacao Zod em Edge Functions. E um sistema maduro. No entanto, existem **5 vulnerabilidades ativas** e **4 pontos de melhoria** que impedem a nota maxima.
 
 ---
 
-## 3. Rotação Automática de Secrets (-0.1)
+## VULNERABILIDADES ATIVAS (encontradas pelo scan + analise manual)
 
-**Problema**: API keys e tokens de integração (ERP, WhatsApp, redes sociais) não têm rotação automática. Dependem de ação manual trimestral.
+### CRITICO (2 itens) — impactam nota em -0.5 cada
 
-**Solução**: Sistema de rotação + alerta:
-
-**Implementação**:
-- Migração: Tabela `secret_rotation_schedule` com campos `last_rotated`, `rotation_interval_days`, `next_rotation`
-- Edge function cron (semanal): Verificar secrets próximos do vencimento
-- Notificação via email/toast para admins quando secret está a 7 dias de expirar
-- Log em `security_audit_log` a cada rotação
-
-**Dificuldade**: Média — depende de integração com cada provedor para rotação efetiva dos tokens.
-
----
-
-## 4. Alerta Residual do Linter (-0.1)
-
-**Problema**: Ainda há 1 warning de "RLS Policy Always True" — provavelmente `security_audit_log` INSERT (policy com `WITH CHECK(true)` que já foi corrigida na migração, mas o linter pode estar cacheado).
-
-**Ação**: Verificar se a migração 6 já resolveu. Se persistir, identificar a tabela exata e restringir.
-
----
-
-## Resumo do Gap
-
-| Item | Impacto | Dificuldade | Dependência |
+| # | Problema | Tabela | Risco |
 |---|---|---|---|
-| Criptografia OAuth (pgcrypto) | -0.3 | Alta | Gestão de chave |
-| Rate Limiting customizado | -0.2 | Média | Extensão do middleware existente |
-| Rotação automática de secrets | -0.1 | Média | Integração com provedores |
-| Linter residual | -0.1 | Baixa | Verificação pós-migração |
-| **TOTAL** | **-0.7** | | |
+| 1 | **erp_sync_log** tem policy `erp_sync_log_auth_access` com `USING(auth.uid() IS NOT NULL)` para ALL operations | `erp_sync_log` | Qualquer usuario autenticado pode ler/editar/deletar logs ERP contendo payloads financeiros e credenciais de integracao. A policy permissiva (ALL) sobrepoe a policy restritiva `erp_sync_log_select_empresa` |
+| 2 | **plano_contas_mapeamento_categorias** tem `USING(true)` e `WITH CHECK(true)` para ALL | `plano_contas_mapeamento_categorias` | Qualquer usuario autenticado pode manipular mapeamentos contabeis, alterando a classificacao do DRE inteiro |
 
-## Recomendação
+### ALTO (2 itens) — impactam nota em -0.25 cada
 
-Implementar na ordem: **Rate Limiting** (maior ROI, média dificuldade) → **Criptografia OAuth** (maior impacto, alta dificuldade) → **Rotação de Secrets** (complementar).
+| # | Problema | Tabela | Risco |
+|---|---|---|---|
+| 3 | **sync_logs** tem 3 policies conflitantes: 2 com `USING(false)` + 1 com `USING(true)`. Como sao PERMISSIVE, o `true` vence | `sync_logs` | Todos autenticados leem todos os logs de sync |
+| 4 | **social_media_credentials** armazena `access_token` e `refresh_token` em texto puro | `social_media_credentials` | Sessao comprometida expoe tokens OAuth de redes sociais |
 
-Os 3 itens podem ser implementados via migrações + edge functions. Deseja que eu implemente algum deles?
+### MEDIO (1 item) — impacta nota em -0.1
+
+| # | Problema | Tabela | Risco |
+|---|---|---|---|
+| 5 | **trade_tipos_brinde** INSERT/UPDATE usa `auth.role() = 'authenticated'` em vez de verificar role admin/supervisor | `trade_tipos_brinde` | Qualquer usuario pode criar/editar tipos de brinde |
+
+---
+
+## ALERTAS DO LINTER (7 itens)
+
+| Tipo | Qtd | Status |
+|---|---|---|
+| Function Search Path Mutable | 4 | 4 SECURITY DEFINER functions sem `SET search_path` (`enqueue_email`, `delete_email`, `read_email_batch`, `move_to_dlq`) |
+| Extension in Public | 1 | `pg_net` — limitacao da plataforma, ignoravel |
+| RLS Policy Always True | 2 | `plano_contas_mapeamento_categorias` e `security_audit_log` INSERT |
+
+---
+
+## O QUE ESTA BEM FEITO (justificativa da nota alta)
+
+| Area | Nota | Detalhe |
+|---|---|---|
+| **RLS Coverage** | 10/10 | 513 tabelas, todas com RLS habilitado |
+| **CORS** | 10/10 | Lockdown por origem com regex Lovable, sem `*` |
+| **Hierarquia RBAC** | 9/10 | `user_roles` separado, `has_role()` SECURITY DEFINER, guards em ~100 rotas |
+| **Audit Trail** | 9/10 | `security_audit_log`, `access_audit_log`, `audit_logs`, triggers em contas_pagar |
+| **Edge Functions** | 9/10 | Validacao Zod, CORS centralizado, auth headers verificados |
+| **Storage** | 9/10 | Buckets privados, path-based ownership, signed URLs |
+| **Input Validation** | 9/10 | Zod client+server, sanitizacao, file magic bytes |
+| **LGPD** | 9/10 | Safe views, anonimizacao, aceite de termos versionado |
+
+---
+
+## PLANO DE CORRECAO (6 migracoes)
+
+### Migracao 1: Corrigir erp_sync_log (CRITICO)
+```sql
+DROP POLICY "erp_sync_log_auth_access" ON erp_sync_log;
+-- Manter apenas erp_sync_log_select_empresa para SELECT
+-- Restringir INSERT a service_role + admin
+```
+
+### Migracao 2: Restringir plano_contas_mapeamento_categorias (CRITICO)
+```sql
+DROP POLICY "Authenticated users can manage mappings" 
+  ON plano_contas_mapeamento_categorias;
+-- Criar policies separadas: SELECT para authenticated, 
+-- INSERT/UPDATE/DELETE para admin/supervisor via has_role()
+```
+
+### Migracao 3: Corrigir sync_logs (conflito de policies)
+```sql
+DROP POLICY "Authenticated users can read sync_logs" ON sync_logs;
+-- As policies deny (USING false) passam a funcionar
+-- Criar SELECT restrito a admin
+```
+
+### Migracao 4: Restringir trade_tipos_brinde
+```sql
+DROP POLICY "Admins podem atualizar tipos de brinde" ON trade_tipos_brinde;
+DROP POLICY "Admins podem criar tipos de brinde" ON trade_tipos_brinde;
+-- Recriar com has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'supervisor')
+```
+
+### Migracao 5: Corrigir search_path nas 4 functions
+```sql
+ALTER FUNCTION enqueue_email SET search_path = public;
+ALTER FUNCTION delete_email SET search_path = public;
+ALTER FUNCTION read_email_batch SET search_path = public;
+ALTER FUNCTION move_to_dlq SET search_path = public;
+```
+
+### Migracao 6: Endurecer security_audit_log INSERT
+```sql
+DROP POLICY "System can insert security logs" ON security_audit_log;
+CREATE POLICY "Authenticated or service can insert security logs"
+  ON security_audit_log FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL OR auth.role() = 'service_role');
+```
+
+---
+
+## SCORECARD FINAL
+
+| Categoria | Peso | Nota | Ponderado |
+|---|---|---|---|
+| RLS & Policies | 25% | 7.5 | 1.875 |
+| Autenticacao & RBAC | 20% | 9.0 | 1.800 |
+| Edge Functions & APIs | 15% | 9.0 | 1.350 |
+| Dados Sensiveis & Criptografia | 15% | 7.5 | 1.125 |
+| Audit & Compliance (LGPD) | 10% | 9.0 | 0.900 |
+| Storage & CORS | 10% | 9.5 | 0.950 |
+| Input Validation | 5% | 9.0 | 0.450 |
+| **TOTAL** | **100%** | | **8.45 → 8.5** |
+
+### Nota apos correcoes propostas: **9.3 / 10**
+
+Os 0.7 restantes requerem: criptografia de tokens OAuth (pgcrypto/Vault), rate limiting em APIs publicas, e rotacao automatica de secrets — itens de infraestrutura que dependem de configuracao na plataforma.
+
