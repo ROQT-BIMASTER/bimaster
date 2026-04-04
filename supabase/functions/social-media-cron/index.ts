@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     // Buscar todas as contas configuradas
     const { data: accounts, error: accountsError } = await supabase
       .from('social_media_accounts')
-      .select('platform, username, access_token');
+      .select('platform, username, access_token_encrypted');
 
     if (accountsError) throw accountsError;
 
